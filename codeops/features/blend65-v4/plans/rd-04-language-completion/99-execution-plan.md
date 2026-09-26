@@ -405,6 +405,41 @@ proof is retained in RD-06 before removal from RD-04. Ownership is 171 RD-04 / t
 one RD-07 diagnostics. The High-effort correction batch resumes with the other specification
 expectations frozen. Selected numerical accounting and Phase 8 review remain open.
 
+**Final Phase 8 continuation (2026-09-26):** the user confirmed High effort for the whole
+remaining phase, including all constituent tests, corrections and independent review. Resume
+from clean `5cf2f4e8` and its 1,816-test green checkpoint. Complete the existing numerical and
+diagnostic proof, AR-P8 cleanup of substantively touched oversized owners, current-representation
+audit and full-phase qualification. Keep existing specification expectations frozen. No new
+pass, runtime, schema, framework, future-target field or Phase 9 work is authorized. Independent
+authorship is adding only focused selected-resource evidence. Pure responsibility moves reuse
+existing tests; they do not change semantics. The original phase baseline remains the full review
+boundary. Commit green local checkpoints; never push automatically.
+
+**Final evidence checkpoint (2026-09-26):** six new independently authored cases in
+`selected-resource-evidence.spec.test.ts` pass against the existing implementation: occupied RAM
+accounting, the 187/188-byte stack warning boundary, the 236/237-byte capacity boundary and nested
+call/status-save accounting. A combined real-ACME implementation case also checks readable labels
+and boundary comments alongside aggregate returns, helpers, loops, branch repair and placed raw
+data. AR-P8 responsibility splits preserve existing public imports and algorithms: declaration
+ordering, module diagnostic locations, body checking, compile-time statements, expression/call
+lowering and CFG value lifetimes now have focused nearby owners. No new stage or runtime exists.
+
+The static diagnostic proof-path check finds all 171 RD-04 codes, but a deeper alternate-producer
+audit found old message framing in additional intrinsic, placement, constant-evaluation and
+aggregate error paths. Independent specification additions are in progress before corrections;
+8.1.2 and 8.2.6 stay partial. Internal defensive paths and deferred native-format errors are
+distinguished from public reachable producers. Matching a diagnostic code is not accepted as
+proof of the complete record.
+
+Terminology correction for the historical checkpoints below: ST-52 is the current-representation
+target-neutrality audit, not numerical accounting. Resource arithmetic belongs to ST-08/ST-49 and
+the Phase 8 evidence tasks. Shared semantic and storage identities remain symbolic; selected
+interrupt facts enter explicitly through the profile contract. No physical C64 addresses or
+speculative future-target fields were added to shared representations. Arithmetic warnings remain
+estimates: the selected helper's bounded loop estimate plus selected call-site instruction costs,
+or the selected constant-multiply instruction costs, supply the displayed number. Exact expert
+byte/cycle oracles remain separate; no new warning-rounding contract is invented.
+
 **Large local fill batch (2026-09-26):** the user confirmed the recommended High-effort
 continuation for [#88](https://github.com/blendsdk/blend65/issues/88). Baseline `088c4c48`, clean
 worktree and prior 1,802-test checkpoint. Scope is the existing byte-fill selection and private
@@ -732,7 +767,7 @@ made in this continuation.
 ### Step 8.3: Implementation Tests and Qualification
 
 - [~] 8.3.1 Add malformed-machine, branch-range, ACME mismatch and evidence/publication implementation tests — `packages/compiler/src/machine/lowering.impl.test.ts`, `packages/compiler/src/artifacts/evidence.impl.test.ts`, `packages/compiler/src/publication/publication.impl.test.ts` — Twelve focused flag-dataflow and label-identity implementation cases pass. Remaining qualification coverage stays open. ⏳ (implemented: 2026-09-26 13:20)
-- [ ] 8.3.2 Run complete backend/artifact/service ACME qualification and expert comparisons using one normal-form complete-language example; assert its source-related routine/data labels and comments directly in the generated assembly — `test/rd04/backend.spec.test.ts`, `test/rd04/expert-output.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`
+- [~] 8.3.2 Run complete backend/artifact/service ACME qualification and expert comparisons using one normal-form complete-language example; assert its source-related routine/data labels and comments directly in the generated assembly — `test/rd04/backend.spec.test.ts`, `test/rd04/expert-output.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts` — `backend-assembly.impl.test.ts` directly checks routine/data names and boundary comments in the combined aggregate-return, helper, loop, long-branch and placed-asset image; the directed real-ACME case passes. Full verification and phase review are running. ⏳ (implemented: 2026-09-26 19:12)
 
 **Deliverables:** complete legal `none` backend, coherent artifacts and identical public services.
 

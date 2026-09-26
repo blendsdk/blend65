@@ -9,16 +9,13 @@ import type {
   SemanticType,
   TypedBlock,
   TypedExpr,
-  TypedForStatement,
-  TypedIfStatement,
-  TypedStatement,
-  TypedVariableStatement,
 } from "./semantic-types.js";
 import type { TypeSyntax } from "./syntax.js";
+import { ComptimeStatements } from "./comptime-statements.js";
 import { ComptimeBudget, ComptimeBudgetFailure } from "./comptime-budget.js";
 import { ComptimeAggregates, isAggregateValue } from "./comptime-aggregates.js";
 import type { AggregateValue, ComptimeFrame, ScalarValue } from "./comptime-aggregates.js";
-import { collectConstantDependencies, isExpressionList } from "./comptime-dependencies.js";
+import { collectConstantDependencies } from "./comptime-dependencies.js";
 import { evaluateIntegerTrigonometry, isTrigonometryIntrinsic } from "./trigonometry.js";
 import { foldPackedBcd, invalidPackedBcdDigit } from "./machine-intrinsics.js";
 
@@ -32,13 +29,8 @@ export interface ComptimeFunction {
   readonly body: TypedBlock;
 }
 
-/** A selected value remains live until its enclosing expression releases it. */
+/** Scalar or aggregate result retained across a compile-time call. */
 type EvaluatedValue = ScalarValue | AggregateValue;
-
-/** An exit from a selected statement or block. */
-type ExecutionExit =
-  | { readonly kind: "normal" | "break" | "continue" }
-  | { readonly kind: "return"; readonly result: EvaluatedValue | null };
 
 type Frame = ComptimeFrame;
 
@@ -62,6 +54,7 @@ export class ComptimeEvaluator {
   private readonly functions = new Map<string, ComptimeFunction>();
   private readonly active = new Set<string>();
   private readonly aggregates: ComptimeAggregates;
+  private readonly statements: ComptimeStatements;
 
   constructor(
     readonly budget: ComptimeBudget,
@@ -79,6 +72,18 @@ export class ComptimeEvaluator {
       },
       (expression, current, rhs) => this.assignmentValue(expression, current, rhs),
     );
+    this.statements = new ComptimeStatements({
+      budget,
+      isAggregate: (type) => this.aggregates.isAggregate(type),
+      evaluate: (expression, frame, root) => this.evaluate(expression, frame, root),
+      evaluateAggregate: (expression, frame, root) =>
+        this.aggregates.evaluate(expression, frame, root),
+      temporary: (value, type, span, root) => this.temporary(value, type, span, root),
+      temporaryAggregate: (value, type, span, root) =>
+        this.aggregates.temporary(value, type, span, root),
+      chargeAggregateBytes: (count, span, root) => this.aggregates.chargeBytes(count, span, root),
+      convert: (value, type) => this.convert(value, type),
+    });
   }
 
   /** Register a typed function body before any constant root is evaluated. */
@@ -103,11 +108,12 @@ export class ComptimeEvaluator {
     const root = expression.span;
     const frame: Frame = { values: new Map(), aggregates: new Map(), allocatedBytes: 0 };
     try {
-      const result = this.isAggregate(type)
-        ? this.evaluateAggregate(expression, frame, root)
+      const result = this.aggregates.isAggregate(type)
+        ? this.aggregates.evaluate(expression, frame, root)
         : this.evaluate(expression, frame, root);
       this.budget.allocate(semanticTypeSize(type), root, root);
-      if (this.isAggregate(type)) this.chargeAggregateBytes(semanticTypeSize(type), root, root);
+      if (this.aggregates.isAggregate(type))
+        this.aggregates.chargeBytes(semanticTypeSize(type), root, root);
       this.budget.release(result.bytes);
       return isAggregateValue(result)
         ? Object.freeze([...result.value])
@@ -129,38 +135,13 @@ export class ComptimeEvaluator {
     }
   }
 
-  /** Fixed aggregates use the same checked value representation throughout evaluation. */
-  private isAggregate(type: SemanticType): boolean {
-    return this.aggregates.isAggregate(type);
-  }
-
-  /** Charge logical byte work regardless of host copy strategy. */
-  private chargeAggregateBytes(count: number, span: SourceSpan, root: SourceSpan): void {
-    this.aggregates.chargeBytes(count, span, root);
-  }
-
-  /** Retain a complete aggregate temporary across the enclosing expression. */
-  private temporaryAggregate(
-    value: readonly number[],
-    type: SemanticType,
-    span: SourceSpan,
-    root: SourceSpan,
-  ): AggregateValue {
-    return this.aggregates.temporary(value, type, span, root);
-  }
-
-  /** Evaluate a checked fixed aggregate without generating target work. */
-  private evaluateAggregate(expression: TypedExpr, frame: Frame, root: SourceSpan): AggregateValue {
-    return this.aggregates.evaluate(expression, frame, root);
-  }
-
   /** Charge one expression before reading children or mutating evaluator-local state. */
   private evaluate(expression: TypedExpr, frame: Frame, root: SourceSpan): ScalarValue {
     this.budget.step(expression.span, root);
     if (
       (expression.kind === "member" || expression.kind === "index") &&
       expression.object !== undefined &&
-      this.isAggregate(expression.object.type)
+      this.aggregates.isAggregate(expression.object.type)
     ) {
       return this.aggregates.readScalar(expression, frame, root);
     }
@@ -498,14 +479,14 @@ export class ComptimeEvaluator {
         if (parameter === undefined) {
           throw this.invalid(expression.span, "Compile-time call parameter count is incomplete");
         }
-        const value = this.isAggregate(argument.type)
-          ? this.evaluateAggregate(argument, caller, root)
+        const value = this.aggregates.isAggregate(argument.type)
+          ? this.aggregates.evaluate(argument, caller, root)
           : this.evaluate(argument, caller, root);
         argumentBytes += value.bytes;
         this.budget.allocate(semanticTypeSize(argument.type), argument.span, root);
         frame.allocatedBytes += semanticTypeSize(argument.type);
         if (isAggregateValue(value)) {
-          this.chargeAggregateBytes(value.value.length, argument.span, root);
+          this.aggregates.chargeBytes(value.value.length, argument.span, root);
           frame.aggregates.set(bindingIdentityKey(parameter), [...value.value]);
         } else {
           frame.values.set(bindingIdentityKey(parameter), value.value);
@@ -513,12 +494,12 @@ export class ComptimeEvaluator {
       }
       this.budget.release(argumentBytes);
       argumentBytes = 0;
-      const exit = this.executeBlock(target.body, frame, root);
+      const exit = this.statements.executeBlock(target.body, frame, root);
       if (exit.kind !== "return" || exit.result === null) {
         throw this.invalid(expression.span, "Compile-time function did not return a value");
       }
       const result = isAggregateValue(exit.result)
-        ? this.temporaryAggregate(exit.result.value, expression.type, expression.span, root)
+        ? this.aggregates.temporary(exit.result.value, expression.type, expression.span, root)
         : this.temporary(
             this.convert(exit.result.value, expression.type),
             expression.type,
@@ -531,199 +512,6 @@ export class ComptimeEvaluator {
       this.budget.release(argumentBytes + frame.allocatedBytes);
       this.active.delete(key);
       this.budget.leaveCall();
-    }
-  }
-
-  /** Execute selected statements in source order, releasing block-local storage on exit. */
-  private executeBlock(block: TypedBlock, frame: Frame, root: SourceSpan): ExecutionExit {
-    const added: string[] = [];
-    let bytes = 0;
-    try {
-      for (const statement of block.statements) {
-        const before = frame.allocatedBytes;
-        const exit = this.executeStatement(statement, frame, root);
-        if (statement.kind === "variable") {
-          added.push(bindingIdentityKey(statement.binding));
-          bytes += frame.allocatedBytes - before;
-        }
-        if (exit.kind !== "normal") return exit;
-      }
-      return { kind: "normal" };
-    } finally {
-      for (const key of added) {
-        frame.values.delete(key);
-        frame.aggregates.delete(key);
-      }
-      frame.allocatedBytes -= bytes;
-      this.budget.release(bytes);
-    }
-  }
-
-  /** Execute one typed statement; loops charge only iterations they actually enter. */
-  private executeStatement(
-    statement: TypedStatement,
-    frame: Frame,
-    root: SourceSpan,
-  ): ExecutionExit {
-    this.budget.step(statement.span, root);
-    switch (statement.kind) {
-      case "variable":
-        return this.declareLocal(statement, frame, root);
-      case "expression-statement": {
-        const result = this.isAggregate(statement.expression.type)
-          ? this.evaluateAggregate(statement.expression, frame, root)
-          : this.evaluate(statement.expression, frame, root);
-        this.budget.release(result.bytes);
-        return { kind: "normal" };
-      }
-      case "block":
-        return this.executeBlock(statement, frame, root);
-      case "if":
-        return this.executeIf(statement, frame, root);
-      case "while":
-        while (true) {
-          const condition = this.evaluate(statement.condition, frame, root);
-          this.budget.release(condition.bytes);
-          if (!condition.value) return { kind: "normal" };
-          this.budget.step(statement.span, root);
-          const exit = this.executeBlock(statement.body, frame, root);
-          if (exit.kind === "return") return exit;
-          if (exit.kind === "break") return { kind: "normal" };
-        }
-      case "for":
-        return this.executeFor(statement, frame, root);
-      case "do-while":
-        while (true) {
-          this.budget.step(statement.span, root);
-          const exit = this.executeBlock(statement.body, frame, root);
-          if (exit.kind === "return") return exit;
-          if (exit.kind === "break") return { kind: "normal" };
-          const condition = this.evaluate(statement.condition, frame, root);
-          this.budget.release(condition.bytes);
-          if (!condition.value) return { kind: "normal" };
-        }
-      case "return": {
-        if (statement.value === undefined || statement.value === null) {
-          return { kind: "return", result: null };
-        }
-        const evaluated = this.isAggregate(statement.value.type)
-          ? this.evaluateAggregate(statement.value, frame, root)
-          : this.evaluate(statement.value, frame, root);
-        const result = isAggregateValue(evaluated)
-          ? this.temporaryAggregate(evaluated.value, statement.value.type, statement.span, root)
-          : this.temporary(evaluated.value, statement.value.type, statement.span, root);
-        this.budget.release(evaluated.bytes);
-        return { kind: "return", result };
-      }
-      case "break":
-      case "continue":
-        return { kind: statement.kind };
-      case "switch": {
-        const selected = this.evaluate(statement.value, frame, root);
-        this.budget.release(selected.bytes);
-        const matching = statement.clauses.findIndex(
-          (clause) =>
-            clause.values !== null &&
-            clause.values.some((candidate) => candidate.constant === selected.value),
-        );
-        const start =
-          matching >= 0
-            ? matching
-            : statement.clauses.findIndex((clause) => clause.values === null);
-        for (let index = start; index >= 0 && index < statement.clauses.length; index += 1) {
-          const clause = statement.clauses[index]!;
-          const exit = this.executeBlock(clause.body, frame, root);
-          if (exit.kind === "break") return { kind: "normal" };
-          if (exit.kind !== "normal") return exit;
-          if (!clause.fallthrough) return { kind: "normal" };
-        }
-        return { kind: "normal" };
-      }
-    }
-  }
-
-  /** A local is allocated before its initializer can publish a value. */
-  private declareLocal(
-    statement: TypedVariableStatement,
-    frame: Frame,
-    root: SourceSpan,
-  ): ExecutionExit {
-    const bytes = semanticTypeSize(statement.type);
-    this.budget.allocate(bytes, statement.span, root);
-    frame.allocatedBytes += bytes;
-    const key = bindingIdentityKey(statement.binding);
-    if (statement.initializer !== null) {
-      const value = this.isAggregate(statement.type)
-        ? this.evaluateAggregate(statement.initializer, frame, root)
-        : this.evaluate(statement.initializer, frame, root);
-      if (isAggregateValue(value)) {
-        this.chargeAggregateBytes(value.value.length, statement.initializer.span, root);
-        frame.aggregates.set(key, [...value.value]);
-      } else {
-        frame.values.set(key, this.convert(value.value, statement.type));
-      }
-      this.budget.release(value.bytes);
-    } else if (this.isAggregate(statement.type)) {
-      frame.aggregates.set(key, Array<number>(bytes).fill(-1));
-    }
-    return { kind: "normal" };
-  }
-
-  /** Only the selected branch is evaluated or charged. */
-  private executeIf(statement: TypedIfStatement, frame: Frame, root: SourceSpan): ExecutionExit {
-    const condition = this.evaluate(statement.condition, frame, root);
-    this.budget.release(condition.bytes);
-    if (condition.value) return this.executeBlock(statement.then, frame, root);
-    if (statement.otherwise === null) return { kind: "normal" };
-    return statement.otherwise.kind === "block"
-      ? this.executeBlock(statement.otherwise, frame, root)
-      : this.executeStatement(statement.otherwise, frame, root);
-  }
-
-  /** The for-header local survives iterations and is released after the loop. */
-  private executeFor(statement: TypedForStatement, frame: Frame, root: SourceSpan): ExecutionExit {
-    let headerBytes = 0;
-    let headerKey: string | null = null;
-    try {
-      if (statement.initializer !== null) {
-        if (isExpressionList(statement.initializer)) {
-          for (const expression of statement.initializer) {
-            const result = this.isAggregate(expression.type)
-              ? this.evaluateAggregate(expression, frame, root)
-              : this.evaluate(expression, frame, root);
-            this.budget.release(result.bytes);
-          }
-        } else {
-          const initial = statement.initializer;
-          this.executeStatement(initial, frame, root);
-          headerBytes = semanticTypeSize(initial.type);
-          headerKey = bindingIdentityKey(initial.binding);
-        }
-      }
-      while (true) {
-        if (statement.condition !== null) {
-          const condition = this.evaluate(statement.condition, frame, root);
-          this.budget.release(condition.bytes);
-          if (!condition.value) return { kind: "normal" };
-        }
-        this.budget.step(statement.span, root);
-        const exit = this.executeBlock(statement.body, frame, root);
-        if (exit.kind === "return") return exit;
-        if (exit.kind === "break") return { kind: "normal" };
-        for (const update of statement.update ?? []) {
-          const result = this.isAggregate(update.type)
-            ? this.evaluateAggregate(update, frame, root)
-            : this.evaluate(update, frame, root);
-          this.budget.release(result.bytes);
-        }
-      }
-    } finally {
-      if (headerKey !== null) {
-        frame.values.delete(headerKey);
-        frame.aggregates.delete(headerKey);
-        frame.allocatedBytes -= headerBytes;
-        this.budget.release(headerBytes);
-      }
     }
   }
 

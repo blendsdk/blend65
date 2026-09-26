@@ -1,3 +1,10 @@
+import {
+  freezeSpan,
+  rawByteLocation,
+  sourceSlice,
+  uncheckedObligation,
+  addMissingDependency,
+} from "./module-diagnostics.js";
 import { projectDiagnostic, sortDiagnostics } from "../project/diagnostics.js";
 import type {
   ProjectDiagnostic,
@@ -49,11 +56,6 @@ function compareSpans(left: SourceSpan, right: SourceSpan): number {
   );
 }
 
-/** Freeze a span copy so no result shares a mutable caller-owned record. */
-function freezeSpan(span: SourceSpan): SourceSpan {
-  return Object.freeze({ sourceId: span.sourceId, start: span.start, end: span.end });
-}
-
 /** Map a parsed module declaration to its pre-body storage role. */
 function declarationStorage(declaration: Declaration): BindingStorage | null {
   if (declaration.kind === "function") return "function";
@@ -102,30 +104,6 @@ function bindingNameSpan(binding: Binding, units: readonly SyntaxUnit[]): Source
     }
   }
   return binding.declaration;
-}
-
-/** Render a one-based raw-byte position without converting it to an editor column. */
-function rawByteLocation(source: SourceRecord, offset: number): string {
-  const bytes = Buffer.from(source.text, "utf8");
-  let line = 1;
-  let column = 1;
-  let previousCR = false;
-  for (let index = 0; index < Math.min(offset, bytes.length); index += 1) {
-    const byte = bytes[index]!;
-    if (byte === 0x0d) {
-      line += 1;
-      column = 1;
-      previousCR = true;
-    } else if (byte === 0x0a) {
-      if (!previousCR) line += 1;
-      column = 1;
-      previousCR = false;
-    } else {
-      column += 1;
-      previousCR = false;
-    }
-  }
-  return `${source.sourceId}:${line}:${column}`;
 }
 
 /** Build a source-based binding from one bindable module declaration. */
@@ -260,27 +238,6 @@ interface EntryCandidate {
   readonly source: SourceRecord;
 }
 
-/** Decode one raw-byte source range whose boundaries came from the scanner. */
-function sourceSlice(source: SourceRecord, start: number, end: number): string {
-  return Buffer.from(source.text, "utf8").subarray(start, end).toString("utf8");
-}
-
-/** Classify a retained unchecked region without fabricating accepted syntax. */
-function uncheckedObligation(source: SourceRecord, span: SourceSpan): AnalysisObligation {
-  const spelling = sourceSlice(source, span.start, span.end).trimStart();
-  const implementationForm =
-    /^(?:comptime|do|enum|fn|for|interrupt|loadable|place|switch|zeropage)\b/u.test(spelling);
-  return Object.freeze({
-    kind: implementationForm
-      ? ANALYSIS_OBLIGATION_KIND.implementation
-      : ANALYSIS_OBLIGATION_KIND.analysisLimit,
-    span: freezeSpan(span),
-    message: implementationForm
-      ? "Source form is not implemented by the current frontend slice"
-      : "Frontend analysis stopped at its defensive nesting limit",
-  });
-}
-
 /** Render the written declaration prefix used by the canonical entry diagnostic. */
 function entrySpelling(candidate: EntryCandidate): string {
   const end =
@@ -333,24 +290,6 @@ function entryCandidates(
         compareText(left.module, right.module) ||
         compareSpans(left.binding.declaration, right.binding.declaration),
     ),
-  );
-}
-
-/** Add one dependency obligation once, preserving its first proving location. */
-function addMissingDependency(
-  obligations: AnalysisObligation[],
-  missing: Set<string>,
-  moduleName: string,
-  span: SourceSpan | null,
-): void {
-  if (missing.has(moduleName)) return;
-  missing.add(moduleName);
-  obligations.push(
-    Object.freeze({
-      kind: ANALYSIS_OBLIGATION_KIND.dependency,
-      span: span === null ? null : freezeSpan(span),
-      message: `Required module '${moduleName}' is unavailable`,
-    }),
   );
 }
 

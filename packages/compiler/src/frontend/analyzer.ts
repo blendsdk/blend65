@@ -5,9 +5,9 @@ import type {
   SourceRecord,
   SourceSpan,
 } from "../project/types.js";
-import { RESERVED_BUILTIN_NAMES, scalarWarning, SCALAR_TYPES } from "./constants.js";
+import { RESERVED_BUILTIN_NAMES, SCALAR_TYPES } from "./constants.js";
 import { AggregateRegistry } from "./aggregates.js";
-import { analyzeReturnStatement } from "./analyzer-return.js";
+import { BodyAnalyzer } from "./analyzer-body.js";
 import { assembleModuleAnalysis } from "./analysis-result.js";
 import { uninitializedReadDiagnostic } from "./aggregate-initialization.js";
 import { recursionDiagnostics } from "./call-cycles.js";
@@ -18,11 +18,7 @@ import { visitExpressionBindings } from "./comptime-dependencies.js";
 import { initializerBytes } from "./constant-bytes.js";
 import { orderScalarDeclarations } from "./effects.js";
 import {
-  analyzeStructuredFor,
-  analyzeStructuredIf,
-  analyzeStructuredDoWhile,
   clearMutableFacts,
-  conditionDiagnostic,
   moduleValueScope,
   resolveScalarName,
   sourceText,
@@ -30,7 +26,6 @@ import {
 } from "./flow.js";
 import { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
 import { checkStatusStack } from "./status-stack.js";
-import { analyzeStructuredSwitch } from "./switch-flow.js";
 import { analyzeScalarLocal, analyzeScalarModuleVariable } from "./analyzer-scalars.js";
 import { collectDeclarationIndex, prepareModuleBindings } from "./module-bindings.js";
 import { checkedPlacement } from "./placement.js";
@@ -39,7 +34,6 @@ import { prepareFunctionParameters } from "./function-parameters.js";
 import { diagnoseUnusedDeclarations, diagnoseDeclarationResources } from "./source-advisories.js";
 import type { FunctionInfo } from "./module-bindings.js";
 import type { FrontendProfile } from "./profile.js";
-import { captureBranchFacts, mergeScalarFacts, snapshotScalarFacts } from "./flow-facts.js";
 import {
   ANALYSIS_OBLIGATION_KIND,
   bindingIdentityKey,
@@ -54,22 +48,17 @@ import type {
   ModuleAnalysisResult,
   ModuleGraph,
   ScalarExpressionContext as ExpressionContext,
-  ScalarFactSnapshot,
   ScalarScope as Scope,
   ScalarValueState as ValueState,
   SemanticBinding,
   SemanticType,
-  TypedBlock,
   TypedExpr,
-  TypedStatement,
   TypedVariableStatement,
   FunctionSignature,
 } from "./semantic-types.js";
 import type {
-  Block,
   Declaration,
   FunctionDeclaration,
-  Statement,
   TypeSyntax,
   VariableDeclaration,
 } from "./syntax.js";
@@ -79,11 +68,6 @@ import type { EmbeddedValue } from "../assets/asset-types.js";
 class ModuleAnalyzer {
   /** Source binding references by owning function; the empty owner denotes module/type roots. */
   private readonly references = new Map<string, Set<string>>();
-  /** One active frame per nested loop so jumps credit only their own loop's facts. */
-  private readonly loopFactCollectors: {
-    readonly baseline: ScalarFactSnapshot;
-    readonly exits: { readonly kind: "break" | "continue"; readonly facts: ScalarFactSnapshot }[];
-  }[] = [];
   readonly diagnostics: ProjectDiagnostic[] = [];
   readonly obligations: AnalysisObligation[] = [];
   readonly bindings: SemanticBinding[];
@@ -100,6 +84,7 @@ class ModuleAnalyzer {
   readonly aggregates: AggregateRegistry;
   readonly expressions: ScalarExpressionAnalyzer;
   private readonly evaluator: ComptimeEvaluator;
+  private readonly body: BodyAnalyzer;
   /** Immutable packed constants, encoded once when their declaration is published. */
   private readonly constantAggregates = new Map<string, readonly number[]>();
   readonly profileSignatures = new Map<string, FunctionSignature>();
@@ -172,6 +157,15 @@ class ModuleAnalyzer {
       },
       this.aggregates,
     );
+    this.body = new BodyAnalyzer({
+      diagnostics: this.diagnostics,
+      expressions: this.expressions,
+      sources: this.sources,
+      bindingByKey: this.bindingByKey,
+      functionByKey: this.functionByKey,
+      analyzeLocal: (declaration, scope, context) => this.analyzeLocal(declaration, scope, context),
+      addObligation: (span, message) => this.addObligation(span, message),
+    });
   }
 
   /** Analyze every reachable declaration and assemble a frozen phase result. */
@@ -387,7 +381,7 @@ class ModuleAnalyzer {
     const body =
       returnType === null
         ? null
-        : this.analyzeBlock(
+        : this.body.analyzeBlock(
             declaration.body,
             scope,
             module,
@@ -434,216 +428,6 @@ class ModuleAnalyzer {
         }),
       );
     }
-  }
-
-  /** Analyze a block, optionally sharing its scope with function parameters. */
-  private analyzeBlock(
-    block: Block,
-    parent: Scope,
-    module: string,
-    caller: BindingId,
-    returnType: SemanticType,
-    loopDepth: number,
-    nested = true,
-  ): TypedBlock {
-    const scope: Scope = nested ? { parent, values: new Map() } : parent;
-    const statements: TypedStatement[] = [];
-    let terminal: "break" | "continue" | "return" | null = null;
-    let warned = false;
-    for (const statement of block.statements) {
-      if (terminal !== null) {
-        if (!warned) {
-          this.diagnostics.push(
-            scalarWarning(
-              "W10131",
-              `Unreachable code — statements after '${terminal}' cannot execute`,
-              statement.span,
-            ),
-          );
-          warned = true;
-        }
-        continue;
-      }
-      const typed = this.analyzeStatement(statement, scope, module, caller, returnType, loopDepth);
-      if (typed !== null) {
-        statements.push(typed);
-        if (typed.kind === "break" || typed.kind === "continue" || typed.kind === "return") {
-          terminal = typed.kind;
-        }
-      }
-    }
-    return Object.freeze({
-      kind: "block",
-      span: freezeSourceSpan(block.span),
-      statements: Object.freeze(statements),
-    });
-  }
-
-  /** Analyze a loop body while sampling each break/continue before branch joins erase it. */
-  private analyzeLoopBlock(
-    block: Block,
-    scope: Scope,
-    module: string,
-    caller: BindingId,
-    returnType: SemanticType,
-    loopDepth: number,
-  ) {
-    const frame = {
-      baseline: snapshotScalarFacts(scope),
-      exits: [] as {
-        readonly kind: "break" | "continue";
-        readonly facts: ScalarFactSnapshot;
-      }[],
-    };
-    this.loopFactCollectors.push(frame);
-    try {
-      const body = this.analyzeBlock(block, scope, module, caller, returnType, loopDepth);
-      return Object.freeze({ body, exits: Object.freeze(frame.exits) });
-    } finally {
-      this.loopFactCollectors.pop();
-    }
-  }
-
-  /** Analyze one structured statement while retaining source order. */
-  private analyzeStatement(
-    statement: Statement,
-    scope: Scope,
-    module: string,
-    caller: BindingId,
-    returnType: SemanticType,
-    loopDepth: number,
-  ): TypedStatement | null {
-    const context: ExpressionContext = {
-      scope,
-      module,
-      sourceId: statement.span.sourceId,
-      caller,
-      constantContext: false,
-    };
-    if (statement.kind === "variable") return this.analyzeLocal(statement, scope, context);
-    if (statement.kind === "expression-statement") {
-      const expression = this.expressions.analyze(statement.expression, null, {
-        ...context,
-        cpuStatementExpression: statement.expression,
-      }).node;
-      return expression === null
-        ? null
-        : Object.freeze({
-            kind: "expression-statement",
-            span: freezeSourceSpan(statement.span),
-            expression,
-          });
-    }
-    if (statement.kind === "block")
-      return this.analyzeBlock(statement, scope, module, caller, returnType, loopDepth);
-    if (statement.kind === "if")
-      return analyzeStructuredIf(
-        statement,
-        scope,
-        module,
-        caller,
-        returnType,
-        loopDepth,
-        this.expressions,
-        this.structuredFlowHost(),
-      );
-    if (statement.kind === "while") {
-      clearMutableFacts(scope);
-      const condition = this.expressions.analyze(statement.condition, null, context).node;
-      if (condition !== null) this.addConditionDiagnostic(condition, statement.condition.span);
-      if (condition?.constant === false) {
-        this.diagnostics.push(
-          scalarWarning(
-            "W10130",
-            "Condition is always false — this block cannot execute",
-            statement.condition.span,
-          ),
-        );
-      }
-      const loopEntry = snapshotScalarFacts(scope);
-      const { body } = this.analyzeLoopBlock(
-        statement.body,
-        scope,
-        module,
-        caller,
-        returnType,
-        loopDepth + 1,
-      );
-      const bodyFacts = captureBranchFacts(loopEntry);
-      mergeScalarFacts(loopEntry, [loopEntry, bodyFacts]);
-      return condition === null
-        ? null
-        : Object.freeze({ kind: "while", span: freezeSourceSpan(statement.span), condition, body });
-    }
-    if (statement.kind === "for")
-      return analyzeStructuredFor(
-        statement,
-        scope,
-        module,
-        caller,
-        returnType,
-        loopDepth,
-        this.expressions,
-        this.structuredFlowHost(),
-      );
-    if (statement.kind === "do-while")
-      return analyzeStructuredDoWhile(
-        statement,
-        scope,
-        module,
-        caller,
-        returnType,
-        loopDepth,
-        this.expressions,
-        this.structuredFlowHost(),
-      );
-    if (statement.kind === "switch") {
-      return analyzeStructuredSwitch(
-        statement,
-        scope,
-        module,
-        caller,
-        returnType,
-        loopDepth,
-        this.expressions,
-        {
-          analyzeBlock: (body, parent, owner, functionId, resultType, depth) =>
-            this.analyzeBlock(body, parent, owner, functionId, resultType, depth),
-          diagnose: (diagnostic) => this.diagnostics.push(diagnostic),
-          source: this.sources.get(statement.span.sourceId),
-        },
-      );
-    }
-    if (statement.kind === "return") {
-      return analyzeReturnStatement(
-        statement,
-        returnType,
-        this.bindingByKey.get(bindingIdentityKey(caller))?.name ?? "<function>",
-        context,
-        this.expressions,
-        this.diagnostics,
-        this.functionByKey.get(bindingIdentityKey(caller))!.declaration.nameSpan,
-      );
-    }
-    if (statement.kind === "break" || statement.kind === "continue") {
-      if (loopDepth === 0) {
-        this.diagnostics.push(
-          errorDiagnostic("E10063", `'${statement.kind}' can only be used inside a loop body`, {
-            ...statement.span,
-            end: statement.span.start + statement.kind.length,
-          }),
-        );
-      }
-      const frame = this.loopFactCollectors.at(-1);
-      if (frame !== undefined) {
-        frame.exits.push({ kind: statement.kind, facts: captureBranchFacts(frame.baseline) });
-      }
-      return Object.freeze({ kind: statement.kind, span: freezeSourceSpan(statement.span) });
-    }
-    if (statement.kind === "unchecked" || statement.kind === "fallthrough") {
-      this.addObligation(statement.span, "Statement is not implemented by this frontend slice");
-    }
-    return null;
   }
 
   /** Analyze a local initializer before introducing the new binding. */
@@ -696,31 +480,6 @@ class ModuleAnalyzer {
     if (bytes !== null) this.constantAggregates.set(bindingIdentityKey(binding), bytes);
   }
 
-  /** Bind structured-flow callbacks directly to this analysis instance. */
-  private structuredFlowHost() {
-    return {
-      analyzeBlock: (
-        block: Block,
-        scope: Scope,
-        module: string,
-        caller: BindingId,
-        returnType: SemanticType,
-        loopDepth: number,
-      ) => this.analyzeBlock(block, scope, module, caller, returnType, loopDepth),
-      analyzeLoopBlock: (
-        block: Block,
-        scope: Scope,
-        module: string,
-        caller: BindingId,
-        returnType: SemanticType,
-        loopDepth: number,
-      ) => this.analyzeLoopBlock(block, scope, module, caller, returnType, loopDepth),
-      analyzeLocal: (declaration: VariableDeclaration, scope: Scope, context: ExpressionContext) =>
-        this.analyzeLocal(declaration, scope, context),
-      diagnose: (diagnostic: ProjectDiagnostic) => this.diagnostics.push(diagnostic),
-    };
-  }
-
   /** Add one local or parameter binding using only source identity. */
   private createBodyBinding(
     name: string,
@@ -752,11 +511,6 @@ class ModuleAnalyzer {
     scope?: Scope,
   ): SemanticType | null {
     return this.aggregates.resolveType(type, module, initializer, true, scope);
-  }
-  /** Append a condition diagnostic only when the expression is not Boolean. */
-  private addConditionDiagnostic(expression: TypedExpr, span: SourceSpan): void {
-    const diagnostic = conditionDiagnostic(expression, span);
-    if (diagnostic !== null) this.diagnostics.push(diagnostic);
   }
   /** Add one immutable implementation obligation. */
   private addObligation(span: SourceSpan, message: string): void {

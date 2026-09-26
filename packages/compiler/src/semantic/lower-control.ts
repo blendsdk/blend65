@@ -138,3 +138,9 @@ export function lowerConditional(
     { block: falseExit.id, value: falseValue },
   ]);
 }
+
+/** Fail loudly when a completed frontend node is missing one of its required fields. */
+export function required<T>(value: T | undefined, description: string): T {
+  if (value === undefined) throw new Error(`Completed frontend node is missing ${description}`);
+  return value;
+}
