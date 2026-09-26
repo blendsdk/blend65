@@ -257,6 +257,7 @@ export function analyzeScalarLocal(
     span: freezeSourceSpan(declaration.span),
     name: declaration.name,
     binding: binding.id,
+    nameSpan: freezeSourceSpan(declaration.nameSpan),
     type,
     initializer,
   });

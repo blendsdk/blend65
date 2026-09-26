@@ -405,6 +405,62 @@ proof is retained in RD-06 before removal from RD-04. Ownership is 171 RD-04 / t
 one RD-07 diagnostics. The High-effort correction batch resumes with the other specification
 expectations frozen. Selected numerical accounting and Phase 8 review remain open.
 
+**Resource/producer qualification batch (2026-09-26 18:02):** the user confirmed the High-effort
+handoff with “proceed”. Independent implementation-blind authorship added four shared-resource
+cases and three lifetime-diagnostic cases in `test/rd04/resource-accounting.spec.test.ts` and
+`borrow-diagnostics.spec.test.ts`: five RED, two GREEN (`/tmp/phase8-resource-borrow-red.log`).
+The failures prove the artificial `$BFFF` payload ceiling, noncanonical oversized-BSS error,
+summation of nonsimultaneous source status saves, and two alternate E10260 message producers.
+Controls reconcile emitted padding/PRG/BSS accounting and retain legal transitive borrows.
+The lifetime producers now share their existing canonical explanation and retain declaration
+tokens; lifetime/execution checks pass 14/14. The shared-memory correction and call-site status
+depth accounting pass all seven new specification cases plus backend and embedded-read controls
+(17/17, `/tmp/phase8-resource-green.log`). Helper and vector-update stack peaks are also being
+attributed to their live operation depths; targeted implementation qualification and full
+verification remain pending. No existing specification expectation changed.
+
+The independent design challenge recommends platform-derived trailing RAM ranges supplied to
+existing SFA closure, with final binding/layout stability checks. This is a bounded correction
+inside 8.2.4/8.2.5, not a new planner or optimizer. Merely widening the payload ceiling would leave
+SFA inside emitted padding; a generalized allocation/layout framework is unnecessary. Preserve
+helper sharing and provisional indirect-call decisions when proving final size/origin stability;
+do not relocate certified homes or accept a new false source restriction. The challenge classifies
+this as existing-plan correctness glue, requiring no new product choice. Confidence is medium-high
+until the address-sensitive binding cases are proved. Phase 8 remains partial, with no new commit.
+
+**Resource review correction (2026-09-26):** independent review raised RV-001 (major,
+correctness): final SFA exhaustion was being flattened into `COMPILER_LAYOUT`. Two independent
+supplementary specification probes produced one RED (high fixed prefix plus a 512-byte frame)
+and one GREEN (full-budget module data). Resolution: fix the existing canonical E10238 path.
+This is an unambiguous compiler-owned correction inside the approved batch, under the user's
+non-negotiable workflow directive 4 (technical plan decisions do not require another prompt);
+no new product scope, support surface, spec change or deferral is authorized. The internal result
+now retains resource identity, measured platform-plus-certified-frame demand and source location.
+Directed verification passes all nine new resource/lifetime cases
+(`/tmp/phase8-resource-reviewfix.log`). The one permitted fix-only independent re-review resolves
+RV-001 with no findings. The broader Phase 8 review remains outstanding; this review covers only
+the bounded resource/producer correction diff from `415a79bc`.
+
+The 5,000-byte uninitialized local frame passes in VICE with a sub-1KB PRG. Explicit repeated-byte
+initialization separately revealed 25,000 bytes of scalar clear instructions; measured parity debt
+and the compact-fill path are recorded in [#88](https://github.com/blendsdk/blend65/issues/88).
+The capacity test writes each observed element before reading it, keeping that allocation proof
+independent of the tracked fill defect. Padded ~50KB images require more than the test harness's
+old 100-million-cycle disk-autoload cap: a scoped optional cap of 300 million proves the first
+high-memory indirect/helper case in VICE. Ordinary tests retain their old cap; no compiler behavior
+or runtime assertion was weakened. All three high origins and the large local frame pass
+sequentially (4/4, `/tmp/phase8-shared-qualified.log`), VICE-verified / hardware-unverified.
+Directed storage/layout contract cases pass 39/39, including four new live-save overlap tests.
+Two implementation-only fixtures now use the true out-of-range boundary instead of `$BFFF`;
+their rejection predicates remain unchanged. Final checkpoint verification (2026-09-26 18:27):
+install, build, typecheck and all **1,802 tests pass** (1,354 compiler, 62 CLI, 14 language-server,
+six editor, 366 root). Logs: `/tmp/phase8-final-{install,build,typecheck,test}.log`. The root run
+includes sequential VICE and equal-contract expert checks. Formatting, local documentation links,
+whitespace, existing specification-test integrity and frozen-spec checks pass. No phase task is
+promoted: exact remaining resource/producer completeness and full backend/phase review remain.
+The roadmap reflects this bounded checkpoint. Portfolio cascading stays deferred to integration;
+the generic sync checker still flags its pre-existing Windows-blocker status roll-up.
+
 **Approved correction checkpoint (2026-09-26 17:45):** AR-P25 changed exactly the two
 enum-message expectations. AR-P26 retains the malformed SpritePad bytes and source fixture
 under RD-06 and changes only E10204's crosswalk ownership and active RD-04 case. The crosswalk
@@ -635,7 +691,7 @@ made in this continuation.
 - [~] 8.2.4 Complete layout, ACME serialization with stable source-related labels and meaningful routine/data boundary comments, report reconciliation and final PRG packaging — `packages/compiler/src/layout/c64-layout.ts`, `packages/compiler/src/artifacts/acme-serializer.ts`, `packages/compiler/src/artifacts/acme-validate.ts` — Raw assets retain and reconcile declaration placement; generated assembly and debug evidence share readable, collision-free labels. Directed final-byte and alias-conflict tests pass. ⏳ (implemented: 2026-09-26 13:20)
 - [~] 8.2.5 Complete build/memory/cost/debug evidence without schema changes — `packages/compiler/src/artifacts/evidence.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts` — Approved additive artifact records pass all 30 new cases and existing artifact tests. Precise selected numerical reconciliation and full qualification remain. ⏳ (implemented: 2026-09-26 16:58)
 - [~] 8.2.6 Keep compiler/CLI/LSP failure and canonical diagnostic identity through public services; correct source-facing diagnostic wording where the cases require it — `packages/compiler/src/services/services.ts`, `packages/cli/src/run.ts`, `packages/language-server/src/server.ts` — AR-P25 approved: exactly two old enum-message expectations updated. Warning, execution and resource cases pass in their existing owners; focused resource-diagnostic and zero-page-reservation modules keep the service coordinator below its size boundary. Full verification passes; alternate-producer reconciliation remains. ⏳ (implemented: 2026-09-26 17:45)
-- [~] 8.2.7 Run Phase 8 specification cases and make all immutable expectations green — Phase 8 test files — All authored cases pass in the complete 1,785-test checkpoint. Final promotion waits for the remaining 8.1 specification coverage, not just the currently authored set. ⏳ (implemented: 2026-09-26 17:50)
+- [~] 8.2.7 Run Phase 8 specification cases and make all immutable expectations green — Phase 8 test files — All authored cases pass in the complete 1,802-test checkpoint, including nine new resource/lifetime cases. Final promotion waits for the remaining 8.1 specification coverage, not just the currently authored set. ⏳ (implemented: 2026-09-26 18:27)
 
 ### Step 8.3: Implementation Tests and Qualification
 

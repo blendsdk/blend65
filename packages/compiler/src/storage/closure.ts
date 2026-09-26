@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import type { SemanticFunction, SemanticOperation } from "../semantic/operations.js";
 import { allocateStorage } from "./allocate.js";
 import { buildInterference } from "./interference.js";
 import type {
@@ -69,6 +70,7 @@ function helperFingerprint(helper: HelperCallDemand): string {
     helper.liveRequestIds,
     helper.helperRequestIds,
     helper.stackBytes,
+    helper.source ?? null,
   ]);
 }
 
@@ -170,6 +172,43 @@ function deeperStackRoute(left: HardwareStackRoute, right: HardwareStackRoute): 
   return compareText(JSON.stringify(left.route), JSON.stringify(right.route)) <= 0 ? left : right;
 }
 
+/** Retain the live source-save depth at each operation, rather than summing unrelated maxima. */
+function operationStackDepths(fn: SemanticFunction): ReadonlyMap<SemanticOperation, number> {
+  const blocks = new Map(fn.blocks.map((block) => [block.id, block]));
+  const entries = new Map([[fn.entry, 0]]);
+  const pending = [fn.entry];
+  const depths = new Map<SemanticOperation, number>();
+  for (let index = 0; index < pending.length; index += 1) {
+    const id = pending[index]!;
+    const block = blocks.get(id);
+    if (block === undefined) continue;
+    let depth = entries.get(id)!;
+    for (const operation of block.operations) {
+      depths.set(operation, depth);
+      if (operation.kind === "cpu-control") {
+        if (operation.control === "asm_php") depth += 1;
+        else if (operation.control === "asm_plp") depth -= 1;
+      }
+    }
+    const terminator = block.terminator;
+    const successors =
+      terminator.kind === "jump"
+        ? [terminator.target]
+        : terminator.kind === "branch"
+          ? [terminator.whenTrue, terminator.whenFalse]
+          : [];
+    for (const successor of successors) {
+      // Frontend status proof has already required equal depths at joins and
+      // backedges; one traversal therefore fixes every reachable entry depth.
+      if (!entries.has(successor)) {
+        entries.set(successor, depth);
+        pending.push(successor);
+      }
+    }
+  }
+  return depths;
+}
+
 /** Compute the deepest reachable direct-call chain and retain the exact winning route. */
 function hardwareCallRoutes(
   inventory: StorageInventory,
@@ -203,27 +242,14 @@ function hardwareCallRoutes(
   }
   const memo = new Map<string, HardwareStackRoute>();
   const active = new Set<string>();
-  const vectorUpdateBytes = (functionKey: string): number => {
-    const fn = inventory.program.semantic.functions.find(
-      ({ id }) => bindingIdentityKey(id) === functionKey,
-    );
-    return fn?.blocks.some((block) =>
-      block.operations.some(
-        (operation) =>
-          operation.kind === "platform" &&
-          new Set([
-            "c64.system.setIRQ",
-            "c64.system.setIRQExclusive",
-            "c64.system.restoreIRQ",
-            "c64.system.setNMI",
-            "c64.system.setNMIExclusive",
-            "c64.system.restoreNMI",
-          ]).has(operation.capability),
-      ),
-    )
-      ? 2
-      : 0;
-  };
+  const vectorUpdates = new Set([
+    "c64.system.setIRQ",
+    "c64.system.setIRQExclusive",
+    "c64.system.restoreIRQ",
+    "c64.system.setNMI",
+    "c64.system.setNMIExclusive",
+    "c64.system.restoreNMI",
+  ]);
   const depth = (functionKey: string): HardwareStackRoute => {
     const known = memo.get(functionKey);
     if (known !== undefined) return known;
@@ -234,29 +260,59 @@ function hardwareCallRoutes(
       });
     }
     active.add(functionKey);
-    const statusStackPeak =
-      inventory.program.semantic.functions.find(({ id }) => bindingIdentityKey(id) === functionKey)
-        ?.statusStackPeak ?? 0;
-    const helper = helperByCaller.get(functionKey);
+    const fn = inventory.program.semantic.functions.find(
+      ({ id }) => bindingIdentityKey(id) === functionKey,
+    );
+    const statusStackPeak = fn?.statusStackPeak ?? 0;
+    const depths =
+      fn === undefined ? new Map<SemanticOperation, number>() : operationStackDepths(fn);
     let functionDepth: HardwareStackRoute = Object.freeze({
-      bytes: statusStackPeak + (helperStackByCaller.get(functionKey) ?? 0),
-      route: Object.freeze(
-        helper === undefined ? [functionKey] : [functionKey, `helper:${helper.id}`],
-      ),
+      bytes: statusStackPeak,
+      route: Object.freeze([functionKey]),
     });
-    if (statusStackPeak + vectorUpdateBytes(functionKey) > functionDepth.bytes) {
-      functionDepth = Object.freeze({
-        bytes: statusStackPeak + 2,
-        route: Object.freeze([functionKey, "interrupt-vector-update"]),
+    for (const helper of helperCalls) {
+      if (bindingIdentityKey(helper.caller) !== functionKey) continue;
+      const matching = [...depths].flatMap(([operation, live]) =>
+        helper.source !== undefined &&
+        operation.span.sourceId === helper.source.sourceId &&
+        operation.span.start === helper.source.start &&
+        operation.span.end === helper.source.end
+          ? [live]
+          : [],
+      );
+      const live = matching.length === 0 ? statusStackPeak : Math.max(...matching);
+      functionDepth = deeperStackRoute(functionDepth, {
+        bytes: live + helper.stackBytes,
+        route: Object.freeze([functionKey, `helper:${helper.id}`]),
       });
+    }
+    for (const [operation, live] of depths) {
+      if (operation.kind === "platform" && vectorUpdates.has(operation.capability)) {
+        functionDepth = deeperStackRoute(functionDepth, {
+          bytes: live + 2,
+          route: Object.freeze([functionKey, "interrupt-vector-update"]),
+        });
+      }
     }
     for (const callee of graph.get(functionKey) ?? []) {
       const calleeDepth = depth(callee);
+      const callDepths = [...depths].flatMap(([operation, live]) => {
+        const targets =
+          operation.kind === "call"
+            ? [operation.callee]
+            : operation.kind === "indirect-call"
+              ? (inventory.program.indirectTargets?.get(operation) ?? [])
+              : [];
+        return targets.some((target) => bindingIdentityKey(target) === callee) ? [live] : [];
+      });
+      // Graph-only storage clients have no operation positions. Keep their
+      // conservative summary; real calls use the status depth at the call site.
+      const liveSaves = callDepths.length === 0 ? statusStackPeak : Math.max(...callDepths);
       const candidate = Object.freeze({
         bytes:
           calleeDepth.bytes === Number.POSITIVE_INFINITY
             ? calleeDepth.bytes
-            : statusStackPeak + calleeDepth.bytes + 2,
+            : liveSaves + calleeDepth.bytes + 2,
         route: Object.freeze([functionKey, ...calleeDepth.route]),
       });
       functionDepth = deeperStackRoute(functionDepth, candidate);

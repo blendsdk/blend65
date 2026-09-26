@@ -109,6 +109,8 @@ export interface HelperCallDemand {
   readonly id: string;
   /** Source execution context which invokes the helper. */
   readonly caller: BindingId;
+  /** Source operation that selected this call; absent for synthetic storage probes. */
+  readonly source?: SourceSpan;
   /** Requests live across the helper call. */
   readonly liveRequestIds: readonly string[];
   /** Scratch requests owned by the helper invocation. */

@@ -2,10 +2,10 @@ import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import { isScalarType } from "./constants.js";
 import { semanticTypeName } from "./semantic-type-relations.js";
-import { bindingIdentityKey, freezeSourceSpan } from "./semantic-types.js";
+import { freezeSourceSpan } from "./semantic-types.js";
+import { borrowEscapeDiagnostic, scopedBorrowOrigin } from "./address-provenance.js";
 import type {
   ScalarExpressionContext,
-  ScalarScope,
   SemanticType,
   TypedExitStatement,
 } from "./semantic-types.js";
@@ -31,28 +31,14 @@ export function analyzeReturnStatement(
           context,
         ).node;
   if ((value?.addressOrigins?.length ?? 0) > 0) {
-    const origins = (value?.addressOrigins ?? []).map((origin) => {
-      for (let scope: ScalarScope | null = context.scope; scope !== null; scope = scope.parent) {
-        for (const state of scope.values.values()) {
-          if (bindingIdentityKey(state.binding.id) === bindingIdentityKey(origin))
-            return {
-              name: state.binding.name,
-              span: state.nameSpan,
-            };
-        }
-      }
-      return { name: "<unknown>", span: origin.span };
-    });
+    const origins = (value?.addressOrigins ?? []).map((origin) =>
+      scopedBorrowOrigin(origin, context.scope),
+    );
     diagnostics.push(
-      projectDiagnostic(
-        "E10260",
-        `Address derived from '${origins.map(({ name }) => name).join(", ")}' escapes its lifetime through return from '${functionName}' — the address may only be used while its origin is alive or passed to a proven non-retaining parameter; move persistent data to module scope or keep it caller-owned`,
+      borrowEscapeDiagnostic(
+        origins,
+        `return from '${functionName}'`,
         statement.value?.span ?? statement.span,
-        null,
-        origins.map((origin) => ({
-          span: origin.span,
-          message: "Borrowed local address originates here",
-        })),
       ),
     );
   }

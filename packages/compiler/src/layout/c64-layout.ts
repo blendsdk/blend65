@@ -34,6 +34,8 @@ export interface C64LayoutInput {
   readonly certificate: StorageClosureCertificate;
   /** Exact selected C64 profile. */
   readonly profile: TargetProfile;
+  /** Draft only: leave RAM function homes out while deriving their trailing free ranges. */
+  readonly draftFunctionStorage?: boolean;
 }
 
 /** Conflict-free selected layout or a terminal resource error without partial output. */
@@ -103,7 +105,14 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   const entryEnd = input.profile.packager.startupAddress + sourceEntryBytes;
   const entryMain =
     mainFunction === undefined ? null : repairMachineBranches(mainFunction, entryEnd);
-  const sfaIntervals = storageIntervals(input.certificate);
+  const sfaIntervals = storageIntervals(
+    input.draftFunctionStorage
+      ? {
+          ...input.certificate,
+          homes: input.certificate.homes.filter(({ region }) => region === "zero-page"),
+        }
+      : input.certificate,
+  );
   if (sfaIntervals === null) {
     return Object.freeze({ kind: "error", reason: "sfa-conflict", objectId: null });
   }

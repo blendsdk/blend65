@@ -449,7 +449,7 @@ describe("C64 layout hardening", () => {
           id: "resident",
           kind: "immutable" as const,
           alignment: 1,
-          bytes: Object.freeze(new Array<number>(0xb800).fill(0)),
+          bytes: Object.freeze(new Array<number>(0xc800).fill(0)),
         }),
       ]),
     });

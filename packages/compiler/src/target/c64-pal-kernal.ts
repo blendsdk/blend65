@@ -71,7 +71,7 @@ export interface PackagerFacts {
   /** First address admitted for the complete resident artifact. */
   readonly residentStart: 0x0801;
   /** Last address admitted for resident code, data and imported assets. */
-  readonly residentEnd: 0xbfff;
+  readonly residentEnd: 0xcfff;
 }
 
 /** Frozen cooperative C64 resource budgets; emitted bytes and BSS share the same resident range. */
@@ -127,5 +127,5 @@ export const CBM_PRG: PackagerFacts = Object.freeze({
   loadAddress: 0x0801,
   startupAddress: 0x080d,
   residentStart: 0x0801,
-  residentEnd: 0xbfff,
+  residentEnd: 0xcfff,
 });

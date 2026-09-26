@@ -1,8 +1,10 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
 import {
   addressEscapesPlace,
+  borrowEscapeDiagnostic,
   mergeAddressOrigins,
   mergeAddressPlaces,
+  scopedBorrowOrigin,
 } from "./address-provenance.js";
 import {
   adaptableLiteralType,
@@ -213,15 +215,10 @@ export function analyzeScalarAssignment(
   const state = stateForPlace(target.node.place, context.scope);
   if (addressEscapesPlace(resultOrigins, state, context.scope)) {
     host.diagnose(
-      projectDiagnostic(
-        "E10260",
-        "A local address or derived fragment cannot be stored where it may outlive its owner",
+      borrowEscapeDiagnostic(
+        (resultOrigins ?? []).map((origin) => scopedBorrowOrigin(origin, context.scope)),
+        `storage '${state?.binding.name ?? host.sourceText(expression.target.span)}'`,
         expression.span,
-        null,
-        (resultOrigins ?? []).map((origin) => ({
-          span: origin.span,
-          message: "Borrowed local address originates here",
-        })),
       ),
     );
     return { node: null, exact: null };

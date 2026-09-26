@@ -224,10 +224,18 @@ async function childExited(child: ChildProcess, timeoutMs: number): Promise<bool
   });
 }
 
-/** Start an exact VICE 3.10 process and attest its executable, ROMs, version and socket. */
+/**
+ * Start an exact VICE 3.10 process and attest its executable, ROMs, version and socket.
+ * @param prgPath Exact published program to autoload.
+ * @param maximumCycles Bounded emulator run; large padded images need extra disk-loading cycles.
+ */
 export async function startVice(
   prgPath: string,
+  maximumCycles = 100_000_000,
 ): Promise<StartedVice | { readonly kind: "unknown"; readonly reason: string }> {
+  if (!Number.isSafeInteger(maximumCycles) || maximumCycles <= 0) {
+    throw new RangeError("VICE cycle bound must be a positive safe integer");
+  }
   const identity = await runtimeIdentity();
   if (identity === null) {
     return Object.freeze({
@@ -254,7 +262,7 @@ export async function startVice(
     "-controlport2device",
     "37",
     "-limitcycles",
-    "100000000",
+    String(maximumCycles),
     "-autostart",
     prgPath,
   ];

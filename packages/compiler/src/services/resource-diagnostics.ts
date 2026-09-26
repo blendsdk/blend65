@@ -80,6 +80,43 @@ export function embeddedPayloadOverflow(
   });
 }
 
+/** Reject an impossible shared-data demand even before code, padding and function homes are placed. */
+export function residentDataOverflow(
+  machine: MachineProgram,
+  profile: TargetProfile,
+  spans: ReadonlyMap<string, SourceSpan>,
+): ProjectDiagnostic | null {
+  const resident = machine.data.filter(({ zeropage }) => !zeropage);
+  const used = resident.reduce((total, data) => total + data.bytes.length, 0);
+  if (used <= C64_RESOURCE_BUDGETS.ram) return null;
+  const largest = [...resident].sort((left, right) => right.bytes.length - left.bytes.length)[0]!;
+  const key = largest.id.startsWith("global.") ? largest.id.slice("global.".length) : largest.id;
+  return Object.freeze({
+    ...projectDiagnostic(
+      "E10238",
+      `Target resource budget exceeded for 'shared RAM' — used ${used}, available ${C64_RESOURCE_BUDGETS.ram} on '${profile.id}'`,
+      spans.get(key) ?? null,
+    ),
+    help: "This is the resident data demand alone; code, placement padding and function storage also share this budget.",
+  });
+}
+
+/** Explain a final shared-memory allocation failure without presenting it as a compiler bug. */
+export function sharedRamAllocationFailure(
+  used: number,
+  profile: TargetProfile,
+  source: SourceSpan | null,
+): ProjectDiagnostic {
+  return Object.freeze({
+    ...projectDiagnostic(
+      "E10238",
+      `Target resource budget exceeded for 'shared RAM' — used ${used}, available ${C64_RESOURCE_BUDGETS.ram} on '${profile.id}'`,
+      source,
+    ),
+    help: "Demand includes emitted code and padding, platform data, and certified function storage. Remaining ranges must also satisfy contiguous size, alignment and indirect-address constraints.",
+  });
+}
+
 /** Attribute a certified winning route without adding fields to its frozen evidence schema. */
 function stackParts(
   program: WholeProgram,

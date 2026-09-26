@@ -1,4 +1,6 @@
 import { bindingIdentityKey } from "./semantic-types.js";
+import { projectDiagnostic } from "../project/diagnostics.js";
+import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type {
   BindingId,
   Place,
@@ -6,6 +8,44 @@ import type {
   ScalarValueState,
   TypedExpr,
 } from "./semantic-types.js";
+
+/** Source name and proving declaration token for a borrowed local home. */
+export interface BorrowOriginLocation {
+  /** Source spelling, not the allocator's binding key. */
+  readonly name: string;
+  /** Exact declaration-name bytes when retained by the frontend. */
+  readonly span: SourceSpan;
+}
+
+/** Resolve a local origin while its lexical source state is still available. */
+export function scopedBorrowOrigin(origin: BindingId, scope: ScalarScope): BorrowOriginLocation {
+  const key = bindingIdentityKey(origin);
+  for (let current: ScalarScope | null = scope; current !== null; current = current.parent) {
+    for (const state of current.values.values()) {
+      if (bindingIdentityKey(state.binding.id) === key)
+        return { name: state.binding.name, span: state.nameSpan };
+    }
+  }
+  return { name: "<unknown>", span: origin.span };
+}
+
+/** Keep the same lifetime explanation for returns, persistent stores and retaining calls. */
+export function borrowEscapeDiagnostic(
+  origins: readonly BorrowOriginLocation[],
+  sink: string,
+  span: SourceSpan,
+): ProjectDiagnostic {
+  return projectDiagnostic(
+    "E10260",
+    `Address derived from '${origins.map(({ name }) => name).join(", ")}' escapes its lifetime through ${sink} — the address may only be used while its origin is alive or passed to a proven non-retaining parameter; move persistent data to module scope or keep it caller-owned`,
+    span,
+    null,
+    origins.map((origin) => ({
+      span: origin.span,
+      message: "Borrowed local address originates here",
+    })),
+  );
+}
 
 /** Keep one source identity for each local home contributing address bits. */
 export function mergeAddressOrigins(

@@ -149,7 +149,11 @@ export interface FunctionLoweringState {
   /** Divider outputs still valid after the last same-input call in this block. */
   divisionReuse: { readonly left: string; readonly right: string; readonly helper: string } | null;
   /** Selected helper scratch identities used by final storage closure. */
-  readonly helperUses: { readonly id: string; readonly requestIds: readonly string[] }[];
+  readonly helperUses: {
+    readonly id: string;
+    readonly requestIds: readonly string[];
+    readonly source: SourceSpan;
+  }[];
   /** Source-facing cost warnings attributable to direct selection. */
   readonly warnings: ProjectDiagnostic[];
   /** Current source block, retained while lowering inserts machine blocks. */

@@ -317,6 +317,7 @@ export function lowerRuntimeDivision(
     state.helperUses.push(
       Object.freeze({
         id: `divide:${bindingIdentityKey(state.owner)}:${operation.result}`,
+        source: operation.span,
         requestIds: helper.requestIds,
       }),
     );

@@ -373,6 +373,8 @@ export interface TypedVariableStatement {
   readonly span: SourceSpan;
   /** Declared source name. */
   readonly name: string;
+  /** Declaration token retained for later lifetime diagnostics. */
+  readonly nameSpan?: SourceSpan;
   /** Stable local binding identity. */
   readonly binding: BindingId;
   /** Resolved declaration type. */

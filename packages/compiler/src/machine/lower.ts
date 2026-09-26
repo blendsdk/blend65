@@ -1,6 +1,6 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
-import type { ProjectDiagnostic } from "../project/types.js";
+import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import {
   interruptExecutionContexts,
   interruptRouteDepths,
@@ -171,6 +171,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
     readonly id: string;
     readonly caller: BindingId;
     readonly requestIds: readonly string[];
+    readonly source: SourceSpan;
   }[] = [];
   const warnings: ProjectDiagnostic[] = [];
   try {
@@ -380,6 +381,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
       return Object.freeze({
         id: use.id,
         caller: use.caller,
+        source: use.source,
         helperRequestIds: use.requestIds,
         liveRequestIds: Object.freeze(
           certifiedStorage

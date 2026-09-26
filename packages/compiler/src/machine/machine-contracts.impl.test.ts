@@ -395,7 +395,7 @@ describe("machine contract corrections", () => {
     const firstHome = closure.certificate.homes[0]!;
     const badHomes = [
       Object.freeze({ ...firstHome, bytes: firstHome.bytes + 1 }),
-      Object.freeze({ ...firstHome, address: 0xbfff }),
+      Object.freeze({ ...firstHome, address: 0xd000 }),
     ];
     for (const badHome of badHomes) {
       expect(

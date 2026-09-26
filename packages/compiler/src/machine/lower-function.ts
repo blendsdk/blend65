@@ -56,6 +56,7 @@ export function lowerFunction(
     readonly id: string;
     readonly caller: BindingId;
     readonly requestIds: readonly string[];
+    readonly source: SourceSpan;
   }[],
   warnings: ProjectDiagnostic[],
   returnsToStartup: boolean,

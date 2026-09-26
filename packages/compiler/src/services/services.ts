@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { serializeAcme } from "../artifacts/acme-serializer.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { analyzeProjectWithAssets } from "../frontend/service.js";
-import { layoutC64Program } from "../layout/c64-layout.js";
 import { bindMachineProgram } from "../machine/bind.js";
 import { lowerMachineProgram } from "../machine/lower.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
@@ -38,8 +37,11 @@ import type {
 } from "./types.js";
 import { findVice, launchVice, probeVice } from "./vice.js";
 import { reserveZeroPageGlobals } from "./zero-page-globals.js";
+import { closeSharedStorage } from "./shared-storage.js";
 import {
   embeddedPayloadOverflow,
+  residentDataOverflow,
+  sharedRamAllocationFailure,
   layoutResourceWarnings,
   resourceSourceSpans,
   sourceZeroPageOverflow,
@@ -47,6 +49,7 @@ import {
 } from "./resource-diagnostics.js";
 
 interface CheckedPipeline {
+  readonly lowered: Extract<ReturnType<typeof lowerMachineProgram>, { readonly kind: "complete" }>;
   readonly resourceSpans: ReadonlyMap<string, SourceSpan>;
   readonly snapshot: ProjectSnapshot;
   readonly profile: TargetProfile;
@@ -263,6 +266,7 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
     kind: "complete",
     value: Object.freeze({
       snapshot: selectedSnapshot,
+      lowered,
       resourceSpans,
       profile: selected.profile,
       program: reserved.program,
@@ -331,27 +335,37 @@ async function removeOwnedDirectory(
 async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<PreparedBuildResult> {
   const checked = await checkPipeline(options);
   if (checked.kind === "failure") return checked;
-  const { snapshot, profile, program, certificate, machine, resourceSpans } = checked.value;
+  const { snapshot, profile, program, resourceSpans, lowered } = checked.value;
   if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
-  const payloadOverflow = embeddedPayloadOverflow(machine.program, profile, resourceSpans);
+  const payloadOverflow =
+    embeddedPayloadOverflow(lowered.program, profile, resourceSpans) ??
+    residentDataOverflow(lowered.program, profile, resourceSpans);
   if (payloadOverflow !== null)
     return { kind: "failure", failure: failure("source", [payloadOverflow]) };
-  const layout = layoutC64Program({
-    program: machine.program,
-    certificate: certificate.certificate,
+  const shared = closeSharedStorage(
+    lowered.program,
+    lowered.binder,
+    checked.value.certificate,
     profile,
-  });
-  if (layout.kind === "error") {
+  );
+  if (shared.kind === "resource-error") {
+    return {
+      kind: "failure",
+      failure: failure("source", [sharedRamAllocationFailure(shared.used, profile, shared.source)]),
+    };
+  }
+  if (shared.kind === "error") {
     return {
       kind: "failure",
       failure: failure("compiler", [
         serviceDiagnostic(
-          layout.reason === "source-placement" ? "E10273" : "COMPILER_LAYOUT",
-          `Platform layout failed: ${layout.reason}${layout.objectId === null ? "" : ` (${layout.objectId})`}`,
+          shared.reason === "source-placement" ? "E10273" : "COMPILER_LAYOUT",
+          `Platform layout failed: ${shared.reason}${shared.objectId === null ? "" : ` (${shared.objectId})`}`,
         ),
       ]),
     };
   }
+  const { layout, certificate } = shared;
   const diagnostics = [
     ...checked.value.diagnostics,
     ...layoutResourceWarnings(layout, program, profile, resourceSpans),

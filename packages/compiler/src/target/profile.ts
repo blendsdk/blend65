@@ -95,8 +95,9 @@ const PROFILE: TargetProfile = Object.freeze({
   storage: Object.freeze({
     profileId: "c64-pal-prg-kernal-6581",
     zeroPage: Object.freeze([Object.freeze({ start: 0x02, end: 0x8f })]),
-    // Static function homes grow in high RAM so low resident code/data can remain contiguous.
-    ram: Object.freeze([Object.freeze({ start: 0xc000, end: 0xcfff })]),
+    // Provisional homes use the shared range. Platform layout supplies its
+    // remaining non-emitted suffix before the final storage certificate is used.
+    ram: Object.freeze([Object.freeze({ start: 0x0801, end: 0xcfff })]),
     hardwareStackCapacity: 0x100,
     hardwareStackReserve: 20,
     startupStackBytes: 1,

@@ -285,6 +285,7 @@ export function lowerRuntimeMultiply(
   state.helperUses.push(
     Object.freeze({
       id: `multiply:${bindingIdentityKey(state.owner)}:${operation.result}`,
+      source: operation.span,
       requestIds: helper.requestIds,
     }),
   );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
-import type { SemanticBlock, SemanticFunction } from "../semantic/operations.js";
+import type { SemanticBlock, SemanticFunction, SemanticOperation } from "../semantic/operations.js";
 import type { ValueLifetime, WholeProgram } from "../semantic/whole-program.js";
 import { closeStorage } from "./closure.js";
 import type { StorageInventory, StorageProfile, StorageRequest } from "./storage-types.js";
@@ -104,6 +104,64 @@ function profile(capacity = 16): StorageProfile {
 }
 
 describe("static storage closure implementation", () => {
+  it.each([false, true])("counts only live saves at a direct call (nested=%s)", (nested) => {
+    const called = { ...fn(binding(503)), statusStackPeak: 3 };
+    const main = fn(binding(501));
+    const call: SemanticOperation = {
+      kind: "call",
+      callee: called.id,
+      result: null,
+      arguments: [],
+      type: { kind: "scalar", name: "void" },
+      span: binding(502).span,
+    };
+    const save: SemanticOperation = { kind: "cpu-control", control: "asm_php", span: main.source };
+    const restore: SemanticOperation = { ...save, control: "asm_plp" };
+    const operations = nested ? [save, call, restore] : [save, restore, call];
+    const caller = { ...main, statusStackPeak: 1, blocks: [{ ...main.blocks[0]!, operations }] };
+    const result = closeStorage(inventory([caller, called]), profile(), () => []);
+    expect(result).toMatchObject({
+      kind: "complete",
+      certificate: { hardwareStackProgramPeak: nested ? 6 : 5 },
+    });
+  });
+
+  it.each([false, true])("counts only live saves at a selected helper (nested=%s)", (nested) => {
+    const main = fn(binding(510));
+    const source = binding(511).span;
+    const operation: SemanticOperation = {
+      kind: "binary",
+      operator: "*",
+      left: "a",
+      right: "b",
+      result: "c",
+      type: BYTE,
+      span: source,
+    };
+    const save: SemanticOperation = { kind: "cpu-control", control: "asm_php", span: main.source };
+    const restore: SemanticOperation = { ...save, control: "asm_plp" };
+    const operations = nested ? [save, operation, restore] : [save, restore, operation];
+    const caller = { ...main, statusStackPeak: 1, blocks: [{ ...main.blocks[0]!, operations }] };
+    const result = closeStorage(inventory([caller]), profile(), {
+      candidateRequestIds: [],
+      discover: () => [],
+      helperCalls: [
+        {
+          id: "multiply",
+          caller: main.id,
+          source,
+          liveRequestIds: [],
+          helperRequestIds: [],
+          stackBytes: 2,
+        },
+      ],
+    });
+    expect(result).toMatchObject({
+      kind: "complete",
+      certificate: { hardwareStackProgramPeak: nested ? 3 : 2 },
+    });
+  });
+
   it("closes a discovered aggregate snapshot and pointer before final emission", () => {
     const main = fn(binding(110));
     const array: SemanticType = Object.freeze({

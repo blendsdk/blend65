@@ -1,5 +1,5 @@
-import { projectDiagnostic } from "../project/diagnostics.js";
-import type { ProjectDiagnostic } from "../project/types.js";
+import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
+import { borrowEscapeDiagnostic } from "./address-provenance.js";
 import { bindingIdentityKey } from "./semantic-types.js";
 import type {
   ModuleAnalysisResult,
@@ -384,6 +384,20 @@ export function diagnoseBorrowedCalls(
     [...retained.keys()].map((key) => [key, parametersOf(bindings.get(key)!, analysis.bindings)]),
   );
   const diagnostics: ProjectDiagnostic[] = [];
+  const nameSpans = new Map<string, SourceSpan>();
+  for (const module of analysis.modules) {
+    for (const unit of module.units) {
+      for (const declaration of unit.declarations) {
+        if (declaration.kind !== "function") continue;
+        for (const parameter of declaration.parameters) {
+          nameSpans.set(
+            bindingIdentityKey({ sourceId: parameter.span.sourceId, span: parameter.span }),
+            parameter.nameSpan,
+          );
+        }
+      }
+    }
+  }
   const visit = (expression: TypedExpr): void => {
     if (expression.kind === "call") {
       const name = expression.callee?.name;
@@ -402,15 +416,16 @@ export function diagnoseBorrowedCalls(
           !retained.get(calleeKey!)?.has(bindingIdentityKey(parameter.id));
         if (!safeMemoryAddress && !safeByteExtraction && !safeFunction) {
           diagnostics.push(
-            projectDiagnostic(
-              "E10260",
-              "A local address or derived fragment reaches an operation that may retain it",
+            borrowEscapeDiagnostic(
+              (argument.addressOrigins ?? []).map((origin) => {
+                const key = bindingIdentityKey(origin);
+                return {
+                  name: bindings.get(key)?.name ?? "<unknown>",
+                  span: nameSpans.get(key) ?? origin.span,
+                };
+              }),
+              `argument ${index + 1} of '${name ?? (calleeKey === null ? null : bindings.get(calleeKey)?.name) ?? "indirect call"}'`,
               argument.span,
-              null,
-              (argument.addressOrigins ?? []).map((origin) => ({
-                span: origin.span,
-                message: "Borrowed local address originates here",
-              })),
             ),
           );
         }
@@ -439,9 +454,10 @@ export function diagnoseBorrowedCalls(
   };
   const visitBlock = (block: TypedBlock): void => {
     for (const statement of block.statements) {
-      if (statement.kind === "variable" && statement.initializer !== null)
-        visit(statement.initializer);
-      else if (statement.kind === "expression-statement") visit(statement.expression);
+      if (statement.kind === "variable") {
+        nameSpans.set(bindingIdentityKey(statement.binding), statement.nameSpan ?? statement.span);
+        if (statement.initializer !== null) visit(statement.initializer);
+      } else if (statement.kind === "expression-statement") visit(statement.expression);
       else if (
         statement.kind === "return" &&
         statement.value !== undefined &&
@@ -467,6 +483,12 @@ export function diagnoseBorrowedCalls(
         visitBlock(statement.body);
       } else if (statement.kind === "for") {
         if (statement.initializer !== null) {
+          if ("kind" in statement.initializer) {
+            nameSpans.set(
+              bindingIdentityKey(statement.initializer.binding),
+              statement.initializer.nameSpan ?? statement.initializer.span,
+            );
+          }
           if ("kind" in statement.initializer && statement.initializer.initializer !== null)
             visit(statement.initializer.initializer);
           else if (!("kind" in statement.initializer)) statement.initializer.forEach(visit);
