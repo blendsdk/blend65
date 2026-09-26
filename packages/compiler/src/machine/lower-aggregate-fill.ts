@@ -9,6 +9,34 @@ import {
   type FunctionLoweringState,
 } from "./lower-state.js";
 
+/**
+ * Recognize a byte fill, including explicit prefix elements proved equal to its constant fill.
+ * Prefix expressions have already been evaluated. Only retained constants may be discarded;
+ * a runtime value is not assumed equal, even if its current source spelling looks similar.
+ */
+export function canUseByteFillLoop(
+  operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
+  state: FunctionLoweringState,
+): boolean {
+  if (
+    operation.type.kind !== "array" ||
+    typeBytes(operation.type.element) !== 1 ||
+    operation.type.length < 8 ||
+    operation.elements.length > operation.type.length ||
+    operation.fill === null
+  )
+    return false;
+  if (operation.elements.length === 0) return true;
+  const fill = state.values.get(operation.fill);
+  return (
+    fill?.kind === "constant" &&
+    operation.elements.every(({ value }) => {
+      const element = state.values.get(value);
+      return element?.kind === "constant" && (element.value & 0xff) === (fill.value & 0xff);
+    })
+  );
+}
+
 /** Fill a large byte array with one scalar load and page-safe counted stores. */
 export function lowerAggregateByteFillLoop(
   operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
@@ -205,7 +233,7 @@ export function lowerAggregateByteFillLoop(
       ),
     });
   }
-  for (let page = 0; page < pages; page += 1) {
+  for (let page = 0; page < pages; ) {
     if (page > 0 && indirect) {
       if (result.kind !== "storage")
         throw loweringFailure("Aggregate fill pointer has no home", operation.span);
@@ -239,33 +267,44 @@ export function lowerAggregateByteFillLoop(
         terminator: Object.freeze({ kind: "fallthrough" as const, target: loopLabel }),
       }),
     );
-    const operand = indirect
-      ? result.kind === "storage"
-        ? Object.freeze({ kind: "indirect-y" as const, requestId: result.requestId, offset: 0 })
-        : null
-      : result.kind === "storage"
-        ? Object.freeze({
-            kind: "storage" as const,
-            requestId: result.requestId,
-            offset: page * 256,
-          })
-        : result.kind === "label"
-          ? Object.freeze({ kind: "label" as const, label: result.label, offset: page * 256 })
-          : null;
-    if (operand === null)
-      throw loweringFailure("Aggregate fill has no addressable home", operation.span);
-    const body: MachineInstruction[] = [
-      machineInstruction(
-        cpu,
-        "sta",
-        indirect ? "indirect-indexed-y" : "absolute-y",
-        operand,
-        [],
-        operation.span,
-      ),
-      machineInstruction(cpu, "iny", "implied", null, [], operation.span),
-    ];
     const count = Math.min(256, operation.type.length - page * 256);
+    // Only a direct function-private home permits interleaving writes across pages.
+    // Globals and borrowed destinations keep ascending source byte order. Forty-one
+    // three-byte stores plus INY/BNE make a 126-byte loop: its back edge stays legal.
+    const groupedPages =
+      !indirect && result.kind === "storage" && count === 256
+        ? Math.min(41, Math.floor(operation.type.length / 256) - page)
+        : 1;
+    const body: MachineInstruction[] = [];
+    for (let grouped = 0; grouped < groupedPages; grouped += 1) {
+      const offset = (page + grouped) * 256;
+      const operand = indirect
+        ? result.kind === "storage"
+          ? Object.freeze({ kind: "indirect-y" as const, requestId: result.requestId, offset: 0 })
+          : null
+        : result.kind === "storage"
+          ? Object.freeze({
+              kind: "storage" as const,
+              requestId: result.requestId,
+              offset: (result.offset ?? 0) + offset,
+            })
+          : result.kind === "label"
+            ? Object.freeze({ kind: "label" as const, label: result.label, offset })
+            : null;
+      if (operand === null)
+        throw loweringFailure("Aggregate fill has no addressable home", operation.span);
+      body.push(
+        machineInstruction(
+          cpu,
+          "sta",
+          indirect ? "indirect-indexed-y" : "absolute-y",
+          operand,
+          [],
+          operation.span,
+        ),
+      );
+    }
+    body.push(machineInstruction(cpu, "iny", "implied", null, [], operation.span));
     if (count < 256)
       body.push(
         machineInstruction(
@@ -293,6 +332,7 @@ export function lowerAggregateByteFillLoop(
     );
     currentLabel = nextLabel;
     pending = [];
+    page += groupedPages;
   }
   return Object.freeze({
     blocks: Object.freeze(blocks),

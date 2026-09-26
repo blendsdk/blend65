@@ -405,6 +405,42 @@ proof is retained in RD-06 before removal from RD-04. Ownership is 171 RD-04 / t
 one RD-07 diagnostics. The High-effort correction batch resumes with the other specification
 expectations frozen. Selected numerical accounting and Phase 8 review remain open.
 
+**Large local fill batch (2026-09-26):** the user confirmed the recommended High-effort
+continuation for [#88](https://github.com/blendsdk/blend65/issues/88). Baseline `088c4c48`, clean
+worktree and prior 1,802-test checkpoint. Scope is the existing byte-fill selection and private
+frame loop, independent public behavior/cost cases, focused machine-cost tests and review. No new
+pass, runtime, dependency, storage mechanism or language rule. Equal constant prefixes may use
+the existing fill path; grouping direct private-frame page stores must not change observable
+global/indirect write order. Nonuniform/effectful prefixes retain their ordinary lowering. The
+independent specification author established cost RED: 25,895-byte complete PRG versus a sub-1KB
+bound (`/tmp/phase8-fill-red.log`). Existing selection now admits proved equal constant prefixes;
+private-frame full pages share bounded indexed-store loops, while global/borrowed order remains
+unchanged. All four independent specification cases now pass, including full-buffer VICE
+observation, prefix effect order and guarded 255/256/257-byte boundaries. Ten new machine cases
+and six existing borrowed-aggregate cases pass. The direct 5,000-byte kernel is 74 bytes,
+27,236 nominal NMOS cycles (excluding branch-page penalties and C64 DMA stalls), no additional
+ZP or hardware stack, and the same 5,000-byte SFA object. This matches the compact expert idiom;
+strict whole-program improvement still needs proved dead-initialization removal or consumer
+fusion, retained as the path to a win in the existing #88 debt. The whole observed PRG is now
+below 1,024 bytes, versus 25,895 before this fix. No output schema or future peephole seam changed.
+Independent correctness review against `088c4c48` reports **no findings** across legality,
+effects/aliasing, SFA, cost, maintainability, package boundaries and simplicity. It confirms
+the maximum backward branch is -126 bytes and no existing specification test changed.
+Final frozen install, build, typecheck and all **1,816 tests** pass: compiler 1,364, CLI 62,
+language server 14, editor 6 and root 370. Root ACME/VICE runs were sequential. Targeted
+formatting, relative documentation links, whitespace and frozen-spec checks pass. Logs:
+`/tmp/phase8-fill-{install,build-final,typecheck,all-tests}.log`. The bounded fix is verified;
+Phase 8 and task 8.2.2's other aggregate/control/call completeness obligations remain open.
+The portfolio is unchanged on this feature branch; its pre-existing generic blocked-status
+roll-up discrepancy remains for integration. No issue closure or push was performed.
+
+Domain status: **Verified partial**, claim kind **Fact** for the bounded fill path, not complete
+aggregate lowering. Runtime status: **VICE-verified / hardware-unverified**. Authority remains
+expert 2.0.0, content `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`, lowering-casebook
+loop/aggregate rules, SFA final-storage closure and MOS-PGM-1976 instruction costs, governed by
+frozen Specification 4 initialization and evaluation-order rules. Selected context is NMOS
+6510, C64 PAL PRG KERNAL/6581, ACME 0.97, VICE 3.10 and optimization `none`.
+
 **Resource/producer qualification batch (2026-09-26 18:02):** the user confirmed the High-effort
 handoff with “proceed”. Independent implementation-blind authorship added four shared-resource
 cases and three lifetime-diagnostic cases in `test/rd04/resource-accounting.spec.test.ts` and
@@ -686,12 +722,12 @@ made in this continuation.
 ### Step 8.2: Implementation
 
 - [~] 8.2.1 Split the oversized machine coordinator and complete remaining scalar/helper selections — `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/machine/lower-operation.ts`, `packages/compiler/src/machine/lower-helpers.ts` — current function/state responsibilities moved unchanged to focused `lower-function.ts` and `lower-state.ts`; helper consumers import the state owner directly. Operation call/platform responsibilities are also split; build and directed compatibility checks pass. Full qualification remains. ⏳ (implemented: 2026-09-26 13:10)
-- [ ] 8.2.2 Complete aggregate/control/call lowering and generic fallback paths — `packages/compiler/src/machine/lower-aggregate.ts`, `packages/compiler/src/machine/lower-control.ts`, `packages/compiler/src/machine/lower-operation.ts`
+- [~] 8.2.2 Complete aggregate/control/call lowering and generic fallback paths — `packages/compiler/src/machine/lower-aggregate.ts`, `packages/compiler/src/machine/lower-control.ts`, `packages/compiler/src/machine/lower-operation.ts` — Uniform byte initializers reuse existing fill selection with compact private-frame page loops. Four independent cases, ten new machine cases, full 1,816-test verification and scoped independent review pass; other aggregate/control/call fallback completeness remains open. ⏳ (implemented: 2026-09-26 18:43)
 - [~] 8.2.3 Complete NMOS legality, state/clobber validation and deterministic branch repair — `packages/compiler/src/machine/validate.ts`, `packages/compiler/src/machine/block-layout.ts`, `packages/compiler/src/target/nmos6510.ts` — ordinary indirect-Y pointer at 255 now rejects; focused CFG/call return-flag validation added in `validate-flags.ts`. Machine legality/lowering/ACME directed checks pass; additional implementation cases and full qualification remain. ⏳ (implemented: 2026-09-26 13:03)
 - [~] 8.2.4 Complete layout, ACME serialization with stable source-related labels and meaningful routine/data boundary comments, report reconciliation and final PRG packaging — `packages/compiler/src/layout/c64-layout.ts`, `packages/compiler/src/artifacts/acme-serializer.ts`, `packages/compiler/src/artifacts/acme-validate.ts` — Raw assets retain and reconcile declaration placement; generated assembly and debug evidence share readable, collision-free labels. Directed final-byte and alias-conflict tests pass. ⏳ (implemented: 2026-09-26 13:20)
 - [~] 8.2.5 Complete build/memory/cost/debug evidence without schema changes — `packages/compiler/src/artifacts/evidence.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts` — Approved additive artifact records pass all 30 new cases and existing artifact tests. Precise selected numerical reconciliation and full qualification remain. ⏳ (implemented: 2026-09-26 16:58)
 - [~] 8.2.6 Keep compiler/CLI/LSP failure and canonical diagnostic identity through public services; correct source-facing diagnostic wording where the cases require it — `packages/compiler/src/services/services.ts`, `packages/cli/src/run.ts`, `packages/language-server/src/server.ts` — AR-P25 approved: exactly two old enum-message expectations updated. Warning, execution and resource cases pass in their existing owners; focused resource-diagnostic and zero-page-reservation modules keep the service coordinator below its size boundary. Full verification passes; alternate-producer reconciliation remains. ⏳ (implemented: 2026-09-26 17:45)
-- [~] 8.2.7 Run Phase 8 specification cases and make all immutable expectations green — Phase 8 test files — All authored cases pass in the complete 1,802-test checkpoint, including nine new resource/lifetime cases. Final promotion waits for the remaining 8.1 specification coverage, not just the currently authored set. ⏳ (implemented: 2026-09-26 18:27)
+- [~] 8.2.7 Run Phase 8 specification cases and make all immutable expectations green — Phase 8 test files — All authored cases pass in the complete 1,816-test checkpoint, including nine resource/lifetime cases and four new fill cases. Final promotion waits for the remaining 8.1 specification coverage, not just the currently authored set. ⏳ (implemented: 2026-09-26 18:27)
 
 ### Step 8.3: Implementation Tests and Qualification
 

@@ -18,7 +18,7 @@ import {
   lowerLargeCapturedAggregatePlace,
 } from "./lower-aggregate-build.js";
 import { lowerAggregatePlaceCopyLoop } from "./lower-aggregate-copy.js";
-import { lowerAggregateByteFillLoop } from "./lower-aggregate-fill.js";
+import { canUseByteFillLoop, lowerAggregateByteFillLoop } from "./lower-aggregate-fill.js";
 import type {
   MachineBlock,
   MachineDataObject,
@@ -322,14 +322,7 @@ export function lowerFunction(
         variableShiftIndex += 1;
         continue;
       }
-      if (
-        operation.kind === "aggregate" &&
-        operation.type.kind === "array" &&
-        typeBytes(operation.type.element) === 1 &&
-        operation.type.length >= 8 &&
-        operation.elements.length === 0 &&
-        operation.fill !== null
-      ) {
+      if (operation.kind === "aggregate" && canUseByteFillLoop(operation, state)) {
         const filled = lowerAggregateByteFillLoop(
           operation,
           state,
