@@ -16,10 +16,16 @@ const expert = JSON.parse(
     cycles: number;
     scratchBytes: number;
   };
+  byteBcdTwoReads: {
+    instructions: string[];
+    bytes: number;
+    cycles: number;
+    scratchBytes: number;
+  };
 };
 
 /** Assemble one complete user routine through the public build path. */
-async function bcdAssembly(): Promise<string> {
+async function bcdAssembly(sourceLine: string): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "blend65-expert-intrinsics-"));
   try {
     await mkdir(join(root, "src"));
@@ -37,7 +43,7 @@ async function bcdAssembly(): Promise<string> {
     );
     await writeFile(
       join(root, "src/game.blend"),
-      "module Game; function main(): void { poke($0420, bcd_add(peek($0400), byte(1))); }",
+      `module Game; function main(): void { ${sourceLine} }`,
     );
     const result = await buildProject({
       project: join(root, "blend65.json"),
@@ -57,6 +63,9 @@ async function bcdAssembly(): Promise<string> {
 function cost(instructions: readonly string[]): { bytes: number; cycles: number } {
   const forms = new Map<string, readonly [number, number]>([
     ["LDA $0400", [3, 4]],
+    ["LDA $0401", [3, 4]],
+    ["STA SCRATCH", [3, 4]],
+    ["ADC SCRATCH", [3, 4]],
     ["SED", [1, 2]],
     ["CLC", [1, 2]],
     ["ADC #$01", [2, 2]],
@@ -73,6 +82,22 @@ function cost(instructions: readonly string[]): { bytes: number; cycles: number 
   );
 }
 
+/** Extract the complete main routine, excluding only the common startup-return jump. */
+function routineInstructions(assembly: string): string[] {
+  const lines = assembly.split(/\r?\n/u);
+  const decimalIndex = lines.findIndex((line) => /^\s*sed\s*$/iu.test(line));
+  expect(decimalIndex).toBeGreaterThan(0);
+  const regionStart = lines.findLastIndex(
+    (line, index) => index < decimalIndex && /^\* =/u.test(line),
+  );
+  const regionEnd = lines.findIndex((line, index) => index > decimalIndex && /^\* =/u.test(line));
+  const region = lines
+    .slice(regionStart + 1, regionEnd)
+    .filter((line) => /^\s+[a-z]{3}(?:\+\d+)?\b/iu.test(line));
+  expect(region.at(-1)).toMatch(/^\s*jmp(?:\+\d+)?\s+/iu);
+  return region.slice(0, -1).map((line) => line.trim().toUpperCase());
+}
+
 describe("equal-contract intrinsic output", () => {
   it("matches the complete hand-written byte BCD read/modify/write routine", async () => {
     expect(expert.schemaVersion).toBe(1);
@@ -82,20 +107,29 @@ describe("equal-contract intrinsic output", () => {
       bytes: expert.byteBcdIncrement.bytes,
       cycles: expert.byteBcdIncrement.cycles,
     });
-    const lines = (await bcdAssembly()).split(/\r?\n/u);
-    const decimalIndex = lines.findIndex((line) => /^\s*sed\s*$/iu.test(line));
-    expect(decimalIndex).toBeGreaterThan(0);
-    const regionStart = lines.findLastIndex(
-      (line, index) => index < decimalIndex && /^\* =/u.test(line),
+    const actual = routineInstructions(
+      await bcdAssembly("poke($0420, bcd_add(peek($0400), byte(1)));"),
     );
-    const regionEnd = lines.findIndex((line, index) => index > decimalIndex && /^\* =/u.test(line));
-    const region = lines
-      .slice(regionStart + 1, regionEnd)
-      .filter((line) => /^\s+[a-z]{3}(?:\+\d+)?\b/iu.test(line));
-    expect(region.at(-1)).toMatch(/^\s*jmp(?:\+\d+)?\s+/iu);
-    const actual = region.slice(0, -1).map((line) => line.trim().toUpperCase());
     expect(actual).toEqual(expert.byteBcdIncrement.instructions);
     expect(cost(actual)).toEqual({ bytes: 11, cycles: 16 });
     expect(expert.byteBcdIncrement.scratchBytes).toBe(0);
+  });
+
+  it("uses one staged byte for two ordered volatile BCD operands", async () => {
+    expect(cost(expert.byteBcdTwoReads.instructions)).toEqual({
+      bytes: expert.byteBcdTwoReads.bytes,
+      cycles: expert.byteBcdTwoReads.cycles,
+    });
+    const actual = routineInstructions(
+      await bcdAssembly("poke($0420, bcd_add(peek($0400), peek($0401)));"),
+    );
+    const scratch = actual
+      .find((line) => /^STA \$[0-9A-F]{4}$/u.test(line) && line !== "STA $0420")
+      ?.slice(4);
+    expect(scratch).toBeDefined();
+    const normalized = actual.map((line) => line.replace(scratch ?? "", "SCRATCH"));
+    expect(normalized).toEqual(expert.byteBcdTwoReads.instructions);
+    expect(cost(normalized)).toEqual({ bytes: 18, cycles: 26 });
+    expect(expert.byteBcdTwoReads.scratchBytes).toBe(1);
   });
 });

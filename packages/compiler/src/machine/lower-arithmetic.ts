@@ -99,6 +99,30 @@ export function lowerBcdArithmetic(
   const emit = (name: string): void => {
     instructions.push(machineInstruction(cpu, name, "implied", null, [], operation.span));
   };
+  if (operation.width === 1 && operation.operator === "add" && right.kind === "register") {
+    // Decimal addition is commutative, so the later evaluated operand may stay in A.
+    // The earlier operand is already stable and can be read by ADC without another home.
+    if (left.kind === "register" || right.registers !== "a") {
+      throw new Error("BCD add needs one stable operand beside the accumulator");
+    }
+    emit("sed");
+    emit("clc");
+    instructions.push(
+      machineInstruction(
+        cpu,
+        "adc",
+        modeForValue(left),
+        operandForValue(left, 0),
+        [],
+        operation.span,
+      ),
+    );
+    emit("cld");
+    return Object.freeze({
+      instructions: Object.freeze(instructions),
+      result: Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
+    });
+  }
   appendLoadA(instructions, left, 0, state, operation.span);
   emit("sed");
   emit(operation.operator === "add" ? "clc" : "sec");

@@ -514,11 +514,23 @@ function lowerFunction(
       let consumerIndex = index + 1;
       while (block.operations[consumerIndex]?.kind === "constant") consumerIndex += 1;
       const consumer = block.operations[consumerIndex];
+      let precedingIndex = index - 1;
+      while (block.operations[precedingIndex]?.kind === "constant") precedingIndex -= 1;
+      const preceding = block.operations[precedingIndex];
       if (
         producer.kind === "memory-read" &&
         consumer?.kind === "bcd" &&
         consumer.left === producer.result &&
         constantValues.has(consumer.right)
+      ) {
+        forwardedAccumulatorValues.add(producer.result);
+      } else if (
+        producer.kind === "memory-read" &&
+        consumer?.kind === "bcd" &&
+        consumer.operator === "add" &&
+        consumer.right === producer.result &&
+        (constantValues.has(consumer.left) ||
+          (preceding?.kind === "memory-read" && preceding.result === consumer.left))
       ) {
         forwardedAccumulatorValues.add(producer.result);
       } else if (

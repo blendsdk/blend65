@@ -12,5 +12,21 @@
     "bytes": 11,
     "cycles": 16,
     "scratchBytes": 0
+  },
+  "byteBcdTwoReads": {
+    "contract": "PAL C64 NMOS 6510; read $0400 then $0401 exactly once each, add their packed-decimal bytes, restore clear D, write $0420 exactly once; exclude the same startup return jump on both sides",
+    "instructions": [
+      "LDA $0400",
+      "STA SCRATCH",
+      "LDA $0401",
+      "SED",
+      "CLC",
+      "ADC SCRATCH",
+      "CLD",
+      "STA $0420"
+    ],
+    "bytes": 18,
+    "cycles": 26,
+    "scratchBytes": 1
   }
 }
