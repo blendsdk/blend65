@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-26
-> **Progress**: 75/99 tasks (76%)
+> **Progress**: 77/99 tasks (78%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -368,7 +368,7 @@ The user approved the recommended bounded fix for the four major gaps on 2026-09
 - [x] 7.2.4 Complete five CPU controls, status-stack proof and packed BCD semantics/lowering — `packages/compiler/src/frontend/flow.ts`, `packages/compiler/src/semantic/operations.ts`, `packages/compiler/src/machine/lower-arithmetic.ts` — Verified 2026-09-26 00:17: all focused frontend and compile-time cases, VICE decimal execution and CPU instruction-order checks, build, typecheck, formatting and frozen-spec check pass. The complete compiler run has 1,221 passes, one expected raw-asset failure owned by 7.2.5, and one service timeout that passed alone. Whole-program stack-peak accounting remains with 7.2.6. ✅ (completed: 2026-09-26 00:17)
 - [x] 7.2.5 Complete contained raw `embed()` dispatch, identity and registered-format refusal — `packages/compiler/src/assets/raw-asset.ts`, `packages/compiler/src/frontend/analyzer.ts`, `packages/compiler/src/layout/c64-layout.ts` — Verified 2026-09-26 00:49: source-relative contained lookup, nonempty inferred extent, explicit-size E10140, canonical identity/deduplication, registered-format refusal, ordinary immutable placement and M1 VIC sprite placement pass. The two old expert implementation tests now accept the unambiguous absolute ACME spelling from 7.2.3 with their byte/cycle limits intact. Install, build, typecheck, formatting, frozen-spec and full tests pass (1,227 compiler; 152 root including VICE). ✅ (completed: 2026-09-26 00:49)
 - [x] 7.2.6 Account for all intrinsic/evaluator effects, homes, helpers and costs — `packages/compiler/src/storage/inventory.ts`, `packages/compiler/src/storage/closure.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts` — Verified 2026-09-26 00:59: existing inventory, helper and cost-evidence paths cover the new operations without extra storage or schema. Balanced source PHP saves now contribute to whole-program hardware-stack capacity, with source-to-semantic and capacity-boundary tests. The existing conservative call-path pairing remains a precision qualification note, not an unaccounted stack byte. Install, build, typecheck, formatting, frozen-spec and full tests pass (1,229 compiler; 152 root including VICE). ✅ (completed: 2026-09-26 00:59)
-- [ ] 7.2.7 Run Phase 7 specification cases and make all immutable expectations green — Phase 7 test files
+- [x] 7.2.7 Run Phase 7 specification cases and make all immutable expectations green — Phase 7 test files — Verified 2026-09-26 02:05: all 53 directed compiler and 11 root specification cases pass unchanged. The complete compiler suite passes 1,229 tests; the root suite passes 152 tests including sequential VICE runs. An interrupted combined verify produced no test failure; its orphaned VICE process was stopped before the clean isolated root rerun. Frozen `spec/` remains untouched. ✅ (completed: 2026-09-26 02:05)
 
 ### Step 7.3: Implementation Tests and Qualification
 
