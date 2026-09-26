@@ -225,6 +225,14 @@ export function checkInterruptOwnership(
   const maximum = { irq: 0, nmi: 0 };
   const relativeDepths = new Map<SemanticOperation, Readonly<Record<InterruptSink, number>>>();
   const initializerEntryDepths = new Map<string, Readonly<Record<InterruptSink, number>>>();
+  // Only selected routes can own predecessor links. Their platform facts supply both
+  // vector bytes; the shared ownership proof does not choose a machine memory map.
+  const vectorBytes = { irq: new Set<bigint>(), nmi: new Set<bigint>() };
+  for (const { sink } of routes) {
+    const low = BigInt(sink.vector);
+    vectorBytes[sink.domain].add(low);
+    vectorBytes[sink.domain].add((low + 1n) & 0xffffn);
+  }
 
   // A handler can interrupt an earlier handler while its predecessor link is
   // still live. Reusing the mainline link for an install in that context would
@@ -352,11 +360,10 @@ export function checkInterruptOwnership(
           if (address !== undefined) {
             const written = [address & 0xffffn];
             if (operation.width === 2) written.push((address + 1n) & 0xffffn);
-            if (written.includes(0x0314n) || written.includes(0x0315n)) {
-              applyEvent(state, "irq", { kind: "raw" }, operation.span, callerMayOwn);
-            }
-            if (written.includes(0x0318n) || written.includes(0x0319n)) {
-              applyEvent(state, "nmi", { kind: "raw" }, operation.span, callerMayOwn);
+            for (const sink of ["irq", "nmi"] as const) {
+              if (written.some((byte) => vectorBytes[sink].has(byte))) {
+                applyEvent(state, sink, { kind: "raw" }, operation.span, callerMayOwn);
+              }
             }
           }
         } else if (operation.kind === "call" || operation.kind === "indirect-call") {

@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-26
-> **Progress**: 93/99 tasks (94%)
+> **Progress**: 99/99 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -929,7 +929,7 @@ green local checkpoint; do not push. Qualified runtime evidence is VICE-verified
 
 > **Phase baseline tree**: `f4feea602450d365ec20b0e8e7fadfc60d843ea3`
 > **Scope mode**: strict
-> **Expected modification set**: Phase 9 task paths below, focused same-directory qualification tests where the planned filename does not yet exist, the existing storage stack calculation, lowering-to-storage facts and service diagnostic boundary for the Phase 6 precision correction, the existing debug-record producer for Phase 6 variant call contexts, this plan's execution/closeout/review records and the feature roadmap. Reuse existing compiler services and VICE drivers; no new package, framework, runtime, optimizer or frozen-authority change.
+> **Expected modification set**: Phase 9 task paths below, focused same-directory qualification tests where the planned filename does not yet exist, the existing storage stack calculation, lowering-to-storage facts and service diagnostic boundary for the Phase 6 precision correction, the existing debug-record producer for Phase 6 variant call contexts, the existing register-forwarding selector and its caller for the measured #87 correction, existing frontend/profile and interrupt-ownership owners for the found portability correction, this plan's execution/closeout/review records and the feature roadmap. Reuse existing compiler services and VICE drivers; no new package, framework, runtime, optimizer or frozen-authority change.
 > **Lenses**: completeness, independent evidence, expert parity, portability, deferral expiry
 
 This phase adds no new language or lowering feature. It reconciles existing evidence and closes
@@ -1012,19 +1012,36 @@ verification is still due. Logs: `/tmp/phase9-oracle-first.log`,
 
 ### Step 9.1: Evidence Reconciliation
 
+**Remaining qualification corrections (2026-09-26):** under the project's workflow directive 4,
+the necessary technical remedies use existing owners. Three independent byte-load/store cost cases
+were RED at 12 bytes / 16 cycles / one temporary each; the existing selector now retains a sole
+adjacent byte consumer in A and all three meet 6 / 8 / zero. A dynamic destination, multiple uses,
+an intervening emitted operation and wider values retain their stable paths. The selector was
+renamed for its actual responsibility; no pass, framework, search or runtime was added. Its six
+implementation controls and independent VICE count/order/clobber cases pass. The six existing
+expert-reference files pass all 24 comparison cases. Issue #89 records the remaining local meets'
+RD-08 win paths; older issues were not edited or closed.
+
+The portability inspection found C64 vector literals in shared semantic and frontend logic.
+Two independently authored structural checks were RED before the fix. Shared code now queries the
+existing frontend profile owner and consumes the selected interrupt routes' vector facts. No
+future-target fields or backend import into the frontend were added. Seven structural cases,
+existing exact diagnostic/import-boundary checks and 50 focused profile/ownership cases pass.
+Full repository closeout verification passes all 2,093 tests; the final phase review remains pending.
+
 **Reference**: [03-05](03-05-qualification.md) · ST-49–ST-54 · AR-P3–AR-P7
 
 - [x] 9.1.1 Complete every crosswalk owner/proof reference and prove exact normative set equality — `test/rd04/normative-coverage.json`, `test/rd04/normative-coverage.spec.test.ts`, `test/rd04/normative-coverage-closeout.spec.test.ts` — Reconciled 397 keys (379 implemented, 18 explicitly later-owned); 12 coverage checks, 35 independent stack/call-evidence cases, correction re-review and all 2,031 repository tests pass. No generated instructions or existing specification tests changed. ✅ (completed: 2026-09-26 22:22)
 - [x] 9.1.2 Validate all independent behavior-oracle mutation probes — `test/rd04/oracle-integrity.spec.test.ts` — 29/29 cases pass twice: 26 corruption controls, two good controls and one real VICE fixture using the same assertions. No new helper directory, compiler changes or changed existing oracle. Formatting/source review passes. ✅ (completed: 2026-09-26 22:33)
-- [ ] 9.1.3 Reconcile every expert comparison; fix worse results and file measured meet-only debt — `test/rd04/expert/`, `test/rd04/expert-output.spec.test.ts`
-- [ ] 9.1.4 Run the complete bounded sequential RD-04 VICE corpus and record `VICE-verified / hardware-unverified` — `test/rd04/vice.spec.test.ts`, `test/rd04/vice-driver.ts`
+- [x] 9.1.3 Reconcile every expert comparison; fix worse results and file measured meet-only debt — `test/rd04/expert/`, `test/rd04/expert-output.spec.test.ts`, `test/rd04/byte-load-forwarding.spec.test.ts` — #87 staging corrected from 12 bytes / 16 cycles / one temporary to 6 / 8 / zero. All six reference files, independent behavior/cost probes, 38 machine checks and the 2,093-test full suite pass. Meet-only win paths are tracked in #89 and existing RD-08 issues. ✅ (verified: 2026-09-26 23:00)
+- [x] 9.1.4 Run the complete bounded sequential RD-04 VICE corpus and record `VICE-verified / hardware-unverified` — `test/rd04/vice.spec.test.ts`; reused existing VICE helpers without a new driver. All 618 root cases pass, including M1's 441-input journey and large padded images; emulator runs are sequential and deadlines unchanged. ✅ (verified: 2026-09-26 23:00)
 
 ### Step 9.2: Closeout
 
-- [ ] 9.2.1 Run complete compiler/CLI/LSP boundary and unavailable-capability qualification — `test/rd04/backend.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`
-- [ ] 9.2.2 Run portability, frozen-spec and no-runtime/no-framework structural inspections — `test/rd04/portability.spec.test.ts`, `test/rd04/backend.spec.test.ts`
-- [ ] 9.2.3 Record non-gating host responsiveness observations and the AR-P5 native Windows deferral — `codeops/features/blend65-v4/plans/rd-04-language-completion/08-closeout.md`
-- [ ] 9.2.4 Complete the mandatory deferral-expiry/expressiveness scan and final full verification — `codeops/features/blend65-v4/plans/rd-04-language-completion/08-closeout.md`, `test/rd04/expressiveness-ledger.json`, `test/rd04/expressiveness-ledger.spec.test.ts` (AR-P9). Update the feature roadmap at the lifecycle transition.
+- [x] 9.2.1 Run complete compiler/CLI/LSP boundary and unavailable-capability qualification — `test/rd04/backend.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts` — Canonical service records, unavailable capabilities, exact artifacts and non-vacuous import boundaries pass in the full suite: 1,393 compiler, 62 CLI, 14 LSP, six editor and 618 root tests. ✅ (verified: 2026-09-26 23:00)
+- [x] 9.2.2 Run portability, frozen-spec and no-runtime/no-framework structural inspections — `test/rd04/portability.spec.test.ts`, `test/rd04/backend.spec.test.ts` — Seven structural checks and selected-profile/vector overlap regressions pass. Concrete platform facts stay with existing owners. Frozen spec/expert, old specification tests, package manifests and dependencies are unchanged; no new runtime/framework/target payload. ✅ (verified: 2026-09-26 23:00)
+- [x] 9.2.3 Record non-gating host responsiveness observations and the AR-P5 native Windows deferral — `codeops/features/blend65-v4/plans/rd-04-language-completion/08-closeout.md` — Real M1 and combined-language check/build/ACME/LSP observations and process RSS recorded under current host contention, without a performance threshold or host request. Windows stays with RD-10. Documentation formatting and 46 local links pass. ✅ (verified: 2026-09-26 23:00)
+- [x] 9.2.4 Complete the mandatory deferral-expiry/expressiveness scan and final full verification — `codeops/features/blend65-v4/plans/rd-04-language-completion/08-closeout.md`, `test/rd04/expressiveness-ledger.json`, `test/rd04/expressiveness-ledger.spec.test.ts` (AR-P9). Stack precision debt is retired; nine independent ledger checks pass. All other deferrals retain justified later owners; no active item points back to RD-04. Install/build/typecheck and all 2,093 tests pass. The feature stays Executing pending post-phase review; portfolio sync remains deferred to integration. ✅ (verified: 2026-09-26 23:00)
 
 **Deliverables:** complete Linux RD-04 evidence, explicit Windows deferral, owned expired deferrals.
 

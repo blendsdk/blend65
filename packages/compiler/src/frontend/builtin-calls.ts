@@ -8,6 +8,7 @@ import {
 } from "./constants.js";
 import { clearCallVisibleScalarFacts } from "./flow-facts.js";
 import { analyzeMachineIntrinsic } from "./machine-intrinsics.js";
+import { firmwareVectorSink } from "./profile.js";
 import { semanticTypeName } from "./semantic-type-relations.js";
 import type {
   FunctionSignature,
@@ -117,9 +118,14 @@ export function analyzeBuiltinCall(
     else arguments_.push(result.node);
   });
   if (!valid) return { node: null, exact: null };
+  const address = arguments_[0]?.constant;
+  const sink =
+    name === "pokew" && typeof address === "bigint"
+      ? firmwareVectorSink(host.profileId ?? null, address)
+      : null;
   if (
-    name === "pokew" &&
-    (arguments_[0]?.constant === 0x0314n || arguments_[0]?.constant === 0x0318n) &&
+    sink !== null &&
+    typeof address === "bigint" &&
     arguments_[1] !== undefined &&
     handlerAddress(arguments_[1]) !== null
   ) {
@@ -130,8 +136,7 @@ export function analyzeBuiltinCall(
         ? host.sourceText(operand.span)
         : host.sourceText(handler.span);
     const declaration = host.resolveName(handlerName, context);
-    const vector = arguments_[0].constant === 0x0314n ? "$0314" : "$0318";
-    const sink = vector === "$0314" ? "c64.system.setIRQ" : "c64.system.setNMI";
+    const vector = `$${address.toString(16).padStart(4, "0")}`;
     host.diagnose(
       projectDiagnostic(
         "E10252",

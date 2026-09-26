@@ -1,20 +1,27 @@
 import type { MemoryWriteOperation, SemanticBlock } from "../semantic/operations.js";
+import { typeBytes } from "./lower-state.js";
 
 /**
- * Select adjacent BCD values that can stay in registers until their only consumer.
+ * Select adjacent byte loads and BCD values that can stay in registers until their only consumer.
  *
  * Constants and conversions of constants emit no machine instructions, so they do not
  * interrupt register ownership. Every other operation ends the forwarding window.
  */
-export function selectBcdForwarding(
+export function selectRegisterForwarding(
   blocks: readonly SemanticBlock[],
   singleUseValues: ReadonlySet<string>,
 ): {
+  /** Values whose sole adjacent consumer can use their still-live registers. */
   readonly forwardedRegisterValues: ReadonlySet<string>;
+  /** Word decimal results constructed directly in their final fixed-address destination. */
   readonly directBcdWrites: ReadonlyMap<string, MemoryWriteOperation>;
+  /** Second byte operands read into X to preserve the first operand in A. */
   readonly subtractRightInX: ReadonlySet<string>;
+  /** First word-add operands whose high byte survives the second read in Y. */
   readonly wordAddLeftHighInY: ReadonlySet<string>;
+  /** First word-subtract operands whose high byte survives the second read in Y. */
   readonly wordSubtractLeftHighInY: ReadonlySet<string>;
+  /** Second word-subtract operands needing one low-byte staging home. */
   readonly wordSubtractRightLowStaged: ReadonlySet<string>;
 } {
   const constantValues = new Set<string>();
@@ -53,7 +60,7 @@ export function selectBcdForwarding(
     for (let index = 0; index < block.operations.length; index += 1) {
       const producer = block.operations[index]!;
       if (
-        (producer.kind !== "memory-read" && producer.kind !== "bcd") ||
+        (producer.kind !== "load" && producer.kind !== "memory-read" && producer.kind !== "bcd") ||
         !singleUseValues.has(producer.result)
       ) {
         continue;
@@ -75,6 +82,19 @@ export function selectBcdForwarding(
         precedingIndex -= 1;
       }
       const preceding = block.operations[precedingIndex];
+      if (
+        ((producer.kind === "load" && typeBytes(producer.type) === 1) ||
+          (producer.kind === "memory-read" && producer.width === 1)) &&
+        consumer?.kind === "memory-write" &&
+        consumer.width === 1 &&
+        consumer.value === producer.result &&
+        constantValues.has(consumer.address)
+      ) {
+        // A fixed store consumes A without changing it. Dynamic destinations need pointer
+        // setup, so they retain the existing stable-value path. This removes only the
+        // temporary store/reload, never the ordered source read or destination write.
+        forwardedRegisterValues.add(producer.result);
+      }
       if (
         producer.kind === "memory-read" &&
         producer.width === 1 &&

@@ -29,6 +29,33 @@ async function buildSource(source: string) {
 }
 
 describe("IRQ handler vector updates", () => {
+  it.each(["poke($0314, 0);", "poke($0315, 0);", "pokew($0313, 0);", "pokew($0315, 0);"])(
+    "invalidates an owned vector after the overlapping raw write %s",
+    async (write) => {
+      const result = await buildSource(
+        [
+          "module Game; import { setIRQ, restoreIRQ } from c64.system;",
+          "interrupt function handler(): void {}",
+          `function overwrite(): void { ${write} }`,
+          "function main(): void { setIRQ(&handler); overwrite(); restoreIRQ(); }",
+        ].join("\n"),
+      );
+      expect(result.kind).toBe("failure");
+      expect(result.diagnostics.map(({ code }) => code)).toContain("E10278");
+    },
+  );
+
+  it("preserves IRQ ownership when a raw write does not touch its selected vector", async () => {
+    const result = await buildSource(
+      [
+        "module Game; import { setIRQ, restoreIRQ } from c64.system;",
+        "interrupt function handler(): void {}",
+        "function main(): void { setIRQ(&handler); poke($0313, 0); poke($0316, 0); restoreIRQ(); }",
+      ].join("\n"),
+    );
+    expect(result.kind, JSON.stringify(result.diagnostics)).toBe("success");
+  });
+
   it("rejects a balanced vector update inside an IRQ handler", async () => {
     const result = await buildSource(
       [

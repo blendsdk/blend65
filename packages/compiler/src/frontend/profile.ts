@@ -8,6 +8,18 @@ import type { LiteralItem } from "./tokens.js";
 /** The only complete target profile admitted by the first end-to-end compiler slice. */
 export const SELECTED_PROFILE_ID = "c64-pal-prg-kernal-6581" as const;
 
+/**
+ * Name the typed installer required by a known firmware vector on the selected profile.
+ * Other addresses and profile-independent analysis have no such platform restriction.
+ * The caller uses this only when the stored value is a raw interrupt-function address.
+ */
+export function firmwareVectorSink(profileId: string | null, address: bigint): string | null {
+  if (profileId !== SELECTED_PROFILE_ID) return null;
+  if (address === 0x0314n) return "c64.system.setIRQ";
+  if (address === 0x0318n) return "c64.system.setNMI";
+  return null;
+}
+
 /** One source-visible function supplied by a selected frontend profile. */
 export interface ProfileCapability {
   /** Stable fully qualified source name. */

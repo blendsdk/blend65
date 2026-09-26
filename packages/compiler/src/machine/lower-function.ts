@@ -10,7 +10,7 @@ import type { StorageRequest } from "../storage/storage-types.js";
 import { lowerTerminator, machineCost, machineInstruction, machineState } from "./lower-control.js";
 import { prepareAggregateInduction } from "./lower-induction.js";
 import { lowerOperation } from "./lower-operation.js";
-import { selectBcdForwarding } from "./lower-bcd-forwarding.js";
+import { selectRegisterForwarding } from "./lower-register-forwarding.js";
 import { lowerIndirectCall, lowerInterruptSink } from "./lower-indirect.js";
 import { lowerVariableShift } from "./lower-variable-shift.js";
 import { lowerCheckedDivision } from "./lower-checked-division.js";
@@ -171,7 +171,7 @@ export function lowerFunction(
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,
     wordSubtractRightLowStaged,
-  } = selectBcdForwarding(blocks, singleUseValues);
+  } = selectRegisterForwarding(blocks, singleUseValues);
   const state: FunctionLoweringState = {
     owner,
     interruptDepth,

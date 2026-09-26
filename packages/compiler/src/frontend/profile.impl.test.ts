@@ -3,8 +3,30 @@ import { describe, expect, it } from "vitest";
 import type { ProjectSnapshot, SourceRecord } from "../project/types.js";
 import { bindingIdentityKey } from "./semantic-types.js";
 import { analyzeProject } from "./service.js";
+import { firmwareVectorSink } from "./profile.js";
+import { selectTargetProfile } from "../target/profile.js";
 
 const SELECTED_PROFILE = "c64-pal-prg-kernal-6581";
+
+describe("firmware vector diagnostic facts", () => {
+  it("agrees with every ordinary installer in the selected backend profile", () => {
+    const selected = selectTargetProfile(SELECTED_PROFILE);
+    if (selected.kind !== "complete") throw new Error("Expected selected profile");
+    const sinks = selected.profile.interrupts.sinks.filter(
+      ({ capability }) => !capability.endsWith("Exclusive"),
+    );
+    expect(sinks).toHaveLength(2);
+    for (const sink of sinks) {
+      expect(firmwareVectorSink(SELECTED_PROFILE, BigInt(sink.vector))).toBe(sink.capability);
+    }
+  });
+
+  it("does not impose C64 vector rules on profile-independent or unrelated addresses", () => {
+    expect(firmwareVectorSink(null, 0x0314n)).toBeNull();
+    expect(firmwareVectorSink("unknown", 0x0314n)).toBeNull();
+    expect(firmwareVectorSink(SELECTED_PROFILE, 0x3000n)).toBeNull();
+  });
+});
 
 function hash(text: string): string {
   return createHash("sha256").update(text, "utf8").digest("hex");
