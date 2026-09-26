@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 C64 Platform
 
-> **Status**: ❌ GATE BLOCKED — 1 material item open; discovery is not complete
-> **Last Updated**: 2026-09-26 23:46
+> **Status**: ❌ GATE BLOCKED — AR-P2 resolved; AR-P3 awaits a staged-planning decision
+> **Last Updated**: 2026-09-27
 > **CodeOps Artifact Schema**: 1
 
 ## Planning Scope Contract
@@ -10,14 +10,15 @@
 |---|---|
 | Planning target | Blend65 v4 RD-05: the eight resident C64 PRG profiles, narrow hardware/platform operations, exact player adapters, and user-authored workload qualification already required by R5.1–R5.56. |
 | Context artifacts | Frozen Specification 4 and expert 2.0.0; RD-05 and the requirements register/preflight; RD-03's current pipeline and API decisions; RD-04 closeout and carried deferrals; the current compiler, test facilities, manifests and project guidance. Reading these does not authorize changing them. |
-| Modification set | This new plan folder and the active feature roadmap. No compiler, test, frozen specification, expert-baseline, sibling-RD, or portfolio changes. A correction to RD-05 itself needs the explicit ruling below. |
+| Modification set | This new plan folder, the active feature roadmap, and only the four RD-05 authority-wording locations approved in AR-P2. No compiler, test, frozen specification, expert-baseline, sibling-RD, or portfolio changes. |
 
 ## Decisions
 
 | ID | Category | Decision or question | Authority | Status |
 |---|---|---|---|---|
 | AR-P1 | Scope / effort | Start RD-05 planning at XHigh using its existing scope. Keep application algorithms in self-contained qualification programs, not shipped gameplay modules. Keep native assets with RD-06, loading with RD-07, optional optimization with RD-08, tooling with RD-09, and Windows/physical qualification with RD-10. | User: “xhigh is confirmed, proceed to the next RD”; existing requirements AR-038 and Windows deferrals remain binding. | ✅ Resolved |
-| AR-P2 | Scope / public API authority (sensitive) | RD-05 claims the frozen C64 appendix defines all required public module/operation signatures, but several required names and signatures are absent. Decide whether to correct only RD-05's authority wording so its plan specifies those missing library bindings using existing language forms, or separately reopen the frozen specification. | Awaiting user decision on the exact modification-set expansion. Existing hardware/language contracts and previously approved API signatures remain binding either way. | ❌ Open |
+| AR-P2 | Scope / public API authority (sensitive) | Correct only the four named RD-05 authority-wording locations. Its plan owns missing library bindings/signatures for already-required behavior using existing language forms. Preserve frozen contracts, approved M1 APIs, safety and parity; add no new behavior or support framework. | User: “I approve. proceed” on 2026-09-27, accepting the single AR-P2 recommendation after independent challenge. | ✅ Resolved |
+| AR-P3 | Behavioral / NMI safety and planning scope (sensitive) | Approve planning the independently settled RD-05 work first, while retaining the missing finite NMI-source/reentry and safe vector-update proof as unfinished RD-05 work. No complete RD-05 executable plan or closeout may be claimed before this proof is resolved. | Recommended after evidence review and independent challenge; awaiting user decision. AR-P2 does not authorize this staging, a frozen-spec change, new source assumption, runtime guard, or renewed deferral. | ❌ Open |
 
 ## AR-P2 — Missing Library Bindings, Not Missing Language Syntax
 
@@ -47,12 +48,12 @@ RD-05. This finding is about contract coverage, not a new hardware diagnosis or 
    revision and affected expert requalification before completing this plan. This gives the
    signatures a normative home but expands the modification and qualification scope.
 
-The exact proposed requirement edit set for candidate 1 is R5.10's “Specification 4 C64 banking
+The exact approved requirement edit set for candidate 1 is R5.10's “Specification 4 C64 banking
 operation” attribution, R5.11's exact-signature ownership, the “Profile composition contract”
 ownership paragraph, and the “Scope Decisions” traceability paragraph. Every behavioral
-requirement, acceptance criterion, profile fact and sibling RD remains unchanged. No edit to
-that requirement document has been made. Downstream API specifications and execution tasks
-remain unwritten until the authority question is resolved.
+requirement, acceptance criterion, profile fact and sibling RD remains unchanged. These four
+wording corrections were applied after the user's approval on 2026-09-27. Downstream API
+specifications and execution tasks remain unwritten until discovery and the complete gate close.
 
 **Recommended: candidate 1.** It corrects the authority mismatch while retaining the already
 approved behavior and the frozen language. Choosing names cannot override a hardware obligation,
@@ -68,10 +69,55 @@ counterargument is split public-API ownership; explicit references from the one 
 document keep inherited and missing contracts distinct. With a larger budget, a normative API
 revision is possible, but is not necessary just to name existing required operations.
 
-No candidate is approved by this record, and normal make-plan mode remains active. Project
-workflow directive 4 permits plan-owned technical choices but does not silently broaden the
-authorized modification set. The make-plan gate therefore pauses full plan authoring pending
-the user's exact authority ruling; discovery remains incomplete.
+The user approved candidate 1 on 2026-09-27. Normal make-plan mode remains active. Project
+workflow directive 4 permits plan-owned technical choices; the explicit AR-P2 ruling supplies
+the narrow requirement-edit authority. Discovery resumes without reopening the frozen language.
+
+## AR-P3 — Safe NMI Support Is Not Yet Proved
+
+NMI is an interrupt that the CPU's normal interrupt-disable flag cannot block. Two distinct
+proofs are missing: safe replacement/restoration of its two-byte handler address, and a finite
+maximum number of handlers that can interrupt one another. Solving the address update alone does
+not solve nesting or storage safety.
+
+| Evidence | Bounded conclusion |
+|---|---|
+| [Chapter 15](../../../../../spec/15-platform-profile.md), lines 266–271; [C64 appendix](../../../../../spec/appendix-c64.md), lines 856–864 | The profile declares unbounded NMI self-preemption. A reachable cycle without a finite external bound must reject with E10245. |
+| C64 appendix §9.2, lines 760–761; expert `references/c64-memory-and-runtime.md`, lines 353–359 | The common installer wording requires an interrupt-disabled section, but does not say this alone makes NMI updates safe. Additional quiescence or a proved safe update is needed. No contradiction requiring a frozen-spec edit has been demonstrated. |
+| `packages/compiler/src/semantic/whole-program.ts`, lines 348–356 | Current lowering is not reached for an unmasked, unbounded sink: semantic analysis reports E10245. This is the approved conservative baseline, not usable NMI support. |
+| RD-05 R5.15–R5.17 and AC-12–AC-14; RD-04 AR-P16 / DEF-7 | Positive NMI support remains an RD-05 obligation. The existing rejection cannot count as completion. |
+| [Pinned 901227-03 KERNAL source](https://raw.githubusercontent.com/mist64/cbmsrc/01bd60f162ef92212ef0cb67546ae8f42be34168/KERNAL_C64_03/rs232nmi) | The firmware establishes dispatch and acknowledgement behavior, not a maximum arrival rate across CIA2, RESTORE and other enabled sources. No combined-source nesting bound was established by this investigation. |
+
+**Recommended: stage planning, not the safety contract.** Plan the independently settled work
+first. Keep the NMI decision explicitly unfinished within RD-05; do not move it to another RD,
+weaken R5.15–R5.17 or AC-12–AC-14, or imply that the full RD-05 plan is ready. Any operation whose
+correctness depends on the missing NMI proof stays outside executable work. No compiler code,
+runtime guard, dispatcher, new dependency, specification change, or arbitrary source bound is
+authorized by this recommendation.
+
+If approved, the named deferred decision is **the positive finite NMI-source/reentry and safe
+install/restore contract**. Owner: RD-05 planning, with user approval for any changed product or
+frozen-spec contract. Revisit: before admitting NMI-dependent executable work or declaring the
+complete RD-05 plan ready, whichever comes first. RD-05 cannot close while this obligation remains
+open. Approval would permit bounded planning only after the remaining discovery/gate checks for
+that bounded scope; it would not itself authorize implementation.
+
+Confidence: Medium. Hardening: the independent challenger recommended staging and rejected an
+immediate spec erratum as unnecessary on the evidence available. Its review used the supplied
+file/line and primary-source packet rather than a separate repository inspection. The strongest
+counterargument is that a concrete program/hardware proof could remove the need to stage. Such a
+proof must cover every enabled source, the complete prior-handler route where present, banking,
+bus denial, finite SFA/stack demand and safe update/restore states. A CIA2 timer interval alone or
+an assumption that RESTORE will not be pressed is insufficient. No such witness is established;
+positive NMI capability and complete route costs remain **Unknown**, not proven impossible.
+
+Directed verification on 2026-09-27: the existing
+`test/rd04/diagnostics-alternate-placement.spec.test.ts` and
+`test/rd04/expressiveness-ledger.spec.test.ts` suites pass **22/22** cases. These preserve the
+negative safety baseline only; they are not a new positive NMI or hardware qualification.
+Expert lineage remains `2.0.0`, content `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`, specifically
+`references/sfa-and-abi.md#interrupt-route-completion-gate` and
+`references/c64-memory-and-runtime.md#revision-pinned-nmi-contracts-and-costs`.
 
 ## Existing Handoffs — Do Not Drop or Reapprove
 

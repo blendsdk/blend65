@@ -115,17 +115,18 @@ programs and qualification evidence. They do not create supported game APIs. (AR
   continues to own only function-execution
   storage; platform layout owns globals, devices, assets, vectors, and library state. (AR-007,
   AR-013, AR-020)
-- [ ] **R5.10 — Provide scoped banking operations.** A Specification 4 C64 banking operation
+- [ ] **R5.10 — Provide scoped banking operations.** A C64 platform-library banking operation
   changes only declared `$0000/$0001` fields, preserves the real DDR and output-latch state,
   accounts for IRQ and unmaskable NMI exposure, keeps all reachable code/vectors/homes visible, and
   restores CPU interrupt state, device masks, DDR, latch, and mapping on every normal exit. Reject a
   scope whose pending-source or NMI behavior cannot be preserved; do not inject a generic banking
   manager. (AR-013, AR-024)
-- [ ] **R5.11 — Expose named typed device operations.** The normative C64 appendix defines the
-  exact public platform-library modules and operation signatures for VIC-II, CIA1, CIA2, SID, CPU
-  port, vectors, and KERNAL services. Source uses named registers/fields and semantic actions rather
-  than unexplained addresses. Direct `PEEK`/`POKE` remains available as the explicit raw volatile
-  boundary. (AR-003, AR-014)
+- [ ] **R5.11 — Expose named typed device operations.** Preserve every public contract defined by
+  the frozen C64 appendix. The RD-05 plan defines only missing public platform-library bindings and
+  signatures for the already-required VIC-II, CIA1, CIA2, SID, CPU-port, vector, and KERNAL behavior,
+  using existing language forms and preserving approved M1 APIs. Source uses named registers/fields
+  and semantic actions rather than unexplained addresses. Direct `PEEK`/`POKE` remains available
+  as the explicit raw volatile boundary. (AR-003, AR-014)
 - [ ] **R5.12 — Preserve device-specific access effects.** Represent and lower ordinary full-byte
   writes, shared bitfields, write-one-to-clear status, read-to-clear latches, differing read/write
   meanings, write-only state, and cycle-sensitive accesses separately. Preserve exact address,
@@ -463,8 +464,10 @@ The eight identities form this closed matrix:
 | NTSC | takeover | 6581 | `c64-ntsc-prg-takeover-6581` |
 | NTSC | takeover | 8580 | `c64-ntsc-prg-takeover-8580` |
 
-The Specification 4 C64 appendix is the normative owner of every exact fact and public operation.
-RD-05 implements that appendix; it does not duplicate it in a configurable host-side registry.
+The Specification 4 C64 appendix remains the normative owner of its exact facts and public
+contracts. Under approved plan AR-P2, the RD-05 plan owns only missing source bindings and library
+signatures for already-required behavior; it cannot change frozen semantics, safety contracts, or
+approved M1 APIs. RD-05 adds no configurable host-side registry or parallel contract system.
 Structured internal facts are allowed only when consumed directly by legality, layout, startup,
 lowering, reporting, or proof.
 
@@ -575,8 +578,10 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
 | C64U | Implement here / readiness and successor | Preserve seams; implement later | Avoids false support while keeping the next target feasible. | AR-024, AR-035 |
 
 > **Traceability:** All material choices are recorded in
-> [00-ambiguity-register.md](00-ambiguity-register.md). Exact API spellings and profile facts are
-> normative Specification 4 material owned by RD-01, not duplicated as a second mutable contract.
+> [00-ambiguity-register.md](00-ambiguity-register.md). Frozen Specification 4 contracts and profile
+> facts remain owned by RD-01. The narrow exception in
+> [RD-05 plan AR-P2](../plans/rd-05-c64-platform/00-ambiguity-register.md) assigns only missing
+> library bindings/signatures to their owning plan component; it authorizes no new behavior.
 
 ---
 
