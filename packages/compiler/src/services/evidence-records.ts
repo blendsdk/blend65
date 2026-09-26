@@ -410,14 +410,14 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       const functionIndex = functionIndexes.get(bindingIdentityKey(call.callee));
       return functionIndex === undefined
         ? []
-        : [
+        : fn.machineIds.map((_, variantIndex) =>
             Object.freeze({
               kind: "call",
               functionIndex,
-              parentContextIndex: contextOffsets[callerIndex]!,
+              parentContextIndex: contextOffsets[callerIndex]! + variantIndex,
               callSite: indexedSpan(call.span, sourceIndexes),
             }),
-          ];
+          );
     }),
   );
   callContexts.sort((left, right) => {

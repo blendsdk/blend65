@@ -21,12 +21,12 @@
     },
     {
       "id": "v4-stack-route-overestimate",
-      "status": "open",
+      "status": "retired",
       "sourceForm": "a deep mainline call path that cannot overlap an installed IRQ handler",
       "diagnostic": "E10238",
-      "reason": "The current stack bound adds independent program and IRQ maxima, so it may reject a feasible program near capacity",
+      "reason": "Static stack proof now follows actual installation, mask and call intervals; independent overlap and instruction-boundary regressions pass without changing emitted code",
       "owner": "RD-04 Phase 9 qualification",
-      "decision": "Phase 6 minor review finding RV-007"
+      "decision": "Phase 6 RV-010 fixed and independently re-reviewed in Phase 9; stack-overlap, stack-overlap-contexts, stack-nonreturn, stack-mask-boundary and stack-mask-return specification tests"
     }
   ]
 }

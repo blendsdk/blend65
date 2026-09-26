@@ -1,7 +1,11 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
-import type { SemanticBlock, SemanticTerminator } from "../semantic/operations.js";
+import type {
+  SemanticBlock,
+  SemanticOperation,
+  SemanticTerminator,
+} from "../semantic/operations.js";
 import type { StorageRequest } from "../storage/storage-types.js";
 import { lowerTerminator, machineCost, machineInstruction, machineState } from "./lower-control.js";
 import { prepareAggregateInduction } from "./lower-induction.js";
@@ -61,6 +65,7 @@ export function lowerFunction(
   warnings: ProjectDiagnostic[],
   returnsToStartup: boolean,
   interruptDepth: Readonly<{ irq: number; nmi: number }> = { irq: 0, nmi: 0 },
+  instructionSites?: Set<SemanticOperation | SemanticTerminator>,
 ): MachineFunction {
   const blockIndexes = new Map(blocks.map((block, index) => [block.id, index] as const));
   const predecessors = new Map(blocks.map((block) => [block.id, [] as string[]] as const));
@@ -257,7 +262,27 @@ export function lowerFunction(
     let aggregateFillIndex = 0;
     let aggregateBuildIndex = 0;
     let aggregateCaptureIndex = 0;
+    let precedingSite: SemanticOperation | SemanticTerminator | null = null;
+    let precedingInstructions = 0;
+    let precedingBlocks = 0;
+    /**
+     * Record actual emission, including operations which split the current block.
+     * Inspect the preceding site so every existing early continuation is covered.
+     */
+    const recordInstructionSite = (): void => {
+      if (
+        precedingSite !== null &&
+        (currentInstructions.length !== precedingInstructions ||
+          loweredBlocks.length !== precedingBlocks)
+      ) {
+        instructionSites?.add(precedingSite);
+      }
+    };
     for (const operation of block.operations) {
+      recordInstructionSite();
+      precedingSite = operation;
+      precedingInstructions = currentInstructions.length;
+      precedingBlocks = loweredBlocks.length;
       if (
         input.boundsCheck === true &&
         (operation.kind === "load" ||
@@ -485,6 +510,10 @@ export function lowerFunction(
       currentInstructions = [];
       waitIndex += 1;
     }
+    recordInstructionSite();
+    precedingSite = block.terminator;
+    precedingInstructions = currentInstructions.length;
+    precedingBlocks = loweredBlocks.length;
     if (state.aggregateInduction?.preheader === block.id) {
       currentInstructions.push(...state.aggregateInduction.initialization);
       state.aggregateAddressCache = state.aggregateInduction.cache;
@@ -547,6 +576,7 @@ export function lowerFunction(
         appendLoadA(currentInstructions, condition, 0, state, state.owner.span);
       }
     }
+    recordInstructionSite();
     loweredBlocks.push(
       Object.freeze({
         label: currentLabel,

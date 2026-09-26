@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-26
-> **Progress**: 91/99 tasks (92%)
+> **Progress**: 92/99 tasks (93%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -927,17 +927,83 @@ green local checkpoint; do not push. Qualified runtime evidence is VICE-verified
 
 ## Phase 9: Complete Qualification and Closeout
 
-> **Phase baseline tree**: _(recorded by exec-plan at phase start)_
+> **Phase baseline tree**: `f4feea602450d365ec20b0e8e7fadfc60d843ea3`
+> **Scope mode**: strict
+> **Expected modification set**: Phase 9 task paths below, focused same-directory qualification tests where the planned filename does not yet exist, the existing storage stack calculation, lowering-to-storage facts and service diagnostic boundary for the Phase 6 precision correction, the existing debug-record producer for Phase 6 variant call contexts, this plan's execution/closeout/review records and the feature roadmap. Reuse existing compiler services and VICE drivers; no new package, framework, runtime, optimizer or frozen-authority change.
 > **Lenses**: completeness, independent evidence, expert parity, portability, deferral expiry
 
-This phase adds no language or lowering behavior. Specification-first cases were authored before
-their implementation in Phases 1–8; Phase 9 reconciles and executes them.
+This phase adds no new language or lowering feature. It reconciles existing evidence and closes
+the correctness corrections already assigned here by earlier phase reviews. Those corrections
+still require independent specification cases before implementation; existing oracles remain
+immutable. This clarification does not move optional optimization or later-RD work into RD-04.
+
+**Entry check (2026-09-26):** resumed from clean commit `4ccb28d0` after the user's
+confirmation of the recommended High-effort Phase 9 work. Required plan documents and resolved
+AR-P1–AR-P27 are present; Phase 8 is verified complete. The first inventory confirms 397 named
+keys but finds a stale aggregate proof filename and missing closeout assertions. Reconcile
+actual evidence before promoting any `planned` row. The Phase 6 stack-route precision and
+variant source-context notes remain open qualification obligations, not completed evidence.
+The roadmap skill keeps the feature summary current; portfolio writes remain deferred until
+integration on `v3`.
+
+**Evidence reconciliation / effort handoff (2026-09-26 21:20):** the independently authored
+`test/rd04/normative-coverage-closeout.spec.test.ts` adds only the previously specified terminal
+disposition and real proof-file checks. Its first run is expected RED: one current-record case
+fails; six non-vacuous mutation controls pass (planned row, missing file, empty proof set, empty
+reference, parent traversal and directory). Existing source-key checks remain unchanged. The
+crosswalk is not promoted merely because its named files exist; decisive proof must be inspected.
+The single missing path is `packages/compiler/src/frontend/aggregate-types.spec.test.ts`, shared
+by multiple old rows. Their actual tests must be selected by rule, not replaced indiscriminately.
+
+The Phase 6 stack-route limitation still exists: `storage/closure.ts` computes independent
+program and interrupt maxima, then adds them in `hardwareStackPeak`. This source inspection
+confirms that the recorded precision debt has not been retired; no new end-to-end counterexample
+has yet been run. `expressiveness-ledger.json` explicitly assigns it to RD-04 Phase 9. Closing
+the RD or silently moving it to RD-05 would be incorrect. Under workflow directive 4, the
+smallest technical course is to validate and correct this already-owned accounting in its
+existing compiler path, with no runtime or optimization framework. Detailed design and regression
+authorship for that repair have not started.
+
+The user confirmed **XHigh** for the interrupt/stack correction and remaining Phase 9 work
+("model is xhigh now"). The repair investigation and independent regression authorship have
+resumed. Keep the correction in the existing static stack calculation; no generated runtime
+state or instructions are needed. No Phase 9 task is verified yet; progress stays 91/99.
+No commit or push was made while the new completion assertion is intentionally RED.
+Log: `/tmp/phase9-coverage-red.log`.
+
+**Stack correction in progress:** independent `stack-overlap.spec.test.ts` captured eight
+failures and six passing controls against the Phase 8 compiler (`/tmp/phase9-stack-red.log`).
+Inactive, restored and masked handlers incorrectly inflated finite peaks; a handler enabling its
+own unconstrained source incorrectly passed instead of E10245. The existing closure now uses a
+focused static calculation in `storage/irq-stack.ts` for qualified IRQ routes. It follows the
+existing control-flow blocks and closed call targets, retaining installation and saved-mask
+facts. It adds no emitted instruction, storage request or runtime state. The service maps a
+proved unbounded route to the frozen E10245 identity. Implementation is pending qualification;
+crosswalk completion remains unverified. Initializer, indirect-call and chained-predecessor
+cases are being added independently before the correction can be called complete.
+
+All 24 overlap/context cases now pass. Independent semantic review then found two remaining
+edge cases: non-returning handler chains and NMOS IRQ-recognition timing. The necessary fix
+rulings and evidence are recorded in [the stack review](09-phase-9-stack-review.md). The latter
+requires passing the existing lowering result's instruction-presence facts to the static proof;
+source expressions that emit nothing must not advance a hardware instruction boundary.
+An independent RV-009 call-context regression is RED for the second helper variant; its
+64-parameter acceptance control passes. The 397-row coverage record now has 379 implemented
+rows and 18 explicitly later-owned rows (including mixed conformance sections); the structural
+12-case coverage check passes. All 35 independent stack/call-evidence cases pass,
+including the required RED-to-GREEN non-returning, adjacent CLI/PLP and bare CLI/RTS
+corrections. The one re-review reports no remaining findings. Final install/build/typecheck
+and all 2,031 tests pass with the previously approved workspace-only scheduler allowance;
+root VICE limits remain unchanged. Frozen spec, expert authority and existing specification
+tests are untouched. RV-009 and RV-010 are closed; the stack ledger entry is retired.
+Task 9.1.1 is verified. The seven remaining qualification/closeout tasks are not promoted
+by this successful run; their additional assertions and reconciliation still need completion.
 
 ### Step 9.1: Evidence Reconciliation
 
 **Reference**: [03-05](03-05-qualification.md) · ST-49–ST-54 · AR-P3–AR-P7
 
-- [ ] 9.1.1 Complete every crosswalk owner/proof reference and prove exact normative set equality — `test/rd04/normative-coverage.json`, `test/rd04/normative-coverage.spec.test.ts`
+- [x] 9.1.1 Complete every crosswalk owner/proof reference and prove exact normative set equality — `test/rd04/normative-coverage.json`, `test/rd04/normative-coverage.spec.test.ts`, `test/rd04/normative-coverage-closeout.spec.test.ts` — Reconciled 397 keys (379 implemented, 18 explicitly later-owned); 12 coverage checks, 35 independent stack/call-evidence cases, correction re-review and all 2,031 repository tests pass. No generated instructions or existing specification tests changed. ✅ (completed: 2026-09-26 22:22)
 - [ ] 9.1.2 Validate all independent behavior-oracle mutation probes — `test/rd04/oracle-integrity.spec.test.ts`, `test/rd04/oracles/`
 - [ ] 9.1.3 Reconcile every expert comparison; fix worse results and file measured meet-only debt — `test/rd04/expert/`, `test/rd04/expert-output.spec.test.ts`
 - [ ] 9.1.4 Run the complete bounded sequential RD-04 VICE corpus and record `VICE-verified / hardware-unverified` — `test/rd04/vice.spec.test.ts`, `test/rd04/vice-driver.ts`

@@ -3,6 +3,7 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SemanticFunction, SemanticOperation } from "../semantic/operations.js";
 import { allocateStorage } from "./allocate.js";
 import { buildInterference } from "./interference.js";
+import { simultaneousIRQStackPeak } from "./irq-stack.js";
 import type {
   FunctionResultLocation,
   HelperCallDemand,
@@ -387,15 +388,13 @@ function hardwareStackPeak(
   inventory: StorageInventory,
   profile: StorageProfile,
   helperCalls: readonly HelperCallDemand[],
+  instructionSites: StorageBinder["instructionSites"],
 ): {
   readonly total: number;
   readonly program: number;
   readonly system: number;
   readonly route: readonly string[];
 } | null {
-  const routes = hardwareCallRoutes(inventory, helperCalls);
-  if (!Number.isFinite(routes.program.bytes) || !Number.isFinite(routes.interrupt.bytes))
-    return null;
   if (
     (profile.hardwareStackCapacity !== undefined &&
       (!Number.isInteger(profile.hardwareStackCapacity) || profile.hardwareStackCapacity < 0)) ||
@@ -409,6 +408,22 @@ function hardwareStackPeak(
     return null;
   }
   const startup = profile.startupStackBytes ?? 0;
+  if (
+    (inventory.program.interruptRoutes?.length ?? 0) > 0 &&
+    profile.interruptStackBytes === undefined &&
+    inventory.program.interruptRoutes!.every(({ sink }) => sink.domain === "irq")
+  ) {
+    const peak = simultaneousIRQStackPeak(
+      inventory.program,
+      helperCalls,
+      startup,
+      instructionSites,
+    );
+    return { ...peak, total: peak.program + peak.system };
+  }
+  const routes = hardwareCallRoutes(inventory, helperCalls);
+  if (!Number.isFinite(routes.program.bytes) || !Number.isFinite(routes.interrupt.bytes))
+    return null;
   const program = deeperStackRoute(
     routes.program,
     Object.freeze({ bytes: startup, route: Object.freeze(["startup"]) }),
@@ -570,8 +585,16 @@ export function closeStorage(
     if (!helpersReferenceInventory(inventory, helperCalls)) {
       return Object.freeze({ kind: "error", reason: "nonconvergent" });
     }
-    const stackPeak = hardwareStackPeak(inventory, profile, helperCalls);
+    const stackPeak = hardwareStackPeak(inventory, profile, helperCalls, binder.instructionSites);
     if (stackPeak === null) return Object.freeze({ kind: "error", reason: "stack" });
+    if (!Number.isFinite(stackPeak.total)) {
+      return Object.freeze({
+        kind: "error",
+        reason: "stack",
+        measured: stackPeak.total,
+        route: stackPeak.route,
+      });
+    }
     if (
       profile.hardwareStackCapacity !== undefined &&
       stackPeak.total > profile.hardwareStackCapacity - (profile.hardwareStackReserve ?? 0)

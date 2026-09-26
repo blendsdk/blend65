@@ -5,41 +5,71 @@
       "key": "conformance:15-platform-profile.md#5.1",
       "kind": "conformance",
       "source": "15-platform-profile.md",
-      "owner": "Phase 9",
-      "proof": ["test/rd04/backend.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 core proved; RD-05 deferred IRQ/NMI contracts; RD-06 native assets; RD-07 loadable delivery",
+      "proof": [
+        "test/rd04/backend.spec.test.ts",
+        "test/rd04/frontend-boundary.spec.test.ts",
+        "test/rd04/normative-coverage.spec.test.ts",
+        "codeops/features/blend65-v4/requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md",
+        "codeops/features/blend65-v4/requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md",
+        "codeops/features/blend65-v4/requirements/RD-07-loadable-assets-and-d64-delivery.md"
+      ],
+      "disposition": "rd-07"
     },
     {
       "key": "conformance:15-platform-profile.md#5.2",
       "kind": "conformance",
       "source": "15-platform-profile.md",
-      "owner": "Phase 9",
-      "proof": ["test/rd04/backend.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 9 selected Linux/C64 profile",
+      "proof": [
+        "test/rd04/vice.spec.test.ts",
+        "test/rd04/resource-accounting.spec.test.ts",
+        "test/rd04/selected-resource-evidence.spec.test.ts",
+        "test/rd04/diagnostics-resource-boundaries.spec.test.ts",
+        "test/rd04/diagnostics-full-zeropage.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "conformance:15-platform-profile.md#5.3",
       "kind": "conformance",
       "source": "15-platform-profile.md",
-      "owner": "Phase 9",
-      "proof": ["test/rd04/backend.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 arithmetic/memory/BCD proved; RD-06 SID compatibility",
+      "proof": [
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts",
+        "test/rd04/bounds.impl.test.ts",
+        "codeops/features/blend65-v4/requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md"
+      ],
+      "disposition": "rd-06"
     },
     {
       "key": "conformance:15-platform-profile.md#5.4",
       "kind": "conformance",
       "source": "15-platform-profile.md",
-      "owner": "Phase 9",
-      "proof": ["test/rd04/backend.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 9 selected Linux/C64 profile",
+      "proof": [
+        "test/rd04/bounds.impl.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts",
+        "test/rd04/backend.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "conformance:15-platform-profile.md#5.5",
       "kind": "conformance",
       "source": "15-platform-profile.md",
-      "owner": "Phase 9",
-      "proof": ["test/rd04/backend.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 current summary proved; RD-05/RD-06 imported audio contract evidence",
+      "proof": [
+        "test/rd04/backend.spec.test.ts",
+        "test/rd04/selected-resource-evidence.spec.test.ts",
+        "packages/compiler/src/artifacts/evidence.spec.test.ts",
+        "codeops/features/blend65-v4/requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md",
+        "codeops/features/blend65-v4/requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md"
+      ],
+      "disposition": "rd-06"
     },
     {
       "key": "diagnostic:E10001",
@@ -50,7 +80,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/parser.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10002",
@@ -61,7 +91,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/parser.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10003",
@@ -69,7 +99,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-record-completeness.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10010",
@@ -80,7 +110,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/parser.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10012",
@@ -88,7 +118,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-project-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10020",
@@ -96,7 +126,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-function-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10021",
@@ -104,7 +134,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-project-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10022",
@@ -112,7 +142,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-function-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10023",
@@ -120,7 +150,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-function-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10030",
@@ -128,7 +158,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-record-completeness.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10031",
@@ -139,7 +169,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10032",
@@ -147,7 +177,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-resource-boundaries.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10033",
@@ -158,7 +188,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10034",
@@ -166,7 +196,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-resource-boundaries.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10040",
@@ -174,7 +204,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10043",
@@ -186,7 +216,7 @@
         "test/rd04/diagnostics-alternate-producers.spec.test.ts",
         "test/rd04/diagnostics-alternate-values.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10050",
@@ -194,7 +224,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-function-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10051",
@@ -202,7 +232,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-call-kinds.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10063",
@@ -210,7 +240,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-declarations.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10070",
@@ -218,7 +248,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-switch-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10071",
@@ -226,7 +256,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-switch-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10072",
@@ -234,7 +264,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-switch-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10073",
@@ -242,7 +272,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-switch-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10074",
@@ -250,7 +280,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-switch-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10075",
@@ -258,7 +288,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-switch-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10076",
@@ -266,7 +296,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-switch-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10080",
@@ -278,7 +308,7 @@
         "test/rd04/diagnostics-alternate-producers.spec.test.ts",
         "test/rd04/diagnostics-alternate-values.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10081",
@@ -286,7 +316,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10082",
@@ -294,7 +324,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10083",
@@ -302,7 +332,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10084",
@@ -310,7 +340,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10086",
@@ -321,7 +351,7 @@
         "test/rd04/diagnostics-scalar-records.spec.test.ts",
         "test/rd04/diagnostics-alternate-values.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10090",
@@ -329,7 +359,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-declarations.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10091",
@@ -337,7 +367,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-aggregate-permissions.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10092",
@@ -345,7 +375,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-aggregate-permissions.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10094",
@@ -356,7 +386,7 @@
         "test/rd04/diagnostics-calls.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10095",
@@ -364,7 +394,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-values.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10096",
@@ -375,7 +405,7 @@
         "test/rd04/diagnostics-aggregate-values.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10097",
@@ -386,7 +416,7 @@
         "test/rd04/diagnostics-aggregate-values.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10100",
@@ -394,7 +424,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10102",
@@ -402,7 +432,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-function-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10110",
@@ -410,7 +440,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-declarations.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10112",
@@ -421,7 +451,7 @@
         "test/rd04/diagnostics-aggregate-values.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10113",
@@ -432,7 +462,7 @@
         "test/rd04/diagnostics-aggregate-values.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10114",
@@ -443,7 +473,7 @@
         "test/rd04/diagnostics-aggregate-values.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10115",
@@ -454,7 +484,7 @@
         "test/rd04/diagnostics-values.spec.test.ts",
         "test/rd04/diagnostics-alternate-values.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10116",
@@ -465,7 +495,7 @@
         "test/rd04/diagnostics-aggregate-values.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10121",
@@ -476,7 +506,7 @@
         "test/rd04/diagnostics-aggregate-values.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10122",
@@ -484,7 +514,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-aggregate-permissions.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10123",
@@ -495,7 +525,7 @@
         "test/rd04/diagnostics-aggregate-permissions.spec.test.ts",
         "test/rd04/diagnostics-alternate-producers.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10124",
@@ -506,7 +536,7 @@
         "test/rd04/diagnostics-aggregate-values.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10125",
@@ -517,7 +547,7 @@
         "test/rd04/diagnostics-aggregate-permissions.spec.test.ts",
         "test/rd04/diagnostics-alternate-producers.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10130",
@@ -525,7 +555,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-project-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10131",
@@ -533,7 +563,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-project-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10132",
@@ -561,7 +591,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-declarations.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10135",
@@ -569,7 +599,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-declarations.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10136",
@@ -577,7 +607,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-project-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10137",
@@ -585,7 +615,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-project-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10140",
@@ -593,7 +623,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-declarations.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10142",
@@ -634,7 +664,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/parser.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10151",
@@ -642,7 +672,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10152",
@@ -650,7 +680,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-values.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10153",
@@ -661,7 +691,7 @@
         "test/rd04/diagnostics-values.spec.test.ts",
         "test/rd04/diagnostics-alternate-values.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10154",
@@ -672,7 +702,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/diagnostic-completion.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10160",
@@ -683,7 +713,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/diagnostic-completion.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10161",
@@ -691,7 +721,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-values.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10162",
@@ -699,7 +729,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-values.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10170",
@@ -710,7 +740,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/parser.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10171",
@@ -723,7 +753,7 @@
         "test/rd04/diagnostics-alternate-producers.spec.test.ts",
         "test/rd04/diagnostics-alternate-residual.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10172",
@@ -734,7 +764,7 @@
         "test/rd04/diagnostics-calls.spec.test.ts",
         "test/rd04/diagnostics-alternate-producers.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10173",
@@ -742,7 +772,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-function-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10174",
@@ -750,7 +780,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-function-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10175",
@@ -758,7 +788,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-call-kinds.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10176",
@@ -766,7 +796,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-declarations.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10180",
@@ -777,7 +807,7 @@
         "test/rd04/diagnostics-function-records.spec.test.ts",
         "test/rd04/diagnostics-alternate-values.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10181",
@@ -785,7 +815,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-function-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10190",
@@ -796,7 +826,7 @@
         "test/rd04/diagnostics-scalar-records.spec.test.ts",
         "packages/compiler/src/frontend/parser.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10191",
@@ -808,7 +838,7 @@
         "test/rd04/diagnostics-alternate-producers.spec.test.ts",
         "test/rd04/diagnostics-alternate-values.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10192",
@@ -816,7 +846,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-declarations.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10194",
@@ -824,7 +854,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-project-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10200",
@@ -832,7 +862,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-values.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10201",
@@ -840,7 +870,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-values.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10202",
@@ -848,7 +878,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-values.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10203",
@@ -859,7 +889,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/diagnostic-completion.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10204",
@@ -877,7 +907,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10211",
@@ -885,7 +915,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10212",
@@ -896,7 +926,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/scalars.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10213",
@@ -904,7 +934,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10214",
@@ -912,7 +942,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10215",
@@ -920,7 +950,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10216",
@@ -928,7 +958,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10217",
@@ -939,7 +969,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/lexer.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10218",
@@ -950,7 +980,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/lexer.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10219",
@@ -958,7 +988,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10220",
@@ -966,7 +996,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10221",
@@ -974,7 +1004,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10222",
@@ -982,7 +1012,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10223",
@@ -990,7 +1020,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10224",
@@ -1001,7 +1031,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/parser.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10230",
@@ -1009,7 +1039,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-declarations.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10231",
@@ -1020,7 +1050,7 @@
         "test/rd04/diagnostics-calls.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10232",
@@ -1028,7 +1058,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-declarations.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10233",
@@ -1036,7 +1066,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-declarations.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10234",
@@ -1044,7 +1074,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10235",
@@ -1052,7 +1082,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10236",
@@ -1060,7 +1090,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10237",
@@ -1068,7 +1098,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-declarations.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10238",
@@ -1077,9 +1107,11 @@
       "owner": "Phase 8",
       "proof": [
         "test/rd04/diagnostics-resource-boundaries.spec.test.ts",
-        "test/rd04/selected-resource-evidence.spec.test.ts"
+        "test/rd04/selected-resource-evidence.spec.test.ts",
+        "test/rd04/stack-overlap.spec.test.ts",
+        "test/rd04/stack-overlap-contexts.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10239",
@@ -1090,7 +1122,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "packages/compiler/src/frontend/diagnostic-completion.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10240",
@@ -1101,7 +1133,7 @@
         "test/rd04/diagnostics-aggregate-values.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10241",
@@ -1109,7 +1141,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10242",
@@ -1120,7 +1152,7 @@
         "test/rd04/diagnostics-aggregate-values.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10243",
@@ -1131,7 +1163,7 @@
         "test/rd04/diagnostics-aggregate-values.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10244",
@@ -1139,7 +1171,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-execution-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10245",
@@ -1148,9 +1180,11 @@
       "owner": "Phase 8",
       "proof": [
         "test/rd04/diagnostics-resource-boundaries.spec.test.ts",
-        "test/rd04/diagnostics-alternate-placement.spec.test.ts"
+        "test/rd04/diagnostics-alternate-placement.spec.test.ts",
+        "test/rd04/stack-overlap.spec.test.ts",
+        "test/rd04/stack-overlap-contexts.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10246",
@@ -1158,7 +1192,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-type-boundaries.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10247",
@@ -1170,7 +1204,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "test/rd04/diagnostics-alternate-placement.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10248",
@@ -1178,7 +1212,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-execution-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10249",
@@ -1186,7 +1220,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-aggregate-permissions.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10250",
@@ -1194,7 +1228,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-project-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10251",
@@ -1202,7 +1236,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-aggregate-permissions.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10252",
@@ -1210,7 +1244,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-execution-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10253",
@@ -1221,7 +1255,7 @@
         "test/rd04/diagnostics-aggregate-permissions.spec.test.ts",
         "test/rd04/diagnostics-alternate-values.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10254",
@@ -1232,7 +1266,7 @@
         "test/rd04/diagnostics-type-boundaries.spec.test.ts",
         "test/rd04/diagnostics-alternate-residual.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10256",
@@ -1270,7 +1304,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-execution-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10261",
@@ -1288,7 +1322,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-execution-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10263",
@@ -1299,7 +1333,7 @@
         "test/rd04/diagnostics-aggregate-values.spec.test.ts",
         "test/rd04/diagnostics-record-completeness.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10264",
@@ -1307,7 +1341,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-type-boundaries.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10265",
@@ -1319,7 +1353,7 @@
         "test/rd04/diagnostics-alternate-values.spec.test.ts",
         "test/rd04/diagnostics-alternate-placement.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10266",
@@ -1327,7 +1361,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-values.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10267",
@@ -1338,7 +1372,7 @@
         "packages/compiler/src/artifacts/canonical-diagnostics.spec.test.ts",
         "test/rd04/artifact-field-diagnostics.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10268",
@@ -1346,7 +1380,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/artifacts/canonical-diagnostics.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10269",
@@ -1354,7 +1388,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/diagnostic-budget-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10270",
@@ -1362,7 +1396,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/diagnostic-budget-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10271",
@@ -1370,7 +1404,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/diagnostic-budget-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10272",
@@ -1381,7 +1415,7 @@
         "test/rd04/diagnostics-execution-records.spec.test.ts",
         "test/rd04/diagnostics-alternate-placement.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10273",
@@ -1393,7 +1427,7 @@
         "test/rd04/diagnostics-alternate-placement.spec.test.ts",
         "test/rd04/asset-alias-diagnostics.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10274",
@@ -1401,7 +1435,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-execution-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10275",
@@ -1412,7 +1446,7 @@
         "test/rd04/diagnostics-execution-records.spec.test.ts",
         "test/rd04/diagnostics-alternate-placement.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10276",
@@ -1430,7 +1464,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-execution-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10278",
@@ -1438,7 +1472,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-execution-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10279",
@@ -1446,7 +1480,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-project-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10280",
@@ -1454,7 +1488,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-erratum.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:E10281",
@@ -1462,7 +1496,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-erratum.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10030",
@@ -1470,7 +1504,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-full-zeropage.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10033",
@@ -1481,7 +1515,7 @@
         "test/rd04/diagnostics-resource-boundaries.spec.test.ts",
         "test/rd04/selected-resource-evidence.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10070",
@@ -1492,7 +1526,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "test/rd04/diagnostics-warnings.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10100",
@@ -1503,7 +1537,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "test/rd04/diagnostics-warnings.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10101",
@@ -1511,7 +1545,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-warning-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10110",
@@ -1519,7 +1553,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-resource-warnings.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10111",
@@ -1530,7 +1564,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "test/rd04/diagnostics-warnings.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10112",
@@ -1541,7 +1575,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "test/rd04/diagnostics-warnings.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10130",
@@ -1552,7 +1586,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "test/rd04/diagnostics-warnings.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10131",
@@ -1563,7 +1597,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "test/rd04/diagnostics-warnings.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10140",
@@ -1571,7 +1605,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-aggregate-permissions.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10141",
@@ -1579,7 +1613,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-warning-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10143",
@@ -1587,7 +1621,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-resource-warnings.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10150",
@@ -1595,7 +1629,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-resource-boundaries.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10151",
@@ -1603,7 +1637,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-warning-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10160",
@@ -1614,7 +1648,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "test/rd04/diagnostics-warnings.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10161",
@@ -1622,7 +1656,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-warning-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10170",
@@ -1630,7 +1664,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-warning-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10171",
@@ -1638,7 +1672,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-warning-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10172",
@@ -1646,7 +1680,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-warning-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10173",
@@ -1654,7 +1688,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-warning-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10174",
@@ -1662,7 +1696,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-warning-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10180",
@@ -1671,9 +1705,11 @@
       "owner": "Phase 8",
       "proof": [
         "test/rd04/diagnostics-resource-boundaries.spec.test.ts",
-        "test/rd04/selected-resource-evidence.spec.test.ts"
+        "test/rd04/selected-resource-evidence.spec.test.ts",
+        "test/rd04/stack-overlap.spec.test.ts",
+        "test/rd04/stack-overlap-contexts.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10181",
@@ -1684,7 +1720,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "test/rd04/diagnostics-warnings.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10190",
@@ -1692,7 +1728,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-warning-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10191",
@@ -1703,7 +1739,7 @@
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
         "test/rd04/diagnostics-warnings.spec.test.ts"
       ],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10210",
@@ -1711,7 +1747,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10211",
@@ -1719,7 +1755,7 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-warning-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "diagnostic:W10212",
@@ -1727,1671 +1763,2427 @@
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
       "proof": ["test/rd04/diagnostics-warning-records.spec.test.ts"],
-      "disposition": "planned"
+      "disposition": "implemented"
     },
     {
       "key": "grammar:additive_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:arg_list",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:array_element_type",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:array_extent",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:array_init_content",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:array_literal",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:array_type",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:assign_op",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:assignment_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:bin_digit",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:bin_literal",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:bitwise_and_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:bitwise_or_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:bitwise_xor_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:block",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:block_comment",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:break_stmt",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:case_body",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:case_clause",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:case_value_list",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:char_char",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:char_literal",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:comptime_decl",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "packages/compiler/src/frontend/comptime.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:conditional_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:const_decl",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:const_decl_local",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:const_expression",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "packages/compiler/src/frontend/comptime.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:contextual_keyword",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:continue_stmt",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:cpu_intrinsic",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "packages/compiler/src/frontend/comptime.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:cpu_intrinsic_name",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "packages/compiler/src/frontend/comptime.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:decimal_literal",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:default_clause",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:digit",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:do_while_stmt",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:embed_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "packages/compiler/src/frontend/comptime.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:enum_decl",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:enum_member",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:equality_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:escape_seq",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:expression",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:expression_list",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:expression_stmt",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:field_init",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:for_initializer",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:for_local_decl",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:for_stmt",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:for_update",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:function_decl",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:function_type",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:function_type_param",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:function_type_params",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:hex_digit",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:hex_literal",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:identifier",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:if_stmt",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:import_item",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:import_list",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:import_stmt",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:integer_type",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:interrupt_decl",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:intrinsic_call",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "packages/compiler/src/frontend/comptime.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:keyword",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:let_decl",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:letter",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:line_comment",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:loadable_const_decl",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:loadable_const_decl_local",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:logical_and_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:logical_or_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:memory_intrinsic",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "packages/compiler/src/frontend/comptime.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:module_decl",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:multiplicative_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:number_literal",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:param",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:param_list",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:place_arg",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:place_clause",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:postfix_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:postfix_op",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:primary_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:primitive_cast",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:program",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:qualified_name",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:query_intrinsic",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "packages/compiler/src/frontend/comptime.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:relational_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:reserved_builtin",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:return_stmt",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:return_type",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:shift_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:statement",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:string_char",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:string_literal",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": ["packages/compiler/src/frontend/lexer.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:struct_decl",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:struct_field",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:struct_literal",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:switch_stmt",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:top_level_item",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:trig_intrinsic",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "packages/compiler/src/frontend/comptime.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:type",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:unary_expr",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:value_type",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:var_decl_local",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:while_stmt",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:zeropage_block",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "grammar:zeropage_var",
       "kind": "grammar",
       "source": "grammar.ebnf.md",
-      "owner": "Phase 1",
-      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 Phase 1 grammar",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-1",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "test/rd04/diagnostics-declarations.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-10",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-11",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-12",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-13",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-14",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-15",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-16",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-17",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-18",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/comptime.spec.test.ts",
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/comptime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-19",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-2",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-20",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-21",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-22",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-23",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-24",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-25",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "packages/compiler/src/frontend/intrinsics.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-3",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-4",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-5",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-6",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-7",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-8",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:02-type-system.md#TS-9",
       "kind": "semantic-rule",
       "source": "02-type-system.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 TS qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/scalars-arithmetic-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:03-variables.md#VAR-1",
       "kind": "semantic-rule",
       "source": "03-variables.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 VAR qualification",
+      "proof": [
+        "test/rd04/diagnostics-declarations.spec.test.ts",
+        "packages/compiler/src/frontend/parser.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:03-variables.md#VAR-2",
       "kind": "semantic-rule",
       "source": "03-variables.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 VAR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:03-variables.md#VAR-3",
       "kind": "semantic-rule",
       "source": "03-variables.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 VAR qualification",
+      "proof": [
+        "test/rd04/diagnostics-declarations.spec.test.ts",
+        "packages/compiler/src/frontend/parser.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:03-variables.md#VAR-4",
       "kind": "semantic-rule",
       "source": "03-variables.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 VAR qualification",
+      "proof": [
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:03-variables.md#VAR-5",
       "kind": "semantic-rule",
       "source": "03-variables.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 VAR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/modules.spec.test.ts",
+        "test/rd04/diagnostics-declarations.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:03-variables.md#VAR-6",
       "kind": "semantic-rule",
       "source": "03-variables.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 VAR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/modules.spec.test.ts",
+        "test/rd04/diagnostics-declarations.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:03-variables.md#VAR-7",
       "kind": "semantic-rule",
       "source": "03-variables.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 VAR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/modules.spec.test.ts",
+        "test/rd04/diagnostics-declarations.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:03-variables.md#VAR-8",
       "kind": "semantic-rule",
       "source": "03-variables.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 VAR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/modules.spec.test.ts",
+        "test/rd04/diagnostics-declarations.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:03-variables.md#VAR-9",
       "kind": "semantic-rule",
       "source": "03-variables.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 VAR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/modules.spec.test.ts",
+        "test/rd04/diagnostics-declarations.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:05-statements-control-flow.md#CF-1",
       "kind": "semantic-rule",
       "source": "05-statements-control-flow.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 CF qualification",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "test/rd04/diagnostics-record-completeness.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:05-statements-control-flow.md#CF-2",
       "kind": "semantic-rule",
       "source": "05-statements-control-flow.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 CF qualification",
+      "proof": [
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:05-statements-control-flow.md#CF-4",
       "kind": "semantic-rule",
       "source": "05-statements-control-flow.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 CF qualification",
+      "proof": [
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:05-statements-control-flow.md#SW-1",
       "kind": "semantic-rule",
       "source": "05-statements-control-flow.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 SW qualification",
+      "proof": [
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/diagnostics-switch-records.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:05-statements-control-flow.md#SW-2",
       "kind": "semantic-rule",
       "source": "05-statements-control-flow.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 SW qualification",
+      "proof": [
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "packages/compiler/src/frontend/parser-grammar-forms.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/diagnostics-switch-records.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-1",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/parser.spec.test.ts",
+        "test/rd04/diagnostics-declarations.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-10",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": [
+        "test/rd04/scalars-runtime.spec.test.ts",
+        "test/rd04/function-values.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-11",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": ["test/rd04/call-evidence-closeout.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-12",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/expressions.spec.test.ts",
+        "test/rd04/function-values.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-13",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/diagnostics-declarations.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-2",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-3",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-4",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-5",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/diagnostics-call-kinds.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-6",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "packages/compiler/src/semantic/whole-program.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-7",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/modules.spec.test.ts",
+        "packages/compiler/src/frontend/scalars.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-8",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/modules.spec.test.ts",
+        "test/rd04/diagnostics-declarations.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#FN-9",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 5",
-      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 FN qualification",
+      "proof": [
+        "test/rd04/diagnostics-declarations.spec.test.ts",
+        "packages/compiler/src/frontend/parser.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:06-functions.md#INT-4",
       "kind": "semantic-rule",
       "source": "06-functions.md",
-      "owner": "Phase 6",
-      "proof": ["test/rd04/interrupts.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 finite IRQ domains proved; RD-05 R5.15–R5.17 NMI and handler-side updates (AR-P16/AR-P17)",
+      "proof": [
+        "packages/compiler/src/storage/sfa.spec.test.ts",
+        "test/rd04/interrupts.spec.test.ts",
+        "test/rd04/stack-overlap.spec.test.ts",
+        "test/rd04/stack-overlap-contexts.spec.test.ts",
+        "test/rd04/stack-nonreturn.spec.test.ts",
+        "test/rd04/stack-mask-boundary.spec.test.ts",
+        "test/rd04/stack-mask-return.spec.test.ts",
+        "test/rd04/call-evidence-closeout.spec.test.ts",
+        "codeops/features/blend65-v4/requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md"
+      ],
+      "disposition": "rd-05"
     },
     {
       "key": "rule:07-structs.md#SR-1",
       "kind": "semantic-rule",
       "source": "07-structs.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 SR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:07-structs.md#SR-2",
       "kind": "semantic-rule",
       "source": "07-structs.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 SR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:07-structs.md#SR-3",
       "kind": "semantic-rule",
       "source": "07-structs.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 SR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:07-structs.md#SR-4",
       "kind": "semantic-rule",
       "source": "07-structs.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 SR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:07-structs.md#SR-5",
       "kind": "semantic-rule",
       "source": "07-structs.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 SR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:07-structs.md#SR-6",
       "kind": "semantic-rule",
       "source": "07-structs.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 SR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:07-structs.md#SR-7",
       "kind": "semantic-rule",
       "source": "07-structs.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 SR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:07-structs.md#SR-8",
       "kind": "semantic-rule",
       "source": "07-structs.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 SR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#AR-1",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 AR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#AR-2",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 AR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#AR-3",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 AR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#AR-4",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 AR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#AR-5",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 AR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#AR-6",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 AR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#AR-7",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 AR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#AR-8",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 AR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts",
+        "test/rd04/bounds.impl.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#CL-1",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 CL qualification",
+      "proof": [
+        "packages/compiler/src/frontend/lexer.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/diagnostics-erratum.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#CL-2",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 CL qualification",
+      "proof": [
+        "packages/compiler/src/frontend/lexer.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/diagnostics-erratum.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#CL-3",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 CL qualification",
+      "proof": [
+        "packages/compiler/src/frontend/lexer.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/diagnostics-erratum.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#CP-1",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 CP qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#CP-2",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 CP qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#CP-3",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 CP qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#CP-4",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 CP qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#CP-5",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 CP qualification",
+      "proof": [
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/aggregate-abi.spec.test.ts",
+        "test/rd04/array-fill.spec.test.ts",
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#STR-1",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 STR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/lexer.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/diagnostics-erratum.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#STR-2",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 STR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/lexer.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/diagnostics-erratum.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#STR-3",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 STR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/lexer.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/diagnostics-erratum.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#STR-4",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 STR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/lexer.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/diagnostics-erratum.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#STR-5",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 STR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/lexer.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/diagnostics-erratum.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:08-arrays-strings.md#STR-6",
       "kind": "semantic-rule",
       "source": "08-arrays-strings.md",
-      "owner": "Phase 3",
-      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 STR qualification",
+      "proof": [
+        "packages/compiler/src/frontend/lexer.spec.test.ts",
+        "packages/compiler/src/frontend/aggregates.spec.test.ts",
+        "test/rd04/aggregate-runtime.spec.test.ts",
+        "test/rd04/diagnostics-erratum.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-1",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-10",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-11",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-12",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-13",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": ["packages/compiler/src/frontend/modules.spec.test.ts"],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-2",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-3",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-4",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-5",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-6",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-7",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-8",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:09-enums.md#EN-9",
       "kind": "semantic-rule",
       "source": "09-enums.md",
-      "owner": "Phase 2",
-      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EN qualification",
+      "proof": [
+        "packages/compiler/src/frontend/scalars.spec.test.ts",
+        "packages/compiler/src/frontend/flow.spec.test.ts",
+        "test/rd04/scalars-runtime.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:13-data-inclusion.md#EMB-1",
       "kind": "semantic-rule",
       "source": "13-data-inclusion.md",
-      "owner": "Phase 7",
-      "proof": ["test/rd04/intrinsics-runtime.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 resident raw embedding proved; RD-06 native handler results; RD-07 loadable packaging",
+      "proof": [
+        "packages/compiler/src/assets/raw-asset.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts",
+        "test/rd04/diagnostics-project-records.spec.test.ts",
+        "codeops/features/blend65-v4/requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md",
+        "codeops/features/blend65-v4/requirements/RD-07-loadable-assets-and-d64-delivery.md"
+      ],
+      "disposition": "rd-07"
     },
     {
       "key": "rule:13-data-inclusion.md#EMB-2",
       "kind": "semantic-rule",
       "source": "13-data-inclusion.md",
-      "owner": "Phase 7",
-      "proof": ["test/rd04/intrinsics-runtime.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EMB qualification",
+      "proof": [
+        "packages/compiler/src/assets/raw-asset.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts",
+        "test/rd04/diagnostics-project-records.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:13-data-inclusion.md#EMB-3",
       "kind": "semantic-rule",
       "source": "13-data-inclusion.md",
-      "owner": "Phase 7",
-      "proof": ["test/rd04/intrinsics-runtime.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EMB qualification",
+      "proof": [
+        "packages/compiler/src/assets/raw-asset.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts",
+        "test/rd04/diagnostics-project-records.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:13-data-inclusion.md#EMB-4",
       "kind": "semantic-rule",
       "source": "13-data-inclusion.md",
-      "owner": "Phase 7",
-      "proof": ["test/rd04/intrinsics-runtime.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-04 EMB qualification",
+      "proof": [
+        "packages/compiler/src/assets/raw-asset.spec.test.ts",
+        "test/rd04/intrinsics-runtime.spec.test.ts",
+        "test/rd04/diagnostics-project-records.spec.test.ts"
+      ],
+      "disposition": "implemented"
     },
     {
       "key": "rule:13-data-inclusion.md#EMB-5",
       "kind": "semantic-rule",
       "source": "13-data-inclusion.md",
-      "owner": "Phase 7",
-      "proof": ["test/rd04/intrinsics-runtime.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-06 native handlers and format identities; RD-04 honest unavailability proved",
+      "proof": [
+        "test/rd04/backend.spec.test.ts",
+        "test/rd04/diagnostics-project-records.spec.test.ts",
+        "codeops/features/blend65-v4/requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md"
+      ],
+      "disposition": "rd-06"
     },
     {
       "key": "rule:13-data-inclusion.md#EMB-6",
       "kind": "semantic-rule",
       "source": "13-data-inclusion.md",
-      "owner": "Phase 7",
-      "proof": ["test/rd04/intrinsics-runtime.spec.test.ts"],
-      "disposition": "planned"
+      "owner": "RD-06 unknown selector; RD-04 literal-argument validation proved",
+      "proof": [
+        "test/rd04/backend.spec.test.ts",
+        "test/rd04/diagnostics-project-records.spec.test.ts",
+        "codeops/features/blend65-v4/requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md"
+      ],
+      "disposition": "rd-06"
     }
   ]
 }

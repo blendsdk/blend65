@@ -6,6 +6,7 @@ import {
   interruptRouteDepths,
 } from "../semantic/interrupt-contexts.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
+import type { SemanticOperation, SemanticTerminator } from "../semantic/operations.js";
 import type { HelperCallDemand, StorageRequest } from "../storage/storage-types.js";
 import { storageInventoryHash } from "../storage/closure.js";
 import { inventoryStorage } from "../storage/inventory.js";
@@ -174,6 +175,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
     readonly source: SourceSpan;
   }[] = [];
   const warnings: ProjectDiagnostic[] = [];
+  const instructionSites = new Set<SemanticOperation | SemanticTerminator>();
   try {
     const loweringInput = Object.freeze({
       ...input,
@@ -209,6 +211,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
           warnings,
           bindingIdentityKey(semantic.id) === bindingIdentityKey(input.program.semantic.main),
           context,
+          instructionSites,
         );
         requests.push(
           ...discovered.map((request) =>
@@ -302,6 +305,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
               warnings,
               false,
               context,
+              instructionSites,
             ),
             context,
             contexts,
@@ -398,6 +402,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
     const binder = Object.freeze({
       candidateRequestIds: Object.freeze(requests.map(({ id }) => id)),
       helperCalls: Object.freeze(helperCalls),
+      instructionSites,
       discover: () => Object.freeze([...requests]),
     });
     return Object.freeze({

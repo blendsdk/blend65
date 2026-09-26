@@ -249,6 +249,19 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
   const certificate = closeStorage(inventory, reserved.storage, lowered.binder);
   if (certificate.kind === "error") {
     if (certificate.reason === "stack" && certificate.measured !== undefined) {
+      if (!Number.isFinite(certificate.measured)) {
+        return {
+          kind: "failure",
+          failure: failure("source", [
+            projectDiagnostic(
+              "E10245",
+              "Execution path 'IRQ re-entry' can overlap or consume hardware stack without a static bound — use a bounded interrupt/callback design",
+              resourceSpans.get(bindingIdentityKey(closed.program.semantic.main)) ??
+                closed.program.semantic.main.span,
+            ),
+          ]),
+        };
+      }
       return {
         kind: "failure",
         failure: failure("source", [

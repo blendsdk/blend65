@@ -1,5 +1,6 @@
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
+import type { SemanticOperation, SemanticTerminator } from "../semantic/operations.js";
 import type { ValueLifetime, WholeProgram } from "../semantic/whole-program.js";
 import type { ExecutionDomain } from "../semantic/interrupt-domains.js";
 
@@ -131,6 +132,12 @@ export interface StorageBinder {
   readonly candidateRequestIds: readonly string[];
   /** Selected direct helper calls with explicit storage and stack effects. */
   readonly helperCalls: readonly HelperCallDemand[];
+  /**
+   * Source operations which actually emit instructions. A terminator is included
+   * only when its value setup emits work before the final jump, branch or return.
+   * Stack proof uses this to distinguish an IRQ-mask delay from erased expressions.
+   */
+  readonly instructionSites?: ReadonlySet<SemanticOperation | SemanticTerminator>;
   /** Discover the selected requests for one provisional placement. */
   readonly discover: StorageDiscovery;
 }
@@ -196,11 +203,11 @@ export interface StorageClosureCertificate {
   readonly peakBytes: ResourceTotals;
   /** Proved call/interrupt hardware-stack peak. */
   readonly hardwareStackPeak: number;
-  /** Largest program-owned startup or call route before interrupt entry. */
+  /** Program-owned bytes live on the route which determines the total peak. */
   readonly hardwareStackProgramPeak: number;
-  /** Selected interrupt entry plus nested handler-call peak. */
+  /** Interrupt-owned bytes simultaneously live on that same peak route. */
   readonly hardwareStackSystemPeak: number;
-  /** Exact program-owned route which determines the program peak. */
+  /** Program and interrupt route which determines the simultaneous total peak. */
   readonly hardwareStackRoute: readonly string[];
   /** Marker preventing a partial record from masquerading as a certificate. */
   readonly closed: true;
