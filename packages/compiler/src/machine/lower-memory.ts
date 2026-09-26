@@ -205,7 +205,6 @@ export function lowerMemoryWrite(
     value === undefined ||
     address.kind === "register" ||
     address.kind === "condition" ||
-    value.kind === "register" ||
     value.kind === "condition"
   ) {
     throw new Error("Raw-memory write has no stable lowered address/value");
@@ -214,8 +213,14 @@ export function lowerMemoryWrite(
     const instructions: MachineInstruction[] = [];
     for (let offset = 0; offset < operation.width; offset += 1) {
       const target = (address.value + offset) & 0xffff;
+      if (value.kind === "register") {
+        if (operation.width !== 1 || value.registers !== "a") {
+          throw new Error("Raw-memory write has no stable lowered value");
+        }
+      } else {
+        instructions.push(loadA(value, offset, context.cpu, operation.span));
+      }
       instructions.push(
-        loadA(value, offset, context.cpu, operation.span),
         machineInstruction(
           context.cpu,
           "sta",
@@ -227,6 +232,9 @@ export function lowerMemoryWrite(
       );
     }
     return Object.freeze(instructions);
+  }
+  if (value.kind === "register") {
+    throw new Error("Dynamic raw-memory write needs a stable value before address setup");
   }
   const pointer = context.pointerRequest(operation);
   const instructions = [...setPointer(address, pointer.id, context.cpu, operation.span)];

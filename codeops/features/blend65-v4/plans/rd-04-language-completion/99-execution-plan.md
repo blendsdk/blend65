@@ -373,7 +373,7 @@ The user approved the recommended bounded fix for the four major gaps on 2026-09
 ### Step 7.3: Implementation Tests and Qualification
 
 - [x] 7.3.1 Add meter-charge/release, forbidden-host-input, status-join and embed-parser implementation tests, including the canonical full sin16 stream hash through the evaluator's internal trigonometry function — `packages/compiler/src/frontend/comptime.impl.test.ts`, `packages/compiler/src/frontend/flow.impl.test.ts`, `packages/compiler/src/assets/raw-asset.impl.test.ts` — Verified 2026-09-26 02:13: 24 directed implementation cases pass, including the full 65,536-phase `sin16` hash. Install, build, typecheck, formatting, frozen-spec and complete tests pass (1,241 compiler; 152 root including VICE). ✅ (completed: 2026-09-26 02:13)
-- [ ] 7.3.2 Run complete compile-time/intrinsic/embed ACME/VICE and expert qualification — `test/rd04/comptime.spec.test.ts`, `test/rd04/intrinsics-runtime.spec.test.ts`, `test/rd04/expert/intrinsics.json`
+- [!] 7.3.2 Run complete compile-time/intrinsic/embed ACME/VICE and expert qualification — `test/rd04/comptime.spec.test.ts`, `test/rd04/intrinsics-runtime.spec.test.ts`, `test/rd04/expert/intrinsics.json` — Directed ACME/VICE cases and the equal-contract byte BCD constant-operand reference pass. AR-P21 remains open: two volatile BCD operands still exceed the expert routine by 6 bytes, 8 cycles and one RAM byte; [#86](https://github.com/blendsdk/blend65/issues/86). Phase parity cannot be marked complete under AR-P4.
 
 **Deliverables:** deterministic target-free compile time and complete approved intrinsic surface.
 

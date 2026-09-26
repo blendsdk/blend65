@@ -604,6 +604,10 @@ export function lowerOperation(
     return retained.instructions;
   }
   if (operation.kind === "memory-write") {
+    const value = state.values.get(operation.value);
+    if (value?.kind === "register" && !state.forwardedAccumulatorValues.has(operation.value)) {
+      throw loweringFailure("Raw-memory register value was not proved current", operation.span);
+    }
     return lowerMemoryWrite(operation, {
       cpu: state.input.profile.cpu,
       owner: state.owner,

@@ -143,6 +143,8 @@ export interface FunctionLoweringState {
   readonly allPositions: readonly { readonly block: string; readonly operation: number }[];
   readonly branchConditions: ReadonlySet<string>;
   readonly materializedValues: ReadonlySet<string>;
+  /** One-use A results consumed by the next instruction-producing operation. */
+  readonly forwardedAccumulatorValues: ReadonlySet<string>;
   /** Values consumed once may donate their address pair to a terminal aggregate copy. */
   readonly singleUseValues: ReadonlySet<string>;
   /** Aggregate results whose pointer is consumed beyond a redundant same-place store. */
@@ -275,6 +277,7 @@ export function retainMachineValue(
   );
   if (
     !state.materializedValues.has(resultId) ||
+    state.forwardedAccumulatorValues.has(resultId) ||
     value.kind !== "register" ||
     !hasSemanticLifetime
   ) {
@@ -445,6 +448,13 @@ function lowerFunction(
     retainedAggregateResults.add(value);
   };
   const addressValues = new Set<string>();
+  const constantValues = new Set(
+    blocks.flatMap((block) =>
+      block.operations.flatMap((operation) =>
+        operation.kind === "constant" ? [operation.result] : [],
+      ),
+    ),
+  );
   for (const block of blocks) {
     for (const operation of block.operations) {
       if (
@@ -485,6 +495,42 @@ function lowerFunction(
       recordUse(block.terminator.value, null);
     }
   }
+  const singleUseValues = new Set(
+    [...valueUseCounts].filter(([, uses]) => uses === 1).map(([value]) => value),
+  );
+  // Constants emit no machine instruction. Only these adjacent consumers can use A directly
+  // without a lifetime home or a second load, and only when the value has no other use.
+  const forwardedAccumulatorValues = new Set<string>();
+  for (const block of blocks) {
+    for (let index = 0; index < block.operations.length; index += 1) {
+      const producer = block.operations[index]!;
+      if (
+        (producer.kind !== "memory-read" && producer.kind !== "bcd") ||
+        producer.width !== 1 ||
+        !singleUseValues.has(producer.result)
+      ) {
+        continue;
+      }
+      let consumerIndex = index + 1;
+      while (block.operations[consumerIndex]?.kind === "constant") consumerIndex += 1;
+      const consumer = block.operations[consumerIndex];
+      if (
+        producer.kind === "memory-read" &&
+        consumer?.kind === "bcd" &&
+        consumer.left === producer.result &&
+        constantValues.has(consumer.right)
+      ) {
+        forwardedAccumulatorValues.add(producer.result);
+      } else if (
+        producer.kind === "bcd" &&
+        consumer?.kind === "memory-write" &&
+        consumer.value === producer.result &&
+        constantValues.has(consumer.address)
+      ) {
+        forwardedAccumulatorValues.add(producer.result);
+      }
+    }
+  }
   const state: FunctionLoweringState = {
     owner,
     interruptDepth,
@@ -500,9 +546,8 @@ function lowerFunction(
       ),
     ),
     materializedValues,
-    singleUseValues: new Set(
-      [...valueUseCounts].filter(([, uses]) => uses === 1).map(([value]) => value),
-    ),
+    forwardedAccumulatorValues,
+    singleUseValues,
     retainedAggregateResults,
     addressValues,
     callSpans: Object.freeze(
