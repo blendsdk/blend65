@@ -216,6 +216,23 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
    still surfaced — as one tagged recommendation with at most the minimal real alternative —
    because choosing it silently would be deciding on the user's behalf.
 
+### 🔴 GOLDEN RULE — effort advice before each new task (NON-NEGOTIABLE)
+
+Before starting each new task, state **Recommended reasoning effort: [level]** and give one
+short, task-specific reason. Recommend the lowest level adequate for the task's complexity and
+risk, not the maximum by default. Use the selected agent's available levels; do not assume its
+current setting or change it yourself.
+
+**Then stop and wait for the user to confirm or adjust the coding agent before proceeding.**
+Only brief read-only orientation needed to make the recommendation may precede this handoff;
+implementation, substantial investigation, tests and delegation must wait. General approval to
+proceed or auto-commit does not waive this handoff; only an explicit waiver for a named task or
+batch does.
+
+A task is a distinct requested outcome or named plan task, not each command, test run or retry.
+Do not repeat the handoff within an agreed task unless its scope or risk materially changes.
+This rule changes when work starts, not its scope, verification requirements or approval gates.
+
 ### Environment & dependencies
 
 - Node.js 22 (pinned via `.nvmrc` + `engines`).
