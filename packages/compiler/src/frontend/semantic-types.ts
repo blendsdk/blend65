@@ -643,6 +643,8 @@ export interface ScalarExpressionHost {
 
 /** Direct callbacks required while aggregate types are resolved. */
 export interface AggregateRegistryHost {
+  /** Selected scalar declarations available before source type/header preparation. */
+  profileConstant?(name: string, module: string, sourceId: string): ScalarValueState | null;
   /** Record a constant or value used by a type query before evaluation erases its name. */
   reference?(binding: BindingId): void;
   /** Append a proving diagnostic. */

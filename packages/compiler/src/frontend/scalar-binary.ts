@@ -7,7 +7,6 @@ import {
   evaluateBinaryInteger,
   integerFacts,
   isCompileTimeConstantExpression,
-  isIntegerLiteralExpression,
   isScalarType,
   scalarWarning,
   SCALAR_TYPES,
@@ -47,8 +46,11 @@ export function analyzeScalarBinary(
     context,
   );
   const logicalRightFacts = logicalBaseline === null ? null : captureBranchFacts(logicalBaseline);
-  if (!shift && isIntegerLiteralExpression(expression.left) && right.node !== null) {
-    left = analyzer.analyze(expression.left, right.node.type, context);
+  const leftLiteralType = shift
+    ? null
+    : adaptableLiteralType(expression.left, right.node?.type ?? null);
+  if (leftLiteralType !== null) {
+    left = analyzer.analyze(expression.left, leftLiteralType, context);
   }
   if (left.node === null || right.node === null) {
     if (logicalBaseline !== null) restoreScalarFacts(logicalBaseline);
@@ -178,7 +180,9 @@ export function analyzeScalarBinary(
       right = applyExpectedScalar(right, ordinalType, expression.right, context, analyzer.host);
     }
     if (left.node === null || right.node === null) return { node: null, exact: null };
-  } else if (!shift) {
+  } else if (!shift && !context.constantContext) {
+    // Runtime operands need a common machine width. Constant operands retain their
+    // exact values until the enclosing declaration/use checks its destination range.
     const resultType = naturalResultType;
     left = applyExpectedScalar(left, resultType, expression.left, context, analyzer.host);
     right = applyExpectedScalar(right, resultType, expression.right, context, analyzer.host);

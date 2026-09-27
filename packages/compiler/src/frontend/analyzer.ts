@@ -29,7 +29,11 @@ import { checkStatusStack } from "./status-stack.js";
 import { analyzeScalarLocal, analyzeScalarModuleVariable } from "./analyzer-scalars.js";
 import { collectDeclarationIndex, prepareModuleBindings } from "./module-bindings.js";
 import { checkedPlacement } from "./placement.js";
-import { addProfileBindings } from "./profile-bindings.js";
+import {
+  addProfileBindings,
+  createProfileBindings,
+  resolveProfileConstant,
+} from "./profile-bindings.js";
 import { prepareFunctionParameters } from "./function-parameters.js";
 import { diagnoseUnusedDeclarations, diagnoseDeclarationResources } from "./source-advisories.js";
 import type { FunctionInfo } from "./module-bindings.js";
@@ -98,7 +102,10 @@ class ModuleAnalyzer {
   ) {
     this.sources = new Map(snapshot.sources.map((source) => [source.sourceId, source]));
     this.declarationByKey = collectDeclarationIndex(graph);
+    const profileBindings = createProfileBindings(profile);
     this.aggregates = new AggregateRegistry(graph, this.declarationByKey, {
+      profileConstant: (name, module, sourceId) =>
+        resolveProfileConstant(profileBindings, graph, name, module, sourceId),
       reference: (binding) => this.recordReference(null, binding),
       diagnose: (diagnostic) => this.diagnostics.push(diagnostic),
       defer: (span, message) => this.addObligation(span, message),
@@ -123,7 +130,7 @@ class ModuleAnalyzer {
       (binding) => this.constantAggregates.get(bindingIdentityKey(binding)) ?? null,
       (span) => sourceText(this.sources, span),
     );
-    addProfileBindings(this.profile, this.graph, this);
+    addProfileBindings(this.profile, this.graph, this, profileBindings);
     this.expressions = new ScalarExpressionAnalyzer(
       {
         profileId: this.profile?.id ?? null,

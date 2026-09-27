@@ -184,7 +184,7 @@ export class ComptimeEvaluator {
               : null;
         if (value === null) break;
         const result = this.temporary(
-          this.convert(value, expression.type),
+          expression.integer?.wrap === false ? value : this.convert(value, expression.type),
           expression.type,
           expression.span,
           root,
@@ -218,7 +218,9 @@ export class ComptimeEvaluator {
         const selected = condition.value ? expression.whenTrue : expression.whenFalse;
         const value = this.evaluate(selected, frame, root);
         const result = this.temporary(
-          this.convert(value.value, expression.type),
+          expression.integer?.wrap === false
+            ? value.value
+            : this.convert(value.value, expression.type),
           expression.type,
           expression.span,
           root,
@@ -270,7 +272,7 @@ export class ComptimeEvaluator {
     );
   }
 
-  /** Preserve short-circuit selection and the ordinary fixed-width arithmetic result. */
+  /** Preserve short-circuit selection and the checked constant/runtime arithmetic mode. */
   private binary(expression: TypedExpr, frame: Frame, root: SourceSpan): ScalarValue {
     if (expression.left === undefined || expression.right === undefined) {
       throw this.invalid(expression.span, "Incomplete compile-time binary expression");
@@ -300,7 +302,9 @@ export class ComptimeEvaluator {
     }
     if (value === null) throw this.invalid(expression.span, "Compile-time arithmetic is undefined");
     const result = this.temporary(
-      this.convert(value, expression.type),
+      // Constant roots keep arbitrary-precision intermediates; function execution
+      // still uses the ordinary wrapped widths recorded by semantic analysis.
+      expression.integer?.wrap === false ? value : this.convert(value, expression.type),
       expression.type,
       expression.span,
       root,

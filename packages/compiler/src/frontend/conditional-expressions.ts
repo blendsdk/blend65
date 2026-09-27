@@ -102,7 +102,9 @@ export function analyzeScalarConditional(
     );
     return { node: null, exact: null };
   }
-  if (!sameValueType) {
+  // Constant arms keep exact intermediates; only the enclosing destination range
+  // constrains their selected result. Runtime arms still share a machine width.
+  if (!sameValueType && !context.constantContext) {
     whenTrue = applyExpectedScalar(whenTrue, resultType, expression.whenTrue, context, host);
     whenFalse = applyExpectedScalar(whenFalse, resultType, expression.whenFalse, context, host);
   }
@@ -119,7 +121,7 @@ export function analyzeScalarConditional(
       whenTrue: whenTrue.node,
       whenFalse: whenFalse.node,
       evaluation: "selected-arm",
-      integer: integerFacts(resultType, true),
+      integer: integerFacts(resultType, !context.constantContext),
     }),
     exact: constant,
   };

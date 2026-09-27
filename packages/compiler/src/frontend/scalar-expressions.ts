@@ -1,4 +1,5 @@
 import { projectDiagnostic as error } from "../project/diagnostics.js";
+import { selectC64KernalFacts } from "../profile/c64-kernal.js";
 import {
   applyExpectedScalar,
   createScalarTypedExpression,
@@ -111,6 +112,20 @@ export class ScalarExpressionAnalyzer {
       );
       return { node: null, exact: null };
     }
+    // A module-qualified value uses the same readonly, initialization and constant
+    // checks as an imported name. A real value at the root still owns field access.
+    if (expression.kind === "member") {
+      const name = qualifiedCallName(expression);
+      const root = name?.split(".", 1)[0];
+      if (
+        name !== null &&
+        root !== undefined &&
+        this.host.resolveName(root, context) === null &&
+        this.host.resolveName(name, context) !== null
+      ) {
+        return this.name({ kind: "name", name, span: expression.span }, context, false);
+      }
+    }
     const enumMember = analyzeEnumMember(expression, context, this.host, this.aggregates.enums);
     if (enumMember !== null) return enumMember;
     const aggregate = analyzeAggregateExpression(
@@ -176,7 +191,7 @@ export class ScalarExpressionAnalyzer {
         }
         if (
           qualifiedCallName(expression.callee) === "c64.loader.load" &&
-          this.host.profileId === "c64-pal-prg-kernal-6581"
+          selectC64KernalFacts(this.host.profileId ?? "") !== null
         ) {
           const argument = expression.arguments[0];
           const declaration =
@@ -185,7 +200,7 @@ export class ScalarExpressionAnalyzer {
           this.host.diagnose(
             error(
               "E10275",
-              `Cannot load '${expression.arguments[0] === undefined ? "<missing>" : this.host.sourceText(expression.arguments[0].span)}' into '${expression.arguments[1] === undefined ? "<missing>" : this.host.sourceText(expression.arguments[1].span)}' — ${residentUnit ? "the supplied unit is resident data, not a loadable constant" : "the selected resident C64 profile has no load operation"}`,
+              `Cannot load '${expression.arguments[0] === undefined ? "<missing>" : this.host.sourceText(expression.arguments[0].span)}' into '${expression.arguments[1] === undefined ? "<missing>" : this.host.sourceText(expression.arguments[1].span)}' — ${residentUnit ? "the supplied unit is resident data, not a loadable constant" : "the selected resident C64 profile has no load operation"} (profile '${this.host.profileId}')`,
               expression.span,
               null,
               residentUnit

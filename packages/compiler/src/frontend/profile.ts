@@ -1,11 +1,13 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic } from "../project/types.js";
+import { C64_KERNAL_PROFILES, selectC64KernalFacts } from "../profile/c64-kernal.js";
+import type { C64KernalProfileFacts, C64KernalProfileId } from "../profile/c64-kernal.js";
 import { SCALAR_TYPES } from "./constants.js";
 import type { ProfileEffect, SemanticType } from "./semantic-types.js";
 import { LITERAL_ITEM_KIND } from "./tokens.js";
 import type { LiteralItem } from "./tokens.js";
 
-/** The only complete target profile admitted by the first end-to-end compiler slice. */
+/** Explicit PAL compatibility default for callers that do not pass an encoding profile. */
 export const SELECTED_PROFILE_ID = "c64-pal-prg-kernal-6581" as const;
 
 /**
@@ -14,7 +16,7 @@ export const SELECTED_PROFILE_ID = "c64-pal-prg-kernal-6581" as const;
  * The caller uses this only when the stored value is a raw interrupt-function address.
  */
 export function firmwareVectorSink(profileId: string | null, address: bigint): string | null {
-  if (profileId !== SELECTED_PROFILE_ID) return null;
+  if (profileId === null || selectC64KernalFacts(profileId) === null) return null;
   if (address === 0x0314n) return "c64.system.setIRQ";
   if (address === 0x0318n) return "c64.system.setNMI";
   return null;
@@ -32,12 +34,24 @@ export interface ProfileCapability {
   readonly effect: ProfileEffect;
 }
 
+/** One immutable, storage-free scalar declaration supplied by the selected profile. */
+export interface ProfileConstant {
+  /** Stable fully qualified source name. */
+  readonly name: string;
+  /** Ordinary source scalar type. */
+  readonly type: SemanticType;
+  /** Exact compile-time value; never narrowed through host bitwise arithmetic. */
+  readonly value: bigint | boolean;
+}
+
 /** Target-neutral declarations exposed to source analysis for one profile. */
 export interface FrontendProfile {
   /** Complete qualified profile identity. */
-  readonly id: typeof SELECTED_PROFILE_ID;
+  readonly id: C64KernalProfileId;
   /** Exact source operation set in deterministic name order. */
   readonly capabilities: readonly ProfileCapability[];
+  /** Exact scalar constants in deterministic qualified-name order. */
+  readonly constants: readonly ProfileConstant[];
   /** Per-mutable-array RAM advisory threshold; null disables this warning. */
   readonly warnArraySize: number | null;
   /** Resolved per-struct zero-page advisory threshold. */
@@ -91,6 +105,7 @@ export function encodeC64Literal(
   items: readonly LiteralItem[],
   encoding: C64Encoding,
   map: C64CharacterMap,
+  profileId: string = SELECTED_PROFILE_ID,
 ): EncodedC64Literal {
   const bytes: number[] = [];
   for (const item of items) {
@@ -116,7 +131,7 @@ export function encodeC64Literal(
         kind: "error",
         diagnostic: projectDiagnostic(
           "E10249",
-          `Encoding '${encoding}' cannot represent literal character or escape '${item.value}' as the required byte on platform '${SELECTED_PROFILE_ID}' — select an available named encoding or use '\\xNN' for an exact byte`,
+          `Encoding '${encoding}' cannot represent literal character or escape '${item.value}' as the required byte on platform '${profileId}' — select an available named encoding or use '\\xNN' for an exact byte`,
           item.span,
         ),
       });
@@ -141,8 +156,8 @@ function capability(
   return Object.freeze({ name, parameters: Object.freeze([...parameters]), returnType, effect });
 }
 
-const SELECTED_PROFILE: FrontendProfile = Object.freeze({
-  id: SELECTED_PROFILE_ID,
+/** Source operations and advisories shared by the cooperative family. */
+const COOPERATIVE_DECLARATIONS = Object.freeze({
   warnArraySize: 256,
   warnStructZpSize: 35,
   capabilities: Object.freeze([
@@ -206,20 +221,51 @@ const SELECTED_PROFILE: FrontendProfile = Object.freeze({
   ]),
 });
 
+/** Represent exact timing with ordinary scalars, without a wider source integer or runtime. */
+function profileConstants(facts: C64KernalProfileFacts): readonly ProfileConstant[] {
+  const rows = [
+    ["cpuClockHzRemainder", SCALAR_TYPES.word, BigInt(facts.clockHz % 1000)],
+    ["cpuClockKilohertz", SCALAR_TYPES.word, BigInt(Math.floor(facts.clockHz / 1000))],
+    ["cyclesPerFrame", SCALAR_TYPES.word, BigInt(facts.cyclesPerFrame)],
+    ["cyclesPerLine", SCALAR_TYPES.byte, BigInt(facts.cyclesPerLine)],
+    ["frameRateFractionDenominator", SCALAR_TYPES.word, BigInt(facts.frameRateFractionDenominator)],
+    ["frameRateFractionNumerator", SCALAR_TYPES.word, BigInt(facts.frameRateFractionNumerator)],
+    ["frameRateWhole", SCALAR_TYPES.byte, BigInt(facts.frameRateWhole)],
+    ["hasRawInterrupts", SCALAR_TYPES.boolean, false],
+    ["isNtsc", SCALAR_TYPES.boolean, facts.video === "ntsc"],
+    ["isPal", SCALAR_TYPES.boolean, facts.video === "pal"],
+    ["rasterLines", SCALAR_TYPES.word, BigInt(facts.rasterLines)],
+    ["sidAddress", SCALAR_TYPES.word, 0xd400n],
+    ["sidModel", SCALAR_TYPES.word, BigInt(facts.sidModel)],
+    ["usesKernal", SCALAR_TYPES.boolean, true],
+  ] as const;
+  return Object.freeze(
+    rows.map(([name, type, value]) => Object.freeze({ name: `c64.profile.${name}`, type, value })),
+  );
+}
+
 /**
  * Select the exact frontend declaration environment for a qualified profile ID.
  * Hardware addresses, opcodes, layout and packaging facts are deliberately absent.
  */
 export function selectFrontendProfile(profileId: string): FrontendProfileResult {
-  if (profileId === SELECTED_PROFILE_ID) {
-    return Object.freeze({ kind: "complete", profile: SELECTED_PROFILE });
+  const facts = selectC64KernalFacts(profileId);
+  if (facts !== null) {
+    return Object.freeze({
+      kind: "complete",
+      profile: Object.freeze({
+        ...COOPERATIVE_DECLARATIONS,
+        id: facts.id,
+        constants: profileConstants(facts),
+      }),
+    });
   }
   return Object.freeze({
     kind: "error",
     diagnostics: Object.freeze([
       projectDiagnostic(
         "E10279",
-        `Target profile '${profileId}' is not a complete qualified profile ID — choose one of: ${SELECTED_PROFILE_ID}`,
+        `Target profile '${profileId}' is not a complete qualified profile ID — choose one of: ${C64_KERNAL_PROFILES.map(({ id }) => id).join(", ")}`,
       ),
     ]),
   });

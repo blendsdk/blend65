@@ -12,6 +12,7 @@ import { sortAnalysisDiagnostics } from "./diagnostics.js";
 import { analyzeEffects } from "./effects.js";
 import { indexModules, resolveModules } from "./modules.js";
 import { selectFrontendProfile } from "./profile.js";
+import { createProfileBindings } from "./profile-bindings.js";
 import type { FrontendProfile } from "./profile.js";
 import { discoverEmbeddedRequests, discoverPendingObligations } from "./source-discovery.js";
 import type { EmbeddedRequest } from "./source-discovery.js";
@@ -198,7 +199,9 @@ function profileSatisfiesObligation(
   const moduleName = match?.[1];
   return (
     moduleName !== undefined &&
-    profile.capabilities.some(({ name }) => name.startsWith(moduleName + "."))
+    [...profile.capabilities, ...profile.constants].some(({ name }) =>
+      name.startsWith(moduleName + "."),
+    )
   );
 }
 
@@ -291,9 +294,13 @@ function analyzeResolvedProject(
   }
   const profile = selected?.kind === "complete" ? selected.profile : null;
   const indexed = indexModules(snapshot);
-  const resolved = resolveModules(snapshot, indexed.index);
+  const resolved = resolveModules(
+    snapshot,
+    indexed.index,
+    createProfileBindings(profile).map(({ binding }) => binding),
+  );
   const missingResidentLoader =
-    profile?.id === "c64-pal-prg-kernal-6581"
+    profile !== null
       ? resolved.obligations.filter(
           (obligation) => obligation.message === "Required module 'c64.loader' is unavailable",
         )
@@ -318,7 +325,7 @@ function analyzeResolvedProject(
     ...(resolved.graph === null ? missingResidentLoader : []).map((obligation) =>
       projectDiagnostic(
         "E10275",
-        "The selected resident C64 profile has no load operation",
+        `The selected resident C64 profile '${profile?.id}' has no load operation`,
         obligation.span,
       ),
     ),

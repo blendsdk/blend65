@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-05 C64 Platform
 
-> **Status**: ✅ GATE PASSED — all 8 items resolved or explicitly deferred for Stage A only
+> **Status**: Stage A decisions resolved or explicitly deferred; Phase 1 verified, AR-P9 closed without a timeout change
 > **Last Updated**: 2026-09-27
 > **CodeOps Artifact Schema**: 1
 
@@ -24,6 +24,33 @@
 | AR-P6 | Implementation boundary / simplicity | One closed, pure four-row fact module serves frontend declarations and backend selection. Extend the current constant bindings, evaluator, CFG, selected-target, startup/layout and VICE paths directly. Preserve M1 signatures and immutable spec tests. Update the obsolete 8580 rejection only in `profile.impl.test.ts`. | Existing consumers: `frontend/profile.ts`, `profile-bindings.ts`, `target/profile.ts`, `layout/startup.ts`, `services/vice.ts`; AR-P2 and project workflow directive 4. No new general subsystem. | ✅ Resolved — plan-owned selection |
 | AR-P7 | Compatibility / failure behavior | Keep manifest and evidence version 1 shapes unchanged. Preserve the nine-ID manifest inventory, admitting only the four staged IDs for execution. Carry the exact selected identity through diagnostics and evidence, with no fallback. Preserve E10245 for NMI and the existing handler-side IRQ gap. | Frozen diagnostics and existing versioned contracts; AR-P3; project workflow directive 4. | ✅ Resolved — plan-owned selection |
 | AR-P8 | Verification / qualification boundary | Use existing install/build/typecheck/test commands, targeted Prettier, immutable specification-first tests and sequential VICE 3.10. Add only a profile argument and a bounded integer-resource read to the existing monitor helper; retain old PAL defaults. Verify four fresh PRGs and unchanged M1 behavior. Windows and physical QA remain RD-10. | User-provided AGENTS.md command/QA rules; AR-P1/AR-P3; project workflow directive 4. Required direct test controls reuse the existing harness, not a new runner or qualification service. | ✅ Resolved — plan-owned selection |
+| AR-P9 | Runtime / verification modification set | Allow the bounded wall-clock increases below if still needed; first rerun the six cases after the user reduced host load. Assertions, emulated cycle limits and compiler behavior stay unchanged. | User explicitly approved timeout increases if needed and requested the six retries after reducing host load (2026-09-27). | ✅ Resolved — all six and full suite passed; allowance unused |
+
+## AR-P9 — Integration-Test Waiting Time Under Host Load
+
+**Approved if needed:** extend only the existing host waiting limits below. No new harness,
+dependency, retry mechanism, production change or specification-test edit is proposed.
+
+| Exact proposed modification set | Proposed bounded change |
+|---|---|
+| `packages/compiler/src/services/services.impl.test.ts` | Give the fresh-generation and SFA live-range integration cases explicit 30-second limits instead of the implicit 5 seconds. |
+| `test/rd04/expert-calls.impl.test.ts` | Give its build-and-VICE case an explicit 30-second limit instead of the implicit 5 seconds. |
+| `test/rd04/shared-storage.impl.test.ts` | Extend checkpoint waiting from 50 to 120 seconds and the enclosing cases from 60 to 150 seconds. Retain the 300-million emulated-cycle cap. |
+
+Evidence and logs are in [Phase 1 execution](99-execution-plan.md#phase-1-frontend-constants).
+Six existing cases have now timed out under the current load. All new tests and the full M1
+journey pass, but uncompleted assertions remain unverified. These limits measure host elapsed
+time, not generated-code cycles or expert parity. If approved, preserve every expected result,
+memory/assembly/cost check and emulator configuration, then rerun the failed cases and the full
+verification command. A continuing failure must be investigated, not excused as host load.
+The user approved this exact allowance on 2026-09-27 after pausing other heavy processes.
+Rerun with original limits first; use the approved changes only if required. Approval does
+not mark any test verified or authorize work beyond Phase 1.
+
+**Outcome at 10:33:** all six cases pass with their original limits after the user reduced
+host load. No timeout edit was needed; the three named test files remain unchanged. Full
+Phase 1 verification subsequently passed all 2,261 tests at 10:41, as recorded in the execution
+plan. This allowance is closed unused; no test file or timeout was changed for AR-P9.
 
 ## AR-P2 — Missing Library Bindings, Not Missing Language Syntax
 

@@ -24,7 +24,7 @@ export function analyzeEncodedLiteral(
   registry: AggregateRegistry,
   resultExpression: Expr = expression,
 ): ScalarExpressionResult {
-  const encoded = encodeC64Literal(expression.items, encoding, map);
+  const encoded = encodeC64Literal(expression.items, encoding, map, host.profileId ?? undefined);
   if (encoded.kind === "error") {
     host.diagnose(Object.freeze({ ...encoded.diagnostic, primarySpan: resultExpression.span }));
     return { node: null, exact: null };

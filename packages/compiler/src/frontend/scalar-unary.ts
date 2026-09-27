@@ -14,7 +14,7 @@ import {
 } from "./constants.js";
 import { semanticTypeName } from "./semantic-type-relations.js";
 import { localAddressOrigins } from "./address-provenance.js";
-import { resolveDirectCallTarget } from "./direct-calls.js";
+import { qualifiedCallName, resolveDirectCallTarget } from "./direct-calls.js";
 import { isTrigonometryIntrinsic } from "./trigonometry.js";
 import type { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
 import type {
@@ -112,12 +112,11 @@ export function analyzeScalarUnary(
       placeContext: true,
     });
     if (operand.node === null) return { node: null, exact: null };
-    const named =
-      expression.operand.kind === "name"
-        ? analyzer.host.resolveName(expression.operand.name, context)
-        : null;
+    const operandName = qualifiedCallName(expression.operand);
+    const named = operandName === null ? null : analyzer.host.resolveName(operandName, context);
     if (
       named?.binding.storage === "constant" &&
+      operand.node.binding === named.binding.id &&
       operand.node.type.kind === "scalar" &&
       !named.binding.materialized
     ) {

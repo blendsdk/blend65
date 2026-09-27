@@ -1,4 +1,5 @@
 import { bindingIdentityKey } from "./semantic-types.js";
+import { qualifiedCallName } from "./direct-calls.js";
 import type { BindingId, ModuleGraph } from "./semantic-types.js";
 import type { Declaration, Expr, VariableDeclaration } from "./syntax.js";
 
@@ -51,10 +52,10 @@ function expressionNames(expression: Expr): readonly string[] {
         ...expressionNames(expression.callee),
         ...expression.arguments.flatMap((argument) => expressionNames(argument)),
       ];
-    case "member":
-      return expression.object.kind === "name"
-        ? [`${expression.object.name}.${expression.member}`, expression.object.name]
-        : expressionNames(expression.object);
+    case "member": {
+      const name = qualifiedCallName(expression);
+      return [...(name === null ? [] : [name]), ...expressionNames(expression.object)];
+    }
     case "index":
       return [...expressionNames(expression.object), ...expressionNames(expression.index)];
     case "array-literal":

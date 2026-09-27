@@ -1,7 +1,9 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
 import { resolveAggregateDeclaration } from "./aggregate-names.js";
+import { qualifiedCallName } from "./direct-calls.js";
 import {
   commonIntegerType,
+  commonScalarType,
   convertInteger,
   defaultIntegerType,
   evaluateBinaryInteger,
@@ -34,6 +36,30 @@ export function evaluateConstant(
   if (expression.kind === "name") {
     return evaluateNamedConstant(registry, expression, module, scope, report, failure);
   }
+  if (expression.kind === "member") {
+    const name = qualifiedCallName(expression);
+    const root = name?.split(".", 1)[0];
+    if (
+      name !== null &&
+      root !== undefined &&
+      resolveConstantValueType(
+        registry,
+        { kind: "name", name: root, span: expression.span },
+        module,
+        scope,
+      ) === null
+    ) {
+      const value = evaluateNamedConstant(
+        registry,
+        { kind: "name", name, span: expression.span },
+        module,
+        scope,
+        report,
+        failure,
+      );
+      if (value !== null) return value;
+    }
+  }
   if (expression.kind === "member" && expression.object.kind === "name") {
     const member = registry.enums.member(
       expression.object.name,
@@ -65,6 +91,17 @@ export function evaluateConstant(
       if (typeof left.value !== "boolean" || typeof right.value !== "boolean") return null;
       return {
         value: expression.operator === "&&" ? left.value && right.value : left.value || right.value,
+        type: SCALAR_TYPES.boolean,
+      };
+    }
+    if (
+      typeof left.value === "boolean" &&
+      typeof right.value === "boolean" &&
+      (expression.operator === "==" || expression.operator === "!=")
+    ) {
+      return {
+        value:
+          expression.operator === "==" ? left.value === right.value : left.value !== right.value,
         type: SCALAR_TYPES.boolean,
       };
     }
@@ -103,14 +140,39 @@ export function evaluateConstant(
     if (condition?.type !== SCALAR_TYPES.boolean || typeof condition.value !== "boolean") {
       return null;
     }
-    return evaluateConstant(
+    // Early type expressions use pure scalar computations. Check both arms just as
+    // the later expression checker does; selecting a value cannot hide an invalid arm.
+    const whenTrue = evaluateConstant(
       registry,
-      condition.value ? expression.whenTrue : expression.whenFalse,
+      expression.whenTrue,
       module,
       scope,
       report,
       failure,
     );
+    const whenFalse = evaluateConstant(
+      registry,
+      expression.whenFalse,
+      module,
+      scope,
+      report,
+      failure,
+    );
+    if (whenTrue === null || whenFalse === null) return null;
+    const type = commonScalarType(whenTrue.type, whenFalse.type);
+    if (type === null) {
+      if (report)
+        registry.host.diagnose(
+          projectDiagnostic(
+            "E10162",
+            `Conditional arms have incompatible types '${semanticTypeName(whenTrue.type)}' and '${semanticTypeName(whenFalse.type)}'`,
+            expression.span,
+          ),
+        );
+      failure.handled = true;
+      return null;
+    }
+    return { value: condition.value ? whenTrue.value : whenFalse.value, type };
   }
   if (expression.kind === "cast") {
     const operand = evaluateConstant(registry, expression.operand, module, scope, report, failure);
@@ -258,6 +320,17 @@ function evaluateNamedConstant(
         : null;
     }
   }
+  const selected = registry.host.profileConstant?.(
+    expression.name,
+    module,
+    expression.span.sourceId,
+  );
+  if (selected !== undefined && selected !== null) {
+    registry.host.reference?.(selected.binding.id);
+    return selected.binding.type?.kind === "scalar" && selected.known !== null
+      ? { value: selected.known, type: selected.binding.type }
+      : null;
+  }
   const resolved = resolveAggregateDeclaration(
     registry.graph,
     registry.declarations,
@@ -311,6 +384,15 @@ function resolveConstantValueType(
         return state.binding.type;
       }
     }
+  }
+  const selected = registry.host.profileConstant?.(
+    expression.name,
+    module,
+    expression.span.sourceId,
+  );
+  if (selected !== undefined && selected !== null) {
+    registry.host.reference?.(selected.binding.id);
+    return selected.binding.type;
   }
   const resolved = resolveAggregateDeclaration(
     registry.graph,

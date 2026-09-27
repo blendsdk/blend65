@@ -1,6 +1,13 @@
 import type { SourceRecord, SourceSpan } from "../project/types.js";
 import { ANALYSIS_OBLIGATION_KIND } from "./semantic-types.js";
 import type { AnalysisObligation } from "./semantic-types.js";
+import type { Declaration } from "./syntax.js";
+
+/** Render the written declaration prefix used by the canonical entry diagnostic. */
+export function entrySpelling(source: SourceRecord, declaration: Declaration): string {
+  const end = declaration.kind === "function" ? declaration.body.span.start : declaration.span.end;
+  return sourceSlice(source, declaration.span.start, end).trim().replace(/;$/u, "");
+}
 
 /** Freeze a span copy so no result shares a mutable caller-owned record. */
 export function freezeSpan(span: SourceSpan): SourceSpan {

@@ -133,7 +133,7 @@ describe("frontend profile integration", () => {
 
   it("rejects a schema-valid profile without a declaration environment", () => {
     const result = analyzeProject(
-      snapshot("module Game; function main(): void {}", "c64-pal-prg-kernal-8580"),
+      snapshot("module Game; function main(): void {}", "c64-pal-prg-takeover-6581"),
     );
 
     expect(result.kind).toBe("error");

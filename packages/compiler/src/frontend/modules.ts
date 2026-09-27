@@ -1,7 +1,7 @@
 import {
   freezeSpan,
   rawByteLocation,
-  sourceSlice,
+  entrySpelling,
   uncheckedObligation,
   addMissingDependency,
 } from "./module-diagnostics.js";
@@ -238,17 +238,6 @@ interface EntryCandidate {
   readonly source: SourceRecord;
 }
 
-/** Render the written declaration prefix used by the canonical entry diagnostic. */
-function entrySpelling(candidate: EntryCandidate): string {
-  const end =
-    candidate.declaration.kind === "function"
-      ? candidate.declaration.body.span.start
-      : candidate.declaration.span.end;
-  return sourceSlice(candidate.source, candidate.declaration.span.start, end)
-    .trim()
-    .replace(/;$/u, "");
-}
-
 /** Check the exact accepted entry signature without performing general type analysis. */
 function hasEntrySignature(candidate: EntryCandidate): boolean {
   const declaration = candidate.declaration;
@@ -298,7 +287,11 @@ function entryCandidates(
  * Unreachable bodies remain unparsed, while declaration-only cycles are legal.
  * @example resolveModules(snapshot, indexModules(snapshot).index).graph?.bindings
  */
-export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): ModuleGraphResult {
+export function resolveModules(
+  snapshot: ProjectSnapshot,
+  index: ModuleIndex,
+  selectedBindings: readonly Binding[] = [],
+): ModuleGraphResult {
   const indexedModules = new Map(index.modules.map((module) => [module.name, module]));
   const selected = indexedModules.get(snapshot.effectiveEntry);
   if (selected === undefined) {
@@ -317,9 +310,15 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
   }
 
   const sources = new Map(snapshot.sources.map((source) => [source.sourceId, source]));
-  const moduleNames = index.modules
-    .map(({ name }) => name)
-    .sort((left, right) => right.length - left.length || compareText(left, right));
+  const synthetic = new Map(selectedBindings.map((binding) => [binding.qualifiedName, binding]));
+  const profileModules = new Set(
+    selectedBindings.map(
+      ({ qualifiedName }) => qualifiedName?.slice(0, qualifiedName.lastIndexOf(".")) ?? "",
+    ),
+  );
+  const moduleNames = [
+    ...new Set([...index.modules.map(({ name }) => name), ...profileModules]),
+  ].sort((left, right) => right.length - left.length || compareText(left, right));
   const diagnostics: ProjectDiagnostic[] = [];
   const obligations: AnalysisObligation[] = [];
   const missingDependencies = new Set<string>();
@@ -479,9 +478,11 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
       }
       for (const imported of unit.imports) {
         const targetModule = reachable.get(imported.module);
-        if (targetModule === undefined) continue;
+        if (targetModule === undefined && !profileModules.has(imported.module)) continue;
         for (const item of imported.items) {
-          const target = targetModule.bindings.get(item.name);
+          const target =
+            targetModule?.bindings.get(item.name) ??
+            synthetic.get(`${imported.module}.${item.name}`);
           if (target === undefined || !target.exported) {
             diagnostics.push(
               projectDiagnostic(
@@ -489,7 +490,7 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
                 `'${item.name}' is not exported from module '${imported.module}'`,
                 item.nameSpan,
                 null,
-                target === undefined
+                target === undefined || targetModule === undefined
                   ? []
                   : [
                       {
@@ -519,6 +520,19 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
     >();
     const visible = new Map<string, Binding>();
     for (const event of events) {
+      const reserved = synthetic.get(`${module.name}.${event.name}`);
+      if (event.kind === "import" && reserved?.storage === "constant") {
+        diagnostics.push(
+          projectDiagnostic(
+            "E10003",
+            `Duplicate declaration '${event.name}' in the same scope — also declared at ${reserved.id.sourceId}:1:${reserved.id.span.start + 1}`,
+            event.nameSpan,
+            null,
+            [{ span: reserved.declaration, message: "Selected profile declaration is here" }],
+          ),
+        );
+        continue;
+      }
       const first = localNames.get(event.name);
       if (first !== undefined) {
         diagnostics.push(
@@ -552,7 +566,9 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
       const qualified = referencedModule(reference, moduleNames);
       if (qualified === null) continue;
       const targetModule = reachable.get(qualified.module);
-      const target = targetModule?.bindings.get(qualified.declaration);
+      const target =
+        targetModule?.bindings.get(qualified.declaration) ??
+        synthetic.get(`${qualified.module}.${qualified.declaration}`);
       if (reference.directCall && target?.name === "main") continue;
       if (target === undefined || !target.exported) {
         diagnostics.push(
@@ -608,7 +624,7 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
       diagnostics.push(
         projectDiagnostic(
           "E10022",
-          `Entry point 'main' must have signature 'function main(): void' — found '${entrySpelling(candidate)}'`,
+          `Entry point 'main' must have signature 'function main(): void' — found '${entrySpelling(candidate.source, candidate.declaration)}'`,
           candidate.declaration.span,
         ),
       );

@@ -1,4 +1,5 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
+import { qualifiedCallName } from "./direct-calls.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type {
   ConversionKind,
@@ -318,25 +319,25 @@ export function isCompileTimeConstantExpression(
         isCompileTimeConstantExpression(expression.whenTrue, context, host) &&
         isCompileTimeConstantExpression(expression.whenFalse, context, host)
       );
-    case "member":
-      if (expression.object.kind !== "name") return false;
-      {
-        const qualified = host.resolveName(
-          `${expression.object.name}.${expression.member}`,
-          context,
-        );
+    case "member": {
+      const name = qualifiedCallName(expression);
+      const root = name?.split(".", 1)[0];
+      if (name !== null && root !== undefined && host.resolveName(root, context) === null) {
+        const qualified = host.resolveName(name, context);
         if (qualified !== null) return qualified.binding.storage === "constant";
-        return (
-          host.resolveType(
-            {
-              kind: "named-type",
-              name: expression.object.name,
-              span: expression.object.span,
-            },
-            context,
-          )?.kind === "enum"
-        );
       }
+      if (expression.object.kind !== "name") return false;
+      return (
+        host.resolveType(
+          {
+            kind: "named-type",
+            name: expression.object.name,
+            span: expression.object.span,
+          },
+          context,
+        )?.kind === "enum"
+      );
+    }
     case "call":
       return (
         expression.callee.kind === "name" &&
