@@ -171,6 +171,14 @@ function terminatorLines(
   ];
 }
 
+/** Distinguish address-only markers from blocks that emit instructions or a control transfer. */
+function emitsBytes(block: MachineBlock): boolean {
+  return (
+    block.instructions.length > 0 ||
+    (block.terminator.kind !== "fallthrough" && block.terminator.kind !== "unreachable")
+  );
+}
+
 /** Emit explicit byte directives in short deterministic rows. */
 function byteLines(bytes: readonly number[]): readonly string[] {
   const lines: string[] = [];
@@ -225,7 +233,12 @@ export function serializeAcme(input: AcmeSerializationInput): AcmeSerializationR
   const functionLabels = new Map(functions.map((fn) => [fn.id, fn.origin!] as const));
   const blocks = functions
     .flatMap((fn) => fn.blocks.map((block) => ({ fn, block })))
-    .sort((left, right) => left.block.origin! - right.block.origin!);
+    .sort(
+      (left, right) =>
+        left.block.origin! - right.block.origin! ||
+        // Emit shared-address markers first so their origins never rewind into emitted bytes.
+        Number(emitsBytes(left.block)) - Number(emitsBytes(right.block)),
+    );
   const emittedFunctions = new Set<string>();
   for (const { fn, block } of blocks) {
     lines.push(`* = ${hex(block.origin!, 4)}`);
