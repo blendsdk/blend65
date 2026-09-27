@@ -3,7 +3,7 @@
 > **Feature-Set**: Blend65 v4
 > **Status**: In Progress
 > **Created**: 2026-09-10
-> **Last Updated**: 2026-09-27
+> **Last Updated**: 2026-09-28
 > **Progress**: 2 / 10 (20%)
 > **Execution Prerequisite**: Phase 0 complete; see
 > [bootstrap and session handoff](00-phase-0-handoff.md)
@@ -33,8 +33,8 @@
 | ↳ DEF-5 | Obsolete partial-parser spec-test authority | — | [Decision](plans/rd-04-language-completion/00-ambiguity-register.md) | Done | ✅ | 2026-09-23 | User approved AR-P11: supersede four temporary RD-03 `unchecked` expectations with frozen Specification 4 grammar expectations. |
 | ↳ DEF-6 | Asset-aware overlay API and old synchronous tests | — | [Decision](plans/rd-04-language-completion/00-ambiguity-register.md) | Done | ✅ | 2026-09-24 | User approved AR-P12: use one awaited asset-aware overlay path and update five old synchronous expectations. |
 | ↳ DEF-7 | Qualified cooperative NMI sink contract | — | [Decision](plans/rd-04-language-completion/00-ambiguity-register.md) | Deferred to RD-05 | ⏸️ | 2026-09-25 | AR-P16: unbounded NMI self-reentry and non-atomic NMINV update make selected-profile sinks unsafe. RD-05 R5.15–R5.17 owns finite-source/update proof and any separately authorized frozen-spec correction. This does not block safe Phase 6 IRQ work. |
-| ↳ DEF-8 | Handler-side IRQ vector updates | — | [IRQ plan](plans/rd-05-handler-irq/00-index.md) | Plan Created | 📋 | 2026-09-27 | Bounded R5.16 plan: 0/30 tasks; preflight next. Restriction remains active until implementation and qualification retire it. |
-| RD-05 | C64 Platform Profiles and Game-Workload Compiler Support | [RD-05](requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md) | [Stage A](plans/rd-05-c64-platform/00-index.md) · [IRQ plan](plans/rd-05-handler-irq/00-index.md) | Executing (IRQ plan created) | 🔄 | 2026-09-27 | Stage A 43/43 and T-01 6/6 verified. IRQ plan 0/30; all decisions resolved or named-deferred, preflight pending. NMI and remaining platform work stay separate; no whole-RD closeout. |
+| ↳ DEF-8 | Handler-side IRQ vector updates | — | [IRQ plan](plans/rd-05-handler-irq/00-index.md) | Plan Preflighted | 🔬 | 2026-09-28 | Bounded R5.16 plan: [clean preflight](plans/rd-05-handler-irq/00-preflight-report.md), 0/30 tasks; independent specification tests next. Restriction remains active until implementation and qualification retire it. |
+| RD-05 | C64 Platform Profiles and Game-Workload Compiler Support | [RD-05](requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md) | [Stage A](plans/rd-05-c64-platform/00-index.md) · [IRQ plan](plans/rd-05-handler-irq/00-index.md) | Executing (IRQ plan preflighted) | 🔄 | 2026-09-28 | Stage A 43/43 and T-01 6/6 verified. IRQ plan cleanly preflighted, 0/30; independent specification tests next. NMI and remaining platform work stay separate; no whole-RD closeout. |
 | T-01 | Runtime-switch empty-label ordering repair (#90) | — | [Mini-plan](plans/runtime-switch-label-order/99-execution-plan.md) | Done | ✅ | 2026-09-27 | 6/6; all 2,445 tests pass and independent review is clear. Zero runtime-cost delta; pre-existing optimization debt tracked in #91. #90 remains open pending separate external-action authority. |
 | RD-06 | Native Assets, Compile-Time Composition, and Resident Layout | [RD-06](requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md) | — | RD Preflighted | 🔎 | 2026-09-20 | depends on RD-04, RD-05; owns deferred SpritePad 3.80 producer evidence and native import |
 | RD-07 | Loadable Assets and D64 Delivery | [RD-07](requirements/RD-07-loadable-assets-and-d64-delivery.md) | — | RD Preflighted | 🔎 | 2026-09-11 | depends on RD-04, RD-05, RD-06 |
