@@ -6,6 +6,7 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { analyzeProjectWithAssets } from "../frontend/service.js";
 import { bindMachineProgram } from "../machine/bind.js";
 import { lowerMachineProgram } from "../machine/lower.js";
+import type { C64KernalProfileId } from "../profile/c64-kernal.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import { loadProjectWithControls } from "../project/snapshot.js";
 import type { ProjectDiagnostic, ProjectSnapshot, SourceSpan } from "../project/types.js";
@@ -65,6 +66,8 @@ interface CheckedPipeline {
 }
 
 interface PreparedBuild {
+  /** Identity from the same checked snapshot that produced the published generation. */
+  readonly profileId: C64KernalProfileId;
   readonly generation: PublishedGeneration;
   readonly pin: GenerationPin | null;
   readonly diagnostics: readonly ProjectDiagnostic[];
@@ -557,6 +560,7 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
   return Object.freeze({
     kind: "complete",
     value: Object.freeze({
+      profileId: profile.id,
       generation: published.generation,
       pin: published.pin,
       diagnostics,
@@ -629,6 +633,7 @@ export async function runProject(options: RunOptions = {}): Promise<RunResult> {
       const launched = await launchVice(
         executable,
         join(pin.directory, pin.primaryArtifact),
+        built.value.profileId,
         options.signal,
       );
       if (launched === "cleanup-uncertain") {

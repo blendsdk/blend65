@@ -3,6 +3,8 @@ import type { ChildProcess } from "node:child_process";
 import { constants } from "node:fs";
 import { access, realpath, stat } from "node:fs/promises";
 import { delimiter, isAbsolute, join } from "node:path";
+import { selectC64KernalFacts } from "../profile/c64-kernal.js";
+import type { C64KernalProfileId } from "../profile/c64-kernal.js";
 
 const VICE_OUTPUT_LIMIT = 65_536;
 const VICE_PROBE_TIMEOUT_MS = 5_000;
@@ -43,13 +45,21 @@ async function waitForOwnedExit(child: ChildProcess, processGroup: boolean): Pro
   return !ownedProcessExists(child, processGroup);
 }
 
-/** Terminate and confirm cleanup of one owned process set within a fixed bound. */
+/** Terminate within a fixed bound; uncertain exit releases host handles, not artifact pins. */
 async function stopOwnedProcess(child: ChildProcess, processGroup: boolean): Promise<boolean> {
   if (!ownedProcessExists(child, processGroup)) return true;
   signalOwnedProcess(child, processGroup, "SIGTERM");
   if (await waitForOwnedExit(child, processGroup)) return true;
   signalOwnedProcess(child, processGroup, "SIGKILL");
-  return waitForOwnedExit(child, processGroup);
+  const stopped = await waitForOwnedExit(child, processGroup);
+  if (!stopped) {
+    // An un-stoppable child must not keep the caller alive after it reports recovery-required.
+    // Closing our pipe ends does not prove child exit; the caller must still retain its pin.
+    child.stdout?.destroy();
+    child.stderr?.destroy();
+    child.unref();
+  }
+  return stopped;
 }
 
 /** Resolve one executable from the first absolute PATH entry that owns it. */
@@ -91,6 +101,9 @@ export async function probeVice(
       if (outcome !== "normal") return;
       outcome = next;
       cleanup = stopOwnedProcess(child, processGroup);
+      // Failed termination need not produce a close event. Settle after the bounded attempt
+      // so the caller can retain its generation pin and report manual recovery.
+      void cleanup.then(() => finish(null));
     };
     const finish = async (code: number | null) => {
       if (settled) return;
@@ -134,18 +147,39 @@ export async function probeVice(
   });
 }
 
-/** Start the exact interactive C64 profile and wait for owned process cleanup. */
+/**
+ * Start the generation's exact cooperative profile using fixed arguments and no shell.
+ * Unknown identities fail before spawning; uncertain cleanup leaves pin ownership to the caller.
+ * @example await launchVice(executable, prg, "c64-ntsc-prg-kernal-8580", signal)
+ */
 export async function launchVice(
   executable: string,
   prg: string,
+  profileId: C64KernalProfileId,
   signal?: AbortSignal,
 ): Promise<"complete" | "start" | "runtime" | "cancelled" | "cleanup-uncertain"> {
   if (signal?.aborted === true) return "cancelled";
+  const profile = selectC64KernalFacts(profileId);
+  if (profile === null) return "start";
+  const pal = profile.video === "pal";
   return new Promise((resolve) => {
     const processGroup = process.platform !== "win32";
     const child = spawn(
       executable,
-      ["-default", "-model", "c64", "-pal", "-sidmodel", "0", "-autostart", prg],
+      [
+        "-default",
+        "-model",
+        pal ? "c64" : "ntsc",
+        pal ? "-pal" : "-ntsc",
+        "-VICIImodel",
+        pal ? "6569" : "6567",
+        "-sidmodel",
+        profile.sidModel === 6581 ? "0" : "1",
+        "-ciamodel",
+        "0",
+        "-autostart",
+        prg,
+      ],
       { shell: false, stdio: "ignore", detached: processGroup },
     );
     let started = false;
@@ -156,6 +190,13 @@ export async function launchVice(
       if (cancelledRun) return;
       cancelledRun = true;
       cleanup = stopOwnedProcess(child, processGroup);
+      // Cancellation must finish even when a denied signal leaves the emulator alive.
+      void cleanup.then((cleaned) => {
+        if (settled) return;
+        settled = true;
+        signal?.removeEventListener("abort", abort);
+        resolve(cleaned ? "cancelled" : "cleanup-uncertain");
+      });
     };
     child.once("spawn", () => {
       started = true;

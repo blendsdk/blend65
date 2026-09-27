@@ -5,6 +5,14 @@ const COMMAND_HEADER_BYTES = 11;
 const RESPONSE_HEADER_BYTES = 12;
 const MAX_RESPONSE_BODY_BYTES = 1_048_576;
 const REQUEST_TIMEOUT_MS = 15_000;
+/** Only these machine-identity resources participate in runtime qualification. */
+const INTEGER_RESOURCES = [
+  "VICIIModel",
+  "SidModel",
+  "CIA1Model",
+  "CIA2Model",
+  "KernalRev",
+] as const;
 // The admitted expert journey has 28,665 device events plus 445 execution stops. The rounded
 // ceiling rejects runaway code while leaving a small allowance for setup and teardown stops.
 const MAX_CHECKPOINT_HITS = 30_000;
@@ -58,6 +66,8 @@ export interface ViceCpuRegisters {
 export interface ViceMonitor {
   /** Return the exact VICE version components reported by the monitor. */
   readonly viceInfo: () => Promise<readonly number[]>;
+  /** Read one allowed integer setting; reject unknown names and malformed or failed replies. */
+  readonly readIntegerResource: (name: (typeof INTEGER_RESOURCES)[number]) => Promise<number>;
   /** Add one enabled execute checkpoint and return its monitor identity. */
   readonly setExecuteCheckpoint: (address: number) => Promise<number>;
   /** Add one non-stopping byte access tracepoint and return its monitor identity. */
@@ -447,6 +457,19 @@ export async function openViceMonitor(port: number, processId: number): Promise<
         throw new Error("VICE info version field is invalid");
       }
       return Object.freeze([...body.slice(1, 1 + length)]);
+    },
+    readIntegerResource: async (name) => {
+      if (!INTEGER_RESOURCES.includes(name)) {
+        throw new RangeError("VICE resource name is not an allowed machine-identity setting");
+      }
+      const encoded = Buffer.from(name, "ascii");
+      const { body } = await request(0x51, Uint8Array.of(encoded.length, ...encoded));
+      // Integer replies have no optional fields: accepting trailing bytes would hide a
+      // different resource type or a malformed machine-identity assertion.
+      if (body.length !== 6 || body[0] !== 1 || body[1] !== 4) {
+        throw new Error("VICE resource response is not an exact four-byte integer");
+      }
+      return uint32(body, 2);
     },
     setExecuteCheckpoint: async (address) => {
       if (!Number.isInteger(address) || address < 0 || address > 0xffff) {

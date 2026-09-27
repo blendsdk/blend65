@@ -1,8 +1,8 @@
 # Execution Plan: RD-05 Stage A
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-27 17:11
-> **Progress**: 29/40 tasks (72%)
+> **Last Updated**: 2026-09-27 18:51
+> **Progress**: 43/43 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Scope and Entry Gate
@@ -25,9 +25,9 @@ security profile is invented for this local compiler.
 |---|---|---|---|
 | 1 | Source-visible constants and four frontend declarations | 14 | Stage A preflight |
 | 2 | Four cooperative build identities and zero-cost output proof | 15 | Phase 1 |
-| 3 | Correct emulator selection and four fresh runtime proofs | 11 | Phase 2 |
+| 3 | Correct emulator selection and four fresh runtime proofs | 14 | Phase 2 |
 
-**Total: 40 tasks across 3 phases / 9 sessions.** Task size is bounded by one reviewable
+**Total: 43 tasks across 3 phases / 9 sessions.** Task size is bounded by one reviewable
 change, normally 1–3 files. Split a task before implementation if it grows to 200+ changed
 lines, six files or three independent concerns; preserve its spec-first ordering. No speculative
 refactor is authorized by a task-size split.
@@ -483,47 +483,153 @@ qualification claim until Phase 3.
 
 ## Phase 3: Exact Emulator Selection and Qualification
 
-> **Phase baseline tree**: Record at execution start through exec-plan.
+> **Phase baseline tree**: `951acc588778707a3526b5eb3e1c45f09a706117` (HEAD `1a224c45`, clean worktree).
 > **Lenses**: security, concurrency, api-surface
 > **Risk**: Pinned-generation identity, binary monitor input and owned process cleanup.
+
+Execution started 2026-09-27 17:47 after the user confirmed High for the complete Phase 3
+batch. Strict scope: only the Phase 3 task paths below, this execution record and the feature
+roadmap. No pre-existing changes. Reuse the existing process, monitor and project helpers;
+no new runner, configuration layer, dependency, public schema or interrupt behavior.
+Independent specification authoring precedes implementation. Preserve every existing oracle
+and both frozen paths. Logs: `/tmp/blend65-rd05-phase3-OIYPb2/`. Coherent green local commits
+only; no push. AR-P3 and issue #90 remain outside this phase and owned by later RD-05 work.
+
+Before authoring crosses the task-size limit, split service failure and pin-preservation tests
+from 3.1.1 into 3.1.5/3.1.6, and runtime state assertions from 3.1.3 into 3.1.7. These are
+bookkeeping splits within the same three planned files and test families, not additional scope
+or support machinery. Each implementation unit remains below 200 added lines.
 
 ### Session 3.1 — Specification Tests
 
 **Reference:** [03-02 — Emulator launch](03-02-cooperative-pipeline.md#emulator-launch) and
 [Qualification](03-02-cooperative-pipeline.md#qualification); AR-P7/AR-P8.
 
-- [ ] 3.1.1 [spec-author] Write run-selection, pin/failure and process-compatibility tests — `packages/compiler/src/services/vice-profiles.spec.test.ts`; ST-19–ST-21.
-- [ ] 3.1.2 [spec-author] Write bounded resource-get protocol cases — `test/rd05/vice-resource.spec.test.ts`; ST-22.
-- [ ] 3.1.3 [spec-author] Write four-profile active-model and runtime-state tests — `test/rd05/profiles-vice.spec.test.ts`; ST-23–ST-24; retain ST-25's existing file unchanged.
-- [ ] 3.1.4 Run Phase 3 spec files red, sequentially for VICE; record failures and existing preservation cases here; 07 commands.
+- [x] 3.1.1 [spec-author] Write external-process setup and exact run-selection tests — `packages/compiler/src/services/vice-profiles.spec.test.ts`; ST-19. Verified 2026-09-27 17:59: four exact-argv failures as expected; documentation/reference self-check clean.
+- [x] 3.1.5 [spec-author] Write snapshot, stale-generation, cancellation and process-failure tests — `packages/compiler/src/services/vice-profiles.spec.test.ts`; ST-20–ST-21; split from 3.1.1. Verified 2026-09-27 17:59: snapshot selection red; five unchanged lifecycle/source cases pass.
+- [x] 3.1.6 [spec-author] Write cleanup-uncertainty and pin-lifecycle tests — `packages/compiler/src/services/vice-profiles.spec.test.ts`; ST-21; split from 3.1.1. Verified 2026-09-27 17:59: uncertain cleanup fails the bounded outcome assertion; final cleanup leaves no fake-VICE process. Suite: 6 expected failures / 5 preservation passes.
+- [x] 3.1.2 [spec-author] Write bounded resource-get protocol cases — `test/rd05/vice-resource.spec.test.ts`; ST-22. Verified 2026-09-27 17:57: 15 intentional missing-method assertion failures, no collection error. Documentation/reference self-check clean. Log: `spec-vice-resource.log`.
+- [x] 3.1.3 [spec-author] Write four-profile runtime setup and active-model tests — `test/rd05/profiles-vice.spec.test.ts`; ST-23; retain ST-25's existing file unchanged. Verified 2026-09-27 18:00: four fresh real builds reach the missing-resource-reader assertion, no setup or collection failure.
+- [x] 3.1.7 [spec-author] Write startup, selected-body and caller-return assertions — `test/rd05/profiles-vice.spec.test.ts`; ST-24; split from 3.1.3. Verified 2026-09-27 18:00: independent state/initializer/store assertions authored; runtime red at the required active-resource boundary. Documentation/reference self-check clean.
+- [x] 3.1.4 Run Phase 3 spec files red, sequentially for VICE; record failures and existing preservation cases here; 07 commands. Verified 2026-09-27 18:00: 25 intentional failures / 5 preservation passes; formatting, documentation and cleanup checks pass. No implementation file was exposed to the independent author or edited before red.
+
+Independent oracle freeze before implementation:
+
+| File | SHA-256 |
+|---|---|
+| `packages/compiler/src/services/vice-profiles.spec.test.ts` | `b2c21de012c432e45e078f52e9530d80a74ca2cc5cec75ac0ee54ae8fc6286f1` |
+| `test/rd05/vice-resource.spec.test.ts` | `b1697b8907369babb87dd83592b35d7458a72cc3f691224f025bef7dba9e38b2` |
+| `test/rd05/profiles-vice.spec.test.ts` | `0e200dec5ab889e1cb2ffb4e0f4969ba8dc6e38cd8060ac64d78db0a6ef09402` |
+
+Red logs: `spec-vice-profiles-bounded.log` (6 failures / 5 passes),
+`spec-vice-resource.log` (15 failures), `spec-profiles-vice.log` (4 failures).
+The first service run exposed an indefinite wait after denied process termination; its test
+cleanup was bounded before freezing the oracle. The owned orphan from that initial red run
+was explicitly identified and stopped. The required correction is within the existing lifecycle
+contract: return recovery-required when bounded cleanup cannot prove exit, retaining the pin.
+No process framework or new failure category is needed.
 
 **Verify:** Directed Phase 3 tests; missing helper/configuration must fail, never silently skip.
 
 ### Session 3.2 — Implementation
 
-- [ ] 3.2.1 Carry the fresh build's private selected identity into fixed-argv interactive launch — `packages/compiler/src/services/services.ts`, `services/vice.ts`; 03-02 §Emulator launch; ST-19–ST-21.
-- [ ] 3.2.2 Extend the existing qualification helper with the closed optional profile argument and pinned-ROM ordering — `test/m1/vice-runtime.ts`; 03-02 §Qualification; ST-23–ST-25.
-- [ ] 3.2.3 Add the single bounded integer-resource reader to the existing monitor — `test/m1/vice-monitor.ts`; 03-02 §Qualification; ST-22–ST-23. Keep the file below 700 lines; no general monitor refactor.
-- [ ] 3.2.4 Run Phase 3 spec files and the unchanged M1 journey green, sequentially; record actual selected resources and runtime outcomes here.
+- [x] 3.2.1 Carry the fresh build's private selected identity into fixed-argv interactive launch — `packages/compiler/src/services/services.ts`, `services/vice.ts`; 03-02 §Emulator launch; ST-19–ST-21. Verified 2026-09-27 18:04: 25/25 new and existing service cases pass, including bounded uncertain cleanup and pin retention. Documentation/reference self-check clean. First run had one old five-second timeout under load; unchanged retry passed. Logs: `green-services.log`, `green-services-retry.log`.
+- [x] 3.2.2 Extend the existing qualification helper with the closed optional profile argument and pinned-ROM ordering — `test/m1/vice-runtime.ts`; 03-02 §Qualification; ST-23–ST-25. Verified 2026-09-27 18:04: four fresh runtime profiles pass, exact resources and ROM identities observed. Documentation/reference self-check clean. The closed type is reused through existing public `TypedProgram`; no compiler API export was added. Default M1 compatibility remains the next task's required check.
+- [x] 3.2.3 Add the single bounded integer-resource reader to the existing monitor — `test/m1/vice-monitor.ts`; 03-02 §Qualification; ST-22–ST-23. Verified 2026-09-27 18:03: all 15 protocol tests and four real-profile runtime cases pass. Documentation/reference self-check clean. Reuses existing request/envelope/timeout handling; 675 lines, no general monitor refactor. Log: `green-runtime.log`.
+- [x] 3.2.4 Run Phase 3 spec files and the unchanged M1 journey green, sequentially; record actual selected resources and runtime outcomes here. Verified 2026-09-27 18:05: 30/30 new cases plus unchanged complete 441-input M1 journey pass. Sequential VICE logs: `green-runtime.log`, `green-m1.log`; service log above. Status: VICE-verified / hardware-unverified.
+
+Runtime observations: VICIIModel 0 for PAL / 3 for later NTSC, SidModel 0 for 6581 / 1 for
+8580; both CIAs 0 and KernalRev 3 in every run. The selected raster/SID words and one source
+border store match each profile. Each initializer executes once and loaded constant data receives
+zero writes. All four reach the captured BASIC caller at `$E147`, restore observed ports, device
+readbacks, CINV/NMINV and I/D, and change SP from 246 to 248 only through the final RTS.
+Exact executable/ROM hashes and per-PRG hashes are retained in the runtime log and final handoff.
 
 **Verify:** Directed Phase 3 tests and existing `test/m1/vice.spec.test.ts`; 07 commands;
 `VICE-verified / hardware-unverified` only for successfully observed cases.
 
 ### Session 3.3 — Implementation Tests and Handoff
 
-- [ ] 3.3.1 Add argument-assembly/resource-decoder and process-error edge tests — `packages/compiler/src/services/vice-profiles.impl.test.ts`, `test/rd05/vice-resource.impl.test.ts`; 03-02 §Evidence and failures / Qualification.
-- [ ] 3.3.2 Run full Stage A verification and independent phase review, including security/concurrency lenses; record results and close review findings here.
-- [ ] 3.3.3 Write the bounded Stage A evidence/deferral handoff and update only the feature roadmap — `08-stage-a-handoff.md`, `../../00-roadmap.md`; 01 §Stage Acceptance. Keep full RD-05 unfinished and name its next planning owner; finish with a green local documentation checkpoint.
+- [x] 3.3.1 Add argument-assembly/resource-decoder and process-error edge tests — `packages/compiler/src/services/vice-profiles.impl.test.ts`, `test/rd05/vice-resource.impl.test.ts`; 03-02 §Evidence and failures / Qualification. Verified 2026-09-27 18:07: 6 service and 9 transport/helper cases pass. Documentation/reference self-check clean. The two focused files total 156 lines. Logs: `green-service-edges.log`, `green-resource-edges.log`.
+- [x] 3.3.2 Run full Stage A verification and independent phase review, including security/concurrency lenses; record results and close review findings here. Verified 2026-09-27 18:44: final install/build/typecheck and all 2,434 tests pass; RV-001 resolved by the single focused re-review. Documentation/reference checks clean; frozen oracles and paths unchanged. Exact commands and retry evidence below.
+- [x] 3.3.3 Write the bounded Stage A evidence/deferral handoff and update only the feature roadmap — `08-stage-a-handoff.md`, `../../00-roadmap.md`; 01 §Stage Acceptance. Verified 2026-09-27 18:51: targeted formatting, 49 local links/anchors, four exact runtime observations and pins, source/decision keys, task totals and retained owners pass. Full RD-05 stays open; the next bounded correctness-planning owner is issue #90, with AR-P3 and all remaining scope retained.
 
 **Deliverable:** Stage A runtime proof and an honest remaining-work handoff, not RD closeout.
 **Verify:** Full 07 command set for 3.3.2. For 3.3.3, targeted Markdown formatting, links,
 source/decision keys, task totals and retained deferral ownership; no compiler changes after
 the full verification checkpoint.
 
+### Phase 3 review and correction
+
+Reviewer `/root/rd05_phase3_review` covered correctness, maintainability, standards, security,
+concurrency and API surface. It confirmed the minimal direct-extension design, all oracle hashes,
+unchanged frozen paths and the initial complete green verification. No separate security-profile
+auditor applies to this local process/monitor change; those checks are owned by the reviewer.
+No emitted-code change calls for a performance or semantics audit.
+
+| Finding | Evidence | Ruling / correction |
+|---|---|---|
+| RV-001 — Major, concurrency | Both launch and probe return `cleanup-uncertain`, but referenced child handles (and probe pipes) keep a CLI-style caller alive after it sets exit code 10. The reviewer reproduced natural exit only after the outer fixture killed the exact owned child. | Accepted necessary correction under the confirmed Phase 3 batch and project workflow directive 4: release only parent-side event-loop ownership after bounded termination fails. Preserve recovery-required and the retained pin. This is the existing completion contract, not a product choice, new support surface or test-oracle change. |
+
+Correction baseline: `8804a07396ddc09cc61ad514a837368beb8f3475`. Modification set remains
+`services/vice.ts` and `services/vice-profiles.impl.test.ts`, plus this execution record.
+Add a bounded isolated-process regression first; apply the small existing-helper correction;
+rerun directed and full verification, then request the one allowed focused re-review.
+Regression implemented 2026-09-27 18:22; red verification found both expected failures against the exact built
+JavaScript consumed by Node callers. It requires natural exit code 10 before the outer fixture
+cleans up the still-live, precisely identified emulator process.
+Correction implemented 2026-09-27 18:22: the existing bounded termination helper releases only
+the child's host handles after uncertain cleanup. No change to signal attempts, deadlines,
+classification or retained pin. Verification pending.
+Directed verification passed 2026-09-27 18:23: fresh build and all 33 service cases, including
+both natural-caller-exit regressions and retained-pin assertions. Logs:
+`review-regression-red.log`, `review-build.log`, `review-fix-green.log`.
+Fresh full verification and the single focused re-review now gate completion independently.
+
+The one focused re-review completed: **RV-001 resolved; no fix-introduced findings**.
+It verified safe settlement even if closing owned pipes triggers `close`, unchanged recovery/pin
+behavior, the two red-to-green natural-exit regressions, frozen hashes and the minimal existing-helper
+design. No third review is authorized or required. Fresh full verification is the remaining gate.
+
+The first post-review full run hit the existing implicit five-second host deadline in
+`test/rd04/expert-calls.impl.test.ts` while load was 18.82 on eight CPUs. Its initial full-run
+result was green; the new 33-case process correction suite is also green. Finish collecting this
+run, then rerun `yarn test --testTimeout 30000`, using Vitest's existing temporary command option
+for root tests. No test/configuration file, assertion, explicit test bound, monitor deadline,
+emulated-cycle cap or generated-code cost limit changes. This is bounded verification under
+host contention, not a renewed AR-P9 modification allowance or a new support mechanism.
+Any non-timeout failure remains a defect; a continuing timeout is investigated, not declared green.
+That run ended with 2,433 passes and only the five-second `expert-calls` timeout. The timed-out
+worker left its detached test emulator alive; its exact PID/group 258530, fixture path, current
+workspace and `VITEST_WORKER_ID=40` were confirmed before stopping only that group. No unrelated
+process was touched. The timeout-adjusted full retry starts with no leftover test emulator.
+
+The timeout-adjusted retry was interrupted by SIGTERM (shell status 143) before completion;
+its cause is not established. Its partial log also records one unchanged scalar-runtime monitor
+ownership failure. Do not treat that run as green or weaken socket attestation. After confirming
+workspace, fixture, group and `VITEST_WORKER_ID=35`, stop only orphaned test VICE group 300983.
+Recheck both affected old cases in isolation, then obtain a fresh complete full result. Log:
+`final-test-host-bound.log`; bounded recheck: `environment-recheck.log`.
+Both affected cases passed unchanged in that recheck (3.78 seconds for scalar runtime and
+2.99 seconds for expert calls). The ownership failure did not reproduce; the interrupted run
+remains unqualified. Retry the complete command after cleanup; machine load has fallen to 5.93.
+Current complete retry log: `final-test-retry.log`. No source, oracle, configuration or timeout
+file changed between these verification attempts.
+
+**Final checkpoint, 2026-09-27 18:44:** `yarn install --frozen-lockfile`, `yarn build`,
+`yarn typecheck` and `yarn test --testTimeout 30000` pass. Total: **2,434 tests** = 1,516 compiler +
+62 CLI + 14 language-server + 6 editor + 836 root (89 root files). The retry reused the successful,
+unchanged workspace results and freshly executed the complete sequential root suite. All four
+profile proofs and unchanged M1 pass. Logs: `final-install.log`, `final-build.log`,
+`final-typecheck.log`, `final-test-retry.log`. The temporary 30-second default is host-only;
+no source/configuration/test expectation, explicit deadline or emulated-cycle limit changed.
+No unresolved review finding remains. Technical-docs hook is N/A: no opted-in active architecture
+documentation set or new architectural surface; the bounded evidence handoff is the final task.
+
 ## Success and Remaining Ownership
 
 Stage success is exactly [01 — Stage Acceptance](01-requirements.md#stage-acceptance).
-All 40 checkboxes must be green; review findings, frozen paths and relevant output debts must be
+All 43 checkboxes must be green; review findings, frozen paths and relevant output debts must be
 reconciled. The remaining requirements stay in RD-05. AR-P3 must be resolved before planning
 NMI-dependent executable work or declaring the complete RD-05 plan ready. Finish with an
 effort recommendation and user handoff before starting the next distinct planning task.

@@ -3,7 +3,11 @@ import { createHash } from "node:crypto";
 import { access, lstat, readFile, readlink, realpath } from "node:fs/promises";
 import { constants } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import type { TypedProgram } from "@blend65/compiler/frontend";
 import { openViceMonitor, type ViceMonitor } from "./vice-monitor.js";
+
+/** Reuse the compiler's closed profile identity through its existing public frontend type. */
+type C64KernalProfileId = NonNullable<TypedProgram["profile"]>["id"];
 
 const VICE_SHA256 = "f148b33869c634964a75bcf3055f7415a6e87ef5984b66ecd486541a51c3fd74";
 const ROMS = Object.freeze([
@@ -228,14 +232,21 @@ async function childExited(child: ChildProcess, timeoutMs: number): Promise<bool
  * Start an exact VICE 3.10 process and attest its executable, ROMs, version and socket.
  * @param prgPath Exact published program to autoload.
  * @param maximumCycles Bounded emulator run; large padded images need extra disk-loading cycles.
+ * @param profileId Exact cooperative machine identity; existing calls retain PAL/6581.
+ * @throws {RangeError} If the cycle bound or runtime profile identity is invalid.
+ * @example await startVice(prgPath, 100_000_000, "c64-ntsc-prg-kernal-8580")
  */
 export async function startVice(
   prgPath: string,
   maximumCycles = 100_000_000,
+  profileId: C64KernalProfileId = "c64-pal-prg-kernal-6581",
 ): Promise<StartedVice | { readonly kind: "unknown"; readonly reason: string }> {
   if (!Number.isSafeInteger(maximumCycles) || maximumCycles <= 0) {
     throw new RangeError("VICE cycle bound must be a positive safe integer");
   }
+  const pal = profileId === "c64-pal-prg-kernal-6581" || profileId === "c64-pal-prg-kernal-8580";
+  const ntsc = profileId === "c64-ntsc-prg-kernal-6581" || profileId === "c64-ntsc-prg-kernal-8580";
+  if (!pal && !ntsc) throw new RangeError("VICE requires an exact cooperative C64 profile");
   const identity = await runtimeIdentity();
   if (identity === null) {
     return Object.freeze({
@@ -247,12 +258,17 @@ export async function startVice(
   const romArguments = ROMS.flatMap((rom, index) => [rom.option, identity.roms[index]!.path]);
   const arguments_ = [
     "-default",
-    ...romArguments,
     "-model",
-    "c64",
-    "-pal",
+    pal ? "c64" : "ntsc",
+    pal ? "-pal" : "-ntsc",
+    "-VICIImodel",
+    pal ? "6569" : "6567",
     "-sidmodel",
+    profileId.endsWith("6581") ? "0" : "1",
+    "-ciamodel",
     "0",
+    // Model presets can reset ROM selections, so the attested files must be selected last.
+    ...romArguments,
     "-console",
     "+sound",
     "+warp",
