@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 Handler-Side IRQ Updates
 
-> **Status**: ❌ GATE BLOCKED — technical discovery and test-authority ruling pending
-> **Last Updated**: 2026-09-27 22:23
+> **Status**: ❌ GATE BLOCKED — AR-P6 exact profile-oracle correction awaits approval
+> **Last Updated**: 2026-09-27 23:07
 > **CodeOps Artifact Schema**: 1
 
 ## Planning Scope Contract
@@ -17,15 +17,16 @@
 | ID | Category | Decision or question | Authority | Status |
 |---|---|---|---|---|
 | AR-P1 | Scope / effort | Plan this bounded IRQ slice at the previously confirmed Xhigh effort. Reuse existing compiler analysis and static storage; add no runtime manager, scheduler or language feature. This does not close RD-05. | User: “proceed” after the explicit handler-side IRQ scope confirmation. | ✅ Resolved |
-| AR-P2 | Technical / concurrency (sensitive) | Close the distinction between the active vector stack, the handler currently executing/chaining, and simultaneously live invocation storage. Select the smallest direct extension that supports the confirmed source forms without overwriting live links, inventing an IRQ recursion bound or preventing later optimization. | Discovery in progress; project workflow directive 4 owns technical selection after grounding and independent challenge. | ❌ Open |
-| AR-P3 | Test authority | Apply only the exact ledger-oracle correction below during later implementation. Preserve the invalid source and every unrelated expectation. | Recommended correction presented to the user; explicit ruling pending. | ❌ Open |
+| AR-P2 | Technical / concurrency (sensitive) | Use finite handler-root/local-slot contexts, separate installed predecessors, and the existing selected-instruction IRQ analysis before SFA interference. Preserve selection through binding; no second analysis framework or runtime mechanism. | Planner-owned technical selection under the user's AGENTS.md workflow directive 4, after code grounding and independent challenge; not a claim of a new user product ruling. | ✅ Resolved |
+| AR-P3 | Test authority | Apply only the exact ledger-oracle correction below during later implementation. Preserve the invalid source and every unrelated expectation. | User: “I approve” after the exact correction was presented. | ✅ Resolved |
 | AR-P4 | Carried NMI scope | Positive finite NMI-source/reentry and safe install/restore proof remains with RD-05 planning. Revisit before NMI-dependent executable work or complete RD-05 plan readiness. No NMI, takeover or banking implementation enters this slice. | Existing Stage A AR-P3 and user's confirmation of this IRQ-only planning scope. | ⏸ Deferred — named NMI contract; RD-05 planning owner; revisit before dependent work or full-plan readiness |
 | AR-P5 | Verification / workflow | Use existing specification-first tests, public build service, direct storage/machine tests and sequential VICE 3.10. Keep behavior and assembly/cost expectations independent. Retain the established install/build/typecheck/test checkpoint and temporary root `--testTimeout 30000` allowance; no permanent timeout edit. Commit coherent green checkpoints without asking; never push automatically. | User-provided AGENTS.md and established verification ruling. | ✅ Resolved |
+| AR-P6 | Test authority (discovered during final oracle inventory) | Move only the two balanced handler-side IRQ fixtures in `test/rd05/profile-interrupts.spec.test.ts` from the rejection table to positive check/build cases across its existing four profiles. Preserve complete source text, NMI rejection cases and the mainline test. | Exact proposed change below; requires the user's approval for this additional immutable oracle. | ❌ Open |
 
 ## Initial Grounding
 
-Status: **Verified partial**. Claim kind: **Fact** for the code inventory below; the replacement
-design is not yet settled and no new runtime result is claimed.
+Status: **Verified partial**. Claim kind: **Fact** for the code inventory below; the selected
+design is analysis, not implemented behavior, and no new runtime result is claimed.
 
 | Evidence | Consequence for this slice |
 |---|---|
@@ -36,9 +37,9 @@ design is not yet settled and no new runtime result is claimed.
 | `packages/compiler/src/semantic/interrupt-domains.ts:10` and `packages/compiler/src/storage/interference.ts:130` | Invocation homes currently distinguish mainline/IRQ/NMI, not two simultaneously live IRQ activations. A finite nested IRQ case must not alias their private homes. |
 | `test/rd04/expressiveness-ledger.spec.test.ts:105` | One restriction probe groups two balanced installs with a handler-only restore followed by another mainline restore. Marking every probe successful would discard a real ownership check. |
 
-## AR-P2 — Smallest Design Direction, Not Yet a Complete Plan
+## AR-P2 — Selected Bounded Design
 
-**Recommended direction:** extend the existing ownership/context, SFA and specialization records.
+**Selected direction:** extend the existing ownership/context, SFA and specialization records.
 Distinguish an installed predecessor, the chain member executing now, and any simultaneously live
 IRQ invocation. Keep the existing mask/recognition semantics shared with stack analysis. No new
 general graph engine, runtime flag, dispatcher, manager, dependency or broad IR replacement is
@@ -57,34 +58,51 @@ For example, B can chain into previously installed A while B remains the active 
 temporary installer saves/restores that actual B vector, while A's own eventual chain retains A's
 original predecessor. This avoids reinterpreting an old entry using a later installation depth.
 
-The independent challenger converged on these distinctions and rejected a simple site-slot fix
-as insufficient. Its review used the supplied code/specification packet, not a separate repository
-inspection. It did **not** certify a complete algorithm. Four bounded design obligations remain:
+The four discovery obligations are closed at design level, not claimed as implemented:
 
-1. Specify terminating context closure before code-variant expansion, distinguishing masked
-   installation cycles from actual unbounded re-entry. Do not introduce an arbitrary depth cap or
-   turn a compiler limit into a source rule.
-2. Resolve the ordering between exact IRQ-recognition boundaries, provisional instruction
-   selection, context-specific homes and final SFA closure. Reuse the existing machine-binding
-   path; do not assume a new instruction-skeleton facility exists. A final check cannot rescue an
-   earlier non-terminating expansion.
-3. Prove concrete entry-address consistency: an actual vector or saved predecessor must select the
-   correct specialized body and private homes. Two abstract invocation identities are insufficient
-   if both still enter one machine label with the same storage. Do not assume earlier saved
-   addresses can be rewritten or add a runtime dispatcher to choose between bodies.
-4. Close every simultaneously live predecessor, parameter, local, temporary and helper scratch
-   through SFA before emission. Sequential chain execution is not another hardware interrupt
-   frame; actual preemption is. Keep these two lifetime cases distinct.
+| Obligation | Grounded resolution |
+|---|---|
+| Termination before lowering | Each handler starts its own local temporary depth at zero. Finite source roots, acyclic ordinary calls and ownership-balanced CFG backedges bound the slot universe. Entry variants name an installing slot, not an ever-growing vector history. Masked cycles revisit existing identities. |
+| Phase ordering | `packages/compiler/src/services/services.ts:224` selects one symbolic program before `closeStorage`; the latter receives selected instruction sites. Run the existing IRQ walk before interference construction. `packages/compiler/src/services/shared-storage.ts:78` reuses that same symbolic program and binder for final RAM closure. No early instruction skeleton or outer re-lowering loop is needed. |
+| Real entry addresses | A wrapper names its handler root, ABI and installation predecessor slot. Its root-private homes do not change with a later vector stack. Only proved concurrent roots need disjoint homes; an old saved address retains its meaning. |
+| Complete live storage | Extend the existing IRQ walk with suspended roots and installation-live links. Feed resulting conflicts into SFA for every private home and link. Keep wrapper continuations/hardware frames live after body completion where required. Binding and layout must preserve the selected proof's recognition, ownership, stack and scratch facts. |
 
-These are planner-owned technical questions, not questions for the user to solve. AR-P2 remains
-open until the exact seam is grounded. A larger subsystem would require the separate complexity
-approval gate, not authorization inferred from this planning scope.
+Repeated **suspended** handler identity is an unproved repeatable overlap cycle under the existing
+conservative control model: entry is masked, every handler preserves its incoming ownership prefix,
+its reachable choices and balanced local installs can recur above that prefix, and the external
+IRQ source has no event-count bound. This is not a claim that every concrete run is infinite.
+Sequential repeated chain entries remain legal. The technical specification owns the detailed
+algorithm, completion boundaries and tests.
 
-Confidence: high that the distinctions are necessary; medium that their final implementation seam
-can remain small. Hardening: challenger converged and made termination/phase ordering explicit
-readiness conditions. The strongest counterargument is uncontrolled growth of exact context
-histories; the plan must answer it before claiming readiness. With more budget a general analysis
-framework is possible, but no current evidence justifies that larger surface.
+The independent challenger converged on this design and on the no-reselection binding contract.
+Its review used the supplied code/specification packet, not independent repository inspection.
+The discarded approaches were fixed source-site slots (unsafe for overlapping helpers), unbounded
+total-depth specialization (fails to terminate on masked cycles), an early instruction skeleton,
+and an outer re-lowering loop (both unnecessary given the actual service seam).
+
+Confidence: moderately high at design level; implementation and runtime qualification remain
+required. Hardening: independent challenge reconciled termination, concrete address selection,
+body-versus-wrapper completion, installation lifetimes and final-emission consistency. The
+strongest risk is omitting a live continuation or predecessor; planned qualification must give
+those explicit negative and runtime cases. More analysis machinery would increase cost without meeting an
+additional authorized requirement. This is a direct extension, not an approved complexity
+escalation; any later larger support surface must stop at that gate.
+
+The final phase invariant is stronger than unchanged opcode counts: binding must preserve IRQ
+recognition opportunities, mask transitions, vector transactions, ownership state and call/return/
+chain stack effects. Branch relaxation may insert neutral jumps at an already-emitting site only
+with those facts unchanged. Exact duplicate helper sharing must retain both stack effects and
+physical scratch assumptions. The existing shared-storage shape check remains; direct regression
+checks establish the additional semantic invariant. A future transform that changes it must refresh
+the proof before acceptance, not silently reuse stale interference.
+
+Installation slots remain live while installed and while any pending chain continuation needs
+them, including while their installing body is suspended. The existing IRQ walk can record
+co-live slot pairs and slot-versus-active/suspended-root conflicts alongside private-root overlap.
+These facts extend the existing interference construction; they do not create a new general
+lifetime framework. No global is cloned, and a repeated sequential root does not imply a second
+live private frame. Ordinary helpers inherit the caller's root and local depth, including net
+temporary ownership transfer inside the enclosing handler.
 
 The eventual route contract must retain callback-only source identity and emit only selected
 entry variants. Default CINV chaining preserves entry status across a binary-mode body before its
@@ -97,14 +115,14 @@ from existing ROM: the 16-byte PULS-to-CINV path and applicable 6-byte `$EA81` t
 bytes. The new slice's exact costs are **Unknown** until its fixtures and final lowering are
 defined; no parity claim or extra runtime cost is accepted by this design direction.
 
-## AR-P3 — Exact Proposed Oracle Correction
+## AR-P3 — Approved Exact Oracle Correction
 
 The invalid example currently ends with `restoreIRQ()` both in the handler and in mainline after
 the interrupt opportunity. It must not become a positive example merely because the blanket
 handler-side rejection is removed. Chapter 6 §7.8 and Chapter 14's E10278 contract require exact
 ownership agreement, including when mainline resumes after an interrupt.
 
-| Proposed later modification | Exact boundary |
+| Approved later modification | Exact boundary |
 |---|---|
 | `test/rd04/expressiveness-ledger.spec.test.ts`, `v4-handler-irq-update` probe | Keep the two existing balanced `setIRQ` / `setIRQExclusive` fixtures unchanged as positive retirement probes. Move only the third, restore-only fixture out of that positive group into a dedicated negative case in the same file, preserving its complete source verbatim and requiring failure with E10278. |
 | `test/rd04/expressiveness-ledger.json`, `v4-handler-irq-update` row | Mark the blanket restriction retired only after its positive probes, preserved negative case and new handler-side qualification pass. Update only that row's status/reason/decision evidence; do not claim that invalid or unbounded forms became supported. |
@@ -113,11 +131,39 @@ ownership agreement, including when mainline resumes after an interrupt.
 All other ledger rows, exact probe-inventory checks, mutation tests and NMI expectations remain
 unchanged. Add no ledger schema, test runner or new validation subsystem. Independent new
 specification tests must still fail before implementation; the old expectation changes are not a
-substitute for red evidence. No test edit is authorized or applied by this recommendation alone.
+substitute for red evidence. The user approved this exact correction on 2026-09-27. It enters the
+future execution plan; no compiler or test implementation is performed during planning.
 
 The challenger independently recommended this split. The alternative of accepting all three
 fixtures was rejected because it would erase the unmatched-restore safety check; simply deleting
 that fixture would lose the same coverage.
+
+## AR-P6 — Proposed Exact Profile Oracle Correction
+
+The final repository-wide specification-test scan found a second owner of the old blanket
+restriction: `test/rd05/profile-interrupts.spec.test.ts:49–62`. Its two balanced IRQ fixtures are
+the newly supported behavior, not unsafe NMI or actual unbounded re-entry. They currently run
+inside the same rejection table as two NMI fixtures, on all four cooperative profile IDs.
+
+**Recommended:** move only `handler-side chained IRQ installation` and
+`handler-side exclusive IRQ installation` into positive cases in that same file. Preserve each
+complete Blend65 source verbatim, the four-profile parameterization and both public `checkProject`
+and `buildProject` calls. Require success with no error diagnostics; verify the selected profile
+and emitted artifacts through the existing fixture helpers. Keep both NMI fixtures, their E10245
+and no-output assertions, and the existing balanced-mainline test unchanged. Only the moved IRQ
+cases lose the obsolete E10245/no-output expectation. Apply this during implementation after the
+new independent specifications are green, not during planning.
+
+This is an additional immutable-oracle permission, not covered by AR-P3's exact file boundary.
+No compiler scope, language rule, profile, runtime or harness is added. Retaining these old
+rejections would contradict the approved feature; deleting their fixtures would lose profile
+coverage. Current file SHA-256:
+`f2423ac0810bc0ddcbb65ce4a54bd9e74b9941e8cc5ad560cb663bb7a37b522c`.
+
+Other scan matches remain valid negative coverage: unbalanced self-installation in
+`test/rd04/diagnostics-resource-boundaries.spec.test.ts`, unbounded IRQ enable/re-entry and final
+CLI cases, and unsafe NMI. None is authorized to change. This is the first post-design-closure
+ambiguity batch; no plan document beyond this register was created before the gate reopened.
 
 ## Discovery Checkpoint
 
@@ -134,12 +180,21 @@ Targeted Prettier, all 34 local links/anchors, cited source paths/lines, expert 
 frozen-authority checks pass. This documentation-only checkpoint does not rerun or replace the
 previous full compiler qualification.
 
-The category scan found open technical/state/edge-case closure in AR-P2 and test-authority scope in
-AR-P3. Feature scope, naming, public interfaces, diagnostics, verification, output quality and
-stakeholder/product boundaries use the confirmed slice and existing contracts. No new network,
-authentication, persistence, host-process or input-format surface is proposed. Security cases are
-compiler input rejection and resource-bound failures, not a new web/security framework. This is a
-discovery checkpoint only; the full gate scan must be completed after AR-P2 and AR-P3 resolve.
+After AR-P3 approval and design closure, the unchanged additional oracle baseline was checked:
+`yarn vitest run test/rd05/profile-interrupts.spec.test.ts test/rd04/diagnostics-resource-boundaries.spec.test.ts --testTimeout 30000`:
+**27/27 pass**. Logs: `/tmp/blend65-handler-irq-design-m86V1G/`. The two touched documents pass
+targeted formatting and all 34 local links/anchors. Cited source paths, the three recorded test
+hashes and the three governing source keys pass. Compiler, test, frozen specification and expert
+skill files remain unchanged. No executable plan is claimed while AR-P6 is open.
+
+The final twelve-category scan covers feature, behavior, scope, technical design, edge cases,
+integration, data/state, security, non-functional quality, presentation, stakeholders and naming.
+AR-P1/P4 bound scope; AR-P2 closes technical/state/integration/edge behavior; AR-P3 owns the approved
+oracle exception; AR-P5 owns verification. AR-P6 reopens only the additional test-authority
+boundary identified by the final oracle inventory. Existing diagnostic
+identities and public interfaces are retained. No new network, authentication, persistence,
+host-process or input-format surface is proposed. Security cases are compiler input rejection and
+resource-bound failures, not a new web/security framework.
 
 ## Authority and Completion Boundary
 
@@ -153,5 +208,7 @@ The applicable expert routes are `references/sfa-and-abi.md#interrupt-route-comp
 
 The compiler/language and concurrency lenses apply. There is no new public API, artifact format,
 host service, dependency or migration. Existing profile identities and evidence schemas remain
-unchanged. All twelve ambiguity categories still require their final scan before gate closure.
-No implementation or complete-cost/parity claim follows from this planning checkpoint.
+unchanged. Technical selection uses the project's explicit delegation of compiler/plan-owned
+decisions; it does not delegate immutable-oracle changes. The gate remains blocked on AR-P6.
+NMI remains the named deferral, absent from executable work. No implementation or complete-cost/
+parity claim follows from design closure.
