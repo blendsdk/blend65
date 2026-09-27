@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 Handler-Side IRQ Updates
 
-> **Status**: ❌ GATE BLOCKED — AR-P6 exact profile-oracle correction awaits approval
-> **Last Updated**: 2026-09-27 23:07
+> **Status**: ✅ GATE PASSED — 5 resolved; 1 explicitly carried named deferral
+> **Last Updated**: 2026-09-27 23:49
 > **CodeOps Artifact Schema**: 1
 
 ## Planning Scope Contract
@@ -10,7 +10,7 @@
 |---|---|
 | Planning target | The bounded RD-05 R5.16 handler-side IRQ slice carried by RD-04 AR-P17 / DEF-8: temporarily install another handler and safely restore the previous handler, with the relevant R5.15, R5.17 and R5.18 safety obligations. |
 | Context artifacts | Frozen Specification 4 and expert 2.0.0; RD-05 requirements; completed Stage A and its NMI deferral; current interrupt ownership, context, SFA, lowering and tests; the RD-04 expressiveness ledger. Reading these does not authorize changing them. |
-| Modification set | This new plan directory and the active feature roadmap only. No compiler/test implementation, requirement change, frozen-specification change, expert-baseline change, portfolio change or push. Any proposed edit to an existing specification test requires a separate exact ruling before it enters executable work. |
+| Modification set | This new plan directory and the active feature roadmap only. No compiler/test implementation, requirement change, frozen-specification change, expert-baseline change or portfolio change. The user's subsequent “Push and proceed” separately authorizes pushing the saved checkpoint. Existing specification-test changes are limited to the exact AR-P3 and AR-P6 rulings during later execution. |
 
 ## Decisions
 
@@ -21,7 +21,7 @@
 | AR-P3 | Test authority | Apply only the exact ledger-oracle correction below during later implementation. Preserve the invalid source and every unrelated expectation. | User: “I approve” after the exact correction was presented. | ✅ Resolved |
 | AR-P4 | Carried NMI scope | Positive finite NMI-source/reentry and safe install/restore proof remains with RD-05 planning. Revisit before NMI-dependent executable work or complete RD-05 plan readiness. No NMI, takeover or banking implementation enters this slice. | Existing Stage A AR-P3 and user's confirmation of this IRQ-only planning scope. | ⏸ Deferred — named NMI contract; RD-05 planning owner; revisit before dependent work or full-plan readiness |
 | AR-P5 | Verification / workflow | Use existing specification-first tests, public build service, direct storage/machine tests and sequential VICE 3.10. Keep behavior and assembly/cost expectations independent. Retain the established install/build/typecheck/test checkpoint and temporary root `--testTimeout 30000` allowance; no permanent timeout edit. Commit coherent green checkpoints without asking; never push automatically. | User-provided AGENTS.md and established verification ruling. | ✅ Resolved |
-| AR-P6 | Test authority (discovered during final oracle inventory) | Move only the two balanced handler-side IRQ fixtures in `test/rd05/profile-interrupts.spec.test.ts` from the rejection table to positive check/build cases across its existing four profiles. Preserve complete source text, NMI rejection cases and the mainline test. | Exact proposed change below; requires the user's approval for this additional immutable oracle. | ❌ Open |
+| AR-P6 | Test authority (discovered during final oracle inventory) | Move only the two balanced handler-side IRQ fixtures in `test/rd05/profile-interrupts.spec.test.ts` from the rejection table to positive check/build cases across its existing four profiles. Preserve complete source text, NMI rejection cases and the mainline test. | User: “Push and proceed” in response to the single pending AR-P6 recommendation. | ✅ Resolved |
 
 ## Initial Grounding
 
@@ -138,14 +138,14 @@ The challenger independently recommended this split. The alternative of acceptin
 fixtures was rejected because it would erase the unmatched-restore safety check; simply deleting
 that fixture would lose the same coverage.
 
-## AR-P6 — Proposed Exact Profile Oracle Correction
+## AR-P6 — Approved Exact Profile Oracle Correction
 
 The final repository-wide specification-test scan found a second owner of the old blanket
 restriction: `test/rd05/profile-interrupts.spec.test.ts:49–62`. Its two balanced IRQ fixtures are
 the newly supported behavior, not unsafe NMI or actual unbounded re-entry. They currently run
 inside the same rejection table as two NMI fixtures, on all four cooperative profile IDs.
 
-**Recommended:** move only `handler-side chained IRQ installation` and
+**Approved:** move only `handler-side chained IRQ installation` and
 `handler-side exclusive IRQ installation` into positive cases in that same file. Preserve each
 complete Blend65 source verbatim, the four-profile parameterization and both public `checkProject`
 and `buildProject` calls. Require success with no error diagnostics; verify the selected profile
@@ -154,7 +154,8 @@ and no-output assertions, and the existing balanced-mainline test unchanged. Onl
 cases lose the obsolete E10245/no-output expectation. Apply this during implementation after the
 new independent specifications are green, not during planning.
 
-This is an additional immutable-oracle permission, not covered by AR-P3's exact file boundary.
+This additional immutable-oracle permission was approved separately from AR-P3's exact file boundary
+by the user's “Push and proceed” on 2026-09-27.
 No compiler scope, language rule, profile, runtime or harness is added. Retaining these old
 rejections would contradict the approved feature; deleting their fixtures would lose profile
 coverage. Current file SHA-256:
@@ -185,12 +186,12 @@ After AR-P3 approval and design closure, the unchanged additional oracle baselin
 **27/27 pass**. Logs: `/tmp/blend65-handler-irq-design-m86V1G/`. The two touched documents pass
 targeted formatting and all 34 local links/anchors. Cited source paths, the three recorded test
 hashes and the three governing source keys pass. Compiler, test, frozen specification and expert
-skill files remain unchanged. No executable plan is claimed while AR-P6 is open.
+skill files remain unchanged. These are baseline results, not qualification of the new capability.
 
 The final twelve-category scan covers feature, behavior, scope, technical design, edge cases,
 integration, data/state, security, non-functional quality, presentation, stakeholders and naming.
 AR-P1/P4 bound scope; AR-P2 closes technical/state/integration/edge behavior; AR-P3 owns the approved
-oracle exception; AR-P5 owns verification. AR-P6 reopens only the additional test-authority
+oracle exception; AR-P5 owns verification. AR-P6 closes the additional test-authority
 boundary identified by the final oracle inventory. Existing diagnostic
 identities and public interfaces are retained. No new network, authentication, persistence,
 host-process or input-format surface is proposed. Security cases are compiler input rejection and
@@ -209,6 +210,27 @@ The applicable expert routes are `references/sfa-and-abi.md#interrupt-route-comp
 The compiler/language and concurrency lenses apply. There is no new public API, artifact format,
 host service, dependency or migration. Existing profile identities and evidence schemas remain
 unchanged. Technical selection uses the project's explicit delegation of compiler/plan-owned
-decisions; it does not delegate immutable-oracle changes. The gate remains blocked on AR-P6.
+decisions; it does not delegate immutable-oracle changes. Both exact oracle corrections are now
+user-approved, and the gate passes for this bounded plan.
 NMI remains the named deferral, absent from executable work. No implementation or complete-cost/
 parity claim follows from design closure.
+
+## Plan Authoring Verification
+
+The seven required plan documents now exist. The read-only CodeOps parser finds the single
+feature-qualified RD-05 mapping, 30 unique unstarted tasks, specification-first ordering and no
+artifact problems. The planning quality scan covers all required categories; each decision traces
+to this register, and every case/task traces to the bounded requirements/design. One technical
+document owns the implementation contract; no separate readiness record or graph is created.
+
+Targeted Prettier and whitespace checks pass. All 65 local links/anchors and 26 source-line
+citations resolve; ST-1 through ST-30 are unique and all cited IDs exist. The three checked old-test
+hashes are unchanged. Compiler/test files, frozen specification, expert baseline and portfolio are
+untouched. The roadmap counter check reports only the known portfolio roll-up drift; integration
+branch policy intentionally defers that write. Verification logs are under
+`/tmp/blend65-handler-irq-plan-final-DySTCE/`.
+
+This is **Planning Complete**, not preflight passed or implementation qualified. The next distinct
+task is whole-plan preflight, including simplicity and expert-output checks, after the required
+effort handoff. The six saved predecessor commits through `497e4a47` were pushed on the user's
+explicit request before this authoring resumed; new checkpoints are not automatically pushed.
