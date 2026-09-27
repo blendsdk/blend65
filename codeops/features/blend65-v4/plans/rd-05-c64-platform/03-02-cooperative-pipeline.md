@@ -39,9 +39,14 @@ budget, 142 program zero-page bytes, hardware-stack capacity and existing firmwa
 Keep the current frame-wait boundary `$FB`, which is within both selected raster geometries.
 This is an existing frame observation operation, not a new stable-raster timing proof.
 
-Replace the single-ID guards in `layout/startup.ts` and `layout/c64-layout.ts` with the closed
-cooperative-family predicate. Continue proving certificate/target identity agreement. Preserve
-startup/return behavior: BASIC `SYS` entry, captured `$0000/$0001` handling, BASIC-out/KERNAL-and-I/O-in
+Replace the single-ID guards in `layout/startup.ts`, `layout/c64-layout.ts` and
+`artifacts/acme-validate.ts` with the closed cooperative-family predicate (PF-001). The last is
+the independent terminal admission check called by `acme-serializer.ts`; it is not the public
+build-evidence validator. Retain its ACME 0.97/CBM PRG checks, closed certificate and exact
+certificate/target identity agreement, legal-machine checks and layout validation. ST-18 must
+exercise actual serialization for every admitted ID. Task 2.3.1 owns focused negative
+certificate/format checks in the already planned implementation-test file; existing tests stay
+unchanged. Preserve startup/return behavior: BASIC `SYS` entry, captured `$0000/$0001` handling, BASIC-out/KERNAL-and-I/O-in
 mapping, binary arithmetic, declared device state, language-required initialization and ordinary
 return restoration. Initialized payload already loaded at its destination is never recopied.
 Do not introduce SID initialization merely because a SID model is now selectable (AR-P4/AR-P6).

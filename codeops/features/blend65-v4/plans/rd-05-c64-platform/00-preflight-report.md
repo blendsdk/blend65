@@ -5,11 +5,14 @@
 > checked the work. A fresh-session or human compiler-expert review remains useful for additional
 > independence; it is not a new execution prerequisite.
 >
-> **Status**: BLOCKED — 4 findings: 0 critical, 3 major, 1 minor, 0 observations
-> **Iteration**: 1 — full first scan; no fixes applied
+> **Status**: ✅ PREFLIGHT PASSED — all 4 findings resolved; no new findings
+> **Iteration**: 2 — bounded corrective rescan of the same eight-document target
+> **Previous iteration**: BLOCKED — 3 major and 1 minor finding
+> **Carried forward**: None — PF-001–PF-004 verified closed at plan level
+> **Reviewed content SHA-256**: `8e3950fdccf4d3f2a041032dd654885cef2e0f4a4db6c3fa1455da390f9dc74e`
 > **Artifact**: RD-05 Stage A implementation plan, eight documents listed below
-> **Baseline commit**: `bb5fafd8e36cc3b213cb3fe05598736ab9575dbb`
-> **Baseline plan-directory tree**: `f85300f7ebb08644972b3eb1e639cdd94031e802`
+> **Iteration 1 baseline commit**: `bb5fafd8e36cc3b213cb3fe05598736ab9575dbb`
+> **Iteration 1 plan-directory tree**: `f85300f7ebb08644972b3eb1e639cdd94031e802`
 > **Codebase Grounded**: at least 23 production, 11 test/support and 5 configuration files examined;
 > additional frontend lookup and lowering dependencies checked
 > **Last Updated**: 2026-09-27
@@ -17,17 +20,17 @@
 
 ## Verdict and Scope
 
-The design passes the simplicity check. The problems are missed connections to existing compiler
-stages, not a need for more machinery. Correct the three integration omissions and one inaccurate
-current-state claim before execution. No new framework, evaluator, registry, runner, schema,
-dependency or product capability is recommended.
+The corrected Stage A plan passes preflight and the simplicity check. All three integration
+omissions and the inaccurate current-state claim now have verified plan corrections. The
+implementation remains future work. No new framework, evaluator, registry, runner, schema,
+dependency or product capability was added.
 
-| Finding | Plain-language consequence | Severity |
+| Finding | Approved plan correction | Disposition |
 |---|---|---|
-| PF-001 | The final assembly check would still reject three of the four profiles. | Major |
-| PF-002 | Profile constants would work in expressions but fail in some array sizes and enum values. | Major |
-| PF-003 | Adding an ordinary source member to `c64.profile` would make valid profile imports fail. | Major |
-| PF-004 | The plan says constant switches are already simplified; that work is still needed. | Minor |
+| PF-001 | Include the final assembly admission check and retained negative checks. | Resolved |
+| PF-002 | Supply profile constants before early array/enum type preparation. | Resolved |
+| PF-003 | Recognize exact profile members during mixed-module resolution. | Resolved |
+| PF-004 | Identify constant-switch simplification as required existing-task work. | Resolved |
 
 The exact audit target is [00-ambiguity-register](00-ambiguity-register.md),
 [00-index](00-index.md), [01-requirements](01-requirements.md),
@@ -42,9 +45,9 @@ additional audit targets. This report does not approve the whole RD-05 plan or q
 behavior. AR-P3 remains an accepted, named NMI deferral with its existing owner/revisit trigger.
 No takeover, new interrupt route, banking facility or game-policy API enters Stage A.
 
-The user confirmed XHigh for this preflight. The technical remedies below are the single best
-in-scope choices under AGENTS.md's decision policy. Applying them is a separate action and remains
-pending: this request authorized review, not plan or compiler fixes.
+The user confirmed XHigh for this preflight and then said “i approve” to the explicit request
+to apply PF-001–PF-004 and rescan. That approval authorizes the bounded plan corrections, not
+compiler implementation or a push. The four corrections are applied and verified in iteration 2.
 
 ## Codebase Context
 
@@ -89,7 +92,7 @@ were checked against pinned source commit `4d283a2e7dd59b7e378524878e81ecc7826b7
 [monitor resource response](https://raw.githubusercontent.com/VICE-Team/svn-mirror/4d283a2e7dd59b7e378524878e81ecc7826b700c/vice/src/monitor/monitor_binary.c)
 and [VIC model values](https://raw.githubusercontent.com/VICE-Team/svn-mirror/4d283a2e7dd59b7e378524878e81ecc7826b700c/vice/src/vicii.h).
 
-## Coverage
+## Iteration 1 Coverage
 
 Finding membership can overlap dimensions; the unique total is four.
 
@@ -134,11 +137,14 @@ The lead also completed the three selected domain clusters:
 | Severity | Count | Disposition |
 |---|---|---|
 | 🔴 Critical | 0 | — |
-| 🟠 Major | 3 | Open; execution blocked |
-| 🟡 Minor | 1 | Open; correction recommended |
+| 🟠 Major | 3 | Resolved in iteration 2 |
+| 🟡 Minor | 1 | Resolved in iteration 2 |
 | 🔵 Observation | 0 | — |
 
-## Findings
+## Iteration 1 Findings and Authorized Corrections
+
+The original evidence below refers to the iteration 1 baseline. Each approved remedy is now
+applied to the plan; iteration 2 supplies the verification verdict without renumbering findings.
 
 ### PF-001: Include the final profile admission check 🟠 MAJOR
 
@@ -167,7 +173,8 @@ guard or centralizing all validation would weaken or needlessly restructure the 
 **Confidence:** High; an earlier path that bypassed this validator would change the conclusion,
 but the direct caller is unconditional. **Hardening:** no change to the remedy; independent
 challenger converged and confirmed retained negative checks.
-**User Decision:** Pending authorization to apply the plan correction; no fix applied.
+**User Decision:** Approved on 2026-09-27 — user accepted the recommended plan correction and
+corrective rescan. Applied and verified closed in iteration 2.
 
 ### PF-002: Make profile constants available when types are prepared 🟠 MAJOR
 
@@ -200,7 +207,8 @@ for a source declaration; no evidence justifies that extra initialization-order 
 **Confidence:** High; an existing early synthetic-constant path would change the conclusion,
 but none is present in the inspected consumers. **Hardening:** remedy unchanged; challenger
 converged and sharpened tests to include early extents and byte-range-valid enum values.
-**User Decision:** Pending authorization to apply the plan correction; no fix applied.
+**User Decision:** Approved on 2026-09-27 — user accepted the recommended plan correction and
+corrective rescan. Applied and verified closed in iteration 2.
 
 ### PF-003: Resolve mixed source/profile modules before reporting missing exports 🟠 MAJOR
 
@@ -235,7 +243,8 @@ failure is independent: fixing module acceptance alone does not fix early consta
 **Confidence:** High; an exact earlier profile-member resolution path would change the conclusion,
 but the source-only resolver and retained diagnostics were directly inspected.
 **Hardening:** remedy unchanged; independent challenger converged and retained visibility tests.
-**User Decision:** Pending authorization to apply the plan correction; no fix applied.
+**User Decision:** Approved on 2026-09-27 — user accepted the recommended plan correction and
+corrective rescan. Applied and verified closed in iteration 2.
 
 ### PF-004: Correct the current-state claim about constant switches 🟡 MINOR
 
@@ -255,7 +264,51 @@ existing task 2.2.3 and ST-14, not a new optimizer or phase.
 **Refutation:** Task 2.2.3 already permits a demonstrated lowering repair, so this is a minor
 reconnaissance correction, not an additional unowned major implementation requirement. Deleting
 the whole evidence row would also discard useful verified facts. No broader change is warranted.
-**User Decision:** Pending authorization to apply the documentation correction; no fix applied.
+**User Decision:** Approved on 2026-09-27 — user accepted the recommended documentation correction
+and corrective rescan. Applied and verified closed in iteration 2.
+
+## Iteration 2 — Bounded Corrective Rescan
+
+**Status: Verified complete. Claim kind: Fact** for the corrected plan and this scoped audit,
+not for compiler implementation or runtime capability. Start commit: `1f2a2fed`.
+Reviewed the same eight-document target, the authorized fix diff and direct dependencies.
+No requirement, language, expert-baseline or product-scope change was introduced.
+
+| Finding | Verified correction and retained proof |
+|---|---|
+| PF-001 | `03-02:42`, task 2.2.2 and ST-18 include the final `acme-validate.ts:74` admission gate and real four-profile serialization. Task 2.3.1 owns focused format/closed-certificate negatives in the already planned implementation-test file. Existing spec tests remain unchanged. |
+| PF-002 | `03-01:80` and task 1.2.2 supply selected immutable declarations before the `analyzer.ts:100/111` preparation steps. ST-2/8/9 cover early extents, in-range enum values, derived constants, aliases, shadowing and snapshot isolation. No new evaluator or preparation framework. |
+| PF-003 | `03-01:106` and task 1.2.3 separately own member recognition before `modules.ts:481/549` diagnostics and later obligation filtering. ST-2/ST-7 distinguish mixed-module success from missing/private/collision failures. No blanket E10012 suppression. |
+| PF-004 | `02-current-state:20–21` separates existing branch selection from the switch gap. Task 2.2.3 requires the CFG repair, retaining selector effects, clause/fallthrough semantics, ST-14/ST-15 and pre-SFA removal. No new optimization pass. |
+
+Short `03-01`, `03-02` and `02-current-state` references above name this plan's corresponding
+Markdown files. Source basenames use the compiler paths recorded in the original findings.
+
+| Rescan cluster | Dimensions | Review result |
+|---|---|---|
+| Soundness | 1, 3, 12 | Fresh independent auditor: no findings; four corrections consistent |
+| Grounding | 2, 13, including all ten subchecks | Fresh independent auditor: PF-001–PF-004 closed; no new findings |
+| Delivery | 4, 5, 11 | Independent read-only fallback auditor: owners and specification-first order verified; no findings |
+| Risk | 6, 8, 9 | Lead inline: current seams remain feasible; exact-member visibility, closed terminal checks and per-analysis state retained; no findings |
+| Fit | 7, 10 | Lead inline: concrete cases and file owners; same 33 tasks/25 families, no new support machinery; no findings |
+
+Another auditor spawn reached the session thread limit. Delivery therefore reused the prior
+independent challenger with a bounded audit packet, and risk/fit ran inline. Three independent
+auditors participated; required reviewer independence/count and all 13 dimensions were preserved.
+No new recommendation challenger was needed: the already challenged remedies were approved and
+did not change. No further iteration is warranted.
+
+The compiler/language lens verifies separate early name-acceptance and constant-value consumers,
+ordinary constant semantics and effect-preserving switch work. Data/migration checks confirm
+unchanged fact values and version-1 identities. Concurrency checks confirm immutable per-analysis
+inputs, no shared profile cache, unchanged pinned-generation/process ownership, sequential VICE
+and retained AR-P3. No additional domain finding resulted. The original expert lineage and
+primary source checks remain applicable; no source implementation changed since iteration 1.
+
+The reviewed-content digest hashes the UTF-8 concatenation of one record per target document,
+in the order listed under Verdict and Scope: `filename`, NUL, lowercase SHA-256 of the file's
+exact bytes, newline. Report, notes and roadmap are excluded. Recheck this digest before execution;
+any target-content change needs a targeted freshness check, not an automatic wider audit.
 
 ## Simplicity and Decision Record
 
@@ -276,18 +329,21 @@ the only constant consumers and that startup/layout were the last profile guards
 constant rules and the terminal serializer contradict those assumptions. No hardware/specification
 change is needed. AR-P2 library authority and AR-P3 deferral are respected, not reopened.
 
-No plan, compiler, spec test, frozen specification or expert file was changed by this scan.
-The report and roadmap bookkeeping are the only durable outputs. No new four-profile VICE run
-was performed or claimed. The Stage A roadmap remains **Plan Created**, 0/33 tasks; this blocked
-audit does not advance it to Plan Preflighted. Full feature progress remains 2/10.
+Iteration 1 changed only this report and roadmap bookkeeping. The approved iteration 2 changes
+six of the eight target documents, this report and the feature roadmap. No compiler, spec test,
+frozen specification or expert file changed, and no new four-profile VICE run is claimed.
+Stage A advances to **Plan Preflighted**, still 0/33 implementation tasks. Full RD-05 remains
+unfinished under its existing owners; full feature progress remains 2/10.
 
 ## Documentation Verification
 
-Validation passed: 85 local links, 14 heading anchors, Markdown fences/whitespace, four finding
-IDs, unchanged 33 task IDs and 25 test families. All eight audited Git blobs still match the
-recorded baseline. Frozen specification/expert paths are clean. Targeted Prettier completed;
-authored Markdown is intentionally excluded by `.prettierignore`, so direct document checks
-provide the formatting evidence. The compiler suite was not rerun for these audit-only edits.
+Iteration 1 validated 85 local links and 14 heading anchors against its original eight blobs.
+Iteration 2 passed 87 local links, 14 heading anchors, Markdown fences/whitespace, the reviewed
+eight-document content digest, all 33 unchanged task IDs (11 per phase), all 25 ST family IDs
+and all four resolved finding IDs. The scope/ambiguity register, requirements delta, compiler,
+tests and frozen paths are unchanged. Targeted Prettier completed; authored Markdown is
+intentionally excluded by `.prettierignore`, so direct structure/link/content checks supply the
+formatting evidence. The compiler suite was not rerun for these documentation-only corrections.
 
 The roadmap engine confirms the feature's 2/10 count. Its repository-wide check reports only
 the existing portfolio difference (1/10 versus 2/10 and rolled-up status). Portfolio synchronization
@@ -297,6 +353,5 @@ is deferred until integration by branch policy; `codeops/00-roadmap.md` is not m
 
 | Action | Owner |
 |---|---|
-| Authorize the four bounded plan corrections and a corrective rescan | User |
-| Once authorized, apply them in existing tasks/test families; verify fixes and run one bounded rescan of this same eight-document target | Coding agent |
-| Begin Stage A implementation only after the preflight gate passes and execution is authorized | Coding agent |
+| Confirm the effort handoff for Stage A Phase 1 implementation | User |
+| After confirmation, execute Phase 1 specification-first against this passed plan | Coding agent |

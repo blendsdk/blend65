@@ -14,12 +14,16 @@ Paths below are repository-relative; abbreviated paths within the same row share
 | `packages/compiler/src/frontend/profile.ts:9`, `:214` | Only PAL/KERNAL/6581 has a declaration environment; capabilities are functions. | 03-01 §Integration |
 | `packages/compiler/src/frontend/profile-bindings.ts:30` | Injects synthetic operation bindings and import aliases. | 03-01 §Integration |
 | `packages/compiler/src/frontend/analyzer.ts:119` | Compile-time evaluation already reads the same binding-state map. | Reuse; no second evaluator |
+| `packages/compiler/src/frontend/analyzer.ts:100`, `:111`, `:126`; `frontend/aggregate-types.ts:54`; `frontend/aggregate-constants.ts:234`; `frontend/aggregate-names.ts:23` | Enum/struct/header preparation runs before profile binding injection and uses source-only constant lookup; the later evaluator callback does not supply these consumers. | 03-01 §Integration; Phase 1 task 1.2.2; PF-002 |
+| `packages/compiler/src/frontend/modules.ts:481`, `:549`; `frontend/service.ts:293`, `:317` | An existing source module produces E10012 for synthetic members absent from its exports before binding injection. Obligation filtering cannot repair that diagnostic. | 03-01 §Integration; Phase 1 task 1.2.3; PF-003 |
 | `packages/compiler/src/frontend/profile.ts:119`, `frontend/service.ts:296`, `frontend/scalar-expressions.ts:179` | Encoding diagnostics and resident-loader checks contain one-profile assumptions. | 03-01 §Diagnostics and compatibility |
-| `packages/compiler/src/semantic/cfg.ts:257`, `:321`, `:375`, `:452`; `semantic/lower-calls.ts:231` | Known conditions already select branches during mandatory lowering. | Preserve; 03-01 §No runtime cost |
+| `packages/compiler/src/semantic/cfg.ts:257`, `:321`, `:452`; `semantic/lower-control.ts:114`; `semantic/lower-calls.ts:231` | Known `if`, conditional and pre-test loop conditions already select paths; interrupt-sink conditional handling also exists. | Preserve; 03-01 §No runtime cost |
+| `packages/compiler/src/semantic/cfg.ts:375`, `:390`; `semantic/value-lifetimes.ts:25` | Constant-switch selectors still emit comparisons and all clause bodies; later reachability traverses both successors. | Existing task 2.2.3 must repair this demonstrated gap; ST-14; PF-004 |
 | `packages/compiler/src/semantic/lower.ts:207` | Global storage is formed from source declarations, not every synthetic binding. | Preserve zero-storage constants |
 | `packages/compiler/src/target/profile.ts:76`, `:199` | Backend identity, storage profile and selection are single-profile. | 03-02 §Target and layout |
 | `packages/compiler/src/target/c64-pal-kernal.ts:1`, `:77` | Machine facts and resource budgets are already separate from CPU/serializer facts. | 03-02 §Target and layout |
 | `packages/compiler/src/layout/startup.ts:162`, `layout/c64-layout.ts:69` | Startup/layout guards admit only the original profile. | 03-02 §Target and layout |
+| `packages/compiler/src/artifacts/acme-validate.ts:74`; `artifacts/acme-serializer.ts:200`; `services/services.ts:393` | Terminal serialization independently rejects every ID except PAL/6581 before ACME runs. | 03-02 §Target and layout; existing task 2.2.2; PF-001 |
 | `packages/compiler/src/services/services.ts:66`, `:594`, `:626` | A fresh pinned build owns the run, but its private result drops the target before launch. | 03-02 §Emulator launch |
 | `packages/compiler/src/services/vice.ts:138` | Interactive launch always requests PAL/6581. | 03-02 §Emulator launch |
 | `packages/compiler/src/artifacts/build-evidence-validator.ts:432` | Evidence has a closed version-1 target shape with string identities. | Preserve; 03-02 §Evidence and failures |
@@ -45,6 +49,7 @@ the root and compiler workspace; emulator suites must remain sequential.
 | Extending capability admission weakens interrupt safety | Unbounded nesting or unsafe vector update | ST-17 |
 | A second expected-value table is copied from implementation | Shared defects pass both tests | Independent frozen-spec oracles in 07 |
 
-These are review targets, not claims that a new failure has been demonstrated. The existing
-negative NMI safety baseline is verified; positive NMI remains Unknown under AR-P3. No new
-four-profile runtime result is claimed by this planning document.
+The risk table names required checks, not new runtime results. The integration gaps in the
+implementation table were confirmed by preflight against the source. The existing negative NMI
+safety baseline is verified; positive NMI remains Unknown under AR-P3. No new four-profile
+runtime result is claimed by this planning document.

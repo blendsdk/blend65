@@ -1,7 +1,7 @@
 # RD-05 C64 Platform — Stage A Plan
 
 > **Feature**: Cooperative C64 profiles and compile-time profile facts
-> **Status**: Planning Complete for Stage A; preflight pending; full RD-05 planning incomplete
+> **Status**: Planning Complete for Stage A; see [scoped preflight](00-preflight-report.md); full RD-05 planning incomplete
 > **Created**: 2026-09-27
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
@@ -42,6 +42,7 @@ in AR-P6/AR-P8. A materially larger support surface requires a new decision.
 | [Cooperative pipeline](03-02-cooperative-pipeline.md) | Target, startup, evidence and emulator identity |
 | [Testing strategy](07-testing-strategy.md) | Independent input → expected-output cases |
 | [Execution plan](99-execution-plan.md) | Sole task-progress authority |
+| [Preflight report](00-preflight-report.md) | Scoped review, approved corrections and current verdict |
 
 ## Quick Reference
 

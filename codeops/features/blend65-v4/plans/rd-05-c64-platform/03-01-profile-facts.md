@@ -77,6 +77,16 @@ list/signatures/effects unchanged. Constants are sorted by qualified name; opera
 their current identities and order. Frontend declarations expose source-level facts, not
 machine instructions, memory layout or emulator APIs.
 
+Profile constants must also be available before enum/struct preparation and function-header
+typing (PF-002). In `analyzer.ts`, supply the same selected immutable scalar declarations to
+the existing aggregate constant lookup before constructing `AggregateRegistry` or calling
+`prepareModuleBindings`. Use its existing host boundary in `semantic-types.ts` and the lookup
+in `aggregate-constants.ts`; `aggregate-types.ts` owns the early consumers. Qualified names,
+selective imports and aliases must resolve with the same identity, visibility, collision and
+lexical-precedence rules as later expressions. A source constant derived from a profile constant
+must work in array extents and enum values too. This is an input to the existing evaluators,
+not another evaluator, manufactured source declaration or broad initialization-order refactor.
+
 Extend `profile-bindings.ts` directly:
 
 - Inject a readonly, initialized, known scalar constant binding using the existing constant
@@ -93,9 +103,17 @@ Extend `profile-bindings.ts` directly:
   function can read these constants just as it can other constants; do not add an evaluator,
   context-specific substitute or profile singleton cache.
 
-Update `service.ts`'s existing `profileSatisfiesObligation` lookup to include the constant
-namespace as well as operation namespaces. Do not manufacture a source file or broaden the
-module resolver into a platform registry.
+In `service.ts`, pass exact selected synthetic-member knowledge into the existing `modules.ts`
+resolution path before it diagnoses missing exports (PF-003). This must work both without a
+source `c64.profile` module and when that module contributes unrelated source members. Accept
+only the selected profile's actual members; retain E10012 for genuinely missing or private
+source members and E10003 for reserved-name/import collisions. Do not suppress E10012 wholesale
+or grant all members of a profile-named module export visibility. Reuse the same selected
+declarations, not backend facts or a new platform registry.
+
+Also update `service.ts`'s existing `profileSatisfiesObligation` lookup to include the constant
+namespace as well as operation namespaces. This handles unavailable-module obligations; it
+does not replace the earlier mixed-module resolution check. Do not manufacture a source file.
 
 Each analysis selects facts from its own immutable snapshot/override. Running PAL and NTSC
 analyses consecutively or concurrently must not leak values between them (AR-P7).

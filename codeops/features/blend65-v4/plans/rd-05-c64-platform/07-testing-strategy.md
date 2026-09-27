@@ -29,17 +29,26 @@ session; record why. New capability cases must fail for the missing behavior, no
 | Case | Input / scenario | Expected output | Source |
 |---|---|---|---|
 | ST-1 | Select each of the four frontend IDs; enumerate new constants and existing operations. Also select `c64-pal-prg-kernal-9999` and a takeover ID. | Four complete profiles, exactly the 14 typed constant bindings/values in 03-01 §Source contract, stable qualified-name order and unchanged 17 operations. Rejected selections return E10279 with the requested ID and no profile. | R5.1–R5.3; 03-01 §Integration; AR-P4/AR-P7 |
-| ST-2 | Use `c64.profile.rasterLines`, import it directly, and import it `as lines`; initialize three `word` constants. | All resolve to 312 on PAL, 263 on NTSC; no unavailable-module obligation. SID choice does not alter these values. | Chapter 10 §4; 03-01 §Source contract |
+| ST-2 | Use `c64.profile.rasterLines`, direct imports and aliases in constant initializers and early type/enum contexts; include the variants below and a source `c64.profile` exporting unrelated `extra`. | Constants and extents resolve to 312 on PAL, 263 on NTSC; enum values from `cyclesPerLine` resolve to 63 / 65. Qualified and imported profile members coexist with the source export; no E10012 or unavailable-module obligation. SID choice does not alter these values. | Chapter 02 TS-18; Chapter 10 §4; 03-01 §Integration; PF-002/PF-003 |
 | ST-3 | A `comptime function lines(): word` returns an imported `rasterLines`; a constant calls it. Repeat with the qualified name. | Constant values are 312 / 263, with no runtime call or illegal runtime-read diagnostic. | Chapter 06 §13.1; 03-01 §Integration |
 | ST-4 | Initialize a `word` constant with the full millihertz expression in 03-01, and another with `cpuClockKilohertz`; evaluate for both video standards. | Millihertz 50124 / 59826 and clock class 985 / 1022. Constant intermediates are not prematurely wrapped to 16 bits. | Chapter 02 TS-18; 03-01 §Source contract |
 | ST-5 | In separate valid functions, assign `c64.profile.rasterLines = 1` or take `&c64.profile.rasterLines`; repeat via import alias. | E10192 / E10040 respectively, with the offending source span; no address or mutable cell is allocated. | Chapter 03 §§2.2, 4.1; 03-01 §Diagnostics and compatibility |
 | ST-6 | Declare `const lines: byte = c64.profile.rasterLines`, then a separate valid case using `word`. | Byte case: E10084 on both standards (312 and 263 exceed 255). Word case: complete with the exact selected value. | Chapter 02 TS-18; 03-01 §Diagnostics and compatibility |
-| ST-7 | Independently import nonexistent `missing` from `c64.profile`; import two members with the same alias; define a source member at `c64.profile.rasterLines`. | E10012 for missing export; E10003 for each name collision. No silent overwrite of a profile/source binding. | Chapter 10 §4.3; 03-01 §Integration |
+| ST-7 | Independently import nonexistent `missing` from `c64.profile`; import two members with the same alias; define a source member at `c64.profile.rasterLines`. Repeat with a source-contributed `c64.profile`; also try qualified/selective access to its private `extra`. | E10012 for missing/private exports; E10003 for each name collision. Synthetic-member recognition neither exposes private source members nor silently overwrites source/profile bindings. | Chapter 10 §4.3; 03-01 §Integration; PF-003 |
 | ST-8 | Import `rasterLines as lines`; inside a child block declare local `lines: word = 7`; read qualified `c64.profile.rasterLines` too. | Local read is 7; qualified read is 312 / 263; after the block the alias has its original profile value. | Chapter 03 scoping; 03-01 §Integration |
 | ST-9 | Analyze PAL→NTSC→PAL snapshots and two concurrent PAL/NTSC analyses using the public frontend boundary. | Each result contains its own exact facts and diagnostics; no reused PAL/NTSC state. Existing frontend import-boundary tests remain green. | 03-01 §Integration; AR-P6/AR-P7 |
 | ST-10 | Under NTSC, put `const tooLarge: byte = 300` inside `if (c64.profile.isPal)`. | E10084 still occurs. Profile constants do not make invalid source legal or act as a preprocessor. | Chapter 02 TS-18; 03-01 §Source contract |
 | ST-11 | On each profile, use an unencodable character with `screen_codes`, and in a separate fixture call the unavailable resident `c64.loader.load`. | E10249 / E10275 respectively; existing proof spans/canonical records remain, and diagnostic context identifies the actual profile rather than hardcoded PAL. | R5.48; 03-01 §Diagnostics and compatibility; AR-P7 |
 | ST-12 | Call `firmwareVectorSink` for `$0314`, `$0318` and `$0400` on each admitted ID, plus `null` profile. | Admitted IDs give `c64.system.setIRQ`, `c64.system.setNMI`, `null`; null profile gives `null`. This adds no positive NMI-safety result. | Frozen appendix §9.2; 03-01 §Diagnostics and compatibility |
+
+ST-2's early-consumer variants use qualified, selectively imported and aliased facts in module
+array extents, struct-field extents, and fixed parameter/return extents. Include an ordinary
+source `const` derived from a profile fact and use it as an extent/enum value. Enums use the
+in-range `cyclesPerLine` value (63 / 65), not `rasterLines`, which exceeds their byte range.
+ST-8 also includes a child-block `const lines: word = 7` used as a local array extent; ST-9
+includes a module extent in each snapshot. These prove the early lookup uses the same lexical
+precedence and per-analysis facts. These extend existing
+families and files; no new test framework is required.
 
 ### Build and Generated Output
 
@@ -50,7 +59,7 @@ session; record why. New capability cases must fail for the missing behavior, no
 | ST-15 | Build one profile-fact program and the same program with facts replaced by independent literal values, on the same target. Exercise every constant and a selected volatile store. | Equal emitted program bytes/cost after symbol-name normalization where needed, equal RAM/ZP/stack demand, no storage or initialization for profile constants. Independent assembly expectation: straight-line selected store, zero profile-test/dispatch instructions and zero dead-call instructions. Behavior expectation: exactly the selected value/store count, independent of either build. | R5.3, R5.13, R5.50; 03-01 §No runtime cost |
 | ST-16 | Fresh-build the same source in sequence for PAL/6581, NTSC/8580 and PAL/6581; validate each public evidence record and target override. | Exact selected identity survives check/build/evidence; version-1 closed keys remain unchanged; input identity reflects target changes. Same inputs reproduce artifacts. Artifact bytes may legitimately match across profiles when source has no differing behavior. | 03-02 §Evidence and failures; AR-P7 |
 | ST-17 | On each profile, check an ordinary balanced mainline IRQ installation, an NMI installation and a handler-side IRQ installation. | Existing safe mainline IRQ case remains accepted; NMI and handler-side IRQ cases still fail E10245 before emission. No invented reentry bound or late function-storage allocation. | AR-P3; carried RD-04 AR-P16/AR-P17; 03-02 §Target and layout |
-| ST-18 | Build an empty returning main and an explicitly initialized fixed-data program on each target. | PRG header is `$01 $08`, entry `$080D`, normal cooperative startup/return, common bounded layout and no recopy of bytes loaded at their destination. Existing PAL startup cost/state budget does not grow merely to select another profile. | Frozen appendix §5.1; R5.4; 03-02 §Target and layout |
+| ST-18 | Build an empty returning main and an explicitly initialized fixed-data program on each target through the real terminal serializer and ACME. | All four profiles pass terminal admission. PRG header is `$01 $08`, entry `$080D`, normal cooperative startup/return, common bounded layout and no recopy of bytes loaded at their destination. Existing PAL startup cost/state budget does not grow merely to select another profile. Task 2.3.1 separately checks retained rejection of wrong serializer/packager and open or mismatched certificates. | Frozen appendix §5.1; R5.4; 03-02 §Target and layout; PF-001 |
 
 ### Emulator, Failure and Runtime Proof
 
@@ -86,7 +95,7 @@ cycle-stable raster, NMI, SID analog or physical-machine claim.
 | `test/rd05/profiles-vice.spec.test.ts` | ST-23–ST-24 |
 | Existing `test/m1/vice.spec.test.ts` | ST-25; do not edit |
 | `packages/compiler/src/frontend/profile-constants.impl.test.ts` | Shared-fact immutability, stable bindings and null/unknown selection internals |
-| `packages/compiler/src/target/cooperative-profiles.impl.test.ts` | Machine/storage fact agreement and startup-certificate rejection |
+| `packages/compiler/src/target/cooperative-profiles.impl.test.ts` | Machine/storage fact agreement, startup-certificate rejection, terminal serializer/packager and open/mismatched-certificate rejection |
 | `packages/compiler/src/services/vice-profiles.impl.test.ts`, `test/rd05/vice-resource.impl.test.ts` | Argument assembly, resource transport and owned-process error edges |
 
 One small `test/rd05/profile-fixture.ts` may create/clean a real temporary project for the new

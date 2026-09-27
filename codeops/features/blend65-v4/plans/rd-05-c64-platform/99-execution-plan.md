@@ -1,7 +1,7 @@
 # Execution Plan: RD-05 Stage A
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-27 00:49
+> **Last Updated**: 2026-09-27 01:57
 > **Progress**: 0/33 tasks (0%)
 > **CodeOps Artifact Schema**: 1
 
@@ -32,7 +32,7 @@ change, normally 1–3 files. Split a task before implementation if it grows to 
 lines, six files or three independent concerns; preserve its spec-first ordering. No speculative
 refactor is authorized by a task-size split.
 
-Within task target lists, abbreviated `frontend/`, `semantic/`, `target/`, `layout/` and
+Within task target lists, abbreviated `frontend/`, `semantic/`, `target/`, `layout/`, `artifacts/` and
 `services/` paths share the `packages/compiler/src/` prefix of the first listed file.
 
 > **Execution rule:** These phase lists are the sole task-progress authority. Each task occurs
@@ -70,8 +70,8 @@ changing existing `*.spec.test.ts`. Material findings follow the normal authoriz
 **Reference:** [03-01 — Integration](03-01-profile-facts.md#integration) and diagnostics; AR-P6.
 
 - [ ] 1.2.1 Add closed pure facts and four frontend declarations; update only the obsolete implementation-test rejection fixture — `packages/compiler/src/profile/c64-kernal.ts`, `frontend/profile.ts`, `frontend/profile.impl.test.ts`; ST-1, ST-12.
-- [ ] 1.2.2 Bind readonly profile constants through existing known-value/import state, with collision checks — `packages/compiler/src/frontend/profile-bindings.ts`; ST-2–ST-8.
-- [ ] 1.2.3 Recognize constant-module obligations and all cooperative resident-loader guards — `packages/compiler/src/frontend/service.ts`, `frontend/scalar-expressions.ts`; ST-2, ST-9–ST-11.
+- [ ] 1.2.2 Supply selected constants before aggregate/header preparation and through later known-value/import state, with shared identities and collision/precedence rules — `packages/compiler/src/frontend/profile-bindings.ts`, `frontend/analyzer.ts`, `frontend/aggregate-types.ts`, `frontend/aggregate-constants.ts`, `frontend/semantic-types.ts`; ST-2–ST-9; PF-002. Reuse the existing host/lookup and evaluators; no broad preparation rewrite.
+- [ ] 1.2.3 Recognize exact selected members before mixed-module missing-export diagnostics, then handle constant-module obligations and cooperative resident-loader guards — `packages/compiler/src/frontend/service.ts`, `frontend/modules.ts`, `frontend/scalar-expressions.ts`; ST-2, ST-7–ST-11; PF-003. Preserve private/missing errors and source-name collisions.
 - [ ] 1.2.4 Pass selected identity through literal diagnostics without breaking three-argument callers — `packages/compiler/src/frontend/profile.ts`, `frontend/encoded-literals.ts`; ST-11.
 - [ ] 1.2.5 Run all Phase 1 specification files green; fix implementation only; record results here.
 
@@ -109,8 +109,8 @@ targeted formatting, then the phase reviews above.
 ### Session 2.2 — Implementation
 
 - [ ] 2.2.1 Generalize machine facts and compose the four closed target identities, including the bounded machine-file rename — `packages/compiler/src/target/c64-kernal.ts` (from `c64-pal-kernal.ts`), `target/profile.ts`, `services/resource-diagnostics.ts`; 03-02 §Target and layout; ST-13.
-- [ ] 2.2.2 Admit the four profiles through existing startup/layout guards with certificate agreement — `packages/compiler/src/layout/startup.ts`, `layout/c64-layout.ts`; ST-16–ST-18.
-- [ ] 2.2.3 Prove constant paths are removed before storage closure and preserve effects; repair only a demonstrated integration gap in existing lowering — `packages/compiler/src/semantic/cfg.ts`, `semantic/lower-calls.ts`, `semantic/lower.ts`; 03-01 §No runtime cost; ST-14–ST-15. If already green, record the no-change proof.
+- [ ] 2.2.2 Admit the four profiles through existing startup/layout and terminal serializer guards with certificate agreement — `packages/compiler/src/layout/startup.ts`, `layout/c64-layout.ts`, `artifacts/acme-validate.ts`; ST-16–ST-18; PF-001. Retain serializer/packager, closed-certificate, machine and layout validation.
+- [ ] 2.2.3 Remove constant-switch dead paths in existing CFG lowering; prove all selected constant paths preserve effects and disappear before storage closure — `packages/compiler/src/semantic/cfg.ts`, `semantic/lower-calls.ts`, `semantic/lower.ts`; 03-01 §No runtime cost; ST-14–ST-15; PF-004. Constant-switch folding is a demonstrated gap; preserve its normal selector effects and clause/fallthrough semantics. For already-supported paths, record the no-change proof; no new optimization pass.
 - [ ] 2.2.4 Run all Phase 2 specification files green; preserve existing version-1 validators and safe/unsafe interrupt results; record results here.
 
 **Verify:** Directed Phase 2 spec files plus existing target, startup, resource/evidence and
@@ -118,7 +118,7 @@ RD-04 interrupt/expressiveness suites; 07 commands. Do not change spec expectati
 
 ### Session 2.3 — Implementation Tests and Hardening
 
-- [ ] 2.3.1 Add machine/storage agreement and mismatched-certificate tests — `packages/compiler/src/target/cooperative-profiles.impl.test.ts`; 03-02 §Target and layout.
+- [ ] 2.3.1 Add machine/storage agreement, startup-certificate and terminal serializer/packager/open-or-mismatched-certificate rejection tests — `packages/compiler/src/target/cooperative-profiles.impl.test.ts`; 03-02 §Target and layout; PF-001. Keep existing tests unchanged.
 - [ ] 2.3.2 Run full phase verification and independent correctness/semantics/performance reviews; record measured output deltas and any required existing/new debt issue here.
 
 **Deliverable:** Four build identities and the specified zero-extra-cost proof; no runtime
