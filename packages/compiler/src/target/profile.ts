@@ -1,8 +1,10 @@
 import { projectDiagnostic, PROJECT_CODES } from "../project/diagnostics.js";
 import type { ProjectDiagnostic } from "../project/types.js";
 import type { StorageProfile } from "../storage/storage-types.js";
-import { ACME_097, C64_PAL_KERNAL_6581, CBM_PRG } from "./c64-pal-kernal.js";
-import type { C64MachineFacts, PackagerFacts, SerializerFacts } from "./c64-pal-kernal.js";
+import { C64_KERNAL_PROFILES } from "../profile/c64-kernal.js";
+import type { C64KernalProfileId } from "../profile/c64-kernal.js";
+import { ACME_097, createC64KernalMachine, CBM_PRG } from "./c64-kernal.js";
+import type { C64MachineFacts, PackagerFacts, SerializerFacts } from "./c64-kernal.js";
 import { NMOS_6510 } from "./nmos6510.js";
 import type { CpuFacts } from "./nmos6510.js";
 
@@ -63,10 +65,10 @@ export interface InterruptProfileFacts {
   readonly sinks: readonly InterruptSinkFacts[];
 }
 
-/** Fully composed facts for the one target qualified by the current compiler slice. */
+/** Fully composed facts for one of the four cooperative C64 build targets. */
 export interface TargetProfile {
   /** Qualified profile identity. */
-  readonly id: "c64-pal-prg-kernal-6581";
+  readonly id: C64KernalProfileId;
   /** Selected processor facts. */
   readonly cpu: CpuFacts;
   /** Selected C64 machine and firmware facts. */
@@ -76,7 +78,10 @@ export interface TargetProfile {
   /** Selected loadable artifact packager. */
   readonly packager: PackagerFacts;
   /** Resources available to static function-storage allocation. */
-  readonly storage: StorageProfile;
+  readonly storage: StorageProfile & {
+    /** Exact closed target identity carried through allocation and certification. */
+    readonly profileId: C64KernalProfileId;
+  };
   /** Finite firmware interrupt routes available on this target. */
   readonly interrupts: InterruptProfileFacts;
 }
@@ -86,14 +91,14 @@ export type TargetProfileResult =
   | { readonly kind: "complete"; readonly profile: TargetProfile }
   | { readonly kind: "error"; readonly diagnostics: readonly ProjectDiagnostic[] };
 
-const PROFILE: TargetProfile = Object.freeze({
-  id: "c64-pal-prg-kernal-6581",
+/** CPU, tool and ownership contracts are shared; only complete selected identities vary. */
+const COMMON_PROFILE: Omit<TargetProfile, "id" | "machine" | "storage"> & {
+  readonly storage: StorageProfile;
+} = Object.freeze({
   cpu: NMOS_6510,
-  machine: C64_PAL_KERNAL_6581,
   serializer: ACME_097,
   packager: CBM_PRG,
   storage: Object.freeze({
-    profileId: "c64-pal-prg-kernal-6581",
     zeroPage: Object.freeze([Object.freeze({ start: 0x02, end: 0x8f })]),
     // Provisional homes use the shared range. Platform layout supplies its
     // remaining non-emitted suffix before the final storage certificate is used.
@@ -189,6 +194,18 @@ const PROFILE: TargetProfile = Object.freeze({
   }),
 });
 
+/** Compose the closed fact rows once; selection never creates mutable or partial profiles. */
+const PROFILES: readonly TargetProfile[] = Object.freeze(
+  C64_KERNAL_PROFILES.map((facts) =>
+    Object.freeze({
+      ...COMMON_PROFILE,
+      id: facts.id,
+      machine: createC64KernalMachine(facts),
+      storage: Object.freeze({ ...COMMON_PROFILE.storage, profileId: facts.id }),
+    }),
+  ),
+);
+
 /**
  * Select the exact admitted target without fallback or partial composition.
  * @param profileId Complete qualified profile identifier.
@@ -196,13 +213,14 @@ const PROFILE: TargetProfile = Object.freeze({
  * @example selectTargetProfile("c64-pal-prg-kernal-6581").kind === "complete"
  */
 export function selectTargetProfile(profileId: string): TargetProfileResult {
-  if (profileId === PROFILE.id) return Object.freeze({ kind: "complete", profile: PROFILE });
+  const profile = PROFILES.find(({ id }) => id === profileId);
+  if (profile !== undefined) return Object.freeze({ kind: "complete", profile });
   return Object.freeze({
     kind: "error",
     diagnostics: Object.freeze([
       projectDiagnostic(
         PROJECT_CODES.profile,
-        `Target profile '${profileId}' is not a complete qualified profile ID — choose one of: ${PROFILE.id}`,
+        `Target profile '${profileId}' is not a complete qualified profile ID — choose one of: ${PROFILES.map(({ id }) => id).join(", ")}`,
         null,
       ),
     ]),

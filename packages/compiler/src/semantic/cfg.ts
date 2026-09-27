@@ -310,6 +310,13 @@ export class ControlFlowBuilder {
   ): void {
     const entry = this.current;
     if (entry === null) return;
+    if (conditionExpression.constant === false) {
+      // The first test still runs for its effects; no body or loop edge can execute.
+      if (lowerExpression(conditionExpression) === null) {
+        throw new Error("Completed while condition did not produce a value");
+      }
+      return;
+    }
     const conditionBlock = this.createBlock("while-condition");
     const body = this.createBlock("while-body");
     const end = this.createBlock("while-end");
@@ -318,30 +325,22 @@ export class ControlFlowBuilder {
     this.select(conditionBlock);
     const condition = lowerExpression(conditionExpression);
     if (condition === null) throw new Error("Completed while condition did not produce a value");
-    const conditionIsFalse = conditionExpression.constant === false;
     const conditionIsLiteralTrue =
       conditionExpression.kind === "boolean" && conditionExpression.constant === true;
-    if (conditionIsFalse || conditionIsLiteralTrue) {
-      this.terminate(
-        Object.freeze({
-          kind: "jump",
-          target: conditionIsFalse ? end.id : body.id,
-        }),
-      );
+    if (conditionIsLiteralTrue) {
+      this.terminate(Object.freeze({ kind: "jump", target: body.id }));
     } else {
       this.terminate(
         Object.freeze({ kind: "branch", condition, whenTrue: body.id, whenFalse: end.id }),
       );
     }
 
-    if (!conditionIsFalse) {
-      this.select(body);
-      this.lowerBody(bodySource, lowerExpression, {
-        continueTarget: conditionBlock.id,
-        breakTarget: end.id,
-      });
-      this.jumpFrom(this.current, conditionBlock.id);
-    }
+    this.select(body);
+    this.lowerBody(bodySource, lowerExpression, {
+      continueTarget: conditionBlock.id,
+      breakTarget: end.id,
+    });
+    this.jumpFrom(this.current, conditionBlock.id);
     this.select(end);
   }
 
@@ -382,6 +381,21 @@ export class ControlFlowBuilder {
     if (selector === null) throw new Error("Completed switch selector has no value");
     const entry = this.current;
     if (entry === null) return;
+    const known = statement.value.constant;
+    if (known !== null) {
+      // Selector effects above happen once even when its result is known. Only the selected
+      // clause and explicit fallthrough successors can contribute calls, stores or SFA homes.
+      let index = statement.clauses.findIndex((clause) =>
+        clause.values?.some((value) => value.constant === known),
+      );
+      if (index < 0) index = statement.clauses.findIndex((clause) => clause.values === null);
+      for (; index >= 0 && index < statement.clauses.length && this.current !== null; index += 1) {
+        const clause = statement.clauses[index]!;
+        this.lowerBody(clause.body, lowerExpression, loop);
+        if (!clause.fallthrough) break;
+      }
+      return;
+    }
     const arms = statement.clauses.map((_, index) => this.createBlock(`switch-arm-${index}`));
     const end = this.createBlock("switch-end");
     const defaultIndex = statement.clauses.findIndex((clause) => clause.values === null);
@@ -437,6 +451,13 @@ export class ControlFlowBuilder {
     }
     const initializerExit = this.current;
     if (initializerExit === null) return;
+    if (statement.condition?.constant === false) {
+      // Initialization and the first test are observable, but the body and update are not run.
+      if (lowerExpression(statement.condition) === null) {
+        throw new Error("Completed for condition did not produce a value");
+      }
+      return;
+    }
     const conditionBlock = this.createBlock("for-condition");
     const body = this.createBlock("for-body");
     const update = this.createBlock("for-update");
@@ -449,30 +470,27 @@ export class ControlFlowBuilder {
         ? this.emitBooleanConstant(true, statement.span)
         : lowerExpression(statement.condition);
     if (condition === null) throw new Error("Completed for condition did not produce a value");
-    const conditionIsFalse = statement.condition?.constant === false;
     const conditionIsAlwaysTrue =
       statement.condition === null ||
       (statement.condition.kind === "boolean" && statement.condition.constant === true);
-    if (conditionIsFalse || conditionIsAlwaysTrue) {
-      this.terminate(Object.freeze({ kind: "jump", target: conditionIsFalse ? end.id : body.id }));
+    if (conditionIsAlwaysTrue) {
+      this.terminate(Object.freeze({ kind: "jump", target: body.id }));
     } else {
       this.terminate(
         Object.freeze({ kind: "branch", condition, whenTrue: body.id, whenFalse: end.id }),
       );
     }
 
-    if (!conditionIsFalse) {
-      this.select(body);
-      this.lowerBody(statement.body, lowerExpression, {
-        continueTarget: update.id,
-        breakTarget: end.id,
-      });
-      this.jumpFrom(this.current, update.id);
+    this.select(body);
+    this.lowerBody(statement.body, lowerExpression, {
+      continueTarget: update.id,
+      breakTarget: end.id,
+    });
+    this.jumpFrom(this.current, update.id);
 
-      this.select(update);
-      for (const expression of statement.update ?? []) lowerExpression(expression);
-      this.terminate(Object.freeze({ kind: "jump", target: conditionBlock.id }));
-    }
+    this.select(update);
+    for (const expression of statement.update ?? []) lowerExpression(expression);
+    this.terminate(Object.freeze({ kind: "jump", target: conditionBlock.id }));
     this.select(end);
   }
 

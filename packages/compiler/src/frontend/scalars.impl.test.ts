@@ -420,7 +420,7 @@ describe("scalar analysis implementation", () => {
     });
     expect(body?.statements[4]).toMatchObject({ initializer: { constant: 1n } });
     expect(body?.statements[7]).toMatchObject({ initializer: { constant: null } });
-    expect(body?.statements[10]).toMatchObject({ initializer: { constant: 1n } });
+    expect(body?.statements[10]).toMatchObject({ initializer: { constant: null } });
     expect(typedDeclaration(result, "Game.inspect").body).toMatchObject({
       statements: [{ initializer: { constant: null } }],
     });

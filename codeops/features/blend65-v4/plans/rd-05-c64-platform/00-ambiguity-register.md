@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-05 C64 Platform
 
-> **Status**: Stage A decisions resolved or explicitly deferred; Phase 1 verified, AR-P9 closed without a timeout change
+> **Status**: Phases 1–2 verified; AR-P10 correction complete. AR-P3 remains deferred within RD-05; AR-P9 closed without a timeout change.
 > **Last Updated**: 2026-09-27
 > **CodeOps Artifact Schema**: 1
 
@@ -25,6 +25,48 @@
 | AR-P7 | Compatibility / failure behavior | Keep manifest and evidence version 1 shapes unchanged. Preserve the nine-ID manifest inventory, admitting only the four staged IDs for execution. Carry the exact selected identity through diagnostics and evidence, with no fallback. Preserve E10245 for NMI and the existing handler-side IRQ gap. | Frozen diagnostics and existing versioned contracts; AR-P3; project workflow directive 4. | ✅ Resolved — plan-owned selection |
 | AR-P8 | Verification / qualification boundary | Use existing install/build/typecheck/test commands, targeted Prettier, immutable specification-first tests and sequential VICE 3.10. Add only a profile argument and a bounded integer-resource read to the existing monitor helper; retain old PAL defaults. Verify four fresh PRGs and unchanged M1 behavior. Windows and physical QA remain RD-10. | User-provided AGENTS.md command/QA rules; AR-P1/AR-P3; project workflow directive 4. Required direct test controls reuse the existing harness, not a new runner or qualification service. | ✅ Resolved — plan-owned selection |
 | AR-P9 | Runtime / verification modification set | Allow the bounded wall-clock increases below if still needed; first rerun the six cases after the user reduced host load. Assertions, emulated cycle limits and compiler behavior stay unchanged. | User explicitly approved timeout increases if needed and requested the six retries after reducing host load (2026-09-27). | ✅ Resolved — all six and full suite passed; allowance unused |
+| AR-P10 | Runtime / test authority | Invalidate mutable reaching facts across every runtime call until a callee-effect proof permits retaining them. Approve only the two analysis-precision expectation changes below; retain all fixtures, types, evaluation-order and behavior assertions. No new effect-analysis framework or frozen-language change. | User: “proceed” on 2026-09-27, accepting the preceding explicit AR-P10 correction and two-expectation approval request. | ✅ Resolved — implemented; all 2,387 tests pass |
+
+## AR-P10 — Sound Values Across Runtime Calls
+
+**Recommended:** use the existing all-mutable invalidation helper for every runtime call. A call
+without arguments can still write a numeric address that overlaps caller-local storage. Independent
+correctness and semantics reviewers reproduced `change() { poke($0acd, 2); }` followed by a caller
+read of a local allocated at `$0ACD`: current folding emits `2` for `value + 1`, but the required
+result is `3`. The frozen raw-memory contract has no exemption for SFA storage.
+
+The smallest safe change needs no new tracking state, callee-effect analysis, runtime helper or
+source restriction. It may retain computation for mutable values that a later sound optimization
+can prove unchanged. Immutable/profile constants remain foldable, and the symbolic loads/stores,
+effects and calls remain available to future optimization. This is a correctness boundary, not a
+permanent optimization barrier. SR-002's separate shared-module/IRQ fix is already cleared.
+
+The first all-call correction exposed two old precision expectations. They ask the frontend to
+retain a value across a call without the required effect proof. Approved exact oracle changes:
+
+| File / case | Approved change | Preserved obligations |
+|---|---|---|
+| `packages/compiler/src/frontend/aggregates.spec.test.ts`, “should preserve index barriers and evaluate a compound indexed assignment once”, post-`g()` index | Change only that index's `constant: 265n` to `constant: null`. | Keep the entire source fixture, word-width ordinal type, earlier 9-valued cast/storage barriers, compound-place/RHS evaluation order and all other assertions. The runtime index still evaluates to 265. |
+| `packages/compiler/src/frontend/scalars.impl.test.ts`, “keeps branch, short-circuit, function, and call-visible facts isolated”, `body.statements[10]` | Change only `initializer.constant: 1n` to `null`. | Keep its fixture, diagnostics, branch/short-circuit facts and other assertions. Actual program values do not change. |
+
+Approved execution: remove the unsafe no-argument exception, apply only these two expectation changes,
+add the concrete raw-write regression and a behavior check that the safe example's index remains
+265, then run directed and full verification. Record the authorized ruling and resolved finding
+evidence. The one permitted focused re-review has completed; do not start a third review without
+separate explicit authority. Do not substitute green tests for closure of the known counterexample.
+
+Confidence: High. Hardening: two independent reviewers established the same final-layout
+counterexample; the performance auditor found no new framework, asymptotic cost or permanent
+optimization barrier. A new effect-summary system could recover more precision, but is not
+authorized or necessary to finish this bounded phase. The user approved the correction and these
+two expectation edits on 2026-09-27. Commit only at a coherent green checkpoint under project
+policy. No push, third review or Phase 3 start is authorized by this decision.
+
+Completed on 2026-09-27 at 17:11: exactly the two approved assertions changed; the numeric-address
+VICE regression failed with 2 before the correction and passes with 3 afterward. The safe array
+case still reads index 265, distinguished from wrapped index 9. The complete 2,387-test checkpoint
+passes with original limits. See [Phase 2 execution evidence](99-execution-plan.md#phase-2-cooperative-builds-and-output-proof)
+for review dispositions, immutable hashes and logs. No frozen specification or expert file changed.
 
 ## AR-P9 — Integration-Test Waiting Time Under Host Load
 

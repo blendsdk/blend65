@@ -1,8 +1,8 @@
 # Execution Plan: RD-05 Stage A
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-27 10:41
-> **Progress**: 14/36 tasks (39%)
+> **Last Updated**: 2026-09-27 17:11
+> **Progress**: 29/40 tasks (72%)
 > **CodeOps Artifact Schema**: 1
 
 ## Scope and Entry Gate
@@ -12,7 +12,7 @@ effort handoff. AR-P3 remains a named deferral outside executable work. No task 
 the frozen language/expert baseline, implements NMI-dependent behavior, or closes RD-05.
 
 **Original goal / smallest viable design:** [00-index](00-index.md#minimum-sufficient-baseline).
-**Governing decisions:** AR-P4–AR-P9. Strict scope; no accepted optional additions.
+**Governing decisions:** AR-P4–AR-P10. Strict scope; no accepted optional additions.
 **Quality policy:** `codeops/codeops.json`; independent correctness/maintainability/standards
 review at every completed phase. Phases 1–2 additionally need semantics review; Phase 2 is
 performance-critical and needs an independent performance audit. Phase 3 includes security and
@@ -24,10 +24,10 @@ security profile is invented for this local compiler.
 | Phase | Deliverable | Tasks | Depends on |
 |---|---|---|---|
 | 1 | Source-visible constants and four frontend declarations | 14 | Stage A preflight |
-| 2 | Four cooperative build identities and zero-cost output proof | 11 | Phase 1 |
+| 2 | Four cooperative build identities and zero-cost output proof | 15 | Phase 1 |
 | 3 | Correct emulator selection and four fresh runtime proofs | 11 | Phase 2 |
 
-**Total: 36 tasks across 3 phases / 9 sessions.** Task size is bounded by one reviewable
+**Total: 40 tasks across 3 phases / 9 sessions.** Task size is bounded by one reviewable
 change, normally 1–3 files. Split a task before implementation if it grows to 200+ changed
 lines, six files or three independent concerns; preserve its spec-first ordering. No speculative
 refactor is authorized by a task-size split.
@@ -229,37 +229,253 @@ targeted formatting, then the phase reviews above.
 
 ## Phase 2: Cooperative Builds and Output Proof
 
-> **Phase baseline tree**: Record at execution start through exec-plan.
+> **Phase baseline tree**: `bfa4d8c58d233c25cb8b4ec3e9b3e13ae2e343b7` (HEAD `62d44c6f`, clean worktree before Phase 2).
 > **Lenses**: api-surface, perf
 > **Risk**: Target/storage identity, mandatory lowering and startup; semantics and performance review required.
+
+Phase 2 began at confirmed XHigh effort before the disk-full interruption. The full filesystem
+truncated this execution record and `test/rd05/profile-fixture.ts`; the subsequent system crash
+lost their RAM recovery drafts and temporary logs. At 14:00 both files were restored byte-for-byte
+from the verified, remotely confirmed `62d44c6f` checkpoint. Git connectivity passes and 161 GB
+is available. No production compiler or frozen-path change was lost. Phase 1's committed
+verification record remains authoritative; its tests have not yet been rerun after the crash.
+
+The user confirmed restoration plus the remainder of Phase 2 at XHigh. Strict modification set:
+the Phase 2 task files below, additive fixture helpers, this record and the feature roadmap.
+The two surviving new specification drafts are unverified, not complete. The independent
+specification author will reconstruct output/pipeline tests and fixture additions before a fresh
+red run; no Phase 2 implementation has begun. Recovery logs:
+`/tmp/blend65-rd05-phase2-resume-7OR8hr/`. Preserve the original baseline so the surviving drafts
+remain in the phase review. Coherent green local commits only; no push or Phase 3 execution.
+
+Split additive fixture helpers from 2.1.2 into 2.1.6 before output-test authoring to keep each
+unit below the changed-line bound. This adds no test framework, requirement or implementation scope.
+Also split output fact/cost comparisons into 2.1.7 and startup/layout proofs into 2.1.8 before
+their authoring exceeded the per-task bound; keep the same two planned test files and contracts.
+
+The independent red cases also expose false-pretest-loop assembly failures and a 20-byte PAL
+all-fact versus literal-program mismatch. Task 2.2.3 owns these required zero-cost corrections:
+avoid constructing unreachable loop edges while retaining initializer/condition effects, and
+retain known binary-expression values in existing `semantic/lower-expressions.ts` after ordered
+operand effects. That direct expression owner joins the modification set; no new pass, IR form,
+runtime, dependency or source rule is introduced. Tests remain independent and are frozen before
+production edits. Already-correct paths remain unchanged when their directed proofs pass.
+
+Task 2.2.1 includes a mechanical typing follow-through in `services/services.ts`: after the
+generic zero-page reservation helper adjusts resource windows, retain the same selected closed
+profile ID when composing the allocation target. This is not Phase 3 emulator/launch work and
+does not change reservation or selection semantics. The generic storage subsystem stays generic.
 
 ### Session 2.1 — Specification Tests
 
 **Reference:** [03-02 — Target and layout](03-02-cooperative-pipeline.md#target-and-layout),
 [03-01 — No runtime cost](03-01-profile-facts.md#no-runtime-cost); AR-P4/AR-P6/AR-P7.
 
-- [ ] 2.1.1 [spec-author] Write exact backend identity/admission tests — `packages/compiler/src/target/cooperative-profiles.spec.test.ts`; ST-13.
-- [ ] 2.1.2 [spec-author] Write independent selected-effects and assembly/cost tests — `test/rd05/profile-output.spec.test.ts`; ST-14–ST-15; reuse the Phase 1 fixture.
-- [ ] 2.1.3 [spec-author] Write fresh evidence and startup/layout tests — `test/rd05/profile-pipeline.spec.test.ts`; ST-16, ST-18.
-- [ ] 2.1.4 [spec-author] Write retained interrupt-safety cases for the four profiles — `test/rd05/profile-interrupts.spec.test.ts`; ST-17.
-- [ ] 2.1.5 Run Phase 2 spec files red; record missing behavior versus preservation cases here; 07 commands.
+- [x] 2.1.1 [spec-author] Write exact backend identity/admission tests — `packages/compiler/src/target/cooperative-profiles.spec.test.ts`; ST-13. Independent red verified. (completed: 2026-09-27 14:15)
+- [x] 2.1.6 [spec-author] Add real-project and artifact-reading helpers to `test/rd05/profile-fixture.ts`, preserving existing analysis/span helpers; split from 2.1.2, ST-14–ST-18. (completed: 2026-09-27 14:15)
+- [x] 2.1.2 [spec-author] Write independent selected-effects and branch-removal tests — `test/rd05/profile-output.spec.test.ts`; ST-14; reuse the Phase 1 fixture. (completed: 2026-09-27 14:15)
+- [x] 2.1.7 [spec-author] Write all-fact literal comparison and independent assembly/cost expectations — `test/rd05/profile-output.spec.test.ts`; ST-15, split from 2.1.2. (completed: 2026-09-27 14:15)
+- [x] 2.1.3 [spec-author] Write fresh evidence identity/repeatability and manifest-inventory tests — `test/rd05/profile-pipeline.spec.test.ts`; ST-16, split from startup/layout proof. (completed: 2026-09-27 14:15)
+- [x] 2.1.8 [spec-author] Write four-profile real-ACME startup/layout and initialized-payload proofs — `test/rd05/profile-pipeline.spec.test.ts`; ST-18, split from 2.1.3. (completed: 2026-09-27 14:15)
+- [x] 2.1.4 [spec-author] Write retained interrupt-safety cases for the four profiles — `test/rd05/profile-interrupts.spec.test.ts`; ST-17. Independent red verified. (completed: 2026-09-27 14:15)
+- [x] 2.1.5 Run Phase 2 spec files red; record missing behavior versus preservation cases here; 07 commands. 83 cases: 72 expected red, 11 preservation green; no setup errors. (completed: 2026-09-27 14:15)
 
 **Verify:** Directed Phase 2 spec files after a fresh build; expected red for new backend profiles.
 
+Independent author `rd05_phase2_spec_recovery` finished 83 cases: 72 expected red, 11 preservation
+green. Backend: 12/13 red (three admissions, nine allowlists); output: 38/40 red (30 admissions,
+four constant-switch, three false-loop assembler failures, one all-fact 20-byte mismatch);
+pipeline: 7/10 red; interrupts: 15/20 red. PAL startup/data/IRQ, if/conditional and manifest
+preservation cases pass. Literal controls validate effect-observation plumbing before the failing
+profile forms. No forbidden implementation read, parser/setup error, existing-spec edit or
+production change preceded this red baseline. Formatting/documentation checks pass. Recovery
+preservation: 140/140 existing root frontend and import-boundary cases pass on the fresh build.
+Report/logs: `spec-red-report.md`, `spec-backend-red.log`, `spec-root-red-final.log` and
+`recovery-preservation.log` in the recovery log directory above.
+
+Frozen Phase 2 oracle SHA-256:
+
+| File | SHA-256 |
+|---|---|
+| `target/cooperative-profiles.spec.test.ts` | `030c9581eacd2c819ff74933b54ec90df722f725635d0d69a22f48ac20a33f7d` |
+| `test/rd05/profile-output.spec.test.ts` | `8ee6b8593b951993323c12f6786412740397b8e2de6d28539384328359696eb8` |
+| `test/rd05/profile-pipeline.spec.test.ts` | `10ca52b59e6a02cd6f99d4a317c7f266f5042de8223e3e08b5bc5b5a5bc20501` |
+| `test/rd05/profile-interrupts.spec.test.ts` | `f2423ac0810bc0ddcbb65ce4a54bd9e74b9941e8cc5ad560cb663bb7a37b522c` |
+| `test/rd05/profile-fixture.ts` | `5a097c26b123e259cb5e20ab1265a249f06d9e2fd4aa70e48836524ae03d903e` |
+
 ### Session 2.2 — Implementation
 
-- [ ] 2.2.1 Generalize machine facts and compose the four closed target identities, including the bounded machine-file rename — `packages/compiler/src/target/c64-kernal.ts` (from `c64-pal-kernal.ts`), `target/profile.ts`, `services/resource-diagnostics.ts`; 03-02 §Target and layout; ST-13.
-- [ ] 2.2.2 Admit the four profiles through existing startup/layout and terminal serializer guards with certificate agreement — `packages/compiler/src/layout/startup.ts`, `layout/c64-layout.ts`, `artifacts/acme-validate.ts`; ST-16–ST-18; PF-001. Retain serializer/packager, closed-certificate, machine and layout validation.
-- [ ] 2.2.3 Remove constant-switch dead paths in existing CFG lowering; prove all selected constant paths preserve effects and disappear before storage closure — `packages/compiler/src/semantic/cfg.ts`, `semantic/lower-calls.ts`, `semantic/lower.ts`; 03-01 §No runtime cost; ST-14–ST-15; PF-004. Constant-switch folding is a demonstrated gap; preserve its normal selector effects and clause/fallthrough semantics. For already-supported paths, record the no-change proof; no new optimization pass.
-- [ ] 2.2.4 Run all Phase 2 specification files green; preserve existing version-1 validators and safe/unsafe interrupt results; record results here.
+- [x] 2.2.1 Generalize machine facts and compose the four closed target identities, including the bounded machine-file rename — `packages/compiler/src/target/c64-kernal.ts` (from `c64-pal-kernal.ts`), `target/profile.ts`, `services/resource-diagnostics.ts`; 03-02 §Target and layout; ST-13. Fresh build and 15/15 new/existing target cases pass; documentation/formatting checks pass. (completed: 2026-09-27 14:18)
+- [x] 2.2.2 Admit the four profiles through existing startup/layout and terminal serializer guards with certificate agreement — `packages/compiler/src/layout/startup.ts`, `layout/c64-layout.ts`, `artifacts/acme-validate.ts`; ST-16–ST-18; PF-001. Fresh build and 30/30 pipeline/interrupt cases pass. Serializer/packager, closed-certificate, machine and layout validation are retained; documentation check passes. (completed: 2026-09-27 14:19)
+- [x] 2.2.3 Remove constant-switch dead paths in existing CFG lowering; prove all selected constant paths preserve effects and disappear before storage closure — `packages/compiler/src/semantic/cfg.ts`, `semantic/lower-expressions.ts`; existing `semantic/lower-calls.ts` and `semantic/lower.ts` remain unchanged. 03-01 §No runtime cost; ST-14–ST-15; PF-004. Fresh build and 40/40 output cases pass; documentation/formatting checks pass. Selector/initializer effects, default/fallthrough and exact literal parity hold. No new optimization pass. (completed: 2026-09-27 14:20)
+- [x] 2.2.4 Run all Phase 2 specification files green; preserve existing version-1 validators and safe/unsafe interrupt results; record results here. All 83 new cases pass; 146 affected workspace cases and 23 existing root resource/interrupt cases pass. No existing oracle changed. (completed: 2026-09-27 14:25)
 
 **Verify:** Directed Phase 2 spec files plus existing target, startup, resource/evidence and
 RD-04 interrupt/expressiveness suites; 07 commands. Do not change spec expectations.
 
 ### Session 2.3 — Implementation Tests and Hardening
 
-- [ ] 2.3.1 Add machine/storage agreement, startup-certificate and terminal serializer/packager/open-or-mismatched-certificate rejection tests — `packages/compiler/src/target/cooperative-profiles.impl.test.ts`; 03-02 §Target and layout; PF-001. Keep existing tests unchanged.
-- [ ] 2.3.2 Run full phase verification and independent correctness/semantics/performance reviews; record measured output deltas and any required existing/new debt issue here.
+- [x] 2.3.1 Add machine/storage agreement, startup-certificate and terminal serializer/packager/open-or-mismatched-certificate rejection tests — `packages/compiler/src/target/cooperative-profiles.impl.test.ts`; 03-02 §Target and layout; PF-001. All 24 cases pass; existing tests unchanged. (completed: 2026-09-27 14:28)
+- [x] 2.3.3 Add bounded internal regression cases for known binary values and CFG effect ordering — `packages/compiler/src/semantic/cfg.impl.test.ts`; split from 2.3.1 before writing to keep target guards and semantic regressions independently reviewable. Reuse its existing fixture; no new support surface. All 17 cases pass (nine new); documentation/formatting checks pass. (completed: 2026-09-27 14:28)
+- [x] 2.3.2 Run full phase verification and independent correctness/semantics/performance reviews; record measured output deltas and any required existing/new debt issue here. AR-P10 final correction verified after the concrete runtime red; SR-001/RV-001 and SR-002 resolved. Install/build/typecheck, all 2,387 tests and documentation checks pass. Required initial reviews and one focused re-review completed; no third review claimed. (completed: 2026-09-27 17:11)
+
+Directed checks pass: 83/83 independent new cases, 33/33 new internal cases, 146 affected workspace
+cases and 23 affected root cases. No frozen oracle changed. At 14:34 the complete checkpoint passes:
+install/build/typecheck, all 18 touched-file formatting checks, and all 2,377 tests (1,488 compiler,
+62 CLI, 14 language server, six editor, 807 root including sequential VICE). All original deadlines
+remain unchanged. No public evidence schema, startup instruction sequence or test expectation was
+relaxed. Logs: `install-final.log`, `build-final.log`, `typecheck-final.log`, `test-final.log`,
+`format-final.log`. Three independent phase reviews are running; 2.3.2 is not yet complete.
+
+Independent correctness and performance reviews are clear. The semantics review found two
+necessary correctness corrections in the direct blast radius of the new constant consumers:
+
+| Finding | Severity | Accepted correction |
+|---|---|---|
+| SR-001 / RV-001 | Major | `poke(&local, 2)` or a synchronous call can leave the local's old known value available to arithmetic/switch folding. Final AR-P10 ruling: raw memory and every runtime call forget mutable values, including no-argument calls because numeric addresses can alias caller storage. Preserve readonly constants and initialization/provenance metadata. |
+| SR-002 | Major | A module assignment after IRQ installation reestablishes a known value even though an interrupt may change it before its next read. At the existing scalar name-read owner, expose neither a constant nor an exact value for mutable module storage without interference proof. Assignment results and readonly/profile constants stay foldable. |
+
+These are determinate language-correctness fixes under workflow prime directive §4, not new
+product choices or restrictions. Both are accepted, not waived. The independent semantic reviewer
+confirmed no new semantic decision or support surface is needed. Extend the modification set only
+to existing `frontend/flow-facts.ts`, `frontend/direct-calls.ts`, `frontend/scalar-expressions.ts`, additional cases in
+`semantic/cfg.impl.test.ts`, and one bounded public-runtime regression file
+`test/rd05/profile-mutable-values.impl.test.ts` using the existing project/VICE helpers. Work in two
+small units (fact correction/internal regression, then runtime regression). Frozen oracles remain
+unchanged. Later effect/alias/interrupt-aware optimization can recover safe mutable values; this
+adds no runtime barrier or new analysis framework. Re-review once on the fix diff, followed by a
+fresh full checkpoint. Fix baseline tree: `d6a4eb699f27a91cb06dac1e001e8fcab8d5b9b1`.
+
+Historical draft (superseded by AR-P10): the first conservative call correction failed one existing
+aggregate specification expectation and one implementation expectation. The temporary diagnosis
+treated the loss of a non-borrowed local's value as unnecessary and narrowed invalidation using
+existing argument address origins. The later numeric-address witness disproved that justification.
+No new state, escape analysis, effect lattice or pass was added. Six new internal regression cases cover raw/aliased addresses, synchronous calls,
+unqualified/qualified shared reads and Boolean equality. One draft qualified-name fixture was
+corrected to export its shared declaration; no production rule was changed to admit private access.
+All 526 frontend/CFG cases, 40 output cases and the new sequential PAL VICE regression now pass.
+The VICE oracle independently observes `[3, 3, 3, 1, 2, 22, 6, 3]` after byte/word/alias/call writes,
+switch selection and an immutable profile read. Full post-fix verification is running; reviews
+must judge the final narrowed correction, not the rejected all-call invalidation draft.
+
+A final counterexample showed scalar argument origins do not describe an address carried through
+a struct or one of its fields. Do not add a new alias analysis merely for this correction. The
+final smaller rule forgets mutable local values for calls with arguments, preserves them for
+no-argument calls (legal local borrows cannot escape into persistent state), and keeps raw-memory
+access conservative. Two further internal cases and two runtime observations cover aggregate-held
+addresses. The final directed runs pass 528 frontend/CFG cases and 41 public output/runtime cases;
+the independent VICE bytes are `[3, 3, 3, 1, 2, 22, 6, 3, 3, 3]`. The preceding intermediate full
+run passed 2,384 tests, but does not qualify this final refinement: rerun the complete command and
+use only its fresh result. No frozen test was edited, no permanent optimization barrier was added,
+and no precision claim beyond the current proof is made.
+
+An additional runtime-selector probe with all-returning switch clauses fails real ACME's strict
+segment check (`Segment starts inside another one, overwriting it`). This is separate from the
+constant-selector work; that runtime lowering branch is unchanged, and the earliest affected
+commit is not established. Filed [#90](https://github.com/blendsdk/blend65/issues/90) with the exact
+source and observed failure, owned by remaining RD-05 correctness work before full RD closeout.
+The alias-runtime regression uses ordinary switch stores to isolate the reviewed fact defect;
+the independent all-returning failure is retained in the issue, not declared passing. No new
+source restriction, hidden waiver, historical qualification claim or speculative repair is made.
+
+**Focused re-review outcome, 14:57:** performance is clear; correctness and semantics independently
+confirm that the no-argument exception is still unsound. Consolidate RV-001 with unresolved SR-001;
+SR-002 is resolved. The exact final-layout witness is:
+`function change(): void { poke($0acd, 2); }` called after initializing local `value` to 1, then
+`poke($0420, value + 1)`. SFA places `value` at `$0ACD`; the callee writes 2 there, but the caller
+emits immediate 2 instead of required 3. No argument is needed for this raw alias. The earlier
+no-borrow justification above is disproved and must not be used as authority.
+
+[AR-P10](00-ambiguity-register.md#ar-p10--sound-values-across-runtime-calls) proposes the smallest
+safe all-runtime-call invalidation and exactly two analysis-precision expectation updates, one in
+an existing specification test. That immutable-oracle change requires explicit approval. Stop here:
+no third review, silent test edit, new effect-analysis framework, commit, push or Phase 3 work.
+The final full test command may finish, but a green result does not close this known miscompile.
+Review lineage: expert 2.0.0 / `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`; roles
+`rd05_phase2_correctness`, `rd05_phase2_semantics`, `rd05_phase2_performance`. Both rounds retained
+all five frozen hashes and unchanged language/expert paths. The working diff is preserved for the
+user's ruling; task 2.3.2 and Phase 2 are not complete.
+
+**Final verification at the pause, 14:58:** install/build/typecheck and all 2,386 tests pass
+(1,496 compiler + 62 CLI + 14 language server + six editor + 808 root, including sequential VICE).
+Logs: `install-qualified.log`, `build-qualified.log`, `typecheck-qualified.log`,
+`test-qualified.log`; all 22 changed code/record files pass formatting, and the three updated
+pause records pass the follow-up formatting check. The raw no-argument alias is an independently
+established coverage gap, not a test timeout or a cleared defect. Existing specification tests
+and frozen language/expert files remain untouched. Working changes are deliberately uncommitted
+until AR-P10 is ruled and the known correctness failure is repaired. No push occurred.
+
+**AR-P10 approval, 17:00:** the user accepted the preceding explicit approval request with
+“proceed”. Resume the confirmed XHigh Phase 2 batch. The modification set adds only the two
+named expectation edits in `frontend/aggregates.spec.test.ts` and `frontend/scalars.impl.test.ts`;
+existing correction and regression owners stay unchanged. Record a failing concrete no-argument
+raw-write case before removing the exception, then prove its runtime result and the retained
+265-valued index. No new support surface or third review; no Phase 3 work or push. The previous
+green checkpoint does not qualify this pending correction.
+
+**Final correction implemented, 17:04:** the two approved expectation edits and the added internal
+regression fail as expected before the correction (77 pass / three fail). After resolving a test-only
+debug-symbol lookup error, the real VICE regression reproduces exactly the missing result: the
+numeric no-argument write yields 2, not 3, while all other markers and the index-265 sentinel pass.
+Its two-build setup resolves the local through final debug storage, patches only the four-digit
+numeric literal, and asserts the address stays identical on rebuild. No address is guessed or
+provided to the callee as an argument. Logs: `ar-p10-red.log`, `ar-p10-runtime-red-final.log`.
+The production fix now delegates every runtime call to the existing all-mutable invalidation
+helper. Immutable facts, initialization and provenance metadata remain untouched. Directed and
+full fresh verification remain pending; the runtime oracle is `[3,3,3,1,2,22,6,3,3,3,3,77]`.
+
+Directed post-correction checks pass: 529 frontend/CFG cases and 71 public output/pipeline/
+interrupt/runtime cases (`ar-p10-directed-green.log`, `ar-p10-runtime-green.log`) after a fresh
+build. The VICE byte at `$042A` is now 3, while `$042B` is the sentinel at index 265 rather than
+the distinguishable index-9 sentinel. All five frozen Phase 2 hashes still match. The only
+existing specification-test diff is the approved single expectation; the other approved edit is
+the single implementation-test expectation. Full install/build/typecheck pass; the complete test
+run is still in progress. Formatting, local links and the documentation self-check pass. The
+roadmap engine confirms this feature's 2/10 RD count; its sole drift report is the already-deferred
+portfolio roll-up on this non-integration branch. No portfolio edit or extra review is made.
+
+**Final Phase 2 checkpoint, 17:11:** fresh `yarn install --frozen-lockfile`, `yarn build`,
+`yarn typecheck` and the complete `yarn test` pass. Final count: **2,387** = 1,497 compiler +
+62 CLI + 14 language server + six editor + 808 root. The root suite includes the full M1
+journey and the final numeric-alias/index regression; VICE runs sequentially. Original wall-clock
+and emulated-cycle limits remain unchanged. Final logs are `ar-p10-{install,build,typecheck,test}-final.log`
+in `/tmp/blend65-rd05-phase2-resume-7OR8hr/`. The 22 touched TypeScript files pass formatting and
+documentation checks; local document links, plan counts, exact oracle diffs and frozen paths are
+validated. No active architecture-document set needs an update; no new architectural subsystem
+was introduced.
+
+Finding closure: SR-001/RV-001 is repaired by the exact user-approved all-runtime-call rule,
+the internal load-after-call regression, and the independently expected VICE result 3 after the
+recorded result-2 red. SR-002 was cleared by the focused review and its regressions remain green.
+The performance review is clear; no runtime barrier, effect-analysis state, dependency or source
+restriction is added. This is the authorized correction after the one permitted re-review, not
+a claim of a third independent review. The two old expectation edits are exactly AR-P10's ruling;
+all five Phase 2 oracle hashes and the language/expert baseline remain unchanged.
+
+All 15 Phase 2 tasks are verified. Phase 3's 11 tasks remain unstarted. RD-05 stays open with
+AR-P3 and issue #90 retained under their existing owners. Build/assembly/cost evidence is
+**Verified complete** for this phase; its PAL regression is **VICE-verified / hardware-unverified**.
+Four-profile emulator selection and fresh runtime qualification remain Phase 3, not a claim here.
+Knowledge lineage remains expert 2.0.0 / `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`, particularly
+`references/blend65-semantics.md`, `references/il-and-optimization.md` and
+`references/sfa-and-abi.md`; frozen raw-memory semantics govern the numeric-alias correction.
+
+Output measurements (`cost-measurements.log`, `cost-call.log` in the recovery log directory):
+
+| Equal-contract measurement | Result |
+|---|---|
+| Selected marker versus literal marker | Same PRG, cost totals, physical memory and stack demands; the selected `LDA #imm; STA $0420` is 5 bytes / 6 nominal CPU cycles. No dispatch or profile storage. |
+| Empty returning program | 647 emitted bytes; 697 resident bytes; zero ZP/scratch; 21-byte reported hardware-stack aggregate (one-byte program peak plus 20-byte platform reserve). |
+| One selected marker program | 652 emitted bytes; 702 resident bytes; unchanged ZP/scratch/stack demand. |
+| Startup separate from body | Entry 345 bytes / 463 nominal instruction cycles; restore 287 bytes / 393 cycles; BASIC stub 12 bytes; saved platform state 50 BSS bytes. The empty main's cooperative return jump is a separate 3 bytes / 3 cycles. No DMA/interrupt time is included in these instruction sums. |
+| Existing whole-program debt | A sole `paint(color: byte)` wrapper retains 15 bytes / 26 nominal cycles versus the direct 5 bytes / 6 cycles, plus one parameter byte. This is the exact open [#79](https://github.com/blendsdk/blend65/issues/79) constant-call/SFA debt, not a new profile cost. Its path to the win is constant-value specialization, safe leaf-call elimination and dead-home removal. |
+| Existing layout debt | The main-to-next-restore jump costs 3 bytes / 3 cycles. Open [#51](https://github.com/blendsdk/blend65/issues/51) owns proved fallthrough elision. No new duplicate issue or optimizer is needed here. |
+
+The direct store meets the local expert floor; a whole-program beat is not claimed. The existing
+issues retain measured routes beyond that floor. Nominal instruction counts do not claim elapsed
+C64 timing: public whole-program path cycles remain explicitly `Unknown`, and four-profile runtime
+qualification is still Phase 3. Structured effects and selected identities remain available before
+SFA, so this work does not close off later peephole, allocation or whole-program improvements.
 
 **Deliverable:** Four build identities and the specified zero-extra-cost proof; no runtime
 qualification claim until Phase 3.
@@ -307,7 +523,7 @@ the full verification checkpoint.
 ## Success and Remaining Ownership
 
 Stage success is exactly [01 — Stage Acceptance](01-requirements.md#stage-acceptance).
-All 36 checkboxes must be green; review findings, frozen paths and relevant output debts must be
+All 40 checkboxes must be green; review findings, frozen paths and relevant output debts must be
 reconciled. The remaining requirements stay in RD-05. AR-P3 must be resolved before planning
 NMI-dependent executable work or declaring the complete RD-05 plan ready. Finish with an
 effort recommendation and user handoff before starting the next distinct planning task.

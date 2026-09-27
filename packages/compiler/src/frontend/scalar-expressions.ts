@@ -364,8 +364,12 @@ export class ScalarExpressionAnalyzer {
     if (!callTarget && !context.placeContext && place !== null) {
       this.host.read(place, expression.span);
     }
+    // A shared module value can change between ordinary statements through an interrupt, even
+    // immediately after assignment. Retain the read unless an interference proof is available;
+    // readonly constants and assignment-expression results do not have this uncertainty.
+    const known = !state.readonly && state.binding.storage === "module" ? null : state.known;
     return {
-      node: createScalarTypedExpression(expression, state.binding.type, state.known, {
+      node: createScalarTypedExpression(expression, state.binding.type, known, {
         name: expression.name,
         binding: state.binding.id,
         place,
@@ -374,7 +378,7 @@ export class ScalarExpressionAnalyzer {
         addressPlaces: state.addressPlaces,
         integer: integerFacts(state.binding.type, true),
       }),
-      exact: state.known,
+      exact: known,
     };
   }
 }

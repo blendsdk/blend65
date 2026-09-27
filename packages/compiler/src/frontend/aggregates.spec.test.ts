@@ -518,7 +518,7 @@ describe("fixed aggregates and places", () => {
         {
           expression: {
             kind: "index",
-            index: { kind: "binary", type: { kind: "scalar", name: "word" }, constant: 265n },
+            index: { kind: "binary", type: { kind: "scalar", name: "word" }, constant: null },
           },
         },
         {

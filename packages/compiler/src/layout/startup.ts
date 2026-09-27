@@ -1,4 +1,5 @@
 import type { TargetProfile } from "../target/profile.js";
+import { selectC64KernalFacts } from "../profile/c64-kernal.js";
 import { machineCost, machineInstruction } from "../machine/lower-control.js";
 import type {
   MachineDataObject,
@@ -159,7 +160,7 @@ function restoreDevice(
  * @returns The 12-byte stub plus one structured startup function.
  */
 export function createC64Startup(input: C64StartupInput): C64StartupResult {
-  if (input.profile.id !== "c64-pal-prg-kernal-6581") {
+  if (selectC64KernalFacts(input.profile.id) === null) {
     return Object.freeze({ kind: "error", reason: "Startup requires the selected C64 profile" });
   }
   const cpu = input.profile.cpu;

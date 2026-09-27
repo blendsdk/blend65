@@ -1,5 +1,6 @@
 import type { StorageClosureCertificate } from "../storage/storage-types.js";
 import type { TargetProfile } from "../target/profile.js";
+import { selectC64KernalFacts } from "../profile/c64-kernal.js";
 import { repairMachineBranches } from "../machine/block-layout.js";
 import { validateMachineProgram } from "../machine/bind.js";
 import type { MachineFunction, MachineProgram } from "../machine/machine-types.js";
@@ -66,7 +67,7 @@ import {
  */
 export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   if (
-    input.profile.id !== "c64-pal-prg-kernal-6581" ||
+    selectC64KernalFacts(input.profile.id) === null ||
     !input.certificate.closed ||
     input.certificate.profileId !== input.profile.id
   ) {

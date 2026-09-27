@@ -123,13 +123,16 @@ export function clearMutableScalarFacts(scope: ScalarScope): void {
   }
 }
 
-/** Forget mutable module values after a call which cannot directly reach caller locals. */
+/**
+ * Forget mutable values reachable across a call or raw-memory boundary.
+ * A callee can write a caller local through a borrowed address, an aggregate-held pointer, or a
+ * numeric raw address even when the call has no arguments. Without a callee-effect proof, retain
+ * no mutable value across this boundary. Later analysis may recover values when it proves the
+ * relevant storage cannot change; this does not introduce a runtime barrier.
+ * Readonly constants, initialization evidence and address provenance remain intact.
+ */
 export function clearCallVisibleScalarFacts(scope: ScalarScope): void {
-  for (let current: ScalarScope | null = scope; current !== null; current = current.parent) {
-    for (const state of current.values.values()) {
-      if (!state.readonly && state.binding.storage === "module") state.known = null;
-    }
-  }
+  clearMutableScalarFacts(scope);
 }
 
 /** Compute the exact normalized intersection of half-open interval sets. */

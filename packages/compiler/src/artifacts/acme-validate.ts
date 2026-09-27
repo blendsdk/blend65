@@ -3,6 +3,7 @@ import { validateMachineProgram } from "../machine/bind.js";
 import type { MachineOperand } from "../machine/machine-types.js";
 import type { StorageClosureCertificate } from "../storage/storage-types.js";
 import type { TargetProfile } from "../target/profile.js";
+import { selectC64KernalFacts } from "../profile/c64-kernal.js";
 
 /** Final successful C64 layout accepted by terminal serialization. */
 export type CompleteC64Layout = Extract<C64LayoutResult, { readonly kind: "complete" }>;
@@ -71,7 +72,7 @@ function terminalOperand(operand: MachineOperand | null): boolean {
  */
 export function validateAcmeInput(input: AcmeValidationInput): AcmeValidationResult {
   if (
-    input.profile.id !== "c64-pal-prg-kernal-6581" ||
+    selectC64KernalFacts(input.profile.id) === null ||
     input.profile.serializer.id !== "acme-0.97" ||
     input.profile.packager.id !== "cbm-prg"
   ) {

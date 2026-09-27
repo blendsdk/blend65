@@ -1,9 +1,11 @@
+import type { C64KernalProfileFacts } from "../profile/c64-kernal.js";
+
 /** C64 device addresses and layout facts owned by the selected machine profile. */
 export interface C64MachineFacts {
   /** Stable machine/ROM/video/SID identity. */
-  readonly id: "c64-pal-kernal-901227-03-6581";
-  /** PAL VIC cycles per frame. */
-  readonly cyclesPerFrame: 19656;
+  readonly id: `c64-${C64KernalProfileFacts["video"]}-kernal-901227-03-${C64KernalProfileFacts["sidModel"]}`;
+  /** Nominal VIC cycles per selected video frame, before device bus denial. */
+  readonly cyclesPerFrame: number;
   /** First address in VIC bank zero. */
   readonly vicBankStart: 0x0000;
   /** Last address in VIC bank zero. */
@@ -88,10 +90,8 @@ export const C64_RESOURCE_BUDGETS = Object.freeze({
   stackWarning: 188,
 });
 
-/** Exact selected C64 PAL machine facts. */
-export const C64_PAL_KERNAL_6581: C64MachineFacts = Object.freeze({
-  id: "c64-pal-kernal-901227-03-6581",
-  cyclesPerFrame: 19656,
+/** Device addresses and ownership stay identical across the cooperative video/SID choices. */
+const COMMON_MACHINE: Omit<C64MachineFacts, "id" | "cyclesPerFrame"> = Object.freeze({
   vicBankStart: 0x0000,
   vicBankEnd: 0x3fff,
   screenAddress: 0x0400,
@@ -117,6 +117,19 @@ export const C64_PAL_KERNAL_6581: C64MachineFacts = Object.freeze({
   cia2DataDirection: 0xdd02,
   spritePointerBase: 0x07f8,
 });
+
+/**
+ * Compose machine identity and timing from the same immutable row used by source constants.
+ * The selected SID model changes identity only; it adds no initialization or runtime state.
+ * @example createC64KernalMachine(facts).cyclesPerFrame === facts.cyclesPerFrame
+ */
+export function createC64KernalMachine(facts: C64KernalProfileFacts): C64MachineFacts {
+  return Object.freeze({
+    ...COMMON_MACHINE,
+    id: `c64-${facts.video}-kernal-901227-03-${facts.sidModel}`,
+    cyclesPerFrame: facts.cyclesPerFrame,
+  });
+}
 
 /** Exact selected ACME serializer identity. */
 export const ACME_097: SerializerFacts = Object.freeze({ id: "acme-0.97" });

@@ -8,7 +8,7 @@ import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
 import type { StorageClosureCertificate } from "../storage/storage-types.js";
-import { C64_RESOURCE_BUDGETS } from "../target/c64-pal-kernal.js";
+import { C64_RESOURCE_BUDGETS } from "../target/c64-kernal.js";
 import type { TargetProfile } from "../target/profile.js";
 
 /** Keep declaration-name and explicit-placement locations available to later resource diagnostics. */

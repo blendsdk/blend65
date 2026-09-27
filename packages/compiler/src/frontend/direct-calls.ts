@@ -310,7 +310,9 @@ export function analyzeDirectCall(
       Object.freeze({ caller: context.caller, callee: calleeBinding, span: expression.span }),
     );
   }
-  if (calleeMode !== "comptime") clearCallVisibleScalarFacts(context.scope);
+  if (calleeMode !== "comptime") {
+    clearCallVisibleScalarFacts(context.scope);
+  }
   const typed = createScalarTypedExpression(expression, signature.returnType, null, {
     callee: callee.node,
     calleeDisplay: host.sourceText(expression.callee.span),

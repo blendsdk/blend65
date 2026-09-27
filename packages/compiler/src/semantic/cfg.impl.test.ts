@@ -252,4 +252,227 @@ describe("semantic CFG implementation", () => {
     expect(calls).toEqual([]);
     expect(main?.blocks.filter(({ terminator }) => terminator.kind === "branch")).toEqual([]);
   });
+
+  it("retains false-pretest condition effects and the for initializer exactly once", () => {
+    const program = lower(`module Game;
+let tested: boolean;
+let initialized: byte;
+function dead(): void { poke($0421, 99); }
+function main(): void {
+  while (tested = false) { dead(); }
+  for (initialized = 9; tested = false; dead()) { dead(); }
+}`);
+    const main = program.functions.find(({ name }) => name === "Game.main")!;
+    const operations = main.blocks.flatMap(({ operations }) => operations);
+    const values = new Map(
+      operations.flatMap((operation) =>
+        operation.kind === "constant" ? [[operation.result, operation.value] as const] : [],
+      ),
+    );
+    const stores = operations.filter((operation) => operation.kind === "store");
+    expect(stores.map(({ value }) => values.get(value))).toEqual([false, 9n, false]);
+    expect(stores[0]!.place.root).toEqual(stores[2]!.place.root);
+    expect(stores[0]!.place.root).not.toEqual(stores[1]!.place.root);
+    expect(operations.filter(({ kind }) => kind === "call")).toEqual([]);
+    expect(main.blocks).toHaveLength(1);
+    expect(main.blocks[0]!.terminator.kind).toBe("return");
+  });
+
+  it("retains ordered operand stores while replacing a known binary computation", () => {
+    const program = lower(`module Game;
+let left: byte;
+let right: byte;
+function main(): void { poke($0420, (left = 7) + (right = 8)); }`);
+    const operations = program.functions
+      .find(({ name }) => name === "Game.main")!
+      .blocks.flatMap(({ operations }) => operations);
+    const constants = operations.filter((operation) => operation.kind === "constant");
+    const values = new Map(constants.map(({ result, value }) => [result, value]));
+    const stores = operations.filter((operation) => operation.kind === "store");
+    expect(stores.map(({ value }) => values.get(value))).toEqual([7n, 8n]);
+    expect(stores[0]!.place.root).not.toEqual(stores[1]!.place.root);
+    expect(constants.at(-1)?.value).toBe(15n);
+    expect(operations.filter(({ kind }) => kind === "binary")).toEqual([]);
+    expect(operations.at(-1)?.kind).toBe("memory-write");
+  });
+
+  it.each([
+    ["byte(255) + byte(1)", 0n],
+    ["sbyte(-128) - sbyte(1)", 127n],
+    // An ordinary runtime expression wraps its word product before division.
+    ["(300 * 300) / 300", 81n],
+  ])("keeps the typed constant value for %s", (expression, expected) => {
+    const program = lower(`module Game;
+function main(): void { pokew($0420, word(${expression})); }`);
+    const operations = program.functions
+      .find(({ name }) => name === "Game.main")!
+      .blocks.flatMap(({ operations }) => operations);
+    expect(operations.filter(({ kind }) => kind === "binary")).toEqual([]);
+    expect(operations.filter((operation) => operation.kind === "constant").at(-1)?.value).toBe(
+      expected,
+    );
+  });
+
+  it("keeps full precision in a constant declaration instead of using runtime wrapping", () => {
+    const program = lower(`module Game;
+const VALUE: word = (300 * 300) / 300;
+function main(): void { pokew($0420, VALUE); }`);
+    const operations = program.functions
+      .find(({ name }) => name === "Game.main")!
+      .blocks.flatMap(({ operations }) => operations);
+    expect(operations.filter((operation) => operation.kind === "constant").at(-1)?.value).toBe(
+      300n,
+    );
+    expect(operations.filter(({ kind }) => kind === "binary")).toEqual([]);
+  });
+
+  it("keeps unknown binary calculations and switch dispatch as runtime operations", () => {
+    const program = lower(`module Game;
+function choose(value: byte): byte {
+  switch (value + 1) { case 1: return 6; default: return 2; }
+}
+function main(): void { poke($0420, choose(peek($0400))); }`);
+    const choose = program.functions.find(({ name }) => name === "Game.choose")!;
+    expect(
+      choose.blocks.flatMap(({ operations }) => operations).filter(({ kind }) => kind === "binary"),
+    ).toHaveLength(2);
+    expect(choose.blocks.some(({ terminator }) => terminator.kind === "branch")).toBe(true);
+  });
+
+  it("keeps a no-match selector effect without creating switch blocks", () => {
+    const program = lower(`module Game;
+let selected: byte;
+function main(): void {
+  switch (selected = 7) { case 1: poke($0421, 99); }
+}`);
+    const main = program.functions.find(({ name }) => name === "Game.main")!;
+    const operations = main.blocks.flatMap(({ operations }) => operations);
+    expect(operations.filter(({ kind }) => kind === "store")).toHaveLength(1);
+    expect(operations.filter(({ kind }) => kind === "memory-write")).toEqual([]);
+    expect(main.blocks).toHaveLength(1);
+  });
+
+  it("retains a selected return and suppresses later explicit-fallthrough effects", () => {
+    const program = lower(`module Game;
+function choose(): byte {
+  switch (2) {
+    case 1: return 1;
+    case 2: return 6; fallthrough;
+    case 3: poke($0421, 99); return 3;
+  }
+  return 0;
+}
+function main(): void { poke($0420, choose()); }`);
+    const choose = program.functions.find(({ name }) => name === "Game.choose")!;
+    expect(choose.blocks).toHaveLength(1);
+    expect(choose.blocks[0]!.terminator.kind).toBe("return");
+    expect(choose.blocks[0]!.operations).toMatchObject([
+      { kind: "constant", value: 2n },
+      { kind: "constant", value: 6n },
+    ]);
+    expect(choose.blocks[0]!.terminator).toMatchObject({
+      value:
+        choose.blocks[0]!.operations[1]!.kind === "constant"
+          ? choose.blocks[0]!.operations[1]!.result
+          : null,
+    });
+  });
+
+  it.each([
+    "poke(&value, 2);",
+    "let pointer: word = &value; value = 3; poke(pointer, 2);",
+    "set(&value);",
+  ])("does not fold an address-mutated local after %s", (write) => {
+    const program = lower(`module Game;
+function set(address: word): void { poke(address, 2); }
+function main(): void {
+  let value: byte = 1;
+  ${write}
+  let sum: byte = value + 1;
+  switch (value) { case 1: poke($0421, 99); case 2: poke($0420, sum); }
+}`);
+    const main = program.functions.find(({ name }) => name === "Game.main")!;
+    const operations = main.blocks.flatMap(({ operations }) => operations);
+    expect(
+      operations.some((operation) => operation.kind === "binary" && operation.operator === "+"),
+    ).toBe(true);
+    expect(main.blocks.some(({ terminator }) => terminator.kind === "branch")).toBe(true);
+  });
+
+  it.each(["shared", "Game.shared"])("preserves possibly interrupted reads of %s", (read) => {
+    const program = lower(`module Game;
+export let shared: byte;
+interrupt function handler(): void { shared = 2; }
+function main(): void {
+  c64.system.setIRQ(&handler);
+  shared = 1;
+  let sum: byte = ${read} + 1;
+  switch (${read}) { case 1: poke($0421, 99); case 2: poke($0420, sum); }
+  c64.system.restoreIRQ();
+}`);
+    const main = program.functions.find(({ name }) => name === "Game.main")!;
+    const operations = main.blocks.flatMap(({ operations }) => operations);
+    expect(
+      operations.some((operation) => operation.kind === "binary" && operation.operator === "+"),
+    ).toBe(true);
+    expect(main.blocks.some(({ terminator }) => terminator.kind === "branch")).toBe(true);
+  });
+
+  it("does not fold a local across a no-argument call with a numeric memory write", () => {
+    const program = lower(`module Game;
+function change(): void { poke($0acd, 2); }
+function main(): void {
+  let value: byte = 1;
+  change();
+  poke($0420, value + 1);
+}`);
+    const operations = program.functions
+      .find(({ name }) => name === "Game.main")!
+      .blocks.flatMap(({ operations }) => operations);
+    const callIndex = operations.findIndex(({ kind }) => kind === "call");
+    const sumIndex = operations.findIndex(
+      (operation) => operation.kind === "binary" && operation.operator === "+",
+    );
+    expect(callIndex).toBeGreaterThanOrEqual(0);
+    expect(sumIndex).toBeGreaterThan(callIndex);
+    expect(operations.slice(callIndex + 1, sumIndex).some(({ kind }) => kind === "load")).toBe(
+      true,
+    );
+  });
+
+  it.each(["writeBox(box);", "set(box.pointer);"])(
+    "keeps aggregate-hidden aliases safe through %s",
+    (write) => {
+      const program = lower(`module Game;
+struct Box { pointer: word; }
+function set(address: word): void { poke(address, 2); }
+function writeBox(box: Box): void { poke(box.pointer, 2); }
+function main(): void {
+  let value: byte = 1;
+  let box: Box = { pointer: &value };
+  ${write}
+  poke($0420, value + 1);
+}`);
+      const operations = program.functions
+        .find(({ name }) => name === "Game.main")!
+        .blocks.flatMap(({ operations }) => operations);
+      expect(
+        operations.some((operation) => operation.kind === "binary" && operation.operator === "+"),
+      ).toBe(true);
+    },
+  );
+
+  it("does not select a Boolean arm from an asynchronously mutable module fact", () => {
+    const program = lower(`module Game;
+let flag: boolean;
+interrupt function handler(): void { flag = false; }
+function main(): void {
+  c64.system.setIRQ(&handler);
+  flag = true;
+  if (flag == true) { poke($0420, 1); } else { poke($0420, 2); }
+  c64.system.restoreIRQ();
+}`);
+    const main = program.functions.find(({ name }) => name === "Game.main")!;
+    expect(main.blocks.some(({ terminator }) => terminator.kind === "branch")).toBe(true);
+  });
 });

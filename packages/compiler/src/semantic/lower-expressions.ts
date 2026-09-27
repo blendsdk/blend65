@@ -388,6 +388,11 @@ export class ExpressionLowerer {
     const rightExpression = required(expression.right, "binary right operand");
     const right = this.lower(rightExpression);
     if (left === null || right === null) throw new Error("Completed binary operand has no value");
+    // Preserve both operand effects in order, but do not recreate a computation already proved
+    // constant by typing. This keeps unused comparisons and their temporaries out of SFA.
+    if (expression.constant !== null) {
+      return this.emitConstant(expression.constant, type, expression.span, expression.integer);
+    }
     const result = this.builder.nextValue();
     this.builder.emit(
       Object.freeze({

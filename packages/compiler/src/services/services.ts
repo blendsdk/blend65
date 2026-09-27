@@ -215,7 +215,10 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
       ]),
     };
   }
-  const allocationProfile = Object.freeze({ ...selected.profile, storage: reserved.storage });
+  const allocationProfile = Object.freeze({
+    ...selected.profile,
+    storage: Object.freeze({ ...reserved.storage, profileId: selected.profile.id }),
+  });
   const inventory = inventoryStorage(reserved.program);
   const provisional = allocateStorage(inventory, buildInterference(inventory), reserved.storage);
   if (provisional.kind === "error") {
