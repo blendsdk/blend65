@@ -17,7 +17,7 @@ type InterruptSink = "irq" | "nmi";
 
 /** A caller-visible stack action retained after locally balanced installs cancel. */
 type OwnershipEvent =
-  | { readonly kind: "push"; readonly site: string }
+  | { readonly kind: "push"; readonly sites: readonly string[] }
   | { readonly kind: "pop"; readonly span: SourceSpan }
   | { readonly kind: "raw" };
 
@@ -64,7 +64,7 @@ function copyState(state: OwnershipState): OwnershipState {
   return { irq: [...state.irq], nmi: [...state.nmi] };
 }
 
-/** Equality includes the exact predecessor identity, not just the stack depth. */
+/** Ownership joins compare actions; selected route choices remain separate facts. */
 function sameState(left: OwnershipState, right: OwnershipState): boolean {
   return sameSink(left, right, "irq") && sameSink(left, right, "nmi");
 }
@@ -80,12 +80,26 @@ function sameSink(left: OwnershipState, right: OwnershipState, sink: InterruptSi
     left[sink].length === right[sink].length &&
     left[sink].every((event, index) => {
       const other = right[sink][index]!;
-      return (
-        event.kind === other.kind &&
-        (event.kind !== "push" || (other.kind === "push" && event.site === other.site))
-      );
+      return event.kind === other.kind;
     })
   );
+}
+
+/** Keep every possible install site when equal ownership paths meet. */
+function mergeSites(left: OwnershipState, right: OwnershipState): OwnershipState | null {
+  const merged = copyState(left);
+  let changed = false;
+  for (const sink of ["irq", "nmi"] as const) {
+    for (const [index, event] of left[sink].entries()) {
+      const other = right[sink][index];
+      if (event.kind !== "push" || other?.kind !== "push") continue;
+      const sites = [...new Set([...event.sites, ...other.sites])];
+      if (sites.length === event.sites.length) continue;
+      merged[sink][index] = { kind: "push", sites };
+      changed = true;
+    }
+  }
+  return changed ? merged : null;
 }
 
 /** Replay one source action, preserving the order of raw writes and caller-owned pops. */
@@ -129,12 +143,19 @@ function compose(
   effect: OwnershipState,
   span: SourceSpan,
   callerMayOwn: boolean,
+  handlerRoot = false,
 ): { readonly state: OwnershipState; readonly diagnostic: ProjectDiagnostic | null } {
   const result = copyState(state);
   for (const sink of ["irq", "nmi"] as const) {
     for (const event of effect[sink]) {
       const diagnostic = applyEvent(result, sink, event, span, callerMayOwn);
       if (diagnostic !== null) return { state: result, diagnostic };
+      if (handlerRoot && relativeDepth(result[sink]) < 0) {
+        return {
+          state: result,
+          diagnostic: invalidOwnership(sink, "restore below handler prefix", span),
+        };
+      }
     }
   }
   return { state: result, diagnostic: null };
@@ -228,68 +249,13 @@ export function checkInterruptOwnership(
   // Only selected routes can own predecessor links. Their platform facts supply both
   // vector bytes; the shared ownership proof does not choose a machine memory map.
   const vectorBytes = { irq: new Set<bigint>(), nmi: new Set<bigint>() };
-  for (const { sink } of routes) {
+  const irqRoots = new Set<string>();
+  for (const route of routes) {
+    const { sink } = route;
     const low = BigInt(sink.vector);
     vectorBytes[sink.domain].add(low);
     vectorBytes[sink.domain].add((low + 1n) & 0xffffn);
-  }
-
-  // A handler can interrupt an earlier handler while its predecessor link is
-  // still live. Reusing the mainline link for an install in that context would
-  // overwrite the earlier predecessor, even if both installs are balanced.
-  const visitedIRQFunctions = new Set<string>();
-  const checkIRQHandlerCalls = (fn: SemanticFunction, handler: SemanticFunction): void => {
-    const key = bindingIdentityKey(fn.id);
-    if (visitedIRQFunctions.has(key)) return;
-    visitedIRQFunctions.add(key);
-    for (const block of fn.blocks) {
-      for (const operation of block.operations) {
-        if (
-          operation.kind === "platform" &&
-          ownershipOperation(operation.capability)?.sink === "irq"
-        ) {
-          diagnostics.push(
-            projectDiagnostic(
-              "E10245",
-              `Execution path '${handler.name ?? "<handler>"}' can overlap or consume hardware stack without a static bound — use a bounded interrupt/callback design`,
-              operation.span,
-              null,
-              routes
-                .filter(
-                  (route) =>
-                    bindingIdentityKey(route.handler) === bindingIdentityKey(handler.id) &&
-                    route.installation !== operation,
-                )
-                .map((route) => ({
-                  span: route.installation.span,
-                  message: "Handler is installed here",
-                })),
-            ),
-          );
-        }
-        if (operation.kind !== "call" && operation.kind !== "indirect-call") continue;
-        const targets =
-          operation.kind === "call" ? [operation.callee] : (indirectTargets.get(operation) ?? []);
-        for (const target of targets) {
-          const callee = functions.get(bindingIdentityKey(target));
-          if (callee !== undefined) checkIRQHandlerCalls(callee, handler);
-        }
-      }
-    }
-  };
-  for (const fn of program.functions) {
-    if (fn.entryKind === "interrupt" && reachable.has(bindingIdentityKey(fn.id))) {
-      checkIRQHandlerCalls(fn, fn);
-    }
-  }
-  if (diagnostics.length > 0) {
-    return Object.freeze({
-      diagnostics: Object.freeze(diagnostics),
-      maxDepth: Object.freeze(maximum),
-      relativeDepths,
-      mainEntryDepth: Object.freeze({ irq: 0, nmi: 0 }),
-      initializerEntryDepths,
-    });
+    if (route.sink.domain === "irq") irqRoots.add(bindingIdentityKey(route.handler));
   }
 
   /** Analyze a callable body or one startup initializer through the same CFG proof. */
@@ -300,6 +266,7 @@ export function checkInterruptOwnership(
     entry: string,
     blocks: readonly SemanticBlock[],
     callerMayOwn: boolean,
+    handlerRoot: boolean,
   ): OwnershipSummary => {
     const cached = summaries.get(key);
     if (cached !== undefined) return cached;
@@ -320,7 +287,6 @@ export function checkInterruptOwnership(
     const pending = [entry];
     let returned: OwnershipState | null = null;
     const peak = { irq: 0, nmi: 0 };
-    let steps = 0;
     while (pending.length > 0 && diagnostics.length === 0) {
       const blockId = pending.shift()!;
       const block = byId.get(blockId);
@@ -339,7 +305,7 @@ export function checkInterruptOwnership(
               applyEvent(
                 state,
                 sink,
-                { kind: "push", site: site(operation.span) },
+                { kind: "push", sites: [site(operation.span)] },
                 operation.span,
                 callerMayOwn,
               );
@@ -378,7 +344,13 @@ export function checkInterruptOwnership(
             for (const sink of ["irq", "nmi"] as const) {
               peak[sink] = Math.max(peak[sink], relativeDepth(state[sink]) + effect.peak[sink]);
             }
-            const composed = compose(state, effect.state, operation.span, callerMayOwn);
+            const composed = compose(
+              state,
+              effect.state,
+              operation.span,
+              callerMayOwn,
+              handlerRoot,
+            );
             if (composed.diagnostic !== null) {
               diagnostics.push(composed.diagnostic);
               continue;
@@ -393,6 +365,17 @@ export function checkInterruptOwnership(
           }
           if (next !== null) state = next;
         }
+        // A helper may return a caller-owned pop, but an interrupt root has no
+        // caller-owned vector frame. Its interrupted predecessor belongs to the
+        // suspended execution and cannot be consumed by this handler.
+        if (handlerRoot) {
+          const borrowed = (["irq", "nmi"] as const).find((sink) => relativeDepth(state[sink]) < 0);
+          if (borrowed !== undefined) {
+            diagnostics.push(
+              invalidOwnership(borrowed, "restore below handler prefix", operation.span),
+            );
+          }
+        }
         if (diagnostics.length > 0) break;
       }
       if (diagnostics.length > 0) break;
@@ -403,7 +386,7 @@ export function checkInterruptOwnership(
             invalidOwnership(differingSink(returned, state), "function return", source),
           );
         }
-        returned = state;
+        returned = returned === null ? state : (mergeSites(returned, state) ?? returned);
         continue;
       }
       const successors =
@@ -430,17 +413,13 @@ export function checkInterruptOwnership(
                 )
               : invalidOwnership(differingSink(previous, state), "control-flow join", source),
           );
+        } else {
+          const merged = mergeSites(previous, state);
+          if (merged !== null) {
+            atEntry.set(successor, merged);
+            pending.push(successor);
+          }
         }
-      }
-      steps += 1;
-      if (steps > blocks.length * 2) {
-        diagnostics.push(
-          projectDiagnostic(
-            "E10245",
-            `Execution path '${name}' has no static interrupt bound`,
-            source,
-          ),
-        );
       }
     }
     active.delete(key);
@@ -462,6 +441,7 @@ export function checkInterruptOwnership(
       fn.entry,
       fn.blocks,
       bindingIdentityKey(fn.id) !== bindingIdentityKey(program.main),
+      fn.entryKind === "interrupt" && irqRoots.has(bindingIdentityKey(fn.id)),
     );
   }
 
@@ -486,6 +466,7 @@ export function checkInterruptOwnership(
       global.source,
       global.entry,
       global.blocks,
+      false,
       false,
     );
     for (const sink of ["irq", "nmi"] as const) {
@@ -553,17 +534,55 @@ export function checkInterruptOwnership(
   for (const fn of program.functions) {
     if (!reachable.has(bindingIdentityKey(fn.id)) || fn.entryKind !== "interrupt") continue;
     const effect = summarize(fn);
-    // An interrupt root can run again after it returns. A net install or
-    // restore would change the vector depth on every entry, so no fixed set of
-    // predecessor words could serve all executions.
+    // An interrupt root can run again after it returns. A leftover install is
+    // an ownership error; a self-install additionally creates an unbounded
+    // interrupt route if that newly selected entry can recur.
     if ((["irq", "nmi"] as const).some((sink) => relativeDepth(effect.state[sink]) !== 0)) {
-      diagnostics.push(
-        projectDiagnostic(
-          "E10245",
-          `Interrupt handler '${fn.name ?? "<handler>"}' changes vector ownership across repeated entries`,
-          fn.source,
-        ),
-      );
+      if (!irqRoots.has(bindingIdentityKey(fn.id))) {
+        diagnostics.push(
+          projectDiagnostic(
+            "E10245",
+            `Interrupt handler '${fn.name ?? "<handler>"}' changes vector ownership across repeated entries`,
+            fn.source,
+          ),
+        );
+        continue;
+      }
+      const sink = (["irq", "nmi"] as const).find(
+        (candidate) => relativeDepth(effect.state[candidate]) !== 0,
+      )!;
+      // A helper may own the surviving push; its original source site remains in
+      // the summary even though the installation is outside this handler body.
+      const selfInstall = routes.find(
+        (route) =>
+          route.sink.domain === sink &&
+          bindingIdentityKey(route.handler) === bindingIdentityKey(fn.id) &&
+          effect.state[sink].some(
+            (event) => event.kind === "push" && event.sites.includes(site(route.installation.span)),
+          ),
+      )?.installation;
+      if (selfInstall !== undefined) {
+        diagnostics.push(
+          projectDiagnostic(
+            "E10245",
+            `Execution path '${fn.name ?? "<handler>"}' can overlap or consume hardware stack without a static bound — use a bounded interrupt/callback design`,
+            selfInstall.span,
+            null,
+            routes
+              .filter(
+                (route) =>
+                  bindingIdentityKey(route.handler) === bindingIdentityKey(fn.id) &&
+                  route.installation !== selfInstall,
+              )
+              .map((route) => ({
+                span: route.installation.span,
+                message: "Handler is installed here",
+              })),
+          ),
+        );
+      } else {
+        diagnostics.push(invalidOwnership(sink, "handler return", fn.source));
+      }
     }
   }
   return Object.freeze({

@@ -1,7 +1,7 @@
 # Testing Strategy: Handler-Side IRQ Updates
 
 > **Parent**: [Index](00-index.md)
-> **Authority**: AR-P1–AR-P6; [design](03-handler-irq.md); frozen Specification 4
+> **Authority**: AR-P1–AR-P10; [design](03-handler-irq.md); frozen Specification 4
 
 ## Test Boundary
 
@@ -59,7 +59,7 @@ already pass before implementation are recorded as supporting regressions, never
 
 | ID | Concrete input / scenario | Expected result | Source |
 |---|---|---|---|
-| ST-19 | A temporarily installs B or C selected by `peek($0400)`, then restores; ordinary helpers include a finite function-pointer call and a source equality check against the original function address | Selected entry/call variant uses the correct root and slot; source function equality is unchanged; no generic runtime context selector | Chapter 6 §7.4–§7.6; design §3/§6 |
+| ST-19 | A temporarily installs B or C selected by `peek($0400)`, then restores; ordinary helpers include a finite function-pointer call and a source equality check against the original function address | Selected entry/call variant uses the correct root and slot; source function equality is unchanged; no generic runtime context selector. The existing VICE tier observes both equality-marker outcomes because static assembly cannot prove which branch executes | Chapter 6 §7.4–§7.6; design §3/§6 |
 | ST-20 | In ST-11, A and B both update a shared byte with RMW and access a shared word with at least one write; contrast a single-byte plain publication | W10211 and W10212 with related conflicting access/path evidence for the hazards; no cloned globals or hidden mask. Plain byte publication does not gain a tearing warning | R5.18 / AC-15; design §7 |
 | ST-21 | Small chain and exclusive entries plus temporary setter/restore in a handler, compared with hand-derived sequences under the same P/A preservation contract | Direct link/entry operands and required ABI. Context identity adds zero instructions. Generic full-preservation setter ceiling 27 bytes/44 cycles, restore 17/32; chain wrapper excluding body 6/14, exclusive wrapper 4/5 plus existing ROM tail. A shorter proved equivalent sequence is allowed | Primary CPU/firmware contracts; design §6/§8; cost derivation below |
 | ST-22 | Direct selected IRQ fixture: startup=0, no ordinary calls, main retains 10 source PHP bytes, chained A retains 3 PHP bytes while enabling exclusive B, B peaks at 5 PHP bytes. All pushes and local installs balance; compare usable capacities 31 and 30 | Exact peak is `10 + 7 + 3 + 6 + 5 = 31` bytes. Capacity 31 succeeds; 30 fails E10238 with used=31/available=30. Installer's two transient bytes do not exceed that peak. No extra frame is charged for chaining | Chapter 6 §7.9; design §4–§5 |
@@ -105,16 +105,33 @@ game framework, interrupt scheduler or reusable runtime is created for the fixtu
 | `test/rd05/handler-irq-nesting.spec.test.ts` | ST-11–ST-17, ST-20, ST-29 |
 | `packages/compiler/src/storage/handler-irq.spec.test.ts` | ST-18, ST-22–ST-23 |
 | `test/rd05/handler-irq-output.spec.test.ts` | ST-19, ST-21, ST-30 |
-| `test/rd05/handler-irq-vice.spec.test.ts` | ST-24, ST-26, ST-28 |
+| `test/rd05/handler-irq-vice.spec.test.ts` | ST-19 equality-marker observation; ST-24, ST-26, ST-28 |
 | `test/rd05/handler-irq-nesting-vice.spec.test.ts` | ST-25, ST-27 |
 
 Authoring packets include complete rows plus the shared setup/cost contracts. Public behavior
 authors may read the public compiler exports, `test/rd05/profile-fixture.ts`, and the existing
 VICE helper interfaces. Direct SFA authors receive type/signature excerpts for existing closure
-inputs and the proposed context metadata, not implementation bodies. All compiler implementation
-files and `*.impl.test.ts` are forbidden during independent specification authoring. A packet may
+inputs and the direct internal interface contract in design §5, not implementation bodies. They
+may build typed `WholeProgram`/`StorageInventory`/`MachineProgram` fixtures using the existing
+object shapes and inspect `simultaneousIRQStackPeak`, `buildInterference`, `closeStorage`,
+`bindMachineProgram`, and `closeSharedStorage` results. For ST-18, supply explicit overlap tuples
+to the planned third `buildInterference` argument, then allocate in the named windows. For ST-22,
+use the selected main/A/B operations and 31/30-byte profile values from design §5; the direct
+closure oracle is `hardwareStackPeak` or `reason: "stack"` with `measured`/`available`, while
+E10238 is the established public diagnostic mapping. For ST-23, rebind one unchanged symbolic
+program against distinct final certificates and include the existing shared-RAM and long-branch
+paths. A test must compile now and fail on missing behavior, not on a not-yet-declared import or
+type name. For a planned optional trailing argument not yet declared in TypeScript, a test-local
+structural call signature may accept that argument without an unsafe cast; use local structural
+tuple types rather than importing a not-yet-created type. All compiler implementation files and `*.impl.test.ts` are forbidden during
+independent specification authoring. A packet may
 include the existing immutable specification regressions to retain, but never derive new behavior
 from current failures. Ordinary test-local helper functions are allowed; no new harness is needed.
+
+The output specification proves the selected address/call and comparison shape. The planned
+VICE file also runs both equality choices and observes the separate marker, so source-address
+equality is not inferred from assembly appearance alone. Reuse the existing monitor and project
+fixture; this adds no runner or support module.
 
 After green specifications, internal hardening covers finite context counts, memoization keys,
 request/hash determinism, pending continuations, all private-storage classes (including aggregate

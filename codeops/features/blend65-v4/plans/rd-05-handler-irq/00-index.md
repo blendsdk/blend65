@@ -1,7 +1,7 @@
 # RD-05 Handler-Side IRQ Updates
 
 > **Feature**: Safe temporary IRQ installation from a running handler
-> **Status**: Planning Complete — preflight pending
+> **Status**: Complete — bounded IRQ slice verified
 > **Created**: 2026-09-27
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
@@ -22,7 +22,7 @@ storage have separate lifetimes. See [the selected design](03-handler-irq.md) an
 **Excluded machinery:** runtime manager/dispatcher, new graph framework, early instruction
 skeleton, outer re-lowering loop, new harness and dependency.
 **Approved complexity:** none beyond the direct extension; a larger mechanism requires a new
-explicit complexity ruling. Scope and authority are owned by [AR-P1–AR-P6](00-ambiguity-register.md).
+explicit complexity ruling. Scope and authority are owned by [AR-P1–AR-P10](00-ambiguity-register.md).
 
 ## Document Index
 
@@ -33,6 +33,7 @@ explicit complexity ruling. Scope and authority are owned by [AR-P1–AR-P6](00-
 | [Current state](02-current-state.md) | Grounded code inventory |
 | [Handler IRQ design](03-handler-irq.md) | Compiler contracts and failure handling |
 | [Testing strategy](07-testing-strategy.md) | Independent input-to-result cases and verification |
+| [Closeout evidence](08-closeout.md) | Qualified route, cost, review and deferral evidence |
 | [Execution plan](99-execution-plan.md) | Sole task-progress checklist |
 
 ## Quick Reference
@@ -42,6 +43,6 @@ ordinary helper. Legal nesting and invalid counterexamples are specified in the 
 not inferred from this example. Only the four already qualified cooperative C64 profiles are in
 scope. NMI remains separate under AR-P4.
 
-One implementation phase keeps the ownership, storage and emitted-entry changes together.
-Tests precede implementation. No new capability is claimed until that phase verifies; the
-selected design is an independently challenged inference, not a runtime result.
+One implementation phase kept the ownership, storage and emitted-entry changes together.
+Independent specifications preceded implementation. The bounded IRQ capability is verified
+by source, storage, emitted-output and sequential VICE cases. RD-05 and NMI work remain open.

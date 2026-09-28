@@ -125,12 +125,71 @@ their conflicts. Two slots may overlay only when the proof excludes simultaneous
 is a valid two-byte indirect pair, `$xxFF` is not.
 
 The new compiler-only overlap record contains three deterministic sets: root-key pairs, saved-link
-request-ID pairs, and link-ID/root-key pairs, with source witnesses where warnings need them.
+request-ID pairs, and link-ID/root-key pairs. The IRQ walk retains its source spans and route
+witnesses for warnings; interference does not need a second witness store.
 Carry it as optional `irqOverlap` on the existing analysis/complete-closure results; absence keeps
 synthetic and non-IRQ inputs compatible. Real selected IRQ closure must supply it. The existing
 `simultaneousIRQStackPeak` entry point and stack fields remain available, and `buildInterference`
 accepts the optional overlap record alongside its existing arguments. No new public service export
 or serialized schema is introduced. Certificate interference remains the final physical proof.
+
+### Direct internal interface contract
+
+`IrqOverlapFacts` is an internal readonly value in `storage/storage-types.ts` with
+`rootPairs`, `linkPairs`, and `linkRootPairs`, each a readonly array of readonly two-string
+tuples. The first two contain unordered pairs in canonical lexical order; `linkRootPairs` stores
+`[savedLinkRequestId, activationRoot]` in that order. Each array is deduplicated and sorted
+lexically. An empty array means the proof found no such conflict, not that all roots or links are
+permanently live. `rootPairs` use the stable handler-root keys from §3; `linkPairs` use the exact
+two-byte saved-link request IDs; `linkRootPairs` connects each live link to the private homes of
+the named root. Global objects never acquire a root key.
+
+Keep `simultaneousIRQStackPeak(program, helpers, startupBytes, instructionSites)` callable as-is.
+Its optional fifth argument is the selected inventory's `readonly StorageRequest[]`, needed to
+name link request IDs. Its result adds optional `irqOverlap: IrqOverlapFacts` without changing
+`program`, `system`, or `route`. `buildInterference(inventory, helperCalls = [], irqOverlap?)`
+consumes that record before allocation: root pairs conflict across root-private requests, link
+pairs conflict by ID, and link/root pairs conflict between that link and the root's private
+requests. It retains all existing lifetime, call, domain, and helper edges. `closeStorage` keeps
+its three-argument signature; for selected IRQ inputs it derives the overlap from its existing
+`StorageBinder.instructionSites` and inventory, passes it to interference before allocation,
+and exposes optional `irqOverlap` on its complete result. No extra binder field or synthetic
+selected-instruction adapter is introduced.
+
+The direct selected fixture is a typed `WholeProgram` with main, chained A, and exclusive B;
+`interruptRoutes` identify both installation operations and their profile-selected variants.
+The same operation objects occur in the functions' blocks and in `instructionSites`; each
+handler's binding identity is its root key, while the inventory names any saved links. The
+main/A/B bodies use balanced `asm_php`/`asm_plp`, installs/restores, and explicit CLI/SEI
+recognition boundaries. Set `startupStackBytes` to zero and change only
+`hardwareStackCapacity - hardwareStackReserve` between 31 and 30. No fabricated runtime IRQ
+context input is needed; the existing route/context analysis derives it from this program.
+Select sink entries by `capability` (`c64.system.setIRQ` for A,
+`c64.system.setIRQExclusive` for B) from `TargetProfile.interrupts.sinks`, then match each sink's
+`variant` ID against `TargetProfile.interrupts.variants`. Each install is a `PlatformOperation`
+whose single staged `arguments` value names a preceding `function-address` operation of
+`interrupt-handler` type; restore has no arguments. `InterruptRoute.installation` is the exact
+install operation object in the containing block. The direct stack probe needs no saved-link
+request. For synthetic interference and binding probes, arbitrary stable request IDs are valid
+when the same IDs occur in the overlap facts, inventory and symbolic operands; tests need not
+guess a generated link-ID spelling.
+
+For final-home tests, retain one symbolic `MachineProgram` and its binder. Close the same
+inventory against two legal RAM windows, bind the unchanged symbolic program with each final
+certificate through `bindMachineProgram`, and exercise `closeSharedStorage` for the existing
+shared-RAM suffix path. A fixture with a preselected long-branch terminator tests that neutral
+relaxation preserves the source instruction sites and IRQ effects. Compare the final bound
+operands with that run's certified homes, and compare source sites, opcode/effect order,
+call/chain boundaries, branch target, and scratch identities across the two results. The
+already-owned machine and shared-storage functions are the observation points; this contract
+does not add a re-lowering entry point.
+The symbolic call is a `jsr` instruction with an absolute label operand. The predecessor chain
+is a `jmp` instruction in indirect mode with a storage operand naming its two-byte link; the
+link request is page-safe. A preselected `long-branch` terminator retains its inverse branch,
+fallthrough, absolute jump target, flag use and five-byte cost. A complete
+`closeSharedStorage(symbolic, binder, provisionalClosure, profile)` result contains
+`certificate` (the new complete storage closure), `machine` (the program bound to that
+certificate), and `layout`; compare `machine.program` against `certificate.certificate.homes`.
 
 All candidate request identities exist before closure. Helpers may introduce only declared finite
 candidates through the existing binder. No emitter invents storage after the final certificate.

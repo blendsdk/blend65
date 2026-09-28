@@ -4,7 +4,8 @@ import type { BindingId, EffectSummary } from "../frontend/semantic-types.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { SemanticProgram } from "./operations.js";
-import type { CallGraphNode, ProgramRoot } from "./whole-program.js";
+import type { IrqOverlapFacts } from "../storage/storage-types.js";
+import type { CallGraphNode, ProgramRoot, WholeProgram } from "./whole-program.js";
 
 /** An independently entering mainline or interrupt execution context. */
 export type ExecutionDomain = "main" | "irq" | "nmi";
@@ -43,13 +44,12 @@ function accessFor(summary: EffectSummary, binding: BindingId): Access {
 /** Prefer the complete write operation over its component read when showing an update. */
 function accessSite(
   program: SemanticProgram,
-  domains: ReadonlyMap<string, ReadonlySet<ExecutionDomain>>,
+  included: ReadonlySet<string>,
   binding: BindingId,
-  domain: ExecutionDomain,
 ): SourceSpan | null {
   let read: SourceSpan | null = null;
   for (const fn of program.functions) {
-    if (!domains.get(bindingIdentityKey(fn.id))?.has(domain)) continue;
+    if (!included.has(bindingIdentityKey(fn.id))) continue;
     for (const block of fn.blocks) {
       for (const operation of block.operations) {
         if (
@@ -63,6 +63,125 @@ function accessSite(
     }
   }
   return read;
+}
+
+/** Find ordinary callees that execute inside one selected IRQ handler root. */
+function rootFunctions(program: WholeProgram, root: string): ReadonlySet<string> {
+  const calls = new Map(
+    program.callGraph.map(
+      (node) => [bindingIdentityKey(node.function), node.callees.map(bindingIdentityKey)] as const,
+    ),
+  );
+  const reached = new Set<string>();
+  const pending = [root];
+  while (pending.length > 0) {
+    const key = pending.pop()!;
+    if (reached.has(key)) continue;
+    reached.add(key);
+    pending.push(...(calls.get(key) ?? []));
+  }
+  return reached;
+}
+
+/** Warn only when selected IRQ paths prove that two roots can overlap. */
+export function overlappingIrqRootWarnings(
+  program: WholeProgram,
+  overlap: IrqOverlapFacts | undefined,
+): readonly ProjectDiagnostic[] {
+  if (overlap === undefined || overlap.rootPairs.length === 0) return Object.freeze([]);
+  const functions = new Map<string, ReadonlySet<string>>();
+  const effects = new Map(
+    program.effects.map((summary) => [bindingIdentityKey(summary.function), summary] as const),
+  );
+  const warnings = new Map<string, ProjectDiagnostic>();
+  const accessByRoot = new Map<string, Map<string, Access>>();
+  const siteByRoot = new Map<string, Map<string, SourceSpan | null>>();
+  /** One root's effect and source facts are reused by every overlap pair containing it. */
+  const combined = (root: string, owners: ReadonlySet<string>, binding: BindingId): Access => {
+    const key = bindingIdentityKey(binding);
+    const cached = accessByRoot.get(root)?.get(key);
+    if (cached !== undefined) return cached;
+    const result = { read: false, write: false };
+    for (const owner of owners) {
+      const summary = effects.get(owner);
+      if (summary === undefined) continue;
+      const access = accessFor(summary, binding);
+      result.read ||= access.read;
+      result.write ||= access.write;
+    }
+    const entries = accessByRoot.get(root) ?? new Map<string, Access>();
+    entries.set(key, result);
+    accessByRoot.set(root, entries);
+    return result;
+  };
+  const sourceSite = (
+    root: string,
+    owners: ReadonlySet<string>,
+    binding: BindingId,
+  ): SourceSpan | null => {
+    const key = bindingIdentityKey(binding);
+    const entries = siteByRoot.get(root) ?? new Map<string, SourceSpan | null>();
+    if (entries.has(key)) return entries.get(key)!;
+    const found = accessSite(program.semantic, owners, binding);
+    entries.set(key, found);
+    siteByRoot.set(root, entries);
+    return found;
+  };
+  for (const [leftRoot, rightRoot] of overlap.rootPairs) {
+    const leftFunctions = functions.get(leftRoot) ?? rootFunctions(program, leftRoot);
+    const rightFunctions = functions.get(rightRoot) ?? rootFunctions(program, rightRoot);
+    functions.set(leftRoot, leftFunctions);
+    functions.set(rightRoot, rightFunctions);
+    for (const global of program.semantic.globals) {
+      if (global.storage !== "module") continue;
+      const left = combined(leftRoot, leftFunctions, global.id);
+      const right = combined(rightRoot, rightFunctions, global.id);
+      const lostUpdate =
+        (left.read && left.write && right.write) || (right.read && right.write && left.write);
+      const tear =
+        semanticTypeSize(global.type) > 1 &&
+        (left.read || left.write) &&
+        (right.read || right.write) &&
+        (left.write || right.write);
+      if (!lostUpdate && !tear) continue;
+      const primary = sourceSite(leftRoot, leftFunctions, global.id) ?? global.source;
+      const conflicting = sourceSite(rightRoot, rightFunctions, global.id) ?? global.source;
+      const related = [{ span: conflicting, message: "Conflicting overlapping IRQ access" }];
+      const name = global.name ?? "<unknown>";
+      const key = bindingIdentityKey(global.id);
+      if (lostUpdate) {
+        warnings.set(
+          `W10211:${key}`,
+          Object.freeze({
+            ...projectDiagnostic(
+              "W10211",
+              `Shared '${name}' has an unprotected cross-domain read-modify-write that can lose an update`,
+              primary,
+              null,
+              related,
+            ),
+            severity: "warning" as const,
+          }),
+        );
+      }
+      if (tear) {
+        warnings.set(
+          `W10212:${key}`,
+          Object.freeze({
+            ...projectDiagnostic(
+              "W10212",
+              `Shared multi-byte '${name}' can tear across overlapping IRQ access`,
+              primary,
+              null,
+              related,
+            ),
+            severity: "warning" as const,
+          }),
+        );
+      }
+    }
+  }
+  return Object.freeze([...warnings.values()]);
 }
 
 /** Propagate entry domains through the already closed call graph. */
@@ -121,8 +240,10 @@ export function analyzeInterruptDomains(
     for (const interrupt of ["irq", "nmi"] as const) {
       const other = byDomain.get(interrupt);
       if (other === undefined) continue;
-      const primary = accessSite(program, domains, global.id, "main") ?? global.source;
-      const conflicting = accessSite(program, domains, global.id, interrupt) ?? global.source;
+      const owners = (domain: ExecutionDomain): ReadonlySet<string> =>
+        new Set([...domains].flatMap(([key, reached]) => (reached.has(domain) ? [key] : [])));
+      const primary = accessSite(program, owners("main"), global.id) ?? global.source;
+      const conflicting = accessSite(program, owners(interrupt), global.id) ?? global.source;
       const related = [{ span: conflicting, message: `Conflicting ${interrupt} access` }];
       if ((main.read && main.write && other.write) || (other.read && other.write && main.write)) {
         diagnostics.push(

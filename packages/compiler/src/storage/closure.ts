@@ -32,6 +32,7 @@ function requestFingerprint(request: StorageRequest): string {
     request.storageClass,
     bindingIdentityKey(request.owner),
     request.domain ?? null,
+    request.activationRoot ?? null,
     request.binding === null ? null : bindingIdentityKey(request.binding),
     request.value,
     request.type,
@@ -59,6 +60,7 @@ function resultFingerprint(result: FunctionResultLocation): string {
   return JSON.stringify([
     bindingIdentityKey(result.function),
     result.domain ?? null,
+    result.activationRoot ?? null,
     result.location,
   ]);
 }
@@ -389,6 +391,7 @@ function hardwareStackPeak(
   profile: StorageProfile,
   helperCalls: readonly HelperCallDemand[],
   instructionSites: StorageBinder["instructionSites"],
+  selectedPeak?: ReturnType<typeof simultaneousIRQStackPeak>,
 ): {
   readonly total: number;
   readonly program: number;
@@ -413,12 +416,15 @@ function hardwareStackPeak(
     profile.interruptStackBytes === undefined &&
     inventory.program.interruptRoutes!.every(({ sink }) => sink.domain === "irq")
   ) {
-    const peak = simultaneousIRQStackPeak(
-      inventory.program,
-      helperCalls,
-      startup,
-      instructionSites,
-    );
+    const peak =
+      selectedPeak ??
+      simultaneousIRQStackPeak(
+        inventory.program,
+        helperCalls,
+        startup,
+        instructionSites,
+        inventory.requests,
+      );
     return { ...peak, total: peak.program + peak.system };
   }
   const routes = hardwareCallRoutes(inventory, helperCalls);
@@ -544,7 +550,19 @@ export function closeStorage(
       requests: Object.freeze(requests),
       results: initial.results,
     });
-    const interference = buildInterference(inventory, helperCalls);
+    const selectedPeak =
+      (inventory.program.interruptRoutes?.length ?? 0) > 0 &&
+      profile.interruptStackBytes === undefined &&
+      inventory.program.interruptRoutes!.every(({ sink }) => sink.domain === "irq")
+        ? simultaneousIRQStackPeak(
+            inventory.program,
+            helperCalls,
+            profile.startupStackBytes ?? 0,
+            binder.instructionSites,
+            inventory.requests,
+          )
+        : undefined;
+    const interference = buildInterference(inventory, helperCalls, selectedPeak?.irqOverlap);
     const allocation = allocateStorage(inventory, interference, profile);
     if (allocation.kind === "error") {
       return Object.freeze({
@@ -585,7 +603,13 @@ export function closeStorage(
     if (!helpersReferenceInventory(inventory, helperCalls)) {
       return Object.freeze({ kind: "error", reason: "nonconvergent" });
     }
-    const stackPeak = hardwareStackPeak(inventory, profile, helperCalls, binder.instructionSites);
+    const stackPeak = hardwareStackPeak(
+      inventory,
+      profile,
+      helperCalls,
+      binder.instructionSites,
+      selectedPeak,
+    );
     if (stackPeak === null) return Object.freeze({ kind: "error", reason: "stack" });
     if (!Number.isFinite(stackPeak.total)) {
       return Object.freeze({
@@ -611,6 +635,7 @@ export function closeStorage(
       kind: "complete",
       inventory,
       placement: allocation.placement,
+      ...(selectedPeak?.irqOverlap === undefined ? {} : { irqOverlap: selectedPeak.irqOverlap }),
       certificate: certificate(
         inventory,
         allocation.placement,

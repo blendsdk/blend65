@@ -28,6 +28,8 @@ export interface StorageRequest {
   readonly owner: BindingId;
   /** Invocation domain for a private home; absent on older single-domain inputs. */
   readonly domain?: ExecutionDomain;
+  /** Handler invocation whose private home owns this demand, when in IRQ code. */
+  readonly activationRoot?: string;
   /** Source binding when the request represents declared storage. */
   readonly binding: BindingId | null;
   /** Semantic value identity when the request represents a computed value. */
@@ -64,6 +66,8 @@ export interface FunctionResultLocation {
   readonly function: BindingId;
   /** Entry domain when the same source function has distinct private homes. */
   readonly domain?: ExecutionDomain;
+  /** Handler invocation owning this result's private storage, when relevant. */
+  readonly activationRoot?: string;
   /** Selected result location. */
   readonly location: ResultLocation;
 }
@@ -118,6 +122,16 @@ export interface HelperCallDemand {
   readonly helperRequestIds: readonly string[];
   /** Complete additional hardware-stack peak while the helper executes. */
   readonly stackBytes: number;
+}
+
+/** Exact IRQ conflicts discovered from simultaneously live roots and links. */
+export interface IrqOverlapFacts {
+  /** Unordered pairs of handler roots whose private values may overlap. */
+  readonly rootPairs: readonly (readonly [string, string])[];
+  /** Unordered pairs of saved predecessor slots live at the same time. */
+  readonly linkPairs: readonly (readonly [string, string])[];
+  /** Saved slot and handler root whose private values may overlap. */
+  readonly linkRootPairs: readonly (readonly [string, string])[];
 }
 
 /** No-addition discovery callback used for direct stable checks. */
@@ -220,6 +234,8 @@ export type StorageClosureResult =
       readonly inventory: StorageInventory;
       readonly placement: StoragePlacement;
       readonly certificate: StorageClosureCertificate;
+      /** Selected IRQ overlap facts used before allocation, when available. */
+      readonly irqOverlap?: IrqOverlapFacts;
     }
   | {
       readonly kind: "error";

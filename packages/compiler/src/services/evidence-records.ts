@@ -551,18 +551,34 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     input.certificate.helperCalls.flatMap(({ helperRequestIds }) => helperRequestIds),
   );
   for (const request of input.inventory.requests) {
-    // Helper scratch belongs to the memory ledger, not a source-level debug location.
-    if (helperScratchIds.has(request.id)) continue;
+    // A handler-local predecessor has a selected installation lifetime, not a
+    // source-variable live range. Its physical home remains in the memory ledger.
+    // Existing mainline predecessor records retain their debug locations.
+    if (
+      helperScratchIds.has(request.id) ||
+      (request.activationRoot !== undefined && request.id.startsWith("interrupt-link:"))
+    )
+      continue;
     const functionIndex = functionIndexes.get(bindingIdentityKey(request.owner));
     const home = homes.get(request.id);
     const sourceFunction =
       functionIndex === undefined ? undefined : executionFunctions[functionIndex];
     if (functionIndex === undefined || home === undefined || sourceFunction === undefined) continue;
+    const rootSuffix =
+      request.activationRoot === undefined
+        ? null
+        : `.irq.root${Buffer.from(request.activationRoot).toString("hex")}.`;
     const variantIndexes = sourceFunction.machineIds.flatMap((machineId, index) =>
       request.domain === "irq"
-        ? machineId.includes(".irq") || machineId.includes("_cinv_")
-          ? [index]
-          : []
+        ? rootSuffix !== null
+          ? machineId.includes(rootSuffix) ||
+            (request.activationRoot === bindingIdentityKey(request.owner) &&
+              machineId.startsWith(`interrupt.${request.activationRoot}.`))
+            ? [index]
+            : []
+          : machineId.includes(".irq") || machineId.includes("_cinv_")
+            ? [index]
+            : []
         : request.domain === "nmi"
           ? machineId.includes(".nmi") || machineId.includes("_nminv_")
             ? [index]

@@ -17,14 +17,15 @@ import type {
 } from "./machine-types.js";
 
 /** Use the existing mainline spelling, but distinguish fixed interrupt homes. */
-function domainOwner(key: string, domain: ExecutionDomain): string {
-  return `${key}${domain === "main" ? "" : `@${domain}`}`;
+function domainOwner(key: string, domain: ExecutionDomain, activationRoot?: string): string {
+  return `${key}${domain === "main" ? "" : `@${domain}`}${activationRoot === undefined ? "" : `@${activationRoot}`}`;
 }
 
 /** Expose provisional unsuffixed names to the existing single-body selector. */
 export function provisionalDomainAliases(
   placement: StoragePlacement,
   program: WholeProgram,
+  activationRoot?: string,
 ): StoragePlacement {
   const existing = new Set(placement.homes.map(({ requestId }) => requestId));
   const aliases: StorageHome[] = [];
@@ -32,7 +33,7 @@ export function provisionalDomainAliases(
     const key = bindingIdentityKey(entry.function);
     for (const home of placement.homes) {
       for (const domain of ["irq", "nmi"] as const) {
-        const prefix = `${key}@${domain}:`;
+        const prefix = `${domainOwner(key, domain, domain === "irq" ? activationRoot : undefined)}:`;
         if (!home.requestId.startsWith(prefix)) continue;
         const alias = `${key}:${home.requestId.slice(prefix.length)}`;
         if (existing.has(alias)) continue;
@@ -49,6 +50,7 @@ export function domainRequestId(
   requestId: string,
   domain: ExecutionDomain,
   program: WholeProgram,
+  activationRoot?: string,
 ): string {
   for (const entry of program.executionDomains ?? []) {
     if (!entry.domains.includes(domain)) continue;
@@ -56,7 +58,7 @@ export function domainRequestId(
     for (const prefix of [key, `machine:${key}`]) {
       for (const current of [prefix, `${prefix}@irq`, `${prefix}@nmi`]) {
         if (requestId.startsWith(`${current}:`)) {
-          return `${domainOwner(prefix, domain)}:${requestId.slice(current.length + 1)}`;
+          return `${domainOwner(prefix, domain, activationRoot)}:${requestId.slice(current.length + 1)}`;
         }
       }
     }
@@ -69,11 +71,13 @@ export function domainStorageRequest(
   request: StorageRequest,
   domain: ExecutionDomain,
   program: WholeProgram,
+  activationRoot?: string,
 ): StorageRequest {
   return Object.freeze({
     ...request,
-    id: domainRequestId(request.id, domain, program),
+    id: domainRequestId(request.id, domain, program, activationRoot),
     domain,
+    ...(activationRoot === undefined ? {} : { activationRoot }),
   });
 }
 
@@ -83,11 +87,23 @@ export function contextFunctionLabel(
   context: InterruptExecutionContext,
   contexts: InterruptExecutionContexts,
   program: WholeProgram,
+  rootAware = false,
 ): string {
   for (const fn of program.semantic.functions) {
     const key = bindingIdentityKey(fn.id);
     if (label !== `fn.${key}`) continue;
     if (fn.entryKind === "interrupt") return label;
+    if (rootAware && context.domain === "irq" && context.activationRoot !== undefined) {
+      const root = Buffer.from(context.activationRoot).toString("hex");
+      const selected = (contexts.get(key) ?? []).filter(
+        (entry) => entry.activationRoot === context.activationRoot,
+      );
+      const depth =
+        selected.find((entry) => entry.localIrqDepth === context.localIrqDepth)?.localIrqDepth ??
+        (selected.length === 1 ? selected[0]!.localIrqDepth : context.localIrqDepth) ??
+        0;
+      return `${label}.irq.root${root}.depth${depth}`;
+    }
     const sameDomain = (contexts.get(key) ?? []).filter((entry) => entry.domain === context.domain);
     if (
       context.domain === "main" &&
@@ -139,12 +155,18 @@ function domainOperand(
   context: InterruptExecutionContext,
   contexts: InterruptExecutionContexts,
   program: WholeProgram,
+  rootAware: boolean,
 ): MachineOperand | null {
   if (operand === null) return null;
   if (operand.kind === "storage" || operand.kind === "indirect-y") {
     return Object.freeze({
       ...operand,
-      requestId: domainRequestId(operand.requestId, context.domain, program),
+      requestId: domainRequestId(
+        operand.requestId,
+        context.domain,
+        program,
+        rootAware ? context.activationRoot : undefined,
+      ),
     });
   }
   if (operand.kind === "label") {
@@ -159,6 +181,7 @@ function domainOperand(
         calleeContext(instruction, operand.label, context, program),
         contexts,
         program,
+        rootAware,
       ),
     });
   }
@@ -168,13 +191,19 @@ function domainOperand(
 /** Retain memory-effect identity when a private home changes address. */
 function domainAddress(
   address: MachineMemoryAddress,
-  domain: ExecutionDomain,
+  context: InterruptExecutionContext,
   program: WholeProgram,
+  rootAware: boolean,
 ): MachineMemoryAddress {
   if (address.kind === "storage" || address.kind === "indirect-y") {
     return Object.freeze({
       ...address,
-      requestId: domainRequestId(address.requestId, domain, program),
+      requestId: domainRequestId(
+        address.requestId,
+        context.domain,
+        program,
+        rootAware ? context.activationRoot : undefined,
+      ),
     });
   }
   return address;
@@ -186,15 +215,16 @@ function domainInstruction(
   context: InterruptExecutionContext,
   contexts: InterruptExecutionContexts,
   program: WholeProgram,
+  rootAware: boolean,
 ): MachineInstruction {
   return Object.freeze({
     ...instruction,
-    operand: domainOperand(instruction.operand, instruction, context, contexts, program),
+    operand: domainOperand(instruction.operand, instruction, context, contexts, program, rootAware),
     memory: Object.freeze(
       instruction.memory.map((effect) =>
         Object.freeze({
           ...effect,
-          address: domainAddress(effect.address, context.domain, program),
+          address: domainAddress(effect.address, context, program, rootAware),
         }),
       ),
     ),
@@ -207,14 +237,15 @@ export function domainMachineFunction(
   context: InterruptExecutionContext,
   contexts: InterruptExecutionContexts,
   program: WholeProgram,
+  rootAware = false,
 ): MachineFunction {
-  const selectedId = contextFunctionLabel(body.id, context, contexts, program);
+  const selectedId = contextFunctionLabel(body.id, context, contexts, program, rootAware);
   const suffix = selectedId.slice(body.id.length);
   const labels = new Map(
     body.blocks.map((block) => [block.label, `${block.label}${suffix}`] as const),
   );
   const target = (label: string): string =>
-    labels.get(label) ?? contextFunctionLabel(label, context, contexts, program);
+    labels.get(label) ?? contextFunctionLabel(label, context, contexts, program, rootAware);
   const blocks: MachineBlock[] = body.blocks.map((block) => {
     const terminal = block.terminator;
     const terminator: MachineTerminator =
@@ -238,7 +269,7 @@ export function domainMachineFunction(
       label: labels.get(block.label)!,
       instructions: Object.freeze(
         block.instructions.map((instruction) => {
-          const selected = domainInstruction(instruction, context, contexts, program);
+          const selected = domainInstruction(instruction, context, contexts, program, rootAware);
           return selected.operand?.kind === "label" && labels.has(selected.operand.label)
             ? Object.freeze({
                 ...selected,

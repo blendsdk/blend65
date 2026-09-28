@@ -2,14 +2,17 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import {
+  interruptDepthAt,
   interruptExecutionContexts,
   interruptRouteDepths,
+  irqPredecessorSlot,
 } from "../semantic/interrupt-contexts.js";
+import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
 import type { SemanticOperation, SemanticTerminator } from "../semantic/operations.js";
 import type { HelperCallDemand, StorageRequest } from "../storage/storage-types.js";
 import { storageInventoryHash } from "../storage/closure.js";
-import { inventoryStorage } from "../storage/inventory.js";
+import { hasHandlerSideIrqInstall, inventoryStorage } from "../storage/inventory.js";
 import {
   createC64Startup,
   createC64StartupStateData,
@@ -173,19 +176,46 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
     readonly caller: BindingId;
     readonly requestIds: readonly string[];
     readonly source: SourceSpan;
+    readonly activationRoot?: string;
   }[] = [];
   const warnings: ProjectDiagnostic[] = [];
   const instructionSites = new Set<SemanticOperation | SemanticTerminator>();
   try {
-    const loweringInput = Object.freeze({
-      ...input,
-      placement: provisionalDomainAliases(input.placement, input.program),
-    });
     const functionsByKey = new Map(
       input.program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
     );
     const contexts = interruptExecutionContexts(input.program);
+    const rootAware = hasHandlerSideIrqInstall(input.program, contexts);
+    const loweringInput = Object.freeze({
+      ...input,
+      placement: provisionalDomainAliases(input.placement, input.program),
+    });
     const routeDepths = interruptRouteDepths(input.program, contexts);
+    const routeSlots = new Map<SemanticOperation, Set<string>>();
+    if (rootAware) {
+      for (const route of input.program.interruptRoutes ?? []) {
+        if (route.sink.domain !== "irq") continue;
+        const owner = input.program.semantic.functions.find((fn) =>
+          fn.blocks.some((block) => block.operations.includes(route.installation)),
+        );
+        const entries =
+          owner === undefined
+            ? input.program.semantic.globals.flatMap((global) => {
+                if (!global.blocks.some((block) => block.operations.includes(route.installation)))
+                  return [];
+                const depth = input.program.interruptOwnership?.initializerEntryDepths.get(
+                  bindingIdentityKey(global.id),
+                );
+                return [{ domain: "main" as const, irq: depth?.irq ?? 0, nmi: depth?.nmi ?? 0 }];
+              })
+            : (contexts.get(bindingIdentityKey(owner.id)) ?? []);
+        const slots = routeSlots.get(route.installation) ?? new Set<string>();
+        for (const entry of entries) {
+          slots.add(irqPredecessorSlot(interruptDepthAt(entry, route.installation, input.program)));
+        }
+        routeSlots.set(route.installation, slots);
+      }
+    }
     const machineFunctions: MachineFunction[] = [];
     const rawHandlerBodies = new Map<string, MachineFunction>();
     for (const functionId of input.program.reachableFunctions) {
@@ -194,17 +224,28 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
         throw loweringFailure("Reachable semantic function is absent", functionId.span);
       }
       const id = bindingLabel("fn", semantic.id);
-      const variants = contexts.get(bindingIdentityKey(semantic.id)) ?? [
-        Object.freeze({ domain: "main" as const, irq: 0, nmi: 0 }),
-      ];
+      const variants: readonly InterruptExecutionContext[] = contexts.get(
+        bindingIdentityKey(semantic.id),
+      ) ?? [Object.freeze({ domain: "main" as const, irq: 0, nmi: 0 })];
       for (const context of variants) {
+        const contextInput =
+          rootAware && context.activationRoot !== undefined
+            ? Object.freeze({
+                ...input,
+                placement: provisionalDomainAliases(
+                  input.placement,
+                  input.program,
+                  context.activationRoot,
+                ),
+              })
+            : loweringInput;
         const discovered: StorageRequest[] = [];
         const selectedHelpers: typeof helperUses = [];
         const lowered = lowerFunction(
           id,
           semantic.id,
           semantic.blocks,
-          loweringInput,
+          contextInput,
           discovered,
           generatedData,
           selectedHelpers,
@@ -215,17 +256,33 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
         );
         requests.push(
           ...discovered.map((request) =>
-            domainStorageRequest(request, context.domain, input.program),
+            domainStorageRequest(
+              request,
+              context.domain,
+              input.program,
+              rootAware ? context.activationRoot : undefined,
+            ),
           ),
         );
         helperUses.push(
           ...selectedHelpers.map((use) =>
             Object.freeze({
               ...use,
-              id: `${use.id}.${context.domain}.depth${context.irq}.${context.nmi}`,
+              id:
+                rootAware && context.activationRoot !== undefined
+                  ? `${use.id}.irq.root${Buffer.from(context.activationRoot).toString("hex")}.depth${context.localIrqDepth ?? 0}`
+                  : `${use.id}.${context.domain}.depth${context.irq}.${context.nmi}`,
+              ...(rootAware && context.activationRoot !== undefined
+                ? { activationRoot: context.activationRoot }
+                : {}),
               requestIds: Object.freeze(
                 use.requestIds.map((requestId) =>
-                  domainRequestId(requestId, context.domain, input.program),
+                  domainRequestId(
+                    requestId,
+                    context.domain,
+                    input.program,
+                    rootAware ? context.activationRoot : undefined,
+                  ),
                 ),
               ),
             }),
@@ -236,30 +293,46 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
           if (!rawHandlerBodies.has(rawId)) {
             rawHandlerBodies.set(
               rawId,
-              domainMachineFunction(lowered, context, contexts, input.program),
+              domainMachineFunction(lowered, context, contexts, input.program, rootAware),
             );
           }
           for (const route of input.program.interruptRoutes ?? []) {
             if (bindingIdentityKey(route.handler) !== bindingIdentityKey(semantic.id)) continue;
             if (route.sink.domain !== context.domain) continue;
             const depth = context[route.sink.domain] - 1;
-            if (depth < 0 || !routeDepths.get(route.installation)?.includes(depth)) continue;
-            const entryId = c64InterruptEntryLabel(semantic.id, route.variant, depth);
+            if (depth < 0) continue;
+            const slot =
+              route.sink.domain === "irq" &&
+              rootAware &&
+              context.entrySlot !== undefined &&
+              context.entrySlot !== `interrupt-link:irq:${depth}`
+                ? context.entrySlot
+                : undefined;
+            if (slot === undefined && !routeDepths.get(route.installation)?.includes(depth))
+              continue;
+            if (slot !== undefined && !routeSlots.get(route.installation)?.has(slot)) continue;
+            const entryId = c64InterruptEntryLabel(semantic.id, route.variant, depth, slot);
             if (machineFunctions.some(({ id }) => id === entryId)) continue;
             machineFunctions.push(
               createC64InterruptEntry(
-                domainMachineFunction(lowered, context, contexts, input.program),
+                domainMachineFunction(lowered, context, contexts, input.program, rootAware),
                 entryId,
                 route.variant,
                 route.variant.staticLinkBytes === 0
                   ? null
-                  : `interrupt-link:${route.sink.domain}:${depth}`,
+                  : (slot ?? `interrupt-link:${route.sink.domain}:${depth}`),
                 input.profile,
               ),
             );
           }
         } else {
-          const selected = domainMachineFunction(lowered, context, contexts, input.program);
+          const selected = domainMachineFunction(
+            lowered,
+            context,
+            contexts,
+            input.program,
+            rootAware,
+          );
           machineFunctions.push(
             semantic.placement
               ? Object.freeze({ ...selected, placement: semantic.placement })
@@ -380,9 +453,10 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
         results: initialInventory.results,
       }),
     );
-    const helperCalls: HelperCallDemand[] = helperUses.map((use) => {
+    const helperCallsById = new Map<string, HelperCallDemand>();
+    for (const use of helperUses) {
       const helperIds = new Set(use.requestIds);
-      return Object.freeze({
+      const call: HelperCallDemand = Object.freeze({
         id: use.id,
         caller: use.caller,
         source: use.source,
@@ -392,13 +466,20 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
             .filter(
               (request) =>
                 bindingIdentityKey(request.owner) === bindingIdentityKey(use.caller) &&
+                (!rootAware || request.activationRoot === use.activationRoot) &&
                 !helperIds.has(request.id),
             )
             .map((request) => request.id),
         ),
         stackBytes: 2,
       });
-    });
+      const previous = helperCallsById.get(call.id);
+      if (previous !== undefined && JSON.stringify(previous) !== JSON.stringify(call)) {
+        throw loweringFailure("Equivalent helper contexts disagree on storage demand", use.source);
+      }
+      helperCallsById.set(call.id, call);
+    }
+    const helperCalls = [...helperCallsById.values()];
     const binder = Object.freeze({
       candidateRequestIds: Object.freeze(requests.map(({ id }) => id)),
       helperCalls: Object.freeze(helperCalls),

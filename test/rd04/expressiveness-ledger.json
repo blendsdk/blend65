@@ -12,12 +12,12 @@
     },
     {
       "id": "v4-handler-irq-update",
-      "status": "deferred",
+      "status": "retired",
       "sourceForm": "setIRQ, setIRQExclusive, or restoreIRQ reached during IRQ-handler execution",
       "diagnostic": "E10245",
-      "reason": "A handler-side install can overwrite a predecessor link still live in an interrupted handler",
-      "owner": "RD-05 R5.16",
-      "decision": "AR-P17"
+      "reason": "Balanced handler-side IRQ updates have finite root-specific ownership, private storage and saved links; source, output and VICE qualification pass. An unmatched restore still fails with E10278.",
+      "owner": "RD-05 R5.16 handler-side IRQ qualification",
+      "decision": "RD-05 handler-IRQ plan AR-P3; independent source, storage, output and VICE qualification"
     },
     {
       "id": "v4-stack-route-overestimate",

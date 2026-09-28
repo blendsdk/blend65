@@ -33,19 +33,8 @@ function main(): void { setIRQ(&handler); restoreIRQ(); }`;
     });
   }, 60_000);
 
-  const unsafe = [
-    [
-      "chained NMI installation",
-      `import { setNMI, restoreNMI } from c64.system;
-interrupt function handler(): void {}
-function main(): void { setNMI(&handler); restoreNMI(); }`,
-    ],
-    [
-      "exclusive NMI installation",
-      `import { setNMIExclusive, restoreNMI } from c64.system;
-interrupt function handler(): void {}
-function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
-    ],
+  /** The same balanced IRQ sources must compile under every selected cooperative profile. */
+  const supportedHandlerUpdates = [
     [
       "handler-side chained IRQ installation",
       `import { setIRQ, restoreIRQ } from c64.system;
@@ -59,6 +48,43 @@ function main(): void { asm_cli(); asm_nop(); setIRQ(&handler); asm_nop(); resto
 interrupt function next(): void {}
 interrupt function handler(): void { setIRQExclusive(&next); restoreIRQ(); }
 function main(): void { asm_cli(); asm_nop(); setIRQ(&handler); asm_nop(); restoreIRQ(); }`,
+    ],
+  ] as const;
+
+  // Both IRQ forms preserve their predecessor and return with balanced vector ownership.
+  it.each(supportedHandlerUpdates)(
+    "should accept and emit %s",
+    async (_name, declarations) => {
+      await withProfileProject(`module Game;\n${declarations}`, target, async (project) => {
+        const checked = await checkProject({ project });
+        expect(checked.kind, JSON.stringify(checked.diagnostics)).toBe("success");
+        if (checked.kind !== "success") throw new Error("Balanced handler IRQ check failed");
+        expect(checked.profileId).toBe(target);
+        expect(checked.diagnostics.filter(({ severity }) => severity === "error")).toEqual([]);
+        const built = await buildProject({ project });
+        expect(built.kind, JSON.stringify(built.diagnostics)).toBe("success");
+        if (built.kind !== "success") throw new Error("Balanced handler IRQ build failed");
+        expect(built.diagnostics.filter(({ severity }) => severity === "error")).toEqual([]);
+        const artifacts = await readProfileArtifacts(built);
+        expect(artifacts.memory.profileId).toBe(target);
+        expect(artifacts.prg.length).toBeGreaterThan(2);
+      });
+    },
+    60_000,
+  );
+
+  const unsafe = [
+    [
+      "chained NMI installation",
+      `import { setNMI, restoreNMI } from c64.system;
+interrupt function handler(): void {}
+function main(): void { setNMI(&handler); restoreNMI(); }`,
+    ],
+    [
+      "exclusive NMI installation",
+      `import { setNMIExclusive, restoreNMI } from c64.system;
+interrupt function handler(): void {}
+function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
     ],
   ] as const;
 

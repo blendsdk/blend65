@@ -56,7 +56,7 @@ describe("IRQ handler vector updates", () => {
     expect(result.kind, JSON.stringify(result.diagnostics)).toBe("success");
   });
 
-  it("rejects a balanced vector update inside an IRQ handler", async () => {
+  it("accepts a balanced vector update inside an IRQ handler", async () => {
     const result = await buildSource(
       [
         "module Game;",
@@ -66,22 +66,10 @@ describe("IRQ handler vector updates", () => {
         "function main(): void { setIRQ(&second); restoreIRQ(); }",
       ].join("\n"),
     );
-    expect(result.kind).toBe("failure");
-    if (result.kind === "failure") {
-      expect(result.diagnostics).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            code: "E10245",
-            message: expect.stringContaining(
-              "can overlap or consume hardware stack without a static bound",
-            ),
-          }),
-        ]),
-      );
-    }
+    expect(result.kind, JSON.stringify(result.diagnostics)).toBe("success");
   });
 
-  it("rejects a vector update in a helper reached from an IRQ handler", async () => {
+  it("accepts a balanced vector update in a helper reached from an IRQ handler", async () => {
     const result = await buildSource(
       [
         "module Game;",
@@ -92,9 +80,82 @@ describe("IRQ handler vector updates", () => {
         "function main(): void { setIRQ(&second); restoreIRQ(); }",
       ].join("\n"),
     );
+    expect(result.kind, JSON.stringify(result.diagnostics)).toBe("success");
+  });
+
+  it.each([false, true])(
+    "keeps the unbounded self-install diagnostic across branch order %s",
+    async (selfFirst) => {
+      const first = selfFirst ? "setIRQ(&A);" : "setIRQ(&B);";
+      const second = selfFirst ? "setIRQ(&B);" : "setIRQ(&A);";
+      const result = await buildSource(
+        [
+          "module Game; import { setIRQ, restoreIRQ } from c64.system;",
+          "interrupt function B(): void {}",
+          `interrupt function A(): void { if (peek($0400) == 0) { ${first} } else { ${second} } }`,
+          "function main(): void { setIRQ(&A); restoreIRQ(); }",
+        ].join("\n"),
+      );
+      expect(result.kind).toBe("failure");
+      expect(
+        result.diagnostics.filter(({ severity }) => severity === "error").map(({ code }) => code),
+      ).toEqual(["E10245"]);
+    },
+  );
+
+  it("reports a helper's unbalanced self-install at its install site", async () => {
+    const source = [
+      "module Game; import { setIRQ, restoreIRQ } from c64.system;",
+      "function installSelf(): void { setIRQ(&A); }",
+      "interrupt function A(): void { installSelf(); }",
+      "function main(): void { setIRQ(&A); restoreIRQ(); }",
+    ].join("\n");
+    const result = await buildSource(source);
     expect(result.kind).toBe("failure");
-    if (result.kind === "failure") {
-      expect(result.diagnostics.map(({ code }) => code)).toContain("E10245");
-    }
+    const errors = result.diagnostics.filter(({ severity }) => severity === "error");
+    expect(errors.map(({ code }) => code)).toEqual(["E10245"]);
+    const span = errors[0]?.primarySpan;
+    expect(span).not.toBeNull();
+    expect(source.slice(span!.start, span!.end)).toBe("setIRQ(&A)");
+  });
+
+  it.each([false, true])(
+    "reports a helper's conditional unbalanced self-install in branch order %s",
+    async (selfFirst) => {
+      const first = selfFirst ? "setIRQ(&A);" : "setIRQ(&B);";
+      const second = selfFirst ? "setIRQ(&B);" : "setIRQ(&A);";
+      const source = [
+        "module Game; import { setIRQ, restoreIRQ } from c64.system;",
+        "interrupt function B(): void {}",
+        `function installChoice(): void { if (peek($0400) == 0) { ${first} } else { ${second} } }`,
+        "interrupt function A(): void { installChoice(); }",
+        "function main(): void { setIRQ(&A); restoreIRQ(); }",
+      ].join("\n");
+      const result = await buildSource(source);
+      expect(result.kind).toBe("failure");
+      const errors = result.diagnostics.filter(({ severity }) => severity === "error");
+      expect(errors.map(({ code }) => code)).toEqual(["E10245"]);
+      const span = errors[0]?.primarySpan;
+      expect(span).not.toBeNull();
+      expect(source.slice(span!.start, span!.end)).toBe("setIRQ(&A)");
+    },
+  );
+
+  it("points an unbounded nested IRQ route at its handler and selected installs", async () => {
+    const source = [
+      "module Game; import { setIRQ, restoreIRQ } from c64.system;",
+      "interrupt function B(): void {}",
+      "interrupt function A(): void { setIRQ(&B); asm_cli(); asm_nop(); asm_sei(); restoreIRQ(); }",
+      "function main(): void { setIRQ(&A); asm_cli(); asm_nop(); asm_sei(); restoreIRQ(); }",
+    ].join("\n");
+    const result = await buildSource(source);
+    expect(result.kind).toBe("failure");
+    const diagnostic = result.diagnostics.find(({ code }) => code === "E10245");
+    expect(diagnostic).toBeDefined();
+    const primary = diagnostic?.primarySpan;
+    expect(primary).not.toBeNull();
+    expect(source.slice(primary!.start, primary!.end)).toContain("interrupt function A");
+    const related = diagnostic?.related.map(({ span }) => source.slice(span.start, span.end));
+    expect(related).toEqual(expect.arrayContaining(["setIRQ(&A)", "setIRQ(&B)"]));
   });
 });

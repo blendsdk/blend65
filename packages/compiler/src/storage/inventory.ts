@@ -1,6 +1,8 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { SemanticFunction, SemanticOperation } from "../semantic/operations.js";
+import { interruptDepthAt, interruptExecutionContexts } from "../semantic/interrupt-contexts.js";
+import type { InterruptExecutionContexts } from "../semantic/interrupt-contexts.js";
 import type { SemanticPosition, ValueLifetime, WholeProgram } from "../semantic/whole-program.js";
 import type { ExecutionDomain } from "../semantic/interrupt-domains.js";
 import type {
@@ -82,14 +84,25 @@ function resultLocation(type: SemanticType): ResultLocation | null {
   return Object.freeze({ kind: type.name === "word" || type.name === "sword" ? "ax" : "a" });
 }
 
+/** Name one function's private storage namespace without changing legacy IDs. */
+export function privateOwnerKey(
+  owner: BindingId,
+  domain?: ExecutionDomain,
+  activationRoot?: string,
+): string {
+  const key = bindingIdentityKey(owner);
+  return `${key}${domain === "irq" ? "@irq" : domain === "nmi" ? "@nmi" : ""}${activationRoot === undefined ? "" : `@${activationRoot}`}`;
+}
+
 /** Stable request identity for a source binding. */
 function bindingRequestId(
   owner: BindingId,
   storageClass: StorageClass,
   binding: BindingId,
   domain?: ExecutionDomain,
+  activationRoot?: string,
 ): string {
-  return `${bindingIdentityKey(owner)}${domain === "irq" ? "@irq" : domain === "nmi" ? "@nmi" : ""}:${storageClass}:${bindingIdentityKey(binding)}`;
+  return `${privateOwnerKey(owner, domain, activationRoot)}:${storageClass}:${bindingIdentityKey(binding)}`;
 }
 
 /** Stable request identity for a computed semantic value. */
@@ -98,8 +111,9 @@ function valueRequestId(
   storageClass: StorageClass,
   value: string,
   domain?: ExecutionDomain,
+  activationRoot?: string,
 ): string {
-  return `${bindingIdentityKey(owner)}${domain === "irq" ? "@irq" : domain === "nmi" ? "@nmi" : ""}:${storageClass}:${value}`;
+  return `${privateOwnerKey(owner, domain, activationRoot)}:${storageClass}:${value}`;
 }
 
 /** Return a stable structural identity for one concrete semantic place. */
@@ -172,6 +186,7 @@ function appendCallStaging(
   lifetimes: readonly ValueLifetime[],
   requests: StorageRequest[],
   domain?: ExecutionDomain,
+  activationRoot?: string,
 ): void {
   for (const lifetime of lifetimes) {
     if (bindingIdentityKey(lifetime.function) !== bindingIdentityKey(owner)) continue;
@@ -193,10 +208,11 @@ function appendCallStaging(
       operation.kind === "call" ? "return-stage" : "argument-stage";
     requests.push(
       Object.freeze({
-        id: valueRequestId(owner, storageClass, lifetime.value, domain),
+        id: valueRequestId(owner, storageClass, lifetime.value, domain, activationRoot),
         storageClass,
         owner,
         ...(domain === undefined ? {} : { domain }),
+        ...(activationRoot === undefined ? {} : { activationRoot }),
         binding: null,
         value: lifetime.value,
         type,
@@ -223,6 +239,7 @@ function appendWordReadLowBytes(
   lifetimes: readonly ValueLifetime[],
   requests: StorageRequest[],
   domain?: ExecutionDomain,
+  activationRoot?: string,
 ): void {
   const fixedAddresses = new Set(
     body.blocks.flatMap((block) =>
@@ -249,10 +266,17 @@ function appendWordReadLowBytes(
         );
       requests.push(
         Object.freeze({
-          id: valueRequestId(owner, "temporary", `word-read-low:${operation.result}`, domain),
+          id: valueRequestId(
+            owner,
+            "temporary",
+            `word-read-low:${operation.result}`,
+            domain,
+            activationRoot,
+          ),
           storageClass: "temporary",
           owner,
           ...(domain === undefined ? {} : { domain }),
+          ...(activationRoot === undefined ? {} : { activationRoot }),
           binding: null,
           value: operation.result,
           type: null,
@@ -268,12 +292,41 @@ function appendWordReadLowBytes(
   }
 }
 
+/** Identify selected IRQ installs reached from within a handler activation. */
+export function hasHandlerSideIrqInstall(
+  program: WholeProgram,
+  contexts: InterruptExecutionContexts,
+): boolean {
+  const selectedInstalls = new Set<SemanticOperation>(
+    (program.interruptRoutes ?? [])
+      .filter((route) => route.sink.domain === "irq")
+      .map((route) => route.installation),
+  );
+  return [...contexts].some(([key, entries]) => {
+    const fn = program.semantic.functions.find(({ id }) => bindingIdentityKey(id) === key);
+    return (
+      fn !== undefined &&
+      entries.some((context) => context.activationRoot !== undefined) &&
+      fn.blocks.some((block) =>
+        block.operations.some((operation) => selectedInstalls.has(operation)),
+      )
+    );
+  });
+}
+
 /** Build the minimum provisional SFA inventory required before machine binding. */
 export function inventoryStorage(program: WholeProgram): StorageInventory {
   const requests: StorageRequest[] = [];
   const results: FunctionResultLocation[] = [];
   const functions = new Map(
     program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
+  );
+  const contexts = interruptExecutionContexts(program);
+  const hasHandlerInstall = hasHandlerSideIrqInstall(program, contexts);
+  const selectedInstalls = new Set<SemanticOperation>(
+    (program.interruptRoutes ?? [])
+      .filter((route) => route.sink.domain === "irq")
+      .map((route) => route.installation),
   );
   const globalKeys = new Set(program.semantic.globals.map(({ id }) => bindingIdentityKey(id)));
 
@@ -285,106 +338,130 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
       (entry) => bindingIdentityKey(entry.function) === bindingIdentityKey(fn.id),
     )?.domains ?? [undefined];
     for (const domain of domains) {
-      if (fn.result.kind === "array" || fn.result.kind === "struct") {
-        const id = valueRequestId(fn.id, "pointer", "aggregate-return-destination", domain);
-        requests.push(
-          Object.freeze({
-            id,
-            storageClass: "pointer",
-            owner: fn.id,
-            ...(domain === undefined ? {} : { domain }),
-            binding: null,
-            value: "aggregate-return-destination",
-            type: null,
-            bytes: 2,
-            alignment: 1,
-            region: "zero-page-required",
-            lifetime: declaredLifetime(fn, "aggregate-return-destination"),
-            source: fn.source,
-            reason: "Caller-owned fixed aggregate result address",
-          }),
-        );
-        results.push(
-          Object.freeze({
-            function: fn.id,
-            ...(domain === undefined ? {} : { domain }),
-            location: Object.freeze({ kind: "storage", requestId: id }),
-          }),
-        );
-      } else {
-        const location = resultLocation(fn.result);
-        if (location !== null)
+      const roots =
+        domain === "irq" && hasHandlerInstall
+          ? [
+              ...new Set(
+                (contexts.get(bindingIdentityKey(fn.id)) ?? [])
+                  .filter((context) => context.domain === "irq")
+                  .map((context) => context.activationRoot)
+                  .filter((root): root is string => root !== undefined),
+              ),
+            ].sort()
+          : [];
+      for (const activationRoot of roots.length === 0 ? [undefined] : roots) {
+        if (fn.result.kind === "array" || fn.result.kind === "struct") {
+          const id = valueRequestId(
+            fn.id,
+            "pointer",
+            "aggregate-return-destination",
+            domain,
+            activationRoot,
+          );
+          requests.push(
+            Object.freeze({
+              id,
+              storageClass: "pointer",
+              owner: fn.id,
+              ...(domain === undefined ? {} : { domain }),
+              ...(activationRoot === undefined ? {} : { activationRoot }),
+              binding: null,
+              value: "aggregate-return-destination",
+              type: null,
+              bytes: 2,
+              alignment: 1,
+              region: "zero-page-required",
+              lifetime: declaredLifetime(fn, "aggregate-return-destination"),
+              source: fn.source,
+              reason: "Caller-owned fixed aggregate result address",
+            }),
+          );
           results.push(
             Object.freeze({
               function: fn.id,
               ...(domain === undefined ? {} : { domain }),
-              location,
+              ...(activationRoot === undefined ? {} : { activationRoot }),
+              location: Object.freeze({ kind: "storage", requestId: id }),
             }),
           );
-      }
-
-      const parameterKeys = new Set<string>();
-      for (const parameter of fn.parameters) {
-        const key = bindingIdentityKey(parameter.id);
-        parameterKeys.add(key);
-        requests.push(
-          Object.freeze({
-            id: bindingRequestId(fn.id, "parameter", parameter.id, domain),
-            storageClass: "parameter",
-            owner: fn.id,
-            ...(domain === undefined ? {} : { domain }),
-            binding: parameter.id,
-            value: null,
-            type: parameter.type,
-            bytes: parameter.outerUnsized ? 4 : typeBytes(parameter.type, true),
-            alignment: 1,
-            region: "ram",
-            lifetime: declaredLifetime(fn, `parameter:${key}`),
-            source: parameter.id.span,
-            reason: "Static parameter home",
-          }),
-        );
-      }
-
-      const locals = new Map<string, { readonly id: BindingId; readonly type: SemanticType }>();
-      for (const block of fn.blocks) {
-        for (const operation of block.operations) {
-          if (
-            operation.kind !== "load" &&
-            operation.kind !== "store" &&
-            operation.kind !== "place-address"
-          ) {
-            continue;
-          }
-          const root = operation.place.root;
-          if (operation.place.asset !== undefined) continue;
-          const key = bindingIdentityKey(root);
-          if (globalKeys.has(key) || parameterKeys.has(key)) continue;
-          locals.set(key, { id: root, type: operation.place.rootType ?? operation.type });
+        } else {
+          const location = resultLocation(fn.result);
+          if (location !== null)
+            results.push(
+              Object.freeze({
+                function: fn.id,
+                ...(domain === undefined ? {} : { domain }),
+                ...(activationRoot === undefined ? {} : { activationRoot }),
+                location,
+              }),
+            );
         }
-      }
-      for (const [key, local] of locals) {
-        requests.push(
-          Object.freeze({
-            id: bindingRequestId(fn.id, "local", local.id, domain),
-            storageClass: "local",
-            owner: fn.id,
-            ...(domain === undefined ? {} : { domain }),
-            binding: local.id,
-            value: null,
-            type: local.type,
-            bytes: typeBytes(local.type),
-            alignment: 1,
-            region: "ram",
-            lifetime: declaredLifetime(fn, `local:${key}`),
-            source: local.id.span,
-            reason: "Static local home",
-          }),
-        );
-      }
 
-      appendCallStaging(fn.id, fn, program.lifetimes, requests, domain);
-      appendWordReadLowBytes(fn.id, fn, program.lifetimes, requests, domain);
+        const parameterKeys = new Set<string>();
+        for (const parameter of fn.parameters) {
+          const key = bindingIdentityKey(parameter.id);
+          parameterKeys.add(key);
+          requests.push(
+            Object.freeze({
+              id: bindingRequestId(fn.id, "parameter", parameter.id, domain, activationRoot),
+              storageClass: "parameter",
+              owner: fn.id,
+              ...(domain === undefined ? {} : { domain }),
+              ...(activationRoot === undefined ? {} : { activationRoot }),
+              binding: parameter.id,
+              value: null,
+              type: parameter.type,
+              bytes: parameter.outerUnsized ? 4 : typeBytes(parameter.type, true),
+              alignment: 1,
+              region: "ram",
+              lifetime: declaredLifetime(fn, `parameter:${key}`),
+              source: parameter.id.span,
+              reason: "Static parameter home",
+            }),
+          );
+        }
+
+        const locals = new Map<string, { readonly id: BindingId; readonly type: SemanticType }>();
+        for (const block of fn.blocks) {
+          for (const operation of block.operations) {
+            if (
+              operation.kind !== "load" &&
+              operation.kind !== "store" &&
+              operation.kind !== "place-address"
+            ) {
+              continue;
+            }
+            const root = operation.place.root;
+            if (operation.place.asset !== undefined) continue;
+            const key = bindingIdentityKey(root);
+            if (globalKeys.has(key) || parameterKeys.has(key)) continue;
+            locals.set(key, { id: root, type: operation.place.rootType ?? operation.type });
+          }
+        }
+        for (const [key, local] of locals) {
+          requests.push(
+            Object.freeze({
+              id: bindingRequestId(fn.id, "local", local.id, domain, activationRoot),
+              storageClass: "local",
+              owner: fn.id,
+              ...(domain === undefined ? {} : { domain }),
+              ...(activationRoot === undefined ? {} : { activationRoot }),
+              binding: local.id,
+              value: null,
+              type: local.type,
+              bytes: typeBytes(local.type),
+              alignment: 1,
+              region: "ram",
+              lifetime: declaredLifetime(fn, `local:${key}`),
+              source: local.id.span,
+              reason: "Static local home",
+            }),
+          );
+        }
+
+        appendCallStaging(fn.id, fn, program.lifetimes, requests, domain, activationRoot);
+        appendWordReadLowBytes(fn.id, fn, program.lifetimes, requests, domain, activationRoot);
+      }
     }
   }
 
@@ -431,6 +508,62 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
           }),
         );
       }
+    }
+  }
+
+  // A handler owns only its temporary install positions. The incoming vector
+  // belongs to whichever execution it interrupted, so it is never a slot in
+  // this root's local inventory.
+  const localSlots = new Map<string, number>();
+  for (const [functionKey, entries] of contexts) {
+    const fn = functions.get(functionKey);
+    if (fn === undefined) continue;
+    for (const context of entries) {
+      if (context.activationRoot === undefined) continue;
+      for (const block of fn.blocks) {
+        for (const operation of block.operations) {
+          if (!selectedInstalls.has(operation)) continue;
+          const depth = interruptDepthAt(context, operation, program).localIrqDepth ?? 0;
+          localSlots.set(
+            context.activationRoot,
+            Math.max(localSlots.get(context.activationRoot) ?? 0, depth + 1),
+          );
+        }
+      }
+    }
+  }
+  for (const [root, count] of localSlots) {
+    const owner = functions.get(root);
+    if (owner === undefined) throw new Error("Selected IRQ root has no source function");
+    for (let depth = 0; depth < count; depth += 1) {
+      const value = `interrupt-link:irq:${root}:${depth}`;
+      requests.push(
+        Object.freeze({
+          id: value,
+          storageClass: "pointer",
+          owner: owner.id,
+          domain: "irq",
+          activationRoot: root,
+          binding: null,
+          value,
+          type: null,
+          bytes: 2,
+          alignment: 1,
+          region: "ram",
+          pageSafeIndirect: true,
+          // Link liveness is proved from installed IRQ paths, not from every
+          // source position in the handler's body.
+          lifetime: Object.freeze({
+            function: owner.id,
+            value,
+            definition: Object.freeze({ block: owner.entry, operation: 0 }),
+            liveAt: Object.freeze([]),
+            callsCrossed: Object.freeze([]),
+          }),
+          source: owner.source,
+          reason: `Saved IRQ predecessor in handler-local slot ${depth}`,
+        }),
+      );
     }
   }
 

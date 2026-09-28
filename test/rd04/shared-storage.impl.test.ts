@@ -108,3 +108,30 @@ it.each([0xcefa, 0xcefb, 0xcf00])(
   },
   60_000,
 );
+
+it("rebinds handler-owned IRQ links and private helpers after shared-RAM closure", async () => {
+  await withProgram(
+    [
+      "module Game;",
+      "import { setIRQ, setIRQExclusive, restoreIRQ } from c64.system;",
+      "function triple(value: byte): byte { return value * 3; }",
+      "interrupt function B(): void { poke($d019, 1); poke($0422, triple(7)); }",
+      "interrupt function A(): void {",
+      "  setIRQExclusive(&B); asm_cli(); asm_nop(); asm_sei(); restoreIRQ();",
+      "}",
+      "function main(): void {",
+      "  let buffer: byte[5000];",
+      "  buffer[0] = 19;",
+      "  setIRQ(&A); asm_cli(); asm_nop(); asm_sei(); restoreIRQ();",
+      "  poke($0420, buffer[0]); poke($0421, triple(7));",
+      "}",
+    ].join("\n"),
+    async (directory) => {
+      expect(await observations(directory)).toEqual([19, 21]);
+      const assembly = await readFile(join(directory, ".asm"), "utf8");
+      expect(assembly).toMatch(/jmp\s+\(\$[0-9a-f]+\)/iu);
+      // The large local frame remains uninitialized RAM, not emitted image bytes.
+      expect((await readFile(join(directory, "shared-storage.prg"))).length).toBeLessThan(1024);
+    },
+  );
+}, 60_000);

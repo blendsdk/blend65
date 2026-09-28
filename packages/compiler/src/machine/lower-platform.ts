@@ -99,6 +99,18 @@ export function lowerPlatformOperation(
         const before = state.interruptDepth[domain] + (relative?.[domain] ?? 0);
         const depth = sink === undefined ? before - 1 : before;
         if (depth < 0) throw new Error("Interrupt restore has no active static link");
+        const root = domain === "irq" ? state.interruptDepth.activationRoot : undefined;
+        const localDepth =
+          root === undefined
+            ? depth
+            : (state.interruptDepth.localIrqDepth ?? 0) +
+              (relative?.irq ?? 0) -
+              (sink === undefined ? 1 : 0);
+        if (localDepth < 0) throw new Error("Interrupt restore crosses its handler prefix");
+        const linkRequestId =
+          root === undefined
+            ? `interrupt-link:${domain}:${depth}`
+            : `interrupt-link:irq:${root}:${localDepth}`;
         const routes = (state.input.program.interruptRoutes ?? []).filter(
           ({ installation }) => installation === sourceOperation,
         );
@@ -107,11 +119,16 @@ export function lowerPlatformOperation(
         }
         const route = selectedInterruptRoute ?? routes[0];
         return Object.freeze({
-          linkRequestId: `interrupt-link:${domain}:${depth}`,
+          linkRequestId,
           entryLabel:
             sink === undefined
               ? null
-              : c64InterruptEntryLabel(route!.handler, route!.variant, depth),
+              : c64InterruptEntryLabel(
+                  route!.handler,
+                  route!.variant,
+                  depth,
+                  root === undefined ? undefined : linkRequestId,
+                ),
         });
       },
     });

@@ -70,6 +70,27 @@ function branchingProgram(levels: number): string {
   return parts.join("\n");
 }
 
+/** Repeated branch choices install the same masked handler from a live IRQ root. */
+function branchingHandlerProgram(levels: number): string {
+  const parts = [
+    "module Game; import { setIRQ, setIRQExclusive, restoreIRQ } from c64.system;",
+    "interrupt function B(): void {}",
+    "function leaf(): void { asm_nop(); }",
+  ];
+  for (let index = 0; index < levels; index += 1) {
+    const callee = index === 0 ? "leaf" : `level${index - 1}`;
+    const arm = `setIRQExclusive(&B); ${callee}(); restoreIRQ();`;
+    parts.push(
+      `function level${index}(): void { if (peek($c000) == 0) { ${arm} } else { ${arm} } }`,
+    );
+  }
+  parts.push(`interrupt function A(): void { level${levels - 1}(); }`);
+  parts.push(
+    "function main(): void { setIRQ(&A); asm_cli(); asm_nop(); asm_sei(); restoreIRQ(); }",
+  );
+  return parts.join("\n");
+}
+
 describe("equivalent interrupt analysis contexts", () => {
   it.each([4, 8, 10])("keeps body analyses linear for %i balanced branch levels", (levels) => {
     const selected = selectTargetProfile(PROFILE);
@@ -109,5 +130,43 @@ describe("equivalent interrupt analysis contexts", () => {
     // A small linear allowance covers distinct mask/entry states without prescribing a cache.
     expect(bodyAnalyses).toBeGreaterThan(levels);
     expect(bodyAnalyses).toBeLessThanOrEqual(4 * levels + 4);
+  });
+
+  it("keeps repeated handler-side installation choices linear", () => {
+    const levels = 10;
+    const selected = selectTargetProfile(PROFILE);
+    if (selected.kind !== "complete") throw new Error("Missing selected profile");
+    const analyzed = analyzeProject(snapshot(branchingHandlerProgram(levels)));
+    expect(analyzed.kind, JSON.stringify(analyzed.diagnostics)).toBe("complete");
+    if (analyzed.kind !== "complete") throw new Error("Frontend rejected the valid fixture");
+    const semantic = buildSemanticProgram(analyzed);
+    if (semantic.kind !== "complete") throw new Error("Semantic lowering failed");
+    const closed = closeWholeProgram(semantic.program, selected.profile.interrupts);
+    expect(closed.kind, JSON.stringify(closed.diagnostics)).toBe("complete");
+    if (closed.kind !== "complete") throw new Error("Ownership proof rejected the fixture");
+
+    let bodyAnalyses = 0;
+    const counted = {
+      ...closed.program,
+      semantic: {
+        ...closed.program.semantic,
+        functions: closed.program.semantic.functions.map((fn) => ({
+          ...fn,
+          get blocks() {
+            bodyAnalyses += 1;
+            return fn.blocks;
+          },
+        })),
+      },
+    };
+    const peak = simultaneousIRQStackPeak(
+      counted,
+      [],
+      selected.profile.storage.startupStackBytes ?? 0,
+      undefined,
+    );
+    expect(peak.irqOverlap).toBeDefined();
+    expect(bodyAnalyses).toBeGreaterThan(levels);
+    expect(bodyAnalyses).toBeLessThanOrEqual(8 * levels + 16);
   });
 });

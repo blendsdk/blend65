@@ -367,6 +367,98 @@ function shareBoundByteMultiplyHelpers(
   );
 }
 
+/** Redirect calls and structured branches after two physically identical variants share a body. */
+function redirectBoundLabels(
+  fn: MachineFunction,
+  redirects: ReadonlyMap<string, string>,
+): MachineFunction {
+  const target = (label: string): string => redirects.get(label) ?? label;
+  return Object.freeze({
+    ...fn,
+    blocks: Object.freeze(
+      fn.blocks.map((block) => {
+        const terminal = block.terminator;
+        const rewritten =
+          terminal.kind === "jump" || terminal.kind === "fallthrough"
+            ? Object.freeze({ ...terminal, target: target(terminal.target) })
+            : terminal.kind === "branch"
+              ? Object.freeze({
+                  ...terminal,
+                  target: target(terminal.target),
+                  fallthrough: target(terminal.fallthrough),
+                })
+              : terminal.kind === "long-branch"
+                ? Object.freeze({
+                    ...terminal,
+                    fallthrough: target(terminal.fallthrough),
+                    jump: Object.freeze({ ...terminal.jump, target: target(terminal.jump.target) }),
+                  })
+                : terminal;
+        return Object.freeze({
+          ...block,
+          instructions: Object.freeze(
+            block.instructions.map((instruction) => {
+              const operand = instruction.operand;
+              return operand?.kind === "label" && redirects.has(operand.label)
+                ? Object.freeze({
+                    ...instruction,
+                    operand: Object.freeze({ ...operand, label: target(operand.label) }),
+                  })
+                : instruction;
+            }),
+          ),
+          terminator: rewritten,
+        });
+      }),
+    ),
+  });
+}
+
+/** Share only root-specialized bodies with identical final instructions and addresses. */
+function shareBoundRootBodies(
+  functions: readonly MachineFunction[],
+  startup: MachineFunction,
+): { readonly functions: readonly MachineFunction[]; readonly startup: MachineFunction } {
+  let current = functions;
+  let currentStartup = startup;
+  // A callee merge can make its callers identical on the next pass. Each pass
+  // removes at least one body, so this reaches a fixed point without a cap.
+  while (true) {
+    const canonical = new Map<string, MachineFunction>();
+    const removed = new Set<string>();
+    const redirects = new Map<string, string>();
+    for (const fn of current) {
+      const match = /^(.*)\.irq\.root[0-9a-f]+\.depth\d+$/u.exec(fn.id);
+      if (match === null || fn.origin !== undefined || fn.placement !== undefined) continue;
+      const local = new Map(fn.blocks.map((block, index) => [block.label, `@${index}`] as const));
+      const fingerprint = JSON.stringify(
+        [fn.sourceName ?? null, fn.blocks],
+        (key, value: unknown) =>
+          typeof value === "string" &&
+          (key === "label" || key === "target" || key === "fallthrough")
+            ? (local.get(value) ?? value)
+            : value,
+      );
+      const identity = JSON.stringify([match[1], fingerprint]);
+      const previous = canonical.get(identity);
+      if (previous === undefined) {
+        canonical.set(identity, fn);
+        continue;
+      }
+      removed.add(fn.id);
+      redirects.set(fn.id, previous.id);
+      fn.blocks.forEach((block, index) => {
+        redirects.set(block.label, previous.blocks[index]!.label);
+      });
+    }
+    if (removed.size === 0) return Object.freeze({ functions: current, startup: currentStartup });
+    current = Object.freeze(
+      current.filter((fn) => !removed.has(fn.id)).map((fn) => redirectBoundLabels(fn, redirects)),
+    );
+    currentStartup = redirectBoundLabels(currentStartup, redirects);
+  }
+}
+
 /**
  * Replace every symbolic storage operand using one final closure certificate.
  * @param program Structured machine program with finite storage operands.
@@ -398,10 +490,14 @@ export function bindMachineProgram(
   if (functions.some((fn) => fn === null) || startup === null) {
     return Object.freeze({ kind: "error", reason: "invalid-storage", requestId: null });
   }
+  const shared = shareBoundRootBodies(
+    shareBoundByteMultiplyHelpers(functions.filter((fn) => fn !== null)),
+    startup,
+  );
   const boundProgram = Object.freeze({
     ...program,
-    functions: shareBoundByteMultiplyHelpers(functions.filter((fn) => fn !== null)),
-    startup,
+    functions: shared.functions,
+    startup: shared.startup,
   });
   if (!validateMachineProgram(boundProgram)) {
     return Object.freeze({ kind: "error", reason: "invalid-storage", requestId: null });

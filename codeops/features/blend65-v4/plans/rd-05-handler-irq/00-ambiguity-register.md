@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 Handler-Side IRQ Updates
 
-> **Status**: ✅ GATE PASSED — 5 resolved; 1 explicitly carried named deferral
-> **Last Updated**: 2026-09-27 23:49
+> **Status**: ✅ GATE PASSED — 9 resolved; 1 named deferral (AR-P7–AR-P10 added during execution)
+> **Last Updated**: 2026-09-28 18:26
 > **CodeOps Artifact Schema**: 1
 
 ## Planning Scope Contract
@@ -22,6 +22,10 @@
 | AR-P4 | Carried NMI scope | Positive finite NMI-source/reentry and safe install/restore proof remains with RD-05 planning. Revisit before NMI-dependent executable work or complete RD-05 plan readiness. No NMI, takeover or banking implementation enters this slice. | Existing Stage A AR-P3 and user's confirmation of this IRQ-only planning scope. | ⏸ Deferred — named NMI contract; RD-05 planning owner; revisit before dependent work or full-plan readiness |
 | AR-P5 | Verification / workflow | Use existing specification-first tests, public build service, direct storage/machine tests and sequential VICE 3.10. Keep behavior and assembly/cost expectations independent. Retain the established install/build/typecheck/test checkpoint and temporary root `--testTimeout 30000` allowance; no permanent timeout edit. Commit coherent green checkpoints without asking; never push automatically. | User-provided AGENTS.md and established verification ruling. | ✅ Resolved |
 | AR-P6 | Test authority (discovered during final oracle inventory) | Move only the two balanced handler-side IRQ fixtures in `test/rd05/profile-interrupts.spec.test.ts` from the rejection table to positive check/build cases across its existing four profiles. Preserve complete source text, NMI rejection cases and the mainline test. | User: “Push and proceed” in response to the single pending AR-P6 recommendation. | ✅ Resolved |
+| AR-P7 | Technical / integration (runtime) | Clarify only the internal typed overlap handoff, selected-IRQ fixture inputs and existing final rebinding observations before writing direct ST-18/ST-22/ST-23 tests. Add no runtime layer, harness or public API. | User: “I do” in response to the single AR-P7 recommendation. | ✅ Resolved |
+| AR-P8 | Test authority (runtime) | Correct only two VICE oracle details: compare processor status with the non-physical B representation bit masked in the chain checkpoint, preserving every physical flag; enable the nested raster IRQ only after the main helper checkpoint proves `SEI` has run, clearing pending VIC status first. Preserve both source fixtures and all other assertions. | User: “I approve the correction, go ahead” after the two exact corrections were presented. | ✅ Resolved |
+| AR-P9 | Test authority (runtime) | The nested VICE fixture disables CIA1 interrupt masks but leaves its stock timer A running. Its ICR source latch can reassert before the first handler checkpoint, so the test's pre-arm zero-latch assertion fails after the approved raster setup correction. Stop timer A in the fixture before the main routine starts; retain the later explicit one-shot arming and all source/output assertions. | User: “I approve the correction” after the fixture-only timer correction was presented. | ✅ Resolved |
+| AR-P10 | Test authority (runtime) | After AR-P9, the nested VICE case completes its source and nested-handler observations but its final side-effect-free CIA ICR peek reads `$80`: timer-A source bit 0 is clear while VICE retains its IRQ-summary bit 7. Check only bit 0 there, as the neighboring qualified cases do. The saved original KERNAL path then visits its `$EA81` restore-tail checkpoint before the startup restore checkpoint; explicitly consume and assert that existing stop. Preserve source text, all other memory/vector/status/stack assertions, and the existing checkpoint set. A diagnostic run of these two changes passed all 9 cases. | User: “I approve” after the exact two corrections were presented. | ✅ Resolved |
 
 ## Initial Grounding
 
@@ -211,7 +215,7 @@ The compiler/language and concurrency lenses apply. There is no new public API, 
 host service, dependency or migration. Existing profile identities and evidence schemas remain
 unchanged. Technical selection uses the project's explicit delegation of compiler/plan-owned
 decisions; it does not delegate immutable-oracle changes. Both exact oracle corrections are now
-user-approved, and the gate passes for this bounded plan.
+user-approved; runtime AR-P7 is also resolved, so execution may resume.
 NMI remains the named deferral, absent from executable work. No implementation or complete-cost/
 parity claim follows from design closure.
 
@@ -234,3 +238,28 @@ This is **Planning Complete**, not preflight passed or implementation qualified.
 task is whole-plan preflight, including simplicity and expert-output checks, after the required
 effort handoff. The six saved predecessor commits through `497e4a47` were pushed on the user's
 explicit request before this authoring resumed; new checkpoints are not automatically pushed.
+
+## AR-P7 — Direct Specification Interface (Runtime, Resolved)
+
+The implementation-blind author of task 1.1.3 could not construct a compiling direct test from
+the planned signatures. Design §5 names three `irqOverlap` sets and says interference consumes
+them, but does not define their record/entry types or the argument carrying them. The current
+`StorageBinder` has no overlap input, and `closeStorage` accepts only inventory, profile and
+discovery/binder. The selected IRQ stack fixture needs a specified root/installation-context
+input. The existing machine binder and shared-RAM closure are callable, but the plan does not
+identify the symbolic fixture and final-certificate observations required for ST-23. The author
+wrote no file and did not claim a red result; all existing specification oracles remain intact.
+
+**Recommended resolution:** add a small, implementation-neutral interface addendum to design §5
+and testing strategy §Files. It will define the internal typed overlap record and its existing
+analysis/interference handoff, the selected fixture's input facts, and the already-owned binding/
+shared-RAM observation points. Retain ST-18/ST-22/ST-23 and the existing direct-test task. This
+adds no runtime layer, test harness, dependency, public service API or compiler behavior beyond
+AR-P2. A source-level-only substitute cannot independently force the exact `$xxFE`/`$xxFF`
+placement or 31/30-byte budget and would weaken the approved direct-oracle boundary.
+
+The user approved the narrow clarification. Design §5 now gives the internal overlap tuple
+contract, optional analysis/result path, unchanged closure/binder entry, and precise selected
+fixture and final-binding observations. Testing strategy §Files names the same existing
+interfaces. No compiler implementation, old oracle, frozen authority, new runtime layer, test
+harness, dependency or public service API was added by this decision.

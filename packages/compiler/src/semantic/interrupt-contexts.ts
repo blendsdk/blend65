@@ -7,6 +7,12 @@ import type { WholeProgram } from "./whole-program.js";
 export interface InterruptExecutionContext {
   /** Independently entering mainline or interrupt execution. */
   readonly domain: "main" | "irq" | "nmi";
+  /** Source handler whose invocation-private storage owns this IRQ context. */
+  readonly activationRoot?: string;
+  /** IRQ ownership depth inside the handler, excluding its incoming vector. */
+  readonly localIrqDepth?: number;
+  /** Saved predecessor slot permanently bound to this selected entry wrapper. */
+  readonly entrySlot?: string;
   /** Live IRQ predecessor words on entry. */
   readonly irq: number;
   /** Live NMI predecessor words on entry. */
@@ -15,6 +21,13 @@ export interface InterruptExecutionContext {
 
 /** Source-function identities mapped to their finite entry contexts. */
 export type InterruptExecutionContexts = ReadonlyMap<string, readonly InterruptExecutionContext[]>;
+
+/** Name the exact predecessor slot owned by the installing execution context. */
+export function irqPredecessorSlot(context: InterruptExecutionContext): string {
+  return context.activationRoot === undefined
+    ? `interrupt-link:irq:${context.irq}`
+    : `interrupt-link:irq:${context.activationRoot}:${context.localIrqDepth ?? 0}`;
+}
 
 /** Add the locally proved ownership depth to one caller's concrete entry depth. */
 export function interruptDepthAt(
@@ -25,6 +38,11 @@ export function interruptDepthAt(
   const relative = program.interruptOwnership?.relativeDepths.get(operation);
   return Object.freeze({
     domain: context.domain,
+    ...(context.activationRoot === undefined ? {} : { activationRoot: context.activationRoot }),
+    ...(context.activationRoot === undefined
+      ? {}
+      : { localIrqDepth: (context.localIrqDepth ?? 0) + (relative?.irq ?? 0) }),
+    ...(context.entrySlot === undefined ? {} : { entrySlot: context.entrySlot }),
     irq: context.irq + (relative?.irq ?? 0),
     nmi: context.nmi + (relative?.nmi ?? 0),
   });
@@ -81,14 +99,32 @@ export function interruptExecutionContexts(program: WholeProgram): InterruptExec
   }
   const add = (fn: BindingId, context: InterruptExecutionContext): void => {
     const key = bindingIdentityKey(fn);
-    const selected = usesVectorDepth(key)
-      ? context
-      : Object.freeze({ domain: context.domain, irq: 0, nmi: 0 });
+    const selected: InterruptExecutionContext =
+      byFunction.get(key)?.entryKind === "interrupt"
+        ? context
+        : Object.freeze({
+            domain: context.domain,
+            ...(context.activationRoot === undefined
+              ? {}
+              : { activationRoot: context.activationRoot }),
+            ...(context.activationRoot === undefined
+              ? {}
+              : { localIrqDepth: usesVectorDepth(key) ? context.localIrqDepth : 0 }),
+            irq: usesVectorDepth(key)
+              ? context.activationRoot === undefined
+                ? context.irq
+                : (context.localIrqDepth ?? 0)
+              : 0,
+            nmi: usesVectorDepth(key) ? context.nmi : 0,
+          });
     const list = contexts.get(key) ?? [];
     if (
       list.some(
         (existing) =>
           existing.domain === selected.domain &&
+          existing.activationRoot === selected.activationRoot &&
+          existing.localIrqDepth === selected.localIrqDepth &&
+          existing.entrySlot === selected.entrySlot &&
           existing.irq === selected.irq &&
           existing.nmi === selected.nmi,
       )
@@ -109,11 +145,27 @@ export function interruptExecutionContexts(program: WholeProgram): InterruptExec
           }
         }
         for (const route of routes.get(operation) ?? []) {
+          const irqRoot =
+            route.sink.domain === "irq" ? bindingIdentityKey(route.handler) : undefined;
           add(
             route.handler,
             Object.freeze({
               domain: route.sink.domain,
-              irq: atOperation.irq + (route.sink.domain === "irq" ? 1 : 0),
+              ...(irqRoot === undefined
+                ? {}
+                : {
+                    activationRoot: irqRoot,
+                    localIrqDepth: 0,
+                    entrySlot: irqPredecessorSlot(atOperation),
+                  }),
+              // A newly entered IRQ starts a fresh local ownership stack. Its
+              // predecessor belongs to the installing context, not this root.
+              irq:
+                route.sink.domain === "irq"
+                  ? atOperation.activationRoot === undefined
+                    ? atOperation.irq + 1
+                    : 1
+                  : atOperation.irq,
               nmi: atOperation.nmi + (route.sink.domain === "nmi" ? 1 : 0),
             }),
           );
@@ -156,7 +208,9 @@ export function interruptExecutionContexts(program: WholeProgram): InterruptExec
           ["main", "irq", "nmi"].indexOf(left.domain) -
             ["main", "irq", "nmi"].indexOf(right.domain) ||
           left.irq - right.irq ||
-          left.nmi - right.nmi,
+          left.nmi - right.nmi ||
+          (left.activationRoot ?? "").localeCompare(right.activationRoot ?? "") ||
+          (left.entrySlot ?? "").localeCompare(right.entrySlot ?? ""),
       ),
     );
   }

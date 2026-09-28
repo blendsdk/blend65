@@ -86,7 +86,13 @@ export interface FunctionLoweringState {
   /** Source function whose execution storage is being selected. */
   readonly owner: BindingId;
   /** Proven vector nesting at this machine variant's entry. */
-  readonly interruptDepth: Readonly<{ irq: number; nmi: number }>;
+  readonly interruptDepth: Readonly<{
+    irq: number;
+    nmi: number;
+    activationRoot?: string;
+    localIrqDepth?: number;
+    entrySlot?: string;
+  }>;
   /** Machine location of each already selected semantic value. */
   readonly values: Map<string, LoweredValue>;
   /** Source places whose aggregate values are represented by addresses, not packed bytes. */

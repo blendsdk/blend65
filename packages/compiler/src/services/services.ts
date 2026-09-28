@@ -15,6 +15,7 @@ import { releaseGenerationPin } from "../publication/pins.js";
 import { publishGeneration } from "../publication/publication.js";
 import type { GenerationPin, PublishedGeneration } from "../publication/publication.js";
 import { buildSemanticProgram } from "../semantic/lower.js";
+import { overlappingIrqRootWarnings } from "../semantic/interrupt-domains.js";
 import { closeWholeProgram } from "../semantic/whole-program.js";
 import { allocateStorage } from "../storage/allocate.js";
 import { closeStorage } from "../storage/closure.js";
@@ -256,14 +257,36 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
   if (certificate.kind === "error") {
     if (certificate.reason === "stack" && certificate.measured !== undefined) {
       if (!Number.isFinite(certificate.measured)) {
+        const witness = certificate.route ?? [];
+        const reentered = witness.findLast((part) => part.startsWith("reentered:"))?.slice(10);
+        const handler = closed.program.semantic.functions.find(
+          (fn) => bindingIdentityKey(fn.id) === reentered,
+        );
+        const routeFunctions = new Set(witness);
+        const related = (closed.program.interruptRoutes ?? [])
+          .filter(
+            (route) =>
+              routeFunctions.has(bindingIdentityKey(route.handler)) ||
+              (handler !== undefined &&
+                route.installation.span.sourceId === handler.source.sourceId &&
+                route.installation.span.start >= handler.source.start &&
+                route.installation.span.end <= handler.source.end),
+          )
+          .map((route) => ({
+            span: route.installation.span,
+            message: "Handler selected on this unbounded IRQ route",
+          }));
         return {
           kind: "failure",
           failure: failure("source", [
             projectDiagnostic(
               "E10245",
               "Execution path 'IRQ re-entry' can overlap or consume hardware stack without a static bound — use a bounded interrupt/callback design",
-              resourceSpans.get(bindingIdentityKey(closed.program.semantic.main)) ??
+              handler?.source ??
+                resourceSpans.get(bindingIdentityKey(closed.program.semantic.main)) ??
                 closed.program.semantic.main.span,
+              null,
+              related,
             ),
           ]),
         };
@@ -286,6 +309,8 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
   if (machine.kind === "error") {
     return { kind: "failure", failure: incompleteStage("machine storage binding") };
   }
+  const irqWarnings = overlappingIrqRootWarnings(reserved.program, certificate.irqOverlap);
+  const previousWarnings = reserved.program.diagnostics ?? [];
   return Object.freeze({
     kind: "complete",
     value: Object.freeze({
@@ -299,7 +324,16 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
       diagnostics: Object.freeze([
         ...loaded.observations,
         ...analyzed.diagnostics,
-        ...(reserved.program.diagnostics ?? []),
+        ...previousWarnings,
+        ...irqWarnings.filter(
+          (warning) =>
+            !previousWarnings.some(
+              (previous) =>
+                previous.code === warning.code &&
+                previous.message.split(" has ")[0]?.split(" can ")[0] ===
+                  warning.message.split(" has ")[0]?.split(" can ")[0],
+            ),
+        ),
         ...lowered.diagnostics,
         ...storageResourceWarnings(
           reserved.program,

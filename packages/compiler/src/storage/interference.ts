@@ -6,6 +6,7 @@ import type { IndirectTargetSets } from "../semantic/function-targets.js";
 import type {
   HelperCallDemand,
   InterferenceEdge,
+  IrqOverlapFacts,
   StorageInventory,
   StorageRequest,
 } from "./storage-types.js";
@@ -29,6 +30,7 @@ function sameSpan(left: SourceSpan, right: SourceSpan): boolean {
 function lifetimesOverlap(left: StorageRequest, right: StorageRequest): boolean {
   if (bindingIdentityKey(left.owner) !== bindingIdentityKey(right.owner)) return false;
   if (left.domain !== right.domain) return false;
+  if (left.activationRoot !== right.activationRoot) return false;
   const leftPositions = new Set(left.lifetime.liveAt.map(positionKey));
   return right.lifetime.liveAt.some((position) => leftPositions.has(positionKey(position)));
 }
@@ -91,6 +93,7 @@ function addEdge(
 export function buildInterference(
   inventory: StorageInventory,
   helperCalls: readonly HelperCallDemand[] = [],
+  irqOverlap?: IrqOverlapFacts,
 ): readonly InterferenceEdge[] {
   const edges = new Map<string, InterferenceEdge>();
   const executions = new Map<string, Pick<SemanticFunction, "blocks">>(
@@ -145,7 +148,8 @@ export function buildInterference(
         for (const calleeRequest of inventory.requests) {
           if (
             activeCallees.has(bindingIdentityKey(calleeRequest.owner)) &&
-            callerRequest.domain === calleeRequest.domain
+            callerRequest.domain === calleeRequest.domain &&
+            callerRequest.activationRoot === calleeRequest.activationRoot
           ) {
             addEdge(edges, callerRequest.id, calleeRequest.id, "call-overlap");
           }
@@ -162,6 +166,34 @@ export function buildInterference(
         if (requestsById.has(helperRequestId)) {
           addEdge(edges, liveRequestId, helperRequestId, "call-overlap");
         }
+      }
+    }
+  }
+
+  if (irqOverlap !== undefined) {
+    const requestsByRoot = new Map<string, StorageRequest[]>();
+    for (const request of inventory.requests) {
+      if (request.activationRoot === undefined || request.id.startsWith("interrupt-link:"))
+        continue;
+      const members = requestsByRoot.get(request.activationRoot) ?? [];
+      members.push(request);
+      requestsByRoot.set(request.activationRoot, members);
+    }
+    const byId = new Set(inventory.requests.map(({ id }) => id));
+    for (const [left, right] of irqOverlap.rootPairs) {
+      for (const first of requestsByRoot.get(left) ?? []) {
+        for (const second of requestsByRoot.get(right) ?? []) {
+          addEdge(edges, first.id, second.id, "call-overlap");
+        }
+      }
+    }
+    for (const [left, right] of irqOverlap.linkPairs) {
+      if (byId.has(left) && byId.has(right)) addEdge(edges, left, right, "call-overlap");
+    }
+    for (const [link, root] of irqOverlap.linkRootPairs) {
+      if (!byId.has(link)) continue;
+      for (const request of requestsByRoot.get(root) ?? []) {
+        addEdge(edges, link, request.id, "call-overlap");
       }
     }
   }

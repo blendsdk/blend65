@@ -91,6 +91,19 @@ function saves(count: number): string {
   return `${"asm_php(); ".repeat(count)}${"asm_plp(); ".repeat(count)}`;
 }
 
+/** Keep the balanced and unmatched forms byte-for-byte identical across their separate oracles. */
+const handlerIrqSources = [
+  "setIRQ(&next); restoreIRQ();",
+  "setIRQExclusive(&next); restoreIRQ();",
+  "restoreIRQ();",
+].map(
+  (update) => `module Game;
+import { setIRQ, setIRQExclusive, restoreIRQ } from c64.system;
+interrupt function next(): void {}
+interrupt function handler(): void { ${update} }
+function main(): void { asm_cli(); asm_nop(); setIRQ(&handler); asm_nop(); restoreIRQ(); }`,
+);
+
 const probes = [
   {
     id: "v4-nmi-installation",
@@ -103,17 +116,7 @@ function main(): void { ${installer}(&handler); restoreNMI(); }`,
   },
   {
     id: "v4-handler-irq-update",
-    sources: [
-      "setIRQ(&next); restoreIRQ();",
-      "setIRQExclusive(&next); restoreIRQ();",
-      "restoreIRQ();",
-    ].map(
-      (update) => `module Game;
-import { setIRQ, setIRQExclusive, restoreIRQ } from c64.system;
-interrupt function next(): void {}
-interrupt function handler(): void { ${update} }
-function main(): void { asm_cli(); asm_nop(); setIRQ(&handler); asm_nop(); restoreIRQ(); }`,
-    ),
+    sources: handlerIrqSources.slice(0, 2),
   },
   {
     id: "v4-stack-route-overestimate",
@@ -195,6 +198,13 @@ describe("expressiveness restriction expiry", () => {
     const results = observations.get(id);
     if (row === undefined || results === undefined) throw new Error("Missing ledger probe");
     expect(limitationViolations(row, results, closedOwner), JSON.stringify(results)).toEqual([]);
+  });
+
+  // A handler cannot consume a predecessor that belongs to suspended mainline code.
+  it("should reject the unmatched handler-only restore after the balanced IRQ restriction retires", async () => {
+    const result = await observe(handlerIrqSources[2]!);
+    expect(result.kind).toBe("failure");
+    expect(result.errors).toEqual(["E10278"]);
   });
 
   // Alter one ledger or observation fact after proving that the unmodified row passes the gate.
