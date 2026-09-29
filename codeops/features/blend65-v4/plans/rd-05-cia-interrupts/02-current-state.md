@@ -15,6 +15,9 @@
 | `packages/compiler/src/target/c64-kernal.ts` | `C64MachineFacts` at line 4 owns C64 MMIO addresses; CIA timer/ICR addresses are absent. | Add fixed CIA register facts. |
 | `packages/compiler/src/machine/lower-c64.ts` | `lowerC64Operation` at line 325 emits direct volatile platform accesses and has no CIA case. | Add direct CIA lowering, with any scratch requested before SFA closure. |
 | `packages/compiler/src/machine/lower-platform.ts` | Line 82 binds direct lowering into selected machine instructions. | Reuse unchanged unless result retention requires a narrow adjustment. |
+| `packages/compiler/src/layout/startup.ts` | The returning restore path at line 354 does not preserve CIA1 timer or ICR-mask state. | Do not claim a safe BASIC return after CIA1 takeover in this slice; DEF-14 owns a proved hand-back. |
+| `packages/compiler/src/frontend/profile.spec.test.ts` and `profile-constants.spec.test.ts` | Both assert complete selected-profile capability/constant inventories. | Expand the exact arrays when adding CIA names; keep all existing entries. |
+| `packages/compiler/src/frontend/profile-constants.impl.test.ts` | Asserts the current total binding count and function/constant boundary. | Update only those stale numeric expectations after CIA declarations are added; preserve the identity and fresh-state checks. |
 
 The selected profiles in `packages/compiler/src/target/profile.ts` define cooperative KERNAL CINV and NMINV routes, but not ownership of each CIA source or an NMI-safe CIA2 ICR handoff. Current negative NMI evidence and DEF-7 remain authoritative for that gap; a profile name alone does not establish a positive route (AR-P3–AR-P4).
 
@@ -22,7 +25,9 @@ The selected profiles in `packages/compiler/src/target/profile.ts` define cooper
 
 `c64.cia1`/`c64.cia2` calls currently do not type-check as platform capabilities. Raw byte access cannot by itself express the approved counter-versus-latch distinction, ICR read-to-clear operation, or ownership proof (RD-05 R5.20, AR-P3–AR-P7). The existing direct C64 lowering path is the narrow integration seam; no copy of a legacy compiler or new runtime is needed.
 
-The most important risk is incorrectly treating the ICR read value as its write-only mask, or treating an exclusive IRQ vector as permission to alter unrelated CIA serial/TOD/port fields. The design and independent ST cases keep these effects separate. A second risk is claiming a stable 16-bit running counter sample from two byte reads; the API explicitly makes no such guarantee (AR-P5–AR-P6).
+The most important risk is incorrectly treating the ICR read value as its write-only mask, or treating an exclusive IRQ vector as permission to alter unrelated CIA serial/TOD/port fields. The design and independent ST cases keep these effects separate. A vector restore alone does not restore KERNAL Timer A service after CIA1 takeover, and the existing installer restores the caller's IRQ-enable state before a separate mask-clear call. The corrected plan qualifies an explicit masked handoff and rejects the unproved reverse handoff. A running counter read remains a low-then-high observation, not an atomic snapshot (AR-P5–AR-P6, PF-001–PF-002).
+
+The existing vector check composes mainline effects separately from selected IRQ-handler effects. A handler or helper can therefore change CIA1 device state before mainline restores the vector. The CIA-specific return guard must include that selected-handler effect without treating handler return as return to BASIC (PF-002).
 
 ## Dependencies
 

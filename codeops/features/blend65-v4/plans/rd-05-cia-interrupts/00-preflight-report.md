@@ -1,17 +1,17 @@
 # Preflight Report: RD-05 CIA Timer and Interrupt Slice
 
-> **Status:** ❌ PREFLIGHT BLOCKED — 3 major and 2 minor findings pending
-> **Iteration:** 1 (first scan)
-> **Audit target:** Full seven-document plan in `codeops/features/blend65-v4/plans/rd-05-cia-interrupts/`; starting git tree `727f9e1ec56457490e317bcad014be0937719e62` at HEAD `895eda1c`
+> **Status:** ✅ PREFLIGHT PASSED — all 5 findings resolved
+> **Iteration:** 3 (bounded final check after iteration-2 corrections)
+> **Audit target:** Full seven-document plan in `codeops/features/blend65-v4/plans/rd-05-cia-interrupts/`, excluding this report; starting git tree `727f9e1ec56457490e317bcad014be0937719e62` at HEAD `895eda1c`; final ordered plan-file SHA-256 digest `a84603f4eecb6b6f36c85b5cb3543dd905f7f7887c1edc0aa254e3959e405ee1`
 > **Context only:** `AGENTS.md`, feature roadmap, RD-05, frozen Specification 4, qualified expert baseline, MOS 6526 data sheet, pinned KERNAL sources, and current compiler/tests
-> **Codebase grounded:** 18 source/test/config files examined; 14 plan-to-code or primary-source references checked
+> **Codebase grounded:** at least 19 source/test/config files examined; at least 14 plan-to-code or primary-source references checked
 > **Last updated:** 2026-09-29
 
 ## Codebase context
 
 The project uses TypeScript 7, Node 22, Yarn 1, Vitest, ACME 0.97 and VICE 3.10. Selected C64 calls are declared in `packages/compiler/src/frontend/profile.ts`, bound by `profile-bindings.ts`, checked through `semantic/interrupt-ownership.ts`, and emitted by direct C64 lowering. The compiler has vector ownership but no CIA source/mask proof. Existing RD-05 fixtures compile real programs and run VICE sequentially. No new runtime, framework, harness or dependency is needed for this slice.
 
-The main files checked were `profile.ts`, `profile-bindings.ts`, both exact-inventory frontend specification tests, `operations.ts`, `whole-program.ts`, `interrupt-ownership.ts`, `target/profile.ts`, `target/c64-kernal.ts`, `lower-c64.ts`, `lower-c64-interrupt.ts`, `lower-platform.ts`, `lower-control.ts`, `lower-state.ts`, `layout/startup.ts`, `test/rd05/profile-fixture.ts`, `test/rd05/handler-irq-vice.spec.test.ts`, and `test/m1/vice-monitor.ts`. The 17 plan tasks are specification-first and follow existing module seams.
+The main files checked were `profile.ts`, `profile-bindings.ts`, both exact-inventory frontend specification tests, `profile-constants.impl.test.ts`, `operations.ts`, `whole-program.ts`, `interrupt-ownership.ts`, `target/profile.ts`, `target/c64-kernal.ts`, `lower-c64.ts`, `lower-c64-interrupt.ts`, `lower-platform.ts`, `lower-control.ts`, `lower-state.ts`, `layout/startup.ts`, `test/rd05/profile-fixture.ts`, `test/rd05/handler-irq-vice.spec.test.ts`, and `test/m1/vice-monitor.ts`. The 17 plan tasks are specification-first and follow existing module seams.
 
 ## Summary by dimension
 
@@ -34,8 +34,8 @@ The main files checked were `profile.ts`, `profile-bindings.ts`, both exact-inve
 | Severity | Count | Status |
 |---|---:|---|
 | Critical | 0 | — |
-| Major | 3 | Pending |
-| Minor | 2 | Pending |
+| Major | 3 | Resolved |
+| Minor | 2 | Resolved |
 | Observation | 0 | — |
 
 ## Findings
@@ -57,7 +57,8 @@ The main files checked were `profile.ts`, `profile-bindings.ts`, both exact-inve
 **Confidence:** High — a different setter interrupt-state contract would change this.
 **Hardening:** Independent challenge retained the finding and rejected a general branch-service checker.
 **Challenger:** converged.
-**User Decision:** Pending.
+**User Decision:** Resolved — user accepted Option A and requested the recommended plan correction on 2026-09-29.
+**Verification:** The source-visible `asm_php()`/`asm_sei()` → exclusive install → full mask clear → one pending read → `asm_plp()` handoff is in `03-cia-operations.md` §Ownership; ST-9/ST-14 test the pending-IRQ boundary. The focused final recheck found no remaining installer window in this qualified sequence.
 
 ### PF-002: CIA1 takeover has no safe return-to-BASIC rule 🟠 MAJOR
 
@@ -71,7 +72,9 @@ The main files checked were `profile.ts`, `profile-bindings.ts`, both exact-inve
 **Confidence:** High — a bounded exact prior-state capture/restore mechanism would change this.
 **Hardening:** Independent challenge confirmed that assumed stock-state reinitialization is not exact restoration.
 **Challenger:** converged.
-**User Decision:** Pending.
+**User Decision:** Resolved — user accepted the temporary nonreturning guard on 2026-09-29, with a required RD-05 follow-on for a proved safe return to BASIC before RD-05 closeout. This is not a permanent game-language restriction.
+**Iteration 2 evidence:** The first correction omitted CIA1 writes in selected IRQ handlers/helpers from the mainline dirty-state fact; current `interrupt-ownership.ts` summarizes handler roots separately. It also needed to distinguish statically identified raw CIA writes from legal runtime-address `poke()`; frozen `spec/12-intrinsics.md` permits runtime addresses and `spec/appendix-c64.md` treats truly opaque vector writes as unsafe boundaries. These are direct consequences of the accepted guard, not a new capability.
+**Verification:** `03-cia-operations.md` now carries selected handler/helper and nested-install mutations into the active epoch, keeps handler return distinct from BASIC return, and states the caller-owned raw-address boundary. ST-12 independently checks restore, direct `main()` return, handler-side mutation, counter-only control, literal CIA write and ordinary runtime-address game write. Tasks 1.1.2 and 1.2.2–1.2.3 own the proof. DEF-14 is tracked in the feature roadmap before RD-05 closeout. A targeted final recheck found no residual PF-002 gap; no compiler code or frozen spec changed.
 
 ### PF-003: Existing exact-inventory tests are absent from the task list 🟠 MAJOR
 
@@ -85,7 +88,9 @@ The main files checked were `profile.ts`, `profile-bindings.ts`, both exact-inve
 **Confidence:** High — the arrays are exact by inspection.
 **Hardening:** Independent challenge found no narrower way to keep the full checkpoint green.
 **Challenger:** converged.
-**User Decision:** Pending.
+**User Decision:** Resolved — user accepted the exact-inventory test correction on 2026-09-29.
+**Iteration 2 evidence:** `packages/compiler/src/frontend/profile-constants.impl.test.ts:85–102` also hard-codes the current 31 bindings and 17-function boundary. This is the same test-impact root cause; no other exact profile count or inventory assumption was found.
+**Verification:** The third test is named in `02-current-state.md`, `07-testing-strategy.md`, and the expected modification set. Task 1.2.7 updates only its stale numeric assertions before the existing profile-regression green gate; task 1.1.1 still owns the two specification inventories. All other assertions remain. A targeted final check confirmed the order and scope.
 
 ### PF-004: Timer A's shared consumers need an explicit precondition 🟡 MINOR
 
@@ -98,7 +103,8 @@ The main files checked were `profile.ts`, `profile-bindings.ts`, both exact-inve
 **Recommended correction (only viable in scope):** State that timer reprogramming requires other Timer A consumers to be quiescent or explicitly owned, and that “one writer” is a qualification precondition, not a compiler-enforced guarantee. Keep ST-5's bit-preservation test, but explicitly state that active serial-output timing is *not* preserved. A runtime serial manager was dropped as unapproved extra machinery.
 **Confidence:** Medium — proof that selected profiles cannot have an active CIA1 serial-output consumer would reduce this to wording alone.
 **Hardening:** Independent challenge reduced this from a proposed major safety gap to a minor explicit-contract gap.
-**User Decision:** Pending.
+**User Decision:** Resolved — user accepted the explicit Timer A consumer precondition on 2026-09-29.
+**Verification:** `03-cia-operations.md` §Device Effects says Timer A reprogramming may change active serial timing and that one-writer/quiescent-consumer conditions are qualification preconditions, not a new compiler-enforced manager. ST-5 asserts preserved register bits without promising active serial timing continuity.
 
 ### PF-005: Test matrix misses parts of the public contract 🟡 MINOR
 
@@ -109,8 +115,11 @@ The main files checked were `profile.ts`, `profile-bindings.ts`, both exact-inve
 **Problem:** ST-1/ST-2 name only CIA1 A and CIA2 B counter reads; ST-8 omits no-owner latch and mask-write calls; ST-10 omits invalid constant disable masks. ST-3 requires a decrement during a read but is mapped only to a compile-time test, without a deterministic runtime observation or an explicit two-read oracle.
 
 **Recommended correction (only viable within the planned test scope):** Expand the existing ST rows/files to cover all four counter reads and omitted negative calls. Narrow ST-3 to the exact low-then-high two-read instruction oracle, which proves the stated non-atomic contract without timing a decrement in VICE. Add no harness.
-**User Decision:** Pending.
+**User Decision:** Resolved — user accepted the narrow test-matrix correction on 2026-09-29.
+**Verification:** ST-1/ST-2 cover all four counter reads; ST-8 covers no-owner latch/mask calls; ST-10 covers invalid disable masks; ST-3 is an exact low/high output oracle. ST-12 also distinguishes known raw CIA1 writes from legal, volatile runtime-address game writes without requiring alias analysis. All cases map to named files and tasks.
 
 ## Verdict
 
-The plan is **blocked pending user decisions and narrow plan corrections**. Its main architecture, task order, direct lowering and test infrastructure are sound. No compiler code, frozen specification, expert skill, requirement or roadmap status was changed by this audit. A passing re-scan is required before implementation begins.
+The seven-document plan **passes preflight**. Iteration 2 rechecked all 13 dimensions and reopened only PF-002/PF-003 consequences plus PF-005's raw-address test boundary; no independent new root cause remained. Iteration 3 checked those corrections and their direct dependency surface. Two small sequencing/test-input omissions found there were corrected and directly verified. Five findings are resolved; no critical, major or minor finding remains open.
+
+The selected design remains a direct API plus one focused ownership check and existing lowering/tests. It does not add a scheduler, runtime manager, alias-analysis framework, new harness or dependency. The temporary nonreturning CIA1-takeover guard is explicit and DEF-14 owns safe return to BASIC before RD-05 closeout. This audit changed the plan/report and feature roadmap only; compiler code, tests, frozen `spec/`, and the expert skill remain untouched. Independent clustered auditors reviewed iteration 2 and two targeted auditors reviewed iteration 3; a separate challenger checked the raw-address decision. This is same-session correction review, so later execution should compare the plan digest above before using the pass.
