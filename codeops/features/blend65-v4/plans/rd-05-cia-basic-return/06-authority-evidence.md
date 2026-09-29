@@ -424,6 +424,29 @@ matching RD text and sole expert baseline, followed by immutable content and
 release-binding commits. No push is authorized. Phase 2 specification tests and
 compiler implementation remain untouched until both authority commits are green.
 
+### Green authority checkpoint — 2026-09-30
+
+The user approved the exact reviewed candidate with “I do”. The 22 skill files
+and three specification/RD files migrated byte-identically. Immutable content
+commit `1ce4852016e2a883cf1f733c6014c45e176bfc69` binds full-tree digest
+`85cfd0a19e06e8fa3c66f70ac3dcdbe8cfc465179be48961f190ee6ae6eeeca7`.
+The following release-binding commit, containing this checkpoint, activates
+expert 2.0.1 and records that immutable content ID. Only release bookkeeping and
+this plan's progress/evidence/roadmap change after the content checkpoint.
+
+Direct binding checks pass: exact 18-member specification identity, runtime,
+router, six-file qualification and content-checkpoint hashes; 22 regular files;
+112 unique cases; byte-identical unchanged payload and capture-record suffix;
+84 runtime relative links/anchors; packaging, targeted formatting and the
+ordinary whitespace check. Runtime/source-key bytes and all independent grades
+are unchanged. `spec/`, compiler and tests are clean. Markdown's existing ignore
+policy is unchanged. Compiler and runtime handback are not yet qualified.
+
+Phase 1 is documentation-only. Its mandatory correctness review still runs;
+security/performance auditors are skipped under the configured docs-only rule.
+Phase 2 remains closed until that review clears. Portfolio sync remains deferred
+to integration under the existing branch rule. No push is authorized.
+
 ### Exact non-active specification delta
 
 This is the reviewed candidate text, not an independently active specification.

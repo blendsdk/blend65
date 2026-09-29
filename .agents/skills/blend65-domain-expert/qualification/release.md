@@ -1,15 +1,15 @@
 # Blend65 Domain Expert Release Record
 
-> **Active qualified version**: `2.0.0`
-> **Candidate version**: `2.0.1`
-> **Status**: Draft non-active candidate — qualification evidence and independent review complete; final exact-evidence approval pending
-> **Recorded**: 2026-09-29
+> **Active qualified version**: `2.0.1`
+> **Status**: Active qualified and frozen — exact approval, byte-identical migration and immutable content binding complete
+> **Recorded**: 2026-09-30
 
-The installed baseline remains 2.0.0 until the approved byte-identical migration.
-Historical result sections below describe their original identities; they do not
-claim qualification of this candidate. Only traced unchanged case/knowledge
-sections may inherit those results. The current candidate includes the approved
-CIA1 return correction and prior RD-04 E10280/E10281 diagnostic errata.
+The single installed qualified baseline is 2.0.1, bound to the immutable content
+commit below. Historical result and candidate sections retain their original
+identities and activation state at capture; the current identity, gate table and
+2.0.1 freeze declaration govern activation. Only traced unchanged case/knowledge
+sections inherit earlier results. This baseline includes the approved CIA1 return
+correction and prior RD-04 E10280/E10281 diagnostic errata.
 
 ## Identity
 
@@ -22,12 +22,12 @@ CIA1 return correction and prior RD-04 E10280/E10281 diagnostic errata.
 | Original router SHA-256 | `3865874b9f8fab03e5554e01098ed1ca4834c9470698bcc1729e06f2cca5d998` |
 | Metadata SHA-256 | `e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38` |
 | Legacy reference hashes | Pinned individually in `qualification/coverage-matrix.md` |
-| Candidate router | `2.0.1`; non-active |
-| Candidate router SHA-256 | `8111b2ebc7584ee427a16951be0bfafce199ae6166094de8befa9f092848ce68` |
-| Qualified content commit | Pending final approval and immutable content checkpoint |
-| Candidate Specification | `BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf` |
-| Candidate runtime-payload digest | `423e8907096fb5cdf533890c22c0a7b567cf70b935c83878c6c48cad9a768397` |
-| Candidate content-checkpoint full skill-tree digest | Pending immutable content checkpoint |
+| Active router | `2.0.1` |
+| Active router SHA-256 | `8111b2ebc7584ee427a16951be0bfafce199ae6166094de8befa9f092848ce68` |
+| Qualified content commit | `1ce4852016e2a883cf1f733c6014c45e176bfc69` |
+| Active Specification | `BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf` |
+| Active runtime-payload digest | `423e8907096fb5cdf533890c22c0a7b567cf70b935c83878c6c48cad9a768397` |
+| Content-checkpoint full skill-tree digest | `85cfd0a19e06e8fa3c66f70ac3dcdbe8cfc465179be48961f190ee6ae6eeeca7` |
 | Qualification payload digest | `b77c3c3b5c1e5a1ba723cb007910d19ff324eea74d6bc9d0349202c3e9849c91`; six qualification files, excluding this release record |
 | Preceding active 2.0.0 content | `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`; router `e3d3f8f570a7fa8b3c197208ede2f7b41878f29494fc1824fcfabd2c11f53304`; runtime digest `65e83868000931913f321df50a648e9f2b4468d133025a7a4e9b21134ecbfe42` |
 | Previous 2.0.0 content commit | `5eaf2ae86b3b0176c84b35eba6385b80115b1c34`; superseded by the activation-state correction |
@@ -37,11 +37,11 @@ CIA1 return correction and prior RD-04 E10280/E10281 diagnostic errata.
 
 | Gate | State | Evidence / blocker |
 |---|---|---|
-| Structural | Candidate checks complete; live gate pending | 22 regular files, thirteen references, packaging and exact runtime/link/source/identity checks recorded below. |
-| Coverage and traceability | Candidate final review clear; live gate pending | All 111 preceding identities retained; Q-P23 added. Twelve fresh cases and 100 unchanged-input inherited cases are disjoint and complete. |
-| Behavioral | Candidate final review clear; live gate pending | Twelve selected cases have passing captures/grades and bounded independent corrections; old Q-P23 expected red and failed earlier responses are retained. |
-| Specification consistency prerequisite | Candidate checks complete; live gate pending | Corrected 18-member digest and exact 45-path corpus checked; only the approved appendix and non-normative inventory differ. |
-| Hardware-limitation exceptions | Candidate final omission scan clear; live gate pending | Existing HLE register unchanged; stock write-only-state boundary is an approved hardware restriction. No new API/runtime or target support is inferred. |
+| Structural | Pass | Byte-identical migration of 22 regular files and thirteen references; packaging, 84 runtime links and exact source/identity checks pass. |
+| Coverage and traceability | Pass | All 111 preceding identities retained; Q-P23 added. Twelve fresh cases and 100 independently reviewed unchanged-input inherited cases are disjoint and complete. |
+| Behavioral | Pass | Twelve selected cases have passing captures/grades and bounded independent corrections; old Q-P23 expected red and failed earlier responses are retained. |
+| Specification consistency prerequisite | Pass | Corrected 18-member digest and exact 45-path corpus checked; only the approved appendix and non-normative inventory differ. All 27 Language Guard rows reviewed. |
+| Hardware-limitation exceptions | Pass | Independent final omission scan is clear; existing HLE register unchanged. Stock write-only-state boundary is an approved hardware restriction. No new API/runtime or target support is inferred. |
 
 ## Red-Baseline Method
 
@@ -1743,9 +1743,9 @@ payload digest excluding this release record is
 corrected identity on 2026-09-14, and the direct activation checks passed before this release-only
 binding made it active.
 
-## Freeze Declaration
+## Historical 2.0.0 Freeze Declaration
 
-Blend65 Domain Expert `2.0.0` is the single active qualified baseline. It is bound to immutable
+At its original activation, Blend65 Domain Expert `2.0.0` was the single active qualified baseline. It was bound to immutable
 content commit `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`, Specification identity
 `BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa`,
 router SHA-256 `e3d3f8f570a7fa8b3c197208ede2f7b41878f29494fc1824fcfabd2c11f53304`, and the
@@ -1754,6 +1754,35 @@ runtime/content-checkpoint digests recorded above. The corrected identity replac
 substantive router, knowledge, source-governance, or qualification-oracle change requires at least
 a patch-version bump, affected/dependent requalification, independent review, and a new atomic
 activation. Git history preserves older content; no parallel active version exists.
+
+## 2.0.1 Active Release Binding and Freeze Declaration
+
+Blend65 Domain Expert `2.0.1` is the single active qualified and frozen baseline.
+The user approved the exact reviewed candidate with “I do” on 2026-09-30. Its
+byte-identical live migration passed before immutable content commit
+`1ce4852016e2a883cf1f733c6014c45e176bfc69` on `feature/v4-rebuild`.
+This following release-record binding activates that content and supersedes
+2.0.0 content `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`.
+
+The specification, router, runtime payload, six-file qualification payload and
+content-checkpoint full-tree identities are recorded in the current Identity
+table. Both final independent source and semantics reviews are clear. The
+112-case closure consists of twelve fresh passing cases and 100 independently
+dependency-reviewed unchanged-input cases. Live byte equality reuses that exact
+qualified evidence; it does not create new model results.
+
+Only activation bookkeeping in this release record changes after the content
+checkpoint. Captured responses, grades, packet manifests, oracles, coverage,
+runtime knowledge and specification bytes remain unchanged. Existing hardware
+exceptions and owned deferrals remain unchanged. The current compiler handback,
+VICE runtime and physical-hardware boundaries are still unverified; this freeze
+qualifies domain authority, not compiler implementation or silicon behavior.
+
+Any substantive router, knowledge, source-governance or qualification-oracle
+change requires a version bump, affected/dependent qualification, independent
+review and a new approved atomic activation. Git preserves historical versions;
+there is no second active skill tree. Binding this already-qualified immutable
+content ID is bookkeeping and does not require another version bump.
 
 
 ## 2.0.1 Final Independent Candidate Review
