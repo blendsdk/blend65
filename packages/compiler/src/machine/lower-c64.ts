@@ -3,6 +3,7 @@ import type { PlatformOperation } from "../semantic/operations.js";
 import type { StorageRequest } from "../storage/storage-types.js";
 import type { TargetProfile } from "../target/profile.js";
 import { lowerC64InterruptOperation } from "./lower-c64-interrupt.js";
+import { lowerC64CiaOperation } from "./lower-c64-cia.js";
 import {
   machineInstruction,
   modeForValue,
@@ -334,6 +335,9 @@ export function lowerC64Operation(
 
   const interrupt = lowerC64InterruptOperation(operation, profile, support);
   if (interrupt !== null) return interrupt;
+
+  const cia = lowerC64CiaOperation(operation, values, profile, support);
+  if (cia !== null) return cia;
 
   if (operation.capability === "c64.video.waitNextFrame") {
     const instructions = [0, 1].flatMap((order) => [

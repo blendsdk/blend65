@@ -252,5 +252,5 @@ describe.sequential("runtime switches in pinned PAL VICE", () => {
         }
       }
     });
-  });
+  }, 30_000);
 });

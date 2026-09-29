@@ -161,6 +161,84 @@ const COOPERATIVE_DECLARATIONS = Object.freeze({
   warnArraySize: 256,
   warnStructZpSize: 35,
   capabilities: Object.freeze([
+    capability(
+      "c64.cia1.configureTimerA",
+      [SCALAR_TYPES.byte],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability(
+      "c64.cia1.configureTimerB",
+      [SCALAR_TYPES.byte],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability(
+      "c64.cia1.disableInterruptSources",
+      [SCALAR_TYPES.byte],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability(
+      "c64.cia1.enableInterruptSources",
+      [SCALAR_TYPES.byte],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability("c64.cia1.readAndClearPendingSources", [], SCALAR_TYPES.byte, "volatile-read"),
+    capability("c64.cia1.readTimerACounter", [], SCALAR_TYPES.word, "volatile-read"),
+    capability("c64.cia1.readTimerBCounter", [], SCALAR_TYPES.word, "volatile-read"),
+    capability(
+      "c64.cia1.writeTimerALatch",
+      [SCALAR_TYPES.word],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability(
+      "c64.cia1.writeTimerBLatch",
+      [SCALAR_TYPES.word],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability(
+      "c64.cia2.configureTimerA",
+      [SCALAR_TYPES.byte],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability(
+      "c64.cia2.configureTimerB",
+      [SCALAR_TYPES.byte],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability(
+      "c64.cia2.disableInterruptSources",
+      [SCALAR_TYPES.byte],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability(
+      "c64.cia2.enableInterruptSources",
+      [SCALAR_TYPES.byte],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability("c64.cia2.readAndClearPendingSources", [], SCALAR_TYPES.byte, "volatile-read"),
+    capability("c64.cia2.readTimerACounter", [], SCALAR_TYPES.word, "volatile-read"),
+    capability("c64.cia2.readTimerBCounter", [], SCALAR_TYPES.word, "volatile-read"),
+    capability(
+      "c64.cia2.writeTimerALatch",
+      [SCALAR_TYPES.word],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability(
+      "c64.cia2.writeTimerBLatch",
+      [SCALAR_TYPES.word],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
     capability("c64.input.joystickFire", [SCALAR_TYPES.byte], SCALAR_TYPES.boolean, "pure"),
     capability("c64.input.joystickLeft", [SCALAR_TYPES.byte], SCALAR_TYPES.boolean, "pure"),
     capability("c64.input.joystickRight", [SCALAR_TYPES.byte], SCALAR_TYPES.boolean, "pure"),
@@ -221,6 +299,21 @@ const COOPERATIVE_DECLARATIONS = Object.freeze({
   ]),
 });
 
+/** Timer modes and latched-source bits are immutable compile-time bytes on every C64 profile. */
+const CIA_CONSTANT_ROWS = [
+  ["sourceAll", 0x1fn],
+  ["sourceFlag", 0x10n],
+  ["sourceIrq", 0x80n],
+  ["sourceSerial", 0x08n],
+  ["sourceTimerA", 0x01n],
+  ["sourceTimerB", 0x02n],
+  ["sourceTodAlarm", 0x04n],
+  ["timerBCountAUnderflows", 0x40n],
+  ["timerLoad", 0x10n],
+  ["timerOneShot", 0x08n],
+  ["timerStart", 0x01n],
+] as const;
+
 /** Represent exact timing with ordinary scalars, without a wider source integer or runtime. */
 function profileConstants(facts: C64KernalProfileFacts): readonly ProfileConstant[] {
   const rows = [
@@ -239,9 +332,14 @@ function profileConstants(facts: C64KernalProfileFacts): readonly ProfileConstan
     ["sidModel", SCALAR_TYPES.word, BigInt(facts.sidModel)],
     ["usesKernal", SCALAR_TYPES.boolean, true],
   ] as const;
-  return Object.freeze(
-    rows.map(([name, type, value]) => Object.freeze({ name: `c64.profile.${name}`, type, value })),
-  );
+  return Object.freeze([
+    ...CIA_CONSTANT_ROWS.map(([name, value]) =>
+      Object.freeze({ name: `c64.cia1.${name}`, type: SCALAR_TYPES.byte, value }),
+    ),
+    ...rows.map(([name, type, value]) =>
+      Object.freeze({ name: `c64.profile.${name}`, type, value }),
+    ),
+  ]);
 }
 
 /**

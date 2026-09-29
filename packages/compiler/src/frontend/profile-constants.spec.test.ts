@@ -15,7 +15,7 @@ function typeName(type: { readonly kind: string; readonly name?: string }): stri
 
 describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
   // Every selection exposes exactly the independently specified scalar facts in name order.
-  it("should expose exactly fourteen typed constants in stable qualified-name order", () => {
+  it("should expose exactly twenty-five typed constants in stable qualified-name order", () => {
     const result = selectFrontendProfile(id);
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected complete profile selection");
@@ -23,6 +23,17 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
     expect(
       result.profile.constants.map(({ name, type, value }) => [name, typeName(type), value]),
     ).toEqual([
+      ["c64.cia1.sourceAll", "byte", 0x1fn],
+      ["c64.cia1.sourceFlag", "byte", 0x10n],
+      ["c64.cia1.sourceIrq", "byte", 0x80n],
+      ["c64.cia1.sourceSerial", "byte", 0x08n],
+      ["c64.cia1.sourceTimerA", "byte", 0x01n],
+      ["c64.cia1.sourceTimerB", "byte", 0x02n],
+      ["c64.cia1.sourceTodAlarm", "byte", 0x04n],
+      ["c64.cia1.timerBCountAUnderflows", "byte", 0x40n],
+      ["c64.cia1.timerLoad", "byte", 0x10n],
+      ["c64.cia1.timerOneShot", "byte", 0x08n],
+      ["c64.cia1.timerStart", "byte", 0x01n],
       ["c64.profile.cpuClockHzRemainder", "word", pal ? 248n : 730n],
       ["c64.profile.cpuClockKilohertz", "word", pal ? 985n : 1022n],
       ["c64.profile.cyclesPerFrame", "word", pal ? 19656n : 17095n],
@@ -40,8 +51,8 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
     ]);
   });
 
-  // Adding facts preserves the full existing source operation contract for every selected ID.
-  it("should preserve all seventeen operation signatures and effects", () => {
+  // Every selected operation keeps its exact signature and effect classification.
+  it("should expose all thirty-five operation signatures and effects", () => {
     const result = selectFrontendProfile(id);
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected complete profile selection");
@@ -53,6 +64,24 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
         effect,
       ]),
     ).toEqual([
+      ["c64.cia1.configureTimerA", ["byte"], "void", "volatile-write"],
+      ["c64.cia1.configureTimerB", ["byte"], "void", "volatile-write"],
+      ["c64.cia1.disableInterruptSources", ["byte"], "void", "volatile-write"],
+      ["c64.cia1.enableInterruptSources", ["byte"], "void", "volatile-write"],
+      ["c64.cia1.readAndClearPendingSources", [], "byte", "volatile-read"],
+      ["c64.cia1.readTimerACounter", [], "word", "volatile-read"],
+      ["c64.cia1.readTimerBCounter", [], "word", "volatile-read"],
+      ["c64.cia1.writeTimerALatch", ["word"], "void", "volatile-write"],
+      ["c64.cia1.writeTimerBLatch", ["word"], "void", "volatile-write"],
+      ["c64.cia2.configureTimerA", ["byte"], "void", "volatile-write"],
+      ["c64.cia2.configureTimerB", ["byte"], "void", "volatile-write"],
+      ["c64.cia2.disableInterruptSources", ["byte"], "void", "volatile-write"],
+      ["c64.cia2.enableInterruptSources", ["byte"], "void", "volatile-write"],
+      ["c64.cia2.readAndClearPendingSources", [], "byte", "volatile-read"],
+      ["c64.cia2.readTimerACounter", [], "word", "volatile-read"],
+      ["c64.cia2.readTimerBCounter", [], "word", "volatile-read"],
+      ["c64.cia2.writeTimerALatch", ["word"], "void", "volatile-write"],
+      ["c64.cia2.writeTimerBLatch", ["word"], "void", "volatile-write"],
       ["c64.input.joystickFire", ["byte"], "boolean", "pure"],
       ["c64.input.joystickLeft", ["byte"], "boolean", "pure"],
       ["c64.input.joystickRight", ["byte"], "boolean", "pure"],

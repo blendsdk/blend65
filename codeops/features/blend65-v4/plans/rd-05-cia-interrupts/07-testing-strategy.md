@@ -7,7 +7,7 @@
 
 Coverage goal: every new public operation and constant has a source-level type/effect case; every ownership boundary has a positive and negative case; every device effect has an independent assembly expectation; and a simultaneous-source program runs on each of the four selected profiles. These are behavior goals, not an invented percentage gate. Specification tests precede implementation and are immutable oracles (AR-P1–AR-P7).
 
-Test fixtures use existing compiler service and VICE helpers. No CIA simulator, general hardware harness, or CI tier is introduced. VICE runs are sequential and qualify only their configured model; revision-sensitive CIA edges remain for targeted physical QA (AR-P2–AR-P3).
+Test fixtures use existing compiler service and VICE helpers. Frontend name/type checks use the editor analysis API; whole-program ownership diagnostics use `checkProject` without changing their E10278 or source-span expectations (AR-P8). No CIA simulator, general hardware harness, or CI tier is introduced. VICE runs are sequential and qualify only their configured model; revision-sensitive CIA edges remain for targeted physical QA (AR-P2–AR-P3).
 
 ## Specification Test Cases
 

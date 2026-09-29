@@ -3,6 +3,7 @@ import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { IndirectTargetSets } from "./function-targets.js";
 import type { InterruptRoute } from "./whole-program.js";
+import { checkCiaOwnership } from "./cia-ownership.js";
 import type {
   SemanticBlock,
   SemanticFunction,
@@ -237,6 +238,19 @@ export function checkInterruptOwnership(
   indirectTargets: IndirectTargetSets,
   routes: readonly InterruptRoute[] = [],
 ): InterruptOwnershipAnalysis {
+  // Device-state failures must point at the CIA operation or unsafe hand-back
+  // before the vector-only proof can report its broader unmatched-install error.
+  const ciaDiagnostics = checkCiaOwnership(program, reachable, indirectTargets, routes);
+  if (ciaDiagnostics.length > 0) {
+    const emptyDepth = Object.freeze({ irq: 0, nmi: 0 });
+    return Object.freeze({
+      diagnostics: ciaDiagnostics,
+      maxDepth: emptyDepth,
+      relativeDepths: new Map(),
+      mainEntryDepth: emptyDepth,
+      initializerEntryDepths: new Map(),
+    });
+  }
   const functions = new Map(
     program.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
   );

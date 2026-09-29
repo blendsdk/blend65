@@ -1,7 +1,7 @@
 # RD-05 CIA Timer and Interrupt Operations
 
 > **Feature**: Direct, ownership-checked CIA timer and interrupt operations
-> **Status**: Plan Preflighted — ready for execution
+> **Status**: Executing — AR-P9 timeout correction approved
 > **Created**: 2026-09-29
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
@@ -10,7 +10,7 @@
 
 This plan covers the approved CIA slice of RD-05 on the four qualified cooperative C64 profiles. It gives Blend65 source named timer-counter observations, CIA1 timer programming and interrupt-control operations, and precise volatile lowering. A CIA1 timer/mask takeover cannot return to BASIC in this bounded slice because the prior write-only interrupt mask cannot be recovered. Safe return is an explicit RD-05 follow-on (DEF-14), not a permanent game-language restriction. The plan does not claim completion of RD-05 R5.20 or AC-16 while CIA2 state-changing operations remain blocked by DEF-7.
 
-The source-facing and emitted contracts are owned by [the CIA design](03-cia-operations.md); independent expected outcomes live in [the test strategy](07-testing-strategy.md). The [decision register](00-ambiguity-register.md) is complete at AR-P1–AR-P7.
+The source-facing and emitted contracts are owned by [the CIA design](03-cia-operations.md); independent expected outcomes live in [the test strategy](07-testing-strategy.md). The [decision register](00-ambiguity-register.md) resolves AR-P1–AR-P9, including the narrow older-test timeout correction.
 
 ## Minimum-Sufficient Baseline
 
