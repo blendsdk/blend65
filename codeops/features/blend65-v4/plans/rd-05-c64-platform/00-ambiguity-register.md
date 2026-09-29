@@ -162,6 +162,25 @@ not solve nesting or storage safety.
 | `packages/compiler/src/semantic/whole-program.ts`, lines 348–356 | Current lowering is not reached for an unmasked, unbounded sink: semantic analysis reports E10245. This is the approved conservative baseline, not usable NMI support. |
 | RD-05 R5.15–R5.17 and AC-12–AC-14; RD-04 AR-P16 / DEF-7 | Positive NMI support remains an RD-05 obligation. The existing rejection cannot count as completion. |
 | [Pinned 901227-03 KERNAL source](https://raw.githubusercontent.com/mist64/cbmsrc/01bd60f162ef92212ef0cb67546ae8f42be34168/KERNAL_C64_03/rs232nmi) | The firmware establishes dispatch and acknowledgement behavior, not a maximum arrival rate across CIA2, RESTORE and other enabled sources. No combined-source nesting bound was established by this investigation. |
+| [Commodore C64 service manual](https://www.commodore.ca/manuals/funet/cbm/schematics/computers/c64/manual-html/Page_12.html); [MOS 6526 CIA data sheet](https://myoldcomputer.nl/Files/mos_6526_cia.pdf) | RESTORE reaches the processor's NMI line through a separate timer/inverter circuit. CIA2 ICR masking controls CIA2's output, not RESTORE; therefore masking CIA2 plus `SEI` cannot make a cooperative two-byte `NMINV` update quiescent. |
+
+**2026-09-29 revisit — DEF-7 remains open.** The smallest proposed CIA2-only critical
+section fails the direct RESTORE path above. Writing either byte of an arbitrary old-to-new
+`NMINV` address first can expose a mixed address; no valid intermediate target is established
+for an unknown prior vector. A same-low-byte, one-write specialization would need a proved prior
+vector and matching placed entry, and does not by itself bound NMI re-entry. Preloading a raw
+vector under KERNAL ROM and exposing it with one processor-port change addresses the vector
+transition only in a takeover profile; it does not bound RESTORE or another enabled source.
+The [pinned KERNAL source](https://raw.githubusercontent.com/mist64/cbmsrc/01bd60f162ef92212ef0cb67546ae8f42be34168/KERNAL_C64_03/rs232nmi)
+also shows that its prior handler consumes CIA2 ICR and can re-enable CIA2 masks, so a chain
+cannot silently take ownership of that read or claim a stable mask from an unreadable ICR.
+
+No positive finite-source and update/restore witness covers all selected-profile sources yet.
+Keep E10245 for unproved NMI routes and keep R5.15–R5.17/AC-12–AC-14 with RD-05. Do not
+weaken the frozen spec, add a runtime dispatcher, or silently treat a RESTORE-free emulator
+run as a hardware guarantee. The smallest decisive follow-up is one concrete selected-profile
+source/installer sequence with its complete prior-handler, vector-intermediate, pending-edge,
+re-entry, SFA, stack and cycle proof, followed by VICE and targeted RESTORE/CIA hardware QA.
 
 **Recommended: stage planning, not the safety contract.** Plan the independently settled work
 first. Keep the NMI decision explicitly unfinished within RD-05; do not move it to another RD,
