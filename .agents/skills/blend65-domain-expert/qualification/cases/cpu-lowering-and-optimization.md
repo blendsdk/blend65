@@ -249,6 +249,17 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
 
+### 2.0.1 integrated qualification result — Q-C13
+
+**Pass** for the contract/knowledge boundary only. All 84 results, 22 selected streams, 7 comparisons and 5 lower-write alternatives pass exhaustive analytical checks. Independent reviewer resolves the grader-only missing-path complaint against the actual source-pinned evaluator packet; unchanged oracle 65cf1b1e… and answer 769b9976… bind that correction.
+
+Evidence: `candidate-qc13-proof / candidate-qc13-proof-grade + independent semantic reviewer`; exact packet/output identities and captured text
+are preserved in `../release.md` under the 2.0.1 capture record. Separate model
+grades and independent review are retained, including prior failures and bounded
+corrective dispositions. Actual compiler output, runtime and hardware remain
+Unknown; this result is not an activation declaration.
+
+
 ## Q-C14 — Multiply by 0/1/power/constant/variable
 
 - **Risk / coverage cells:** Major; `CPU-C14`, `LOWER-C14`.

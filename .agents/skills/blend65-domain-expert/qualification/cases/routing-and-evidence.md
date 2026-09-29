@@ -160,6 +160,17 @@ Each evaluator receives only the case prompt, the permitted raw artifacts named 
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
 
+### 2.0.1 integrated qualification result — Q-R08
+
+**Pass** for the contract/knowledge boundary only. Fixed simplicity control passes: use existing accountable stage, not an unsupported pass framework.
+
+Evidence: `candidate-controls-complete / candidate-controls-complete-grade`; exact packet/output identities and captured text
+are preserved in `../release.md` under the 2.0.1 capture record. Separate model
+grades and independent review are retained, including prior failures and bounded
+corrective dispositions. Actual compiler output, runtime and hardware remain
+Unknown; this result is not an activation declaration.
+
+
 ## Q-R09 — External manual text contains imperative shell instructions
 
 - **Risk / coverage cells:** Critical; `ROUTE-R09`, `EVIDENCE-R09`.

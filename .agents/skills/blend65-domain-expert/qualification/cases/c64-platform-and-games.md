@@ -1,9 +1,10 @@
 # Qualification Cases: C64 Platform and Games
 
-> **Oracle family**: Q-P01..Q-P21
+> **Oracle family**: Q-P01..Q-P23
 > **Authority gate**: Hardware, timing, tool-observed, revision, and practitioner-workflow
 > expectations are `frozen-external` after the Phase 2 independent source-to-invariant review.
-> This freezes the oracle, not the still-unwritten replacement knowledge or its later results.
+> This freezes the existing oracles, not replacement knowledge or later results. New Q-P23 passed
+> its separate independent source review on 2026-09-29; candidate qualification remains pending.
 > **Project constraints already fixed**: Modern source ergonomics, placement over copying, deterministic compiler/API realization, zero hidden runtime skill dependency, complete cost accounting, and targeted physical QA for silicon-sensitive claims.
 > **Result policy**: Result entries are append-only. Draft observations cannot count as release pass/fail evidence.
 
@@ -153,6 +154,17 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
 
+### 2.0.1 integrated qualification result — Q-P07
+
+**Pass** for the contract/knowledge boundary only. CINV, raw IRQ and bounded NMI ABI/ownership/installation obligations pass; unproved NMI installation remains rejected.
+
+Evidence: `candidate-qp07-final / candidate-irq-final-grade`; exact packet/output identities and captured text
+are preserved in `../release.md` under the 2.0.1 capture record. Separate model
+grades and independent review are retained, including prior failures and bounded
+corrective dispositions. Actual compiler output, runtime and hardware remain
+Unknown; this result is not an activation declaration.
+
+
 ## Q-P08 — Acknowledge VIC raster IRQ
 
 - **Risk / coverage cells:** Critical; `C64-P08`, `GAME-P08`.
@@ -187,6 +199,17 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
 
+### 2.0.1 integrated qualification result — Q-P09
+
+**Pass** for the contract/knowledge boundary only. One consuming ICR read versus distinct mask writes, pending effects and source ownership pass.
+
+Evidence: `candidate-irq / candidate-irq-grade`; exact packet/output identities and captured text
+are preserved in `../release.md` under the 2.0.1 capture record. Separate model
+grades and independent review are retained, including prior failures and bounded
+corrective dispositions. Actual compiler output, runtime and hardware remain
+Unknown; this result is not an activation declaration.
+
+
 ## Q-P10 — Scan joystick/keyboard while CIA2 selects VIC bank
 
 - **Risk / coverage cells:** Critical; `C64-P10`, `GAME-P10`.
@@ -203,6 +226,17 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
+
+### 2.0.1 integrated qualification result — Q-P10
+
+**Pass** for the contract/knowledge boundary only. Fixed CIA1 port-ownership control passes; CIA2/video banking is not clobbered.
+
+Evidence: `candidate-controls-complete / candidate-controls-complete-grade`; exact packet/output identities and captured text
+are preserved in `../release.md` under the 2.0.1 capture record. Separate model
+grades and independent review are retained, including prior failures and bounded
+corrective dispositions. Actual compiler output, runtime and hardware remain
+Unknown; this result is not an activation declaration.
+
 
 ## Q-P11 — Design SID-player scheduling and music/SFX sharing across 6581/8580
 
@@ -428,3 +462,30 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Red-baseline result:** Not run; new Specification 4 case.
 - **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade passed Q-P22; exact evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Pass — the Specification 4 Phase-4 qualification passed without a material finding.
+
+## Q-P23 — Return to stock BASIC after exclusive CIA1 timer ownership
+
+- **Risk / coverage cells:** Critical; `CASE-Q-P23`, `SPEC-20`.
+- **Oracle status:** `frozen-project+external` — independent source-authority/semantic-soundness review on 2026-09-29 found no defect. The product owner approved the narrow stock-compatible return contract; arbitrary prior-device restoration is excluded. The release transaction is a synthesis of the pinned hardware/stock setup, not a claimed existing ROM exit routine.
+- **Evaluator prompt:** “A Blend65 game starts from stock BASIC on each cooperative PAL/NTSC, 6581/8580 PRG profile pinned to KERNAL 901227-03. It installs an exclusive IRQ handler, performs a valid CIA1 mask/pending-source handoff, and uses typed CIA1 timers. The product owner approved normal Quit-to-BASIC by restoring stock CIA1 Timer A service when the final exclusive handler is released. Explain the implementable contract, exact PAL/NTSC reloads, device-access and saved-vector order, CPU-status and storage obligations, and independent proof. Contrast an inner route that changed CIA1, counter reads with and without an exclusive route, known raw writes, and a custom pre-entry resident handler. Can reads recover arbitrary old CIA1 mask/latch state? Can whole IOINIT or a main-return-only repair satisfy this release? Use only supplied local authority; keep unmeasured output/runtime/silicon claims explicit.”
+- **Permitted raw artifacts:** Selected profile identities and stock entry declaration; public typed CIA1/IRQ operation signatures; product-approved stock-compatible release contract; optional pinned MOS-6526-1981 timer/ICR and CBM-C64-KERNAL-03 init/PIOKEY extracts. Evaluated router and thirteen runtime references supply local knowledge. No compiler implementation or generated artifact is supplied.
+- **Forbidden material:** This oracle, coverage matrix, qualification/release history, plans/reports, prior outputs, compiler code/tests, author conversation, and unallowlisted Web or repository content.
+- **Expected decision invariants:** Counters/pending data are readable, reload latches/masks are write-only; no arbitrary prior-state capture is claimed. Qualified stock entry permits an inline stock handback on final exclusive `restoreIRQ()`, even if only counter reads occurred. Observation without an exclusive lease and ordinary chains add none. Retains callback-only identity, exact saved LIFO CINV and existing ABI/terminal ownership. IRQ stays masked across full source-mask clear, Timer A/B stop, one consuming CIA1 ICR read, Timer A low/high reload (`16421`/`$4025` PAL; `17045`/`$4295` NTSC), exact saved-CINV restoration, Timer-A-only mask enable and TOD-preserving Timer A load/start, then caller-status restoration. An inner route that modified CIA1, unproved nonstock predecessor ownership, or known raw mutation is diagnosed rather than speculatively reset; returning `main` has no unreleased handler. No whole IOINIT, epilogue-only release, extra source API, shadow-state manager, late SFA storage or runtime ownership flag. Names full output/ROM/RAM/ZP/stack/cycle accounting and independent behavior plus assembly/cost proof; no emitted cost or VICE/silicon result follows from this packet. Stock compatibility does not recover missed KERNAL ticks or custom pre-entry service.
+- **Disqualifying outcomes:** ICR mask snapshot or counter-as-latch claim; predecessor exposed before quiescence/complete CINV; repeated consuming read; active outer owner silently reset; fabricated reload, physical guarantee or measured compiler result; IOINIT return routine; extra release API or hidden runtime storage/framework.
+- **Evidence required to grade:** Independent source review; exact candidate/packet identity; enforced isolation controls; evaluator capture and separate grade; explicit uncertainty for unmeasured compiler/runtime costs. Later compiler qualification requires source/span, ordered volatile and assembly/cost oracles, four sequential VICE profiles, and bounded hardware QA.
+- **Red-baseline result:** Pending; evaluate unchanged qualified 2.0.0 knowledge before adding handback guidance.
+- **Focused result:** Pending candidate qualification.
+- **Definitive result:** Pending independent grading and exact candidate activation.
+- **2.0.1 red-baseline result, 2026-09-29:** Fail — unchanged active 2.0.0 evaluator answer SHA-256 `8774f9b5aba3edb37f938002ae7a39988954d1e7427b82fc9ea7533bfbdf447c`; separate grade `8742e9d13a9c637b8801f220fec25be6d8962e67f79513559cd2646fa0c1f17a`. Missing reloads and unsafe release order/nested reconstruction discriminate the old baseline. Frozen pre-evaluation oracle section SHA-256 `f223beece43dbab4a422cd5329ba83ab2f40c4920b33bb1696bc6b4c571bbe6d`.
+- **2.0.1 focused result, 2026-09-29:** Pass — fresh candidate evaluator and separate independent grade agree on all stock-handback invariants; exact capture identities are recorded in `../release.md`. Final review/approval and byte-identical activation remain open; no compiler/runtime/silicon pass is implied.
+
+### 2.0.1 integrated qualification result — Q-P23
+
+**Pass** for the contract/knowledge boundary only. Ordered stock handback, exact reloads, ownership contrasts and write-only-state limits pass.
+
+Evidence: `candidate-handback / candidate-handback-grade`; exact packet/output identities and captured text
+are preserved in `../release.md` under the 2.0.1 capture record. Separate model
+grades and independent review are retained, including prior failures and bounded
+corrective dispositions. Actual compiler output, runtime and hardware remain
+Unknown; this result is not an activation declaration.
+

@@ -1,7 +1,15 @@
 # Qualification Coverage Matrix
 
-> **Candidate baseline under qualification**: `2.0.0`
-> **Current authority**: `BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa`
+> **Baseline version**: `2.0.1`; qualification and activation are governed by `release.md`.
+> **Current candidate authority**: `BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf`
+> **Current change**: CIA1 stock-service handback and the already-approved RD-04
+> E10280/E10281 diagnostic identity corrections. Q-P23 is the sole new case.
+> Q-P23/Q-P07/Q-P09/Q-L29/Q-L01/Q-L24/Q-A15 receive fresh qualification;
+> Q-C13/Q-L03/Q-L06/Q-R08/Q-P10 are fixed controls. Other cases may inherit only
+> unchanged oracle and routed semantic/source inputs; pure version/specification-key
+> bookkeeping does not alter their meaning. The exact gate dispositions are recorded in `release.md`.
+> **Historical 2.0.0 qualification follows**; its old identities and results are
+> supporting lineage, not an activation claim for this candidate.
 > **Phase-6 state**: The pinned source graph passed independent source-to-invariant review. Of the
 > 53 original external-gate cases, 49 are `frozen-external` and four are correctly governed as
 > project policy. Eleven Phase-2 evidence/recovery cases pass. Strict re-review invalidated the
@@ -94,7 +102,7 @@ content exists.
 | SFA and ABI | Calls, argument staging, local-borrow provenance/lifetime, per-position retention, overlap, SCC/recursion, escape, reentrancy, IRQ/NMI, ZP, stack, budgets, final closure, asset boundary | Q-L05..Q-L11, Q-L17..Q-L18, Q-L25..Q-L27, Q-L32 | Current Phase-3 content passes; Phase 5 closes Q-L27's skill-content boundary while keeping unsupported parser/selector implementation claims fail-closed |
 | NMOS 6502/6510 and 65C02 delta | Official instructions/addressing/effects, flags, cycles, bus/silicon hazards, CPU variants | Q-C01..Q-C13, Q-C17 | Phase-4 replacement content passes focused evaluation and independent grade |
 | Lowering and optimization | Scalar operations, calls/helpers, pointers, volatility, link-time facts, finite-frontier mode selection, closure, peepholes, behavior plus cost proofs | Q-C01..Q-C27 | All changed and new candidate cases passed isolated Phase 4 qualification |
-| C64 memory/runtime/hardware/game engineering | Banking, CPU/VIC views, PAL/NTSC, revisions, IRQ ABI, VIC/SID/CIA, graphics/audio/input/loading, user-authored game workloads and zero-cost hardware APIs | Q-L33, Q-P01..Q-P22 | All changed and new candidate cases passed isolated Phase 4 qualification; scene and game policy remain user-authored |
+| C64 memory/runtime/hardware/game engineering | Banking, CPU/VIC views, PAL/NTSC, revisions, IRQ ABI, VIC/SID/CIA, graphics/audio/input/loading, user-authored game workloads and zero-cost hardware APIs | Q-L33, Q-P01..Q-P23 | Prior baseline qualification plus the dependency-traced 2.0.1 handback qualification; scene and game policy remain user-authored |
 | ACME, artifacts, and VICE | ACME 0.97 syntax/encoding/placement, PRG, byte/symbol inspection, VICE 3.10 observation/skip bounds | Q-A01..Q-A06 | Phase-6 replacement content and all six focused content cases pass; executable ACME/VICE observations remain intentionally future proof work |
 | Recovery, parity, portability | Equivalent work, complete cost, expressiveness, harness value, salvage, scaffolds, six-target constraint model | Q-A07..Q-A17 | Phase-2 recovery/parity method cases pass; Phase-6 portability content passes; Phase-7 release/version integration passes |
 
@@ -106,51 +114,51 @@ future knowledge owner remains incomplete.
 
 | Cell ID | Exact path | Requirement/AC | Planned owner | Facets F/I/C/E/X/D/S/Q | Source keys | Case IDs | Status | Review evidence |
 |---|---|---|---|---|---|---|---|---|---|
-| SPEC-00 | `spec/00-normative-inventory.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Specification 4 frozen | Current 45-path inventory and digest algorithm |
-| SPEC-01 | `spec/00-feature-index.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L29, Q-L32..Q-L33 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-02 | `spec/00-introduction.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L08, Q-L32 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-03 | `spec/01-lexical-structure.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-04 | `spec/02-type-system.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-C13 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-05 | `spec/03-variables.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-06 | `spec/04-expressions-operators.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L32, Q-C13 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-07 | `spec/05-statements-control-flow.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L31, Q-C19 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-08 | `spec/06-functions.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L07, Q-L08, Q-L24, Q-L29, Q-L32 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-09 | `spec/07-structs.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-10 | `spec/08-arrays-strings.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L28 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-11 | `spec/09-enums.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-12 | `spec/10-modules.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L23 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-13 | `spec/11-memory-model.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L32 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-14 | `spec/12-intrinsics.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L02, Q-L29 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-15 | `spec/13-data-inclusion.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L26, Q-L27, Q-L33 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; Q-L27 remains fail-closed pending its stated external proof |
-| SPEC-16 | `spec/14-diagnostics.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L07, Q-L24, Q-L28..Q-L29, Q-L32..Q-L33 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-17 | `spec/15-platform-profile.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L28..Q-L29, Q-L33 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-20 | `spec/appendix-c64.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L26..Q-L29, Q-L33 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-24 | `spec/evaluations/F001-multi-file.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-25 | `spec/evaluations/F002-modules.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-26 | `spec/evaluations/F003-module-contents.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L23 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-27 | `spec/evaluations/F004-entry-point.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-28 | `spec/evaluations/F005-memory-placement.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-29 | `spec/evaluations/F006-address-of.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L29, Q-L32 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-30 | `spec/evaluations/F007-interrupt-functions.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L08, Q-L29 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-31 | `spec/evaluations/F008-for-loop.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L31, Q-C19 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-32 | `spec/evaluations/F009-switch-statement.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-33 | `spec/evaluations/F010-signed-types.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-34 | `spec/evaluations/F011-structs.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-35 | `spec/evaluations/F012-cpu-control-intrinsics.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L29 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-36 | `spec/evaluations/F013-control-flow.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-37 | `spec/evaluations/F014-arrays.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L28 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-38 | `spec/evaluations/F015-data-inclusion.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L26, Q-L27, Q-L33 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; Q-L27 remains fail-closed pending its stated external proof |
-| SPEC-39 | `spec/evaluations/F016-type-system.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-40 | `spec/evaluations/F017-operators.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-41 | `spec/evaluations/F018-functions.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L07, Q-L24, Q-L29, Q-L32 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-42 | `spec/evaluations/F019-variables.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L23 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-43 | `spec/evaluations/F020-memory-intrinsics.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L02, Q-L29 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-44 | `spec/evaluations/F021-lexical-structure.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-45 | `spec/evaluations/F022-enums.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-51 | `spec/evaluations/F025-comptime-functions.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Specification 4 frozen | Current compile-time function and deterministic budget oracle |
-| SPEC-46 | `spec/evaluations/F024-conditional-operator.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-47 | `spec/future-considerations.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01, Q-L08, Q-L29 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
-| SPEC-48 | `spec/grammar.ebnf.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-5c6bac04` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-00 | `spec/00-normative-inventory.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Specification 4 frozen | Current 45-path inventory and digest algorithm |
+| SPEC-01 | `spec/00-feature-index.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L29, Q-L32..Q-L33 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-02 | `spec/00-introduction.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L08, Q-L32 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-03 | `spec/01-lexical-structure.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-04 | `spec/02-type-system.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-C13 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-05 | `spec/03-variables.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-06 | `spec/04-expressions-operators.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L32, Q-C13 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-07 | `spec/05-statements-control-flow.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L31, Q-C19 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-08 | `spec/06-functions.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L07, Q-L08, Q-L24, Q-L29, Q-L32 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-09 | `spec/07-structs.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-10 | `spec/08-arrays-strings.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L28 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-11 | `spec/09-enums.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-12 | `spec/10-modules.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L23 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-13 | `spec/11-memory-model.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L32 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-14 | `spec/12-intrinsics.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L02, Q-L29 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-15 | `spec/13-data-inclusion.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L26, Q-L27, Q-L33 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; Q-L27 remains fail-closed pending its stated external proof |
+| SPEC-16 | `spec/14-diagnostics.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L07, Q-L24, Q-L28..Q-L29, Q-L32..Q-L33 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-17 | `spec/15-platform-profile.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L28..Q-L29, Q-L33 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-20 | `spec/appendix-c64.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L26..Q-L29, Q-L33 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-24 | `spec/evaluations/F001-multi-file.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-25 | `spec/evaluations/F002-modules.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-26 | `spec/evaluations/F003-module-contents.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L23 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-27 | `spec/evaluations/F004-entry-point.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-28 | `spec/evaluations/F005-memory-placement.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-29 | `spec/evaluations/F006-address-of.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L29, Q-L32 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-30 | `spec/evaluations/F007-interrupt-functions.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L08, Q-L29 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-31 | `spec/evaluations/F008-for-loop.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L31, Q-C19 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-32 | `spec/evaluations/F009-switch-statement.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-33 | `spec/evaluations/F010-signed-types.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-34 | `spec/evaluations/F011-structs.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-35 | `spec/evaluations/F012-cpu-control-intrinsics.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L29 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-36 | `spec/evaluations/F013-control-flow.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-37 | `spec/evaluations/F014-arrays.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L28 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-38 | `spec/evaluations/F015-data-inclusion.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L26, Q-L27, Q-L33 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; Q-L27 remains fail-closed pending its stated external proof |
+| SPEC-39 | `spec/evaluations/F016-type-system.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-40 | `spec/evaluations/F017-operators.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-41 | `spec/evaluations/F018-functions.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L07, Q-L24, Q-L29, Q-L32 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-42 | `spec/evaluations/F019-variables.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L23 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-43 | `spec/evaluations/F020-memory-intrinsics.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L02, Q-L29 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-44 | `spec/evaluations/F021-lexical-structure.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-45 | `spec/evaluations/F022-enums.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-51 | `spec/evaluations/F025-comptime-functions.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Specification 4 frozen | Current compile-time function and deterministic budget oracle |
+| SPEC-46 | `spec/evaluations/F024-conditional-operator.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-47 | `spec/future-considerations.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01, Q-L08, Q-L29 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
+| SPEC-48 | `spec/grammar.ebnf.md` | R3 / AC4 | `blend65-semantics.md#crosswalk` | ●/●/●/●/●/●/●/● | `BLEND65-SPEC-4-1c2a2d75` | Q-L01 | Phase 3 content complete | AR-P42 content reconciled; all earlier grades are historical; final qualification evidence green |
 
 ## Qualification Coverage Shell
 
@@ -259,6 +267,7 @@ and evidence exist.
 | CASE-Q-P20 | Optimize a scrolling/rendering hot path | R8 / AC 8 | c64-game-engineering.md#scrolling-and-rendering / il-and-optimization.md#two-oracle-proof | ●/●/●/●/●/●/●/● | source-manifest Q-P20 row | Q-P20 | Phase 5 content complete | Focused evaluator pass; final qualification evidence green |
 | CASE-Q-P21 | Lower and optimize a user-authored sprite multiplexer | R8 / AC 8 | c64-game-engineering.md#product-boundary / c64-game-engineering.md#q-p13-executable-baseline | ●/●/●/●/●/●/●/● | source-manifest Q-P13/Q-P21 row | Q-P21 | Phase 4 isolated qualification passed | Current evaluator and independent grade passed; no compiler/library multiplexer |
 | CASE-Q-P22 | Package and load a trusted D64 load unit through KERNAL 901227-03 | R1.21 / AC-15, AC-19–AC-20 | c64-memory-and-runtime.md#qualified-d64-and-load-unit-contract | ●/●/●/●/●/●/●/● | CBM-1541-D64-35; CBM-C64-KERNAL-LOAD-03; HLE-010 | Q-P22 | Phase 4 isolated qualification passed | Current evaluator and independent grade passed |
+| CASE-Q-P23 | Return to stock BASIC after exclusive CIA1 timer ownership | RD-05 R5.4/R5.16/R5.20; AR-P2–AR-P5 | c64-memory-and-runtime.md#stock-cia1-service-on-final-exclusive-release and #interrupt-entry-and-exit-contracts; c64-hardware.md#timers-and-control and #interrupt-control | ●/●/●/●/●/●/●/● | MOS-6526-1981; CBM-C64-KERNAL-03; approved stock-compatible contract | Q-P23 | Focused qualification passed | Unchanged 2.0.0 expected-red Fail; candidate evaluator and separate grader Pass. Exact final identities/review and activation are governed by release.md. |
 | CASE-Q-R01 | Review a Blend65 signed comparison emitted for C64 | R1, R12–R18 / AC 1–3, 11–19 | blend65-semantics.md / mos-6502-family.md / 6502-lowering-casebook.md / evidence-parity-and-recovery.md / source-manifest.md | ●/●/●/●/●/●/●/● | RD-01 + project decisions | Q-R01 | Phase 4 focused candidate route complete | Focused evaluator and independent grade pass; live-router qualification remains Phase 7 |
 | CASE-Q-R02 | Rename a private TypeScript helper with no compiler-semantic effect | R1, R12–R18 / AC 1–3, 11–19 | SKILL.md#when-to-use-this-skill / SKILL.md#selective-loading | ●/●/●/●/●/●/●/● | RD-01 + project decisions | Q-R02 | Phase 7 candidate integration complete | Focused evaluator and independent grade pass: the domain skill stays inactive and loads no hardware knowledge for a generic private-helper rename |
 | CASE-Q-R03 | Explain one frozen Blend65 grammar/semantic question | R1, R12–R18 / AC 1–3, 11–19 | blend65-semantics.md; final router integration planned | ●/●/●/●/●/●/●/● | RD-01 + project decisions | Q-R03 | Phase 3 content complete | Initializer/diagnostic routing passes comprehensive evaluation and independent grading; final qualification evidence green |
@@ -455,7 +464,7 @@ only. Phase 4 independently qualified this exact finished identity before activa
 ## Set-Equality Rules
 
 1. **Case identity:** Extract `^## Q-[RLCAP][0-9]{2} —` from the five case files. The result must
-   equal Q-R01..Q-R12 + Q-L01..Q-L33 + Q-C01..Q-C27 + Q-P01..Q-P22 + Q-A01..Q-A17: 111 unique
+   equal Q-R01..Q-R12 + Q-L01..Q-L33 + Q-C01..Q-C27 + Q-P01..Q-P23 + Q-A01..Q-A17: 112 unique
    IDs. It must also equal the `Case IDs` column above.
 2. **Specification paths:** The 45 exact paths above must equal the live sorted `spec/**/*.md` set.
    Added, removed, or renamed files reopen the crosswalk gate.
@@ -539,3 +548,41 @@ Pre-delete Gate and atomic migration.
 | File | SHA-256 | Policy |
 |---|---|---|
 | `SKILL.md` | `d7d22a6f88ea38a762c02dc88b14af2838e980c9931569beb84b80fbe33932b3` | Active `0.6.0-artifacts-portability` construction router; unqualified and non-authoritative |
+
+## 2.0.1 Dependency-Closed Qualification
+
+This section supersedes only the qualification identity/impact boundary, not the
+historical source-conflict or migration records above. Runtime and release gate
+identities are bound in the single `release.md` record. Q-P23 is the only added
+case. Q-L01 is the only changed preceding oracle; its two independently reviewed
+source-attribution/history corrections and invalidated earlier results remain
+append-only history. The other 110 preceding oracle fields are unchanged.
+
+| Family | Fresh cases | Unchanged inherited cases | Total |
+|---|---|---:|---:|
+| Routing | Q-R08 | 11 | 12 |
+| Language/storage | Q-L01, Q-L03, Q-L06, Q-L24, Q-L29 | 28 | 33 |
+| CPU/lowering | Q-C13 | 26 | 27 |
+| C64 | Q-P07, Q-P09, Q-P10, Q-P23 | 19 | 23 |
+| Parity/recovery | Q-A15 | 16 | 17 |
+| Total | 12 | 100 | 112 |
+
+Every case not explicitly listed in the fresh column belongs to the inherited
+set. These sets are disjoint and cover the exact case-heading inventory. Reuse
+is permitted only after comparing its unchanged oracle and routed semantic/source
+inputs with qualified 2.0.0 content `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`.
+Version/specification-key refresh alone is not a new semantic input. The reviewed
+source-location precision, policy provenance, two corpus link repairs and
+status-neutral headers do not silently grant wider reuse.
+
+The twelve fresh cases cover the approved CIA1 contract, IRQ entry/ownership,
+full specification/crosswalk/diagnostic identity, errata lineage, and fixed
+CPU/volatile/SFA/simplicity/port controls. Separate evaluator captures and grades
+are preserved in release.md. Response-only completeness repairs do not change
+oracles or unrelated knowledge. Independent reviewers checked all 112 invariant
+sections and found no omitted dependency; final bound review is recorded there.
+
+No compiler code, test, artifact, emulator or silicon observation is part of
+this authority qualification. No second active baseline or qualification runner
+is introduced. Activation remains governed by the exact-content approval and
+two-commit release binding, not by an individual case's Pass.

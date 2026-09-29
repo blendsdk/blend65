@@ -236,7 +236,29 @@ They use the pinned 901227-03 KERNAL entry/vector contracts. CINV/NMINV chain or
 exclusive helpers are available; raw hardware-vector helpers are not. A returning `main` must have
 balanced every helper-owned interrupt stack and released every exclusive resource. The epilogue
 then restores the exact captured compiler-owned port, vector, device, interrupt, decimal, and stack
-state and executes `RTS` to BASIC.
+state and executes `RTS` to BASIC, with the CIA1 stock-service exception below.
+
+For the four cooperative PRG profiles, stock BASIC/KERNAL entry excludes custom resident IRQ or
+CIA1 service. The final compiler-owned exclusive `restoreIRQ()` restores stock CIA1 Timer A
+service, not arbitrary prior mask or reload-latch values: those values are write-only and cannot
+be captured by reading CIA1. This handback occurs even when the exclusive route made no typed
+CIA1 write. Counter observation alone, without an exclusive route, creates no handback obligation;
+ordinary chained routes do not acquire it.
+
+Within the existing IRQ-masked restore transaction, the compiler clears all five CIA1 source masks,
+stops Timer A while retaining its TOD-input bit and stops Timer B in stock mode, then consumes CIA1
+pending sources with exactly one ICR read. Ending-game pending events are discarded. It writes
+the stock Timer A reload low byte then high byte: PAL `16421` (`$4025`), NTSC `17045` (`$4295`).
+It restores both bytes of the exact saved predecessor CINV before enabling only Timer A, then
+loads/starts Timer A in the pinned KERNAL mode while preserving its TOD-input bit. Finally it
+restores caller CPU status, including I and D. No whole `IOINIT` call, additional source operation,
+runtime ownership flag, device-state manager, or function storage is introduced.
+
+A clean inner LIFO restore remains vector-only. An inner route that changed CIA1, an unqualified
+nonstock predecessor, or a known raw mutation outside the proved typed ownership contract is
+rejected with E10278 rather than silently resetting another owner. The stock-service exception
+does not reconstruct missed KERNAL ticks or custom pre-entry state, and does not broaden CIA2/NMI,
+VIC-raster, D64, or raw-takeover ownership. Other captured-state restoration remains unchanged.
 
 #### Raw takeover profiles
 

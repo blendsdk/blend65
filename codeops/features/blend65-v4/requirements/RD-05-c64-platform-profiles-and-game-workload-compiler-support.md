@@ -82,7 +82,12 @@ programs and qualification evidence. They do not create supported game APIs. (AR
   `$0801` with a BASIC `SYS` entry, bank BASIC ROM out while keeping KERNAL and I/O visible, establish
   binary arithmetic and all declared device/resource state, initialize only language-required
   storage, run module initializers then `main`, and restore every compiler-owned change before a
-  normal return to BASIC. No initialized range already loaded at its final address is copied.
+  normal return to BASIC. On qualified stock BASIC/KERNAL PRG entry, the final exclusive
+  `restoreIRQ()` restores stock CIA1 Timer A service inside its masked vector transaction;
+  arbitrary pre-entry write-only CIA1 masks/latches and missed ticks are not reconstructed.
+  Returning `main` still requires balanced vector stacks; unsafe inner/nonstock/raw releases are
+  diagnosed, and other captured-state obligations remain exact. No initialized range already
+  loaded at its final address is copied.
   (AR-013, AR-024)
 - [ ] **R5.5 — Implement takeover-profile startup and return.** The four `takeover` profiles use a
   separately qualified raw ownership path: BASIC and KERNAL execution are absent while application
@@ -664,7 +669,10 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
 4. [ ] **AC-04 — KERNAL startup/return:** All four KERNAL profiles load through the `$0801` BASIC
    entry, establish the specified mapping/state, initialize exactly the required ranges, execute
    initializers then `main`, and restore the captured compiler-owned state before returning to
-   BASIC.
+   BASIC. After exclusive CIA1 takeover from qualified stock entry, the final `restoreIRQ()`
+   performs the ordered stock Timer A handback before restoring caller interrupt status; it does
+   not claim arbitrary mask/latch recovery. Four-profile source/output/runtime cases prove the
+   safe final release and rejection of unsafe inner/nonstock/raw releases.
 5. [ ] **AC-05 — Takeover startup/return:** All four takeover profiles install valid underlying raw
    IRQ/NMI vectors before banking out KERNAL execution, keep code/I/O/vectors visible, own every
    enabled source, and either restore exact entry state on normal return or prove the path

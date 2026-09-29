@@ -1,6 +1,6 @@
 # Static Frame Allocation and ABI Doctrine
 
-> **Baseline version**: `2.0.0`
+> **Baseline version**: `2.0.1`
 >
 > **Binding specification rule**: Static Frame Allocation (SFA) is the sole general function-frame
 > model. The 6502 hardware stack is not a general local-variable stack.
@@ -470,9 +470,9 @@ convenience or familiarity with modern ABIs is not evidence of necessity.
 
 ## Sources
 
-- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/00-introduction.md §A2, §A3]`
-- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/06-functions.md §FN-4, §FN-6, §FN-10, §SFA Calling Convention, §Interrupt Functions]`
-- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/11-memory-model.md §Static Frame Allocation, §Aggregate Return Destinations and Copies, §Zero-Page Allocation, §Hardware Stack Usage]`
-- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/03-variables.md §Memory Placement]`
-- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/13-data-inclusion.md §Code Generation]`
-- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/15-platform-profile.md §Platform Profile Contract]`
+- `[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/00-introduction.md §A2, §A3]`
+- `[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/06-functions.md §FN-4, §FN-6, §FN-10, §SFA Calling Convention, §Interrupt Functions]`
+- `[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/11-memory-model.md §Static Frame Allocation, §Aggregate Return Destinations and Copies, §Zero-Page Allocation, §Hardware Stack Usage]`
+- `[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/03-variables.md §Memory Placement]`
+- `[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/13-data-inclusion.md §Code Generation]`
+- `[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/15-platform-profile.md §Platform Profile Contract]`

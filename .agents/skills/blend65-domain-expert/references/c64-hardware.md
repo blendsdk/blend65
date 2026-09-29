@@ -256,7 +256,12 @@ Each CIA has two 16-bit down-counters with latches. Timer A can count PHI2 or CN
 count PHI2, CNT, Timer-A underflows, or Timer-A underflows gated by CNT. Control registers select
 start, one-shot/continuous, port output, and force-load behavior. Byte order and running/stopped
 state matter when updating a latch/counter; a generic volatile `word` read or store is not a
-complete atomic-timer API. [MOS-6526-1981, printed pp.3–5]
+complete atomic-timer API. [MOS-6526-1981, printed p.6 and CRA/CRB on p.8]
+
+The counter is readable; the reload latch is write-only. Low-then-high counter reads observe a
+running device, not an atomic snapshot or a saved reload value. Latch programming writes low then
+high; while stopped, the high-byte write also loads the counter. An arbitrary old reload latch
+cannot be reconstructed from counter reads. [MOS-6526-1981, printed p.6]
 
 A timer API states whether it observes the current counter or programs the latch, the update
 sequence, start state, first-underflow timing, and whether an IRQ can intervene. Stable scheduling
@@ -269,7 +274,7 @@ write-strobe `LOAD`, bit 5 timer-A input select (`0` PHI2, `1` CNT), bit 6 seria
 bits 0..4 for timer B and PB7; bits 6:5 select PHI2 (`00`), CNT (`01`), timer-A underflows (`10`),
 or timer-A underflows while CNT is high (`11`); bit 7 selects TOD-clock writes (`0`) versus alarm
 writes (`1`). `LOAD=1` commands a transfer from latch to counter and must not be treated as
-persistent shadow state. [MOS-6526-1981, printed pp.3–5 and 8]
+persistent shadow state. [MOS-6526-1981, printed pp.6 and 8]
 
 ### Interrupt control
 
@@ -283,13 +288,19 @@ CIA ICR at offset `$0D` has different read and write meanings:
   assignment; and
 - pending source state and mask state are distinct.
 
+The interrupt mask is write-only. Reading ICR does not snapshot it and cannot justify arbitrary
+old-mask restoration. A profile-known baseline or already-proved software ownership is required;
+do not add a shadow-state manager merely to make a generic restoration claim. The narrow stock
+CIA1 final-release contract is in
+`c64-memory-and-runtime.md#stock-cia1-service-on-final-exclusive-release`.
+
 One ICR read may return and clear several simultaneously latched source bits. Masking the returned
 value afterwards does not turn it into “acknowledge only one source”; the other returned latches
 have already been cleared.
 
 Therefore CSE, duplicated reads, RMW, and a read-mask-write idiom are invalid unless the exact device
 operation calls for them. Acknowledge/enable/disable methods lower to exact reads or immediate
-writes with preserved volatile count/order. [MOS-6526-1981, printed p.6]
+writes with preserved volatile count/order. [MOS-6526-1981, printed p.7]
 
 ### TOD, serial, and FLAG bounds
 

@@ -369,6 +369,19 @@ approved appendix/RD/expert boundary. Final exact-identity review remains requir
 
 ## Final reviewed candidate and activation handoff
 
+The user granted the required exact-candidate activation approval with “I do”
+on 2026-09-30. Task 1.3.1 may now migrate the recorded candidate byte-identically;
+compiler work still waits for the immutable content and release-binding commits.
+
+Before migration, the default whitespace audit reports 583 warnings: 558 blank
+capture lines represented by `> `, 24 original two-space Markdown hard breaks,
+and one harmless EOF blank in the C64 case file. Independent source review
+classifies all 583; no accidental trailing whitespace exists in authored additions.
+All 19 decoded captures still match their originals. These narrow capture/EOF
+exceptions preserve the explicitly approved identities; ordinary authored content
+retains the default whitespace rule. No global suppression or formatting rewrite
+is applied to frozen evidence.
+
 Task 1.2.3 is verified; this plan is 5/19 complete. Both independent final
 reviewers returned **no findings**. They independently reproduce the exact
 specification/runtime/router/qualification identities below and reviewed release

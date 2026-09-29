@@ -2,7 +2,7 @@
 
 > **Version**: 4.0
 > **Role**: Non-normative membership and identity record
-> **Frozen identity**: `BLEND65-SPEC-4-ee2be7c2139ff82f22d1d8f169251bae1d2244e5e4a74bddbdfc4903af39fff8`
+> **Frozen identity**: `BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf`
 
 ## Authority Rule
 
@@ -81,7 +81,7 @@ Sort those records by bytewise relative path under `LC_ALL=C`, concatenate them 
 bytes, and SHA-256 the result. The resulting lowercase digest is:
 
 ```text
-ee2be7c2139ff82f22d1d8f169251bae1d2244e5e4a74bddbdfc4903af39fff8
+1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf
 ```
 
 This single central identity names the normative corpus. Normative files do not repeat it. Raw

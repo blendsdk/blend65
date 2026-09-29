@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-29 23:57
-> **Progress**: 5/19 tasks (26%)
+> **Last Updated**: 2026-09-30 00:26
+> **Progress**: 6/19 tasks (32%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -53,7 +53,7 @@ The user confirmed effort for this named CIA1 work and waived repeated effort pa
 
 **Reference:** AR-P5; existing expert release/qualification procedure.
 
-- [ ] 1.3.1 Obtain independent review of the exact spec/RD/skill diff, changed-case dependency closure and Language Guard result; present the complete candidate/evidence for the required explicit final user approval. Migrate only the approved byte-identical candidate atomically as the sole expert baseline, validate qualified content, and make its immutable content commit through the git-commit skill; the release record remains a draft until task 1.3.2 binds that ID (PF-004). Final source and semantic/optimization/simplicity reviews are clear; awaiting the required exact-candidate activation approval. No migration or compiler implementation has occurred.
+- [x] 1.3.1 Obtain independent review of the exact spec/RD/skill diff, changed-case dependency closure and Language Guard result; present the complete candidate/evidence for the required explicit final user approval. Migrate only the approved byte-identical candidate atomically as the sole expert baseline, validate qualified content, and make its immutable content commit through the git-commit skill; the release record remains a draft until task 1.3.2 binds that ID (PF-004). (completed: 2026-09-30 00:26) User approved the exact candidate with “I do” on 2026-09-30. All 22 skill files and three spec/RD files match the approved bytes; runtime, qualification, full-tree and specification identities validate. Both independent reviews are clear; authored whitespace is clean with only the recorded exact-capture/EOF exceptions. The immediately following content commit is bound in task 1.3.2; no compiler implementation has occurred.
 - [ ] 1.3.2 Bind the preceding immutable content commit in the release record, validate exact specification and expert identity, links, source keys, targeted Prettier and qualification controls, then make the following release-record binding commit through the git-commit skill. Record both commits as the green authority checkpoint before Phase 2. Confirm `spec/` is clean at Phase 2 start (PF-004).
 
 **Verify:** Phase 1 authority checks green. Do not run the compiler suite for documentation/skill-only work. A missing final activation approval blocks task 1.3.1; it is not inferred from AR-P5's design approval.

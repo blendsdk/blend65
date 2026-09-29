@@ -1,6 +1,6 @@
 # C64 Memory, Startup, and Runtime Ownership
 
-> **Baseline version**: `2.0.0`
+> **Baseline version**: `2.0.1`
 
 Use this reference when a Blend65 decision depends on the C64 address map, `$0000/$0001`
 banking, VIC-visible placement, startup, KERNAL coexistence, interrupt entry, loading, or resource
@@ -206,6 +206,52 @@ for ranges whose language contract requires zero initialization. A game normally
 main loop; if `main` may return, the profile must define whether it restores machine state and
 returns to a loader/KERNAL caller, warm-starts, or stops. Falling into adjacent code is never a
 return policy.
+
+### Stock CIA1 service on final exclusive release
+
+The four cooperative PRG profiles permit the approved stock-compatible CIA1 handback on final
+exclusive `restoreIRQ()`. Stock BASIC/KERNAL entry, pinned to 901227-03, excludes custom resident
+IRQ/CIA1 service. It does not promise arbitrary old masks/latches: those are write-only, and the
+counter is not a latch snapshot. Exact captured port/vector/status/stack and other device
+obligations remain unchanged. D64, raw takeover, CIA2/NMI and VIC-raster ownership are not widened.
+[BLEND65-SPEC-4-1c2a2d75, `spec/appendix-c64.md` §Cooperative KERNAL profiles;
+MOS-6526-1981, printed pp.6–8]
+
+The handback is inline inside the existing `PHP; PHA; SEI` vector transaction, in this order:
+
+1. Write `$1F` to CIA1 ICR to clear all five mask sources. Stop Timer A using CRA's retained
+   TOD-input bit (`old & $80`); stop Timer B in the pinned stock mode (`CRB=$08`).
+2. Read CIA1 ICR exactly once after both timers stop. Discard the ending-game pending events;
+   do not infer the old mask or add another consuming read.
+3. Write Timer A reload low then high: PAL **16421 / `$4025`** (`$25`, `$40`), NTSC
+   **17045 / `$4295`** (`$95`, `$42`). These are selected-profile facts, not runtime probing.
+4. Restore both exact saved predecessor CINV bytes while IRQ entry remains masked. Do not
+   substitute a guessed ROM address for that saved LIFO link.
+5. Write `$81` to CIA1 ICR to enable only Timer A. Load/start Timer A in the pinned KERNAL mode
+   with CRA `(old & $80) | $11`, preserving TOD input selection; LOAD is a strobe.
+6. Execute the existing `PLA; PLP`; caller status, including I and D, determines resumed entry.
+
+The reload and stock mask/control values come from [CBM-C64-KERNAL-03,
+`init::IOKEYS/IO010/IO020/SIXTY/SIXTYP`, `irqfile::PIOKEY`]; the complete transaction is the
+approved profile synthesis, not an existing whole-ROM exit routine. Whole `IOINIT` also changes
+CIA2, SID, ports and CPU mapping, so it is not a scoped substitute.
+
+A final exclusive release always performs the handback, even without typed writes or when its
+CIA1 work consisted only of counter reads. Observation without an exclusive lease and ordinary
+chains add none. Clean inner LIFO pops remain vector-only; a CIA1-changing inner route, unproved
+nonstock predecessor, or known raw mutation outside the proved typed ownership contract is
+diagnosed with E10278. Do not introduce nested device-state capsules or hidden restoration
+objects. Returning `main` still requires empty ownership stacks; epilogue-only repair is too late
+for an earlier release. Stock compatibility neither reconstructs missed KERNAL ticks nor revives
+custom pre-entry service. [BLEND65-SPEC-4-1c2a2d75, `spec/appendix-c64.md` §Cooperative KERNAL profiles]
+
+There is no extra source call, runtime flag, scheduler, data/ZP/scratch object or late SFA slot.
+Report the existing saved-link and stack costs, inline output bytes/cycles and full IRQ routes,
+with existing-ROM bytes separate. Without emitted code those measurements remain `Unknown`.
+Prove behavior independently from the intended assembly/volatile-count/order/cost expectation;
+run all four profiles sequentially in VICE 3.10 before claiming runtime qualification, then keep
+the bounded `VICE-verified / hardware-unverified` status for physical CIA-edge/revision behavior.
+This knowledge qualification alone proves neither compiler output nor runtime/silicon results.
 
 ### Qualified D64 and load-unit contract
 

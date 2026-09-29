@@ -299,6 +299,17 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
 
+### 2.0.1 integrated qualification result — Q-A15
+
+**Pass** for the contract/knowledge boundary only. Targeted pause, patch-version correction, affected/regression qualification and downstream impact lineage pass. Later synthetic-scenario incompleteness is not silently relabelled as a Pass.
+
+Evidence: `candidate-controls-complete / candidate-controls-complete-grade`; exact packet/output identities and captured text
+are preserved in `../release.md` under the 2.0.1 capture record. Separate model
+grades and independent review are retained, including prior failures and bounded
+corrective dispositions. Actual compiler output, runtime and hardware remain
+Unknown; this result is not an activation declaration.
+
+
 ## Q-A16 — Ask skill for current compiler completeness months later
 
 - **Risk / coverage cells:** Major; `AUDIT-A16`, `PORT-A16`.

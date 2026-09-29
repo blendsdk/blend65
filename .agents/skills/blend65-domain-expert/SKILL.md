@@ -5,8 +5,8 @@ description: Review, design, diagnose, or implement Blend65 behavior where decis
 
 # Blend65 Domain Expert
 
-> **Version**: `2.0.0` (activation status is governed by `qualification/release.md`)
-> **Knowledge identity**: `BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa`
+> **Version**: `2.0.1` (activation status is governed by `qualification/release.md`)
+> **Knowledge identity**: `BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf`
 
 This skill supplies domain judgment on top of CodeOps. It does not replace the frozen Blend65
 specification, explicit product decisions, primary hardware/tool evidence, or normal CodeOps
@@ -35,6 +35,9 @@ architecture decisions.
   existing-ROM versus output-byte costs. For a C64 route, also load
   `c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts` for vector, banking, firmware-entry,
   and terminal-owner facts; add `c64-hardware.md` for the source device and acknowledgement.
+  A cooperative CIA1 final-exclusive release also loads
+  `c64-memory-and-runtime.md#stock-cia1-service-on-final-exclusive-release`; arbitrary prior
+  write-only device state is not recoverable by reads.
 - For any C64 workload or game-system comparison, apply
   `c64-game-engineering.md#machine-bound-workload-completion-gate`. CPU-heavy work still names the
   exact machine/video/banking context, interrupt absence or complete routes, and loader/startup
@@ -118,7 +121,7 @@ For every material audit, design, diagnosis, or parity conclusion, report:
 - `Claim kind`: `Fact`, `Inference`, `Unknown`, or `Recommendation`;
 - context and user-visible capability;
 - exact evidence and the decisive missing probe, if any;
-- knowledge lineage: `skillVersion=2.0.0`, the content commit from
+- knowledge lineage: `skillVersion=2.0.1`, the content commit from
   [qualification/release.md](qualification/release.md), `referencePath#heading`, and governing
   source-manifest keys;
 - complete relevant cost; and

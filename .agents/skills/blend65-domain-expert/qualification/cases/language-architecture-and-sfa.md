@@ -19,7 +19,9 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Risk / coverage cells:** Major; `LANG-L01`, `SFA-L01`.
 - **Oracle status:** `frozen-project` — AR-P42/SC-148..SC-151 reconcile the final summary and
   crosswalk conflicts; AR-P43/SC-152..SC-155 reconcile the final HLE/expressiveness scan without
-  claiming aggregate-return implementation support.
+  claiming aggregate-return implementation support. The ACME provenance clause was
+  source-reviewed and refrozen on 2026-09-29 against the normative C64 appendix;
+  the append-only erratum below invalidates preceding Q-L01 qualification.
 - **Evaluator prompt:** “First resolve this supplied language question from governing documents:
   Axiom A4 forbids unenumerated coercions, while TS-4 defines same-signedness mixed-width widening
   and TS-14 defines enum-to-byte conversion. Are `byte + word` and enum-to-byte use therefore
@@ -41,9 +43,11 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Forbidden material:** This case’s hidden invariants, coverage status, plans, current compiler tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
 - **Expected decision invariants:** Exact 45-path set equality; correct normative/evaluation/
   historical role; substantive per-path payload and consequence rather than inventory-only
-  presence; correct branch routing; explicit justified N/A facets; no duplicated authority. ACME
-  selection and automatic parity-debt issue recording are identified as product/process policy,
-  never inferred from the language specification, CPU manuals, or current implementation. The
+  presence; correct branch routing; explicit justified N/A facets; no duplicated authority.
+  ACME 0.97 is a target/toolchain selection stated in the normative C64 appendix
+  and corroborated by project policy, not a source-language or CPU semantic rule.
+  Automatic parity-debt issue recording is explicit product/process policy, never
+  inferred from the language specification, CPU manuals, or current implementation. The
   A4 permits only the implicit conversions enumerated by TS-4 and TS-14. The future
   register is audited from its live entries rather than a duplicated endpoint. F001 is limited to
   supplied files, one binary, path-name irrelevance, and module-based cross-file references; it
@@ -51,11 +55,17 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   audit must also recognize fixed-aggregate returns as current language semantics while leaving
   compiler implementation support unclaimed, exact W10190/W10141 scopes, per-activation SFA costs,
   direct parameter/field/element addressability with provenance-bounded lifetimes, and the
-  migration/C64 HLE disclosures introduced by SC-152..SC-155.
+  current hardware/resource-limit disclosures at their governing normative locations:
+  division behavior, unchecked addressing/banking/MMIO/default-off checks, the
+  trusted-media/possible-overwrite loader boundary, and retained diagnostic
+  retirement/migration dispositions. SC-152..SC-155 is historical reconciliation
+  lineage, not a requirement for a removed active migration guide.
 - **Disqualifying outcomes:** Answers only from skill prose; accepts the two project-policy claims
   without the supplied hash-pinned policy excerpts; rejects TS-4/TS-14 conversions because of A4;
   trusts a duplicated future-item endpoint; or invents an
-  F001 discovery, duplicate-module, or diagnostic-stability contract.
+  F001 discovery, duplicate-module, or diagnostic-stability contract. The policy-excerpt
+  requirement governs repository-policy claims, not citing the normative appendix
+  for its own target/toolchain prescription.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the corrected Specification 4 Phase-4 isolated evaluator and
@@ -64,6 +74,20 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
+
+- **2.0.1 source-gate erratum, 2026-09-29:** The prior categorical prohibition on finding ACME selection in specification documents conflicts with the unchanged normative C64 appendix's Common Machine Contract. Independent source-to-oracle review by `/root/cia_return_rescan_grounding` checked appendix lines 31–42 and the separate AGENTS policy excerpts. The corrected invariant distinguishes target/toolchain prescription from source-language/CPU semantics; parity-debt policy still needs its hash-pinned project source. No assembler, source form, CPU behavior, cost or safety expectation changes. The historical policy hash remains bound to its original bytes; a current whole-file hash is separate provenance. Old Q-L01 qualification is invalidated until fresh evaluation and independent grading under this refrozen oracle. Every other existing case oracle remains unchanged.
+- **2.0.1 migration-lineage source erratum, 2026-09-29:** Independent source review confirmed that Specification 4's exact 45-path inventory contains no standalone migration guide; the candidate manifest and semantic authority explicitly classify Specification 3 migration lineage as historical. The refrozen invariant retains all current disclosures in Chapters 04, 08, 13, 14 and the C64 appendix, and removes only the stale active-file obligation. Existing runtime knowledge already states the historical/current distinction, so no dependent knowledge correction is needed. Prior Q-L01 results remain invalidated; fresh evaluation and grading follow this refreeze. No unavailable external ledger or new mandatory narrative about absent files is required.
+
+### 2.0.1 integrated qualification result — Q-L01
+
+**Pass** for the contract/knowledge boundary only. Refrozen source-derived oracle passes: all 45 paths, governing disclosures and 59 retained diagnostic dispositions. Only this prior oracle changed, under recorded source-gate errata.
+
+Evidence: `candidate-ql01-final + candidate-ql01-retirement-probe / candidate-ql01-complete-grade`; exact packet/output identities and captured text
+are preserved in `../release.md` under the 2.0.1 capture record. Separate model
+grades and independent review are retained, including prior failures and bounded
+corrective dispositions. Actual compiler output, runtime and hardware remain
+Unknown; this result is not an activation declaration.
+
 
 ## Q-L02 — Current compiler rejects `POKE(variableAddress, value)` or requires manual unrolled pokes
 
@@ -99,6 +123,17 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
+
+### 2.0.1 integrated qualification result — Q-L03
+
+**Pass** for the contract/knowledge boundary only. Fixed volatile-read identity/count/order and retained value-lifetime control passes.
+
+Evidence: `candidate-controls-complete / candidate-controls-complete-grade`; exact packet/output identities and captured text
+are preserved in `../release.md` under the 2.0.1 capture record. Separate model
+grades and independent review are retained, including prior failures and bounded
+corrective dispositions. Actual compiler output, runtime and hardware remain
+Unknown; this result is not an activation declaration.
+
 
 ## Q-L04 — Put C64 addresses into semantic analyzer nodes
 
@@ -150,6 +185,17 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
+
+### 2.0.1 integrated qualification result — Q-L06
+
+**Pass** for the contract/knowledge boundary only. Fixed simultaneous caller/callee storage-interference control passes.
+
+Evidence: `candidate-controls-complete / candidate-controls-complete-grade`; exact packet/output identities and captured text
+are preserved in `../release.md` under the 2.0.1 capture record. Separate model
+grades and independent review are retained, including prior failures and bounded
+corrective dispositions. Actual compiler output, runtime and hardware remain
+Unknown; this result is not an activation declaration.
+
 
 ## Q-L07 — Recursive call-graph SCC
 
@@ -525,6 +571,17 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
 
+### 2.0.1 integrated qualification result — Q-L24
+
+**Pass** for the contract/knowledge boundary only. E10280 span, poison recovery and no-artifact/storage consequence pass. They are requirements, not measured compiler outcomes.
+
+Evidence: `candidate-corpus-final / candidate-corpus-final-grade`; exact packet/output identities and captured text
+are preserved in `../release.md` under the 2.0.1 capture record. Separate model
+grades and independent review are retained, including prior failures and bounded
+corrective dispositions. Actual compiler output, runtime and hardware remain
+Unknown; this result is not an activation declaration.
+
+
 ## Q-L25 — Legalization creates a spill/helper scratch slot after provisional allocation
 
 - **Risk / coverage cells:** Critical; `LANG-L25`, `SFA-L25`.
@@ -725,6 +782,17 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
+
+### 2.0.1 integrated qualification result — Q-L29
+
+**Pass** for the contract/knowledge boundary only. Joint entry-lowering and source-remedy evidence passes. The source probe's blanket exposed-transition rejection is independently refuted and excluded from authority; proved masked active-vector update remains permitted.
+
+Evidence: `candidate-ql29-final + candidate-ql29-source-probe / candidate-ql29-final-grade`; exact packet/output identities and captured text
+are preserved in `../release.md` under the 2.0.1 capture record. Separate model
+grades and independent review are retained, including prior failures and bounded
+corrective dispositions. Actual compiler output, runtime and hardware remain
+Unknown; this result is not an activation declaration.
+
 
 ## Q-L30 — Ordinary arithmetic and explicit packed-BCD operations share one function
 
