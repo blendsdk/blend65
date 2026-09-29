@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-29 17:53
-> **Progress**: 16/17 tasks (94%)
+> **Last Updated**: 2026-09-29 17:59
+> **Progress**: 17/17 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -62,7 +62,7 @@ One coupled phase has three ordered sessions: specification tests → red verifi
 - [x] 1.3.2 Add direct machine/volatile/scratch and constant-folding implementation tests — `packages/compiler/src/machine/cia-operations.impl.test.ts`. (implemented: 2026-09-29 15:32) (completed: 2026-09-29 15:32; five direct machine/SFA cases and typecheck pass; targeted formatting applied)
 - [x] 1.3.3 Run the full approved phase checkpoint and frozen/source-key/format/output-cost checks — `99-execution-plan.md`, temporary logs; `yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck`, `yarn test`, with VICE sequential. (resumed: 2026-09-29 16:05; AR-P9 approved) (completed: 2026-09-29 16:15; default install/build/typecheck/test green: compiler 1,556, root 1,001, CLI 62, language server 14, VS Code 6; targeted formatting, frozen specification/skill, source-key and output-cost checks pass)
 - [x] 1.3.4 Perform the configured independent post-phase correctness and performance review; resolve material findings and rerun impacted verification — focused ownership implementation, independently authored CIA specification cases, implementation regressions, and `99-execution-plan.md`. (implemented: 2026-09-29 16:17) (completed: 2026-09-29 17:53; seven independent source cases red before correction and green after; scoped semantics and correctness re-reviews clear; performance re-review found PE-001's nonreturning null-cache omission, fixed within the approved finding with 24-layer returning/nonreturning regressions at 9/9; final install/build/typecheck/test green: compiler 1,561, root 1,008, CLI 62, language server 14, VS Code 6; sequential VICE cases pass)
-- [ ] 1.3.5 Record complete CIA1 route and expert-cost evidence, bounded VICE status, the temporary nonreturning limitation and its safe-return-to-BASIC owner DEF-14, remaining CIA2/DEF-7 obligation, and deferral-expiry answer — new `08-closeout.md`; do not mark RD-05 Done.
+- [x] 1.3.5 Record complete CIA1 route and expert-cost evidence, bounded VICE status, the temporary nonreturning limitation and its safe-return-to-BASIC owner DEF-14, remaining CIA2/DEF-7 obligation, and deferral-expiry answer — new `08-closeout.md`; do not mark RD-05 Done. (implemented: 2026-09-29 17:56) (completed: 2026-09-29 17:59; closeout records route, exact emitted costs, four-profile VICE status, independent review, DEF-7/DEF-14 owners, and a negative deferral-expiry answer; local links, source keys, formatting and plan progress checked; RD-05 remains Executing)
 
 **Verify:** All 17 tasks complete, impact-based full phase commands green, no frozen-file diff, independent findings resolved, exact MMIO sequences and costs checked, and no new material support surface.
 

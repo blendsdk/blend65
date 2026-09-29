@@ -1,7 +1,7 @@
 # RD-05 CIA Timer and Interrupt Operations
 
 > **Feature**: Direct, ownership-checked CIA timer and interrupt operations
-> **Status**: Executing — AR-P9 timeout correction approved
+> **Status**: Complete — bounded CIA slice verified; RD-05 remains Executing
 > **Created**: 2026-09-29
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
@@ -32,6 +32,7 @@ The source-facing and emitted contracts are owned by [the CIA design](03-cia-ope
 | [CIA design](03-cia-operations.md) | Signatures, effects, ownership, diagnostics, and machine sequences |
 | [Testing strategy](07-testing-strategy.md) | Independent ST input-to-result cases and verification |
 | [Execution plan](99-execution-plan.md) | Sole implementation-task checklist |
+| [Closeout](08-closeout.md) | Qualified route, output cost, VICE evidence, and remaining owners |
 
 ## Quick Reference
 
