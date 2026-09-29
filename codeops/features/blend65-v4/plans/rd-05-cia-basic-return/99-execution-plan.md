@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-29 21:48
-> **Progress**: 0/19 tasks (0%)
+> **Last Updated**: 2026-09-29 23:57
+> **Progress**: 5/19 tasks (26%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -25,16 +25,17 @@ The user confirmed effort for this named CIA1 work and waived repeated effort pa
 
 ## Phase 1: Controlled Authority Correction
 
-> **Phase baseline tree**: _(recorded by exec-plan before Phase 1)_
-> **Expected modification set**: `spec/appendix-c64.md`; matching RD-05 R5.4/AC-04 text; the dependent candidate expert skill router/knowledge/qualification/release files required by the existing version-and-activation procedure; this plan and feature roadmap. No other `spec/` chapter, compiler file, new qualification harness, or second active skill tree (AR-P5).
+> **Phase baseline tree**: `d82c1cc98191b87376f60619e837fc7e1a78a70a`
+> **Scope mode**: Strict; AR-P1–AR-P5 and accepted PF-001–PF-004.
+> **Expected modification set**: `spec/appendix-c64.md` and its required non-normative digest bookkeeping in `spec/00-normative-inventory.md`; matching RD-05 R5.4/AC-04 text; the dependent candidate expert skill router/knowledge/qualification/release files required by the existing version-and-activation procedure; this plan and feature roadmap. No other normative `spec/` chapter, compiler file, new qualification harness, or second active skill tree (AR-P5). Authority changes are prepared in non-active copies and migrate byte-identically only after task 1.3.1's final approval.
 > **Lenses**: compiler/platform semantics, source authority, expert assembly, simplicity
 
 ### Session 1.1: Independent Authority Oracle
 
 **Reference:** [07-testing-strategy.md](07-testing-strategy.md#authority-qualification-before-compiler-tests); AR-P2, AR-P5.
 
-- [ ] 1.1.1 Add one discriminating CIA1 BASIC-handback qualification case to a non-active candidate of `.agents/skills/blend65-domain-expert/qualification/cases/c64-platform-and-games.md`, with its existing coverage-matrix entry; distinguish stock-compatible return from impossible arbitrary mask/latch restoration.
-- [ ] 1.1.2 Evaluate that case against the old qualified contract and record the expected red result without editing the live skill, frozen spec, or compiler.
+- [x] 1.1.1 Add one discriminating CIA1 BASIC-handback qualification case to a non-active candidate of `.agents/skills/blend65-domain-expert/qualification/cases/c64-platform-and-games.md`, with its existing coverage-matrix entry; distinguish stock-compatible return from impossible arbitrary mask/latch restoration. (completed: 2026-09-29 22:05) Candidate: `/tmp/blend65-cia-return-candidate.usrAwL`; Q-P23 and CASE-Q-P23 identities/structure pass; live authorities remain unchanged. Source-to-invariant review precedes freezing the draft oracle.
+- [x] 1.1.2 Evaluate that case against the old qualified contract and record the expected red result without editing the live skill, frozen spec, or compiler. (completed: 2026-09-29 22:23) Fresh isolated old-baseline output and independent grade confirm Fail: missing exact reloads, wrong stop/read order and unsupported nested-state reconstruction. Live authorities and compiler are unchanged; see authority evidence.
 
 **Verify:** Candidate case/coverage identity and expected-red evaluation; no live authority activation.
 
@@ -42,9 +43,9 @@ The user confirmed effort for this named CIA1 work and waived repeated effort pa
 
 **Reference:** [07-testing-strategy.md](07-testing-strategy.md#authority-qualification-before-compiler-tests); AR-P2, AR-P5.
 
-- [ ] 1.2.1 Correct only the approved cooperative CIA1-return contract in `spec/appendix-c64.md` and RD-05 R5.4/AC-04; record the 27-rule Language Guard applicability/result, exact changed text, and new specification identity.
-- [ ] 1.2.2 Update only dependent candidate expert knowledge/router identity and required semantic version/release preparation under the existing one-baseline procedure — `.agents/skills/blend65-domain-expert/` candidate; preserve all unchanged doctrine and case identities.
-- [ ] 1.2.3 Run the changed/dependent qualification cases plus fixed unchanged controls against the candidate; reconcile source keys, exact hashes, and any failed case before activation.
+- [x] 1.2.1 Correct only the approved cooperative CIA1-return contract in `spec/appendix-c64.md` and RD-05 R5.4/AC-04; record the 27-rule Language Guard applicability/result, exact changed text, and new specification identity. (completed: 2026-09-29 22:29) Candidate-only correction passes exact 45-path/18-member/diff/digest checks; all 27 guard rows recorded. New digest `1c2a2d75…`; only approved appendix and non-normative identity bookkeeping differ. Migration remains task 1.3.1.
+- [x] 1.2.2 Update only dependent candidate expert knowledge/router identity and required semantic version/release preparation under the existing one-baseline procedure — `.agents/skills/blend65-domain-expert/` candidate; preserve all unchanged doctrine and case identities. (completed: 2026-09-29 22:41) Candidate 2.0.1 packaging, 22-file topology, thirteen references, 112 case identities and runtime/router hashes checked. Release remains a non-active draft; interim independent semantics/optimization/simplicity review has no findings. See authority evidence for exact identities and unchanged-doctrine check.
+- [x] 1.2.3 Run the changed/dependent qualification cases plus fixed unchanged controls against the candidate; reconcile source keys, exact hashes, and any failed case before activation. (completed: 2026-09-29 23:57) Twelve selected cases Pass; 100 unchanged-input cases are independently dependency-reviewed. All 19 preserved capture/grade texts and 381 packet-file hashes reproduce. Both final exact-identity reviews have no findings; structural/source/link/digest checks pass. Candidate remains non-active; see authority evidence for the frozen identities and corrective dispositions.
 
 **Verify:** Corrected contract is internally consistent; candidate qualification and unchanged controls green; no compiler implementation or second active baseline.
 
@@ -52,7 +53,7 @@ The user confirmed effort for this named CIA1 work and waived repeated effort pa
 
 **Reference:** AR-P5; existing expert release/qualification procedure.
 
-- [ ] 1.3.1 Obtain independent review of the exact spec/RD/skill diff, changed-case dependency closure and Language Guard result; present the complete candidate/evidence for the required explicit final user approval. Migrate only the approved byte-identical candidate atomically as the sole expert baseline, validate qualified content, and make its immutable content commit through the git-commit skill; the release record remains a draft until task 1.3.2 binds that ID (PF-004).
+- [ ] 1.3.1 Obtain independent review of the exact spec/RD/skill diff, changed-case dependency closure and Language Guard result; present the complete candidate/evidence for the required explicit final user approval. Migrate only the approved byte-identical candidate atomically as the sole expert baseline, validate qualified content, and make its immutable content commit through the git-commit skill; the release record remains a draft until task 1.3.2 binds that ID (PF-004). Final source and semantic/optimization/simplicity reviews are clear; awaiting the required exact-candidate activation approval. No migration or compiler implementation has occurred.
 - [ ] 1.3.2 Bind the preceding immutable content commit in the release record, validate exact specification and expert identity, links, source keys, targeted Prettier and qualification controls, then make the following release-record binding commit through the git-commit skill. Record both commits as the green authority checkpoint before Phase 2. Confirm `spec/` is clean at Phase 2 start (PF-004).
 
 **Verify:** Phase 1 authority checks green. Do not run the compiler suite for documentation/skill-only work. A missing final activation approval blocks task 1.3.1; it is not inferred from AR-P5's design approval.
