@@ -1,7 +1,7 @@
 # RD-05 CIA1 Return to BASIC Plan
 
 > **Feature**: Safe cooperative-profile return after CIA1 timer/interrupt takeover
-> **Status**: Planning Complete — authority correction precedes compiler execution
+> **Status**: Plan Preflighted — authority correction precedes compiler execution
 > **Created**: 2026-09-29
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
@@ -32,6 +32,7 @@ The [design](03-cia-basic-return.md) owns the source-visible and emitted behavio
 | [CIA1 return design](03-cia-basic-return.md) | Ownership, handback order, lowering, diagnostics, costs |
 | [Testing strategy](07-testing-strategy.md) | Independent source, output, and VICE cases |
 | [Execution plan](99-execution-plan.md) | Sole task-progress checklist |
+| [Preflight report](00-preflight-report.md) | Accepted fixes and passing full-plan re-scan |
 
 ## Quick Reference
 

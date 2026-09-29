@@ -1,9 +1,12 @@
 # Preflight Report: RD-05 CIA1 Return to BASIC Plan
 
-> **Status**: ❌ PREFLIGHT BLOCKED — 2 major findings unresolved; 2 minor findings awaiting rulings
-> **Iteration**: 1 (first scan)
-> **Audit target**: Full implementation plan at `codeops/features/blend65-v4/plans/rd-05-cia-basic-return/` — the seven documents committed at `bf018afc`
-> **Target tree identity**: `bb8d0c62cf4897cabc54577000cc6466902a0b65`
+> **Status**: ✅ PASSED — CLEAN; all four accepted findings fixed and verified
+> **Iteration**: 2 (re-scan after accepted plan fixes)
+> **Previous Iteration**: 4 findings — all resolved
+> **This Iteration**: 0 new findings
+> **Carried Forward**: None
+> **Audit target**: Full implementation plan at `codeops/features/blend65-v4/plans/rd-05-cia-basic-return/` — the same seven documents as iteration 1, with accepted fixes and final status metadata; exact current blob identities recorded below
+> **Iteration 1 target tree identity**: `bb8d0c62cf4897cabc54577000cc6466902a0b65` at `bf018afc`
 > **Scope mode**: Strict; approved AR-P1–AR-P5 and the minimum-sufficient baseline in `00-index.md`
 > **Last Updated**: 2026-09-29
 
@@ -23,7 +26,7 @@
 
 Deterministic plan parsing found 19 tasks and no structural problem; all local Markdown links resolve. The plan has the required authority-first and specification-test → red → implementation → green ordering. The semantic scan below found four issues that those checks cannot detect.
 
-## Summary by Dimension
+## Iteration 1 Findings by Dimension
 
 | # | Dimension | Findings | Highest severity |
 |---:|---|---:|---|
@@ -44,8 +47,8 @@ Deterministic plan parsing found 19 tasks and no structural problem; all local M
 | Severity | Count | State |
 |---|---:|---|
 | 🔴 Critical | 0 | — |
-| 🟠 Major | 2 | Pending user rulings; blocks execution |
-| 🟡 Minor | 2 | Pending user rulings |
+| 🟠 Major | 2 | Resolved; accepted fixes verified in iteration 2 |
+| 🟡 Minor | 2 | Resolved; accepted fixes verified in iteration 2 |
 | 🔵 Observation | 0 | — |
 
 ## Findings
@@ -64,7 +67,7 @@ Those three old expectations will fail the required complete test suite once the
 
 **Viable alternative — Option B:** Remove those three obsolete cases and replace their coverage in the new spec file; this has more churn and loses the direct historical comparison.
 
-**User Decision:** Pending.
+**User Decision:** Resolved — user accepted Option A and authorized the plan fixes and re-scan: “i accept” on 2026-09-29. The existing spec file, exact three-case boundary, authority trail, and red verification are now included in Phase 2.
 
 Confidence: High — the three assertions and corrected contract conflict directly. Hardening: no change. Challenger: converged on Option A; its strongest objection is that test changes need an explicit authority trail.
 
@@ -82,7 +85,7 @@ Confidence: High — the three assertions and corrected contract conflict direct
 
 **Viable alternative — Option B:** Add the prior complete CIA handoff contract to the spec-author packet and name it in ST-1. This is shorter on the ST row but easier to omit when dispatching.
 
-**User Decision:** Pending.
+**User Decision:** Resolved — user accepted Option A and authorized the plan fixes and re-scan: “i accept” on 2026-09-29. ST-1 now names the complete entry sequence and final-restore red diagnostic; ST-8 and ST-10 reuse that setup.
 
 Confidence: High — current ownership code rejects the omitted setup. Hardening: corrected the proposed CPU-status order against the existing fixture. Challenger: converged on a self-contained ST-1.
 
@@ -98,7 +101,7 @@ The design says every final exclusive pop handbacks even without a typed write, 
 
 **Recommended — only viable clarification:** Say that counter observation alone creates no exclusive lease; when a source installs and finally pops an exclusive route, handback occurs even if its CIA1 work consisted only of counter reads. This changes no approved behavior.
 
-**User Decision:** Pending.
+**User Decision:** Resolved — user accepted the clarification and authorized the plan fixes and re-scan: “i accept” on 2026-09-29. The design now distinguishes counter observation alone from an installed exclusive route.
 
 ### PF-004: Spell out the two release commits 🟡 MINOR
 
@@ -112,10 +115,36 @@ The plan invokes the existing procedure, so this is not a new process defect. Bu
 
 **Recommended — only viable clarification:** State the existing substeps explicitly in tasks 1.3.1–1.3.2: approved byte-identical candidate migration, qualified content commit, following release-record binding commit, then final identity/qualification verification. Do not start Phase 2 until both commits are complete. No new release layer or extra qualification is proposed.
 
-**User Decision:** Pending.
+**User Decision:** Resolved — user accepted the clarification and authorized the plan fixes and re-scan: “i accept” on 2026-09-29. Tasks 1.3.1–1.3.2 now spell out the immutable content commit and the following release-record binding commit.
 
 Confidence: High — the governing two-commit procedure is explicit. Hardening: downgraded from Major to Minor after challenge; the procedure is already incorporated by reference. Challenger: diverged on severity, not remedy.
 
 ## Verdict and next gate
 
-**Blocked pending rulings:** PF-001 and PF-002 must be resolved before execution. PF-003 and PF-004 need explicit acceptance or correction for a passing preflight. Preflight has not changed the plan, the frozen specification, the expert skill, tests, or compiler. After the user chooses the remedies and separately authorizes fixes, apply only the accepted plan-document changes, verify them, and re-scan the same seven-document target. Do not advance the roadmap while this report is blocked.
+**Passed — Clean:** The user accepted all four recommendations and authorized applying the plan fixes and re-scan. Each finding is fixed and independently verified; no finding remains open. The unchanged seven-document target was re-scanned across all 13 dimensions. Final index/status metadata and the report link were checked directly after the scan. The simplicity check found no unjustified support machinery.
+
+| Iteration 2 cluster | Dimensions | Independent audit result |
+|---|---|---|
+| Document soundness | 1, 3, 12 | No findings; PF-003 and cross-document consistency verified |
+| Grounding | 2, 13 | No findings; PF-001 exact three-case boundary verified against existing tests |
+| Delivery | 4, 5, 11 | No findings; PF-004 verified against the existing release procedure |
+| Risk | 6, 8, 9 | No findings; bounded interrupt, hardware and ownership contracts remain feasible |
+| Fit | 7, 10 | No findings; PF-002 valid setup and final-restore red observation verified |
+
+Two independent auditor threads covered the five separate cluster packets because further thread allocation was unavailable. The iteration-1 challenger already hardened the accepted major remedies; the fixes introduced no new major finding or changed recommendation. Lead verification confirmed plan structure (19 unstarted tasks), targeted formatting, local links, and the accepted modification boundary. Compiler tests were not run for this plan-document checkpoint.
+
+DEF-14 advances to Plan Preflighted; RD-05 remains Executing and no task is marked complete. Portfolio cascade remains deferred on `feature/v4-rebuild` under the existing non-integration-branch rule. Phase 1 prepares and qualifies the approved narrow authority correction. Its final candidate/evidence activation approval remains required before either release commit or Phase 2. This pass qualifies the plan, not compiler behavior, emitted costs, runtime operation, or physical hardware.
+
+## Iteration 2 Target Identity
+
+These Git blob IDs bind the exact seven audited documents, including final status metadata. The report is audit evidence, not an eighth target document.
+
+| Document | Git blob ID |
+|---|---|
+| `00-ambiguity-register.md` | `205f7bc660b23756b92045b1e8050db54171c670` |
+| `00-index.md` | `82b4db1ca6961f0a86d11bf94088c1f2ac90508a` |
+| `01-requirements.md` | `e934d30541a3c7570a14669c1b913fde53285fe5` |
+| `02-current-state.md` | `dd3b19a31fd7004842b129fd05ba0b9624ea9618` |
+| `03-cia-basic-return.md` | `f8b81d8ca26a5861bd1725c8c04a29d587a74082` |
+| `07-testing-strategy.md` | `35ead6084e646454bfa5f60d1ffb662079112415` |
+| `99-execution-plan.md` | `27b3460bf3ca46a432d1ed1fa9eb128d90c535e3` |

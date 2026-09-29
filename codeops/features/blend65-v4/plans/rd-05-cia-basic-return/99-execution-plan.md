@@ -2,15 +2,15 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-29 19:54
+> **Last Updated**: 2026-09-29 21:48
 > **Progress**: 0/19 tasks (0%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
 
-Close DEF-14 under AR-P1–AR-P5. The corrected frozen authority and qualified expert baseline must form one green checkpoint before any compiler change. Then follow specification tests → red → implementation → green → implementation tests → full verification, using [the design](03-cia-basic-return.md) and [ST cases](07-testing-strategy.md). Phase 1 is a non-compiler authority correction; Phase 2 is the implementation phase. RD-05 and DEF-7 remain open afterward.
+Close DEF-14 under AR-P1–AR-P5. The corrected frozen authority and qualified expert baseline must complete the existing two-commit release sequence before any compiler change: first the qualified immutable content commit, then the release-record commit binding that content ID. Together they form the green authority checkpoint (PF-004). Then follow specification tests → red → implementation → green → implementation tests → full verification, using [the design](03-cia-basic-return.md) and [ST cases](07-testing-strategy.md). Phase 1 is a non-compiler authority correction; Phase 2 is the implementation phase. RD-05 and DEF-7 remain open afterward.
 
-The project's per-task reasoning-effort handoff applies to each numbered task unless the user explicitly waives it for this named batch. Use the git-commit skill at coherent green checkpoints; never push without a new explicit user request. No broken spec/expert identity may be committed.
+The user confirmed effort for this named CIA1 work and waived repeated effort pauses while that effort remains adequate. State the recommendation before each task; renew the handoff only if the task needs a different effort level. Use the git-commit skill at coherent green checkpoints; never push without a new explicit user request. A release record may remain a draft during the qualified content commit, but cannot claim active qualification until it binds that immutable content ID under the existing release procedure.
 
 ## Implementation Phases
 
@@ -52,25 +52,25 @@ The project's per-task reasoning-effort handoff applies to each numbered task un
 
 **Reference:** AR-P5; existing expert release/qualification procedure.
 
-- [ ] 1.3.1 Obtain independent review of the exact spec/RD/skill diff, changed-case dependency closure and Language Guard result; present the complete candidate/evidence for the required explicit final user approval, then activate only the approved candidate atomically as the sole expert baseline.
-- [ ] 1.3.2 Validate exact specification and expert identity, links, source keys, targeted Prettier and qualification controls; record the green authority checkpoint through the git-commit skill before Phase 2. Confirm `spec/` is clean at Phase 2 start.
+- [ ] 1.3.1 Obtain independent review of the exact spec/RD/skill diff, changed-case dependency closure and Language Guard result; present the complete candidate/evidence for the required explicit final user approval. Migrate only the approved byte-identical candidate atomically as the sole expert baseline, validate qualified content, and make its immutable content commit through the git-commit skill; the release record remains a draft until task 1.3.2 binds that ID (PF-004).
+- [ ] 1.3.2 Bind the preceding immutable content commit in the release record, validate exact specification and expert identity, links, source keys, targeted Prettier and qualification controls, then make the following release-record binding commit through the git-commit skill. Record both commits as the green authority checkpoint before Phase 2. Confirm `spec/` is clean at Phase 2 start (PF-004).
 
 **Verify:** Phase 1 authority checks green. Do not run the compiler suite for documentation/skill-only work. A missing final activation approval blocks task 1.3.1; it is not inferred from AR-P5's design approval.
 
 ## Phase 2: Compiler Handback and Qualification
 
 > **Phase baseline tree**: _(recorded by exec-plan after the green authority checkpoint)_
-> **Expected modification set**: three new `test/rd05/cia-basic-return*.spec.test.ts` files; focused `packages/compiler/src/profile/c64-kernal.ts`, `semantic/cia-ownership*.ts`, `semantic/interrupt-ownership.ts`, `machine/lower-platform.ts`, `machine/lower-c64.ts`, and `machine/lower-c64-interrupt.ts`; two focused `*.impl.test.ts` files; this plan, its closeout, and the feature roadmap. No further `spec/` or expert-skill edits (AR-P3–AR-P5).
+> **Expected modification set**: three new `test/rd05/cia-basic-return*.spec.test.ts` files; only the three superseded final-exclusive-restore expectations and matching obsolete names/comments in `test/rd05/cia-ownership.spec.test.ts` (PF-001); focused `packages/compiler/src/profile/c64-kernal.ts`, `semantic/cia-ownership*.ts`, `semantic/interrupt-ownership.ts`, `machine/lower-platform.ts`, `machine/lower-c64.ts`, and `machine/lower-c64-interrupt.ts`; two focused `*.impl.test.ts` files; this plan, its closeout, and the feature roadmap. No further `spec/` or expert-skill edits (AR-P3–AR-P5).
 > **Lenses**: compiler semantics, IRQ re-entry/ownership, volatile effects, output bytes/cycles, simplicity
 
 ### Session 2.1: Implementation-Blind Specification Tests
 
-**Reference:** [07-testing-strategy.md](07-testing-strategy.md#specification-test-cases), ST-1–ST-11; AR-P2–AR-P4. The spec-test author receives the ST rows and public signatures, not implementation logic.
+**Reference:** [07-testing-strategy.md](07-testing-strategy.md#specification-test-cases), ST-1–ST-11 and the PF-001 supersession boundary in its test-file section; AR-P2–AR-P4. The spec-test author receives the corrected authority, ST rows including ST-1's complete valid entry setup, public signatures, and the three old test fixtures; not implementation logic.
 
-- [ ] 2.1.1 [spec-author] Write independent ownership and BASIC-return specification cases — `test/rd05/cia-basic-return.spec.test.ts`; ST-1–ST-7, ST-11.
+- [ ] 2.1.1 [spec-author] Write independent ownership and BASIC-return specification cases — `test/rd05/cia-basic-return.spec.test.ts`; ST-1–ST-7, ST-11. Supersede only the three final-exclusive-restore rejection expectations in `test/rd05/cia-ownership.spec.test.ts` identified in PF-001, preserving source fixtures and every other safety expectation; record the corrected authority in the spec-author evidence.
 - [ ] 2.1.2 [spec-author] Write selected assembly/volatile/cost specification cases — `test/rd05/cia-basic-return-output.spec.test.ts`; ST-2–ST-3, ST-8–ST-9.
 - [ ] 2.1.3 [spec-author] Write four-profile runtime specification cases using existing sequential ACME/VICE helpers — `test/rd05/cia-basic-return-vice.spec.test.ts`; ST-10.
-- [ ] 2.1.4 Run all three directed specification files and record the expected red results for the missing handback, distinguishing already-green controls; never weaken an ST expectation to match code.
+- [ ] 2.1.4 Run all three new directed specification files and the existing CIA ownership specification file. Record expected red for the missing handback and the three superseded expectations; ST-1 must fail at final restore after valid entry setup. Distinguish already-green controls; never weaken an ST expectation to match code.
 
 **Verify:** Directed Vitest red for the new capability; compilation/test collection and unchanged controls remain healthy. VICE cases run sequentially.
 
