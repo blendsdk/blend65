@@ -2,7 +2,7 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-30 00:35
+> **Last Updated**: 2026-09-30 00:40
 > **Progress**: 7/19 tasks (37%)
 > **CodeOps Artifact Schema**: 1
 
@@ -58,9 +58,18 @@ The user confirmed effort for this named CIA1 work and waived repeated effort pa
 
 **Verify:** Phase 1 authority checks green. Do not run the compiler suite for documentation/skill-only work. A missing final activation approval blocks task 1.3.1; it is not inferred from AR-P5's design approval.
 
+**Post-phase review:** `/root/cia_return_phase1_review` returned no findings on
+2026-09-30. It reproduces the exact committed phase diff, all bound payload/content
+identities, unchanged captured evidence, 112 unique cases and approved scope; no
+`*.spec.test.*` file changed. Docs-only auditor skips are recorded in authority
+evidence. Content `1ce4852016e2a883cf1f733c6014c45e176bfc69` and release binding
+`e063ef575d13c02c076c94e24616dd27ae4a75e2` form the green authority checkpoint.
+Phase 2 may now begin; `spec/` and expert content stay frozen.
+
 ## Phase 2: Compiler Handback and Qualification
 
-> **Phase baseline tree**: _(recorded by exec-plan after the green authority checkpoint)_
+> **Phase baseline tree**: `07933e91be7c66723f357ebe55f780ae2d668156`
+> **Scope mode**: Strict; existing direct handback only, no additional support surface.
 > **Expected modification set**: three new `test/rd05/cia-basic-return*.spec.test.ts` files; only the three superseded final-exclusive-restore expectations and matching obsolete names/comments in `test/rd05/cia-ownership.spec.test.ts` (PF-001); focused `packages/compiler/src/profile/c64-kernal.ts`, `semantic/cia-ownership*.ts`, `semantic/interrupt-ownership.ts`, `machine/lower-platform.ts`, `machine/lower-c64.ts`, and `machine/lower-c64-interrupt.ts`; two focused `*.impl.test.ts` files; this plan, its closeout, and the feature roadmap. No further `spec/` or expert-skill edits (AR-P3–AR-P5).
 > **Lenses**: compiler semantics, IRQ re-entry/ownership, volatile effects, output bytes/cycles, simplicity
 
