@@ -40,6 +40,8 @@ interface OwnershipSummary {
 export interface InterruptOwnershipAnalysis {
   /** Terminal diagnostics; no binding facts are consumed when nonempty. */
   readonly diagnostics: readonly ProjectDiagnostic[];
+  /** Source restores with one proved final-exclusive CIA1 stock handback on every call path. */
+  readonly cia1Handbacks: ReadonlySet<SemanticOperation>;
   /** Maximum simultaneously live predecessor words for each vector. */
   readonly maxDepth: Readonly<Record<InterruptSink, number>>;
   /** Install depth relative to the enclosing function's entry at each operation. */
@@ -240,11 +242,19 @@ export function checkInterruptOwnership(
 ): InterruptOwnershipAnalysis {
   // Device-state failures must point at the CIA operation or unsafe hand-back
   // before the vector-only proof can report its broader unmatched-install error.
-  const ciaDiagnostics = checkCiaOwnership(program, reachable, indirectTargets, routes);
+  const cia1Handbacks = new Set<SemanticOperation>();
+  const ciaDiagnostics = checkCiaOwnership(
+    program,
+    reachable,
+    indirectTargets,
+    routes,
+    cia1Handbacks,
+  );
   if (ciaDiagnostics.length > 0) {
     const emptyDepth = Object.freeze({ irq: 0, nmi: 0 });
     return Object.freeze({
       diagnostics: ciaDiagnostics,
+      cia1Handbacks: new Set<SemanticOperation>(),
       maxDepth: emptyDepth,
       relativeDepths: new Map(),
       mainEntryDepth: emptyDepth,
@@ -498,6 +508,7 @@ export function checkInterruptOwnership(
         relativeDepths,
         mainEntryDepth: Object.freeze({ irq: 0, nmi: 0 }),
         initializerEntryDepths,
+        cia1Handbacks: new Set<SemanticOperation>(),
       });
   }
   const mainEntryDepth = Object.freeze({
@@ -512,6 +523,7 @@ export function checkInterruptOwnership(
       relativeDepths,
       mainEntryDepth,
       initializerEntryDepths,
+      cia1Handbacks: new Set<SemanticOperation>(),
     });
   for (const sink of ["irq", "nmi"] as const) {
     maximum[sink] = Math.max(maximum[sink], relativeDepth(state[sink]) + mainSummary.peak[sink]);
@@ -528,6 +540,7 @@ export function checkInterruptOwnership(
       relativeDepths,
       mainEntryDepth,
       initializerEntryDepths,
+      cia1Handbacks: new Set<SemanticOperation>(),
     });
   for (const sink of ["irq", "nmi"] as const) {
     if (state[sink].some((event) => event.kind !== "raw")) {
@@ -601,6 +614,7 @@ export function checkInterruptOwnership(
   }
   return Object.freeze({
     diagnostics: Object.freeze(diagnostics),
+    cia1Handbacks: diagnostics.length === 0 ? cia1Handbacks : new Set<SemanticOperation>(),
     maxDepth: Object.freeze(maximum),
     relativeDepths,
     mainEntryDepth,

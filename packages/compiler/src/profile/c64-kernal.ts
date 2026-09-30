@@ -15,6 +15,8 @@ export interface C64KernalProfileFacts {
   readonly sidModel: 6581 | 8580;
   /** Nominal CPU clock in hertz; host precision preserves the complete value. */
   readonly clockHz: number;
+  /** Stock 901227-03 Timer A latch for the selected video standard, not a raster period. */
+  readonly kernalTimerAReload: number;
   /** Raster lines in one video frame. */
   readonly rasterLines: number;
   /** CPU clock periods in one raster line. */
@@ -36,6 +38,7 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
     video: "pal",
     sidModel: 6581,
     clockHz: 985248,
+    kernalTimerAReload: 16421,
     rasterLines: 312,
     cyclesPerLine: 63,
     cyclesPerFrame: 19656,
@@ -48,6 +51,7 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
     video: "pal",
     sidModel: 8580,
     clockHz: 985248,
+    kernalTimerAReload: 16421,
     rasterLines: 312,
     cyclesPerLine: 63,
     cyclesPerFrame: 19656,
@@ -60,6 +64,7 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
     video: "ntsc",
     sidModel: 6581,
     clockHz: 1022730,
+    kernalTimerAReload: 17045,
     rasterLines: 263,
     cyclesPerLine: 65,
     cyclesPerFrame: 17095,
@@ -72,6 +77,7 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
     video: "ntsc",
     sidModel: 8580,
     clockHz: 1022730,
+    kernalTimerAReload: 17045,
     rasterLines: 263,
     cyclesPerLine: 65,
     cyclesPerFrame: 17095,

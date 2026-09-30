@@ -27,9 +27,30 @@ These input→expected pairs are derived from RD-05 R5.4/R5.13/R5.15–R5.20, th
 
 ## Test files and verification
 
+The user-approved AR-P6 corrects only the new runtime test's cleanup-helper call.
+AR-P7 distinguishes ST-8's handback from ST-10's later ordinary exit: handback
+permits no CIA2/SID write; the later exit requires exactly the captured VIC-bank
+port and direction restores (`$DD00`, then `$DD02`), and no other CIA2/SID write.
+Final unrelated-state equality and all other runtime expectations remain intact.
+AR-P8 updates only `test/foundation.spec.test.ts`'s frozen identity expectation to
+the approved 2.0.1 release checkpoint. Historical ancestry, all seven per-key
+tamper fixtures and every other foundation case remain intact. Compare the full
+spec/skill tree to that release with no exclusions; no authority file changes.
+AR-P9 adds an independent assertion on the existing public `BUILD_INFO` fields
+before correcting only the three fixed metadata values in `build-info.ts`.
+The assertion must fail against the old metadata. Fresh build/debug reports
+must bind the approved specification and expert identity without changing PRG
+bytes, schemas or historical captures.
+AR-P10 adds one independent provenance file for ST-11: known timer/control/ICR
+writes before exclusive installation, including helper and branch propagation,
+must reject the final release with source-linked E10278. Negative cases fail
+before the correction; clean and opaque-address controls already pass. Every
+previously frozen oracle remains byte-identical.
+
 | Test tier | File / checks | Coverage |
 |---|---|---|
 | Independent specification | `test/rd05/cia-basic-return.spec.test.ts` | ST-1–ST-7, ST-11; real project/check entry, exact source spans |
+| Independent proof-fix regression | `test/rd05/cia-basic-return-provenance.spec.test.ts` | ST-11 / AR-P10; known raw pre-install mutations, calls/joins and unaffected clean/opaque controls |
 | Superseded specification expectations | `test/rd05/cia-ownership.spec.test.ts` | Only the three former final-exclusive-restore rejection cases identified in PF-001; preserve their source fixtures and all remaining safety expectations |
 | Independent output/cost | `test/rd05/cia-basic-return-output.spec.test.ts` | ST-2–ST-3, ST-8–ST-9; selected assembly and expert budget |
 | Independent runtime | `test/rd05/cia-basic-return-vice.spec.test.ts` | ST-10; reuse existing sequential ACME/VICE helpers |

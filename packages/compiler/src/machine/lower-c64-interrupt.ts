@@ -1,5 +1,6 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
+import { selectC64KernalFacts } from "../profile/c64-kernal.js";
 import type { PlatformOperation } from "../semantic/operations.js";
 import type { TargetProfile, InterruptVariantFacts } from "../target/profile.js";
 import { machineInstruction } from "./lower-control.js";
@@ -143,7 +144,7 @@ export function createC64InterruptEntry(
   });
 }
 
-/** Construct one fixed-address volatile CINV access. */
+/** Construct one fixed-address volatile firmware-vector or device-register access. */
 function fixedEffect(kind: "read" | "write", address: number, order = 0): MachineMemoryEffect {
   return Object.freeze({
     kind,
@@ -177,11 +178,60 @@ export function lowerC64InterruptOperation(
   const cpu = profile.cpu;
   const source = operation.span;
   const vector = sink?.vector ?? restoreVector!;
+  const handback = binding.stockCia1Handback ? selectC64KernalFacts(profile.id) : null;
+  if (
+    binding.stockCia1Handback &&
+    (operation.capability !== "c64.system.restoreIRQ" || handback === null)
+  ) {
+    throw new Error("CIA1 handback requires a proved cooperative final IRQ restore");
+  }
+  // Named CIA1 register addresses remain tied to the selected machine. Neither
+  // device access nor saved-vector access may move across another volatile effect.
+  const cia1 = {
+    timerALow: profile.machine.cia1Base + 0x04,
+    timerAHigh: profile.machine.cia1Base + 0x05,
+    interruptControl: profile.machine.cia1Base + 0x0d,
+    controlA: profile.machine.cia1Base + 0x0e,
+    controlB: profile.machine.cia1Base + 0x0f,
+  };
+  let memoryOrder = 0;
+  /** Keep every consuming read and register write explicit in the machine effects. */
+  const deviceAccess = (opcode: "lda" | "sta", address: number) =>
+    machineInstruction(
+      cpu,
+      opcode,
+      "absolute",
+      Object.freeze({ kind: "absolute", value: address }),
+      [fixedEffect(opcode === "lda" ? "read" : "write", address, memoryOrder++)],
+      source,
+    );
+  /** Emit a constant register value or bit operation without requesting scratch storage. */
+  const immediate = (opcode: "lda" | "and" | "ora", value: number) =>
+    machineInstruction(cpu, opcode, "immediate", { kind: "immediate", value }, [], source);
   const instructions: MachineInstruction[] = [
     machineInstruction(cpu, "php", "implied", null, [], source),
     machineInstruction(cpu, "pha", "implied", null, [], source),
     machineInstruction(cpu, "sei", "implied", null, [], source),
   ];
+  if (handback !== null) {
+    // Stop both timers before acknowledging pending game events. CRA bit 7
+    // selects the TOD input and must survive; CRB returns to the stock stopped
+    // one-shot mode. The ICR read consumes events, never the unreadable mask.
+    instructions.push(
+      immediate("lda", 0x1f),
+      deviceAccess("sta", cia1.interruptControl),
+      deviceAccess("lda", cia1.controlA),
+      immediate("and", 0x80),
+      deviceAccess("sta", cia1.controlA),
+      immediate("lda", 0x08),
+      deviceAccess("sta", cia1.controlB),
+      deviceAccess("lda", cia1.interruptControl),
+      immediate("lda", handback.kernalTimerAReload & 0xff),
+      deviceAccess("sta", cia1.timerALow),
+      immediate("lda", handback.kernalTimerAReload >>> 8),
+      deviceAccess("sta", cia1.timerAHigh),
+    );
+  }
   for (let offset = 0; offset < 2; offset += 1) {
     instructions.push(
       machineInstruction(
@@ -202,10 +252,10 @@ export function lowerC64InterruptOperation(
                 }),
                 width: 1,
                 volatile: false,
-                order: offset,
+                order: memoryOrder++,
               }),
             ]
-          : [fixedEffect("read", vector + offset, offset)],
+          : [fixedEffect("read", vector + offset, memoryOrder++)],
         source,
       ),
       machineInstruction(
@@ -216,7 +266,7 @@ export function lowerC64InterruptOperation(
           ? Object.freeze({ kind: "absolute", value: vector + offset })
           : Object.freeze({ kind: "storage", requestId: binding.linkRequestId, offset }),
         sink === undefined
-          ? [fixedEffect("write", vector + offset, offset + 2)]
+          ? [fixedEffect("write", vector + offset, memoryOrder++)]
           : [
               Object.freeze({
                 kind: "write",
@@ -227,7 +277,7 @@ export function lowerC64InterruptOperation(
                 }),
                 width: 1,
                 volatile: false,
-                order: offset + 2,
+                order: memoryOrder++,
               }),
             ],
         source,
@@ -254,11 +304,22 @@ export function lowerC64InterruptOperation(
           "sta",
           "absolute",
           Object.freeze({ kind: "absolute", value: vector + offset }),
-          [fixedEffect("write", vector + offset, offset + 4)],
+          [fixedEffect("write", vector + offset, memoryOrder++)],
           source,
         ),
       );
     }
+  }
+  if (handback !== null) {
+    // The exact saved predecessor is now installed while CPU IRQ entry remains
+    // masked. Enable only stock Timer A, then load/start it before restoring P.
+    instructions.push(
+      immediate("lda", 0x81),
+      deviceAccess("sta", cia1.interruptControl),
+      deviceAccess("lda", cia1.controlA),
+      immediate("ora", 0x11),
+      deviceAccess("sta", cia1.controlA),
+    );
   }
   instructions.push(
     machineInstruction(cpu, "pla", "implied", null, [], source),

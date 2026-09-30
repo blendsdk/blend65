@@ -314,25 +314,23 @@ describe("CIA1 interrupt-source arguments", () => {
 });
 
 describe("CIA1 device state and return to BASIC", () => {
-  // Enabling B dirties the device even if a later write disables all sources.
-  it("rejects IRQ restore after Timer B was enabled and then fully disabled", async () => {
+  // Final exclusive release restores stock service after typed source-mask changes.
+  it("accepts IRQ restore after Timer B was enabled and then fully disabled", async () => {
     const call = "c64.system.restoreIRQ()";
-    await expectRejectedAt(
+    await expectAccepted(
       handoff(`c64.cia1.enableInterruptSources(c64.cia1.sourceTimerB);
   c64.cia1.disableInterruptSources(c64.cia1.sourceAll);
   ${call};`),
-      call,
     );
   });
 
-  // A timer-latch write cannot be undone by merely restoring the old IRQ vector.
-  it("rejects IRQ restore after a typed timer write", async () => {
+  // Final exclusive release includes stock timer handback after a typed latch write.
+  it("accepts IRQ restore after a typed timer write", async () => {
     const call = "c64.system.restoreIRQ()";
-    await expectRejectedAt(
+    await expectAccepted(
       program(`asm_php(); asm_sei(); c64.system.setIRQExclusive(&onIRQ);
   c64.cia1.writeTimerALatch($1234); ${call}; asm_plp();
   for (;;) { asm_nop(); }`),
-      call,
     );
   });
 
@@ -379,20 +377,18 @@ describe("CIA1 device state and return to BASIC", () => {
     });
   });
 
-  // A selected handler's helper may change CIA1 while the mainline owns that route.
-  it("rejects mainline IRQ restore when the selected handler helper can mutate CIA1", async () => {
+  // Final release covers typed timer changes reachable through the selected handler's helper.
+  it("accepts mainline IRQ restore when the selected handler helper can mutate CIA1", async () => {
     const call = "c64.system.restoreIRQ()";
     const declarations = `function changeTimer(): void { c64.cia1.writeTimerALatch($1234); }
 interrupt function onIRQ(): void { changeTimer(); }`;
-    const error = await expectRejectedAt(
+    await expectAccepted(
       program(
         `asm_php(); asm_sei(); c64.system.setIRQExclusive(&onIRQ);
   ${call}; asm_plp(); for (;;) { asm_nop(); }`,
         declarations,
       ),
-      call,
     );
-    expectTimerMutationDetail(error?.message);
   });
 
   // A nested handler restore cannot clean a timer change made by its temporary successor.

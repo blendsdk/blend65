@@ -120,6 +120,8 @@ export function lowerPlatformOperation(
         const route = selectedInterruptRoute ?? routes[0];
         return Object.freeze({
           linkRequestId,
+          stockCia1Handback:
+            state.input.program.interruptOwnership?.cia1Handbacks.has(sourceOperation) ?? false,
           entryLabel:
             sink === undefined
               ? null

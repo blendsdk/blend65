@@ -1,7 +1,7 @@
 # RD-05 CIA1 Return to BASIC Plan
 
 > **Feature**: Safe cooperative-profile return after CIA1 timer/interrupt takeover
-> **Status**: Executing — authority correction precedes compiler execution
+> **Status**: Executing — approved AR-P10 proof correction and closeout
 > **Created**: 2026-09-29
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1

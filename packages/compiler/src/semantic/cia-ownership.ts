@@ -4,9 +4,13 @@ import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { IndirectTargetSets } from "./function-targets.js";
 import {
   INITIAL_CIA_STATE,
+  handlerCiaMutation,
+  isFinalCiaRelease,
   joinCiaState,
   literalValues,
+  mutateCiaState,
   rawCia1Effect,
+  restoreCiaState,
   sameCiaState,
   typedMutation,
   type CiaState,
@@ -30,13 +34,25 @@ function invalid(operation: string, detail: string, span: SourceSpan): ProjectDi
   );
 }
 
-/** Check CIA1 timer/mask/source ownership without introducing a runtime mask shadow. */
+/**
+ * Check CIA1 ownership without a runtime shadow. The optional output collection
+ * is replaced with only source restores proved to require the same final stock handback
+ * at every call site; unsafe diagnostics prevent consuming any lowering facts.
+ */
 export function checkCiaOwnership(
   program: SemanticProgram,
   reachable: ReadonlySet<string>,
   indirectTargets: IndirectTargetSets,
   routes: readonly InterruptRoute[],
+  stockHandbacks: Set<SemanticOperation> = new Set(),
 ): readonly ProjectDiagnostic[] {
+  stockHandbacks.clear();
+  const restoreKinds = new Map<SemanticOperation, boolean>();
+  const vectorBytes = new Set(
+    routes
+      .filter(({ sink }) => sink.domain === "irq")
+      .flatMap(({ sink }) => [sink.vector, (sink.vector + 1) & 0xffff]),
+  );
   const functions = new Map(
     program.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
   );
@@ -53,6 +69,8 @@ export function checkCiaOwnership(
 
   /** Include helper calls and temporary successor handlers in each handler's possible writes. */
   const mayMutate = new Set<string>();
+  const mayMutateRaw = new Set<string>();
+  const mayReplaceVector = new Set<string>();
   const mayInvalidateMask = new Set<string>();
   const mayEnable = new Map<string, number>();
   const edges = new Map<string, Set<string>>();
@@ -74,9 +92,13 @@ export function checkCiaOwnership(
             callees.add(bindingIdentityKey(handler.id));
           }
         } else if (operation.kind === "memory-write") {
-          const raw = rawCia1Effect(operation, values);
-          if (raw.dirty) mayMutate.add(key);
+          const raw = rawCia1Effect(operation, values, vectorBytes);
+          if (raw.dirty) {
+            mayMutate.add(key);
+            mayMutateRaw.add(key);
+          }
           if (raw.icr) mayInvalidateMask.add(key);
+          if (raw.vector) mayReplaceVector.add(key);
         } else if (operation.kind === "call" || operation.kind === "indirect-call") {
           const targets =
             operation.kind === "call" ? [operation.callee] : (indirectTargets.get(operation) ?? []);
@@ -98,6 +120,12 @@ export function checkCiaOwnership(
         if (!mayInvalidateMask.has(caller) && mayInvalidateMask.has(callee)) {
           mayInvalidateMask.add(caller);
           changed = true;
+        }
+        for (const effects of [mayMutateRaw, mayReplaceVector]) {
+          if (!effects.has(caller) && effects.has(callee)) {
+            effects.add(caller);
+            changed = true;
+          }
         }
         const enabled = (mayEnable.get(caller) ?? 0) | (mayEnable.get(callee) ?? 0);
         if (enabled !== (mayEnable.get(caller) ?? 0)) {
@@ -122,6 +150,7 @@ export function checkCiaOwnership(
     const enabled = keys.reduce((bits, key) => bits | (mayEnable.get(key) ?? 0), 0);
     const entry: CiaState = {
       ...state,
+      stockPredecessor: state.stockPredecessor && !keys.some((key) => mayReplaceVector.has(key)),
       maskKnown: state.maskKnown && !unknown,
       possibleSources: state.possibleSources | enabled | (unknown ? 0x1f : 0),
     };
@@ -152,7 +181,8 @@ export function checkCiaOwnership(
       input.irqMayRun,
       input.maskKnown,
       input.possibleSources,
-      input.dirty,
+      input.mutations,
+      input.stockPredecessor,
     ]);
     if (successful.has(memoKey)) return successful.get(memoKey) ?? null;
     active.add(key);
@@ -186,38 +216,45 @@ export function checkCiaOwnership(
               break;
             }
             const exclusive = name === "c64.system.setIRQExclusive";
+            const keys = (handlers.get(operation) ?? [])
+              .map((fn) => bindingIdentityKey(fn.id))
+              .sort();
             state = {
               routes: [...state.routes, exclusive ? "exclusive" : "chained"],
-              handlerKeys: [
-                ...state.handlerKeys,
-                (handlers.get(operation) ?? []).map((fn) => bindingIdentityKey(fn.id)).sort(),
-              ],
+              handlerKeys: [...state.handlerKeys, keys],
               irqMayRun: state.irqMayRun,
               maskKnown: exclusive && state.routes.at(-1) !== "exclusive" ? false : state.maskKnown,
               possibleSources:
                 exclusive && state.routes.at(-1) !== "exclusive" ? 0x1f : state.possibleSources,
-              dirty:
-                state.dirty ||
-                (handlers.get(operation) ?? []).some((fn) =>
-                  mayMutate.has(bindingIdentityKey(fn.id)),
-                ),
+              mutations: [...state.mutations, handlerCiaMutation(keys, mayMutate, mayMutateRaw)],
+              stockPredecessor: state.stockPredecessor,
             };
           } else if (name === "c64.system.restoreIRQ") {
-            if (state.dirty) {
+            const final = isFinalCiaRelease(state);
+            const restored = restoreCiaState(state);
+            if (restored === null) {
               diagnostics.push(
                 invalid(
                   name,
-                  "CIA1 timer or interrupt-mask state may have changed, including selected handler writes; restoring the vector cannot restore device state",
+                  "CIA1 timer or interrupt-mask state cannot be restored to an inner or nonstock owner, including selected handler writes and known raw mutations",
                   operation.span,
                 ),
               );
               break;
             }
-            state = {
-              ...state,
-              routes: state.routes.slice(0, -1),
-              handlerKeys: state.handlerKeys.slice(0, -1),
-            };
+            if (restoreKinds.has(operation) && restoreKinds.get(operation) !== final) {
+              diagnostics.push(
+                invalid(
+                  name,
+                  "CIA1 release classification differs between call paths",
+                  operation.span,
+                ),
+              );
+              break;
+            }
+            restoreKinds.set(operation, final);
+            if (final) stockHandbacks.add(operation);
+            state = restored;
           } else if (name.startsWith("c64.cia2.") && !name.includes("readTimer")) {
             diagnostics.push(
               invalid(
@@ -272,21 +309,19 @@ export function checkCiaOwnership(
                 break;
               }
               state = {
-                ...state,
-                dirty: true,
+                ...mutateCiaState(state, "typed"),
                 possibleSources:
                   state.possibleSources | Number(exact === undefined ? 0x03n : exact & 0x03n),
               };
             } else if (name.endsWith("disableInterruptSources")) {
               const clear = exact === undefined ? 0 : Number(exact & 0x1fn);
               state = {
-                ...state,
-                dirty: true,
+                ...mutateCiaState(state, "typed"),
                 maskKnown: state.maskKnown || clear === 0x1f,
                 possibleSources: state.possibleSources & ~clear,
               };
             } else {
-              state = { ...state, dirty: true };
+              state = mutateCiaState(state, "typed");
             }
           }
         } else if (operation.kind === "cpu-control") {
@@ -295,11 +330,15 @@ export function checkCiaOwnership(
             state = { ...state, irqMayRun: true };
           }
         } else if (operation.kind === "memory-write") {
-          const raw = rawCia1Effect(operation, values);
+          const raw = rawCia1Effect(operation, values, vectorBytes);
+          // Source-known device changes outside an exclusive lease invalidate
+          // stock service even before the first installation or between leases.
+          if (raw.vector || (raw.dirty && !state.routes.includes("exclusive"))) {
+            state = { ...state, stockPredecessor: false };
+          }
           if (raw.dirty && state.routes.includes("exclusive")) {
             state = {
-              ...state,
-              dirty: true,
+              ...mutateCiaState(state, "raw"),
               maskKnown: raw.icr ? false : state.maskKnown,
               possibleSources: raw.icr ? 0x1f : state.possibleSources,
             };
@@ -397,7 +436,7 @@ export function checkCiaOwnership(
   if (main === undefined) throw new Error("Selected main function is missing");
   if (state !== null && diagnostics.length === 0) {
     state = analyze(bindingIdentityKey(main.id), main.entry, main.blocks, main.source, state);
-    if (state?.dirty && diagnostics.length === 0) {
+    if (state?.mutations.some((mutation) => mutation !== "clean") && diagnostics.length === 0) {
       diagnostics.push(
         invalid(
           "program return",
@@ -444,6 +483,7 @@ export function checkCiaOwnership(
       ...INITIAL_CIA_STATE,
       routes: [route.sink.capability === "c64.system.setIRQExclusive" ? "exclusive" : "chained"],
       handlerKeys: [[key]],
+      mutations: [handlerCiaMutation([key], mayMutate, mayMutateRaw)],
       irqMayRun: false,
     };
     analyze(key, handler.entry, handler.blocks, handler.source, fallback);

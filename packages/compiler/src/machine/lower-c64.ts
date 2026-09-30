@@ -34,6 +34,8 @@ export interface C64LoweringSupport {
   readonly interruptBinding?: (operation: PlatformOperation) => {
     readonly linkRequestId: string;
     readonly entryLabel: string | null;
+    /** Compile-time proof for a final IRQ release; no runtime flag or storage is emitted. */
+    readonly stockCia1Handback?: boolean;
   };
 }
 

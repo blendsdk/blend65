@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { BUILD_INFO } from "@blend65/compiler";
 import { afterEach, describe, expect, it } from "vitest";
 
 const execute = promisify(execFile);
@@ -12,7 +13,9 @@ const repository = fileURLToPath(new URL("../", import.meta.url));
 const baseline = "3c993529f55cfe880426a35c09c8f9b456487ff5";
 const finalV3 = "4c2f27f54273a713c0bbf398bf6c56be45f4aae3";
 const authorityCommit = "5deb2a5341bea00cf6050a0aba4668315198d91a";
-const frozenDigest = "ee2be7c2139ff82f22d1d8f169251bae1d2244e5e4a74bddbdfc4903af39fff8";
+const frozenDigest = "1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf";
+/** Immutable activation checkpoint; every specification and expert file stays byte-exact. */
+const releaseCommit = "e063ef575d13c02c076c94e24616dd27ae4a75e2";
 const temporaryRoots: string[] = [];
 
 /** Each negative structural input is an ordinary real directory, not a mock filesystem. */
@@ -37,10 +40,10 @@ function identityViolations(record: Readonly<Record<string, string>>): readonly 
     base: finalV3,
     authority: authorityCommit,
     specification: frozenDigest,
-    expertVersion: "2.0.0",
-    expertContent: "c9e70fab6039e9ced3108e88f0ea9730d4fd3007",
-    router: "e3d3f8f570a7fa8b3c197208ede2f7b41878f29494fc1824fcfabd2c11f53304",
-    release: "4ae79fd224a328226ef149104ca44f7d1ab1f62cadc9fc6fc33ceadd7a67c80a",
+    expertVersion: "2.0.1",
+    expertContent: "1ce4852016e2a883cf1f733c6014c45e176bfc69",
+    router: "8111b2ebc7584ee427a16951be0bfafce199ae6166094de8befa9f092848ce68",
+    release: "8a681fdefa7ef524ec4f21193521fde7d6d82760158f759d9836a9d4def9227b",
   };
   return Object.entries(expected)
     .filter(([key, value]) => record[key] !== value)
@@ -92,6 +95,15 @@ afterEach(async () => {
 });
 
 describe("frozen execution authority and salvage ownership", () => {
+  // Public build metadata identifies the exact frozen specification and qualified expert baseline.
+  it("should expose the frozen specification and expert identities in public build metadata", () => {
+    expect(BUILD_INFO.specificationId).toBe(
+      "BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf",
+    );
+    expect(BUILD_INFO.expertVersion).toBe("2.0.1");
+    expect(BUILD_INFO.expertContentCommit).toBe("1ce4852016e2a883cf1f733c6014c45e176bfc69");
+  });
+
   // Frozen bytes and repository lineage apply to ordinary clones, independent of local worktrees.
   it("should preserve repository lineage and frozen specification/expert identities", async () => {
     const git = async (...args: string[]) =>
@@ -120,11 +132,11 @@ describe("frozen execution authority and salvage ownership", () => {
       specification: sha256(records.join("")),
       expertVersion: release
         .toString()
-        .includes("Expert `2.0.0` is the single active qualified baseline")
-        ? "2.0.0"
+        .includes("Expert `2.0.1` is the single active qualified and frozen baseline")
+        ? "2.0.1"
         : "missing",
-      expertContent: release.toString().includes("c9e70fab6039e9ced3108e88f0ea9730d4fd3007")
-        ? "c9e70fab6039e9ced3108e88f0ea9730d4fd3007"
+      expertContent: release.toString().includes("1ce4852016e2a883cf1f733c6014c45e176bfc69")
+        ? "1ce4852016e2a883cf1f733c6014c45e176bfc69"
         : "missing",
       router: sha256(await readFile(join(skill, "SKILL.md"))),
       release: sha256(release),
@@ -139,25 +151,8 @@ describe("frozen execution authority and salvage ownership", () => {
       ).toEqual([key]);
     }
     expect(
-      await git(
-        "diff",
-        authorityCommit,
-        "--",
-        "spec",
-        ".agents/skills/blend65-domain-expert",
-        ":(exclude)spec/00-normative-inventory.md",
-        ":(exclude)spec/02-type-system.md",
-        ":(exclude)spec/08-arrays-strings.md",
-        ":(exclude)spec/14-diagnostics.md",
-      ),
+      await git("diff", releaseCommit, "--", "spec", ".agents/skills/blend65-domain-expert"),
     ).toBe("");
-    // Only the approved diagnostic definitions and their central identity may differ.
-    expect((await git("diff", "--name-only", authorityCommit, "--", "spec")).split("\n")).toEqual([
-      "spec/00-normative-inventory.md",
-      "spec/02-type-system.md",
-      "spec/08-arrays-strings.md",
-      "spec/14-diagnostics.md",
-    ]);
     expect(inventory).toContain(frozenDigest);
   });
 
