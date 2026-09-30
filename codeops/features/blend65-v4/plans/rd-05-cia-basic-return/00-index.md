@@ -1,14 +1,14 @@
 # RD-05 CIA1 Return to BASIC Plan
 
 > **Feature**: Safe cooperative-profile return after CIA1 timer/interrupt takeover
-> **Status**: Executing — approved AR-P10 proof correction and closeout
+> **Status**: Done — 19/19 tasks verified; DEF-14 closed
 > **Created**: 2026-09-29
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
 
-This plan closes DEF-14 for the four cooperative C64 PRG profiles. A game that takes exclusive CIA1 timer/IRQ ownership can release its final handler and return to a functioning stock KERNAL/BASIC timer service. The user approved a narrow correction to the impossible promise of bit-exactly restoring arbitrary pre-entry write-only CIA1 state (AR-P2). The original nonreturning guard stays until the corrected authority and implementation are qualified.
+This plan closes DEF-14 for the four cooperative C64 PRG profiles. A game that takes exclusive CIA1 timer/IRQ ownership can release its final handler and return to a functioning stock KERNAL/BASIC timer service. The user approved a narrow correction to the impossible promise of bit-exactly restoring arbitrary pre-entry write-only CIA1 state (AR-P2). The corrected authority and implementation are qualified; unsafe raw, inner and nonstock releases retain source-linked rejection.
 
 The [design](03-cia-basic-return.md) owns the source-visible and emitted behavior; [tests](07-testing-strategy.md) own independent expectations. The [decision register](00-ambiguity-register.md) records the approved scope, stock-entry precondition, verification, and controlled authority-edit set. This is a bounded RD-05 slice, not RD-05 closeout.
 
@@ -32,6 +32,7 @@ The [design](03-cia-basic-return.md) owns the source-visible and emitted behavio
 | [CIA1 return design](03-cia-basic-return.md) | Ownership, handback order, lowering, diagnostics, costs |
 | [Authority evidence](06-authority-evidence.md) | Candidate identity, blind qualification and activation evidence |
 | [Testing strategy](07-testing-strategy.md) | Independent source, output, and VICE cases |
+| [Closeout](08-closeout.md) | Qualified return boundary, exact costs, review evidence and remaining owners |
 | [Execution plan](99-execution-plan.md) | Sole task-progress checklist |
 | [Preflight report](00-preflight-report.md) | Accepted fixes and passing full-plan re-scan |
 
@@ -39,4 +40,4 @@ The [design](03-cia-basic-return.md) owns the source-visible and emitted behavio
 
 After a qualified, source-visible exclusive CIA1 handoff, a returning game still calls its existing `restoreIRQ()` before leaving `main`. The final exclusive restore is the one that performs the stock handback; balanced vector-only inner restores do not. A selected profile's stock BASIC/KERNAL entry contract is required. Exact custom pre-game CIA1 mask/latch state is not promised (AR-P2–AR-P3).
 
-DEF-7 retains CIA2/NMI/RESTORE ownership. RD-10 retains physical CIA-edge QA and native Windows work. No implementation or frozen-authority file was changed by creating this plan.
+DEF-7 retains CIA2/NMI/RESTORE ownership. RD-10 retains physical CIA-edge QA and native Windows work. The controlled authority correction was activated before compiler execution; specification and expert content remained frozen throughout implementation.
