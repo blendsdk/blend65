@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 NMI and CIA2
 
-> **Status**: ❌ GATE BLOCKED — scope decision open; discovery incomplete
-> **Last Updated**: 2026-10-01 00:02
+> **Status**: ❌ GATE BLOCKED — bounded check complete; unchanged profile cannot certify NMI nesting
+> **Last Updated**: 2026-10-01
 > **CodeOps Artifact Schema**: 1
 
 | Planning boundary | Scope |
@@ -13,8 +13,9 @@
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
 |---|---|---|---|---|---|
 | AR-P1 | Planning target / effort | Which next work item is authorized? | The named RD-05 NMI/CIA2 planning task, with xhigh effort. | User: “xhigh effor is confirmed, proceed further” on 2026-09-30, replying to the explicitly named planning task. | ✅ Resolved |
-| AR-P2 | Scope / source safety (complex) | What is the smallest scope that can progress DEF-7 without inventing hardware guarantees or a runtime manager? | **Recommended:** a bounded proof-first slice on the four existing cooperative PRG profiles, using existing NMI/CIA2 APIs. Close permitted-source and live-handler re-entry facts first, then safe vector replacement and exact CIA2 handoff. If a permitted source remains unbounded or unknown, stop with the exact missing fact and retain the existing guard; do not invent a profile, promise a positive implementation, or silently defer the obligation. Raw takeover remains a separate RD-05 slice. | — | ❌ Open |
+| AR-P2 | Scope / source safety (complex) | What is the smallest scope that can progress DEF-7 without inventing hardware guarantees or a runtime manager? | **Recommended:** a bounded proof-first slice on the four existing cooperative PRG profiles, using existing NMI/CIA2 APIs. Close permitted-source and live-handler re-entry facts first, then safe vector replacement and exact CIA2 handoff. If a permitted source remains unbounded or unknown, stop with the exact missing fact and retain the existing guard; do not invent a profile, promise a positive implementation, or silently defer the obligation. Raw takeover remains a separate RD-05 slice. | User: “Make sure we are not overcomplicating or overengineering. proceed further.” on 2026-10-01, accepting the sole scope recommendation presented immediately before the reply. | ✅ Resolved |
 | AR-P3 | Verification / inherited project rule | Which existing verification policy applies if this plan becomes executable? | Directed specification, assembly/cost and implementation tests; frozen-lockfile install, build, typecheck and complete tests at phase checkpoints; sequential four-profile VICE cases; revision-sensitive physical QA at RD-10. Planning-only documents use link, authority and consistency checks. | Import the unchanged approved CIA1-return AR-P4 verification policy and current AGENTS.md impact-based rules; no new verification surface. | ✅ Resolved |
+| AR-P4 | Upstream profile qualification | The unchanged profile admits unbounded NMI nesting, which cannot fit a finite hardware stack. What qualified source contract could justify a finite bound? | Reopen positive planning only with a qualified all-source nesting bound, or complete edge-spacing and worst-case route-time proof. Any correction to the frozen profile needs separate authority. Retain the existing DEF-7 guards meanwhile. | No source bound or frozen-spec correction is authorized. AR-P2's approved failure exit applies; DEF-7 remains open under RD-05. | ❌ Open — positive implementation blocked |
 
 ## Discovery evidence
 
@@ -43,6 +44,48 @@ The current
 [`irq-stack.ts`](../../../../../packages/compiler/src/storage/irq-stack.ts)
 measures IRQ overlap and I-bit eligibility. Existing NMI domain labels do not
 make that algorithm an NMI nesting or whole-route stack proof.
+
+### Bounded check result — negative certification, not hardware impossibility
+
+The frozen source record in
+[`appendix-c64.md`](../../../../../spec/appendix-c64.md), lines 877–886,
+allows NMI to preempt NMI, does not mask it on entry, and leaves external
+re-entry unbounded. Section 10's closed deltas retain these facts in all four
+cooperative PRG profiles. This is normative contract evidence, not a restriction
+inferred from current compiler code.
+
+[`06-functions.md`](../../../../../spec/06-functions.md) §7.9 assigns three
+CPU-stack bytes to each interrupt entry and accumulates overlapping live entries.
+The profile supplies 256 bytes with a 20-byte reserve: 236 usable bytes. Just
+79 simultaneously live CPU frames require 237 bytes, before caller, wrapper or
+helper costs. The admitted unbounded nesting therefore cannot have a finite
+certified peak. E10245 explicitly covers hardware-stack consumption even when
+the application body needs no invocation-private storage.
+
+A generated guard runs after CPU/ROM entry; it cannot bound arbitrary repeats
+before it executes. Masking CIA2 alone does not cover independent RESTORE entry.
+A matching-low-byte vector does not close this source obligation either. No
+new guard, manager, profile, storage mechanism or compiler change is justified
+by this result.
+
+The [Commodore C64 service manual, PN 314001-02, printed page 12](https://oldcrap.org/wp-content/uploads/2023/04/commodore-c64-service-manual-314001-02.pdf)
+describes RESTORE's U20/U8 NMI path but provides no qualified minimum RESTORE
+edge-spacing guarantee there. Its half-second RESET description is not a RESTORE
+bound. This supplemental primary-source probe does not activate a new expert
+authority or qualify board-specific timing.
+
+**Exact reopening fact:** a qualified finite simultaneous-entry bound covering
+RESTORE and every admitted CIA2/retained firmware source over the complete
+CPU/ROM/body/acknowledgement/exit route. A spacing argument also needs complete
+worst-case route timing and coverage of admitted board variants. Such evidence
+would require reconciliation with the frozen unbounded source row before code.
+Physical feasibility remains **Unknown**; this result does not claim that real
+RESTORE hardware can produce the abstract counterexample schedule.
+
+The approved bounded check is complete. The executable plan is not created,
+DEF-7 remains unresolved, and RD-05 is not closed. The smallest next independent
+RD-05 item is the already recorded PE-001 compiler-analysis memoization debt;
+starting it requires its own task handoff, not another NMI support layer.
 
 ### Independent obligations — Unknown positive safety
 
@@ -91,8 +134,9 @@ product/complexity decision before entering executable work. DEF-7 remains
 owned by RD-05; this register does not close or silently re-defer it.
 
 The complete 12-category scan, technical resolutions, specification-first test
-cases and executable plan remain pending. Only this incremental register may
-be written while the planning gate is blocked.
+cases and executable plan remain pending. The approved failure exit does not
+turn this into a passed planning gate. Only this incremental register may be
+written while the planning gate is blocked.
 
 ## Independent simplicity and safety challenge
 
@@ -116,9 +160,29 @@ without a new usable NMI capability. That is preferable to recording a false
 finite bound or building unneeded support machinery: the gate returns a
 specific fact to resolve, not a claim that NMI is permanently impossible.
 
-Confidence: High for the bounded planning direction; positive NMI safety
-remains Unknown until source facts and independent proofs close.
-Hardening: source/nesting closure precedes choosing a vector technique.
-Challenger: converged. AR-P2 awaits the user's scope confirmation under
-`make-plan`; no new RESTORE behavior, source restriction or runtime support
-approval is requested at this point.
+The final bounded independent challenge confirmed that the normative unbounded
+row makes certification fail under the unchanged contract. The strongest
+counterargument is that actual RESTORE circuitry and source control may allow
+a small direct implementation once their guarantees are qualified. That keeps
+physical feasibility Unknown without invalidating the contract-level result.
+
+Confidence: High for the negative certification result under the unchanged
+contract. Hardening: two bounded independent challenges; no further research
+or support machinery in this task. The user confirmed AR-P2 with an explicit
+simplicity constraint. No new RESTORE behavior, source restriction or runtime
+support approval is granted by that planning-scope confirmation.
+
+## Verification
+
+All 20 cases in `test/rd05/profile-interrupts.spec.test.ts` pass with one worker:
+the existing four-profile NMI rejection cases and positive IRQ controls. Capture:
+`/tmp/blend65-nmi-check-5H6m3D/profile-tests.log`. No oracle or compiler file
+changed. Checks pass for 47 local links, six primary source keys, four expert
+anchors, whitespace and frozen-authority cleanliness. Markdown retains the
+project's authored-documentation formatter exclusion.
+
+The roadmap engine confirms the feature's 2/10 counter. It reports the existing
+portfolio mismatch (1/10 and its rolled-up status); that separate write remains
+deferred on `feature/v4-rebuild` until integration, as the roadmap rule requires.
+The portfolio is unchanged. No new assembly, VICE, physical-hardware or
+whole-compiler qualification is claimed by this planning-only task.
