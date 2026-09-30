@@ -13,6 +13,7 @@ import {
   restoreCiaState,
   sameCiaState,
   typedMutation,
+  type CiaMutation,
   type CiaState,
 } from "./cia-ownership-facts.js";
 import type {
@@ -24,6 +25,16 @@ import type {
 } from "./operations.js";
 import type { InterruptRoute } from "./whole-program.js";
 import { reachableBlocks } from "./value-lifetimes.js";
+
+/** One call analysis result, including the caller history the body never reached. */
+interface CiaCallResult {
+  /** Returning ownership facts; null denotes a path that cannot return. */
+  readonly state: CiaState | null;
+  /** Older mutation frames that were neither read, changed nor removed by the call. */
+  readonly untouchedPrefix: number;
+  /** Entry mutation suffix that must agree before this proof can be reused. */
+  readonly entryMutations: readonly CiaMutation[];
+}
 
 /** Preserve one source-linked ownership error without claiming a hardware reset. */
 function invalid(operation: string, detail: string, span: SourceSpan): ProjectDiagnostic {
@@ -72,6 +83,8 @@ export function checkCiaOwnership(
   const mayMutateRaw = new Set<string>();
   const mayReplaceVector = new Set<string>();
   const mayInvalidateMask = new Set<string>();
+  /** Unmasking can discover IRQ entries, whose complete caller histories must remain distinct. */
+  const mayUnmaskIrq = new Set<string>();
   const mayEnable = new Map<string, number>();
   const edges = new Map<string, Set<string>>();
   for (const fn of program.functions) {
@@ -90,6 +103,10 @@ export function checkCiaOwnership(
           }
           for (const handler of handlers.get(operation) ?? []) {
             callees.add(bindingIdentityKey(handler.id));
+          }
+        } else if (operation.kind === "cpu-control") {
+          if (operation.control === "asm_cli" || operation.control === "asm_plp") {
+            mayUnmaskIrq.add(key);
           }
         } else if (operation.kind === "memory-write") {
           const raw = rawCia1Effect(operation, values, vectorBytes);
@@ -121,7 +138,7 @@ export function checkCiaOwnership(
           mayInvalidateMask.add(caller);
           changed = true;
         }
-        for (const effects of [mayMutateRaw, mayReplaceVector]) {
+        for (const effects of [mayMutateRaw, mayReplaceVector, mayUnmaskIrq]) {
           if (!effects.has(caller) && effects.has(callee)) {
             effects.add(caller);
             changed = true;
@@ -139,7 +156,7 @@ export function checkCiaOwnership(
   const diagnostics: ProjectDiagnostic[] = [];
   const visited = new Set<string>();
   const active = new Set<string>();
-  const successful = new Map<string, CiaState | null>();
+  const successful = new Map<string, readonly CiaCallResult[]>();
   const handlerEntries = new Map<string, Map<string, CiaState>>();
 
   /** Include an IRQ's possible CIA writes at every source point where it can run. */
@@ -169,11 +186,16 @@ export function checkCiaOwnership(
     blocks: readonly SemanticBlock[],
     source: SourceSpan,
     input: CiaState,
-  ): CiaState | null => {
-    if (active.has(key)) return null; // The preceding whole-program check rejects recursion.
+  ): CiaCallResult => {
+    if (active.has(key)) {
+      // The preceding whole-program check rejects recursion.
+      return { state: null, untouchedPrefix: 0, entryMutations: input.mutations };
+    }
     visited.add(key);
-    // A helper's result depends only on its entry facts. Shared acyclic helper
-    // diamonds otherwise cause the same body to be checked once per call path.
+    // A masked helper cannot discover new IRQ entries unless it can unmask IRQ.
+    // Keep exact contexts otherwise: handler discovery records the full entry
+    // history and is not replayed by a cached call.
+    const exactMutations = input.irqMayRun || mayUnmaskIrq.has(key);
     const memoKey = JSON.stringify([
       key,
       input.routes,
@@ -181,10 +203,36 @@ export function checkCiaOwnership(
       input.irqMayRun,
       input.maskKnown,
       input.possibleSources,
-      input.mutations,
+      exactMutations ? input.mutations : [],
       input.stockPredecessor,
     ]);
-    if (successful.has(memoKey)) return successful.get(memoKey) ?? null;
+    const cached = successful
+      .get(memoKey)
+      ?.find(({ untouchedPrefix, entryMutations }) =>
+        entryMutations.every(
+          (mutation, index) => mutation === input.mutations[untouchedPrefix + index],
+        ),
+      );
+    if (cached !== undefined) {
+      return {
+        ...cached,
+        state:
+          cached.state === null
+            ? null
+            : {
+                ...cached.state,
+                mutations: [
+                  ...input.mutations.slice(0, cached.untouchedPrefix),
+                  ...cached.state.mutations.slice(cached.untouchedPrefix),
+                ],
+              },
+      };
+    }
+    let untouchedPrefix = exactMutations ? 0 : input.mutations.length;
+    /** Retain the current owner and any older owner exposed by a pop or callee. */
+    const touchOwner = (state: CiaState): void => {
+      untouchedPrefix = Math.min(untouchedPrefix, Math.max(0, state.routes.length - 1));
+    };
     active.add(key);
     const byId = new Map(blocks.map((block) => [block.id, block] as const));
     const values = literalValues(blocks);
@@ -197,6 +245,7 @@ export function checkCiaOwnership(
       let state: CiaState | null = atEntry.get(block.id)!;
       for (const operation of block.operations) {
         if (state === null) break;
+        touchOwner(state);
         state = interruptEntry(state);
         if (operation.kind === "platform") {
           const name = operation.capability;
@@ -352,13 +401,15 @@ export function checkCiaOwnership(
             const fn = functions.get(bindingIdentityKey(target));
             if (fn === undefined) continue;
             hasBody = true;
-            const output = analyze(
+            const callee = analyze(
               bindingIdentityKey(fn.id),
               fn.entry,
               fn.blocks,
               fn.source,
               state,
             );
+            untouchedPrefix = Math.min(untouchedPrefix, callee.untouchedPrefix);
+            const output = callee.state;
             if (output === null) continue;
             const merged: CiaState | null = result === null ? output : joinCiaState(result, output);
             if (merged === null) {
@@ -379,6 +430,7 @@ export function checkCiaOwnership(
         }
       }
       if (diagnostics.length > 0 || state === null) continue;
+      touchOwner(state);
       state = interruptEntry(state);
       const terminal = block.terminator;
       if (terminal.kind === "return") {
@@ -416,8 +468,15 @@ export function checkCiaOwnership(
       }
     }
     active.delete(key);
-    if (diagnostics.length === 0) successful.set(memoKey, returned);
-    return returned;
+    const result: CiaCallResult = {
+      state: returned,
+      untouchedPrefix,
+      entryMutations: input.mutations.slice(untouchedPrefix),
+    };
+    if (diagnostics.length === 0) {
+      successful.set(memoKey, [...(successful.get(memoKey) ?? []), result]);
+    }
+    return result;
   };
 
   let state: CiaState | null = INITIAL_CIA_STATE;
@@ -430,12 +489,12 @@ export function checkCiaOwnership(
       global.blocks,
       global.source,
       state,
-    );
+    ).state;
   }
   const main = functions.get(bindingIdentityKey(program.main));
   if (main === undefined) throw new Error("Selected main function is missing");
   if (state !== null && diagnostics.length === 0) {
-    state = analyze(bindingIdentityKey(main.id), main.entry, main.blocks, main.source, state);
+    state = analyze(bindingIdentityKey(main.id), main.entry, main.blocks, main.source, state).state;
     if (state?.mutations.some((mutation) => mutation !== "clean") && diagnostics.length === 0) {
       diagnostics.push(
         invalid(

@@ -138,12 +138,21 @@ that optimization reachable; this slice adds no allocator or optimizer.
 [Issue #92](https://github.com/blendsdk/blend65/issues/92) separately owns CIA
 register-value reuse while preserving volatile accesses.
 
-PE-001 remains a minor compile-time debt owned by remaining RD-05 analysis
-hardening: mutation-bearing deeply nested helper diamonds duplicate memo contexts.
-The independent depth-16 probe has 131,072 keys versus baseline 34 and roughly
-1.28 seconds versus 1 ms; full check used about 133 MB heap. There is no emitted
-output defect. Any future context-sharing remedy must retain untouched caller
-mutation facts; no generalized transfer framework was added here.
+PE-001 originally identified a minor compile-time debt: mutation-bearing deeply
+nested helper diamonds duplicated memo contexts. That review's depth-16 probe
+had 131,072 keys versus baseline 34 and roughly 1.28 seconds versus 1 ms; full
+check used about 133 MB heap. There was no emitted output defect.
+
+The subsequent [T-02 bounded fix](../cia-analysis-memoization/99-execution-plan.md)
+shares untouched caller mutation prefixes while IRQ entry stays masked. Its
+depth-16 evaluation count falls from 131,072 to 34; caller facts, diagnostics and
+four-profile output hashes remain unchanged. Full verification passes 2,902 tests
+and three independent reviews report no findings. IRQ-enabled or transitively
+unmasking helpers deliberately retain exact contexts to preserve handler-entry
+discovery. Their remaining worst-case repeated work stays owned by RD-05 analysis
+hardening. Key serialization and prefix copying still scale with route depth;
+this is not a universal linear-time claim. No generalized transfer framework
+was added.
 
 ## Verification and review
 
@@ -159,8 +168,9 @@ hash are recorded in the [execution plan](99-execution-plan.md).
 Correctness, semantics and performance reviews cover the whole phase. SR-001 was
 corrected only after explicit approval; the one permitted fix-only correctness
 and semantics review cycle has no findings. RV-001 count bookkeeping is corrected;
-PE-001 is explicitly retained above. Sixteen touched TypeScript files pass
-formatting, and whitespace, local links and exact frozen-authority checks pass.
+PE-001's original review and subsequent bounded disposition are recorded above.
+Sixteen touched TypeScript files pass formatting, and whitespace, local links
+and exact frozen-authority checks pass.
 Markdown follows the existing authored-documentation formatter exclusion.
 
 ## Deferral-expiry answer and remaining owners
@@ -183,7 +193,7 @@ to rewrite and no new ledger framework.
 |---|---|
 | DEF-7 / CIA2 / NMI / RESTORE | No finite NMI re-entry or atomic-update/source handoff proof; RD-05 R5.15–R5.17. Counter reads remain allowed; CIA2 configuration and consuming ICR remain rejected. |
 | Other RD-05 deliverables | This is a bounded slice, not RD-05 completion. Whole-RD portability/deferral audit R5.53 and AC-42 still apply at its final closeout. |
-| PE-001 | Compiler-analysis context-sharing debt; remaining RD-05 hardening, not a new runtime system. |
+| PE-001 residual | T-02 fixes masked-helper diamonds. IRQ-enabled/unmasking exact contexts and their worst-case repeated work remain owned by RD-05 analysis hardening; no new runtime system. |
 | Native assets / SpritePad | Native parsing/producer qualification remains RD-06; CIA1 release supplies no asset-format proof. |
 | Delivery / optimization / tooling | D64/loaders RD-07, peepholes/allocation/expert-output RD-08, production editor/debugger RD-09; no new engine/framework surface. |
 | Windows / physical hardware | DEF-1/DEF-3 native Windows and targeted CIA-edge/revision QA remain RD-10; no earlier access request. |
