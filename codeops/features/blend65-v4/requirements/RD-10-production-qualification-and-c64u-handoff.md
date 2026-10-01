@@ -19,7 +19,7 @@ applicable requirement has current evidence through its required endpoint and ev
 limitation is bounded, documented, and owned. (AR-002, AR-008, AR-011, AR-024, AR-033)
 
 The initial production target set is eight resident C64 PRG profiles plus one PAL/KERNAL/6581 D64
-profile. The host set is Node 22 on Linux x64 and Windows x64. This existing native Windows
+profile. The host set is Node 22 or newer on Linux x64 and Windows x64. This existing native Windows
 qualification window also closes RD-02 DEF-1 before RD-10 closes; it is not an earlier compiler
 development gate. VICE 3.10 `x64sc` remains the normal
 automated execution oracle, while exact physical C64 configurations close the profile, timing,
@@ -40,7 +40,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 #### Production authority and claim closure — complexity XL
 
 - [ ] **R10.1 — Qualify one exact candidate.** Bind the production candidate to one clean Git
-  commit, one Specification 4 identity, one active expert-skill `2.0.0` content commit, one Node 22
+  commit, one Specification 4 identity, one active expert-skill `2.0.0` content commit, one recorded Node 22-or-newer
   release line, exact TypeScript/Yarn/Turbo/Vitest versions, ACME 0.97, VICE 3.10 `x64sc`, and every
   selected host/profile/artifact identity. A dirty tree, mutable version range, mismatched authority,
   skipped required endpoint, or later code change invalidates only the intersecting evidence but
@@ -100,7 +100,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 
 #### Linux and Windows production hosts — complexity XL
 
-- [ ] **R10.11 — Qualify both production hosts natively.** On clean Node 22 `linux/x64` and
+- [ ] **R10.11 — Qualify both production hosts natively.** On clean Node 22-or-newer `linux/x64` and
   `win32/x64` environments, install the locked workspace, build/package the public products, run
   language/project/security tests, execute CLI `check`/`build`/fresh `run`, start the LSP, exercise
   the packaged VS Code extension, discover pinned ACME/VICE, cancel owned child trees, and validate
@@ -123,12 +123,13 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   version-1 tools-file precedence, ordered process-`PATH` scan, exact Linux `acme`/`x64sc` and Windows
   `acme.exe`/`x64sc.exe` tokens, no-`PATHEXT` rule, canonical executable identity, ACME `--version`,
   VICE `-version`, accepted output/version grammar, diagnostic behavior, and no-download/no-shell
-  boundary from RD-09. There is no ordinary-install-location registry. `check` and ordinary LSP do
+  boundary from RD-09, including the exact pinned Windows same-bundle exception in RD-03 AR-P11.
+  There is no ordinary-install-location registry. `check` and ordinary LSP do
   not load the file and work with no external tools; assembly emission remains available without
   tools; binary production fails clearly without ACME; `run` fails clearly without ACME or `x64sc`
   and never launches a stale artifact. (AR-022, AR-048)
-- [ ] **R10.14 — Bound non-production hosts honestly.** macOS, Linux ARM64, and other Node 22 hosts
-  remain best-effort even if individual checks pass. Hosts outside the declared Node 22 range and
+- [ ] **R10.14 — Bound non-production hosts honestly.** macOS, Linux ARM64, and other Node 22-or-newer hosts
+  remain best-effort even if individual checks pass. Hosts below Node 22 and
   32-bit or unknown architectures are unsupported. Promotion requires the same native end-to-end
   host boundary and a recorded requirements decision; Unix similarity alone is not qualification.
   (AR-048)
@@ -334,7 +335,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 | D64/loading | One exact D64 profile, structure, trusted media, KERNAL load behavior, real drive | No implication of another disk profile or hostile-media containment |
 | Optimization | Correct direct `none`; three frontier-searched modes with two independent oracles, complete costs, expert floor, whole-program wins, and linked debt | A `none` correctness/search-boundary failure or optimized regression/untracked meet blocks that mode |
 | Tooling | Public API/CLI/LSP/VS Code package, trust, cancellation, debug/evidence coherence | Source-tree-only or mocked public path cannot qualify |
-| Hosts/tools | Native Linux/Windows Node 22, deterministic discovery, ACME 0.97, VICE 3.10 | Required host/tool unknown blocks that production host |
+| Hosts/tools | Native Linux/Windows Node 22 or newer, deterministic discovery, ACME 0.97, VICE 3.10 | Required host/tool unknown blocks that production host |
 | Physical C64 | Targeted PAL/NTSC, KERNAL/takeover, 6581/8580, timing/CIA/banking, and one D64 drive path | Required unverified/contradictory behavior blocks the affected claim |
 | Product boundary | Public package and binary inspection plus self-contained workload fixtures | Any injected game/runtime/future-target surface blocks the bounded claim |
 | C64U readiness | All readiness-table rows pass against real v4 architecture; handoff packet exists | A failed seam is repaired in v4, not handed off as C64U debt |
@@ -597,7 +598,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 9. [ ] **AC-09 — One bounded release run:** The command/evidence log shows directed prerequisite
    checks, one complete integrated candidate boundary, and only dependency-justified reruns after
    failure. It contains no all-tests rerun after each local fix and no new readiness service.
-10. [ ] **AC-10 — Native host qualification:** Clean Node 22 `linux/x64` and `win32/x64` runs each
+10. [ ] **AC-10 — Native host qualification:** Clean Node 22-or-newer `linux/x64` and `win32/x64` runs each
     install, build, package, check, build/run a project, start LSP/packaged VS Code, discover tools,
     cancel owned process trees, and validate unique staging, immutable generation/current-record
     publication, concurrent build/reader pins, and normal bounded retention. Current, every active
@@ -632,10 +633,11 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
     `acme.exe`/`x64sc.exe`; `PATHEXT`, `where.exe`, registry/App Paths, install-location probing,
     extensionless Windows aliases, and a shell are absent. Direct ACME `--version` and VICE
     `-version` cases cover CRLF/LF, stdout/stderr, exact compatible identities, malformed output,
-    nonzero exit, and first-match wrong-version failure without later search. `check` and ordinary
+    nonzero exit, first-match wrong-version failure without later search, and the Windows
+    empty-banner companion proof with exact pinned binary/ROM hashes. `check` and ordinary
     LSP do not load the file. No download exists.
 13. [ ] **AC-13 — Best-effort boundary:** Public support documentation labels macOS, Linux ARM64,
-    and other Node 22 hosts best-effort, labels out-of-range/32-bit/unknown hosts unsupported, and
+    and other Node 22-or-newer hosts best-effort, labels out-of-range/32-bit/unknown hosts unsupported, and
     contains no inference of macOS production support from Unix similarity.
 14. [ ] **AC-14 — Eight PRG profiles:** Exactly eight fresh profile builds produce byte-validated
     PRGs and exact VICE 3.10 runs with recorded expected state/exit. Removing or substituting any

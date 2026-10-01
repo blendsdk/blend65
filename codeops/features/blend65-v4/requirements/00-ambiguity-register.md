@@ -1316,6 +1316,15 @@ CRLF versus LF and the selected output stream do not change identity. The comple
 canonical path, parsed portable version, and qualification-only executable hash are recorded under
 their existing evidence ownership.
 
+**2026-10-01 Windows VICE amendment (RD-03 AR-P11):** The direct `x64sc.exe -version`
+probe may exit zero with no captured banner for the qualified VICE 3.10 GUI
+binary. In that one case, the adjacent `c1541.exe -version` line may supply the
+version only when the exact `x64sc.exe`, `c1541.exe`, KERNAL, BASIC, and character
+ROM SHA-256 identities match the pinned Windows bundle. A nonempty incompatible
+banner, failed direct probe, missing companion, or hash mismatch still fails
+closed. This narrow exception supersedes only the direct-banner part of AR-048;
+ordered discovery, no-shell execution and all other tool boundaries remain.
+
 The viable smaller option is Linux x64 production only. It reduces release work but leaves a known
 asset-authoring host and its distinct path/process semantics outside the supported workflow. The
 viable broader option is Linux, Windows, and macOS across x64 and ARM64. Node, VS Code, and VICE

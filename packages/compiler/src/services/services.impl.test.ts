@@ -186,7 +186,7 @@ describe("compiler service hardening", () => {
         [
           'const { spawn } = require("node:child_process");',
           'const fs = require("node:fs");',
-          'if (process.argv.includes("--version")) { process.stdout.write("x64sc (VICE 3.10)\\n"); process.exit(0); }',
+          'if (process.argv.includes("-version")) { process.stdout.write("x64sc (VICE 3.10)\\n"); process.exit(0); }',
           'const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });',
           "fs.writeFileSync(process.env.BLEND65_IMPL_VICE_MARKER, JSON.stringify({ parent: process.pid, child: child.pid }));",
           "setInterval(() => {}, 1000);",

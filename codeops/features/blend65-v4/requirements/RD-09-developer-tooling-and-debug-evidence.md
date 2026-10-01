@@ -17,7 +17,7 @@ edit versioned unsaved source, receive the same authoritative diagnostics as `bl
 language and target information, navigate and safely rename symbols, format a document, explicitly
 build, and launch only a freshly built artifact in VICE. Editor convenience never creates a second
 parser, type system, project model, asset model, or compiler path. The complete workflow is initially
-production-qualified on Node 22 for Linux x64 and Windows x64. (AR-003, AR-021, AR-022, AR-047,
+production-qualified on Node 22 or newer for Linux x64 and Windows x64. (AR-003, AR-021, AR-022, AR-047,
 AR-048)
 
 The language server remains a frontend consumer: ordinary editor requests never import or execute
@@ -92,6 +92,13 @@ optimizer, and final-location handoffs. (AR-008, AR-010, AR-021, AR-025)
   require no external tool; binary production requires ACME, and `run` requires ACME plus `x64sc`.
   Missing or incompatible tools fail only the operation that needs them with an actionable
   diagnostic. (AR-022, AR-048)
+
+  **Windows VICE 3.10 amendment (RD-03 AR-P11):** A successful direct
+  `x64sc.exe -version` probe with empty captured output may use the adjacent
+  `c1541.exe -version` 3.10 line only when the emulator, companion, and three C64
+  ROM hashes match the pinned Windows bundle. A nonempty incompatible banner,
+  failed direct probe, missing companion, or hash mismatch fails without later
+  PATH fallback. The direct banner remains the normal authority elsewhere.
 - [ ] **R9.6 — Preserve exact cancellation ownership.** Cancelling `check` stops outstanding
   analysis; cancellation observed before build publication terminates owned ACME work and removes
   only that invocation's unpublished staging directory. Publication is the no-return point: after
@@ -880,7 +887,7 @@ C64U implementation.
     types; missing/unsupported schema version; and invalid configured paths. They prove direct
     config-then-`PATH` precedence, no fallback from an invalid explicit path, and no fixed-location
     registry. `check` and ordinary LSP cases prove that they do not load or validate the file.
-37. [ ] **AC-37 — Complete production host workflow:** Native Node 22 qualification on both
+37. [ ] **AC-37 — Complete production host workflow:** Native Node 22-or-newer qualification on both
     `linux/x64` and `win32/x64` covers the packaged compiler/CLI/LSP/VS Code extension, `check`,
     `build`, fresh `run`, ACME/VICE discovery and invocation, cancellation/process-tree cleanup,
     path semantics, immutable-generation publication/current-record replacement, concurrent build
@@ -888,5 +895,5 @@ C64U implementation.
     cleanup/pin interleavings, multiple holders, process death at acquisition/start/release
     boundaries, malformed or unreadable pin state, PID reuse, clock change, and deliberate orphan
     recovery; no time advance or liveness hint permits automatic deletion. Emulated Windows paths
-    on Linux cannot satisfy the Windows case. macOS and other Node 22 results are reported as
+    on Linux cannot satisfy the Windows case. macOS and other Node 22-or-newer results are reported as
     best-effort until the same boundary passes.

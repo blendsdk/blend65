@@ -1,14 +1,22 @@
 import { spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
+import { createHash } from "node:crypto";
 import { constants } from "node:fs";
-import { access, realpath, stat } from "node:fs/promises";
-import { delimiter, isAbsolute, join } from "node:path";
+import { access, readFile, realpath, stat } from "node:fs/promises";
+import { basename, delimiter, dirname, isAbsolute, join } from "node:path";
 import { selectC64KernalFacts } from "../profile/c64-kernal.js";
 import type { C64KernalProfileId } from "../profile/c64-kernal.js";
 
 const VICE_OUTPUT_LIMIT = 65_536;
 const VICE_PROBE_TIMEOUT_MS = 5_000;
 const PROCESS_STOP_GRACE_MS = 500;
+const WINDOWS_VICE_310_FILES = Object.freeze([
+  ["bin/x64sc.exe", "b48f9117916e960ca6a59ca32bc63765f9b30f2b6bb3ef056514c8bcce0a7030"],
+  ["bin/c1541.exe", "34d627aa7733d57447bd89d93993c0dbf04054c0fb687ffe7c762bcfa3204aed"],
+  ["C64/kernal-901227-03.bin", "83c60d47047d7beab8e5b7bf6f67f80daa088b7a6a27de0d7e016f6484042721"],
+  ["C64/basic-901226-01.bin", "89878cea0a268734696de11c4bae593eaaa506465d2029d619c0e0cbccdfa62d"],
+  ["C64/chargen-901225-01.bin", "fd0d53b8480e86163ac98998976c72cc58d5dd8eb824ed7b829774e74213b420"],
+] as const);
 
 /** Send one signal to the complete owned Linux group or the portable direct child. */
 function signalOwnedProcess(
@@ -81,15 +89,20 @@ export async function findVice(): Promise<string | null> {
   return null;
 }
 
-/** Run one bounded version probe without invoking a shell. */
-export async function probeVice(
+type VersionProbeResult =
+  | { readonly kind: "complete"; readonly output: string }
+  | { readonly kind: "failure" | "cancelled" | "cleanup-uncertain" };
+
+/** Run one bounded version probe and confirm its process has stopped. */
+async function runVersionProbe(
   executable: string,
+  args: readonly string[],
   signal?: AbortSignal,
-): Promise<boolean | "cancelled" | "cleanup-uncertain"> {
-  if (signal?.aborted === true) return "cancelled";
+): Promise<VersionProbeResult> {
+  if (signal?.aborted === true) return { kind: "cancelled" };
   return new Promise((resolve) => {
     const processGroup = process.platform !== "win32";
-    const child = spawn(executable, ["--version"], {
+    const child = spawn(executable, args, {
       shell: false,
       stdio: ["ignore", "pipe", "pipe"],
       detached: processGroup,
@@ -113,17 +126,10 @@ export async function probeVice(
       clearTimeout(timeout);
       signal?.removeEventListener("abort", abort);
       const cleaned = await (cleanup ?? stopOwnedProcess(child, processGroup));
-      if (!cleaned) resolve("cleanup-uncertain");
-      else if (outcome === "cancelled") resolve("cancelled");
-      else if (outcome !== "normal" || code !== 0) resolve(false);
-      else {
-        const exactBanner = output
-          .split(/\r?\n/u)
-          .some(
-            (line) => /(?:VICE|x64sc)/iu.test(line) && /(?:^|[\s(])3\.10(?=$|[\s)])/u.test(line),
-          );
-        resolve(exactBanner);
-      }
+      if (!cleaned) resolve({ kind: "cleanup-uncertain" });
+      else if (outcome === "cancelled") resolve({ kind: "cancelled" });
+      else if (outcome !== "normal" || code !== 0) resolve({ kind: "failure" });
+      else resolve({ kind: "complete", output });
     };
     const abort = () => requestStop("cancelled");
     const append = (chunk: Buffer) => {
@@ -147,6 +153,56 @@ export async function probeVice(
     const timeout = setTimeout(() => requestStop("timeout"), VICE_PROBE_TIMEOUT_MS);
     timeout.unref();
   });
+}
+
+/** Verify the exact supplied Windows bundle before using its console companion as version authority. */
+async function pinnedWindowsVice(
+  executable: string,
+  signal?: AbortSignal,
+): Promise<boolean | "cancelled" | "cleanup-uncertain"> {
+  try {
+    const canonical = await realpath(executable);
+    if (basename(canonical).toLowerCase() !== "x64sc.exe") return false;
+    const bin = dirname(canonical);
+    const bundle = dirname(bin);
+    for (const [name, expected] of WINDOWS_VICE_310_FILES) {
+      signal?.throwIfAborted();
+      const candidate = join(bundle, name);
+      if ((await realpath(candidate)) !== candidate) return false;
+      const actual = createHash("sha256")
+        .update(await readFile(candidate))
+        .digest("hex");
+      if (actual !== expected) return false;
+    }
+    signal?.throwIfAborted();
+    const companion = await runVersionProbe(join(bin, "c1541.exe"), ["-version"], signal);
+    if (companion.kind === "cancelled" || companion.kind === "cleanup-uncertain")
+      return companion.kind;
+    return (
+      companion.kind === "complete" &&
+      companion.output.split(/\r?\n/u).some((line) => /^c1541 \(VICE 3\.10\)$/u.test(line))
+    );
+  } catch {
+    return signal?.aborted === true ? "cancelled" : false;
+  }
+}
+
+/** Verify VICE 3.10 directly, or the approved pinned Windows bundle when the GUI emits no banner. */
+export async function probeVice(
+  executable: string,
+  signal?: AbortSignal,
+): Promise<boolean | "cancelled" | "cleanup-uncertain"> {
+  const direct = await runVersionProbe(executable, ["-version"], signal);
+  if (direct.kind !== "complete") return direct.kind === "failure" ? false : direct.kind;
+  if (
+    direct.output
+      .split(/\r?\n/u)
+      .some((line) => /^x64sc(?:\.exe)? \(VICE 3\.10(?:\.0)?(?: SVN r[0-9]+)?\)$/u.test(line))
+  )
+    return true;
+  if (process.platform !== "win32" || direct.output.trim() !== "") return false;
+  if (signal?.aborted === true) return "cancelled";
+  return pinnedWindowsVice(executable, signal);
 }
 
 /**

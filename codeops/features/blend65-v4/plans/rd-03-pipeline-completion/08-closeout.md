@@ -16,7 +16,7 @@ bounded lowering corrections closed it without changing the language, adding run
 building a general optimizer framework. The defect tracked by GitHub issue #80 is resolved by this
 evidence; changing the issue's remote state requires separate explicit authorization.
 
-RD-03 is not formally Done because AR-C16/DEF-3 still requires native Node 22 Windows x64
+RD-03 is not formally Done because AR-C16/DEF-3 still requires native Node 22-or-newer Windows x64
 qualification during RD-10, when the user supplies access. That deferred evidence does not block
 RD-04 through RD-09.
 
@@ -142,9 +142,49 @@ pass framework, optimizer mode, emulator abstraction, benchmark framework, asset
 scaffold, Windows substitute, game engine or reusable gameplay module. The broader problems remain
 with their existing RDs.
 
+## Windows Diagnostic Checkpoint (2026-10-01)
+
+Native Windows x64 with Node 24.18.0, Yarn 1.22.22 and the user-supplied ACME
+0.97 now installs, builds and typechecks. Direct `acme.exe` discovery succeeds;
+the public M1 pipeline suite passes 3/3, the behavior suite 6/6, and the CLI,
+language-server and VS Code suites pass 62/62, 14/14 and 6/6 respectively.
+Before Developer Mode, the compiler suite reported 1,552 passing, 43 failing
+and nine skipped tests: 23 failures were symlink-fixture `EPERM`, and the rest
+concentrated in Unix-script fake tool fixtures and Windows VICE cases. After
+Developer Mode, the project suite passes 565/565 and publication passes 18/18.
+A wider compiler diagnostic run with ACME on PATH reported 1,574 passing, 21
+failing and nine skipped; one same-size raw-asset mutation failure was repaired
+and its 39 directed asset tests pass. Remaining failures are concentrated in
+Unix-script fake tool/emulator fixtures, which need a native Windows fixture
+strategy before the complete suite can pass. These are diagnostic results, not
+a native RD-03 acceptance claim.
+
+The publication suites pass 18/18 native cases, including competing builds,
+reader pins, current-record replacement, cancellation, malformed symlink pins
+and bounded cleanup. The direct public backend publication suite passes 8/9;
+its remaining failure uses a Unix-script fake assembler that Windows cannot
+execute directly. Real ACME-backed publication succeeds.
+
+The supplied VICE bundle identifies itself as 3.10 through `NEWS` and
+`c1541.exe -version`, but `x64sc.exe` produces no captured `-version` banner.
+The user approved AR-P11's exact-bundle exception: direct `x64sc.exe -version`
+still runs first, and an empty successful result is accepted only after the
+adjacent `c1541.exe -version` reports 3.10 and pinned executable/ROM hashes
+match. The built probe returns `true` for the supplied bundle. The full M1 Linux runtime helper also uses
+Linux process and socket attestation; the RD-10 host matrix assigns the deep C64
+journey to Linux and requires separate Windows tool/process smoke evidence.
+Native Windows process smoke now confirms that `launchVice` cancels the real
+`x64sc.exe` and leaves no emulator process. A public `runProject` cancellation
+after publication leaves `current.json` intact, removes its exact pin and leaves
+no `x64sc.exe` process. This proves the direct child path; broader process-tree
+fault fixtures remain. Packaged editor smoke and final
+evidence review still require native evidence. The installed VS Code is 1.133.0,
+below the extension manifest's declared `^1.138.0` host range, so it cannot
+qualify packaged editor activation. DEF-3 remains open.
+
 ## Remaining Native Windows Evidence
 
 During RD-10, with user-supplied Windows x64 access, run portable publication, competing
 publication, generation pin/cleanup, ACME/VICE discovery and process cleanup, CLI, language-server
-and VS Code bundle smoke checks under Node 22. If they pass, move RD-03 from Blocked to Done. No
+and VS Code bundle smoke checks under Node 22 or newer. If they pass, move RD-03 from Blocked to Done. No
 earlier Windows access or replacement infrastructure is required.

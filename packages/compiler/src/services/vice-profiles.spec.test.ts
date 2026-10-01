@@ -42,7 +42,7 @@ async function fixture(target: string = profiles[3][0], mode = "complete") {
 const fs = require("node:fs");
 const path = require("node:path");
 const args = process.argv.slice(2);
-const probe = args.includes("--version");
+const probe = args.includes("-version");
 const out = ${JSON.stringify(out)};
 const pins = [];
 for (const id of fs.readdirSync(path.join(out, ".pins"))) {
@@ -155,7 +155,7 @@ describe.sequential("generation-owned interactive VICE profiles", () => {
       expect(result).toMatchObject({ status: "exited", verification: "interactive-unverified" });
       const calls = await invocations(data.log);
       expect(calls).toHaveLength(2);
-      expect(calls[0]!.args).toEqual(["--version"]);
+      expect(calls[0]!.args).toEqual(["-version"]);
       expect(calls[1]!.args).toEqual([
         "-default",
         "-model",
