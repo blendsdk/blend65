@@ -129,7 +129,7 @@ as production-quality parity.
 | Loadable assets and D64 delivery | Remain RD-07. |
 | General expert-output optimization | Remains RD-08; Phase 8 only fixed behavior-relevant bounded patterns. |
 | Production developer tooling | Remains RD-09. |
-| Native Windows qualification | DEF-3 remains owned by RD-10 because no Windows host is available. |
+| Native Windows qualification | DEF-3 remains owned by RD-10; a Windows host is now available and qualification is in progress. |
 | `spec/future-considerations.md` criteria | M1 did not establish demand that expires FUT-006/007, FUT-011/012 or FUT-015–018. |
 | Expressiveness restrictions | No deliberate user-facing restriction was accepted; valid Specification 4 forms remain RD-04 obligations. |
 
