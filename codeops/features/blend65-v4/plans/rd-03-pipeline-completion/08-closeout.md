@@ -163,6 +163,11 @@ execute those generated shebang scripts as native tool processes. They need a
 native Windows fixture strategy before the complete suite can pass. These are
 diagnostic results, not a native RD-03 acceptance claim.
 
+The current `.github/workflows/ci.yml` installs checksum-pinned ACME only in
+the Ubuntu job, although its Windows job also runs `yarn test`. The integrated
+Windows job therefore needs pinned ACME 0.97 provision; final RD-03 Windows
+qualification requires the real tool on the native host.
+
 The publication suites pass 18/18 native cases, including competing builds,
 reader pins, current-record replacement, cancellation, malformed symlink pins
 and bounded cleanup. The direct public backend publication suite passes 8/9;
@@ -192,7 +197,8 @@ Windows fixture/process qualification passes.
 ## Remaining Native Windows Evidence
 
 Complete the Windows fake-tool fixture and process-tree checks under Node 22 or newer,
-then rerun the complete owned suite and final evidence review. The native project,
+provision pinned ACME for the integrated Windows CI job, then rerun the complete
+owned suite and final evidence review. The native project,
 publication, ACME/VICE discovery, direct process cleanup, CLI, language-server and
 VS Code extension-host checks above already pass. Move RD-03 from Blocked to Done
 only when the remaining acceptance evidence passes.
