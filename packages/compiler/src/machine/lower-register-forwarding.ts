@@ -2,7 +2,8 @@ import type { MemoryWriteOperation, SemanticBlock } from "../semantic/operations
 import { typeBytes } from "./lower-state.js";
 
 /**
- * Select adjacent byte loads and BCD values that can stay in registers until their only consumer.
+ * Select adjacent byte loads, collision samples and BCD values that can stay in registers
+ * until their only consumer.
  *
  * Constants and conversions of constants emit no machine instructions, so they do not
  * interrupt register ownership. Every other operation ends the forwarding window.
@@ -60,7 +61,13 @@ export function selectRegisterForwarding(
     for (let index = 0; index < block.operations.length; index += 1) {
       const producer = block.operations[index]!;
       if (
-        (producer.kind !== "load" && producer.kind !== "memory-read" && producer.kind !== "bcd") ||
+        (producer.kind !== "load" &&
+          producer.kind !== "memory-read" &&
+          producer.kind !== "bcd" &&
+          (producer.kind !== "platform" ||
+            (producer.capability !== "c64.vic.readAndClearSpriteSpriteCollisions" &&
+              producer.capability !== "c64.vic.readAndClearSpriteBackgroundCollisions"))) ||
+        producer.result === null ||
         !singleUseValues.has(producer.result)
       ) {
         continue;
@@ -84,7 +91,8 @@ export function selectRegisterForwarding(
       const preceding = block.operations[precedingIndex];
       if (
         ((producer.kind === "load" && typeBytes(producer.type) === 1) ||
-          (producer.kind === "memory-read" && producer.width === 1)) &&
+          (producer.kind === "memory-read" && producer.width === 1) ||
+          (producer.kind === "platform" && typeBytes(producer.type) === 1)) &&
         consumer?.kind === "memory-write" &&
         consumer.width === 1 &&
         consumer.value === producer.result &&

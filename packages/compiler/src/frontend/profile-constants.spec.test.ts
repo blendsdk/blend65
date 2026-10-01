@@ -52,7 +52,7 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
   });
 
   // Every selected operation keeps its exact signature and effect classification.
-  it("should expose all thirty-five operation signatures and effects", () => {
+  it("should expose all thirty-seven operation signatures and effects", () => {
     const result = selectFrontendProfile(id);
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected complete profile selection");
@@ -92,6 +92,8 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
       ["c64.system.setIRQExclusive", ["interrupt-handler"], "void", "volatile-write"],
       ["c64.system.setNMI", ["interrupt-handler"], "void", "volatile-write"],
       ["c64.system.setNMIExclusive", ["interrupt-handler"], "void", "volatile-write"],
+      ["c64.vic.readAndClearSpriteBackgroundCollisions", [], "byte", "volatile-read"],
+      ["c64.vic.readAndClearSpriteSpriteCollisions", [], "byte", "volatile-read"],
       ["c64.vic.setBorderColor", ["byte"], "void", "volatile-write"],
       ["c64.vic.setSpriteColor", ["byte", "byte"], "void", "volatile-write"],
       ["c64.vic.setSpriteEnabled", ["byte", "boolean"], "void", "volatile-write"],

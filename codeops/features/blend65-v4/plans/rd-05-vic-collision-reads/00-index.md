@@ -1,7 +1,7 @@
 # VIC-II collision reads implementation plan
 
 > **Feature**: Two named consuming collision-latch reads
-> **Status**: Plan Preflighted — not yet implemented
+> **Status**: Complete — 10/10 verified; RD-05 remains Executing
 > **Created**: 2026-10-01
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
@@ -23,16 +23,20 @@ volatile-read lowering. Use existing compilation, assembly and sequential VICE t
 | [Current state](02-current-state.md) | Reusable paths and gaps |
 | [Component contract](03-collision-reads.md) | Integration and preservation obligations |
 | [Testing strategy](07-testing-strategy.md) | Independent behavior and output expectations |
+| [Closeout](08-closeout.md) | Verified behavior, costs, runtime identities and remaining ownership |
+| [Independent review](09-phase-review.md) | Findings and explicit test-authority ruling |
 | [Execution plan](99-execution-plan.md) | One phase, ten ordered tasks |
 
 ## Readiness
 
 The authoring gate is passed. Required documents exist and tests precede implementation.
 Preflight passed after the approved PF-001 impact-list correction; see the
-[report](00-preflight-report.md). This document is not evidence of execution.
+[report](00-preflight-report.md). All ten tasks are verified; execution evidence is in the
+[closeout](08-closeout.md) and checklist.
 RD-05 remains partially delivered. This slice does not close its other requirements.
 
 ## Knowledge lineage
 
-Use the expert identity and hardware references in the ambiguity register. Runtime and assembled
-cost evidence remain **Unknown** until execution. No hardware qualification is claimed.
+Use the expert identity and hardware references in the ambiguity register and closeout.
+Assembled bytes and nominal instruction costs are verified. Whole-program cycles remain
+**Unknown**. Runtime is VICE-verified / hardware-unverified.

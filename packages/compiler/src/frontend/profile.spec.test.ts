@@ -246,6 +246,18 @@ describe("selected frontend profile", () => {
         effect: "volatile-write",
       },
       {
+        name: "c64.vic.readAndClearSpriteBackgroundCollisions",
+        parameters: [],
+        returnType: "byte",
+        effect: "volatile-read",
+      },
+      {
+        name: "c64.vic.readAndClearSpriteSpriteCollisions",
+        parameters: [],
+        returnType: "byte",
+        effect: "volatile-read",
+      },
+      {
         name: "c64.vic.setBorderColor",
         parameters: ["byte"],
         returnType: "void",

@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 VIC-II collision reads
 
-> **Status**: ✅ GATE PASSED — all four items resolved
-> **Last Updated**: 2026-10-01 02:29
+> **Status**: ✅ GATE PASSED — four planning items and AR-P5 runtime correction resolved
+> **Last Updated**: 2026-10-01 08:29
 > **CodeOps Artifact Schema**: 1
 
 ## Planning boundary
@@ -21,6 +21,21 @@
 | AR-P2 | Naming / behavior / data | Exact missing source bindings? | User accepted recommendation: `c64.vic.readAndClearSpriteSpriteCollisions(): byte` and `c64.vic.readAndClearSpriteBackgroundCollisions(): byte`, with zero arguments and `volatile-read` effects. Read `$D01E` and `$D01F` respectively once; return the unchanged eight-bit sprite-participation mask. A read clears only that collision latch; it is not `$D019` IRQ acknowledgement. Repeated calls remain separate reads, including discarded results. New collisions may relatch bits between calls. | ✅ Resolved — user: “i approve”, 2026-10-01 |
 | AR-P3 | Test authority / integration | Two existing specification tests require an exact complete declaration list. How can that list grow without weakening its oracle? | User accepted recommendation: authorize only two added declaration rows in each of `packages/compiler/src/frontend/profile.spec.test.ts` and `packages/compiler/src/frontend/profile-constants.spec.test.ts`, plus the latter's operation-count title update from thirty-five to thirty-seven. Preserve all existing rows, assertions, fixtures and test cases. Add separate independent specification tests before implementation; do not edit the old lists until this exception is explicitly approved. | ✅ Resolved — user: “i approve”, 2026-10-01 |
 | AR-P4 | Verification / non-functional | Verification contract? | User accepted recommendation: directed source, lowering/output and existing sequential VICE cases during work; at the completed slice run `yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck`, `yarn test`, targeted formatting, links and frozen-authority checks. Compare independent behavior and assembled expert cost expectations. No benchmark or new test runner. Windows and physical QA remain RD-10. | ✅ Resolved — user: “i approve”, 2026-10-01 |
+| AR-P5 | Test authority (runtime) | The new API oracle assumes a profile binding stores its function signature in `binding.type`, but this field contains the operation's return type. May this misplaced comparison be corrected? | **Best option:** in `test/rd05/vic-collision-api.spec.test.ts`, remove only the misplaced `binding.type` comparison. Preserve its volatile-read check and the separate call checks for zero arguments, unsigned-byte integer facts and exact parameter/return signature. No compiler representation, approved API, fixture, case or other oracle change. Evidence: `frontend/profile-bindings.ts:25–46`, public semantic declaration and call signature, failing test at line 55. Independent implementation-blind author confirms the assumed binding representation is not part of the approved source contract; removing that comparison avoids introducing another representation constraint. | ✅ Resolved — user: “I approve”, 2026-10-01; exact correction only |
+
+## Runtime correction evidence
+
+Task 1.2.1 adds only approved declarations and named addresses. Fresh `yarn build` passes.
+Directed API verification has five passes (all existing diagnostics) and eight failures at
+the same new binding-shape comparison; source analysis itself is complete in all eight.
+Log: `/tmp/blend65-vic-api-green.fGfaHc.log`. Existing profile bindings deliberately publish
+`capability.returnType` in `binding.type` and keep signatures separately; this slice does
+not authorize redesigning that representation. The call-level signature assertion already
+checks the source contract. This is an oracle-location error, not a missing language feature.
+The user explicitly approved the exact comparison removal before any new-oracle edit.
+At approval, task 1.2.1 resumed with its acceptance obligations unchanged; tasks 1.2.2–1.3.3
+had not started. Expected-RED work was held uncommitted until a coherent green checkpoint.
+The [execution checklist](99-execution-plan.md) owns subsequent progress.
 
 ## Grounding and smallest design
 

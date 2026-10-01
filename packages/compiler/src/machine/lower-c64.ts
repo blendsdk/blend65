@@ -341,6 +341,31 @@ export function lowerC64Operation(
   const cia = lowerC64CiaOperation(operation, values, profile, support);
   if (cia !== null) return cia;
 
+  if (
+    operation.capability === "c64.vic.readAndClearSpriteSpriteCollisions" ||
+    operation.capability === "c64.vic.readAndClearSpriteBackgroundCollisions"
+  ) {
+    const address =
+      operation.capability === "c64.vic.readAndClearSpriteSpriteCollisions"
+        ? machine.spriteSpriteCollisions
+        : machine.spriteBackgroundCollisions;
+    // Reading consumes only this latch; preserve all participant bits and never acknowledge IRQs.
+    return Object.freeze({
+      instructions: Object.freeze([
+        machineInstruction(
+          cpu,
+          "lda",
+          "absolute",
+          Object.freeze({ kind: "absolute", value: address }),
+          [fixedEffect("read", address)],
+          source,
+        ),
+      ]),
+      result: Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
+      data: Object.freeze([]),
+    });
+  }
+
   if (operation.capability === "c64.video.waitNextFrame") {
     const instructions = [0, 1].flatMap((order) => [
       machineInstruction(

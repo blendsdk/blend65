@@ -37,6 +37,8 @@ Specification authors receive contract/interface excerpts and existing test util
 they do not inspect new implementation logic. Record RED before implementation, explaining
 any pre-existing passing validation case. Preserve these new expectations thereafter.
 Apply AR-P3's inventory updates separately and preserve all old rows and assertions.
+AR-P5 authorizes only removal of the new API test's misplaced binding-type comparison;
+call-level signature, unsigned-byte, arity, name/profile and effect checks remain intact.
 
 ## Runtime observation
 

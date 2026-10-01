@@ -40,6 +40,10 @@ export interface C64MachineFacts {
   readonly spriteMulticolor: 0xd01c;
   /** Sprite horizontal-expansion register. */
   readonly spriteXExpand: 0xd01d;
+  /** Sprite/sprite participant latch; a read clears it without acknowledging the IRQ. */
+  readonly spriteSpriteCollisions: 0xd01e;
+  /** Sprite/background participant latch; a read clears it without acknowledging the IRQ. */
+  readonly spriteBackgroundCollisions: 0xd01f;
   /** Border color register. */
   readonly borderColor: 0xd020;
   /** Background color register. */
@@ -113,6 +117,8 @@ const COMMON_MACHINE: Omit<C64MachineFacts, "id" | "cyclesPerFrame"> = Object.fr
   spritePriority: 0xd01b,
   spriteMulticolor: 0xd01c,
   spriteXExpand: 0xd01d,
+  spriteSpriteCollisions: 0xd01e,
+  spriteBackgroundCollisions: 0xd01f,
   borderColor: 0xd020,
   backgroundColor: 0xd021,
   spriteColorBase: 0xd027,

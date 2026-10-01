@@ -18,6 +18,8 @@ Per AR-P1/AR-P2, add named collision addresses to `C64MachineFacts` and `COMMON_
 `target/c64-kernal.ts`, declarations in `frontend/profile.ts`, and direct handling in
 `machine/lower-c64.ts`. Reuse the existing platform operation and result-retention path.
 No generic IR, SFA, serializer, packaging, IRQ or banking redesign is required.
+Retained direct-store cases also admit these two producers to the existing adjacent
+fixed-destination register-forwarding rule, preserving its single-use and clobber guards.
 
 The returned byte is unsigned. Keep the operation at its source evaluation point. Result
 retention may store the sampled byte through existing SFA-owned storage, but cannot sample
@@ -50,3 +52,5 @@ Document consuming semantics at the existing declaration/target owner and in any
 platform API documentation, without planning IDs in source comments. AR-P3 alone authorizes
 the old inventory edits. All other existing specification tests remain immutable.
 See [ST cases](07-testing-strategy.md) for acceptance behavior; do not derive an oracle from lowering.
+AR-P5 corrects only a misplaced binding-type assertion in the new API oracle; the exact
+source call signature, unsigned-byte result and consuming effects stay unchanged.

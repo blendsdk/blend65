@@ -269,6 +269,29 @@ const COOPERATIVE_DECLARATIONS = Object.freeze({
       SCALAR_TYPES.void,
       "volatile-write",
     ),
+    /**
+     * Sample sprite/background participants and clear only that hardware collision latch.
+     * Every call reads once, even if discarded; it does not acknowledge the collision IRQ.
+     * @example let participants: byte = c64.vic.readAndClearSpriteBackgroundCollisions();
+     */
+    capability(
+      "c64.vic.readAndClearSpriteBackgroundCollisions",
+      [],
+      SCALAR_TYPES.byte,
+      "volatile-read",
+    ),
+    /**
+     * Sample sprite/sprite participants, not collision pairs, and clear only that latch.
+     * Return all eight bits unchanged; repeated calls can observe newly latched collisions.
+     * This read does not acknowledge the collision IRQ or mask interrupts.
+     * @example let participants: byte = c64.vic.readAndClearSpriteSpriteCollisions();
+     */
+    capability(
+      "c64.vic.readAndClearSpriteSpriteCollisions",
+      [],
+      SCALAR_TYPES.byte,
+      "volatile-read",
+    ),
     capability("c64.vic.setBorderColor", [SCALAR_TYPES.byte], SCALAR_TYPES.void, "volatile-write"),
     capability(
       "c64.vic.setSpriteColor",
