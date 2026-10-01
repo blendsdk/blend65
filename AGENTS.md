@@ -11,7 +11,7 @@ reference only. RD-02 supplies project tooling, not a working compiler pipeline.
 ## Toolchain
 
 - TypeScript 7.0.2: normal stable `typescript` package, ESM/NodeNext/ES2023, strict.
-- Node 22; Yarn classic 1.22.22 workspaces; no `workspace:*` protocol.
+- Node 22 or newer (`.nvmrc` selects 22); Yarn classic 1.22.22 workspaces; no `workspace:*` protocol.
 - `tsc --build` and Turbo; Vitest for tests; Prettier for targeted formatting.
 - No bundler, semantic linter, replacement linter, or preview compiler package.
 - The working replacement must verify before its first implementation commit.
@@ -53,7 +53,7 @@ No empty compiler stages or legacy copy are kept. Spec tests are
 The graph is `cli -> compiler -> jsonc-parser`. The CLI uses only the compiler
 public export. Node built-ins provide host operations and strict argument parsing.
 The CLI loads projects; it does not compile, check, build, run or invoke tools.
-Native Node 22 Linux x64 and Windows x64 qualification is required for RD-02
+Native Node 22 or newer Linux x64 and Windows x64 qualification is required for RD-02
 closeout. Configured CI or primitive host-classification fixtures are not native
 Windows proof. Missing host access blocks closeout, not implementation work.
 
@@ -235,7 +235,7 @@ This rule changes when work starts, not its scope, verification requirements or 
 
 ### Environment & dependencies
 
-- Node.js 22 (pinned via `.nvmrc` + `engines`).
+- Node.js 22 or newer (`.nvmrc` selects 22; `engines` sets the minimum).
 - Yarn classic (v1) — workspaces, no `workspace:*` protocol.
 - Turbo (installed via yarn workspace dev dependency).
 - **Selected assembler:** ACME 0.97 is the current terminal assembler for Blend65 output.

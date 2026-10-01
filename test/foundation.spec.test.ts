@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { access, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -10,6 +10,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const execute = promisify(execFile);
 const repository = fileURLToPath(new URL("../", import.meta.url));
+const committedBytes = (path: string): Buffer =>
+  execFileSync("git", ["show", `HEAD:${path}`], { cwd: repository });
 const baseline = "3c993529f55cfe880426a35c09c8f9b456487ff5";
 const finalV3 = "4c2f27f54273a713c0bbf398bf6c56be45f4aae3";
 const authorityCommit = "5deb2a5341bea00cf6050a0aba4668315198d91a";
@@ -114,15 +116,11 @@ describe("frozen execution authority and salvage ownership", () => {
     });
     const inventory = await readFile(join(repository, "spec/00-normative-inventory.md"), "utf8");
     const normative =
-      inventory.split("## Normative Files\n")[1]?.split("## Non-Normative Files")[0] ?? "";
+      inventory.split(/## Normative Files\r?\n/u)[1]?.split("## Non-Normative Files")[0] ?? "";
     const names = [...normative.matchAll(/\| `([^`]+)` \|/g)].map((match) => match[1]!);
     expect(names).toHaveLength(18);
     const records = await Promise.all(
-      names
-        .sort()
-        .map(
-          async (name) => `${sha256(await readFile(join(repository, "spec", name)))}  ${name}\n`,
-        ),
+      names.sort().map(async (name) => `${sha256(committedBytes(`spec/${name}`))}  ${name}\n`),
     );
     const skill = join(repository, ".agents/skills/blend65-domain-expert");
     const release = await readFile(join(skill, "qualification/release.md"));
@@ -138,8 +136,10 @@ describe("frozen execution authority and salvage ownership", () => {
       expertContent: release.toString().includes("1ce4852016e2a883cf1f733c6014c45e176bfc69")
         ? "1ce4852016e2a883cf1f733c6014c45e176bfc69"
         : "missing",
-      router: sha256(await readFile(join(skill, "SKILL.md"))),
-      release: sha256(release),
+      router: sha256(committedBytes(".agents/skills/blend65-domain-expert/SKILL.md")),
+      release: sha256(
+        committedBytes(".agents/skills/blend65-domain-expert/qualification/release.md"),
+      ),
     };
     expect(identityViolations(record)).toEqual([]);
     for (const key of Object.keys(record)) {
@@ -231,14 +231,14 @@ describe("minimal truthful foundation toolchain", () => {
   });
 
   // Installation and task ownership are distinct: Yarn links, TypeScript references compile, Turbo orders.
-  it("should pin stable TypeScript 7 and retain Node 22 Yarn classic Turbo and strict mapped declarations", async () => {
+  it("should require at least Node 22 and retain stable TypeScript 7, Yarn classic, Turbo and strict mapped declarations", async () => {
     const manifest = JSON.parse(await readFile(join(repository, "package.json"), "utf8"));
     const options = JSON.parse(
       await readFile(join(repository, "tsconfig.base.json"), "utf8"),
     ).compilerOptions;
     const turbo = JSON.parse(await readFile(join(repository, "turbo.json"), "utf8"));
     expect(manifest.packageManager).toBe("yarn@1.22.22");
-    expect(manifest.engines.node).toBe(">=22 <23");
+    expect(manifest.engines.node).toBe(">=22");
     expect((await readFile(join(repository, ".nvmrc"), "utf8")).trim()).toBe("22");
     expect(manifest.devDependencies.typescript).toMatch(/^7\.\d+\.\d+$/);
     expect(manifest.devDependencies.turbo).toBeDefined();
@@ -263,7 +263,8 @@ describe("minimal truthful foundation toolchain", () => {
       await readFile(join(repository, "node_modules/typescript/package.json"), "utf8"),
     );
     expect(installed.version).toMatch(/^7\.\d+\.\d+$/);
-    const version = await execute(join(repository, "node_modules/.bin/tsc"), ["--version"], {
+    const tsc = join(repository, "node_modules/typescript/bin/tsc");
+    const version = await execute(process.execPath, [tsc, "--version"], {
       cwd: repository,
     });
     expect(version.stdout.trim()).toMatch(/^Version 7\.\d+\.\d+$/);
@@ -404,13 +405,15 @@ describe("minimal truthful foundation toolchain", () => {
       "consumer/index.ts":
         'import { value } from "../library/index"; const score: number = value; export { score };',
     });
-    const tsc = join(repository, "node_modules/.bin/tsc");
-    await execute(tsc, ["--build", root], { cwd: root });
+    const tsc = join(repository, "node_modules/typescript/bin/tsc");
+    await execute(process.execPath, [tsc, "--build", root], { cwd: root });
     const declarations = await readFile(join(root, "library/dist/index.d.ts"), "utf8");
-    await execute(tsc, ["--build", root], { cwd: root });
+    await execute(process.execPath, [tsc, "--build", root], { cwd: root });
     expect(await readFile(join(root, "library/dist/index.d.ts"), "utf8")).toBe(declarations);
     await writeFile(join(root, "library/index.ts"), 'export const value: string = "changed";');
-    await expect(execute(tsc, ["--build", root], { cwd: root })).rejects.toMatchObject({
+    await expect(
+      execute(process.execPath, [tsc, "--build", root], { cwd: root }),
+    ).rejects.toMatchObject({
       stdout: expect.stringContaining("not assignable to type 'number'"),
     });
   });

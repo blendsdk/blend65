@@ -1,8 +1,9 @@
-import { opendir, realpath } from "node:fs/promises";
-import { join } from "node:path";
+import { lstat, opendir, readlink, realpath } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 import {
   checkLimit,
   escapeDiagnosticText,
+  hostErrorCode,
   projectDiagnostic,
   PROJECT_CODES,
   ProjectChanged,
@@ -95,6 +96,22 @@ export async function inventorySources(
         signal?.throwIfAborted();
       } catch (error) {
         signal?.throwIfAborted();
+        // Windows can deny realpath through an unreadable output target. A
+        // symlink whose own readable link text names output is still excluded
+        // without opening or listing that target.
+        if (hostErrorCode(error) === "EPERM") {
+          try {
+            const metadata = await lstat(logical);
+            if (metadata.isSymbolicLink()) {
+              const target = resolve(dirname(logical), await readlink(logical));
+              signal?.throwIfAborted();
+              if (isContained(paths.logicalOutput, target) || isContained(paths.output, target))
+                continue;
+            }
+          } catch {
+            signal?.throwIfAborted();
+          }
+        }
         // resolveInput supplies the typed cycle diagnostic for native ELOOP too.
         await resolveInput(logical, paths.logicalRoot, paths.root, id, observed);
         throwReadFailure(error, id, observed);

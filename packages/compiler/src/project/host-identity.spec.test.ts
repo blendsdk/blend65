@@ -3,12 +3,9 @@ import { hostObservations } from "./snapshot.js";
 
 describe("bounded runtime identity policy", () => {
   // Classified identities are not execution evidence for a different native host.
-  it.each(["linux", "win32"])(
-    "should classify Node 22 %s/x64 as production without warnings",
-    (os) => {
-      expect(hostObservations(22, os, "x64")).toEqual([]);
-    },
-  );
+  it.each([22, 24, 25])("should classify Node %i on both production hosts", (major) => {
+    for (const os of ["linux", "win32"]) expect(hostObservations(major, os, "x64")).toEqual([]);
+  });
 
   // Admitted 64-bit combinations outside the production pair remain explicitly best-effort.
   it.each([
@@ -31,7 +28,7 @@ describe("bounded runtime identity policy", () => {
   // Unsupported runtime majors and architectures are failures, never downgraded warnings.
   it.each([
     [20, "linux", "x64"],
-    [24, "linux", "x64"],
+    [21, "win32", "x64"],
     [22, "linux", "ia32"],
     [22, "linux", "unknown"],
   ] as const)("should reject unsupported host %s/%s/%s", (major, os, arch) => {

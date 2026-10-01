@@ -10,13 +10,13 @@ oracles. Actual results will be recorded below; configuration is not execution.
 
 | Obligation         | Required evidence                                                                                                                                                                                                                                                          | Current state                                                                           |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| ST-36              | Complete install/build/typecheck/test on actual Node 22 Linux x64 and Windows x64; real containment, aliases, symlink/junction, permission and race fixtures execute without silently skipped proof                                                                        | Linux PASS: 674 actual tests; Windows blocked by DEF-1                                  |
-| ST-36 portability  | Native Windows command invocation, including the existing root test's direct Yarn `tsc` shim execution, must be verified; any locked-oracle correction requires a separately approved narrow exception                                                                     | Pending                                                                                 |
+| ST-36              | Complete install/build/typecheck/test on actual Node 22-or-newer Linux x64 and Windows x64; real containment, aliases, symlink/junction, permission and race fixtures execute without silently skipped proof                                                                        | Linux PASS: 674 actual tests; Windows project suite 565 pass, zero fail, eight OS-specific skips; full host checkpoint pending                                  |
+| ST-36 portability  | Native Windows command invocation, including installed TypeScript execution, must be verified; the locked-oracle correction requires a separately approved narrow exception                                                                     | TypeScript through Node and foundation suite pass; AR-P13 approved                                                                                 |
 | ST-39              | Real foundation example identity, input counts/bytes, CPU/RAM/OS/filesystem and tool versions; separate discovery, JSONC, inventory/snapshot, build, test and peak-memory observations                                                                                     | PASS: actual example records below                                                      |
 | ST-39 non-gate     | Inspect that measurements are observations only, with no benchmark framework, synthetic scale fixture or acceptance threshold                                                                                                                                              | PASS: one scratch observation, no new runner or threshold                               |
 | ST-40              | Compare frozen spec/expert identities and active/reference-only ownership with RD-01                                                                                                                                                                                       | PASS: root facts and full authority diff checks                                         |
 | ST-40 deferrals    | Walk v4 requirement/plan registers, RD-02 Won't Have, every future-consideration trigger and expert release/qualification deferrals; answer the exact deferral-expiry question; expired rationales require existing or explicit owners, with no orphan RD-02 landing place | PASS: checkpoint walk below; repeat if deliverables change                              |
-| No publication     | Built CLI and library leave absent output absent and existing output unchanged; no compiler artifacts, source upload, assembler/emulator or external subprocess in production                                                                                              | PASS on Linux: actual traces and existing-output sentinel; Windows pending              |
+| No publication     | Built CLI and library leave absent output absent and existing output unchanged; no compiler artifacts, source upload, assembler/emulator or external subprocess in production                                                                                              | PASS on Linux: actual traces and existing-output sentinel; Windows absent/existing output checks pass, process observation pending              |
 | Independent review | Review verified implementation and simplicity; final closeout review follows all required native evidence                                                                                                                                                                  | Checkpoint PASS: no findings, simplicity PASS; final RD evidence review pending Windows |
 
 ## Entry
@@ -105,9 +105,37 @@ No expired rationale or unowned deferral was found; no backlog expansion or
 discarded v3 expressiveness ledger is needed. DEF-1 is the explicit qualification
 blocker, not silently deferred implementation or waived Windows acceptance.
 
-## Deferred Native Windows Qualification
+## Windows Diagnostic Checkpoint (2026-10-01)
 
-The current host is Linux x64, not Windows. Read-only checks found no configured
+The current native Windows x64 host runs Node 24.18.0. The user approved Node 22
+or newer as the supported minimum (AR-P12). On `feature/v4-windows`, frozen-lockfile
+install, package build and typecheck pass without an engine override. The root
+foundation suite passes 11/11 after using the installed TypeScript entry through
+Node and comparing committed frozen-authority bytes. No file under `spec/` or the
+active expert skill has a tracked change.
+
+After the user enabled Developer Mode, a real native symlink probe passed. The
+complete project suite now reports 565 passing, zero failing and eight skipped
+tests. The eight skips are explicitly Linux-only descriptor/FIFO or POSIX-only
+filename cases. A Windows ACL denied listing of an ordinary output directory
+while also denying `realpath`; the loader now identifies that directory through
+its readable parent and excludes a symlink alias through readable link text.
+The formerly failing output/alias case and the complete project suite pass.
+Native ACL denial returns `EPERM`, and guarded-input checks accept either native
+permission-denial code. The direct Windows CLI suite passes 62/62.
+The built CLI's `check` command succeeds on the checked-in foundation example
+without creating its absent `out` directory. In an isolated native Windows copy,
+the same built command leaves an existing `out/sentinel.txt` byte-identical and
+adds no file to `out`. Syscall/process observations still need native evidence.
+PowerShell's `yarn`
+shim is blocked by this host's execution policy, so native commands use `yarn.cmd`.
+The user approved the narrow frozen-oracle correction (AR-P13). ST-36 still
+requires the complete native host checkpoint, process observation and final
+independent evidence review before formal RD-02 closeout.
+
+## Original Native Windows Deferral (2026-09-19)
+
+The host at this earlier checkpoint was Linux x64. Read-only checks found no configured
 libvirt VM, no accessible Windows connector and no registered self-hosted GitHub
 runner for this repository. Existing completed CI runs name other commits; they
 cannot qualify this local, unpushed implementation. The adapted Windows hosted
