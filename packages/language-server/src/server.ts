@@ -119,6 +119,7 @@ function relatedInformation(
   diagnostic: ProjectDiagnostic,
   sources: ReadonlyMap<string, SourceRecord>,
   texts: ReadonlyMap<string, string>,
+  userSourceIds: ReadonlySet<string>,
 ): DiagnosticRelatedInformation[] {
   const related: DiagnosticRelatedInformation[] = [];
   for (const item of diagnostic.related) {
@@ -130,25 +131,44 @@ function relatedInformation(
         uri: pathToFileURL(source.resolvedPath).href,
         range: lspRange(item.span, text),
       },
-      message: item.message,
+      message: userSourceIds.has(item.span.sourceId)
+        ? item.message
+        : `Installed library: ${item.message}`,
     });
   }
   return related;
 }
 
-/** Convert one source-owned compiler diagnostic without changing its order or meaning. */
+/** Render one diagnostic at its chosen user location while retaining original compiler evidence. */
 function lspDiagnostic(
   diagnostic: ProjectDiagnostic,
-  sourceId: string,
+  displaySpan: SourceSpan | null,
   sources: ReadonlyMap<string, SourceRecord>,
   texts: ReadonlyMap<string, string>,
+  userSourceIds: ReadonlySet<string>,
 ): Diagnostic | null {
-  if (diagnostic.primarySpan === null || diagnostic.primarySpan.sourceId !== sourceId) return null;
-  const text = texts.get(sourceId);
+  const text = displaySpan === null ? null : texts.get(displaySpan.sourceId);
   if (text === undefined) return null;
-  const related = relatedInformation(diagnostic, sources, texts);
+  const related = relatedInformation(diagnostic, sources, texts, userSourceIds);
+  const primary = diagnostic.primarySpan;
+  if (primary !== null && !userSourceIds.has(primary.sourceId)) {
+    const installed = sources.get(primary.sourceId);
+    const installedText = texts.get(primary.sourceId);
+    if (installed !== undefined && installedText !== undefined) {
+      related.unshift({
+        location: {
+          uri: pathToFileURL(installed.resolvedPath).href,
+          range: lspRange(primary, installedText),
+        },
+        message: "Original diagnostic location in installed library",
+      });
+    }
+  }
   return {
-    range: lspRange(diagnostic.primarySpan, text),
+    range:
+      displaySpan === null || text === null
+        ? unlocatedDiagnostic(diagnostic).range
+        : lspRange(displaySpan, text),
     severity:
       diagnostic.severity === "error" ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
     code: diagnostic.code,
@@ -163,8 +183,7 @@ async function publishProject(snapshot: ProjectSnapshot, anchorUri: string, gene
   if (queue === undefined || queue.generation !== generation || queue.controller?.signal.aborted) {
     return;
   }
-  const sources = new Map(snapshot.sources.map((source) => [source.sourceId, source]));
-  const texts = new Map(snapshot.sources.map((source) => [source.sourceId, source.text]));
+  const userSourceIds = new Set(snapshot.sources.map((source) => source.sourceId));
   const overlays: SourceOverlay[] = [];
   const openSources = new Map<string, SourceRecord>();
   const omittedUris: string[] = [];
@@ -180,10 +199,11 @@ async function publishProject(snapshot: ProjectSnapshot, anchorUri: string, gene
       continue;
     }
     openSources.set(document.uri, source);
-    texts.set(source.sourceId, document.getText());
     overlays.push(Object.freeze({ sourceId: source.sourceId, text: document.getText() }));
   }
   const result = await analyzeProjectOverlay(snapshot, overlays);
+  const sources = new Map(result.inputs.sources.map((source) => [source.sourceId, source]));
+  const texts = new Map(result.inputs.sources.map((source) => [source.sourceId, source.text]));
   await new Promise<void>((resolve) => setImmediate(resolve));
   if (queue.generation !== generation || queue.controller?.signal.aborted) return;
   for (const uri of omittedUris) {
@@ -191,23 +211,31 @@ async function publishProject(snapshot: ProjectSnapshot, anchorUri: string, gene
     documentProjects.delete(uri);
     connection.sendDiagnostics({ uri, diagnostics: [] });
   }
-  for (const [uri, source] of openSources) {
-    documentProjects.set(uri, snapshot.projectRoot);
-    const diagnostics = result.diagnostics.flatMap((diagnostic) => {
-      const converted = lspDiagnostic(diagnostic, source.sourceId, sources, texts);
-      return converted === null ? [] : [converted];
-    });
-    connection.sendDiagnostics({ uri, diagnostics });
-  }
-  const anchor = openSources.get(anchorUri);
-  if (anchor !== undefined) {
-    const unowned = result.diagnostics.filter((diagnostic) => diagnostic.primarySpan === null);
-    if (unowned.length > 0) {
-      connection.sendDiagnostics({
-        uri: anchorUri,
-        diagnostics: unowned.map(unlocatedDiagnostic),
-      });
+  const userUris = new Map([...openSources].map(([uri, source]) => [source.sourceId, uri]));
+  const fallbackUri = openSources.has(anchorUri) ? anchorUri : openSources.keys().next().value;
+  const published = new Map<string, Diagnostic[]>([...openSources.keys()].map((uri) => [uri, []]));
+  // Select one destination per diagnostic, then publish once per document. A library fallback
+  // must coexist with ordinary user errors rather than overwrite an earlier publication.
+  for (const diagnostic of result.diagnostics) {
+    const primary = diagnostic.primarySpan;
+    let displaySpan = primary;
+    let uri = primary === null ? fallbackUri : userUris.get(primary.sourceId);
+    if (primary !== null && sources.has(primary.sourceId) && !userSourceIds.has(primary.sourceId)) {
+      const relatedUser = diagnostic.related.find(({ span }) => userUris.has(span.sourceId));
+      displaySpan = relatedUser?.span ?? null;
+      uri = relatedUser === undefined ? fallbackUri : userUris.get(relatedUser.span.sourceId);
     }
+    if (uri === undefined) continue;
+    const converted = lspDiagnostic(diagnostic, displaySpan, sources, texts, userSourceIds);
+    if (converted !== null) published.get(uri)?.push(converted);
+  }
+  // Publish the trigger last so its update follows every sibling update from this request.
+  // Fallback selection above still uses the original open-document order.
+  const publicationOrder = [...published.keys()].filter((uri) => uri !== anchorUri);
+  if (published.has(anchorUri)) publicationOrder.push(anchorUri);
+  for (const uri of publicationOrder) {
+    documentProjects.set(uri, snapshot.projectRoot);
+    connection.sendDiagnostics({ uri, diagnostics: published.get(uri) ?? [] });
   }
 }
 

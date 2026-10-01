@@ -1,0 +1,19 @@
+module c64.input;
+
+/** Up switch bit in a sampled joystick byte; a clear bit means pressed. */
+export const joystickUpMask: byte = 1;
+
+/** Down switch bit in a sampled joystick byte; a clear bit means pressed. */
+export const joystickDownMask: byte = 2;
+
+/** Left switch bit in a sampled joystick byte; a clear bit means pressed. */
+export const joystickLeftMask: byte = 4;
+
+/** Right switch bit in a sampled joystick byte; a clear bit means pressed. */
+export const joystickRightMask: byte = 8;
+
+/** Fire switch bit in a sampled joystick byte; a clear bit means pressed. */
+export const joystickFireMask: byte = 16;
+
+/** All five switch bits; the upper three sampled bits are not joystick controls. */
+export const joystickControlsMask: byte = 31;

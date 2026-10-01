@@ -1,4 +1,4 @@
-/** Exact project-relative input spelling; separators are forward slashes. */
+/** Exact logical input spelling; user paths are project-relative with forward slashes. */
 export type SourceId = string;
 
 /** Fixed result discriminators shared by project validators. */
@@ -71,7 +71,7 @@ export interface ProjectDiagnostic {
 
 /** Immutable decoded input with a raw-byte content hash and separate host path. */
 export interface SourceRecord {
-  /** Exact project-relative input spelling. */
+  /** Exact project-relative user spelling, or a collision-free installed-library identity. */
   readonly sourceId: SourceId;
   /** Exact UTF-8 text, including any leading BOM and original line endings. */
   readonly text: string;
@@ -89,7 +89,7 @@ export interface ProjectSnapshot {
   readonly manifest: ProjectManifest;
   /** Original manifest input, without normalization. */
   readonly manifestSource: SourceRecord;
-  /** Exact-name, bytewise-sorted accepted source inputs. */
+  /** Exact-name, bytewise-sorted accepted sources; the public loader admits user files only. */
   readonly sources: readonly SourceRecord[];
   /** Versioned hash of relative names, raw hashes and invocation overrides. */
   readonly inputSha256: string;

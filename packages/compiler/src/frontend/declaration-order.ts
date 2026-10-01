@@ -84,9 +84,6 @@ export function orderScalarDeclarations(
     ),
   );
   const constants = work.filter(isConstantWork);
-  const byQualifiedName = new Map(
-    constants.map((item) => [`${item.module}.${item.declaration.name}`, item]),
-  );
   const imports = new Map(
     graph.imports.map((item) => [
       `${item.sourceSpan.sourceId}\0${item.alias}`,
@@ -103,6 +100,11 @@ export function orderScalarDeclarations(
       );
       return binding === undefined ? [] : [[bindingIdentityKey(binding.id), item] as const];
     }),
+  );
+  // A rejected duplicate has no binding. It must not displace the accepted constant's
+  // dependency, or its users would be checked before that constant has a value.
+  const byQualifiedName = new Map(
+    [...byBinding.values()].map((item) => [`${item.module}.${item.declaration.name}`, item]),
   );
   const functions = new Map(
     graph.bindings.flatMap((binding) =>

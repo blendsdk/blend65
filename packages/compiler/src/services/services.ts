@@ -241,7 +241,7 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
     boundsCheck: selectedSnapshot.manifest.boundsCheck,
     divisionZeroCheck: selectedSnapshot.manifest.divisionZeroCheck,
     sourceText: (span) => {
-      const source = selectedSnapshot.sources.find(({ sourceId }) => sourceId === span.sourceId);
+      const source = analyzed.inputs.sources.find(({ sourceId }) => sourceId === span.sourceId);
       return source === undefined
         ? ""
         : Buffer.from(source.text, "utf8").subarray(span.start, span.end).toString("utf8");
@@ -314,7 +314,7 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
   return Object.freeze({
     kind: "complete",
     value: Object.freeze({
-      snapshot: selectedSnapshot,
+      snapshot: Object.freeze({ ...selectedSnapshot, ...analyzed.inputs }),
       lowered,
       resourceSpans,
       profile: selected.profile,

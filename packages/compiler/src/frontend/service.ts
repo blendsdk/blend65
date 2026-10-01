@@ -1,6 +1,7 @@
 import type { ProjectDiagnostic, ProjectSnapshot, SourceSpan } from "../project/types.js";
 import { escapeDiagnosticText, projectDiagnostic } from "../project/diagnostics.js";
 import { PROFILES } from "../project/manifest.js";
+import { projectInputSha256 } from "../project/input-identity.js";
 import { resolveRawAsset } from "../assets/raw-asset.js";
 import type { EmbeddedValue, SemanticAsset } from "../assets/asset-types.js";
 import { placeSemanticAssets } from "./asset-placement.js";
@@ -29,6 +30,7 @@ import type {
 } from "./semantic-types.js";
 import { applySourceOverlays } from "./overlay.js";
 import type { SourceOverlay } from "./overlay.js";
+import { prepareAnalysisInputs } from "./bundled-sources.js";
 
 /** Maximum number of proving errors returned by one whole-project analysis. */
 const MAX_ANALYSIS_ERRORS = 20;
@@ -65,8 +67,8 @@ export interface TypedProgram {
   readonly initializerOrder: readonly TypedDeclaration["binding"][];
 }
 
-/** Truthful result of analyzing one immutable project snapshot. */
-export type AnalysisResult =
+/** Stage-owned outcome before the public entry point attaches its admitted input evidence. */
+type AnalysisOutcome =
   | {
       readonly kind: typeof ANALYSIS_RESULT_KIND.complete;
       readonly diagnostics: readonly ProjectDiagnostic[];
@@ -81,6 +83,32 @@ export type AnalysisResult =
       readonly diagnostics: readonly ProjectDiagnostic[];
       readonly obligations: readonly AnalysisObligation[];
     };
+
+/** Truthful analysis result, including the exact immutable sources consumed by this request. */
+export type AnalysisResult = AnalysisOutcome & {
+  /** Admitted user overlays and installed source bytes; never a mutable project model. */
+  readonly inputs: {
+    /** Actual consumed records, whose host paths are excluded from portable identity. */
+    readonly sources: ProjectSnapshot["sources"];
+    /** Established portable manifest/source/override digest for those records. */
+    readonly inputSha256: string;
+  };
+};
+
+/** Attach input evidence once, including the user-only records when admission fails. */
+function withInputs(outcome: AnalysisOutcome, snapshot: ProjectSnapshot): AnalysisResult {
+  return Object.freeze({
+    ...outcome,
+    inputs: Object.freeze({
+      sources: snapshot.sources,
+      inputSha256: projectInputSha256(
+        snapshot.manifestSource,
+        snapshot.sources,
+        snapshot.overrides,
+      ),
+    }),
+  });
+}
 
 /** Read exact UTF-8 source bytes covered by one source span. */
 function sourceText(snapshot: ProjectSnapshot, span: SourceSpan): string {
@@ -285,7 +313,7 @@ function analyzeResolvedProject(
   snapshot: ProjectSnapshot,
   embeddedValues: ReadonlyMap<string, EmbeddedValue>,
   assets: readonly SemanticAsset[],
-): AnalysisResult {
+): AnalysisOutcome {
   const selected = PROFILES.some((profile) => profile === snapshot.effectiveTarget)
     ? selectFrontendProfile(snapshot.effectiveTarget)
     : null;
@@ -479,7 +507,17 @@ function analyzeResolvedProject(
  * Asset expressions remain explicit obligations for an owning async compiler service.
  */
 export function analyzeProject(snapshot: ProjectSnapshot): AnalysisResult {
-  return analyzeResolvedProject(snapshot, new Map(), Object.freeze([]));
+  const prepared = prepareAnalysisInputs(snapshot);
+  if (prepared.kind === "error") {
+    return withInputs(
+      { kind: ANALYSIS_RESULT_KIND.error, diagnostics: prepared.diagnostics },
+      snapshot,
+    );
+  }
+  return withInputs(
+    analyzeResolvedProject(prepared.snapshot, new Map(), Object.freeze([])),
+    prepared.snapshot,
+  );
 }
 
 /**
@@ -494,10 +532,13 @@ export async function analyzeProjectOverlay(
 ): Promise<AnalysisResult> {
   const effective = applySourceOverlays(snapshot, overlays);
   if (effective.kind === "failure") {
-    return Object.freeze({
-      kind: ANALYSIS_RESULT_KIND.error,
-      diagnostics: effective.diagnostics,
-    });
+    return withInputs(
+      {
+        kind: ANALYSIS_RESULT_KIND.error,
+        diagnostics: effective.diagnostics,
+      },
+      snapshot,
+    );
   }
   return analyzeProjectWithAssets(effective.snapshot);
 }
@@ -507,9 +548,24 @@ export async function analyzeProjectOverlay(
  * This is the compiler-owned bridge; the target-neutral analyzer receives only typed immutable values.
  */
 export async function analyzeProjectWithAssets(snapshot: ProjectSnapshot): Promise<AnalysisResult> {
+  const prepared = prepareAnalysisInputs(snapshot);
+  if (prepared.kind === "error") {
+    return withInputs(
+      { kind: ANALYSIS_RESULT_KIND.error, diagnostics: prepared.diagnostics },
+      snapshot,
+    );
+  }
+  return withInputs(await analyzePreparedProjectWithAssets(prepared.snapshot), prepared.snapshot);
+}
+
+/** Discover assets and run frontend stages against the same already-admitted source records. */
+async function analyzePreparedProjectWithAssets(
+  snapshot: ProjectSnapshot,
+): Promise<AnalysisOutcome> {
   const indexed = indexModules(snapshot);
   const resolved = resolveModules(snapshot, indexed.index);
-  if (resolved.graph === null) return analyzeProject(snapshot);
+  if (resolved.graph === null)
+    return analyzeResolvedProject(snapshot, new Map(), Object.freeze([]));
   const discovered = discoverEmbeddedRequests(resolved.graph);
   if (discovered.kind === "error") {
     return Object.freeze({ kind: ANALYSIS_RESULT_KIND.error, diagnostics: discovered.diagnostics });

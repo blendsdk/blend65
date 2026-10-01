@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
 import { realpath } from "node:fs/promises";
+import { projectInputSha256 } from "./input-identity.js";
 import {
   checkLimit,
   escapeDiagnosticText,
@@ -238,18 +238,11 @@ async function loadAttempt(
     target: options.target ?? null,
     entry: options.entry ?? null,
   });
-  const encoding = JSON.stringify([
-    "blend65-project-input-v1",
-    [manifestSource.sourceId, manifestSource.sha256],
-    sources.map((source) => [source.sourceId, source.sha256]),
-    invocation.target,
-    invocation.entry,
-  ]);
   return Object.freeze({
     manifest,
     manifestSource,
     sources: Object.freeze(sources),
-    inputSha256: createHash("sha256").update(encoding, "utf8").digest("hex"),
+    inputSha256: projectInputSha256(manifestSource, sources, invocation),
     projectRoot: selection.root,
     sourceRoot: paths.source.resolvedPath,
     assetPaths: Object.freeze(paths.assets.map((asset) => asset.resolvedPath)),

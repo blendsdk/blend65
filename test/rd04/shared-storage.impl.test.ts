@@ -35,8 +35,8 @@ async function withProgram(source: string, inspect: (directory: string) => Promi
   }
 }
 
-/** Execute through source return, then inspect independently predicted result bytes. */
-async function observations(directory: string): Promise<number[]> {
+/** Execute through source return within a finite host budget, then inspect predicted bytes. */
+async function observations(directory: string, timeoutMs = 50_000): Promise<number[]> {
   const labels = await readFile(join(directory, ".labels"), "utf8");
   const restore = labels.match(
     new RegExp(
@@ -51,8 +51,7 @@ async function observations(directory: string): Promise<number[]> {
   try {
     const checkpoint = await started.monitor.setExecuteCheckpoint(address);
     try {
-      // Default disk autostart must load the complete padded 50 KB PRG before running it.
-      const stopped = started.monitor.waitForStop(50_000);
+      const stopped = started.monitor.waitForStop(timeoutMs);
       await started.monitor.resume();
       expect(await stopped).toBe(address);
       return [...(await started.monitor.readMemory(0x0420, 0x0421))];
@@ -98,7 +97,9 @@ it.each([0xcefa, 0xcefb, 0xcf00])(
         "}",
       ].join("\n"),
       async (directory) => {
-        expect(await observations(directory)).toEqual([63, 64]);
+        // Disk autostart loads the complete padded 50 KB image. Allow slower host scheduling
+        // without changing the emulated program, checkpoint, or expected result bytes.
+        expect(await observations(directory, 90_000)).toEqual([63, 64]);
         const assembly = await readFile(join(directory, ".asm"), "utf8");
         expect(assembly).toMatch(/jmp\s+\(/iu);
         const image = await readFile(join(directory, "shared-storage.prg"));
@@ -106,7 +107,7 @@ it.each([0xcefa, 0xcefb, 0xcf00])(
       },
     );
   },
-  60_000,
+  100_000,
 );
 
 it("rebinds handler-owned IRQ links and private helpers after shared-RAM closure", async () => {

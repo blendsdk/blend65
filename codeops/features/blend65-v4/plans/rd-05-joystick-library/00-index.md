@@ -2,7 +2,7 @@
 
 > **CodeOps Artifact Schema**: 1
 > **Implements**: blend65-v4/RD-05
-> **Status**: Planned — not executing
+> **Status**: Executing — Phase 1 complete; Phase 2 not started
 > **Created**: 2026-10-01
 > **Last Updated**: 2026-10-01
 > **Scope mode**: strict
@@ -32,6 +32,7 @@ exception are recorded in the [decision register](00-ambiguity-register.md).
 | [Testing strategy](07-testing-strategy.md) | Independent input → output cases and their file ownership |
 | [Execution plan](99-execution-plan.md) | Two phases, 21 tasks; sole task-progress authority |
 | [Preflight report](00-preflight-report.md) | Current audit verdict, exact target identities, findings and verified corrections |
+| [Phase review](09-phase-review.md) | Phase 1 verification, independent review, oracle integrity and qualification boundary |
 
 ## Related owners
 
@@ -50,3 +51,14 @@ drift is intentionally deferred on this non-integration branch. No compiler test
 this document-only checkpoint. Frozen `spec/` and expert authority remain unchanged.
 This section records original planning validation, not implementation qualification.
 The preflight report owns the current review gate separately from task progress.
+
+## Execution checkpoint
+
+Phase 1 is complete: 11/11 tasks verified; the overall plan is 11/21 (52%). The real source asset
+is packaged and consumed through the existing frontend, compiler evidence and editor seams.
+Install, build, typecheck and all 3,150 tests pass; independent review reports no findings.
+AR-P9 permits only the exact constant-only probe filter, independently verified against its
+original frozen identity. The bounded padded-image host wait changes no program or assertion.
+No framework, cache, dependency, runtime input policy or early optimizer was added.
+The next task is Phase 2's implementation-blind joystick API/output oracle; its ten tasks remain
+unstarted. RD-05 remains Executing. No push is part of this checkpoint.

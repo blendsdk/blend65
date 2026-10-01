@@ -1,8 +1,8 @@
 # Joystick and Bundled C64 Library — Planning Decisions
 
 > **CodeOps Artifact Schema**: 1
-> **Status**: ✅ GATE PASSED — scope and exact test exception approved
-> **Last Updated**: 2026-10-01 15:46 UTC
+> **Status**: ✅ GATE PASSED — AR-P9 runtime test correction approved
+> **Last Updated**: 2026-10-01 18:09 UTC
 > **Planning only**: No implementation or frozen-authority change is authorized by this document.
 
 ## Planning scope contract
@@ -35,6 +35,26 @@ compile with the same cost as current intrinsics, authorize an early optimizer, 
 | AR-P6 | Verification / performance | What proves the source library and direct operations work without hidden cost? | Existing project verification rule plus R5.24/AC-19/R5.50 and expert output directive; concrete obligations below. Reuse existing test/ACME/VICE paths. | ✅ Resolved |
 | AR-P7 | Scope / completion | Who owns later callable-library migration, deep analysis and skill changes? | AR-P2 keeps source-function migration with RD-08 R8.19/AC-17. Pilot closeout must report evidence for the user-requested final review RD and qualified skill update, not create or activate them implicitly. | ✅ Resolved |
 | AR-P8 | Test authority | May the two old exhaustive API inventories admit the three approved additional operations? | User: "Yes, approve these exact inventory additions." Add exactly `c64.input.joystickDown(byte): boolean pure`, `joystickUp(byte): boolean pure` and `readJoystick1(): byte volatile-read` to `frontend/profile.spec.test.ts` and `frontend/profile-constants.spec.test.ts`; change only the latter's title from thirty-seven to forty operations. Preserve every existing row, fixture and behavior assertion. | ✅ Resolved |
+| AR-P9 | Runtime / frozen test authority | May the installed-package probe select constant bindings before asserting exactly six source masks? | User: "I approve", directly approving the narrow test correction on 2026-10-01. Add only `binding.storage === 'constant'` to the JSON probe's existing `masks` filter in `test/rd05/bundled-input-evidence.spec.test.ts`. Preserve every fixture and assertion, including the six exact values/types/SourceIds and length six. Existing functions remain exposed under AR-P3. | ✅ Resolved |
+
+## AR-P9 — Installed-package probe classification
+
+The frozen probe at `test/rd05/bundled-input-evidence.spec.test.ts:33` selects every exported
+`c64.input.*` binding, then the acceptance assertion at line 196 requires exactly six masks.
+That selection also includes the four retained direct functions (`readJoystick2` and fire/left/right
+predicates). Once analysis and service identity are implemented, the two package-success cases
+therefore receive ten bindings despite all six exact source masks being present.
+
+The approved contract requires six ordinary source constants and preservation of all existing
+operations. Removing functions to satisfy the fixture would violate that contract. The smallest
+correction is the single constant-storage predicate in the test probe, not a changed expectation,
+compiler restriction, schema, API or runtime mechanism. Because the oracle was frozen after valid
+RED, its correction requires explicit authority. Its original blob
+`35d61b218d8170955c8ee66cbea0b9744844e0b3` remains the historical authoring identity.
+The user explicitly approved the single filter correction on 2026-10-01; no assertion change is
+authorized. The execution plan records its corrected frozen identity and verification.
+Evidence: `/tmp/blend65-bundled-phase1.0gQxfT/evidence-green.log` (17 pass, 2 fixture-classification
+failures); 41 unchanged service/artifact tests, build and targeted formatting pass.
 
 ## AR-P2 — Evidence and smallest viable direction
 
