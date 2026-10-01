@@ -1,10 +1,13 @@
 # Preflight Report: RD-05 joystick/source-library pilot
 
-> **Status**: ❌ PREFLIGHT BLOCKED — 2 major findings unresolved
-> **Findings**: 3 (0 critical, 2 major, 1 minor, 0 observations)
-> **Iteration**: 1 — full scan
+> **Status**: ✅ PREFLIGHT PASSED — all 3 findings resolved
+> **Findings**: 3 historical findings resolved (0 critical, 2 major, 1 minor); 0 remaining
+> **Iteration**: 2 — bounded re-scan after approved corrections
+> **Previous Iteration**: 3 findings — all resolved at plan level
+> **This Iteration**: 0 new findings; PF-001 close-trigger residual corrected and rechecked
 > **Artifact**: the seven planning documents in `rd-05-joystick-library/`
-> **Audited revision**: `f996849caad9d6ee7e808c76a66e33b5efb430b3`
+> **First-scan revision**: `f996849caad9d6ee7e808c76a66e33b5efb430b3`
+> **Iteration-2 start revision**: `861ea0f4`; corrected target bound by the seven blobs below
 > **Last Updated**: 2026-10-01
 > **CodeOps Artifact Schema**: 1
 
@@ -16,18 +19,18 @@ human domain review can provide further independence.
 ## Audit scope and identity
 
 The verdict applies only to the following documents. Context was not independently
-passed by this review. No plan correction, compiler change, test change or frozen
-authority change has been applied.
+passed by this review. The three approved plan corrections have been applied and
+rechecked. No compiler, test, package or frozen-authority change has been applied.
 
-| Audited document | Git blob at the audited revision |
-| --- | --- |
-| [Ambiguity register](00-ambiguity-register.md) | `c7f2836fb5002aa0d66629967e0d9d5424e10a54` |
-| [Index](00-index.md) | `09ce27f66cc9e501bf3ad91cf159b060a817e86a` |
-| [Requirements](01-requirements.md) | `3e63445d8369b891d215dc8adc0bf12fc09d6a6e` |
-| [Current state](02-current-state.md) | `c23baa9b2d1586de776e1b0d9fe8fc76729ca075` |
-| [Design](03-joystick-library.md) | `4b7ad49523797d762b341301c3c823d252127dd2` |
-| [Testing strategy](07-testing-strategy.md) | `cd075589a46337e020c8ee3ae9011de749f9bfbb` |
-| [Execution plan](99-execution-plan.md) | `9665b058a6412ad901501148d15a496cccfbb8fd` |
+| Audited document | First-scan Git blob | Passing iteration-2 Git blob |
+| --- | --- | --- |
+| [Ambiguity register](00-ambiguity-register.md) | `c7f2836fb5002aa0d66629967e0d9d5424e10a54` | `5dd736351bc267b56f13185ed92e9ead1406df35` |
+| [Index](00-index.md) | `09ce27f66cc9e501bf3ad91cf159b060a817e86a` | `db1653cf16b6ded4c6970f84dee9a6fd92310f05` |
+| [Requirements](01-requirements.md) | `3e63445d8369b891d215dc8adc0bf12fc09d6a6e` | `3e63445d8369b891d215dc8adc0bf12fc09d6a6e` |
+| [Current state](02-current-state.md) | `c23baa9b2d1586de776e1b0d9fe8fc76729ca075` | `a8f7cec2dd2606a88e78f34dbaa02fc426d07758` |
+| [Design](03-joystick-library.md) | `4b7ad49523797d762b341301c3c823d252127dd2` | `076be0daaa71b1e03e6a5210c35604adbb657865` |
+| [Testing strategy](07-testing-strategy.md) | `cd075589a46337e020c8ee3ae9011de749f9bfbb` | `8ea3cfe938ca3de9910367333b95668b2b2e360f` |
+| [Execution plan](99-execution-plan.md) | `9665b058a6412ad901501148d15a496cccfbb8fd` | `f2f695b25e2b19242ca267d531f11db3ece723e7` |
 
 Context: `AGENTS.md`, the feature roadmap, RD-05/RD-08, frozen Specification 4.0
 Chapters 2/10/14/15, and active expert baseline 2.0.1, qualified content commit
@@ -41,9 +44,12 @@ file, fixed source preparation, both raw joystick reads, five predicates, and bo
 source/output/runtime evidence. Callable-helper migration waits for RD-08 inlining.
 AR-P1–AR-P8 remain respected, including AR-P8's exact two inventory-test exceptions.
 
-The modification set for this scan is this report and the roadmap's derived review
-annotation. Applying corrections to the seven target documents requires instruction.
-No portfolio update is made on this non-integration branch.
+The user approved the three bounded corrections and re-scan with “Great! Proceed
+further”, then explicitly confirmed effort for the named correction/re-scan task.
+The authorized modification set is the seven target documents, this report and the
+roadmap's derived review annotation. No portfolio update is made on this
+non-integration branch. Original findings below retain their first-scan locations
+and problem descriptions; the iteration-2 evidence records their corrected state.
 
 ## Codebase context and independent review
 
@@ -73,7 +79,17 @@ authoring diff and source evidence under a bounded read-only fallback packet.
 This was not a claim that the dedicated design-challenger role was available.
 The challenge refined PF-001's display routing and confirmed PF-002's smaller seam.
 
+Iteration 2 reused the same two read-only auditors for all five bounded clusters,
+checked each prior fix and direct consequences, and retained the three domain lenses.
+The grounding reviewer found one narrower PF-001 residual: close-triggered analysis
+can retain the just-closed URI as its anchor. The existing-map fallback was clarified
+within the same root/task, then directly cleared by both delivery and risk reviewers.
+This did not start another full scan or add a new finding, task or support system.
+There are no surviving findings or new recommendation requiring another challenger.
+
 ## Summary
+
+Dimension counts below retain the first-scan root causes; iteration 2 leaves none open.
 
 | # | Dimension | Findings | Highest severity |
 | --- | --- | --- | --- |
@@ -94,8 +110,8 @@ The challenge refined PF-001's display routing and confirmed PF-002's smaller se
 | Severity | Count | State |
 | --- | --- | --- |
 | Critical | 0 | — |
-| Major | 2 | Open; corrections not applied |
-| Minor | 1 | Open; correction or explicit acceptance needed |
+| Major | 2 | Both resolved in the plan and independently rechecked |
+| Minor | 1 | Resolved in the plan and independently rechecked |
 | Observation | 0 | — |
 
 ## PF-001: Installed-library errors can disappear in the editor 🟠 MAJOR
@@ -138,8 +154,18 @@ publication filter shown above.
 **Confidence:** High. **Hardening:** Independent challenge refined the recommendation
 to prefer the precise related user location and use the anchor only as fallback.
 
-**Authority/state:** The technical routing is plan-owned under AGENTS.md workflow
-directive 4. Authorization to apply the plan correction is pending; finding remains open.
+**User decision:** Approved the recommendation and plan correction; high effort confirmed.
+
+**Iteration-2 evidence:** AR-P4 (`00-ambiguity-register.md:130–141`), design
+(`03-joystick-library.md:87–99`), ST-9 (`07-testing-strategy.md:24`) and task 1.2.5
+(`99-execution-plan.md:50`) now own both duplicate orientations, standalone errors,
+original installed evidence, aggregation and clearing. The closed-trigger edge is
+explicit: prefer a related open user location; otherwise the trigger if still open,
+then the first remaining admitted open user from the existing map; with none open,
+no fallback publication. This answers `server.ts:323–329` without new state machinery.
+
+**State:** Resolved — plan correction independently verified. The LSP implementation
+and its new tests remain execution work, not delivered functionality.
 
 ## PF-002: The old port-2 read cannot meet the promised output floor 🟠 MAJOR
 
@@ -194,8 +220,16 @@ qualification; the complete cost/behavior evidence remains an execution obligati
 **Confidence:** High. **Hardening:** Independent challenge converged on the same seam;
 no recommendation change. AR-P8's spec-test exception is not expanded.
 
-**Authority/state:** The technical seam is plan-owned under AGENTS.md workflow
-directive 4. Authorization to apply the plan correction is pending; finding remains open.
+**User decision:** Approved the recommendation and plan correction; high effort confirmed.
+
+**Iteration-2 evidence:** AR-P6, design ownership/output sections, ST-16 and tasks
+2.2.3/2.3.1 now explicitly own both producers, redundant transfer removal and the
+obsolete implementation assertion. CIA exclusions, adjacency/liveness/width/fixed-store
+guards and AR-P8's exact specification-test exception remain unchanged. The source
+evidence above was rechecked; no optimizer pass or alternate consumer analysis was added.
+
+**State:** Resolved — plan correction independently verified. Generated-output costs
+and behavior still require the separately owned execution proof.
 
 ## PF-003: Port-1 stimulus also needs device activation 🟡 MINOR
 
@@ -228,8 +262,15 @@ Explicit ownership removes that contradiction without adding a task.
 **Confidence:** High. **Hardening:** In-context evidence/alternative/refutation checks;
 the minor finding did not need a separate challenger.
 
-**Authority/state:** The technical setup is plan-owned under AGENTS.md workflow
-directive 4. Correction authorization or explicit risk acceptance is pending.
+**User decision:** Approved the recommendation and plan correction; high effort confirmed.
+
+**Iteration-2 evidence:** AR-P6 (`00-ambiguity-register.md:206–214`), current-state/design
+ownership, fixture strategy and task 2.1.2 (`99-execution-plan.md:76`) own both index-0
+injection and opt-in device-37 activation. Existing startup defaults and port-2 behavior
+are preserved. The existing monitor/runtime source references were rechecked.
+
+**State:** Resolved — plan correction independently verified. Device stimulation and
+runtime qualification remain execution work; no acceptance of a known setup defect.
 
 ## Domain and simplicity checks
 
@@ -255,11 +296,16 @@ staging and remaining RD-05 obligations are not reopened merely to broaden the p
 
 ## Verification boundary and next gate
 
+The first-scan validation and machine probe remain historical evidence, not a runtime
+qualification. Iteration 2 adds the following document and independent-review checks.
+
 | Check | Result |
 | --- | --- |
-| Audited identity and structural checks | Seven blobs unchanged; 27 local Markdown links/anchors valid; eight resolved AR rows; 18 ST rows; 21 unique ordered unchecked tasks; five selected source keys verified |
+| Audited identity and structural checks | Seven corrected blobs bound above; 28 target-local Markdown links/anchors; eight resolved AR rows; 18 ST rows; 21 unique ordered unchecked tasks; five selected source keys verified |
 | Plan parser | Scoped plan validation passes, 0/21 started; parser “Ready” is structural, not a semantic preflight pass |
-| Artifact checks | Seven target documents pass targeted Prettier and local-link validation |
+| Artifact checks | Seven target documents and this report pass targeted Prettier and local-link validation |
+| Independent re-scan | All 13 dimensions covered across five clusters; three domain lenses checked; all prior corrections and the close-trigger residual verified; no new or remaining findings |
+| Roadmap counter check | No feature-counter drift; the existing portfolio 1/10→4/10 drift is intentionally deferred on this non-integration branch, not silently repaired or reported as a clean global check |
 | Read-only machine probe | Existing public test-support lowering reproduces PF-002's five instructions on Node 22.23.1 |
 | Frozen authority | `spec/` and the active expert skill have no changes |
 | Compiler/runtime execution | No new library implementation, full compiler suite, ACME assembly or VICE runtime qualification was performed in this document-only scan |
@@ -267,9 +313,9 @@ staging and remaining RD-05 obligations are not reopened merely to broaden the p
 The existing checkpoint `f996849c` was pushed on the user's explicit request.
 This report is a local review checkpoint; it does not authorize another push.
 
-**Next gate:** Apply the three bounded plan corrections when instructed. Then run
-iteration 2 against this same seven-document target: verify these fixes, their direct
-consequences, all 13 dimensions in bounded form, and changed source references.
-Keep the 21 tasks and specification-first ordering. Execution starts only after the
-major findings are verified resolved and any remaining minor is explicitly accepted.
-RD-05 remains Executing; the pilot remains 0/21 and RD-05 closeout is not implied.
+**Next gate:** Begin task 1.1.1 with its separate effort handoff: specification-first
+authoring of `test/rd05/bundled-input-library.spec.test.ts` from ST-1–ST-5.
+The passing gate binds the seven corrected blobs above; a changed target requires a
+bounded check of its changed sections before execution consumes it. No further scan
+is required now. RD-05 remains Executing; the pilot remains 0/21 and RD-05 closeout
+is not implied. Execution has not started and no push is authorized by this pass.

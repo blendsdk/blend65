@@ -2,7 +2,7 @@
 
 > **CodeOps Artifact Schema**: 1
 > **Status**: ✅ GATE PASSED — scope and exact test exception approved
-> **Last Updated**: 2026-10-01 15:05
+> **Last Updated**: 2026-10-01 15:46 UTC
 > **Planning only**: No implementation or frozen-authority change is authorized by this document.
 
 ## Planning scope contract
@@ -128,9 +128,18 @@ identity still comes from the `module` header. Normal Chapter 10 merging/duplica
 do not seal `c64.input` or reserve a user's filename.
 
 The LSP uses returned inputs to map bundled diagnostic/related spans to the fixed installed file
-URI. Keep user overlays restricted to the original known project sources; the library is not an
-editable project overlay. This adds import/typechecking visibility, not navigation/completion or
-other RD-09 capabilities. Frontend exports still cannot reach backend/artifact/tool stages.
+URI. If a diagnostic's primary is in the admitted bundled source, display it at the first related
+open user location in the compiler's related-location order; if none exists, display it as a
+project-level diagnostic on the triggering user document if still open, otherwise the first
+remaining admitted open user document in the existing open-document map order. If no user document
+remains open, publish nothing. Preserve and clearly label the
+exact installed primary and every original related location. Compiler ordering, codes, messages
+and spans remain unchanged; ordinary user-primary diagnostics retain their own exact ranges.
+Aggregate each open document's diagnostics before publication, including any fallback, so neither
+overwrites the other; publish cleared results after correction. Keep user overlays restricted to
+the original known project sources; the library is not an editable project overlay. This adds
+import/typechecking visibility, not navigation/completion or other RD-09 capabilities. Frontend
+exports still cannot reach backend/artifact/tool stages.
 
 Add `stdlib` to the compiler package's existing file allowlist; dependents keep their existing
 public imports and external compiler dependency. Qualify an actual tarball outside the checkout.
@@ -195,14 +204,18 @@ preserved DDRs/latches/unrelated bits and interference under stated fixture cond
 Exercise all four cooperative profiles sequentially through existing VICE utilities; actual input
 or pin setup belongs to the fixture and is separated from the operation's trace.
 The existing `test/m1/vice-monitor.ts:634–643` already sends binary monitor joyport command
-`$A2` for port 2. Add only the corresponding `setJoystick1(value)` test-adapter method, keeping
-the existing port-2 API/behavior and five-bit validation. This is a small extension of the same
-external-tool utility, not another monitor client or harness. `VICE-310-MANUAL` documents that
-command; `VICE-310-SOURCE` pins its emulator implementation. Verify port identity and polarity
-through actual compiled samples, not by trusting the test adapter's name.
+`$A2` for port 2. Add the corresponding `setJoystick1(value)` test-adapter method with port index 0
+and values 0–31, keeping the existing port-2 API/behavior and five-bit validation. Port 1 also needs
+opt-in I/O-simulation device activation (`-controlport1device 37`) in the existing `startVice`
+utility in `test/m1/vice-runtime.ts`; existing callers retain their startup defaults. These are
+small extensions of the same external-tool fixture, not another monitor client, resource API or
+harness. `VICE-310-MANUAL` documents the command; `VICE-310-SOURCE` pins its emulator implementation.
+Verify active device selection, port identity and polarity through actual compiled samples,
+not by trusting the test adapter's name or a write to an unselected simulation buffer.
 
 Prove real source constants through ordinary imports, sync/async/overlay agreement, normal duplicate
-diagnostics with correct installed related locations, unchanged user snapshot/IDs, actual source
+diagnostics with visible errors and preserved installed primary/related locations in either
+source-ID ordering, unchanged user snapshot/IDs, actual source
 hashes in build/debug evidence, changed library-byte identity, and outside-checkout tarball use.
 Test missing/corrupt library input and hostile source/module names without interpolated shell text.
 Importing unused scalar masks must add no target storage, initializer, helper or emitted payload.
@@ -216,6 +229,14 @@ the same live-value contract. Gratuitous transfers or temporary traffic are defe
 optimizer authorization. Correct them through existing guarded seams where proved; otherwise stop
 for the needed authority and track the measured gap. A new capability below the expert local floor
 cannot pass closeout. A genuine local meet needs the AGENTS.md measured path-to-beat issue.
+
+Both joystick read producers belong in the existing register-forwarding admission for a sole-use
+byte sample consumed by the next machine operation in the same block: a byte write to a fixed
+address. Preserve all existing adjacency, liveness, width and destination guards; dynamic stores,
+intervening machine operations, repeated uses and cross-block uses retain necessary stable storage.
+Remove the redundant port-2 transfer in direct selection. Adapt only the obsolete port-2 forwarding
+assertion in `machine/vic-collision.impl.test.ts`; keep its CIA exclusion and all negative guards.
+This is an implementation-test correction, not an extension of AR-P8's specification-test authority.
 
 Directed tests run during tasks. Each phase checkpoint runs `yarn install --frozen-lockfile`,
 `yarn build`, `yarn typecheck`, `yarn test`, touched-file formatting, links, frozen-authority checks

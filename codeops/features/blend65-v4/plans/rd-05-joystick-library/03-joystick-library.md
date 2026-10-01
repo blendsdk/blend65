@@ -65,10 +65,11 @@ preparation; do not permit a library overlay. Return admitted input metadata eve
 | `frontend/bundled-sources.ts` (new) | Fixed trusted installed read, immutable SourceRecord and derived analysis inventory |
 | `frontend/service.ts`, `project/types.ts` | Share preparation, attach result inputs and clarify logical source versus user-file identity documentation |
 | `services/services.ts` | Retain frontend input inventory/hash for existing build/debug/evidence owners; no artifact schema redesign |
-| `packages/language-server/src/server.ts` | Convert bundled spans using returned text and installed URI while retaining user-only overlay ownership |
+| `packages/language-server/src/server.ts` | Map bundled spans and publish installed-primary errors through related open user locations or the triggering-document fallback; retain user-only overlay ownership |
 | `frontend/profile.ts`, `target/c64-kernal.ts` | Approved declarations and named port-1 address in existing selected-profile/device tables |
-| `machine/lower-c64.ts` | Extend current direct read/mask selection; preserve volatile effects and existing ABI/SFA closure |
-| `machine/lower-register-forwarding.ts` | Only if output proof requires producer admission to the existing guarded forwarding seam; no broader rewrite |
+| `machine/lower-c64.ts` | Extend current direct read/mask selection and remove the redundant port-2 transfer; preserve volatile effects and existing ABI/SFA closure |
+| `machine/lower-register-forwarding.ts`, `machine/vic-collision.impl.test.ts` | Admit both joystick reads through existing sole-use, adjacent same-block byte/fixed-store guards; adapt only the obsolete port-2 implementation assertion, preserving CIA exclusions and negative guards |
+| `test/m1/vice-monitor.ts`, `test/m1/vice-runtime.ts` | Matching port-1 injection and opt-in simulation device activation in the existing fixture; preserve port-2 behavior and startup defaults |
 
 The pure hash helper may have an internal signature equivalent to
 `projectInputSha256(manifestSource, sources, overrides): string`, reusing existing types and exact
@@ -83,10 +84,19 @@ bound the read before allocation. Do not expose a caller-supplied library path o
 Parser/type/name/arity and module-duplicate diagnostics remain ordinary compiler diagnostics.
 Normal errors in user source must retain their exact source spans.
 
-LSP related locations use the library SourceId → installed `resolvedPath` URI mapping; never construct
-an installed path from user module spelling. Root/user paths and known-overlay allowlists retain
-their existing validation. No web/authentication/transport/infrastructure surface exists; those
-security categories are N/A. Hostile source names and package faults remain tested inputs.
+LSP primary/related locations use the library SourceId → installed `resolvedPath` URI mapping;
+never construct an installed path from user module spelling. For an installed-primary diagnostic,
+use the first related open user location in compiler order, or the triggering open user document's
+project-level fallback if none exists. If the trigger has closed, use the first remaining admitted
+open user document in the existing map order; with none open, publish nothing. Preserve and label
+the exact installed primary and all
+original related locations; do not change compiler diagnostic ordering, codes, messages or spans.
+Aggregate each document's errors before publication so the fallback cannot overwrite its normal
+diagnostics. ST-9 covers both source-ID orders, standalone installed parse/type errors,
+close-triggered fallback and clearing.
+Root/user paths and known-overlay allowlists retain their existing validation. No
+web/authentication/transport/infrastructure surface exists; those security categories are N/A.
+Hostile source names and package faults remain tested inputs.
 
 ## Output, storage and optimization seams
 
@@ -98,9 +108,12 @@ Scalar source constants fold through existing semantics; unused masks create no 
 data or helper. Address-taking, if used by application source, retains ordinary language semantics
 and its honestly charged storage rather than a new special restriction.
 
-If direct-use output reveals redundant traffic, prove a correction at the existing selector/seam
-with negative liveness/effect guards. Do not introduce an optimizer into this plan. If that is not
-sufficient to meet the floor, stop and record the exact needed authority before expanding scope.
+Remove the existing port-2 redundant transfer and admit both read producers to the existing guarded
+forwarding seam for their sole adjacent same-block byte store to a fixed address. Preserve negative
+liveness/effect guards and necessary storage for other uses; do not remove, repeat or reorder a
+hardware read. Adapt the obsolete port-2 implementation assertion only; CIA exclusions stay intact.
+Do not introduce an optimizer into this plan. If that is not sufficient to meet the floor, stop
+and record the exact needed authority before expanding scope.
 Callable migration stays AR-P7/RD-08; preserved source names keep that future migration compatible.
 
 ## Documentation and completion

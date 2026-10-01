@@ -1,7 +1,7 @@
 # Execution plan: joystick and bundled C64 library
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-10-01 15:05
+> **Last Updated**: 2026-10-01 15:46 UTC
 > **Progress**: 0/21 tasks (0%)
 > **CodeOps Artifact Schema**: 1
 
@@ -47,7 +47,7 @@ the absent approved capability, not missing tools or a broken test setup.
 - [ ] 1.2.2 Add real documented constants in `packages/compiler/stdlib/c64/input.blend`, include `stdlib` in compiler `package.json`, and add fixed bounded preparation in `frontend/bundled-sources.ts`. Verify source grammar, packaged asset bytes and focused preparation behavior.
 - [ ] 1.2.3 Integrate one preparation boundary and additive `AnalysisResult.inputs` in `frontend/service.ts`; clarify source-identity documentation in `project/types.ts`. Verify ST-1–ST-5/ST-7 through public analysis and unchanged source diagnostics.
 - [ ] 1.2.4 Retain returned source inventory/hash at the existing `services/services.ts` check/build seam; verify ST-6/ST-8 and existing build/debug artifact validators without a schema change.
-- [ ] 1.2.5 Use returned text/installed URI for bundled diagnostic locations in `packages/language-server/src/server.ts`; preserve user-only overlays. Verify ST-9 and current LSP diagnostics.
+- [ ] 1.2.5 Use returned text/installed URI for bundled diagnostic locations in `packages/language-server/src/server.ts`; display installed-primary errors at the first related open user location or AR-P4's triggering/remaining-open-user fallback, preserve original primary/related evidence and aggregate before publication. Keep user-only overlays; verify ST-9's two source-ID orders, standalone library errors, close-triggered fallback, coexistence with normal errors and clearing, plus current LSP diagnostics.
 - [ ] 1.2.6 Run all phase-1 spec files GREEN plus unchanged project-snapshot and import-boundary tests. Target: phase-1 specs and `test/import-boundary.spec.test.ts`; record evidence in this plan.
 
 **Verify:** Task-directed tests and build/typecheck for touched packages. Dependent service/editor
@@ -73,7 +73,7 @@ are included. No optimizer/performance claim is made by successful source bundli
 ### Session 2.1: Specification tests
 
 - [ ] 2.1.1 [spec-author] Write `test/rd05/joystick-api-output.spec.test.ts` from ST-10–ST-12/ST-16–ST-18; derive independent bytes, behavior and complete-cost expectations.
-- [ ] 2.1.2 [spec-author] Write `test/rd05/joystick-vice.spec.test.ts` from ST-13–ST-15 using existing bounded sequential VICE utilities and explicit fixture-state ownership; add only AR-P6's port-1 injection method in `test/m1/vice-monitor.ts`, preserving port 2.
+- [ ] 2.1.2 [spec-author] Write `test/rd05/joystick-vice.spec.test.ts` from ST-13–ST-15 using existing bounded sequential VICE utilities and explicit fixture-state ownership; add AR-P6's port-1 injection method in `test/m1/vice-monitor.ts` and opt-in `-controlport1device 37` activation in `test/m1/vice-runtime.ts`, preserving port-2 behavior and existing startup defaults. Prove active-device selection and both port identities/polarity through compiled samples.
 - [ ] 2.1.3 Run both named files and record valid RED in this plan, explaining existing port-2/predicate/validation passes; no absent tool, setup or timeout counts as RED.
 
 **Verify:** Directed Vitest and existing ACME/VICE tools. Specification authors are implementation
@@ -84,7 +84,7 @@ permission to weaken new port-1/up/down expectations.
 
 - [ ] 2.2.1 Add AR-P3 declarations in `frontend/profile.ts` and the named port-1 fact in `target/c64-kernal.ts`; verify new API/signature cases.
 - [ ] 2.2.2 Apply only AR-P8's exact additions to `frontend/profile.spec.test.ts` and `profile-constants.spec.test.ts`; verify both unchanged inventories plus the three rows.
-- [ ] 2.2.3 Extend direct selection in `machine/lower-c64.ts`; if needed, add only the new read to the existing guarded producer admission in `lower-register-forwarding.ts`. Verify output/resource/effect oracles without introducing an optimization pass.
+- [ ] 2.2.3 Extend direct selection in `machine/lower-c64.ts`, remove the redundant port-2 transfer and admit both joystick read producers in `lower-register-forwarding.ts` through its existing sole-use, adjacent same-block byte/fixed-store guards. Preserve CIA exclusions and all negative guards; verify both-port output/resource/effect oracles without introducing an optimization pass.
 - [ ] 2.2.4 Verify GREEN for ST-10–ST-18 and both inventory files; run four-profile VICE cases sequentially and inspect assembled complete costs. Target: new phase-2 specs, inventories and this plan's evidence.
 
 **Verify:** Directed tests, fresh compiler declarations/artifacts, operation-window traces and
@@ -93,7 +93,7 @@ No new runtime storage after SFA closure, hidden keyboard scan or new IRQ/port-s
 
 ### Session 2.3: Implementation tests and closeout
 
-- [ ] 2.3.1 Write `machine/joystick.impl.test.ts` for exact masks/effects/result retention and negative forwarding guards; update only `frontend/profile-constants.impl.test.ts` binding count 62→65 and function/constant boundaries 37→40. Verify both directly; source masks remain ordinary, not synthetic profile constants.
+- [ ] 2.3.1 Write `machine/joystick.impl.test.ts` for exact masks/effects/result retention and negative forwarding guards; adapt only the obsolete port-2 forwarding assertion in `machine/vic-collision.impl.test.ts`, preserving its CIA exclusion and existing negative guards; update `frontend/profile-constants.impl.test.ts` binding count 62→65 and function/constant boundaries 37→40. Verify all three directly; source masks remain ordinary, not synthetic profile constants.
 - [ ] 2.3.2 Run AR-P6's full checkpoint and independent phase review; record bounded runtime/output/resource evidence and explicit AR-P8 review exception in `09-phase-review.md`. All critical/major findings must be resolved.
 - [ ] 2.3.3 Write `08-closeout.md` and durable `docs/platform-libraries.md`; answer deferral expiry and conditional final-RD/skill follow-ups under AR-P7, preserve remaining RD-05 owners, update the feature roadmap and commit the green pilot. No push.
 

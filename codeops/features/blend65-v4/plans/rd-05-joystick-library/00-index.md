@@ -2,7 +2,7 @@
 
 > **CodeOps Artifact Schema**: 1
 > **Implements**: blend65-v4/RD-05
-> **Status**: Ready for preflight — not executing
+> **Status**: Planned — not executing
 > **Created**: 2026-10-01
 > **Last Updated**: 2026-10-01
 > **Scope mode**: strict
@@ -31,6 +31,7 @@ exception are recorded in the [decision register](00-ambiguity-register.md).
 | [Component design](03-joystick-library.md) | Interfaces, implementation responsibilities and failure propagation |
 | [Testing strategy](07-testing-strategy.md) | Independent input → output cases and their file ownership |
 | [Execution plan](99-execution-plan.md) | Two phases, 21 tasks; sole task-progress authority |
+| [Preflight report](00-preflight-report.md) | Current audit verdict, exact target identities, findings and verified corrections |
 
 ## Related owners
 
@@ -47,4 +48,5 @@ specification-first task ordering pass. The derived plan helper reports Ready, 0
 The roadmap counter check reports no feature-counter drift; its existing portfolio 1/10→4/10
 drift is intentionally deferred on this non-integration branch. No compiler tests were run for
 this document-only checkpoint. Frozen `spec/` and expert authority remain unchanged.
-This is planning validation, not a passing preflight or implementation qualification.
+This section records original planning validation, not implementation qualification.
+The preflight report owns the current review gate separately from task progress.

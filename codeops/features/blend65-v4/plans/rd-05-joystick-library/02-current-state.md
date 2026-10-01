@@ -18,10 +18,11 @@ The last feature checkpoint is recorded by the roadmap; it is not pilot evidence
 | `frontend/service.ts:481–509`, `frontend/overlay.ts` | Sync, asset-aware and overlay paths need one consistent library preparation boundary |
 | `services/services.ts:317`, `services/evidence.ts:378,485` | Current retained snapshot supplies evidence sources; library bytes cannot disappear here |
 | `artifacts/evidence-validation.ts:156–174` | Source paths are relative logical IDs, not URI strings |
-| `packages/language-server/src/server.ts` | Diagnostic locations currently map only original project sources |
+| `packages/language-server/src/server.ts:146,194–208` | Maps and publication currently cover original user sources; an installed primary needs explicit related-user display or triggering-document fallback, not just a URI map |
 | Compiler/package and editor Vite configs | Compiler source assets need package inclusion; editor builds keep the public compiler dependency external |
 | Existing profile inventory tests | Exhaustive lists require only the specifically approved AR-P8 additions |
-| `test/m1/vice-monitor.ts:91–92,634–643` | Existing port-2 injection uses the real binary monitor joyport command; port-1 needs only the matching test-adapter method |
+| `test/m1/vice-monitor.ts:91–92,634–643`, `test/m1/vice-runtime.ts:278–279` | Existing port-2 injection uses the real binary monitor joyport command and selects simulation device 37; port 1 needs both the matching adapter method and opt-in device activation, preserving existing defaults |
+| `machine/lower-c64.ts:395–410`, `lower-register-forwarding.ts:63–70`, `vic-collision.impl.test.ts:203` | Port 2 emits redundant `TAX` and is excluded from guarded forwarding; meeting the both-port floor needs both read producers admitted and only the obsolete port-2 implementation assertion adapted |
 
 ## Limits and dependencies
 
