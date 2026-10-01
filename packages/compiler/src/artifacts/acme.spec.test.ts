@@ -1,16 +1,8 @@
-import {
-  access,
-  chmod,
-  mkdtemp,
-  readFile,
-  readdir,
-  rm,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { access, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { fakeTool } from "../../test-support/fake-tool.js";
 import { createC64Startup } from "../layout/startup.js";
 import { layoutC64Program } from "../layout/c64-layout.js";
 import { machineInstruction } from "../machine/lower-control.js";
@@ -86,10 +78,7 @@ function completeLayout() {
 }
 
 async function executable(root: string, name: string, body: string): Promise<string> {
-  const path = join(root, name);
-  await writeFile(path, `#!/usr/bin/env node\n${body}\n`, "utf8");
-  await chmod(path, 0o755);
-  return path;
+  return fakeTool(join(root, name), body, "module");
 }
 
 async function realAcmeWrapper(root: string, logPath: string): Promise<string> {
@@ -282,7 +271,7 @@ describe("terminal ACME artifacts", () => {
       {
         name: "symlink",
         action:
-          'const fs = await import("node:fs"); const out = args[args.indexOf("--outfile") + 1]; fs.symlinkSync("/dev/null", out);',
+          'const fs = await import("node:fs"); const out = args[args.indexOf("--outfile") + 1]; fs.symlinkSync(process.platform === "win32" ? process.execPath : "/dev/null", out);',
       },
       {
         name: "directory",
@@ -302,7 +291,7 @@ describe("terminal ACME artifacts", () => {
       {
         name: "unexpected",
         action:
-          'const fs = await import("node:fs"); const source = args.at(-1); fs.writeFileSync(new URL("unexpected.bin", `file://${source}`).pathname, "x");',
+          'const fs = await import("node:fs"); const path = await import("node:path"); const source = args.at(-1); fs.writeFileSync(path.join(path.dirname(source), "unexpected.bin"), "x");',
       },
     ] as const;
 

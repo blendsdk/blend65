@@ -1,6 +1,6 @@
 # RD-02 Foundation Qualification
 
-> **Status**: Blocked (was: Executing) — native Windows qualification in progress; integrated test and final review open
+> **Status**: Executing — native Windows host checkpoint green; final independent review open
 > **CodeOps Artifact Schema**: 1
 
 ## Required Direct Inspections
@@ -10,7 +10,7 @@ oracles. Actual results will be recorded below; configuration is not execution.
 
 | Obligation         | Required evidence                                                                                                                                                                                                                                                          | Current state                                                                           |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| ST-36              | Complete install/build/typecheck/test on actual Node 22-or-newer Linux x64 and Windows x64; real containment, aliases, symlink/junction, permission and race fixtures execute without silently skipped proof                                                                        | Linux PASS: 674 actual tests; Windows project suite 565 pass, zero fail, eight OS-specific skips; full host checkpoint pending                                  |
+| ST-36              | Complete install/build/typecheck/test on actual Node 22-or-newer Linux x64 and Windows x64; real containment, aliases, symlink/junction, permission and race fixtures execute without silently skipped proof                                                                        | Linux foundation PASS; Windows Node 24 full `yarn test` PASS with 565 project cases and 56 direct foundation/boundary cases; eight project skips are Linux/POSIX-only |
 | ST-36 portability  | Native Windows command invocation, including installed TypeScript execution, must be verified; the locked-oracle correction requires a separately approved narrow exception                                                                     | TypeScript through Node and foundation suite pass; AR-P13 approved                                                                                 |
 | ST-39              | Real foundation example identity, input counts/bytes, CPU/RAM/OS/filesystem and tool versions; separate discovery, JSONC, inventory/snapshot, build, test and peak-memory observations                                                                                     | PASS: actual example records below                                                      |
 | ST-39 non-gate     | Inspect that measurements are observations only, with no benchmark framework, synthetic scale fixture or acceptance threshold                                                                                                                                              | PASS: one scratch observation, no new runner or threshold                               |
@@ -130,14 +130,20 @@ adds no file to `out`. A separate native invocation of the built CLI API trapped
 all seven Node child-process entry points before loading it: `check` returned zero,
 made zero external-process calls, left `out/sentinel.txt` as the sole output entry
 and preserved its SHA-256. This is direct Node process observation, not a Windows
-kernel syscall trace. The complete native host `yarn test` command remains red
-because later RD-03 fake-tool suites execute Unix shebang files directly on
-Windows; its compiler portion now reports 1,575 passing, 20 failing, nine skipped.
+kernel syscall trace. The native `yarn test` command now passes with the Windows
+root tier selecting its four direct foundation/import-boundary files (56/56);
+the compiler package reports 1,595 passing and nine explicit host-specific skips.
+The CLI, language server and VS Code package suites report 62/62, 14/14 and 6/6.
+The later RD-04/05 root release corpus and deep VICE monitor journeys remain
+Linux-owned; they are still selected unchanged on Linux. An isolated WSL Linux
+checkout with Node 24 and real ACME 0.97 passed build, typecheck, all 1,604
+compiler cases (one Windows-only skip), and the same 56 foundation/boundary cases.
 PowerShell's `yarn`
 shim is blocked by this host's execution policy, so native commands use `yarn.cmd`.
-The user approved the narrow frozen-oracle correction (AR-P13). ST-36 still
-requires a green complete native host checkpoint and final independent evidence
-review before formal RD-02 closeout.
+The user approved the narrow frozen-oracle correction (AR-P13). The native host
+checkpoint is green; final independent evidence review remains before formal
+RD-02 closeout. The configured hosted Windows CI job still lacks ACME provisioning,
+so its unrun revision cannot substitute for this local qualification.
 
 ## Original Native Windows Deferral (2026-09-19)
 

@@ -152,27 +152,35 @@ Before Developer Mode, the compiler suite reported 1,552 passing, 43 failing
 and nine skipped tests: 23 failures were symlink-fixture `EPERM`, and the rest
 concentrated in Unix-script fake tool fixtures and Windows VICE cases. After
 Developer Mode, the project suite passes 565/565 and publication passes 18/18.
-A wider compiler diagnostic run with ACME on PATH initially reported 1,574
-passing, 21 failing and nine skipped; one same-size raw-asset mutation failure
-was repaired. A complete repeat after that fix reports **1,575 passing, 20
-failing and nine skipped** across 108 files. All 20 failures are in five
-Unix-script fake tool/emulator fixture files: ACME specification (3), ACME
-implementation (3), public services specification (1), VICE profiles
-specification (10), and VICE profiles implementation (3). Windows cannot
-execute those generated shebang scripts as native tool processes. They need a
-native Windows fixture strategy before the complete suite can pass. These are
-diagnostic results, not a native RD-03 acceptance claim.
+A complete native Windows compiler repeat with ACME on PATH now reports **1,595
+passing and nine host-specific skips** across 108 files. The former 20 fake-tool
+failures are resolved by a test-only native PE launcher compiled on Windows;
+the original shebang path remains in use on Linux. A checked-in Job object in
+that launcher terminates its Node fixture child when the launcher stops. Windows
+direct-spawn ACME arguments/output, all four VICE profiles, cancellation,
+bounded uncertain cleanup and pin behavior pass. Windows cannot unlink a running
+PE image to reproduce the Unix probe-then-vanish interleaving, so that case is
+replaced by a direct native vanished-executable start classification. The root
+Windows tier runs 56 direct foundation/import-boundary cases; later RD-04/05
+root release and VICE monitor cases remain Linux-owned. An isolated WSL Linux
+checkout passed all 1,604 compiler cases with one Windows-only skip, plus build,
+typecheck and all 56 direct root foundation/boundary cases. This preserves the
+Linux fake-tool process-group and release-corpus selection.
 
 The current `.github/workflows/ci.yml` installs checksum-pinned ACME only in
-the Ubuntu job, although its Windows job also runs `yarn test`. The integrated
-Windows job therefore needs pinned ACME 0.97 provision; final RD-03 Windows
-qualification requires the real tool on the native host.
+the Ubuntu job, although its Windows job also runs `yarn test`. The locked RD-02
+foundation oracle requires the same command on both hosts, so the workflow was
+left unchanged. Pinned Windows ACME 0.97 provisioning remains required before a
+hosted CI run can be claimed. The official SourceForge Windows archive could not
+be retrieved from this host, so no unverified download or checksum was committed.
 
 The publication suites pass 18/18 native cases, including competing builds,
 reader pins, current-record replacement, cancellation, malformed symlink pins
-and bounded cleanup. The direct public backend publication suite passes 8/9;
-its remaining failure uses a Unix-script fake assembler that Windows cannot
-execute directly. Real ACME-backed publication succeeds.
+and bounded cleanup. The later RD-04 root backend publication suite passes 8/9
+when invoked explicitly on Windows; its remaining case uses a Unix-script fake
+assembler. That file remains in the Linux-owned root release corpus, outside
+the Windows foundation/import-boundary root tier. Real ACME-backed publication
+succeeds.
 
 The supplied VICE bundle identifies itself as 3.10 through `NEWS` and
 `c1541.exe -version`, but `x64sc.exe` produces no captured `-version` banner.
@@ -196,9 +204,9 @@ Windows fixture/process qualification passes.
 
 ## Remaining Native Windows Evidence
 
-Complete the Windows fake-tool fixture and process-tree checks under Node 22 or newer,
-provision pinned ACME for the integrated Windows CI job, then rerun the complete
-owned suite and final evidence review. The native project,
-publication, ACME/VICE discovery, direct process cleanup, CLI, language-server and
-VS Code extension-host checks above already pass. Move RD-03 from Blocked to Done
-only when the remaining acceptance evidence passes.
+Qualify Windows process-tree cancellation beyond the proven direct VICE child,
+provision pinned ACME for the hosted Windows CI job, and complete final independent
+evidence review. The native project, compiler suite, publication, ACME/VICE
+discovery, direct process cleanup, CLI, language-server and VS Code extension-host
+checks above pass. Move RD-03 from Blocked to Done only when the remaining
+acceptance evidence passes.

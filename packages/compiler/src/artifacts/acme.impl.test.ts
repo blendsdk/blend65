@@ -1,7 +1,8 @@
-import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { fakeTool } from "../../test-support/fake-tool.js";
 import { machineInstruction } from "../machine/lower-control.js";
 import { NMOS_6510 } from "../target/nmos6510.js";
 import { verifyAcmeOutput } from "./acme-output.js";
@@ -11,10 +12,7 @@ import { verifyPrg } from "./prg.js";
 import { discoverAcme } from "../tools/discovery.js";
 
 async function executable(root: string, name: string, version: string): Promise<string> {
-  const path = join(root, name);
-  await writeFile(path, `#!/usr/bin/env node\nprocess.stdout.write(${JSON.stringify(version)});\n`);
-  await chmod(path, 0o755);
-  return path;
+  return fakeTool(join(root, name), `process.stdout.write(${JSON.stringify(version)});`);
 }
 
 function dataLayout(): CompleteC64Layout {
@@ -59,7 +57,7 @@ describe("ACME driver hardening", () => {
     await executable(first, "acme", "ACME, release 0.96\n");
     await executable(second, "acme", "ACME, release 0.97\n");
 
-    await expect(discoverAcme({ path: `${first}:${second}` })).resolves.toEqual(
+    await expect(discoverAcme({ path: `${first}${delimiter}${second}` })).resolves.toEqual(
       expect.objectContaining({ kind: "error", reason: "version-mismatch" }),
     );
   });
