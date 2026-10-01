@@ -129,7 +129,8 @@ async function probeVersion(
 /**
  * Discover and version-probe ACME without a shell, fallback search, or installation behavior.
  *
- * An explicit absolute path wins. Otherwise the first executable named `acme` in the ordered PATH
+ * An explicit absolute path wins. Otherwise the first executable named `acme` on Unix or
+ * `acme.exe` on Windows in the ordered PATH
  * is authoritative: a wrong version fails discovery rather than silently selecting a later tool.
  *
  * @param input Optional explicit path, PATH snapshot, and cancellation signal.
@@ -150,7 +151,9 @@ export async function discoverAcme(input: AcmeDiscoveryInput = {}): Promise<Acme
     const pathValue = input.path ?? process.env.PATH ?? "";
     for (const entry of pathValue.split(delimiter)) {
       if (entry.length === 0 || !isAbsolute(entry)) continue;
-      const found = await resolveExecutable(join(entry, "acme"));
+      const found = await resolveExecutable(
+        join(entry, process.platform === "win32" ? "acme.exe" : "acme"),
+      );
       if (found !== null) {
         candidate = found;
         break;

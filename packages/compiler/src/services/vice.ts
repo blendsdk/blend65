@@ -62,12 +62,14 @@ async function stopOwnedProcess(child: ChildProcess, processGroup: boolean): Pro
   return stopped;
 }
 
-/** Resolve one executable from the first absolute PATH entry that owns it. */
+/** Resolve the native executable from the first absolute PATH entry that owns it. */
 export async function findVice(): Promise<string | null> {
   for (const entry of (process.env.PATH ?? "").split(delimiter)) {
     if (!isAbsolute(entry) || entry.length === 0) continue;
     try {
-      const candidate = await realpath(join(entry, "x64sc"));
+      const candidate = await realpath(
+        join(entry, process.platform === "win32" ? "x64sc.exe" : "x64sc"),
+      );
       const metadata = await stat(candidate);
       if (!metadata.isFile()) continue;
       await access(candidate, constants.X_OK);
