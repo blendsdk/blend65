@@ -1,6 +1,6 @@
 # RD-02 Foundation Qualification
 
-> **Status**: Blocked (was: Executing) — implementation complete; Windows closeout deferred to the RD-10 qualification window
+> **Status**: Blocked (was: Executing) — native Windows qualification in progress; integrated test and final review open
 > **CodeOps Artifact Schema**: 1
 
 ## Required Direct Inspections
@@ -16,7 +16,7 @@ oracles. Actual results will be recorded below; configuration is not execution.
 | ST-39 non-gate     | Inspect that measurements are observations only, with no benchmark framework, synthetic scale fixture or acceptance threshold                                                                                                                                              | PASS: one scratch observation, no new runner or threshold                               |
 | ST-40              | Compare frozen spec/expert identities and active/reference-only ownership with RD-01                                                                                                                                                                                       | PASS: root facts and full authority diff checks                                         |
 | ST-40 deferrals    | Walk v4 requirement/plan registers, RD-02 Won't Have, every future-consideration trigger and expert release/qualification deferrals; answer the exact deferral-expiry question; expired rationales require existing or explicit owners, with no orphan RD-02 landing place | PASS: checkpoint walk below; repeat if deliverables change                              |
-| No publication     | Built CLI and library leave absent output absent and existing output unchanged; no compiler artifacts, source upload, assembler/emulator or external subprocess in production                                                                                              | PASS on Linux: actual traces and existing-output sentinel; Windows absent/existing output checks pass, process observation pending              |
+| No publication     | Built CLI and library leave absent output absent and existing output unchanged; no compiler artifacts, source upload, assembler/emulator or external subprocess in production                                                                                              | PASS on Linux: actual traces and existing-output sentinel; Windows absent/existing output and trapped Node child-process calls pass              |
 | Independent review | Review verified implementation and simplicity; final closeout review follows all required native evidence                                                                                                                                                                  | Checkpoint PASS: no findings, simplicity PASS; final RD evidence review pending Windows |
 
 ## Entry
@@ -126,12 +126,18 @@ permission-denial code. The direct Windows CLI suite passes 62/62.
 The built CLI's `check` command succeeds on the checked-in foundation example
 without creating its absent `out` directory. In an isolated native Windows copy,
 the same built command leaves an existing `out/sentinel.txt` byte-identical and
-adds no file to `out`. Syscall/process observations still need native evidence.
+adds no file to `out`. A separate native invocation of the built CLI API trapped
+all seven Node child-process entry points before loading it: `check` returned zero,
+made zero external-process calls, left `out/sentinel.txt` as the sole output entry
+and preserved its SHA-256. This is direct Node process observation, not a Windows
+kernel syscall trace. The complete native host `yarn test` command remains red
+because later RD-03 fake-tool suites execute Unix shebang files directly on
+Windows; its compiler portion now reports 1,575 passing, 20 failing, nine skipped.
 PowerShell's `yarn`
 shim is blocked by this host's execution policy, so native commands use `yarn.cmd`.
 The user approved the narrow frozen-oracle correction (AR-P13). ST-36 still
-requires the complete native host checkpoint, process observation and final
-independent evidence review before formal RD-02 closeout.
+requires a green complete native host checkpoint and final independent evidence
+review before formal RD-02 closeout.
 
 ## Original Native Windows Deferral (2026-09-19)
 
