@@ -83,8 +83,10 @@ export function checkCiaOwnership(
   const mayMutateRaw = new Set<string>();
   const mayReplaceVector = new Set<string>();
   const mayInvalidateMask = new Set<string>();
-  /** Unmasking can discover IRQ entries, whose complete caller histories must remain distinct. */
+  /** Calls that may allow another IRQ entry, including through helpers or successors. */
   const mayUnmaskIrq = new Set<string>();
+  /** A restore can expose older owner mutations while validating a handler entry. */
+  const mayRestoreIrq = new Set<string>();
   const mayEnable = new Map<string, number>();
   const edges = new Map<string, Set<string>>();
   for (const fn of program.functions) {
@@ -96,6 +98,7 @@ export function checkCiaOwnership(
       for (const operation of block.operations) {
         if (operation.kind === "platform") {
           if (typedMutation(operation.capability)) mayMutate.add(key);
+          if (operation.capability === "c64.system.restoreIRQ") mayRestoreIrq.add(key);
           if (operation.capability === "c64.cia1.enableInterruptSources") {
             const argument = operation.arguments[0];
             const exact = argument === undefined ? undefined : values.get(argument);
@@ -138,7 +141,7 @@ export function checkCiaOwnership(
           mayInvalidateMask.add(caller);
           changed = true;
         }
-        for (const effects of [mayMutateRaw, mayReplaceVector, mayUnmaskIrq]) {
+        for (const effects of [mayMutateRaw, mayReplaceVector, mayUnmaskIrq, mayRestoreIrq]) {
           if (!effects.has(caller) && effects.has(callee)) {
             effects.add(caller);
             changed = true;
@@ -152,6 +155,13 @@ export function checkCiaOwnership(
       }
     }
   }
+
+  // The preceding whole-program proof closes all helper and handler targets.
+  // An absent handler inventory is not proof that its older owners are unused.
+  const handlerMayRestoreIrq = routes.some(({ handler, sink }) => {
+    const key = bindingIdentityKey(handler);
+    return sink.domain === "irq" && (!edges.has(key) || mayRestoreIrq.has(key));
+  });
 
   const diagnostics: ProjectDiagnostic[] = [];
   const visited = new Set<string>();
@@ -192,10 +202,11 @@ export function checkCiaOwnership(
       return { state: null, untouchedPrefix: 0, entryMutations: input.mutations };
     }
     visited.add(key);
-    // A masked helper cannot discover new IRQ entries unless it can unmask IRQ.
-    // Keep exact contexts otherwise: handler discovery records the full entry
-    // history and is not replayed by a cached call.
-    const exactMutations = input.irqMayRun || mayUnmaskIrq.has(key);
+    // Without a handler-side restore, IRQ validation cannot expose older owners.
+    // The touched suffix still includes the current owner; only unused older
+    // mutations may differ between shared discoveries. Otherwise retain complete
+    // histories because a cached call does not replay handler-entry discovery.
+    const exactMutations = handlerMayRestoreIrq && (input.irqMayRun || mayUnmaskIrq.has(key));
     const memoKey = JSON.stringify([
       key,
       input.routes,
