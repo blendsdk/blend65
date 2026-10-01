@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ChildProcess, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import { describe, expect, it, vi } from "vitest";
 import { fakeTool } from "../../test-support/fake-tool.js";
 import { launchVice, probeVice } from "./vice.js";
@@ -39,6 +39,76 @@ describe("closed emulator selection and bounded cleanup", () => {
     },
   );
 
+  it.skipIf(process.platform !== "win32")(
+    "should stop a native Windows emulator and its descendant on cancellation",
+    async () => {
+      const root = await mkdtemp(join(tmpdir(), "blend65-vice-tree-"));
+      const marker = join(root, "processes.json");
+      const executable = join(root, "x64sc.exe");
+      let ownerPid: number | undefined;
+      let descendantPid: number | undefined;
+      const controller = new AbortController();
+      let pending: ReturnType<typeof probeVice> | undefined;
+      try {
+        await fakeTool(
+          executable,
+          `const fs = require("node:fs");
+const { spawn } = require("node:child_process");
+const descendant = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+  stdio: "ignore", windowsHide: true,
+});
+fs.writeFileSync(${JSON.stringify(marker + ".tmp")}, JSON.stringify({
+  owner: Number(process.env.BLEND65_FAKE_TOOL_PID), descendant: descendant.pid,
+}));
+fs.renameSync(${JSON.stringify(marker + ".tmp")}, ${JSON.stringify(marker)});
+setInterval(() => {}, 1000);
+`,
+          "commonjs",
+          false,
+        );
+        pending = probeVice(executable, controller.signal);
+        const deadline = performance.now() + 4_000;
+        while (ownerPid === undefined && performance.now() < deadline) {
+          const value = await readFile(marker, "utf8").catch(() => "");
+          if (value) {
+            const pids = JSON.parse(value) as { owner: number; descendant: number };
+            ownerPid = pids.owner;
+            descendantPid = pids.descendant;
+          } else await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        expect(ownerPid).toBeGreaterThan(0);
+        expect(descendantPid).toBeGreaterThan(0);
+        controller.abort();
+        expect(await pending).toBe("cancelled");
+        expect(() => process.kill(descendantPid!, 0)).toThrow();
+      } finally {
+        controller.abort();
+        if (ownerPid !== undefined) {
+          const systemRoot = process.env.SystemRoot ?? process.env.WINDIR ?? "C:\\Windows";
+          const killer = spawn(
+            join(systemRoot, "System32", "taskkill.exe"),
+            ["/PID", String(ownerPid), "/T", "/F"],
+            { shell: false, stdio: "ignore", windowsHide: true },
+          );
+          await new Promise<void>((resolve) => {
+            killer.once("error", () => resolve());
+            killer.once("close", () => resolve());
+          });
+        }
+        if (descendantPid !== undefined) {
+          try {
+            process.kill(descendantPid, "SIGKILL");
+          } catch {
+            /* The tree stop already removed this descendant. */
+          }
+        }
+        await pending;
+        await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+      }
+    },
+    15_000,
+  );
+
   it("should report uncertain probe cleanup without requiring a close event", async () => {
     const root = await mkdtemp(join(tmpdir(), "blend65-probe-cleanup-"));
     const executable = join(root, process.platform === "win32" ? "x64sc.exe" : "x64sc");
@@ -63,16 +133,7 @@ setInterval(() => {}, 1000);
         else await new Promise((resolve) => setTimeout(resolve, 20));
       }
       if (pid === undefined) throw new Error("Owned probe did not publish its process identity");
-      const realChildKill = ChildProcess.prototype.kill;
-      if (process.platform === "win32")
-        vi.spyOn(ChildProcess.prototype, "kill").mockImplementation(function (
-          this: ChildProcess,
-          signal,
-        ) {
-          if (this.pid === pid)
-            throw Object.assign(new Error("Owned process denied"), { code: "EPERM" });
-          return realChildKill.call(this, signal);
-        });
+      if (process.platform === "win32") vi.stubEnv("SystemRoot", join(root, "missing-system"));
       else
         vi.spyOn(process, "kill").mockImplementation((candidate, signal) => {
           if (Math.abs(candidate) === pid)
@@ -91,6 +152,7 @@ setInterval(() => {}, 1000);
     } finally {
       clearTimeout(timer);
       vi.restoreAllMocks();
+      vi.unstubAllEnvs();
       controller.abort();
       if (pid !== undefined) {
         try {
@@ -121,7 +183,6 @@ setInterval(() => {}, 1000);
       const moduleUrl = new URL("../../dist/services/vice.js", import.meta.url).href;
       const script = `
 import { readFile } from "node:fs/promises";
-import { ChildProcess } from "node:child_process";
 import { launchVice, probeVice } from ${JSON.stringify(moduleUrl)};
 const controller = new AbortController();
 const executable = ${JSON.stringify(executable)};
@@ -137,13 +198,8 @@ while (!pid && performance.now() < deadline) {
 }
 if (!pid) throw new Error("Missing owned emulator identity");
 const realKill = process.kill.bind(process);
-if (process.platform === "win32") {
-  const realChildKill = ChildProcess.prototype.kill;
-  ChildProcess.prototype.kill = function (signal) {
-    if (this.pid === pid) throw Object.assign(new Error("Denied"), { code: "EPERM" });
-    return realChildKill.call(this, signal);
-  };
-} else process.kill = (candidate, signal) => {
+if (process.platform === "win32") process.env.SystemRoot = ${JSON.stringify(join(root, "missing-system"))};
+else process.kill = (candidate, signal) => {
   if (Math.abs(candidate) === pid) throw Object.assign(new Error("Denied"), { code: "EPERM" });
   return realKill(candidate, signal);
 };

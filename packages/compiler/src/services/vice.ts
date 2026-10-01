@@ -10,6 +10,7 @@ import type { C64KernalProfileId } from "../profile/c64-kernal.js";
 const VICE_OUTPUT_LIMIT = 65_536;
 const VICE_PROBE_TIMEOUT_MS = 5_000;
 const PROCESS_STOP_GRACE_MS = 500;
+const WINDOWS_TREE_STOP_MS = 3_000;
 const WINDOWS_VICE_310_FILES = Object.freeze([
   ["bin/x64sc.exe", "b48f9117916e960ca6a59ca32bc63765f9b30f2b6bb3ef056514c8bcce0a7030"],
   ["bin/c1541.exe", "34d627aa7733d57447bd89d93993c0dbf04054c0fb687ffe7c762bcfa3204aed"],
@@ -54,8 +55,51 @@ async function waitForOwnedExit(child: ChildProcess, processGroup: boolean): Pro
 }
 
 /** Terminate within a fixed bound; uncertain exit releases host handles, not artifact pins. */
-async function stopOwnedProcess(child: ChildProcess, processGroup: boolean): Promise<boolean> {
-  if (!ownedProcessExists(child, processGroup)) return true;
+async function stopOwnedProcess(
+  child: ChildProcess,
+  processGroup: boolean,
+  requireTreeProof = false,
+): Promise<boolean> {
+  if (!ownedProcessExists(child, processGroup))
+    return !(process.platform === "win32" && requireTreeProof);
+  if (process.platform === "win32") {
+    const root = process.env.SystemRoot ?? process.env.WINDIR;
+    const pid = child.pid;
+    let treeStopped = false;
+    if (root && isAbsolute(root) && pid !== undefined) {
+      treeStopped = await new Promise<boolean>((resolve) => {
+        const killer = spawn(
+          join(root, "System32", "taskkill.exe"),
+          ["/PID", String(pid), "/T", "/F"],
+          {
+            shell: false,
+            stdio: "ignore",
+            windowsHide: true,
+          },
+        );
+        let done = false;
+        const finish = (result: boolean) => {
+          if (done) return;
+          done = true;
+          clearTimeout(timeout);
+          resolve(result);
+        };
+        killer.once("error", () => finish(false));
+        killer.once("close", (code) => finish(code === 0));
+        const timeout = setTimeout(() => {
+          killer.kill("SIGKILL");
+          finish(false);
+        }, WINDOWS_TREE_STOP_MS);
+        timeout.unref();
+      });
+    }
+    const stopped = await waitForOwnedExit(child, false);
+    if (treeStopped && stopped) return true;
+    child.stdout?.destroy();
+    child.stderr?.destroy();
+    child.unref();
+    return false;
+  }
   signalOwnedProcess(child, processGroup, "SIGTERM");
   if (await waitForOwnedExit(child, processGroup)) return true;
   signalOwnedProcess(child, processGroup, "SIGKILL");
@@ -115,7 +159,7 @@ async function runVersionProbe(
     const requestStop = (next: Exclude<typeof outcome, "normal">) => {
       if (outcome !== "normal") return;
       outcome = next;
-      cleanup = stopOwnedProcess(child, processGroup);
+      cleanup = stopOwnedProcess(child, processGroup, true);
       // Failed termination need not produce a close event. Settle after the bounded attempt
       // so the caller can retain its generation pin and report manual recovery.
       void cleanup.then(() => finish(null));
@@ -125,7 +169,8 @@ async function runVersionProbe(
       settled = true;
       clearTimeout(timeout);
       signal?.removeEventListener("abort", abort);
-      const cleaned = await (cleanup ?? stopOwnedProcess(child, processGroup));
+      const cleaned = await (cleanup ??
+        stopOwnedProcess(child, processGroup, outcome !== "normal"));
       if (!cleaned) resolve({ kind: "cleanup-uncertain" });
       else if (outcome === "cancelled") resolve({ kind: "cancelled" });
       else if (outcome !== "normal" || code !== 0) resolve({ kind: "failure" });
@@ -247,7 +292,7 @@ export async function launchVice(
     const abort = () => {
       if (cancelledRun) return;
       cancelledRun = true;
-      cleanup = stopOwnedProcess(child, processGroup);
+      cleanup = stopOwnedProcess(child, processGroup, true);
       // Cancellation must finish even when a denied signal leaves the emulator alive.
       void cleanup.then((cleaned) => {
         if (settled) return;

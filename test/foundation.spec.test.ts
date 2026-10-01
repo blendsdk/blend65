@@ -420,8 +420,8 @@ describe("minimal truthful foundation toolchain", () => {
 });
 
 describe("native foundation qualification configuration", () => {
-  // Both hosts run the foundation commands; only Linux provisions the pinned terminal assembler.
-  it("should run Node 22 commands on both hosts and provision ACME only on Linux", async () => {
+  // Both hosts run the same commands with their own checksum-pinned ACME 0.97 binary.
+  it("should run Node 22 commands and provision pinned ACME on both hosts", async () => {
     const workflow = await readFile(join(repository, ".github/workflows/ci.yml"), "utf8");
     expect(workflow).toContain("ubuntu-latest");
     expect(workflow).toContain("windows-latest");
@@ -435,12 +435,19 @@ describe("native foundation qualification configuration", () => {
     expect(actions.sort()).toEqual(["actions/checkout@v4", "actions/setup-node@v4"]);
     const steps = workflow.split(/\n(?=\s{6}-\s)/);
     const acmeSteps = steps.filter((step) => /\bacme\b/i.test(step));
-    expect(acmeSteps).toHaveLength(1);
-    expect(acmeSteps[0]).toMatch(/if:\s*\$\{\{\s*matrix\.os\s*==\s*['"]ubuntu-latest['"]\s*\}\}/);
-    expect(acmeSteps[0]).toMatch(/\b0\.97\b/);
-    expect(acmeSteps[0]).toMatch(/\b[0-9a-f]{64}\b/i);
-    expect(acmeSteps[0]).toMatch(/sha256sum|shasum/i);
-    expect(acmeSteps[0]).not.toMatch(/windows-latest/i);
+    expect(acmeSteps).toHaveLength(2);
+    const linuxAcme = acmeSteps.find((step) =>
+      /if:\s*\$\{\{\s*matrix\.os\s*==\s*['"]ubuntu-latest['"]\s*\}\}/.test(step),
+    );
+    const windowsAcme = acmeSteps.find((step) =>
+      /if:\s*\$\{\{\s*matrix\.os\s*==\s*['"]windows-latest['"]\s*\}\}/.test(step),
+    );
+    expect(linuxAcme).toMatch(/\b0\.97\b/);
+    expect(linuxAcme).toMatch(/\b[0-9a-f]{64}\b/i);
+    expect(linuxAcme).toMatch(/sha256sum|shasum/i);
+    expect(windowsAcme).toMatch(/\b0\.97\b/);
+    expect(windowsAcme).toMatch(/\b[0-9a-f]{64}\b/i);
+    expect(windowsAcme).toMatch(/Get-FileHash/);
     const ordinaryCommands = steps
       .filter((step) => !/\bacme\b/i.test(step))
       .flatMap((step) => [...step.matchAll(/^\s*run:\s*(.+)$/gm)].map((match) => match[1]!.trim()));

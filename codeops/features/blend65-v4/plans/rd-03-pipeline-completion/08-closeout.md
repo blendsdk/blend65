@@ -1,7 +1,7 @@
 # RD-03 Pipeline Qualification
 
 > **Status**: Linux implementation complete and VICE-verified; native Windows
-> DEF-3 qualification in progress
+> DEF-3 qualification remains bounded by normal-exit descendant ownership
 > **CodeOps Artifact Schema**: 1
 
 ## Result
@@ -16,9 +16,9 @@ bounded lowering corrections closed it without changing the language, adding run
 building a general optimizer framework. The defect tracked by GitHub issue #80 is resolved by this
 evidence; changing the issue's remote state requires separate explicit authorization.
 
-RD-03 is not formally Done because AR-C16/DEF-3 still requires native Node 22-or-newer Windows x64
-qualification during RD-10, when the user supplies access. That deferred evidence does not block
-RD-04 through RD-09.
+RD-03 is not formally Done because native Windows qualification found a remaining
+R3.28 normal-exit descendant-ownership gap. DEF-3 assigns that proof to RD-10;
+it does not block RD-04 through RD-09.
 
 ## Frozen Qualification Inputs
 
@@ -119,7 +119,10 @@ as production-quality parity.
 
 ## Deferral-Rationale Walk
 
-**Did this RD's deliverables expire any deferral's stated rationale? No.**
+**Did this RD's deliverables expire any deferral's stated rationale? Yes: the
+new native Windows host evidence expires DEF-3's original no-host rationale.**
+DEF-3 remains open for the separately identified R3.28 normal-exit ownership
+gap, assigned to RD-10 AC-10. No other reconsideration trigger changed.
 
 | Reviewed item | Result / continuing owner |
 |---|---|
@@ -129,7 +132,7 @@ as production-quality parity.
 | Loadable assets and D64 delivery | Remain RD-07. |
 | General expert-output optimization | Remains RD-08; Phase 8 only fixed behavior-relevant bounded patterns. |
 | Production developer tooling | Remains RD-09. |
-| Native Windows qualification | DEF-3 remains owned by RD-10; a Windows host is now available and qualification is in progress. |
+| Native Windows qualification | The no-host rationale expired. DEF-3 remains RD-10-owned for normal owner-exit descendant proof under R3.28/AC-10; direct VICE and live cancellation pass. |
 | `spec/future-considerations.md` criteria | M1 did not establish demand that expires FUT-006/007, FUT-011/012 or FUT-015–018. |
 | Expressiveness restrictions | No deliberate user-facing restriction was accepted; valid Specification 4 forms remain RD-04 obligations. |
 
@@ -152,7 +155,7 @@ Before Developer Mode, the compiler suite reported 1,552 passing, 43 failing
 and nine skipped tests: 23 failures were symlink-fixture `EPERM`, and the rest
 concentrated in Unix-script fake tool fixtures and Windows VICE cases. After
 Developer Mode, the project suite passes 565/565 and publication passes 18/18.
-A complete native Windows compiler repeat with ACME on PATH now reports **1,595
+A complete native Windows compiler repeat with ACME on PATH now reports **1,596
 passing and nine host-specific skips** across 108 files. The former 20 fake-tool
 failures are resolved by a test-only native PE launcher compiled on Windows;
 the original shebang path remains in use on Linux. A checked-in Job object in
@@ -163,16 +166,19 @@ PE image to reproduce the Unix probe-then-vanish interleaving, so that case is
 replaced by a direct native vanished-executable start classification. The root
 Windows tier runs 56 direct foundation/import-boundary cases; later RD-04/05
 root release and VICE monitor cases remain Linux-owned. An isolated WSL Linux
-checkout passed all 1,604 compiler cases with one Windows-only skip, plus build,
+checkout passed all 1,604 compiler cases with two Windows-only skips, plus build,
 typecheck and all 56 direct root foundation/boundary cases. This preserves the
 Linux fake-tool process-group and release-corpus selection.
 
-The current `.github/workflows/ci.yml` installs checksum-pinned ACME only in
-the Ubuntu job, although its Windows job also runs `yarn test`. The locked RD-02
-foundation oracle requires the same command on both hosts, so the workflow was
-left unchanged. Pinned Windows ACME 0.97 provisioning remains required before a
-hosted CI run can be claimed. The official SourceForge Windows archive could not
-be retrieved from this host, so no unverified download or checksum was committed.
+The `.github/workflows/ci.yml` now provisions checksum-pinned ACME 0.97 on both
+hosts while keeping the same `yarn test` command and Linux step. The official
+SourceForge Windows archive was downloaded and verified locally: archive SHA-256
+`68f7c80c23806eced6ab96622d8e22b500ed76b4d34a01af33461dee04edc359`,
+extracted `acme.exe` SHA-256
+`dfe1ea314a1d66854999308834a4636e7cfd1507ed21ba689dc9f00ac8051957`,
+and executable banner `release 0.97`. The narrow frozen foundation-oracle
+correction is AR-P14. A hosted run awaits a pushed branch and PR; local native
+host proof does not depend on a configured but unrun CI job.
 
 The publication suites pass 18/18 native cases, including competing builds,
 reader pins, current-record replacement, cancellation, malformed symlink pins
@@ -193,20 +199,29 @@ journey to Linux and requires separate Windows tool/process smoke evidence.
 Native Windows process smoke now confirms that `launchVice` cancels the real
 `x64sc.exe` and leaves no emulator process. A public `runProject` cancellation
 after publication leaves `current.json` intact, removes its exact pin and leaves
-no `x64sc.exe` process. This proves the direct child path; broader process-tree
-fault fixtures remain. The installed VS Code is now 1.140.0, within the extension
+no `x64sc.exe` process. A native three-process fixture with fixture-owned Job
+cleanup disabled proves that cancellation of a live owner stops the emulator launcher, its Node
+fixture child and its own live descendant through Windows `taskkill /T /F`.
+Denied or unavailable tree cleanup, including an owner-exit race during abort,
+remains bounded and retains the generation pin for manual recovery. Normal owner
+exit with a surviving descendant remains unproved because `taskkill /T` requires
+the owner to exist. RD-10 owns durable ownership or a conservative normal-close
+policy; this evidence does not claim that broader guarantee. The Linux
+process-group path is unchanged. The installed VS Code is now 1.140.0, within the extension
 manifest's `^1.138.0` range. An isolated native extension-host run loaded the built
 `dist/extension.js`, activated the Blend65 extension, recognized `src/game.blend`
 as `blend65`, launched its language server, and published the canonical `E10239`
 undeclared-name diagnostic from a valid project. VS Code's extension-test host
-exited zero. Final evidence review remains; DEF-3 stays open for process-tree
-qualification and hosted CI ACME provisioning.
+exited zero. Independent Windows closeout review found the owner-exit race and a
+test-cleanup leak. Both are corrected for live cancellation; the normal-exit
+gap remains assigned to RD-10. DEF-3 stays open.
 
 ## Remaining Native Windows Evidence
 
-Qualify Windows process-tree cancellation beyond the proven direct VICE child,
-provision pinned ACME for the hosted Windows CI job, and complete final independent
-evidence review. The native project, compiler suite, publication, ACME/VICE
-discovery, direct process cleanup, CLI, language-server and VS Code extension-host
-checks above pass. Move RD-03 from Blocked to Done only when the remaining
-acceptance evidence passes.
+Prove or conservatively handle normal Windows owner exit with a surviving
+descendant before releasing a generation pin under R3.28, then repeat the
+affected native tests and independent review. The full Linux VICE qualification
+already passes on its qualified host; WSL here has no Linux VICE runtime and is
+not used for that oracle. The configured hosted CI job runs after the branch is
+pushed. Move RD-03 from Blocked to Done only when the remaining ownership proof
+passes.

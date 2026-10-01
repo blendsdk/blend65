@@ -1,6 +1,6 @@
 # RD-02 Foundation Qualification
 
-> **Status**: Executing — native Windows host checkpoint green; final independent review open
+> **Status**: Done — native Windows foundation qualification and independent review complete
 > **CodeOps Artifact Schema**: 1
 
 ## Required Direct Inspections
@@ -17,7 +17,7 @@ oracles. Actual results will be recorded below; configuration is not execution.
 | ST-40              | Compare frozen spec/expert identities and active/reference-only ownership with RD-01                                                                                                                                                                                       | PASS: root facts and full authority diff checks                                         |
 | ST-40 deferrals    | Walk v4 requirement/plan registers, RD-02 Won't Have, every future-consideration trigger and expert release/qualification deferrals; answer the exact deferral-expiry question; expired rationales require existing or explicit owners, with no orphan RD-02 landing place | PASS: checkpoint walk below; repeat if deliverables change                              |
 | No publication     | Built CLI and library leave absent output absent and existing output unchanged; no compiler artifacts, source upload, assembler/emulator or external subprocess in production                                                                                              | PASS on Linux: actual traces and existing-output sentinel; Windows absent/existing output and trapped Node child-process calls pass              |
-| Independent review | Review verified implementation and simplicity; final closeout review follows all required native evidence                                                                                                                                                                  | Checkpoint PASS: no findings, simplicity PASS; final RD evidence review pending Windows |
+| Independent review | Review verified implementation and simplicity; final closeout review follows all required native evidence                                                                                                                                                                  | PASS: independent Windows closeout review found no RD-02 defect; its RD-03 process findings were corrected or assigned to RD-10 |
 
 ## Entry
 
@@ -80,7 +80,10 @@ Logs: `/tmp/blend65-rd02-phase3-cli-syscalls.log`,
 
 ## Deferral-Rationale Walk
 
-**Did this RD's deliverables expire any deferral's stated rationale? No.**
+**Did this RD's deliverables expire any deferral's stated rationale? Yes: native
+Windows qualification expires DEF-1's missing-host rationale.** No other
+deferral's stated reconsideration trigger changed, and no RD-02 landing slice
+remains open.
 
 This is the completed walk for the implemented checkpoint, not permission to
 close without Windows evidence. Reinspect if qualification requires deliverable
@@ -132,18 +135,25 @@ made zero external-process calls, left `out/sentinel.txt` as the sole output ent
 and preserved its SHA-256. This is direct Node process observation, not a Windows
 kernel syscall trace. The native `yarn test` command now passes with the Windows
 root tier selecting its four direct foundation/import-boundary files (56/56);
-the compiler package reports 1,595 passing and nine explicit host-specific skips.
+the compiler package reports 1,596 passing and nine explicit host-specific skips.
 The CLI, language server and VS Code package suites report 62/62, 14/14 and 6/6.
 The later RD-04/05 root release corpus and deep VICE monitor journeys remain
 Linux-owned; they are still selected unchanged on Linux. An isolated WSL Linux
 checkout with Node 24 and real ACME 0.97 passed build, typecheck, all 1,604
-compiler cases (one Windows-only skip), and the same 56 foundation/boundary cases.
+compiler cases (two Windows-only skips), and the same 56 foundation/boundary cases.
 PowerShell's `yarn`
 shim is blocked by this host's execution policy, so native commands use `yarn.cmd`.
 The user approved the narrow frozen-oracle correction (AR-P13). The native host
-checkpoint is green; final independent evidence review remains before formal
-RD-02 closeout. The configured hosted Windows CI job still lacks ACME provisioning,
-so its unrun revision cannot substitute for this local qualification.
+checkpoint is green. The independent Windows closeout review found no RD-02
+defect; its two RD-03 process findings were fixed for live cancellation or
+assigned to RD-10 for normal-exit ownership. DEF-1 is closed. The configured
+Windows CI job now fetches the official ACME 0.97
+archive with SHA-256 `68f7c80c23806eced6ab96622d8e22b500ed76b4d34a01af33461dee04edc359`
+and validates the extracted executable with SHA-256
+`dfe1ea314a1d66854999308834a4636e7cfd1507ed21ba689dc9f00ac8051957`.
+Both hashes and the version were checked against the downloaded archive locally;
+the hosted revision remains unrun until the branch reaches GitHub. AR-P14 records
+the user-approved narrow correction to the obsolete Linux-only CI oracle.
 
 ## Original Native Windows Deferral (2026-09-19)
 

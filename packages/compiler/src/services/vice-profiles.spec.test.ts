@@ -1,5 +1,4 @@
 import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import { ChildProcess } from "node:child_process";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -280,17 +279,10 @@ describe.sequential("generation-owned interactive VICE profiles", () => {
     const before = await pinFiles(data.out);
     expect(before).toHaveLength(1);
     const realKill = process.kill.bind(process);
-    const realChildKill = ChildProcess.prototype.kill;
+    if (process.platform === "win32") vi.stubEnv("SystemRoot", join(data.root, "missing-system"));
     const kill =
       process.platform === "win32"
-        ? vi.spyOn(ChildProcess.prototype, "kill").mockImplementation(function (
-            this: ChildProcess,
-            signal,
-          ) {
-            if (this.pid === pid)
-              throw Object.assign(new Error("Owned process access denied"), { code: "EPERM" });
-            return realChildKill.call(this, signal);
-          })
+        ? undefined
         : vi.spyOn(process, "kill").mockImplementation((candidate, signal) => {
             if (Math.abs(candidate) === pid)
               throw Object.assign(new Error("Owned process access denied"), { code: "EPERM" });
@@ -304,7 +296,7 @@ describe.sequential("generation-owned interactive VICE profiles", () => {
       });
       expect(await pinFiles(data.out)).toEqual(before);
     } finally {
-      kill.mockRestore();
+      kill?.mockRestore();
       terminate(pid);
       await bounded(pending);
     }

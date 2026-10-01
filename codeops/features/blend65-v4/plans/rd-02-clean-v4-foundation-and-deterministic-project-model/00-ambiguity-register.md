@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-02 Foundation Planning
 
-> **Status**: ✅ GATE PASSED — all 13 items resolved; Windows qualification evidence remains open
+> **Status**: ✅ GATE PASSED — all 14 items resolved; final Windows review remains open
 > **Last Updated**: 2026-10-01
 > **CodeOps Artifact Schema**: 1
 
@@ -29,6 +29,7 @@
 | AR-P11 | Sequencing / native Windows qualification | When should deferred DEF-1 run? | Run native Windows foundation qualification in RD-10's existing Windows production-qualification window. The completed Linux foundation is sufficient for RD-03 through RD-09 compiler development. Preserve the Windows acceptance obligation, but do not request a host, add infrastructure, or block intermediate compiler work. Close RD-02 before RD-10 closes once the shared native run passes. | User explicitly directed this sequencing on 2026-09-19: Windows is not a current priority and should be checked at the end after the compiler works on Linux. | ✅ Resolved |
 | AR-P12 | Product / minimum Node version | Is the Windows qualification limited to Node 22 when the available native host runs Node 24? | Admit Node 22 and every newer major. Keep `.nvmrc` at 22 as the reference selection, set the package engine minimum to 22, classify Linux/Windows x64 on Node 22+ as supported, and record the exact tested version in every qualification result. Preserve native host evidence and all other RD-02 gates. | User explicitly confirmed on 2026-10-01 that Node 24 and Node 22 or newer are acceptable. | ✅ Resolved |
 | AR-P13 | Verification / Windows frozen-oracle portability | The root foundation oracle invokes Yarn's extensionless `node_modules/.bin/tsc` directly, which Node cannot spawn on Windows, and hashes frozen authority worktree bytes, which Git may check out with CRLF. May its locked test use the installed TypeScript JS entry through Node and Git's committed blob bytes, while retaining the repository dirty-tree check and all original identity assertions? | **Approved:** apply this exact test-only correction so the same compiler and frozen content are tested on both hosts. Pin LF for future frozen authority and example checkouts with `.gitattributes`; do not alter `spec/` or expert content. | User explicitly accepted the recommendation on 2026-10-01; the RD-02 closeout's separate-approval condition is met. | ✅ Resolved |
+| AR-P14 | Verification / Windows CI assembler oracle | The foundation test requires ACME provisioning only on Ubuntu, but the now-owned Windows compiler suite invokes real ACME and the shared Windows CI job runs `yarn test`. | **Approved narrow correction:** require checksum-pinned ACME 0.97 provisioning on both hosts while keeping the same install/build/typecheck/test commands and Linux ACME step. Pin the official Windows archive and extracted executable; add no VICE CI tier. | User accepted the recommended correction on 2026-10-01 with “Fix it fast and let'move on.” | ✅ Resolved |
 
 ## Evidence and Resolution Notes
 

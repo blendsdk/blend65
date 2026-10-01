@@ -41,12 +41,14 @@ export async function fakeTool(
   path: string,
   body: string,
   module: "commonjs" | "module" = "commonjs",
+  ownsDescendants = true,
 ): Promise<string> {
   if (process.platform === "win32") {
     const executable = path.endsWith(".exe") ? path : `${path}.exe`;
     await copyFile(await launcher(), executable);
     await writeFile(`${executable}.${module === "module" ? "mjs" : "cjs"}`, body);
     await writeFile(`${executable}.node`, process.execPath);
+    if (!ownsDescendants) await writeFile(`${executable}.nojob`, "");
     return executable;
   }
   await writeFile(path, `#!/usr/bin/env node\n${body}\n`, "utf8");

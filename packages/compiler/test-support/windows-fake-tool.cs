@@ -95,15 +95,20 @@ internal static class WindowsFakeTool
         start.EnvironmentVariables["BLEND65_FAKE_TOOL_PID"] =
             Process.GetCurrentProcess().Id.ToString();
 
-        var job = CreateJobObject(IntPtr.Zero, null);
-        if (job == IntPtr.Zero) return 126;
-        var limits = new ExtendedLimitInformation();
-        limits.BasicLimitInformation.LimitFlags = KillOnJobClose;
-        if (!SetInformationJobObject(job, 9, ref limits,
-            (uint)Marshal.SizeOf(typeof(ExtendedLimitInformation)))) return 125;
-        // Assign the launcher before spawning Node so its child inherits the
-        // job immediately. The OS closes the handle on launcher exit.
-        if (!AssignProcessToJobObject(job, Process.GetCurrentProcess().Handle)) return 123;
+        // The one process-tree integration test disables fixture-owned cleanup
+        // so only the production Windows stop path can terminate descendants.
+        if (!File.Exists(executable + ".nojob"))
+        {
+            var job = CreateJobObject(IntPtr.Zero, null);
+            if (job == IntPtr.Zero) return 126;
+            var limits = new ExtendedLimitInformation();
+            limits.BasicLimitInformation.LimitFlags = KillOnJobClose;
+            if (!SetInformationJobObject(job, 9, ref limits,
+                (uint)Marshal.SizeOf(typeof(ExtendedLimitInformation)))) return 125;
+            // Assign the launcher before spawning Node so its child inherits the
+            // job immediately. The OS closes the handle on launcher exit.
+            if (!AssignProcessToJobObject(job, Process.GetCurrentProcess().Handle)) return 123;
+        }
         using (var child = Process.Start(start))
         {
             if (child == null) return 124;
