@@ -1,0 +1,50 @@
+# Joystick and Bundled C64 Library
+
+> **CodeOps Artifact Schema**: 1
+> **Implements**: blend65-v4/RD-05
+> **Status**: Ready for preflight — not executing
+> **Created**: 2026-10-01
+> **Last Updated**: 2026-10-01
+> **Scope mode**: strict
+
+## Overview
+
+Finish the bounded joystick pilot and ship its constants as real Blend65 source. The accepted
+staging decision is [AR-P2](00-ambiguity-register.md#ambiguity-register): direct hardware/predicate
+operations now, ordinary source-function migration only after its RD-08 optimization prerequisite.
+This plan does not close all RD-05 input or platform work.
+
+## Minimum-sufficient baseline
+
+One fixed packaged source file enters existing module analysis. Existing frontend, build evidence
+and editor diagnostics share its immutable input records. No package manager, new library framework,
+runtime input system or early inliner. The two bounded independent challenges and the exact old-test
+exception are recorded in the [decision register](00-ambiguity-register.md).
+
+## Document index
+
+| Document | Owns |
+| --- | --- |
+| [Decisions](00-ambiguity-register.md) | Scope, public API, physical contract, technical choices and approval authority |
+| [Requirements delta](01-requirements.md) | RD mapping, exclusions and pilot acceptance boundary |
+| [Current state](02-current-state.md) | Remaining integration seams and evidence limitations |
+| [Component design](03-joystick-library.md) | Interfaces, implementation responsibilities and failure propagation |
+| [Testing strategy](07-testing-strategy.md) | Independent input → output cases and their file ownership |
+| [Execution plan](99-execution-plan.md) | Two phases, 21 tasks; sole task-progress authority |
+
+## Related owners
+
+[Feature roadmap](../../00-roadmap.md) remains authoritative for overall delivery.
+[RD-05](../../requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md)
+owns the input requirements. [RD-08](../../requirements/RD-08-optimization-and-expert-output.md)
+owns the callable-helper prerequisite. The final analysis RD and qualified expert-skill change
+remain evidence-dependent follow-ups under AR-P7, not secretly added tasks.
+
+## Planning validation
+
+Targeted formatting, local links/anchors, resolved decision authority, source-manifest keys and
+specification-first task ordering pass. The derived plan helper reports Ready, 0/21, no problems.
+The roadmap counter check reports no feature-counter drift; its existing portfolio 1/10→4/10
+drift is intentionally deferred on this non-integration branch. No compiler tests were run for
+this document-only checkpoint. Frozen `spec/` and expert authority remain unchanged.
+This is planning validation, not a passing preflight or implementation qualification.
