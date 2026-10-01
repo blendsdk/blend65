@@ -1,18 +1,9 @@
-import {
-  access,
-  appendFile,
-  chmod,
-  cp,
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { access, appendFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { fakeTool } from "../../test-support/fake-tool.js";
 import * as compiler from "../index.js";
 import type {
   BuildOptions,
@@ -56,16 +47,12 @@ async function fakeVice(container: string, log: string): Promise<string> {
   const directory = join(container, "tools");
   await mkdir(directory);
   const script = [
-    "#!/usr/bin/env node",
     'const fs = require("node:fs");',
     "const log = process.env.BLEND65_SPEC_VICE_LOG;",
     'if (log) fs.appendFileSync(log, JSON.stringify(process.argv.slice(2)) + "\\n");',
     'process.stdout.write("x64sc (VICE 3.10)\\n");',
   ].join("\n");
-  await writeFile(join(directory, "x64sc.cjs"), script);
-  await writeFile(join(directory, "x64sc.cmd"), '@node "%~dp0\\x64sc.cjs" %*\r\n');
-  await writeFile(join(directory, "x64sc"), script);
-  await chmod(join(directory, "x64sc"), 0o755);
+  await fakeTool(join(directory, "x64sc"), script);
   process.env.BLEND65_SPEC_VICE_LOG = log;
   return directory;
 }
@@ -139,7 +126,11 @@ describe("compiler project services", () => {
       expect(ran.verification).toBe("interactive-unverified");
       expectMeasurements(ran.measurements);
       const launchedArtifact = join(ran.generation.directory, ran.generation.primaryArtifact);
-      expect(await readFile(log, "utf8")).toContain(launchedArtifact);
+      const calls = (await readFile(log, "utf8"))
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line) as string[]);
+      expect(calls[1]?.at(-1)).toBe(launchedArtifact);
     } finally {
       if (originalPath === undefined) delete process.env.PATH;
       else process.env.PATH = originalPath;

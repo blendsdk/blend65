@@ -172,7 +172,7 @@ describe("typed project diagnostics", () => {
       if (kind === "read") {
         restore = await denyRead(join(root, "src/main.blend"));
         await expect(readFile(join(root, "src/main.blend"))).rejects.toMatchObject({
-          code: "EACCES",
+          code: expect.stringMatching(/^(?:EACCES|EPERM)$/u),
         });
       }
       try {

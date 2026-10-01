@@ -1,7 +1,7 @@
 # RD-03 Frontend-First Implementation Plan
 
 > **Feature**: Asset-independent source, syntax and semantic services for the M1 slice
-> **Status**: Complete — partial RD-03 frontend plan; parent RD-03 remains executing
+> **Status**: Complete — partial RD-03 frontend plan; parent RD-03 Done on Linux
 > **Created**: 2026-09-18
 > **Implements**: blend65-v4/RD-03
 > **Coverage**: Partial; this plan cannot close RD-03

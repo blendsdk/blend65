@@ -116,7 +116,9 @@ describe("project path containment", () => {
     const output = join(root, "out");
     const restore = await denyRead(output);
     try {
-      await expect(readdir(output)).rejects.toMatchObject({ code: "EACCES" });
+      await expect(readdir(output)).rejects.toMatchObject({
+        code: expect.stringMatching(/^(?:EACCES|EPERM)$/u),
+      });
       expect(success(await load({ cwd: root })).sources.map((source) => source.sourceId)).toEqual([
         "src/main.blend",
       ]);
@@ -179,8 +181,13 @@ describe("project path containment", () => {
       const restore = await denyRead(path);
       try {
         if (kind === "source")
-          await expect(readFile(path)).rejects.toMatchObject({ code: "EACCES" });
-        else await expect(readdir(path)).rejects.toMatchObject({ code: "EACCES" });
+          await expect(readFile(path)).rejects.toMatchObject({
+            code: expect.stringMatching(/^(?:EACCES|EPERM)$/u),
+          });
+        else
+          await expect(readdir(path)).rejects.toMatchObject({
+            code: expect.stringMatching(/^(?:EACCES|EPERM)$/u),
+          });
         const result = await load({ cwd: root });
         failure(result, "PROJECT_READ_FAILED", [root]);
       } finally {

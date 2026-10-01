@@ -28,9 +28,9 @@ does not repeat or reopen its oracle (AR-C1, AR-C3).
 - Complete Specification 4 coverage remains in RD-04; broader C64 systems in RD-05–RD-07;
   optional optimization in RD-08; production tooling in RD-09; production/host qualification in
   RD-10.
-- Native Windows execution of publication, pin/cleanup, tool/process and editor smoke is the named
-  RD-10 deferral. Portable implementation, pure platform cases and Linux qualification remain here
-  (AR-C16).
+- Native Windows and macOS user-host qualification belongs to RD-10. DEF-3 retains the specific
+  unproved Windows normal-exit descendant case under R3.28/AC-10. Portable implementation, pure
+  platform cases and Linux qualification remain here (AR-C16, AR-P12).
 - No game engine/runtime, IRQ application handler, loader, D64, audio, multiplexer, debugger,
   production editor commands or another target.
 
@@ -66,5 +66,5 @@ does not repeat or reopen its oracle (AR-C1, AR-C3).
 9. The expert twin comparison records complete bytes/cycles/resources as the RD-08 baseline. Worse
    output fails; a meet-only result requires the project-mandated issue and concrete path to beat.
    No optional optimizer is introduced.
-10. Linux closeout passes AR-C15. Native Windows evidence is handed to RD-10 exactly as AR-C16
-    specifies; no Linux simulation is reported as Windows proof.
+10. Linux closeout passes AR-C15. Native Windows and macOS user-host evidence is handed to RD-10;
+    no Linux simulation is reported as native host proof (AR-P12).

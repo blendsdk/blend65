@@ -25,7 +25,7 @@ not current implementation status. No copied legacy runtime is maintained here.
 
 ## Development
 
-Requires Node.js 22 and Yarn classic 1.22.22. The replacement toolchain uses the
+Requires Node.js 22 or newer and Yarn classic 1.22.22. The replacement toolchain uses the
 normal stable TypeScript 7 package, `tsc --build`, Turbo and Vitest. Run:
 
 ```sh

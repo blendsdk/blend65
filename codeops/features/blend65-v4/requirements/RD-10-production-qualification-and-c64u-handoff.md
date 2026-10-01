@@ -19,9 +19,10 @@ applicable requirement has current evidence through its required endpoint and ev
 limitation is bounded, documented, and owned. (AR-002, AR-008, AR-011, AR-024, AR-033)
 
 The initial production target set is eight resident C64 PRG profiles plus one PAL/KERNAL/6581 D64
-profile. The host set is Node 22 on Linux x64 and Windows x64. This existing native Windows
-qualification window also closes RD-02 DEF-1 before RD-10 closes; it is not an earlier compiler
-development gate. VICE 3.10 `x64sc` remains the normal
+profile. The user release hosts are Node 22 or newer on Linux x64, Windows x64, macOS arm64, and
+macOS x64. Linux is the compiler development and deep C64 qualification host; the other hosts require
+native user-workflow proof at RD-10, not a separate compiler development workflow. RD-02 DEF-1 is
+already closed. VICE 3.10 `x64sc` remains the normal
 automated execution oracle, while exact physical C64 configurations close the profile, timing,
 CIA, SID, banking, and real-drive claims that emulation cannot prove. RD-10 also proves that the
 real shared architecture can accept C64 Ultimate differences without claiming that a `c64u` target,
@@ -29,7 +30,7 @@ turbo, REU/DMA, UltiSID, multi-SID, or Ultimate artifact is implemented. It then
 evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR-048)
 
 > **Decisions:** AR-002 through AR-005, AR-008 through AR-014, AR-020 through AR-026, AR-029
-> through AR-038, and AR-040 through AR-048.
+> through AR-038, AR-040 through AR-048, and AR-051.
 
 ---
 
@@ -40,7 +41,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 #### Production authority and claim closure — complexity XL
 
 - [ ] **R10.1 — Qualify one exact candidate.** Bind the production candidate to one clean Git
-  commit, one Specification 4 identity, one active expert-skill `2.0.0` content commit, one Node 22
+  commit, one Specification 4 identity, one active expert-skill `2.0.0` content commit, one recorded Node 22-or-newer
   release line, exact TypeScript/Yarn/Turbo/Vitest versions, ACME 0.97, VICE 3.10 `x64sc`, and every
   selected host/profile/artifact identity. A dirty tree, mutable version range, mismatched authority,
   skipped required endpoint, or later code change invalidates only the intersecting evidence but
@@ -64,7 +65,8 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   relabelling it as the current candidate. (AR-022, AR-032, AR-048)
 - [ ] **R10.5 — Publish one bounded support statement.** Name only the exact language identity,
   compiler version/candidate commit, nine C64 profiles, native asset/adapter versions, optimization
-  modes, safety options, Linux/Windows hosts, tools, and evidence levels that passed. Distinguish
+  modes, safety options, qualified Linux/Windows/macOS hosts, tools, and evidence levels that passed.
+  Distinguish
   `Verified complete`, `Verified partial`, `Incorrect`, `Scaffold/stub`, `Unknown`, and
   `VICE-verified / hardware-unverified`; never advertise a broader target, game engine, source
   debugger, hostile-media loader, future asset format, or C64U capability. (AR-002, AR-010,
@@ -98,40 +100,45 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   again only when a later change crosses several owned families or creates a new candidate; never
   trigger it after every local correction. (AR-011, AR-026, AR-033)
 
-#### Linux and Windows production hosts — complexity XL
+#### Linux, Windows, and macOS production hosts — complexity XL
 
-- [ ] **R10.11 — Qualify both production hosts natively.** On clean Node 22 `linux/x64` and
-  `win32/x64` environments, install the locked workspace, build/package the public products, run
-  language/project/security tests, execute CLI `check`/`build`/fresh `run`, start the LSP, exercise
+- [ ] **R10.11 — Qualify production hosts natively.** On clean Node 22-or-newer `linux/x64`,
+  `win32/x64`, `darwin/arm64`, and `darwin/x64` environments, install the locked workspace,
+  build/package the public products, run language/project/security tests, execute CLI
+  `check`/`build`/fresh `run`, start the LSP, exercise
   the packaged VS Code extension, discover pinned ACME/VICE, cancel owned child trees, and validate
   the shared manifest-basename predicate, exact PRG/D64 and fixed-sidecar component plans, native
   component limits and aliases, unique staging, ordinary-file/exclusive ownership,
   immutable-generation commit, atomic current-record replacement, reader pinning, normal bounded
-  retention, fail-closed uncertain-pin handling, and deliberate orphan recovery. Linux simulation
-  of Windows paths or processes is supporting evidence only. (AR-021, AR-022, AR-036, AR-047,
-  AR-048)
-- [ ] **R10.12 — Prove cross-host output identity.** Both production hosts build the same frozen
+  retention, fail-closed uncertain-pin handling, and deliberate orphan recovery. Host simulation
+  is supporting evidence only. Current host-identity warnings and build-evidence schema restrictions
+  must be corrected before macOS can pass. (AR-021, AR-022, AR-036, AR-047, AR-048, AR-051)
+  The Windows hosted ACME download failure recorded in the
+  [integration review](../plans/rd-02-clean-v4-foundation-and-deterministic-project-model/09-windows-integration-review.md)
+  also remains a delivery prerequisite here; preserve both trusted checksums.
+- [ ] **R10.12 — Prove cross-host output identity.** All production hosts build the same frozen
   release projects under identical profiles, modes, safety options, and manifest names admitted by
-  the shared Linux/Windows lexical floor. Normalized assembly,
+  the existing shared Linux/Windows lexical floor, also validated natively on macOS. Normalized assembly,
   labels, maps, debug evidence, packaged PRG/D64 bytes, diagnostics, and semantic query results are
   byte-identical where their contracts exclude host identity. `.build.json` records canonical
   semantic inputs and portable tool identities and hashes every other artifact, never itself.
   Reproducibility compares those semantic records and deterministic output hashes. Host-side records
   may differ only in `generationId` and explicitly declared tool path/hash, host, duration, and
   peak-memory provenance fields outside that comparison. (AR-022, AR-026, AR-032, AR-048)
-- [ ] **R10.13 — Qualify deterministic tool discovery.** On both hosts, prove the exact machine-local
-  version-1 tools-file precedence, ordered process-`PATH` scan, exact Linux `acme`/`x64sc` and Windows
-  `acme.exe`/`x64sc.exe` tokens, no-`PATHEXT` rule, canonical executable identity, ACME `--version`,
+- [ ] **R10.13 — Qualify deterministic tool discovery.** On each host, prove the exact machine-local
+  version-1 tools-file precedence, ordered process-`PATH` scan, exact Linux/macOS `acme`/`x64sc` and
+  Windows `acme.exe`/`x64sc.exe` tokens, no-`PATHEXT` rule, canonical executable identity, ACME `--version`,
   VICE `-version`, accepted output/version grammar, diagnostic behavior, and no-download/no-shell
-  boundary from RD-09. There is no ordinary-install-location registry. `check` and ordinary LSP do
+  boundary from RD-09, including the exact pinned Windows same-bundle exception in RD-03 AR-P11.
+  There is no ordinary-install-location registry. `check` and ordinary LSP do
   not load the file and work with no external tools; assembly emission remains available without
   tools; binary production fails clearly without ACME; `run` fails clearly without ACME or `x64sc`
   and never launches a stale artifact. (AR-022, AR-048)
-- [ ] **R10.14 — Bound non-production hosts honestly.** macOS, Linux ARM64, and other Node 22 hosts
-  remain best-effort even if individual checks pass. Hosts outside the declared Node 22 range and
+- [ ] **R10.14 — Bound non-production hosts honestly.** Linux ARM64, Windows ARM64, and other
+  Node 22-or-newer hosts remain best-effort even if individual checks pass. Hosts below Node 22 and
   32-bit or unknown architectures are unsupported. Promotion requires the same native end-to-end
   host boundary and a recorded requirements decision; Unix similarity alone is not qualification.
-  (AR-048)
+  (AR-048, AR-051)
 
 #### Complete C64 artifacts and emulator boundary — complexity XL
 
@@ -212,7 +219,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 #### Production documentation and release surface — complexity L
 
 - [ ] **R10.26 — Document the complete supported workflow.** Supply installation and first-project
-  instructions for Linux x64 and Windows x64, machine-local ACME/VICE discovery and overrides,
+  instructions for Linux x64, Windows x64, macOS arm64, and macOS x64, machine-local ACME/VICE discovery and overrides,
   `blend65.json`, `check`/`build`/`run`, VS Code trust/commands, nine C64 profiles, optimizer/safety
   choices, native assets, D64 loading, evidence files, diagnostics, and clean cancellation. Every
   command and path example must be exercised on its claimed host. (AR-003, AR-021, AR-022, AR-048)
@@ -286,12 +293,12 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   from the clean commit and locked dependencies. It may call existing package/fixture commands but
   cannot create an additional orchestration service or all-purpose release DSL.
 - [ ] **R10.38 — Capture bounded responsiveness trends — complexity S.** Include the RD-02/RD-09
-  phase-separated compiler, ACME, LSP, run-startup, and peak-memory observations for both production
+  phase-separated compiler, ACME, LSP, run-startup, and peak-memory observations for all production
   hosts. They are diagnostic trends only and cannot fail production through a wall-clock threshold.
   (AR-011, AR-026)
-- [ ] **R10.39 — Record optional best-effort host observations — complexity S.** If a macOS or Linux
-  ARM64 run is readily available, record its exact boundary and result without delaying the two-host
-  production decision or converting it into support. (AR-048)
+- [ ] **R10.39 — Record optional best-effort host observations — complexity S.** If a Linux or Windows
+  ARM64 run is readily available, record its exact boundary and result without delaying the
+  production decision or converting it into support. (AR-048, AR-051)
 
 ### Won't Have (Out of Scope)
 
@@ -334,7 +341,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 | D64/loading | One exact D64 profile, structure, trusted media, KERNAL load behavior, real drive | No implication of another disk profile or hostile-media containment |
 | Optimization | Correct direct `none`; three frontier-searched modes with two independent oracles, complete costs, expert floor, whole-program wins, and linked debt | A `none` correctness/search-boundary failure or optimized regression/untracked meet blocks that mode |
 | Tooling | Public API/CLI/LSP/VS Code package, trust, cancellation, debug/evidence coherence | Source-tree-only or mocked public path cannot qualify |
-| Hosts/tools | Native Linux/Windows Node 22, deterministic discovery, ACME 0.97, VICE 3.10 | Required host/tool unknown blocks that production host |
+| Hosts/tools | Native Linux x64, Windows x64, macOS arm64/x64 on Node 22 or newer; deterministic discovery, ACME 0.97, VICE 3.10 | Required host/tool unknown blocks that production host |
 | Physical C64 | Targeted PAL/NTSC, KERNAL/takeover, 6581/8580, timing/CIA/banking, and one D64 drive path | Required unverified/contradictory behavior blocks the affected claim |
 | Product boundary | Public package and binary inspection plus self-contained workload fixtures | Any injected game/runtime/future-target surface blocks the bounded claim |
 | C64U readiness | All readiness-table rows pass against real v4 architecture; handoff packet exists | A failed seam is repaired in v4, not handed off as C64U debt |
@@ -347,18 +354,18 @@ prove.
 
 ### Cross-host execution topology — complexity L
 
-| Evidence family | Linux x64 | Windows x64 | Cross-host comparison |
-|---|---|---|---|
-| Install/build/package | Native locked install and public package build | Native locked install and public package build | Package inventory and declared platform differences |
-| Language/project/security | Complete applicable suite | Complete applicable suite | Normalized diagnostics/query results |
-| Release fixtures | Build all frozen release projects | Build all frozen release projects | Assembly/evidence/PRG/D64 bytes |
-| Emulator profiles | Run all eight PRG smokes and D64 smoke | Run all eight PRG smokes and D64 smoke | Final observations for identical artifacts |
-| Deep C64 workload suite | Run once on the Linux x64 reference host | Do not duplicate unless Windows changes invalidate it | Same VICE identity plus byte-identical artifact is required for reuse |
-| Tooling integration | CLI/LSP/packaged VS Code, discovery and cancellation | CLI/LSP/packaged VS Code, discovery and Windows process-tree cancellation | Same public behavior; host fields remain explicit |
+| Evidence family | Linux x64 | Windows x64 | macOS arm64 and x64 | Cross-host comparison |
+|---|---|---|---|---|
+| Install/build/package | Native locked install and public package build | Native locked install and public package build | Native locked install and public package build on each architecture | Package inventory and declared platform differences |
+| Language/project/security | Complete applicable suite | Complete applicable suite | Complete applicable suite on each architecture | Normalized diagnostics/query results |
+| Release fixtures | Build all frozen release projects | Build all frozen release projects | Build all frozen release projects on each architecture | Assembly/evidence/PRG/D64 bytes |
+| Emulator profiles | Run all eight PRG smokes and D64 smoke | Run all eight PRG smokes and D64 smoke | Run all eight PRG smokes and D64 smoke on each architecture | Final observations for identical artifacts |
+| Deep C64 workload suite | Run once on the Linux x64 reference host | Reuse unless Windows changes invalidate it | Reuse unless macOS changes invalidate it | Same VICE identity plus byte-identical artifact is required for reuse |
+| Tooling integration | CLI/LSP/packaged VS Code, discovery and cancellation | CLI/LSP/packaged VS Code, discovery and Windows process-tree cancellation | CLI/LSP/packaged VS Code, discovery and process-group cancellation on each architecture | Same public behavior; host fields remain explicit |
 
 No row authorizes parallel VICE processes when they can contend for ports, temporary state, or host
-resources. Emulator runs remain sequential where required. A Windows result cannot be synthesized
-from Wine, path-string fixtures, or a Linux container.
+resources. Emulator runs remain sequential where required. Windows or macOS results cannot be
+synthesized from another host, emulation, or path-string fixtures.
 
 ### Physical C64 matrix — complexity XL
 
@@ -438,9 +445,9 @@ affected documentation. During implementation, use directed tests for each chang
 final candidate boundary:
 
 1. verify all prerequisite closeouts and exact identities;
-2. run complete language/project/security qualification on both production hosts;
-3. build every frozen release project on both hosts and compare normalized outputs;
-4. run the nine bounded VICE profile smokes on both hosts sequentially;
+2. run complete language/project/security qualification on each production host;
+3. build every frozen release project on each host and compare normalized outputs;
+4. run the nine bounded VICE profile smokes on each host sequentially;
 5. run the deep integrated C64/device/asset/optimizer/tooling matrix once on the Linux x64 reference
    host;
 6. complete and reconcile the exact physical matrix;
@@ -459,13 +466,13 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 | Owner | RD-10 contract |
 |---|---|
 | RD-01 | Consume one frozen Specification 4 and expert `2.0.0`; requalify changed authority before proceeding. |
-| RD-02 | Consume the clean locked project/package model, compiler-owned output-state rules, immutable generations/current record, and native Linux/Windows paths; add no second model. |
+| RD-02 | Consume the clean locked project/package model, compiler-owned output-state rules, immutable generations/current record, and native Linux/Windows paths; qualify the same public model on macOS in RD-10 without reopening RD-02. |
 | RD-03/RD-04 | Reuse M1 and the complete `optimization: none` language/SFA/lowering path without retaining M1's subset as a limit. |
 | RD-05 | Consume eight resident profiles, platform APIs, user-authored workloads, costs, VICE evidence, and physical assignments. |
 | RD-06 | Consume exact producer fixtures, adapter identities, composition, Integrator-style refinement, and interval placement. |
 | RD-07 | Consume the one trusted-media KERNAL D64, quiescence/publication, HLE-010, and named real-drive QA. |
 | RD-08 | Consume four-mode qualification, independent oracles, full costs, expert-floor results, program wins, and parity debt. |
-| RD-09 | Consume public CLI/LSP/VS Code/debug, independent sidecar schemas, config-or-`PATH` tool discovery, and generation/pinning behavior and qualify them on both production hosts. |
+| RD-09 | Consume public CLI/LSP/VS Code/debug, independent sidecar schemas, config-or-`PATH` tool discovery, and generation/pinning behavior; qualify the macOS user workflow in RD-10. |
 | `blend65-c64u/RD-01` | Receive passed seam evidence, unknowns, sources, ownership, and a first target-native proof seed—never implementation claims. |
 
 ---
@@ -493,7 +500,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 
 ### Host responsiveness — complexity S
 
-- Record phase-separated trends on Linux and Windows without duration or peak-memory pass/fail
+- Record phase-separated trends on Linux, Windows, and macOS without duration or peak-memory pass/fail
   thresholds. A measured regression is investigated and owned, not hidden or “fixed” by adding a
   daemon, cache, worker farm, or readiness service.
 
@@ -535,7 +542,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
   retries, cancellation waits, and concurrent processes to prevent local resource exhaustion.
 - **Secrets management:** No token, password, signing key, publisher credential, ROM image, or
   private tool license is checked in or required by the production qualification record.
-- **Infrastructure:** Linux and Windows jobs use locked dependencies and least-required user
+- **Infrastructure:** Linux, Windows, and macOS jobs use locked dependencies and least-required user
   privileges. They expose no public service, do not run untrusted project builds automatically, and
   retain only intentional evidence/artifacts. Emulator monitor ports remain loopback-bound and are
   closed after each run.
@@ -554,7 +561,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 | Release verification | New readiness platform / one integration closeout over owner evidence | One bounded closeout | Preserves proof without recreating v3's second product. | AR-011, AR-026 |
 | Resident targets | One baseline / eight exact C64 profiles | Eight exact PRG profiles | Qualifies PAL/NTSC, KERNAL/takeover, and 6581/8580 differences honestly. | AR-024 |
 | Disk delivery | PRG only / one qualified D64 profile / general loaders | One PAL/KERNAL/6581 D64 | Delivers large assets without a loader framework. | AR-029, AR-042 |
-| Hosts | Linux only / Linux and Windows / Linux, Windows, macOS | Linux x64 and Windows x64 production | Covers the current workflow and asset-authoring ecosystem without an unjustified wider matrix. | AR-048 |
+| Hosts | Linux only / Linux and Windows / Linux, Windows, macOS | Linux x64, Windows x64, macOS arm64/x64 production | Linux remains the development host; Windows and macOS users require native release qualification. | AR-048, AR-051 |
 | Hardware evidence | VICE only / targeted physical QA / universal hardware matrix | Targeted exact-profile QA | Closes emulator limits while keeping claims bounded to real configurations. | AR-008, AR-024 |
 | C64U timing | Implement in v4 / readiness then successor | Readiness plus owned successor | Keeps C64 production bounded while protecting the next target's architecture. | AR-024, AR-035 |
 | External release | Publish automatically / prepare and request separately | Prepare local packages only | Publication is an outward user-owned action. | AR-021, AR-022 |
@@ -569,7 +576,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 
 1. [ ] **AC-01 — Candidate identity:** The closeout names one clean Git commit, Specification 4
    identity, expert `2.0.0` content commit, Node/TypeScript/Yarn/Turbo/Vitest versions, ACME 0.97,
-   VICE 3.10 `x64sc`, two production hosts, nine profile IDs, and hashes for every primary release
+   VICE 3.10 `x64sc`, four production host identities, nine profile IDs, and hashes for every primary release
    artifact. Changing one named input invalidates the intersecting result.
 2. [ ] **AC-02 — Prerequisite closure:** Every RD-01 through RD-09 row links an approved RD,
    completed plan, acceptance/closeout evidence, and zero unresolved critical/major findings.
@@ -597,7 +604,8 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 9. [ ] **AC-09 — One bounded release run:** The command/evidence log shows directed prerequisite
    checks, one complete integrated candidate boundary, and only dependency-justified reruns after
    failure. It contains no all-tests rerun after each local fix and no new readiness service.
-10. [ ] **AC-10 — Native host qualification:** Clean Node 22 `linux/x64` and `win32/x64` runs each
+10. [ ] **AC-10 — Native host qualification:** Clean Node 22-or-newer `linux/x64`, `win32/x64`,
+    `darwin/arm64`, and `darwin/x64` runs each
     install, build, package, check, build/run a project, start LSP/packaged VS Code, discover tools,
     cancel owned process trees, and validate unique staging, immutable generation/current-record
     publication, concurrent build/reader pins, and normal bounded retention. Current, every active
@@ -612,9 +620,10 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
     publication without changing the prior current generation. First and repeated builds prove
     that `outDir` is creatable compiler-owned output state excluded from discovery/hashes,
     including under `sourceRoot: "."`; file, symlink, escape, and declared-input collisions fail
-    safely. Wine, containers pretending to be Windows, or path fixtures cannot replace the native
-    Windows run.
-11. [ ] **AC-11 — Cross-host determinism:** Both hosts build all frozen release projects. Normalized
+    safely. Windows normal owner exit with a surviving descendant must keep its pin until all owned
+    processes stop or report conservative retention (RD-03 DEF-3). Emulation, containers, or path
+    fixtures cannot replace a native host run.
+11. [ ] **AC-11 — Cross-host determinism:** All production hosts build all frozen release projects. Normalized
     assembly, labels, maps, diagnostics, debug evidence, PRGs, and D64s are byte-identical. Each of
     `.assets.json`, `.memory.json`, `.costs.json`, and `.build.json` passes its independent versioned
     schema, exact `Unknown`/field/canonical-encoding rules, and unsupported-major cases. Identical
@@ -626,17 +635,18 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
     host/tool-path/hash/timing/memory provenance fields may differ.
 12. [ ] **AC-12 — Tool discovery:** Configured path, absent config, single omitted key, PATH, every
     valid override combination, native PATH ordering, wrong-version, broken-symlink, and missing-tool
-    cases pass RD-09 precedence on both hosts. Present-file cases require integer `schemaVersion: 1`
+    cases pass RD-09 precedence on each host. Present-file cases require integer `schemaVersion: 1`
     and reject missing/unsupported versions, duplicate/unknown keys, wrong types, and invalid explicit
-    paths without fallback. Linux probes only `acme`/`x64sc`; Windows probes only
+    paths without fallback. Linux and macOS probe only `acme`/`x64sc`; Windows probes only
     `acme.exe`/`x64sc.exe`; `PATHEXT`, `where.exe`, registry/App Paths, install-location probing,
     extensionless Windows aliases, and a shell are absent. Direct ACME `--version` and VICE
     `-version` cases cover CRLF/LF, stdout/stderr, exact compatible identities, malformed output,
-    nonzero exit, and first-match wrong-version failure without later search. `check` and ordinary
+    nonzero exit, first-match wrong-version failure without later search, and the Windows
+    empty-banner companion proof with exact pinned binary/ROM hashes. `check` and ordinary
     LSP do not load the file. No download exists.
-13. [ ] **AC-13 — Best-effort boundary:** Public support documentation labels macOS, Linux ARM64,
-    and other Node 22 hosts best-effort, labels out-of-range/32-bit/unknown hosts unsupported, and
-    contains no inference of macOS production support from Unix similarity.
+13. [ ] **AC-13 — Best-effort boundary:** Public support documentation labels Linux ARM64, Windows
+    ARM64, and other unqualified Node 22-or-newer hosts best-effort, labels out-of-range/32-bit/unknown
+    hosts unsupported, and claims macOS arm64/x64 only after their own native end-to-end proof.
 14. [ ] **AC-14 — Eight PRG profiles:** Exactly eight fresh profile builds produce byte-validated
     PRGs and exact VICE 3.10 runs with recorded expected state/exit. Removing or substituting any
     PAL/NTSC, KERNAL/takeover, or 6581/8580 result fails the matrix.
@@ -678,7 +688,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 24. [ ] **AC-24 — Emulator disagreement:** A seeded VICE-versus-hardware difference preserves both
     observations, checks identities, receives one bounded classification and owner, and blocks a
     required unresolved profile rather than averaging or deleting either result.
-25. [ ] **AC-25 — Production documentation:** Linux and Windows install/first-project/tool/CLI/
+25. [ ] **AC-25 — Production documentation:** Linux, Windows, and macOS install/first-project/tool/CLI/
     VS Code instructions execute as written. Profile, mode, safety, asset, loading, evidence,
     limitation, and unsupported-target documentation matches the final support statement.
 26. [ ] **AC-26 — Local packaging only:** Installable compiler/CLI/LSP/VSIX artifacts pass package
@@ -706,7 +716,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
     malformed inputs, output collisions, executable/argument injection, hostile tool/monitor output,
     workspace trust, cancellation cleanup, stale artifacts, corrupted records/D64, and unrelated
     loopback services without outside file/process/network effects.
-33. [ ] **AC-33 — Bounded responsiveness:** Linux and Windows closeout records contain
+33. [ ] **AC-33 — Bounded responsiveness:** Linux, Windows, and macOS closeout records contain
     phase-separated duration and peak-memory observations with complete identities and no wall-clock
     or memory threshold that changes pass/fail.
 34. [ ] **AC-34 — Explicit production decision:** The user receives the exact candidate/support

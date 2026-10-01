@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [v3]
+    branches: [v3, feature/v4-windows]
   pull_request:
 
 jobs:
@@ -31,6 +31,24 @@ jobs:
           echo "397afb28b56f1503722d7d09f0d24e83ae3643885bb512262146bdb5f41ac760  acme_0.97_amd64.deb" | sha256sum --check
           sudo dpkg --install acme_0.97_amd64.deb
           acme --version | grep 'release 0.97'
+      - name: Install checksum-pinned ACME 0.97 on Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'acme0.97win.zip'
+          $directory = Join-Path $env:RUNNER_TEMP 'blend65-acme'
+          Invoke-WebRequest 'https://downloads.sourceforge.net/project/acme-crossass/win32/acme0.97win.zip' -OutFile $archive
+          $archiveHash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($archiveHash -ne '68f7c80c23806eced6ab96622d8e22b500ed76b4d34a01af33461dee04edc359') { throw 'ACME archive checksum mismatch' }
+          Expand-Archive -LiteralPath $archive -DestinationPath $directory
+          $matches = @(Get-ChildItem -LiteralPath $directory -Recurse -Filter acme.exe -File)
+          if ($matches.Count -ne 1) { throw 'Expected exactly one ACME executable' }
+          $executable = $matches[0].FullName
+          $actual = (Get-FileHash $executable -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne 'dfe1ea314a1d66854999308834a4636e7cfd1507ed21ba689dc9f00ac8051957') { throw 'ACME executable checksum mismatch' }
+          $version = (& $executable --version) -join "`n"
+          if ($version -notmatch 'release 0\.97') { throw 'Wrong ACME version' }
+          Add-Content -Path $env:GITHUB_PATH -Value (Split-Path $executable -Parent)
       - name: Install
         run: yarn install --frozen-lockfile
       - name: Build
@@ -38,4 +56,6 @@ jobs:
       - name: Typecheck
         run: yarn typecheck
       - name: Test
+        env:
+          BLEND65_FOUNDATION_CI: "1"
         run: yarn test

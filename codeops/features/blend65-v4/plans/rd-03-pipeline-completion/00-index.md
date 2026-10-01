@@ -1,7 +1,7 @@
 # RD-03 Pipeline Completion Implementation Plan
 
 > **Feature**: Playable M1 complete compiler pipeline
-> **Status**: Preflight passed — ready to execute
+> **Status**: Done — Linux development milestone; native user-host gates in RD-10
 > **Created**: 2026-09-20
 > **Implements**: blend65-v4/RD-03
 > **Coverage**: Remaining parent RD after the completed frontend-first plan
@@ -15,8 +15,8 @@ the compiler, Static Frame Allocation (SFA), one selected C64 profile, raw sprit
 documented 6510 lowering, terminal ACME emission, direct generation publication, truthful CLI and
 diagnostics-only editor consumers, and one ACME/VICE-qualified M1 program (AR-C1–AR-C12).
 
-Native SpritePad import remains in RD-06. Native Windows execution remains the approved RD-10
-qualification deferral; it does not block Linux compiler work (AR-C1, AR-C16).
+Native SpritePad import remains in RD-06. Native Windows and macOS user-host qualification belongs
+to RD-10; it does not block Linux compiler work (AR-C1, AR-C16, AR-P12).
 
 ## Minimum-Sufficient Baseline
 

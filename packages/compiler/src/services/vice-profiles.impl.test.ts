@@ -1,8 +1,9 @@
-import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { describe, expect, it, vi } from "vitest";
+import { fakeTool } from "../../test-support/fake-tool.js";
 import { launchVice, probeVice } from "./vice.js";
 
 describe("closed emulator selection and bounded cleanup", () => {
@@ -24,9 +25,93 @@ describe("closed emulator selection and bounded cleanup", () => {
     ).toBe("cancelled");
   });
 
+  it.skipIf(process.platform !== "win32")(
+    "should classify a vanished native Windows executable as emulator-start",
+    async () => {
+      const root = await mkdtemp(join(tmpdir(), "blend65-vice-vanished-"));
+      try {
+        expect(
+          await launchVice(join(root, "x64sc.exe"), "unused.prg", "c64-pal-prg-kernal-6581"),
+        ).toBe("start");
+      } finally {
+        await rm(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(process.platform !== "win32")(
+    "should stop a native Windows emulator and its descendant on cancellation",
+    async () => {
+      const root = await mkdtemp(join(tmpdir(), "blend65-vice-tree-"));
+      const marker = join(root, "processes.json");
+      const executable = join(root, "x64sc.exe");
+      let ownerPid: number | undefined;
+      let descendantPid: number | undefined;
+      const controller = new AbortController();
+      let pending: ReturnType<typeof probeVice> | undefined;
+      try {
+        await fakeTool(
+          executable,
+          `const fs = require("node:fs");
+const { spawn } = require("node:child_process");
+const descendant = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+  stdio: "ignore", windowsHide: true,
+});
+fs.writeFileSync(${JSON.stringify(marker + ".tmp")}, JSON.stringify({
+  owner: Number(process.env.BLEND65_FAKE_TOOL_PID), descendant: descendant.pid,
+}));
+fs.renameSync(${JSON.stringify(marker + ".tmp")}, ${JSON.stringify(marker)});
+setInterval(() => {}, 1000);
+`,
+          "commonjs",
+          false,
+        );
+        pending = probeVice(executable, controller.signal);
+        const deadline = performance.now() + 4_000;
+        while (ownerPid === undefined && performance.now() < deadline) {
+          const value = await readFile(marker, "utf8").catch(() => "");
+          if (value) {
+            const pids = JSON.parse(value) as { owner: number; descendant: number };
+            ownerPid = pids.owner;
+            descendantPid = pids.descendant;
+          } else await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        expect(ownerPid).toBeGreaterThan(0);
+        expect(descendantPid).toBeGreaterThan(0);
+        controller.abort();
+        expect(await pending).toBe("cancelled");
+        expect(() => process.kill(descendantPid!, 0)).toThrow();
+      } finally {
+        controller.abort();
+        if (ownerPid !== undefined) {
+          const systemRoot = process.env.SystemRoot ?? process.env.WINDIR ?? "C:\\Windows";
+          const killer = spawn(
+            join(systemRoot, "System32", "taskkill.exe"),
+            ["/PID", String(ownerPid), "/T", "/F"],
+            { shell: false, stdio: "ignore", windowsHide: true },
+          );
+          await new Promise<void>((resolve) => {
+            killer.once("error", () => resolve());
+            killer.once("close", () => resolve());
+          });
+        }
+        if (descendantPid !== undefined) {
+          try {
+            process.kill(descendantPid, "SIGKILL");
+          } catch {
+            /* The tree stop already removed this descendant. */
+          }
+        }
+        await pending;
+        await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+      }
+    },
+    15_000,
+  );
+
   it("should report uncertain probe cleanup without requiring a close event", async () => {
     const root = await mkdtemp(join(tmpdir(), "blend65-probe-cleanup-"));
-    const executable = join(root, "x64sc");
+    const executable = join(root, process.platform === "win32" ? "x64sc.exe" : "x64sc");
     const marker = join(root, "pid");
     const controller = new AbortController();
     const realKill = process.kill.bind(process);
@@ -34,14 +119,12 @@ describe("closed emulator selection and bounded cleanup", () => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let pending: ReturnType<typeof probeVice> | undefined;
     try {
-      await writeFile(
+      await fakeTool(
         executable,
-        `#!/usr/bin/env node
-require("node:fs").writeFileSync(${JSON.stringify(marker)}, String(process.pid));
+        `require("node:fs").writeFileSync(${JSON.stringify(marker)}, String(Number(process.env.BLEND65_FAKE_TOOL_PID) || process.pid));
 setInterval(() => {}, 1000);
 `,
       );
-      await chmod(executable, 0o755);
       pending = probeVice(executable, controller.signal);
       const deadline = performance.now() + 4_000;
       while (pid === undefined && performance.now() < deadline) {
@@ -50,11 +133,13 @@ setInterval(() => {}, 1000);
         else await new Promise((resolve) => setTimeout(resolve, 20));
       }
       if (pid === undefined) throw new Error("Owned probe did not publish its process identity");
-      vi.spyOn(process, "kill").mockImplementation((candidate, signal) => {
-        if (Math.abs(candidate) === pid)
-          throw Object.assign(new Error("Owned process denied"), { code: "EPERM" });
-        return realKill(candidate, signal);
-      });
+      if (process.platform === "win32") vi.stubEnv("SystemRoot", join(root, "missing-system"));
+      else
+        vi.spyOn(process, "kill").mockImplementation((candidate, signal) => {
+          if (Math.abs(candidate) === pid)
+            throw Object.assign(new Error("Owned process denied"), { code: "EPERM" });
+          return realKill(candidate, signal);
+        });
       controller.abort();
       await expect(
         Promise.race([
@@ -67,16 +152,17 @@ setInterval(() => {}, 1000);
     } finally {
       clearTimeout(timer);
       vi.restoreAllMocks();
+      vi.unstubAllEnvs();
       controller.abort();
       if (pid !== undefined) {
         try {
-          realKill(-pid, "SIGKILL");
+          realKill(process.platform === "win32" ? pid : -pid, "SIGKILL");
         } catch {
           /* The owned group may already have exited. */
         }
       }
       await pending;
-      await rm(root, { recursive: true, force: true });
+      await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
     }
   }, 15_000);
 
@@ -88,14 +174,12 @@ setInterval(() => {}, 1000);
       const root = await mkdtemp(join(tmpdir(), "blend65-uncertain-exit-"));
       const executable = join(root, "x64sc");
       const marker = join(root, "pid");
-      await writeFile(
+      await fakeTool(
         executable,
-        `#!/usr/bin/env node
-require("node:fs").writeFileSync(${JSON.stringify(marker)}, String(process.pid));
+        `require("node:fs").writeFileSync(${JSON.stringify(marker)}, String(Number(process.env.BLEND65_FAKE_TOOL_PID) || process.pid));
 setInterval(() => {}, 1000);
 `,
       );
-      await chmod(executable, 0o755);
       const moduleUrl = new URL("../../dist/services/vice.js", import.meta.url).href;
       const script = `
 import { readFile } from "node:fs/promises";
@@ -114,7 +198,8 @@ while (!pid && performance.now() < deadline) {
 }
 if (!pid) throw new Error("Missing owned emulator identity");
 const realKill = process.kill.bind(process);
-process.kill = (candidate, signal) => {
+if (process.platform === "win32") process.env.SystemRoot = ${JSON.stringify(join(root, "missing-system"))};
+else process.kill = (candidate, signal) => {
   if (Math.abs(candidate) === pid) throw Object.assign(new Error("Denied"), { code: "EPERM" });
   return realKill(candidate, signal);
 };
@@ -149,20 +234,21 @@ process.exitCode = outcome === "cleanup-uncertain" ? 10 : 1;
         expect(output).toBe("cleanup-uncertain");
         expect(code).toBe(10);
         const pid = Number(await readFile(marker, "utf8"));
-        expect(process.kill(pid, 0)).toBe(true);
+        if (process.platform === "win32") expect(pid).toBeGreaterThan(0);
+        else expect(process.kill(pid, 0)).toBe(true);
       } finally {
         clearTimeout(timer);
         const text = await readFile(marker, "utf8").catch(() => "");
         if (/^[1-9][0-9]*$/u.test(text)) {
           try {
-            process.kill(-Number(text), "SIGKILL");
+            process.kill(process.platform === "win32" ? Number(text) : -Number(text), "SIGKILL");
           } catch {
             /* Already stopped. */
           }
         }
         if (driver.exitCode === null && driver.signalCode === null) driver.kill("SIGKILL");
         await closed;
-        await rm(root, { recursive: true, force: true });
+        await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
       }
     },
     15_000,

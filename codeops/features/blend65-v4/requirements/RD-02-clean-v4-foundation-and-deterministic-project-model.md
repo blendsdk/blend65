@@ -75,7 +75,7 @@ compile Blend65 before RD-03 supplies the first real frontend and complete pipel
   `typescript` package and use its `tsc` executable. Do not use `@typescript/native-preview`,
   `tsgo`, a nightly channel, or a TypeScript 6 compatibility compiler in the production v4
   toolchain. TypeScript project references own TypeScript compilation dependencies. (AR-036)
-- [ ] **R2.8 — Retain the approved monorepo foundation.** Use Node 22, Yarn classic workspaces,
+- [ ] **R2.8 — Retain the approved monorepo foundation.** Use Node 22 or newer, Yarn classic workspaces,
   Turborepo, TypeScript project references, and Vitest. Yarn owns installation/linking and workspace
   relationships; TypeScript owns typed project dependencies; Turbo owns cross-workspace task
   orchestration and caching. These roles must not be represented as interchangeable or maintained
@@ -448,11 +448,10 @@ profile, manifest target, or implementation. (AR-024, AR-035)
   source identities, ordering, hashes, diagnostics, and snapshot identity regardless of checkout
   path or working directory. Different spellings are different source identities even when their
   bytes match.
-- Path behavior is production-qualified on Node 22 for `linux/x64` and `win32/x64` without
+- Path behavior is production-qualified on Node 22 or newer for `linux/x64` and `win32/x64` without
   weakening containment on symbolic links, case-insensitive filesystems, Windows drive/UNC syntax,
-  or POSIX paths. macOS, Linux ARM64, and other Node 22 hosts remain best-effort until they pass the
-  same complete qualification; 32-bit/unknown architectures and hosts outside the declared Node 22
-  range are unsupported. (AR-048)
+  or POSIX paths. macOS, Linux ARM64, and other hosts using Node 22 or newer remain best-effort until they pass the
+  same complete qualification; 32-bit/unknown architectures and hosts below Node 22 are unsupported. (AR-048)
 - Locale, wall-clock time, directory enumeration, Turbo scheduling, and CPU concurrency cannot
   change observable outputs.
 
@@ -566,7 +565,7 @@ profile, manifest target, or implementation. (AR-024, AR-035)
 14. [ ] **AC-14 — Project discovery:** Tests from the project directory, a nested directory, an
     unrelated directory, and with an explicit relative and absolute `--project` path prove that the
     nearest or explicit manifest wins and that its directory is always the project root.
-15. [ ] **AC-15 — Path containment:** Native Node 22 tests on `linux/x64` and `win32/x64` reject
+15. [ ] **AC-15 — Path containment:** Native Node 22-or-newer tests on `linux/x64` and `win32/x64` reject
     absolute manifest content paths, lexical `..` escape, symlink escape/race, symlink cycle, wrong
     input file type, unreadable input, resolved identity outside the project root, a file where an
     output directory is required, and an explicit source/asset inside `outDir`. A missing contained

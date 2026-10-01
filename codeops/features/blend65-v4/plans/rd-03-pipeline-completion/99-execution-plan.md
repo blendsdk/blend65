@@ -2,7 +2,7 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-23 10:48 CEST
+> **Last Updated**: 2026-10-01 10:37 CEST
 > **Progress**: 79/79 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
@@ -633,8 +633,12 @@ test files are immutable implementation inputs from this point onward.
   feature roadmap — `08-closeout.md`, `codeops/features/blend65-v4/00-roadmap.md`; commit the final
   green RD-03 Linux checkpoint without pushing. ✅ (completed: 2026-09-23 10:48 CEST)
 
-Deliverable: the real playable M1 pipeline is Linux-qualified; only named native-Windows evidence
-remains deferred to RD-10.
+Deliverable: the real playable M1 pipeline is Linux-qualified and the development milestone is
+Done under AR-P12. DEF-3 retains the unproved Windows normal owner-exit descendant case as a
+mandatory RD-10 release gate. Requirements AR-051 also assigns native macOS user-host proof to
+RD-10; neither release-host claim follows from Linux qualification. The
+[Windows integration review](../rd-02-clean-v4-foundation-and-deterministic-project-model/09-windows-integration-review.md)
+records the branch integration and regression boundary.
 
 ## Dependencies
 
@@ -660,5 +664,6 @@ changing the RD lifecycle state.
 
 RD-03 Linux implementation is complete only when all 79 tasks are `[x]`, every phase review has no
 open critical/major finding, all final checks pass, no dead code or unused package surface remains,
-the roadmap/closeout evidence is current, and the sole missing native-host evidence is explicitly
-bounded by AR-C16 rather than reported as a pass.
+the roadmap/closeout evidence is current, and unproved native release-host evidence is explicitly
+owned by RD-10 under AR-P12/AR-051 rather than reported as a pass. AR-P12 supersedes only the
+earlier AR-C16 closeout dependency; process ownership obligations remain unchanged.

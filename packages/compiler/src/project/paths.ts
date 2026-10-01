@@ -150,6 +150,24 @@ async function resolveOutput(
       signal?.throwIfAborted();
       if (error instanceof ProjectFailure) throw error;
       const code = hostErrorCode(error);
+      // Windows can deny realpath on an unreadable ordinary output directory even
+      // though lstat/stat still identify it. Canonicalize its readable parent and
+      // retain the last component without traversing or enumerating output.
+      if (code === "EPERM" && parent === logicalPath) {
+        try {
+          const metadata = await lstat(parent);
+          if (metadata.isDirectory() && !metadata.isSymbolicLink()) {
+            const canonicalParent = await realpath(dirname(parent));
+            signal?.throwIfAborted();
+            const canonical = join(canonicalParent, basename(parent));
+            if (!isContained(root, canonical))
+              throwPathFailure("/outDir", "escapes project root", null, "/outDir");
+            return canonical;
+          }
+        } catch (fallbackError) {
+          if (fallbackError instanceof ProjectFailure) throw fallbackError;
+        }
+      }
       if (code === "ENOTDIR") throwPathFailure("/outDir", "expected a directory", null, "/outDir");
       if (code !== "ENOENT") throwReadFailure(error, "/outDir");
       // A dangling symlink is an existing unresolved identity, not a missing directory.

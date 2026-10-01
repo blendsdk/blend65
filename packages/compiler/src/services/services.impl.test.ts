@@ -1,19 +1,10 @@
 import { createHash } from "node:crypto";
-import {
-  access,
-  chmod,
-  cp,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { access, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { fakeTool } from "../../test-support/fake-tool.js";
 import { buildProject, runProject } from "./services.js";
 
 const M1_PROJECT = fileURLToPath(new URL("../../../../examples/m1/", import.meta.url));
@@ -46,9 +37,7 @@ async function freshFoundation(): Promise<string> {
 async function fakeVice(container: string, body: string): Promise<string> {
   const directory = join(container, `vice-${temporaryRoots.length}-${Date.now()}`);
   await mkdir(directory);
-  const executable = join(directory, "x64sc");
-  await writeFile(executable, `#!/usr/bin/env node\n${body}\n`);
-  await chmod(executable, 0o755);
+  await fakeTool(join(directory, "x64sc"), body);
   return directory;
 }
 
@@ -83,6 +72,7 @@ afterEach(async () => {
 });
 
 describe("compiler service hardening", () => {
+  // Two real game builds test publication identity, not a wall-clock performance limit.
   it("should publish a fresh generation for each unchanged build", async () => {
     const root = await freshM1();
     const project = join(root, "blend65.json");
@@ -122,7 +112,7 @@ describe("compiler service hardening", () => {
     expect(debug.ranges.length).toBeGreaterThan(0);
     const current = JSON.parse(await readFile(join(root, "out/current.json"), "utf8"));
     expect(current.generationId).toBe(second.generation.generationId);
-  });
+  }, 30_000);
 
   it("should publish disjoint live ranges for SFA occupants that share one home", async () => {
     const root = await freshFoundation();
@@ -157,7 +147,7 @@ describe("compiler service hardening", () => {
     expect(first.liveRangeIndexes.every((index: number) => !secondRanges.has(index))).toBe(true);
   });
 
-  it.each(["3.100", "3.10beta", "3.10-evil", "3.10.0"])(
+  it.each(["3.100", "3.10beta", "3.10-evil"])(
     "should reject the non-exact VICE %s banner",
     async (version) => {
       const root = await freshM1();
@@ -174,6 +164,22 @@ describe("compiler service hardening", () => {
     },
   );
 
+  it("should accept the explicitly supported VICE 3.10.0 banner", async () => {
+    const root = await freshM1();
+    const originalPath = process.env.PATH;
+    const tools = await fakeVice(root, 'process.stdout.write("x64sc (VICE 3.10.0)\\n");');
+    process.env.PATH = `${tools}${delimiter}${originalPath ?? ""}`;
+    try {
+      expect(await runProject({ project: join(root, "blend65.json") })).toMatchObject({
+        kind: "success",
+        status: "exited",
+      });
+    } finally {
+      if (originalPath === undefined) delete process.env.PATH;
+      else process.env.PATH = originalPath;
+    }
+  });
+
   it.skipIf(process.platform === "win32")(
     "should stop the complete VICE process group before returning cancellation",
     async () => {
@@ -186,7 +192,7 @@ describe("compiler service hardening", () => {
         [
           'const { spawn } = require("node:child_process");',
           'const fs = require("node:fs");',
-          'if (process.argv.includes("--version")) { process.stdout.write("x64sc (VICE 3.10)\\n"); process.exit(0); }',
+          'if (process.argv.includes("-version")) { process.stdout.write("x64sc (VICE 3.10)\\n"); process.exit(0); }',
           'const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });',
           "fs.writeFileSync(process.env.BLEND65_IMPL_VICE_MARKER, JSON.stringify({ parent: process.pid, child: child.pid }));",
           "setInterval(() => {}, 1000);",

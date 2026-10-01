@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: ✅ GATE PASSED — all 50 items resolved
-> **Last Updated**: 2026-09-13
+> **Status**: ✅ GATE PASSED — all 51 items resolved
+> **Last Updated**: 2026-10-01
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -56,6 +56,7 @@
 | AR-048 | Scope (complex) / production host matrix | Which host operating-system and architecture combinations receive the complete production compiler, editor, ACME, and VICE workflow, and how are machine-local tools selected? | Linux x64 plus Windows x64 production, with other Node 22 hosts best-effort / Linux x64 only / Linux, Windows, and macOS across x64 and ARM64 | Qualify `linux/x64` and `win32/x64` on Node 22 first; other Node 22 hosts are best-effort. The compiler library is tool-free. Tool-requiring CLI/editor commands read optional machine-local `tools.jsonc` schema 1, using valid explicit absolute paths first and otherwise one ordered process-`PATH` scan for `acme`/`x64sc` on Linux or `acme.exe`/`x64sc.exe` on Windows. Do not consult `PATHEXT`, a shell, registry, or install-location list. Validate with ACME `--version` and VICE `-version`; invalid explicit paths or the first PATH match with an incompatible identity do not fall back. Projects cannot supply tools and nothing auto-installs them. | ✅ Resolved |
 | AR-049 | Technical / authority verification | How much process is required to freeze Specification 4 and requalify expert `2.0.0`? | **Recommended after complexity reassessment:** one central normative inventory plus deterministic corpus digest and raw final hashes; one concise `prior path / disposition / governing decision / destination` crosswalk; exact direct checks with durable evidence; impact-based qualification of changed and transitively dependent expert cases plus one unchanged control per casebook and all-case structural checks; one final independent evidence/domain review; candidate bytes remain outside the live skill until explicit approval. Remove per-file identity stamps, passive Markdown test files, the complete 107-case blind rerun, hunk-level ledgers, arbitrary file/row batching, and duplicate reviews. | User authorized the simplification reset on 2026-09-13 and confirmed proceeding after reviewing its prevention contract. | ✅ Resolved |
 | AR-050 | Language semantics | What exact observable integer rule governs `sin8`, `cos8`, `sin16`, and `cos16`? | **Recommended after independent challenge:** for width `k`, unsigned phase `p` denotes `p / 2^k` turns; amplitude is `2^(k-1)-1`; sine is the nearest integer to `amplitude × sin(2πp / 2^k)` with exact halves rounded away from zero; cosine is sine at a wrapped quarter-turn offset. This yields symmetric ranges `-127..127` and `-32767..32767`, exact half-turn negation, safe negation without signed-minimum overflow, and no prescribed compiler algorithm. Freeze independently reproduced exhaustive sine-stream fingerprints and representative vectors; derive cosine through the quarter-turn relation. | User accepted the recommendation on 2026-09-13. | ✅ Resolved |
+| AR-051 | Scope / development and user hosts | Does Linux-only compiler development exclude macOS users, and where does native host proof belong? | Linux development with Linux/Windows users / Linux development with Linux/Windows/macOS users | Linux is the development and deep C64 qualification host. Windows and macOS are user release hosts; RD-10 owns their native end-to-end proof. Qualify macOS arm64 and x64 before claiming those architectures, with no inference from Linux behavior. RD-03 closes on its Linux implementation evidence while its Windows normal-exit descendant obligation remains an explicit RD-10 release gate. | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -394,7 +395,7 @@ exposed by the host filesystem; Blend65 performs no Unicode normalization, case 
 rewriting, or cross-host case-collision policy. Internal deterministic ordering uses `/` only as a
 separator representation. These input rules impose no cross-host filename policy. The manifest
 `name` is a separate nonempty, well-formed Unicode scalar sequence used literally as the primary
-artifact basename on both production hosts. Reject `/`, `\`, NUL, U+0001 through U+001F,
+artifact basename on all qualified production hosts. Reject `/`, `\`, NUL, U+0001 through U+001F,
 `<`, `>`, `:`, `"`, `|`, `?`, `*`, `.` and `..`, a final ASCII space or period, and these Windows
 device stems with ASCII case-insensitive comparison of the substring before the first period:
 `CON`, `PRN`, `AUX`, `NUL`, `COM1` through `COM9`, `LPT1` through `LPT9`, and `COM`/`LPT` ending in
@@ -1262,6 +1263,9 @@ required for this bounded editor-command decision.
 
 ### AR-048 — Production host support matrix
 
+The original host selection below is retained as decision history. AR-051 supersedes its exclusion
+of macOS from the production host matrix; its machine-local discovery contract remains authoritative.
+
 RD-02 and RD-09 require deterministic behavior on every supported host and path model, while RD-10
 must make the production claim. The requirements do not yet identify those hosts. Node, VS Code,
 VICE, and ACME availability alone cannot qualify Blend65's complete workflow: the compiler, CLI,
@@ -1315,6 +1319,15 @@ line beginning `This is ACME, release 0.97` with a version-token boundary. VICE 
 CRLF versus LF and the selected output stream do not change identity. The complete matched line,
 canonical path, parsed portable version, and qualification-only executable hash are recorded under
 their existing evidence ownership.
+
+**2026-10-01 Windows VICE amendment (RD-03 AR-P11):** The direct `x64sc.exe -version`
+probe may exit zero with no captured banner for the qualified VICE 3.10 GUI
+binary. In that one case, the adjacent `c1541.exe -version` line may supply the
+version only when the exact `x64sc.exe`, `c1541.exe`, KERNAL, BASIC, and character
+ROM SHA-256 identities match the pinned Windows bundle. A nonempty incompatible
+banner, failed direct probe, missing companion, or hash mismatch still fails
+closed. This narrow exception supersedes only the direct-banner part of AR-048;
+ordered discovery, no-shell execution and all other tool boundaries remain.
 
 The viable smaller option is Linux x64 production only. It reduces release work but leaves a known
 asset-authoring host and its distinct path/process semantics outside the supported workflow. The
@@ -1440,4 +1453,22 @@ Normative full tables were rejected because the mathematical rule and fingerprin
 do not prescribe the implementation.
 
 The user accepted this rule on 2026-09-13. The requirements Zero-Ambiguity Gate passes with all 50
-items resolved.
+items resolved through AR-050.
+
+### AR-051 — Development host and user release hosts
+
+On 2026-10-01 the user clarified that compiler development is expected on Linux, while users will
+run Blend65 on mainstream operating systems including Windows and macOS. This supersedes AR-048's
+initial decision to keep macOS best-effort. Linux remains the reference host for deep compiler,
+assembly, and C64 workload qualification. RD-10 must natively qualify the complete advertised
+workflow on `linux/x64`, `win32/x64`, `darwin/arm64`, and `darwin/x64` before claiming those release
+hosts; no macOS development environment or duplicate deep C64 suite is required. A host without
+native evidence remains unqualified. RD-10 owns any focused corrections needed for macOS, including
+host diagnostics, evidence schemas, tool discovery, packaging, and process cleanup. The existing
+Linux/Windows artifact-basename floor remains the portable input contract and must pass native
+macOS path validation rather than being silently weakened.
+
+RD-03's Linux implementation milestone may close on its recorded Linux evidence. Its unproved
+Windows normal owner-exit descendant case transfers intact to RD-10 AC-10 and blocks Windows
+release until resolved. The user accepted the host distinction and macOS user scope on 2026-10-01.
+The requirements Zero-Ambiguity Gate passes with all 51 items resolved.

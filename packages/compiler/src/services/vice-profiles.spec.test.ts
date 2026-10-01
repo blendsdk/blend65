@@ -1,7 +1,8 @@
-import { access, chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { fakeTool } from "../../test-support/fake-tool.js";
 import { buildProject, runProject } from "../index.js";
 
 const profiles = [
@@ -38,11 +39,10 @@ async function fixture(target: string = profiles[3][0], mode = "complete") {
   );
   const executable = join(root, "tools/x64sc");
   // The fake replaces only the external emulator; compilation and assembly stay real.
-  const script = `#!/usr/bin/env node
-const fs = require("node:fs");
+  const script = `const fs = require("node:fs");
 const path = require("node:path");
 const args = process.argv.slice(2);
-const probe = args.includes("--version");
+const probe = args.includes("-version");
 const out = ${JSON.stringify(out)};
 const pins = [];
 for (const id of fs.readdirSync(path.join(out, ".pins"))) {
@@ -58,13 +58,12 @@ if (probe && mode === "mutate") {
 }
 if (probe && mode === "vanish") fs.unlinkSync(__filename);
 if ((probe && mode === "block-probe") || (!probe && ["block-run", "uncertain"].includes(mode))) {
-  fs.writeFileSync(${JSON.stringify(marker)}, JSON.stringify({ pid: process.pid }));
+  fs.writeFileSync(${JSON.stringify(marker)}, JSON.stringify({ pid: Number(process.env.BLEND65_FAKE_TOOL_PID) || process.pid }));
   setInterval(() => {}, 1000);
 } else if (probe) process.stdout.write("x64sc (VICE 3.10)\\n");
 else process.exit(mode === "fail-run" ? 17 : 0);
 `;
-  await writeFile(executable, script);
-  await chmod(executable, 0o755);
+  await fakeTool(executable, script);
   vi.stubEnv("PATH", `${join(root, "tools")}${delimiter}${process.env.PATH ?? ""}`);
   return { root, project, out, log, marker };
 }
@@ -140,7 +139,8 @@ function terminate(pid: number): void {
 afterEach(async () => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
-  for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
+  for (const root of roots.splice(0))
+    await rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
 });
 
 describe.sequential("generation-owned interactive VICE profiles", () => {
@@ -155,7 +155,7 @@ describe.sequential("generation-owned interactive VICE profiles", () => {
       expect(result).toMatchObject({ status: "exited", verification: "interactive-unverified" });
       const calls = await invocations(data.log);
       expect(calls).toHaveLength(2);
-      expect(calls[0]!.args).toEqual(["--version"]);
+      expect(calls[0]!.args).toEqual(["-version"]);
       expect(calls[1]!.args).toEqual([
         "-default",
         "-model",
@@ -252,10 +252,12 @@ describe.sequential("generation-owned interactive VICE profiles", () => {
   );
 
   // Launch failure and an emulator's nonzero exit remain distinct, unverified outcomes.
-  it.each([
-    ["vanish", "emulator-start"],
-    ["fail-run", "emulator-runtime"],
-  ])(
+  it.each(
+    [
+      ["vanish", "emulator-start"],
+      ["fail-run", "emulator-runtime"],
+    ].filter(([mode]) => process.platform !== "win32" || mode !== "vanish"),
+  )(
     "should classify %s as %s and release its generation pin",
     async (mode, category) => {
       const data = await fixture(profiles[3][0], mode);
@@ -277,11 +279,15 @@ describe.sequential("generation-owned interactive VICE profiles", () => {
     const before = await pinFiles(data.out);
     expect(before).toHaveLength(1);
     const realKill = process.kill.bind(process);
-    const kill = vi.spyOn(process, "kill").mockImplementation((candidate, signal) => {
-      if (Math.abs(candidate) === pid)
-        throw Object.assign(new Error("Owned process access denied"), { code: "EPERM" });
-      return realKill(candidate, signal);
-    });
+    if (process.platform === "win32") vi.stubEnv("SystemRoot", join(data.root, "missing-system"));
+    const kill =
+      process.platform === "win32"
+        ? undefined
+        : vi.spyOn(process, "kill").mockImplementation((candidate, signal) => {
+            if (Math.abs(candidate) === pid)
+              throw Object.assign(new Error("Owned process access denied"), { code: "EPERM" });
+            return realKill(candidate, signal);
+          });
     try {
       controller.abort();
       expect(await bounded(pending)).toMatchObject({
@@ -290,7 +296,7 @@ describe.sequential("generation-owned interactive VICE profiles", () => {
       });
       expect(await pinFiles(data.out)).toEqual(before);
     } finally {
-      kill.mockRestore();
+      kill?.mockRestore();
       terminate(pid);
       await bounded(pending);
     }

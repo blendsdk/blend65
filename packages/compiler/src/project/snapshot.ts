@@ -35,7 +35,11 @@ export function hostObservations(
   arch: string,
 ): readonly ProjectDiagnostic[] {
   const label = escapeDiagnosticText(nodeMajor + "/" + os + "/" + arch);
-  if (nodeMajor !== 22 || !["x64", "arm64", "ppc64", "s390x", "riscv64", "loong64"].includes(arch))
+  if (
+    !Number.isInteger(nodeMajor) ||
+    nodeMajor < 22 ||
+    !["x64", "arm64", "ppc64", "s390x", "riscv64", "loong64"].includes(arch)
+  )
     throw new ProjectFailure([
       projectDiagnostic(PROJECT_CODES.unsupported, "Unsupported project host: " + label),
     ]);
