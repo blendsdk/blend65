@@ -78,15 +78,45 @@ async function observedMetadata(path: string): Promise<BigIntStats | null> {
 }
 
 async function changed(cached: CachedAsset): Promise<boolean> {
+  let handle;
   try {
     const logical = await lstat(cached.logicalPath, { bigint: true });
     if (logical.isSymbolicLink() || !logical.isFile() || !sameMetadata(logical, cached.metadata)) {
       return true;
     }
     const resolved = await realpath(cached.logicalPath);
-    return resolved !== cached.resolvedPath;
+    if (resolved !== cached.resolvedPath) return true;
+    handle = await open(
+      resolved,
+      constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0),
+    );
+    const opened = await handle.stat({ bigint: true });
+    if (!sameMetadata(logical, opened)) return true;
+    const size = Number(cached.metadata.size);
+    const bytes = Buffer.alloc(size + 1);
+    let length = 0;
+    for (;;) {
+      const read = await handle.read(bytes, length, bytes.length - length, null);
+      if (read.bytesRead === 0 || length === bytes.length) break;
+      length += read.bytesRead;
+    }
+    if (length !== size) return true;
+    const after = await handle.stat({ bigint: true });
+    const afterPath = await lstat(cached.logicalPath, { bigint: true });
+    if (
+      !sameMetadata(opened, after) ||
+      !sameMetadata(after, afterPath) ||
+      (await realpath(cached.logicalPath)) !== resolved
+    )
+      return true;
+    return (
+      createHash("sha256").update(bytes.subarray(0, size)).digest("hex") !==
+      cached.result.asset.sha256
+    );
   } catch {
     return true;
+  } finally {
+    await handle?.close();
   }
 }
 
@@ -246,7 +276,8 @@ async function readCandidate(
     });
     const concurrentlyAdmitted = cache.byLiteral.get(cacheKey);
     if (concurrentlyAdmitted !== undefined) {
-      return concurrentlyAdmitted.identity === key
+      return concurrentlyAdmitted.identity === key &&
+        concurrentlyAdmitted.result.asset.sha256 === sha256
         ? concurrentlyAdmitted.result
         : error(
             PROJECT_CODES.changed,
