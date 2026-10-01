@@ -1,10 +1,11 @@
 # Preflight report: VIC-II collision reads
 
-> **Status**: REVIEW COMPLETE — one minor finding awaits user decision; pass not yet issued
+> **Status**: ✅ PREFLIGHT PASSED — 1 finding resolved
 > **Iteration**: 1 — first scan
 > **Artifact**: Seven plan documents at `codeops/features/blend65-v4/plans/rd-05-vic-collision-reads`
 > **Audited revision**: `0b6286d1`; target tree `31eba0b4c3ef9f6aaf74fb6fe7af6f3660328a0c`
-> **Last Updated**: 2026-10-01 02:46
+> **Verified corrected content**: SHA-256 `364f3f075ebbc67203bec3993e447196f7dc5be642783e70c45d7fc580a440df`
+> **Last Updated**: 2026-10-01 07:08
 > **CodeOps Artifact Schema**: 1
 
 SAME-SESSION REVIEW: The lead created this plan in the current session. Five independent
@@ -14,7 +15,8 @@ cluster audits supplement the lead review; they do not constitute human hardware
 
 Audit target: the register, index, requirements delta, current state, component contract,
 testing strategy and execution plan. Scope is strict: two approved consuming hardware reads.
-No plan correction, compiler change or test edit is authorized by this audit request.
+The initial audit authorized no corrections. The user subsequently approved the narrow
+PF-001 plan correction on 2026-10-01. No compiler or test-code edit is authorized by this step.
 The report is the review record; findings do not silently expand the modification set.
 
 Context only: AGENTS.md, RD-05, frozen Specification 4, expert 2.0.1, actual compiler and test
@@ -82,7 +84,7 @@ Expert lineage: version `2.0.1`, content `1ce4852016e2a883cf1f733c6014c45e176bfc
 | 12 | Consistency | 0 | — |
 | 13 | Codebase alignment | 1 | 🟡 Minor |
 
-Severity totals: zero critical, zero major, one minor awaiting decision, zero observations.
+Severity totals: zero critical, zero major, one minor resolved, zero observations.
 Compiler/language lens: no additional finding. Independent clusters: soundness, delivery,
 risk and fit report no findings; grounding supplies the single finding below.
 
@@ -107,7 +109,16 @@ AR-P3 remains unchanged: this is an implementation test, not an additional speci
 The full suite exposes rather than resolves the omission. Deriving expectations from the same
 capability list would make the cardinality check less independent; exact updated counts suffice.
 
-**User Decision:** Pending. No fixes applied.
+**User Decision:** Resolved — user: “i approve”, 2026-10-01; accepted the narrow plan correction.
+
+**Fix verification:** The impact list now names the existing implementation test, and task
+1.3.1 contains the exact count/boundary adjustments and directed verification. No task was
+added; progress remains 0/10. AR-P3 and all source/test files are unchanged. The added impact
+entry and hardening instruction do not change API behavior, ownership, dependency order,
+security or compatibility. Verified this minor edit directly; no new full audit was needed.
+The corrected-content hash covers the seven target filenames in index order: filename,
+NUL, exact file bytes, NUL. It excludes this report and the derived roadmap. Future execution
+checks this content identity; the original revision above remains the initial scan's evidence.
 
 ## Simplicity and adversarial checks
 
@@ -120,5 +131,5 @@ could disappear, whether two latches or IRQ acknowledgement were conflated, and 
 monitor could consume the oracle. Existing paths and explicit ST/fixture obligations refute
 those concerns at plan level; execution still must supply direct evidence.
 
-Windows and physical QA stay at RD-10. No deferred decision is re-litigated. No readiness
-advance is recorded until the minor finding is decided and any authorized edit is verified.
+Windows and physical QA stay at RD-10. No deferred decision is re-litigated. The plan is
+preflighted, not implemented. No additional finding remains open.

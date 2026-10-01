@@ -14,6 +14,7 @@
 | `target/c64-kernal.ts` | Owns typed device addresses; collision facts are absent. |
 | `frontend/profile.spec.test.ts` | Complete operation inventory, covered by AR-P3. |
 | `frontend/profile-constants.spec.test.ts` | Exact signature/effect inventory, covered by AR-P3. |
+| `frontend/profile-constants.impl.test.ts:89–101` | Existing binding-count/boundary assertions also change; approved PF-001 adjustment in task 1.3.1. |
 
 Existing `test/rd05/cia-api.spec.test.ts`, `cia-output.spec.test.ts` and `cia-vice.spec.test.ts`
 show source, assembled-output and runtime test patterns. Reuse those patterns, not their device

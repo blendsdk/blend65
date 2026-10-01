@@ -1,7 +1,7 @@
 # VIC-II collision reads implementation plan
 
 > **Feature**: Two named consuming collision-latch reads
-> **Status**: Planning Complete — not yet preflighted or implemented
+> **Status**: Plan Preflighted — not yet implemented
 > **Created**: 2026-10-01
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
@@ -28,7 +28,8 @@ volatile-read lowering. Use existing compilation, assembly and sequential VICE t
 ## Readiness
 
 The authoring gate is passed. Required documents exist and tests precede implementation.
-Preflight remains the next review gate; this document is not evidence of execution.
+Preflight passed after the approved PF-001 impact-list correction; see the
+[report](00-preflight-report.md). This document is not evidence of execution.
 RD-05 remains partially delivered. This slice does not close its other requirements.
 
 ## Knowledge lineage

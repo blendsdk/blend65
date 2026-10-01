@@ -1,7 +1,7 @@
 # Execution plan: VIC-II collision reads
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-10-01 02:29
+> **Last Updated**: 2026-10-01 07:08
 > **Progress**: 0/10 tasks (0%)
 > **CodeOps Artifact Schema**: 1
 
@@ -45,7 +45,7 @@ compiler build when fresh public declarations are needed. Do not commit a partia
 
 ### Session 1.3: Implementation tests and hardening
 
-- [ ] 1.3.1 Write `packages/compiler/src/machine/vic-collision.impl.test.ts` for internal result retention and instruction selection; verify directed tests without changing specification expectations.
+- [ ] 1.3.1 Write `packages/compiler/src/machine/vic-collision.impl.test.ts` for internal result retention and instruction selection. Per approved PF-001, update only `frontend/profile-constants.impl.test.ts` binding total 60→62 and both operation/constant boundaries 35→37, preserving all identity, immutability and fresh-state assertions. Verify both implementation-test files directly; specification expectations remain unchanged.
 - [ ] 1.3.2 Run the full AR-P4 checkpoint: `yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck`, `yarn test`; check touched-file formatting, local links and frozen `spec/`/expert authority. Obtain required independent phase review and resolve blocking findings.
 - [ ] 1.3.3 Write `08-closeout.md` with bounded behavior/output/runtime evidence, measured expert comparison and deferral-expiry answer; update the feature roadmap without claiming RD-05 complete. Update maintained API docs through techdocs where applicable; commit the green checkpoint through git-commit.
 
