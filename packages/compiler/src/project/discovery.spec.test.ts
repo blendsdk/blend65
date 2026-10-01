@@ -80,7 +80,9 @@ describe("project discovery", () => {
     const path = join(root, "child/blend65.json");
     const restore = await denyRead(path);
     try {
-      await expect(readFile(path)).rejects.toMatchObject({ code: "EACCES" });
+      await expect(readFile(path)).rejects.toMatchObject({
+        code: expect.stringMatching(/^(?:EACCES|EPERM)$/u),
+      });
       failure(await load({ cwd: join(root, "child") }), "PROJECT_READ_FAILED", [root]);
     } finally {
       await restore();
