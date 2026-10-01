@@ -199,8 +199,8 @@ manifest's `^1.138.0` range. An isolated native extension-host run loaded the bu
 `dist/extension.js`, activated the Blend65 extension, recognized `src/game.blend`
 as `blend65`, launched its language server, and published the canonical `E10239`
 undeclared-name diagnostic from a valid project. VS Code's extension-test host
-exited zero. Final evidence review remains; DEF-3 stays open until the complete
-Windows fixture/process qualification passes.
+exited zero. Final evidence review remains; DEF-3 stays open for process-tree
+qualification and hosted CI ACME provisioning.
 
 ## Remaining Native Windows Evidence
 
