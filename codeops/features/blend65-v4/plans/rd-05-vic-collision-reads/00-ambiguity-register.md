@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 VIC-II collision reads
 
-> **Status**: ❌ GATE BLOCKED — three decisions await confirmation
-> **Last Updated**: 2026-10-01 02:12
+> **Status**: ✅ GATE PASSED — all four items resolved
+> **Last Updated**: 2026-10-01 02:29
 > **CodeOps Artifact Schema**: 1
 
 ## Planning boundary
@@ -18,9 +18,9 @@
 | ID | Category | Question / contract | Recommendation or authority | Status |
 |---|---|---|---|---|
 | AR-P1 | Scope / effort | Which work is authorized? | User: “commit and push all we have. effor is confirmed, proceed further”, replying to the named collision-read planning task. Existing commits were pushed through `5970ed3b` before planning. Implementation remains a later gated task. | ✅ Resolved |
-| AR-P2 | Naming / behavior / data | Exact missing source bindings? | **Recommended:** `c64.vic.readAndClearSpriteSpriteCollisions(): byte` and `c64.vic.readAndClearSpriteBackgroundCollisions(): byte`, with zero arguments and `volatile-read` effects. Read `$D01E` and `$D01F` respectively once; return the unchanged eight-bit sprite-participation mask. A read clears only that collision latch; it is not `$D019` IRQ acknowledgement. Repeated calls remain separate reads, including discarded results. New collisions may relatch bits between calls. | ❌ Open — confirm narrow API contract |
-| AR-P3 | Test authority / integration | Two existing specification tests require an exact complete declaration list. How can that list grow without weakening its oracle? | **Recommended:** authorize only two added declaration rows in each of `packages/compiler/src/frontend/profile.spec.test.ts` and `packages/compiler/src/frontend/profile-constants.spec.test.ts`, plus the latter's operation-count title update from thirty-five to thirty-seven. Preserve all existing rows, assertions, fixtures and test cases. Add separate independent specification tests before implementation; do not edit the old lists until this exception is explicitly approved. | ❌ Open — exact oracle modification set requires approval |
-| AR-P4 | Verification / non-functional | Verification contract? | **Recommended:** directed source, lowering/output and existing sequential VICE cases during work; at the completed slice run `yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck`, `yarn test`, targeted formatting, links and frozen-authority checks. Compare independent behavior and assembled expert cost expectations. No benchmark or new test runner. Windows and physical QA remain RD-10. | ❌ Open — confirm existing project verification rule |
+| AR-P2 | Naming / behavior / data | Exact missing source bindings? | User accepted recommendation: `c64.vic.readAndClearSpriteSpriteCollisions(): byte` and `c64.vic.readAndClearSpriteBackgroundCollisions(): byte`, with zero arguments and `volatile-read` effects. Read `$D01E` and `$D01F` respectively once; return the unchanged eight-bit sprite-participation mask. A read clears only that collision latch; it is not `$D019` IRQ acknowledgement. Repeated calls remain separate reads, including discarded results. New collisions may relatch bits between calls. | ✅ Resolved — user: “i approve”, 2026-10-01 |
+| AR-P3 | Test authority / integration | Two existing specification tests require an exact complete declaration list. How can that list grow without weakening its oracle? | User accepted recommendation: authorize only two added declaration rows in each of `packages/compiler/src/frontend/profile.spec.test.ts` and `packages/compiler/src/frontend/profile-constants.spec.test.ts`, plus the latter's operation-count title update from thirty-five to thirty-seven. Preserve all existing rows, assertions, fixtures and test cases. Add separate independent specification tests before implementation; do not edit the old lists until this exception is explicitly approved. | ✅ Resolved — user: “i approve”, 2026-10-01 |
+| AR-P4 | Verification / non-functional | Verification contract? | User accepted recommendation: directed source, lowering/output and existing sequential VICE cases during work; at the completed slice run `yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck`, `yarn test`, targeted formatting, links and frozen-authority checks. Compare independent behavior and assembled expert cost expectations. No benchmark or new test runner. Windows and physical QA remain RD-10. | ✅ Resolved — user: “i approve”, 2026-10-01 |
 
 ## Grounding and smallest design
 
@@ -53,11 +53,12 @@ assembled artifact, cost measurement or runtime pass is claimed yet.
 
 All twelve gate categories were checked: feature, behavior, scope, technical,
 edge cases, integration, data/state, security, non-functional, presentation,
-stakeholder and naming. The three open rows above own the remaining decisions.
+stakeholder and naming. All four rows above are resolved.
 Closed profile/type/argument validation and structured instruction emission stay
 on existing paths. No host input, command, public schema or dependency is added.
-No complexity escalation is proposed. Full plan documents remain blocked until
-the user confirms AR-P2–AR-P4; no extra RD or broad platform plan is needed.
+No complexity escalation is proposed. User approval of AR-P2–AR-P4 opens plan
+authoring. No extra RD or broad platform plan is needed. Execution remains a
+later task; no new capability is claimed as implemented.
 
 Expert `2.0.1`, content `1ce4852016e2a883cf1f733c6014c45e176bfc69`;
 `c64-hardware.md#vic-ii-sprites` / `#volatile-and-rmw-policy`,
