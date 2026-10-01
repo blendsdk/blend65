@@ -1,7 +1,6 @@
 # RD-03 Pipeline Qualification
 
-> **Status**: Linux implementation complete and VICE-verified; native Windows
-> DEF-3 qualification remains bounded by normal-exit descendant ownership
+> **Status**: Done on the Linux development host; Windows DEF-3 release proof remains RD-10-owned
 > **CodeOps Artifact Schema**: 1
 
 ## Result
@@ -16,9 +15,10 @@ bounded lowering corrections closed it without changing the language, adding run
 building a general optimizer framework. The defect tracked by GitHub issue #80 is resolved by this
 evidence; changing the issue's remote state requires separate explicit authorization.
 
-RD-03 is not formally Done because native Windows qualification found a remaining
-R3.28 normal-exit descendant-ownership gap. DEF-3 assigns that proof to RD-10;
-it does not block RD-04 through RD-09.
+RD-03 is Done as the Linux compiler development milestone under AR-P12 and requirements AR-051.
+Native Windows qualification found one unproved R3.28 normal-exit descendant-ownership case;
+DEF-3 assigns that mandatory user-release proof to RD-10 AC-10. macOS user-release qualification
+also belongs to RD-10. Neither host claim follows from this Linux closeout.
 
 ## Frozen Qualification Inputs
 
@@ -122,7 +122,9 @@ as production-quality parity.
 **Did this RD's deliverables expire any deferral's stated rationale? Yes: the
 new native Windows host evidence expires DEF-3's original no-host rationale.**
 DEF-3 remains open for the separately identified R3.28 normal-exit ownership
-gap, assigned to RD-10 AC-10. No other reconsideration trigger changed.
+gap, assigned to RD-10 AC-10. AR-P12 changed only the RD-03 closeout dependency; the behavior
+contract remains due before Windows release. macOS user-host qualification is now owned by RD-10
+under AR-051. No other reconsideration trigger changed.
 
 | Reviewed item | Result / continuing owner |
 |---|---|
@@ -133,6 +135,7 @@ gap, assigned to RD-10 AC-10. No other reconsideration trigger changed.
 | General expert-output optimization | Remains RD-08; Phase 8 only fixed behavior-relevant bounded patterns. |
 | Production developer tooling | Remains RD-09. |
 | Native Windows qualification | The no-host rationale expired. DEF-3 remains RD-10-owned for normal owner-exit descendant proof under R3.28/AC-10; direct VICE and live cancellation pass. |
+| macOS user-host qualification | AR-051 adds macOS arm64/x64 as RD-10 release hosts. Current host warnings and evidence schemas exclude them; RD-10 owns correction and native proof before any support claim. |
 | `spec/future-considerations.md` criteria | M1 did not establish demand that expires FUT-006/007, FUT-011/012 or FUT-015–018. |
 | Expressiveness restrictions | No deliberate user-facing restriction was accepted; valid Specification 4 forms remain RD-04 obligations. |
 
@@ -216,12 +219,12 @@ exited zero. Independent Windows closeout review found the owner-exit race and a
 test-cleanup leak. Both are corrected for live cancellation; the normal-exit
 gap remains assigned to RD-10. DEF-3 stays open.
 
-## Remaining Native Windows Evidence
+## RD-10 Native Host Handoff
 
-Prove or conservatively handle normal Windows owner exit with a surviving
-descendant before releasing a generation pin under R3.28, then repeat the
-affected native tests and independent review. The full Linux VICE qualification
-already passes on its qualified host; WSL here has no Linux VICE runtime and is
-not used for that oracle. The configured hosted CI job runs after the branch is
-pushed. Move RD-03 from Blocked to Done only when the remaining ownership proof
-passes.
+Before Windows release, prove or conservatively handle normal owner exit with a surviving
+descendant before releasing its generation pin under R3.28, then repeat affected native tests and
+independent review. RD-10 also needs native macOS arm64/x64 package, tool, publication, process,
+editor, and artifact qualification. The full Linux VICE qualification already passes on its
+qualified host; WSL here has no Linux VICE runtime and is not used for that oracle. The configured
+hosted CI job runs after the branch is pushed. These are release gates, not RD-03 Linux development
+work.

@@ -475,9 +475,11 @@ never UUID spelling or filesystem time. After successful cleanup in normal relea
 complete-generation retention is therefore bounded to current plus one predecessor; live,
 crash-left, malformed, or otherwise uncertain pins are explicit fail-safe exceptions. This is one
 direct output routine, not a general transaction, cache, liveness service, or readiness service.
-Linux and Windows must prove competing builds, reader pinning, failed staging, atomic current
-replacement, active-run retention, crash-left-pin retention and diagnosis, and deterministic normal
-cleanup.
+RD-03 closes this implementation and its competing-build, reader-pinning, failed-staging, atomic
+current-replacement, active-run-retention, crash-left-pin, and normal-cleanup proofs on the Linux
+development host. RD-10 repeats the applicable native host boundary on Windows and macOS before
+those user hosts receive a production claim. In particular, R3.28's normal-exit descendant
+ownership remains mandatory on Windows; DEF-3 names its unproved case in RD-10 AC-10. (AR-051)
 
 The first public sidecars use these direct schemas; they are not a registry or database:
 
@@ -1200,7 +1202,8 @@ no C64U target identity or support claim; the owned successor activates only aft
     pre-commit cancellation, or seeded compiler/ACME/layout/package failure publishes no mixed or
     stale set and preserves the prior current generation. Post-commit run cancellation preserves
     that build, stops only emulator/control work, and either releases its exact pin or reports its
-    conservative retention.
+    conservative retention. RD-03 closes on Linux evidence; native Windows and macOS release-host
+    proof, including the open Windows normal-exit descendant case, is required by RD-10 AC-10.
 28. [ ] **AC-28 — Deterministic VICE input:** The predetermined real-joyport trace produces the
     exact table-derived player, six-invader, projectile/explosion, collision, win, rendered-sprite,
     release/press, and return results without observing or patching program state. A hit update

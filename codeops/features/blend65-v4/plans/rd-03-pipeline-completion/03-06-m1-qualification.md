@@ -129,5 +129,6 @@ RD-03 execution records:
   `spec/future-considerations.md` and the expressiveness ledger.
 
 Host durations and peak memory are observations only. No threshold or performance framework is
-introduced. RD-03 formal closeout remains bounded until AR-C16 is discharged at RD-10, while the
-Linux compiler result may unlock RD-04 through RD-09 as approved.
+introduced. AR-P12 closes RD-03 on its Linux development-host evidence; AR-C16's native Windows
+proof remains an RD-10 user-release gate, alongside native macOS qualification. The Linux compiler
+result unlocks RD-04 through RD-09 as approved.

@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-03 Pipeline Completion
 
-> **Status**: Original implementation gate passed; native Windows AR-P11 resolved, DEF-3 evidence open
+> **Status**: RD-03 Linux closeout complete; DEF-3 remains RD-10-owned Windows release evidence
 > **Last Updated**: 2026-10-01
 > **CodeOps Artifact Schema**: 1
 
@@ -64,6 +64,10 @@
 | AR-P10 | Technical (complexity escalation) / one-shot loop-carried affine pointer induction | Recognize only a proved single-latch fixed-stride aggregate loop, initialize the existing pointer once, advance it by the constant `step × stride` after the ordinary source index update, and fall back unchanged for calls, aliases, alternate mutations, `continue` or multiple backedges. Add no new IR, pass manager, dominance/fixed-point framework, public API, storage or runtime. Run the exact VICE gate once; if the same nine frames remain, stop and reframe RD-03/RD-08 ownership instead of adding more local optimizations. | User approved on 2026-09-23. Independent challenger verdict: **Justified as a one-shot boundary**. Implementation removed 215 more code bytes and the exact 441-input VICE rendered journey passed. | ✅ Resolved |
 
 | AR-P11 | Runtime / native Windows VICE version authority | On this Windows x64 host, the supplied VICE 3.10 `x64sc.exe` exits 0 with empty stdout/stderr for both `-version` and `--version`, including explicit logging switches. The same bundle's `c1541.exe -version` reports 3.10; the executable and ROMs have stable SHA-256 identities. | **Approved:** when direct `x64sc.exe -version` exits successfully with no banner, accept the adjacent `c1541.exe -version` 3.10 line only for the exact pinned `x64sc.exe`, `c1541.exe`, and three C64 ROM hashes. No fallback from nonempty wrong-version output, a missing companion, or a hash mismatch. Keep the same bounded no-shell process and cancellation contract. | User explicitly accepted the recommendation on 2026-10-01; native Windows proof is recorded in the closeout. | ✅ Resolved |
+| AR-P12 | Scope / development milestone and user hosts | AR-C16 deferred native Windows proof to RD-10 but still tied formal RD-03 completion to it; the user clarified Linux is the compiler development host while Windows and macOS are user release hosts. | Close RD-03 on its Linux compiler, ACME, and VICE evidence. Keep R3.28 behavior unchanged and transfer the unproved Windows normal owner-exit descendant case as DEF-3 to RD-10 AC-10, where it blocks Windows release. RD-10 also qualifies macOS natively under requirements AR-051. | User accepted the recommended host separation and confirmed macOS user scope on 2026-10-01. | ✅ Resolved |
+
+AR-P12 supersedes only AR-C16's sentence that conditions RD-03 formal closeout on native Windows
+proof. AR-C16's implementation and RD-10 handoff boundaries remain in force.
 
 ### AR-P7 Complexity Escalation Evidence
 
