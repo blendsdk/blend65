@@ -52,7 +52,7 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
   });
 
   // Every selected operation keeps its exact signature and effect classification.
-  it("should expose all thirty-seven operation signatures and effects", () => {
+  it("should expose all forty operation signatures and effects", () => {
     const result = selectFrontendProfile(id);
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected complete profile selection");
@@ -82,9 +82,12 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
       ["c64.cia2.readTimerBCounter", [], "word", "volatile-read"],
       ["c64.cia2.writeTimerALatch", ["word"], "void", "volatile-write"],
       ["c64.cia2.writeTimerBLatch", ["word"], "void", "volatile-write"],
+      ["c64.input.joystickDown", ["byte"], "boolean", "pure"],
       ["c64.input.joystickFire", ["byte"], "boolean", "pure"],
       ["c64.input.joystickLeft", ["byte"], "boolean", "pure"],
       ["c64.input.joystickRight", ["byte"], "boolean", "pure"],
+      ["c64.input.joystickUp", ["byte"], "boolean", "pure"],
+      ["c64.input.readJoystick1", [], "byte", "volatile-read"],
       ["c64.input.readJoystick2", [], "byte", "volatile-read"],
       ["c64.system.restoreIRQ", [], "void", "volatile-write"],
       ["c64.system.restoreNMI", [], "void", "volatile-write"],

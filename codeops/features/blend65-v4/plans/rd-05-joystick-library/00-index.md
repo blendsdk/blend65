@@ -2,9 +2,9 @@
 
 > **CodeOps Artifact Schema**: 1
 > **Implements**: blend65-v4/RD-05
-> **Status**: Executing — Phase 1 complete; Phase 2 not started
+> **Status**: Done — bounded pilot 21/21 verified; RD-05 remains Executing
 > **Created**: 2026-10-01
-> **Last Updated**: 2026-10-01
+> **Last Updated**: 2026-10-02
 > **Scope mode**: strict
 
 ## Overview
@@ -32,7 +32,8 @@ exception are recorded in the [decision register](00-ambiguity-register.md).
 | [Testing strategy](07-testing-strategy.md) | Independent input → output cases and their file ownership |
 | [Execution plan](99-execution-plan.md) | Two phases, 21 tasks; sole task-progress authority |
 | [Preflight report](00-preflight-report.md) | Current audit verdict, exact target identities, findings and verified corrections |
-| [Phase review](09-phase-review.md) | Phase 1 verification, independent review, oracle integrity and qualification boundary |
+| [Phase review](09-phase-review.md) | Both phase checkpoints, independent reviews, exact oracle authority and qualification limits |
+| [Closeout](08-closeout.md) | Delivered boundary, complete checkpoint, costs, deferral expiry and remaining owners |
 
 ## Related owners
 
@@ -54,11 +55,29 @@ The preflight report owns the current review gate separately from task progress.
 
 ## Execution checkpoint
 
-Phase 1 is complete: 11/11 tasks verified; the overall plan is 11/21 (52%). The real source asset
-is packaged and consumed through the existing frontend, compiler evidence and editor seams.
-Install, build, typecheck and all 3,150 tests pass; independent review reports no findings.
-AR-P9 permits only the exact constant-only probe filter, independently verified against its
-original frozen identity. The bounded padded-image host wait changes no program or assertion.
-No framework, cache, dependency, runtime input policy or early optimizer was added.
-The next task is Phase 2's implementation-blind joystick API/output oracle; its ten tasks remain
-unstarted. RD-05 remains Executing. No push is part of this checkpoint.
+The pilot is complete: 21/21 tasks verified, Phase 1 11/11 and Phase 2 10/10.
+
+| Delivered boundary | Qualification |
+| --- | --- |
+| Real bundled source and input/editor/build evidence | 24 independent specification cases; detached installed-package proof |
+| Both-port reads and five saved-byte predicates | 252 source/output/runtime cases across four profiles, sequential VICE |
+| Inventory and internal guards | 55 inventory and 55 directed implementation cases |
+| Complete checkpoint | Install/build/typecheck and all 3,421 tests pass; two unchanged native-host skips |
+| Final guide and closeout | Exact guide source builds on four profiles; final 91 links/anchors and roadmap counters pass |
+
+Independent correctness and semantic reviews clear the implementation; final document review has
+no new findings. The mandatory oracle-edit finding is retained with the exact prior user rulings
+AR-P8/AR-P10/AR-P11/AR-P12. The phase review distinguishes independently repeated current proofs
+from historical parent inverse-hash evidence. One existing CIA1 pre-release stop failure passed
+both unchanged directed and complete retries; no fixture, timeout, source or assertion changed.
+
+The six masks are real Blend65 source; callable operations remain direct compiler-owned forms.
+AR-P12 accepts canonical `none` for this pilot only, preserving direct floors and all behavior/
+MMIO/accounting oracles. General local/condition/layout targets and the path-to-win in issue #95
+stay RD-08-owned. The separate collision issue #94 is unchanged. Status is VICE-verified /
+hardware-unverified; complete keyboard sharing and other platform obligations stay RD-05.
+No framework, early optimizer, production reporter, extra RD or skill activation was added.
+
+The confirmed high effort and explicit waiver for tasks 2.1.2–2.3.3 are fulfilled. The user's
+safekeeping request authorizes one commit/push at this green checkpoint, not automatic later pushes.
+RD-05 remains Executing. Portfolio synchronization is deferred to integration under branch policy.

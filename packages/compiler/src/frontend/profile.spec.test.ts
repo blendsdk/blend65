@@ -186,6 +186,12 @@ describe("selected frontend profile", () => {
         effect: "volatile-write",
       },
       {
+        name: "c64.input.joystickDown",
+        parameters: ["byte"],
+        returnType: "boolean",
+        effect: "pure",
+      },
+      {
         name: "c64.input.joystickFire",
         parameters: ["byte"],
         returnType: "boolean",
@@ -202,6 +208,18 @@ describe("selected frontend profile", () => {
         parameters: ["byte"],
         returnType: "boolean",
         effect: "pure",
+      },
+      {
+        name: "c64.input.joystickUp",
+        parameters: ["byte"],
+        returnType: "boolean",
+        effect: "pure",
+      },
+      {
+        name: "c64.input.readJoystick1",
+        parameters: [],
+        returnType: "byte",
+        effect: "volatile-read",
       },
       {
         name: "c64.input.readJoystick2",

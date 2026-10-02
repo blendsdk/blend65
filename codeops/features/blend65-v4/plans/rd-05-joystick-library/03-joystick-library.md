@@ -100,10 +100,12 @@ Hostile source names and package faults remain tested inputs.
 
 ## Output, storage and optimization seams
 
-AR-P6 owns the independent expert floor and complete accounting. Named reads remain volatile at
+AR-P6, as narrowly amended by approved AR-P12, owns expert comparison and complete accounting. Named reads remain volatile at
 their source position. Saved-byte predicates are pure and independent of hardware state after
 sampling. No new call, runtime dispatch, scratch ownership, port write or interrupt mask is allowed.
-Escaping Boolean values use normal correct materialization; branch-only values remain conditions.
+Escaping Boolean values use normal correct materialization. Direct predicate selection exposes a
+zero condition; generic local retention, negation and control-flow layout remain canonical `none`
+and their measured costs are explicit RD-08 inputs, not expert-grade claims.
 Scalar source constants fold through existing semantics; unused masks create no target initializer,
 data or helper. Address-taking, if used by application source, retains ordinary language semantics
 and its honestly charged storage rather than a new special restriction.
@@ -112,8 +114,11 @@ Remove the existing port-2 redundant transfer and admit both read producers to t
 forwarding seam for their sole adjacent same-block byte store to a fixed address. Preserve negative
 liveness/effect guards and necessary storage for other uses; do not remove, repeat or reorder a
 hardware read. Adapt the obsolete port-2 implementation assertion only; CIA exclusions stay intact.
-Do not introduce an optimizer into this plan. If that is not sufficient to meet the floor, stop
-and record the exact needed authority before expanding scope.
+Do not introduce an optimizer or production cycle-report subsystem into this plan. AR-P12 approves
+only the named test/acceptance correction for this unoptimized pilot; direct discarded/fixed-store
+operation floors and all semantic/effect/accounting gates remain. Record general local/condition/
+layout deltas and equal-contract expert targets with RD-08 ownership. Main's restoration transfer
+is common contract work, not an ordinary one-byte RTS to be removed for a test.
 Callable migration stays AR-P7/RD-08; preserved source names keep that future migration compatible.
 
 ## Documentation and completion

@@ -239,9 +239,15 @@ const COOPERATIVE_DECLARATIONS = Object.freeze({
       SCALAR_TYPES.void,
       "volatile-write",
     ),
+    /** Test active-low down (bit 1) in a saved sample; no hardware is read. */
+    capability("c64.input.joystickDown", [SCALAR_TYPES.byte], SCALAR_TYPES.boolean, "pure"),
     capability("c64.input.joystickFire", [SCALAR_TYPES.byte], SCALAR_TYPES.boolean, "pure"),
     capability("c64.input.joystickLeft", [SCALAR_TYPES.byte], SCALAR_TYPES.boolean, "pure"),
     capability("c64.input.joystickRight", [SCALAR_TYPES.byte], SCALAR_TYPES.boolean, "pure"),
+    /** Test active-low up (bit 0) in a saved sample; no hardware is read. */
+    capability("c64.input.joystickUp", [SCALAR_TYPES.byte], SCALAR_TYPES.boolean, "pure"),
+    /** Sample the whole CIA1 port-B byte once, without configuring shared pins or masking IRQs. */
+    capability("c64.input.readJoystick1", [], SCALAR_TYPES.byte, "volatile-read"),
     capability("c64.input.readJoystick2", [], SCALAR_TYPES.byte, "volatile-read"),
     capability("c64.system.restoreIRQ", [], SCALAR_TYPES.void, "volatile-write"),
     capability("c64.system.restoreNMI", [], SCALAR_TYPES.void, "volatile-write"),

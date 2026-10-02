@@ -88,9 +88,11 @@ export interface ViceMonitor {
   readonly readDisplay: () => Promise<ViceDisplay>;
   /** Read the exact main-CPU registers used by the restoration proof. */
   readonly readCpuRegisters: () => Promise<ViceCpuRegisters>;
-  /** Set the active-low value supplied to emulated joystick port 2. */
+  /** Supply five active-low port-1 bits; simulation drives upper bits low and must be enabled at startup. */
+  readonly setJoystick1: (value: number) => Promise<void>;
+  /** Supply five active-low port-2 bits (zero means pressed); simulation drives upper bits low. */
   readonly setJoystick2: (value: number) => Promise<void>;
-  /** Arm one wait for the next stopped event before resuming. */
+  /** Arm one wait for the next stopped CPU address, not its checkpoint ID, before resuming. */
   readonly waitForStop: (timeoutMs?: number) => Promise<number>;
   /** Resume execution until a checkpoint stops the machine. */
   readonly resume: () => Promise<void>;
@@ -448,7 +450,20 @@ export async function openViceMonitor(port: number, processId: number): Promise<
     if (response.body.length !== 0) throw new Error("VICE memory write returned data");
   };
 
-  return Object.freeze({
+  /** Validate the five input bits and send the same pin command to either C64 joystick port. */
+  const setJoystick = async (portIndex: 0 | 1, value: number): Promise<void> => {
+    if (!Number.isInteger(value) || value < 0 || value > 0x1f) {
+      throw new RangeError("Joystick value must contain only the five active-low input bits");
+    }
+    const body = new Uint8Array(4);
+    const view = new DataView(body.buffer);
+    view.setUint16(0, portIndex, true);
+    view.setUint16(2, value, true);
+    const response = await request(0xa2, body);
+    if (response.body.length !== 0) throw new Error("VICE joyport command returned data");
+  };
+
+  return Object.freeze<ViceMonitor>({
     viceInfo: async () => {
       const { body } = await request(0x85, new Uint8Array(0));
       if (body.length < 2) throw new Error("VICE info response is truncated");
@@ -631,17 +646,8 @@ export async function openViceMonitor(port: number, processId: number): Promise<
         p: byte(registerId(["FL", "P"])),
       });
     },
-    setJoystick2: async (value) => {
-      if (!Number.isInteger(value) || value < 0 || value > 0x1f) {
-        throw new RangeError("Joystick value must contain only the five active-low input bits");
-      }
-      const body = new Uint8Array(4);
-      const view = new DataView(body.buffer);
-      view.setUint16(0, 1, true);
-      view.setUint16(2, value, true);
-      const response = await request(0xa2, body);
-      if (response.body.length !== 0) throw new Error("VICE joyport command returned data");
-    },
+    setJoystick1: async (value) => setJoystick(0, value),
+    setJoystick2: async (value) => setJoystick(1, value),
     waitForStop: (timeoutMs = 45_000) => {
       if (stopWaiter !== undefined)
         return Promise.reject(new Error("A VICE stop wait is already armed"));

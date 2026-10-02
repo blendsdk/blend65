@@ -199,8 +199,8 @@ describe.each(operations)("collision lowering for $capability", ({ capability, a
 });
 
 describe("collision forwarding admission", () => {
-  it("should preserve the old stable path when another platform producer is encountered", () => {
-    expect(forwards([sample("c64.input.readJoystick2"), destination, write])).toBe(false);
+  it("should admit direct joystick samples while preserving the stable CIA path", () => {
+    expect(forwards([sample("c64.input.readJoystick2"), destination, write])).toBe(true);
     expect(forwards([sample("c64.cia1.readAndClearPendingSources"), destination, write])).toBe(
       false,
     );

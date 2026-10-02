@@ -2,7 +2,7 @@ import type { MemoryWriteOperation, SemanticBlock } from "../semantic/operations
 import { typeBytes } from "./lower-state.js";
 
 /**
- * Select adjacent byte loads, collision samples and BCD values that can stay in registers
+ * Select adjacent byte loads, collision/joystick samples and BCD values that can stay in registers
  * until their only consumer.
  *
  * Constants and conversions of constants emit no machine instructions, so they do not
@@ -65,7 +65,9 @@ export function selectRegisterForwarding(
           producer.kind !== "memory-read" &&
           producer.kind !== "bcd" &&
           (producer.kind !== "platform" ||
-            (producer.capability !== "c64.vic.readAndClearSpriteSpriteCollisions" &&
+            (producer.capability !== "c64.input.readJoystick1" &&
+              producer.capability !== "c64.input.readJoystick2" &&
+              producer.capability !== "c64.vic.readAndClearSpriteSpriteCollisions" &&
               producer.capability !== "c64.vic.readAndClearSpriteBackgroundCollisions"))) ||
         producer.result === null ||
         !singleUseValues.has(producer.result)

@@ -28,8 +28,8 @@ utilities. Differential execution supports but does not replace those independen
 | ST-13 | Controlled released-line fixture injects all 32 joystick switch combinations per port; store both raw samples and five predicates in RAM on each profile | Independently calculated active-low values and truth bits match ST-11; actual input/pin stimulus, not writes pretending a port register is a joystick latch | R5.24/AC-19; AR-P5 |
 | ST-14 | Fixture sets distinct CIA1 DDR/latch state and unrelated upper bits, then calls reads; separately drive a shared line low while joystick switches are released | Operation trace has only the selected port read; DDR/latch/unrelated state preserved; interfering low bit is faithfully returned/tested, never claimed joystick-only | AR-P5; CIA actual-pin semantics |
 | ST-15 | Invoke reads during mainline and an existing safe IRQ route; fixture owns competing port writes and uses known before/after samples | Each sample reflects its real read point; no added masking, port writes, CIA2/ICR reads or invented two-port atomicity; no new concurrency mechanism | AR-P5; existing IRQ ownership |
-| ST-16 | For both ports, assemble minimal discarded, directly stored and retained read cases under the same expert live-value contract | One LDA absolute at the named port; sole adjacent byte store to a fixed address has no redundant transfer or temporary save/reload; other uses retain only necessary storage; compare assembled bytes and complete resources, not textual mnemonic counts | AR-P6; MOS-PGM-1976; expert lowering casebook |
-| ST-17 | Assemble each saved-byte predicate in branch-only and escaping-Boolean contexts; vary branch direction/page placement in bounded cases | Correct immediate mask and zero condition; no JSR/helper dispatch; branch-only case has no Boolean home; value case materializes canonical 0/1; exact path/page costs and liveness charged | AR-P6; Spec Ch02 Boolean semantics; CPU/casebook |
+| ST-16 | For both ports, assemble minimal discarded, directly stored and retained read cases under the same expert live-value contract | One LDA absolute at the named port; sole adjacent byte store to a fixed address has no redundant transfer or temporary save/reload; retained samples preserve both destination writes and honest canonical storage. Keep the 9-byte/12-cycle, zero-SFA body as an RD-08 target; measure assembled bytes/resources independently | AR-P6/AR-P12; MOS-PGM-1976; expert lowering casebook |
+| ST-17 | Assemble each saved-byte predicate in branch-only and escaping-Boolean contexts; vary branch direction/page placement in bounded cases | Correct immediate mask and zero condition; no JSR/helper dispatch; value case materializes canonical 0/1. Measure actual paths/page costs and storage. Zero Boolean homes and compact expert layout remain RD-08 targets, not canonical `none` acceptance limits | AR-P6/AR-P12; Spec Ch02 Boolean semantics; CPU/casebook |
 | ST-18 | Compile the same no-input main with and without an unused mask import; separately use one scalar mask as an immediate | Equal target payload/storage/startup for unused import; immediate use folds to the named value with no library runtime/data/helper; complete report deltas match assembled artifacts | AR-P3/AR-P6; Ch10 §5.4 constants; R5.50 |
 
 ## File and phase ownership
@@ -52,7 +52,9 @@ utilities. Differential execution supports but does not replace those independen
 Specification authors receive these contracts/interfaces and existing fixture utilities only;
 they must not inspect implementation logic. Record RED for each phase before implementation.
 Explain already-green validation/regression cases; missing tools or setup/timeouts are not valid RED.
-AR-P8 alone allows the exact two old inventory additions. Preserve all other existing spec tests;
+AR-P8 allows the exact two old inventory additions. AR-P10/AR-P11/AR-P12 allow only their named
+new-oracle corrections; AR-P12 changes the two output-cost groups and bounded cycle helper only.
+Preserve all other existing spec tests;
 if a real incompatibility appears, stop for its exact authority rather than weakening an oracle.
 
 Use an isolated copied/packed compiler for changed, missing or corrupt library cases; never mutate
@@ -84,7 +86,10 @@ report VICE-verified / hardware-unverified. Physical/native user-host release te
 
 Use AR-P6's directed/full checkpoint rules and configured independent phase review. Measure every
 changed instruction path's bytes, nominal cycles, flags, ZP/SFA/stack, data, startup and payload.
-Separate CPU cycles from VIC stalls and whole-program claims. Fix any below-floor output before
-closeout; a local meet requires its measured RD-08 path-to-beat issue under AGENTS.md.
+Separate CPU cycles from VIC stalls and whole-program claims. AR-P12 permits canonical `none`
+for this pilot only: direct named-operation floors still gate, while general local/condition/layout
+deltas remain explicit RD-08-owned targets. The closed forward-only assembled cost check covers
+only these small fixtures; it is not a CPU interpreter or production cost reporter. A direct
+local meet requires its measured RD-08 path-to-beat issue under AGENTS.md.
 Closeout answers deferral expiry, source-function prerequisite ownership, remaining R5.24/AC-19
 coexistence evidence and whether this pilot justifies the final analysis RD/qualified skill update.

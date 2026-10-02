@@ -19,7 +19,10 @@ The RD retains its own acceptance criteria; this document does not rewrite them.
 
 The [ST cases](07-testing-strategy.md#-specification-test-cases) must prove actual shipped source
 use, exact input provenance, editor/build agreement and the approved API. All 21 tasks must verify,
-independent review must clear and no new capability may miss the expert local floor (AR-P6).
+independent review must clear. AR-P12's explicitly approved pilot-only staging correction keeps
+exact direct-operation floors here, while accepting correctly accounted canonical `none` storage
+and branch layout. General whole-local performance floors remain RD-08 deliverables; this is not
+production game-grade qualification or a relaxation of optimized-output requirements.
 
 Pilot completion is not unrestricted joystick isolation, combined keyboard support or RD-05
 closeout. Carry the remaining R5.24/AC-19 coexistence obligation explicitly into the pilot closeout.

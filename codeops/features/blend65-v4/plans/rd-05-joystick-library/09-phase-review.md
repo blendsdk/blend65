@@ -118,3 +118,111 @@ Phase 2. This is not an RD-05 closeout; its remaining platform obligations and d
 remain owned there. Windows/macOS user-host and physical hardware release checks remain RD-10.
 No opted-in `docs/index.md` exists; the authorized small platform-library page remains a plan
 closeout deliverable, without adding a documentation framework at this phase checkpoint.
+
+# Phase 2 review: both-port joystick operations
+
+> **Date**: 2026-10-02
+> **Phase baseline tree**: `d8bf67fbc1c5a1761bb211c3b7f8659f4a987c7e`
+> **Status**: Complete — checkpoint green; no unresolved review finding
+> **Scope**: Strict — direct operations and existing forwarding guards, not an optimizer
+
+## Phase 2 authority and delivered boundary
+
+The three new declarations are `readJoystick1`, `joystickUp` and `joystickDown`. Existing names
+and signatures remain. Both port observations select one volatile absolute LDA returning the
+full byte in A. Five saved-byte predicates select the exact active-low mask and zero condition,
+without another hardware read. The existing sole-use, adjacent same-block, fixed byte-store
+selector admits both reads; dynamic addresses, multiple uses, intervening instructions, word
+stores and cross-block consumers retain the ordinary stable-value path. CIA producers remain
+excluded. No scratch, helper, keyboard scan, hidden IRQ mask or device-state write was added.
+
+The user explicitly approved [AR-P12](00-ambiguity-register.md#ar-p12-output-scope-and-independent-cost-evidence)
+instead of adding general local/SFA, condition/layout optimization or cycle-reporting machinery
+to this pilot. Canonical `none` may finish this named pilot only; all semantic/MMIO/accounting
+oracles and exact direct-operation floors remain. Whole-local expert targets stay with RD-08
+before optimized or production game-grade closeout. This is not an optimized-output golden or a
+permanent exception to the expert directive. The bounded test-local cost check follows only
+forward control-flow edges for explicitly known assembled instructions. It charges actual branch
+page penalties and the equal-contract three-byte/three-cycle restoration transfer. Unknown public
+whole-program cycles remain unknown, not free. Complete artifact/resource accounting stays active.
+
+Specification identity and expert 2.0.1/content commit remain those recorded for Phase 1 above.
+No frozen specification or expert file changed. The review snapshot includes committed, staged,
+unstaged and untracked Phase 2 files, excluding changes already present at phase start.
+Evidence directory: `/tmp/blend65-joystick-phase2.Lkb8GS/`; snapshot: `phase2-review.diff`.
+
+## Phase 2 oracle integrity and finding disposition
+
+| Exception | Exact prior user ruling and checked boundary |
+| --- | --- |
+| AR-P8 | Add only three ordered operations to the two existing frontend inventories and change the one thirty-seven→forty title. Reviewer independently confirms the exact diff; every old row, fixture and behavior assertion remains. |
+| AR-P10 | Change only two stopped-CPU comparisons to their existing addresses and remove one unused checkpoint-ID binding. Prior parent inverse-patch hash proof is recorded in the execution ledger. |
+| AR-P11 | Correct only the public signature lookup; preserve signatures, return-type, storage/effect and all source/behavior/cost assertions. Prior parent inverse-block hash proof is recorded in the execution ledger. |
+| AR-P12 | Change only the original cycle helper and two output-cost regions. Reviewer independently reproduces byte equality outside those regions against stored AR-P11 blob `537e0d4d10db5b7937ee70da11db9ef54ab8f03a`. |
+
+Current API/output blob: `e43cc234a0d5a0f69d825cce56c09d672bd89492`.
+Physical-input blob, unchanged: `ceacfdb9c3c69aa2036f0a5adea675c408883e52`.
+The older AR-P10/AR-P11 input blobs were hashed but not persisted as Git objects. Their historical
+inverse proofs are parent evidence, not claimed as independently repeated by this reviewer.
+The current identities, exact inventory changes and AR-P12 outside-region proof are independently
+checked. No source fixture or semantic/runtime block changed under AR-P12.
+
+| Finding | Severity / lens | Disposition |
+| --- | --- | --- |
+| RV-001 | Critical / standards: the role mandates a finding for any existing/frozen specification-test edit | Resolved by the already-given exact user rulings AR-P8/AR-P10/AR-P11/AR-P12, with the evidence boundary above. The reviewer requests preserving this disposition, confirms no edit exceeds the independently checked approvals, and finds no other defect. No new test change or waiver is authorized by this record. |
+
+Reviewer `/root/joystick_phase2_review` reports no other findings through correctness,
+maintainability, standards, API surface, closed-fixture security and direct-output performance.
+The role's automatic integrity finding is retained, not silently omitted. Its exact existing user
+authority is fulfilled; no duplicate ruling or fix-only re-review is needed because no additional
+change is requested. A future edit outside these approvals remains a new stop.
+The separate semantic reviewer owns effects, flags, retained values and IRQ preservation.
+Reviewer `/root/joystick_phase2_semantics` reports no surviving semantic findings. It traces
+frontend identity/effects, saved-value retention, active-low and canonical Boolean lowering,
+the shared forwarding guards and cooperative IRQ status preservation. All 28 additional
+in-memory compile-stage counterexample probes across four profiles pass, including aliases,
+nested arguments, dynamic destinations, saved/conditional samples, ordinary function identity,
+return ABI and IRQ/local closure. Neither reviewer ran an emulator or changed a file.
+No configured security-profile or performance-critical tag applies, so dedicated security and
+performance auditors are not activated; fixture validation and exact direct costs remain reviewed.
+
+## Phase 2 verification
+
+| Gate | Result |
+| --- | --- |
+| Full directed source/output/runtime qualification | 252/252 pass, four profiles, sequential VICE |
+| Approved frontend inventories | 55/55 pass |
+| Directed implementation tests | 55/55 pass: 19 joystick, 17 collision, 19 profile cases |
+| Strict isolated root fixture/oracle TypeScript | Pass |
+| Checkpoint install / build / typecheck | Pass |
+| Touched TypeScript formatting and frozen-authority checks | Pass |
+| Complete local Linux tests | All 3,421 pass; two unchanged native-host skips. Compiler 1,671, CLI 62, language server 21, editor 6, root 1,661. |
+| Local Markdown links/anchors and plan structure | 83 links pass; scoped checklist parser passes |
+
+The first full run's existing `cia-basic-return-vice.spec.test.ts` PAL/8580 case expected stopped
+PC 2662 and received 2594. That source has no joystick operation. No causal attribution or test
+change is made from this observation alone. The failure is at the first pre-release checkpoint
+(line 200), not a failed return/restoration assertion. All four unchanged profile cases pass the
+directed sequential retry. The complete unchanged-command retry also passes all 3,421 tests;
+task 2.3.2 is verified only after that complete GREEN. Evidence: `checkpoint-test.log`,
+`cia-return-unchanged-retry.log` and `checkpoint-test-retry.log`. No timeout, fixture, specification
+or compiler change was made for this retry; the observed failure is retained rather than hidden.
+
+Runtime evidence proves all 32 simulated switch combinations, all five saved-byte predicates,
+released upper pins, shared-line interference, exact reads, CIA1 latch/DDR preservation, both caller
+IRQ states and separate mainline/cooperative-handler samples. Simulation is not physical-stick
+proof; there is no joystick-only isolation or atomic two-port sample promise. Status remains
+VICE-verified / hardware-unverified; final physical and user-host release evidence stays RD-10.
+
+## Final planned document completion
+
+The same reviewer completes the previously unreviewed task 2.3.3 documents against supplied
+`phase2-doc-completion.diff` and reports **no new findings**. The first continuation packet omitted
+that diff and stopped without performing a review; the corrected packet supplies the exact
+baseline projection. This is not a fix re-review or an extra pass over changed compiler code.
+The guide/closeout preserve source-vs-operation staging, keyboard sharing, VICE limits, measured
+costs and RD-05/RD-08/RD-10 owners. The exact guide source builds on four profiles and all 90 local
+links/anchors pass. All 13 non-Markdown diff sections remain byte-identical to the original reviewed
+snapshot. Only verified completion bookkeeping follows; no production/test/authority change.
+After that bookkeeping adds the roadmap's closeout link, the parent verifies all final 91 local
+links/anchors and the unchanged feature counter 4/10 in `final-doc-checks.log`.

@@ -233,16 +233,26 @@ async function childExited(child: ChildProcess, timeoutMs: number): Promise<bool
  * @param prgPath Exact published program to autoload.
  * @param maximumCycles Bounded emulator run; large padded images need extra disk-loading cycles.
  * @param profileId Exact cooperative machine identity; existing calls retain PAL/6581.
- * @throws {RangeError} If the cycle bound or runtime profile identity is invalid.
+ * @param enableJoystick1 Select simulation when true, no device when false; omit to keep the default.
+ * @param enableJoystick2 Keep the simulated second joystick unless false selects no device.
+ * @throws {RangeError} If the cycle bound, runtime profile or activation flag is invalid.
  * @example await startVice(prgPath, 100_000_000, "c64-ntsc-prg-kernal-8580")
  */
 export async function startVice(
   prgPath: string,
   maximumCycles = 100_000_000,
   profileId: C64KernalProfileId = "c64-pal-prg-kernal-6581",
+  enableJoystick1?: boolean,
+  enableJoystick2 = true,
 ): Promise<StartedVice | { readonly kind: "unknown"; readonly reason: string }> {
   if (!Number.isSafeInteger(maximumCycles) || maximumCycles <= 0) {
     throw new RangeError("VICE cycle bound must be a positive safe integer");
+  }
+  if (enableJoystick1 !== undefined && typeof enableJoystick1 !== "boolean") {
+    throw new RangeError("VICE first-joystick activation must be a boolean");
+  }
+  if (typeof enableJoystick2 !== "boolean") {
+    throw new RangeError("VICE second-joystick activation must be a boolean");
   }
   const pal = profileId === "c64-pal-prg-kernal-6581" || profileId === "c64-pal-prg-kernal-8580";
   const ntsc = profileId === "c64-ntsc-prg-kernal-6581" || profileId === "c64-ntsc-prg-kernal-8580";
@@ -276,7 +286,8 @@ export async function startVice(
     "-binarymonitoraddress",
     `127.0.0.1:${port}`,
     "-controlport2device",
-    "37",
+    enableJoystick2 ? "37" : "0",
+    ...(enableJoystick1 === undefined ? [] : ["-controlport1device", enableJoystick1 ? "37" : "0"]),
     "-limitcycles",
     String(maximumCycles),
     "-autostart",

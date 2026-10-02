@@ -50,6 +50,8 @@ export interface C64MachineFacts {
   readonly backgroundColor: 0xd021;
   /** First sprite color register. */
   readonly spriteColorBase: 0xd027;
+  /** CIA1 port B: joystick port 1 and shared keyboard lines, read as actual pin levels. */
+  readonly joystick1: 0xdc01;
   /** Joystick port 2 sample register. */
   readonly joystick2: 0xdc00;
   /** Base address of CIA1 timer, control and interrupt registers. */
@@ -122,6 +124,7 @@ const COMMON_MACHINE: Omit<C64MachineFacts, "id" | "cyclesPerFrame"> = Object.fr
   borderColor: 0xd020,
   backgroundColor: 0xd021,
   spriteColorBase: 0xd027,
+  joystick1: 0xdc01,
   joystick2: 0xdc00,
   cia1Base: 0xdc00,
   cia2Base: 0xdd00,

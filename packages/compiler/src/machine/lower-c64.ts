@@ -392,18 +392,22 @@ export function lowerC64Operation(
     });
   }
 
-  if (operation.capability === "c64.input.readJoystick2") {
+  if (
+    operation.capability === "c64.input.readJoystick1" ||
+    operation.capability === "c64.input.readJoystick2"
+  ) {
+    const address =
+      operation.capability === "c64.input.readJoystick1" ? machine.joystick1 : machine.joystick2;
     return Object.freeze({
       instructions: Object.freeze([
         machineInstruction(
           cpu,
           "lda",
           "absolute",
-          Object.freeze({ kind: "absolute", value: machine.joystick2 }),
-          [fixedEffect("read", machine.joystick2)],
+          Object.freeze({ kind: "absolute", value: address }),
+          [fixedEffect("read", address)],
           source,
         ),
-        machineInstruction(cpu, "tax", "implied", null, [], source),
       ]),
       result: Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
       data: Object.freeze([]),
@@ -411,6 +415,8 @@ export function lowerC64Operation(
   }
 
   const joystickMasks: Readonly<Record<string, number>> = Object.freeze({
+    "c64.input.joystickUp": 0x01,
+    "c64.input.joystickDown": 0x02,
     "c64.input.joystickLeft": 0x04,
     "c64.input.joystickRight": 0x08,
     "c64.input.joystickFire": 0x10,

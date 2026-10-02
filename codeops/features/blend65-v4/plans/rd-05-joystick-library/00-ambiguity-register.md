@@ -1,9 +1,9 @@
 # Joystick and Bundled C64 Library — Planning Decisions
 
 > **CodeOps Artifact Schema**: 1
-> **Status**: ✅ GATE PASSED — AR-P9 runtime test correction approved
-> **Last Updated**: 2026-10-01 18:09 UTC
-> **Planning only**: No implementation or frozen-authority change is authorized by this document.
+> **Status**: ✅ All planning decisions and runtime exceptions through AR-P12 resolved
+> **Last Updated**: 2026-10-02 06:38 UTC
+> **Authority**: Approved plan-local runtime exceptions are recorded below; frozen specification and expert authority remain unchanged.
 
 ## Planning scope contract
 
@@ -36,6 +36,184 @@ compile with the same cost as current intrinsics, authorize an early optimizer, 
 | AR-P7 | Scope / completion | Who owns later callable-library migration, deep analysis and skill changes? | AR-P2 keeps source-function migration with RD-08 R8.19/AC-17. Pilot closeout must report evidence for the user-requested final review RD and qualified skill update, not create or activate them implicitly. | ✅ Resolved |
 | AR-P8 | Test authority | May the two old exhaustive API inventories admit the three approved additional operations? | User: "Yes, approve these exact inventory additions." Add exactly `c64.input.joystickDown(byte): boolean pure`, `joystickUp(byte): boolean pure` and `readJoystick1(): byte volatile-read` to `frontend/profile.spec.test.ts` and `frontend/profile-constants.spec.test.ts`; change only the latter's title from thirty-seven to forty operations. Preserve every existing row, fixture and behavior assertion. | ✅ Resolved |
 | AR-P9 | Runtime / frozen test authority | May the installed-package probe select constant bindings before asserting exactly six source masks? | User: "I approve", directly approving the narrow test correction on 2026-10-01. Add only `binding.storage === 'constant'` to the JSON probe's existing `masks` filter in `test/rd05/bundled-input-evidence.spec.test.ts`. Preserve every fixture and assertion, including the six exact values/types/SourceIds and length six. Existing functions remain exposed under AR-P3. | ✅ Resolved |
+| AR-P10 | Runtime / frozen test authority | May the frozen API/output VICE setup compare stopped CPU addresses rather than checkpoint IDs? | User: "Yes, approve this exact fixture correction (Recommended)" on 2026-10-01. Change only its two stop comparisons to the already-selected addresses `0x2001` and `0x3000`, and discard the unused completion-checkpoint return value. Preserve all source fixtures and behavior/MMIO/byte/cycle/resource expectations. | ✅ Resolved |
+| AR-P11 | Runtime / frozen test authority | May the API-binding case check complete signatures in the public selected-profile capability table, rather than assuming a profile binding's return-type field contains a FunctionType? | User: "I approve", directly answering the sole pending lookup-only correction. Replace only that case's unsupported FunctionType lookup with the matching `analyzed.program.profile.capabilities` row. Preserve exact parameters, return types, storage/effects and every program/behavior/cost expectation; also require the binding's resolved return type to equal the independent expected scalar type. No compiler metadata/schema change. | ✅ Resolved |
+| AR-P12 | Technical (complexity escalation) / runtime test authority | The approved two-file seam cannot satisfy the frozen retained-local/predicate floors or function-owned numeric cycle evidence. What is the smallest authorized correction without adding an early optimizer or changing the return contract? | User: "I approve", directly answering the sole pending AR-P12 staging correction. Accept canonical `none` for this pilot only; preserve semantic/MMIO/accounting checks, direct-operation floors and independently measured expert references. General local/condition/layout performance remains RD-08-owned. Only the named cost blocks and cycle helper may change; no optimizer, production cycle subsystem, frozen authority or game-grade relaxation. Independent verdict: Simplify. | ✅ Resolved |
+
+## AR-P12: Output scope and independent cost evidence
+
+Task 2.2.3's authorized changes pass the fresh compiler build, formatting and nine unchanged
+machine controls. The API/output suite now has 96 passes and 124 failures, with no setup or timeout
+failure. Direct discarded and fixed-store samples have the expected body bytes, one port read and
+zero SFA; their 16 remaining failures are missing function-owned numeric cycle evidence. Eight
+retained-sample failures and 100 predicate-output failures expose existing local save/reload,
+Boolean materialization and branch-layout costs. The four-profile semantic saved-byte and ordered
+read tests pass. Evidence: `/tmp/blend65-joystick-phase2.Lkb8GS/joystick-authorized-seam.json`,
+`joystick-authorized-seam.log` and `joystick-seam-controls.log`.
+
+The authorized selector deliberately retains the sole-use and adjacency guards
+(`machine/lower-register-forwarding.ts:63–106`). Local RAM homes are inventoried before lowering
+(`storage/inventory.ts:424–460`, `services/services.ts:226–256`), and retained semantic values
+receive separate homes (`machine/lower-state.ts:263–316`). Removing both local and temporary
+homes needs proof shared with SFA, not a joystick-name special case or a later storage invention.
+
+The public cost writer currently publishes one compiler-owned unknown whole-program cycle entry
+(`services/evidence.ts:295–314`). The frozen oracle requires function-owned bounded cycles
+(`test/rd05/joystick-api-output.spec.test.ts:211–229`), which cannot be supplied by the approved
+two-file seam. It also budgets a one-byte RTS for main, whereas these cooperative programs end
+main with a three-byte transfer to the required restoration path. The common return contract must
+not be changed merely to satisfy that assumption.
+
+There is a sequencing conflict to resolve explicitly. RD-05 R5.50 records expert deltas under
+`none` as RD-08 inputs, and the qualified expert defines `none` without optional rewrite search
+or a parity gate. This pilot's AR-P6 and frozen output oracle instead make several whole-local
+expert bounds closeout gates. AGENTS.md's expert-output prime directive remains in force; neither
+the directive nor frozen authority will be silently weakened.
+
+Original goal: both-port, active-low, zero-abstraction-cost joystick operations and a real bundled
+source library, without gameplay policy, an early inliner or broad compiler refactoring.
+Extra system or support code: possible shared local/register/condition proofs before SFA and
+bounded cycle-evidence production; no implementation of this machinery has begun.
+Why it may be needed: the narrow existing admission fixes direct samples but cannot remove
+general local homes, invert live conditions, compact branch layout or publish new cycle evidence.
+Evidence: the paths and measured test results above; six public-build artifact probes in
+`joystick-seam-measurements.log` confirm 27-byte retained, 33-byte branch, 55-byte negated and
+37-byte escaping main intervals, with 2/2/3/3 SFA bytes respectively. These include the common
+three-byte restoration transfer, not an ordinary RTS.
+Smallest solution that still works: retain the approved direct-read/fixed-store seam and align
+this pilot's acceptance with the staged `none` contract. Keep all behavior, polarity, volatile
+access count/order, source programs, snapshot retention, interrupt/state and physical accounting
+checks. Keep the retained-local, condition propagation/materialization and compact branch-layout
+expert references and performance goals as explicit RD-08-owned acceptance inputs, not silent
+deletions or claims of expert-grade output. Preserve the named-operation no-dispatch/no-helper/
+no-extra-volatile-access gates here. Numeric costs for the bounded selected forms can be checked
+from assembled instructions using the existing qualification pattern, without requiring an
+unsupported function-owned public-report encoding. Account for the required restoration transfer
+rather than replacing it with an RTS to satisfy the oracle.
+Extra cost: the larger direction would cross local inventory/SFA, value retention, condition
+lowering, branch layout and cycle reporting, with independent clobber/effect/escape/domain/debug
+proofs. The smaller direction adds no production subsystem, dependency, runtime or optimizer;
+it needs only the explicitly authorized test/acceptance correction and durable RD-08 ownership.
+Independent verdict: Simplify — the blind challenger recommends staged-contract correction over
+general local/condition/layout optimization or a reporting subsystem inside this joystick pilot.
+It assessed the supplied grounded packet only and did not independently open repository files.
+Direct user decision: approved smaller solution — the user said "I approve" in direct response to
+the sole pending AR-P12 packet. This authorizes the named pilot-only staging/test correction, not
+the larger shared optimization/report machinery. Task 2.2.3 may resume; no phase completion or
+green commit is implied by approval.
+
+Required bounded approval: amend only this pilot's acceptance so canonical `none` output may
+finish RD-05 while these whole-local expert floors remain due in RD-08. This explicitly reconciles
+the AGENTS.md output-floor directive for this named unoptimized pilot; it does not lower optimized
+or production game-grade output requirements. Authorize only the retained-local and predicate
+output-cost blocks in `joystick-api-output.spec.test.ts:460–571` to separate those future floors
+from current canonical qualification, and the cycle helper at `:211–229` to use independently
+measured selected-form costs rather than unsupported report ownership. Correct the RTS/common-tail
+assumption in those cost blocks. Keep every semantic/runtime oracle and all other test blocks
+unchanged. Preserve the expert performance targets with an explicit RD-08 owner and reconsideration
+gate, not a new golden derived from current compiler output. The user has now given that direct
+approval. The historical alternative was to keep the pilot open until a separately authorized
+shared optimization prerequisite; it was not selected.
+
+Execution boundary: the corrected tests will still run every existing source case. Direct discarded
+and fixed-store reads retain exact byte, one-read, no-transfer, resource and zero-SFA gates. Retained
+samples retain exact port/destination accesses and complete accounting, with the 9-byte/12-cycle
+body and zero-SFA reference recorded rather than made an unoptimized acceptance limit. Predicate
+cases retain exact masks, single zero-condition branch where applicable, no helper calls and
+complete accounting. Their whole-local storage/compact-layout targets remain RD-08 inputs.
+The measured main interval includes its three-byte/three-cycle transfer to restoration; common
+startup/restoration remains separately charged in complete artifact/resource evidence.
+Use only a closed, forward-only instruction-cost check for these small assembled fixtures, not a
+CPU interpreter, new test transport or production reporting subsystem. The public whole-program
+unknown remains honestly unknown. No semantic/runtime block or physical-input oracle may change.
+
+Confidence: High for the sequencing and scope recommendation; retaining the unconditional
+per-mode output floor would change the viable direction to the separate prerequisite.
+Hardening: narrowed the possible shared-proof/report expansion to a staged acceptance correction.
+Challenger: converged. Strongest counterargument: this is a genuine pilot-only relaxation of the
+current unconditional output gate, so it is user-owned rather than a clerical fixture correction.
+
+Additional bounded runtime evidence: all 32 physical-input cases pass sequentially across the
+four profiles, including all simulated combinations, full-byte shared-line behavior, CIA1
+latch/DDR preservation, caller interrupt states and independent mainline/IRQ samples.
+Evidence: `joystick-narrow-runtime.json` and `.log` in the phase scratch directory.
+Status is VICE-verified / hardware-unverified; neither frozen oracle blob changed.
+
+## AR-P11 — Profile signature evidence location
+
+Task 2.2.1 adds only the three approved capability rows and named port-B register fact. Fresh
+compiler build and 39 unchanged target-profile controls pass. The directed API run has 52 passing
+arity/type/unknown-name cases and four failed signature cases, one per profile. All four fail at
+`test/rd05/joystick-api-output.spec.test.ts:287`: the binding's type is scalar, not FunctionType.
+
+This is not a missing signature or incorrect argument admission. Existing profile bindings retain
+their return type at `frontend/profile-bindings.ts:22–26`; the complete signature is retained
+separately at `:149–159`. The public `TypedProgram.profile` exposes the selected capability table
+(`frontend/service.ts:49–51`, `frontend/profile.ts:25–33`). The frozen source-language contract
+requires exact callable signatures, not a specific binding metadata encoding. Reworking the shared
+compiler representation only to satisfy the test would be unrelated scope.
+
+The smallest correction changes only the unsupported signature block in the existing API-binding
+case. Keep its source program, successful-analysis assertion, exact storage and operation effects.
+Replace the FunctionType-kind assertion/guard and parameter/return lookup with:
+
+```ts
+const capability = analyzed.program.profile?.capabilities.find(
+  (candidate) => candidate.name === `c64.input.${operation.name}`,
+);
+expect(capability?.parameters).toEqual(
+  read ? [] : [{ kind: "scalar", name: "byte" }],
+);
+expect(capability?.returnType).toEqual({
+  kind: "scalar", name: read ? "byte" : "boolean",
+});
+expect(binding?.type).toEqual({ kind: "scalar", name: read ? "byte" : "boolean" });
+```
+
+Every signature value remains independently specified, not copied from the compiler. The binding's
+actual resolved return type is additionally proved. Preserve every other case, all source fixtures,
+Boolean/MMIO/resource expectations and assembly/cost floors. No new API, helper, framework,
+optimizer or compiler schema is proposed. Frozen blob
+`fea1b92b5a92961ca32c87631e8323592bb78eb7` is the pre-correction frozen identity.
+Evidence: `/tmp/blend65-joystick-phase2.Lkb8GS/api-signatures-green.log` (52 pass, 4 fixture
+failures), `api-declarations-build.log` and `target-profiles-green.log` (39 pass).
+The user explicitly approved the lookup-only correction. The same binding-presence guard remains
+without its unsupported FunctionType-kind condition, preserving strict typing of the unchanged
+effect assertion. No program, parameter/return value, storage/effect or output-cost expectation
+changed. Corrected frozen blob: `537e0d4d10db5b7937ee70da11db9ef54ab8f03a`; SHA-256:
+`e69bb863a743144398355f92f738844b4bb11a4bbc1938216d243efb5519904a`.
+The inverse-block proof reproduces the prior blob exactly. All 56 four-profile API cases and
+isolated strict types pass; no other test block changed.
+
+## AR-P10 — VICE stop address versus checkpoint identity
+
+The independent physical-input authoring run exposed four fixture-control failures, excluded from
+RED: `waitForStop()` returned `12032` (`$2F00`, the correct CPU stop address), while the new
+unfrozen helper compared it with checkpoint ID `1`. The allowed external monitor resolves the
+stopped event's two-byte CPU address at `test/m1/vice-monitor.ts:359`. The
+[official stopped-event contract](https://vice-emu.sourceforge.io/vice_13.html)
+likewise carries PC; checkpoint identities arrive in separate checkpoint responses.
+
+The earlier frozen API/output fixture repeats that setup assumption at
+`test/rd05/joystick-api-output.spec.test.ts:255` and `:260`. Its current blob
+`0fa623d4d4192608b070b353d6ad629b1161e853` is the original frozen identity. The missing APIs had
+prevented these runtime paths from reaching the setup assertion;
+their existing assertion RED remains genuine, but makes no runtime claim.
+
+The smallest correction is exactly three lines: compare the first stop with `0x2001`, compare
+completion with `0x3000`, and call `setExecuteCheckpoint(0x3000)` without binding its unused
+return value. Keep the entry checkpoint ID solely for deleting that checkpoint. This repairs
+host setup, not source semantics, the compiler, monitor behavior, any cost floor or feature
+expectation. Changing the existing monitor to return IDs instead would break its established
+address contract and is not viable.
+
+The user explicitly approved that exact correction on 2026-10-01. The corrected frozen blob is
+`fea1b92b5a92961ca32c87631e8323592bb78eb7`; SHA-256 is
+`1006802dba4a1b574a9f1875ed600a7ccc9b3167dcbf81fa84b0e2c4d3ecf071`.
+A read-only inverse-patch proof reproduces the original blob exactly, establishing that no other
+line or expectation changed. Directed verification remains part of the two-file RED gate.
+The still-unfrozen physical-input file may correct its own setup before valid RED. No larger
+mechanism is authorized by this exception.
 
 ## AR-P9 — Installed-package probe classification
 
@@ -232,6 +410,18 @@ small extensions of the same external-tool fixture, not another monitor client, 
 harness. `VICE-310-MANUAL` documents the command; `VICE-310-SOURCE` pins its emulator implementation.
 Verify active device selection, port identity and polarity through actual compiled samples,
 not by trusting the test adapter's name or a write to an unselected simulation buffer.
+
+Authoring setup evidence: the pinned simulation device stores only the five supplied bits and
+returns that complete byte, with its upper three bits low. It cannot prove released upper pins.
+The unfrozen oracle therefore separates all-32 switch tests on device 37 from full-byte/DDR/latch
+tests on explicitly disconnected devices (device 0), with compiled raw-peek controls for both.
+The existing startup helper adds a default-preserving second-port flag; its new optional first-port
+flag selects simulation when true, no device when false, and the old default when omitted.
+No existing call changes. This is the same external-tool fixture, not another hardware API or
+verification framework. The read contract remains the actual eight-bit sample, without masking.
+Primary tool evidence is the pinned
+[simulation implementation](https://raw.githubusercontent.com/VICE-Team/svn-mirror/4d283a2e7dd59b7e378524878e81ecc7826b700c/vice/src/joyport/joyport_io_sim.c)
+and [released-device implementation](https://raw.githubusercontent.com/VICE-Team/svn-mirror/4d283a2e7dd59b7e378524878e81ecc7826b700c/vice/src/joyport/joyport.c).
 
 Prove real source constants through ordinary imports, sync/async/overlay agreement, normal duplicate
 diagnostics with visible errors and preserved installed primary/related locations in either

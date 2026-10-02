@@ -319,3 +319,15 @@ The passing gate binds the seven corrected blobs above; a changed target require
 bounded check of its changed sections before execution consumes it. No further scan
 is required now. RD-05 remains Executing; the pilot remains 0/21 and RD-05 closeout
 is not implied. Execution has not started and no push is authorized by this pass.
+
+## Approved runtime acceptance amendment
+
+The preceding identities and verdict describe the original document-only scan. On 2026-10-02,
+the user directly approved AR-P12 after a blind independent challenge returned Simplify.
+The bounded amendment accepts canonical `none` local storage/control-flow layout for this pilot,
+retains exact direct read/store and all semantic/MMIO/accounting gates, and assigns general
+whole-local expert targets explicitly to RD-08. Only the new oracle's named output-cost groups
+and cycle helper may change; no optimizer, production reporter, frozen authority or final
+game-grade relaxation is authorized. The amended requirement/design/testing sections are checked
+against that exact decision during execution and included in the independent Phase 2 review.
+This is runtime authority attribution, not a claim that the original preflight audited later code.
