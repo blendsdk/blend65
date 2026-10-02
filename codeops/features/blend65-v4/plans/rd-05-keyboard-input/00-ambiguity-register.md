@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
 > **Status**: ❌ GATE BLOCKED — discovery in progress; no executable plan
-> **Last Updated**: 2026-10-02 22:51 CEST
+> **Last Updated**: 2026-10-02 23:04 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -96,3 +96,31 @@ remains blocked; no upstream requirement, frozen spec or expert-skill edit is pr
 AR-P4 is now approved. T-04 confirms the genuine returning stock route, both caller I states,
 known-state restoration at its stated boundary and PB6/PB7 timer-output override in the selected
 PAL VICE model. The positive API decisions AR-P2/AR-P3 remain open; proof does not choose them.
+
+### Post-proof decision for AR-P2
+
+**Best option:** Define the smallest keyboard/stock-firmware coordination contract before
+accepting positive scanning. Preserve stock RESTORE behavior and use the existing RD-05 NMI
+owner as context. This requests authority for focused contract design only, not a chosen
+adapter, NMI subsystem, profile/spec correction or compiler implementation. The modification
+set remains this discovery register until the positive plan gate passes; no T-04 replay is due.
+
+Ordinary time skew between key samples is acceptable: a saved snapshot need not represent one
+atomic physical instant. The demonstrated conflict is different: firmware changes the column
+being driven, so a row can be attributed to the wrong column. An exact PA pin comparison also
+rejects valid connected keys; bounded retries alone do not prove attribution. The current
+requirements [R5.25/AC-20](../../requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md)
+require correct named-key attribution, not merely delivery of raw attempted observations.
+Stock SCNKEY publication is not a saved 64-position matrix. A proved NMI-quiescent precondition
+could be smaller, but the current cooperative route supplies none; an implicit “do not press
+RESTORE” restriction is not accepted.
+
+The strongest counterargument is that documented best-effort input may be adequate for games.
+That is a real weaker product contract, but accepting it silently would weaken the existing
+named-key requirement. No particular coordination mechanism is yet proved necessary or sufficient.
+
+Confidence: **Medium** for the smallest coordination design; **High** that the present final-PA
+guard is not an unconditional certificate. Hardening: corrected the exact held-key counterexample
+and separated normal input time skew from a competing column writer. Challenger: **converged**
+on focused ownership-contract design, with no positive contract accepted inside the proof scope.
+User decision on this next planning boundary is pending; AR-P2/AR-P3 stay open.
