@@ -1,25 +1,25 @@
 # Keyboard and combined input — planning decisions
 
 > **Status**: ❌ GATE BLOCKED — discovery in progress; no executable plan
-> **Last Updated**: 2026-10-02 21:06 CEST
+> **Last Updated**: 2026-10-02 22:51 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
 
-| Boundary | Authority |
-| --- | --- |
-| Planning target | `blend65-v4/RD-05` R5.25/AC-20 and the remaining R5.24/AC-19 keyboard-coexistence obligation. The user confirmed high effort and continuation after the proposed focused keyboard/combined-input planning task. |
+| Boundary          | Authority                                                                                                                                                                                                                                                                                                   |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Planning target   | `blend65-v4/RD-05` R5.25/AC-20 and the remaining R5.24/AC-19 keyboard-coexistence obligation. The user confirmed high effort and continuation after the proposed focused keyboard/combined-input planning task.                                                                                             |
 | Context artifacts | RD-05 and its requirements decisions; the live feature roadmap; the completed joystick/library pilot; current source loading, profile declarations, semantic/lowering/storage and startup seams; frozen Specification 4 and expert baseline; primary CIA/KERNAL evidence. Reading does not authorize edits. |
-| Modification set | This new plan folder only during discovery. While the gate is blocked, only this register may be written. No compiler, tests, upstream requirements, frozen spec or expert-skill changes are authorized by planning. |
+| Modification set  | During positive-plan discovery, only this register may be written. AR-P4 separately approves one proof-task mini-plan and the feature-roadmap update. No compiler, tests, upstream requirements, frozen spec or expert-skill changes are authorized.                                                        |
 
 ## Ambiguity register
 
-| ID | Category | Decision needed | Recommendation / authority | Status |
-| --- | --- | --- | --- | --- |
-| AR-P1 | Scope / product boundary | What is the next planning task? | User confirmed the focused RD-05 keyboard/combined-input plan. Preserve both existing raw joystick reads and the approved library-first direction. The existing product boundary excludes an input manager, event queue, scheduler, debounce and repeat policy. | ✅ Resolved — existing scope and product authority |
-| AR-P2 | Data/state / technical — sensitive | What port-state and firmware-ownership contract permits exact scan restoration? | Prove the bounded known-state transaction first. CIA reads observe pins, not the hidden output latch; saving a port read is not proof of arbitrary latch restoration. Stock returning NMI can also change the selected column. No hidden state manager or profile correction is approved. | ❌ Open |
-| AR-P3 | Behavior / integration / user-facing API — sensitive | What does a combined keyboard/joystick observation promise when shared lines or multiple keys prevent a unique interpretation? | Preserve raw observations and expose affected-key uncertainty, not blanket keyboard invalidation or invented input. Eight row bytes and two port observations are a candidate, not an accepted API. Names, acquisition-quality representation and certainty contract await the proof. | ❌ Open |
-| AR-P4 | Scope / delivery | Should the next executable slice be proof-only rather than positive keyboard support? | Best option: one bounded proof task using pinned ROM and existing VICE support, before accepting the keyboard API plan. No production changes, new framework, NMI adapter, profile correction or optimizer. Keep AR-P2/AR-P3 open for the positive plan. | ❌ Open — awaiting explicit scope decision |
+| ID    | Category                                             | Decision needed                                                                                                                | Recommendation / authority                                                                                                                                                                                                                                                                | Status                                                                                                                                              |
+| ----- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AR-P1 | Scope / product boundary                             | What is the next planning task?                                                                                                | User confirmed the focused RD-05 keyboard/combined-input plan. Preserve both existing raw joystick reads and the approved library-first direction. The existing product boundary excludes an input manager, event queue, scheduler, debounce and repeat policy.                           | ✅ Resolved — existing scope and product authority                                                                                                  |
+| AR-P2 | Data/state / technical — sensitive                   | What port-state and firmware-ownership contract permits exact scan restoration?                                                | Prove the bounded known-state transaction first. CIA reads observe pins, not the hidden output latch; saving a port read is not proof of arbitrary latch restoration. Stock returning NMI can also change the selected column. No hidden state manager or profile correction is approved. | ❌ Open                                                                                                                                             |
+| AR-P3 | Behavior / integration / user-facing API — sensitive | What does a combined keyboard/joystick observation promise when shared lines or multiple keys prevent a unique interpretation? | Preserve raw observations and expose affected-key uncertainty, not blanket keyboard invalidation or invented input. Eight row bytes and two port observations are a candidate, not an accepted API. Names, acquisition-quality representation and certainty contract await the proof.     | ❌ Open                                                                                                                                             |
+| AR-P4 | Scope / delivery                                     | Should the next executable slice be proof-only rather than positive keyboard support?                                          | One bounded proof task using pinned ROM and existing VICE support, before accepting the keyboard API plan. No production changes, new framework, NMI adapter, profile correction or optimizer. Keep AR-P2/AR-P3 open for the positive plan.                                               | ✅ Resolved — user replied “proceed” to the proof-only recommendation; [T-04 mini-plan](../keyboard-scan-proof/99-execution-plan.md) owns execution |
 
 ## Evidence and lineage
 
@@ -69,11 +69,13 @@ PB6/PB7 timer output can also override DDRB; readable directions alone do not es
 64 keyboard inputs. No generalized state service, optimizer, NMI adapter or profile correction
 is justified by this discovery.
 
-A post-row port-A comparison is a useful proof candidate, not a settled remedy. The challenger
-found a source-derived counterexample for column `$7F` involving two returning NMIs and changing
-keys: an earlier NMI can leave another column driven during the PB sample, while a later NMI
-restores `$7F` before the PA comparison. A matching final pin observation therefore is not by
-itself evidence of the earlier driven column. This inference has not been replayed in VICE.
+A post-row port-A comparison was a proof candidate, not a settled remedy. The challenger's exact
+held-key example predicted matching `$7F`, but [T-04 replay](../keyboard-scan-proof/99-execution-plan.md#results)
+observed `$7D`: STOP + Left Shift also pull a PA pin low. That exact example is rejected by the
+guard, not a false acceptance. A variant releasing all keys after the second returning NMI and
+before the PA read preserves the wrong earlier PB0 sample yet observes matching `$7F`. Thus a
+final matching pin observation does not by itself certify the earlier driven column under that
+explicit changing-input schedule. No fixed-key, physical-cadence or nested-NMI result is claimed.
 
 The smallest proposed proof replays the exact stock route and observes column writes, row samples,
 quality checks and restoration, with the simpler single-returning-NMI case as control. It also
@@ -90,3 +92,7 @@ the focused proof is intended to answer that without adding production machinery
 AR-P4's proposed modification set is this discovery register plus, after approval, one separate
 lightweight proof-task plan and the normal feature-roadmap update. The positive keyboard plan
 remains blocked; no upstream requirement, frozen spec or expert-skill edit is proposed.
+
+AR-P4 is now approved. T-04 confirms the genuine returning stock route, both caller I states,
+known-state restoration at its stated boundary and PB6/PB7 timer-output override in the selected
+PAL VICE model. The positive API decisions AR-P2/AR-P3 remain open; proof does not choose them.
