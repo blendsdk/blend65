@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
 > **Status**: ❌ GATE BLOCKED — discovery in progress; no executable plan
-> **Last Updated**: 2026-10-02 23:04 CEST
+> **Last Updated**: 2026-10-03 01:03 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -123,4 +123,101 @@ Confidence: **Medium** for the smallest coordination design; **High** that the p
 guard is not an unconditional certificate. Hardening: corrected the exact held-key counterexample
 and separated normal input time skew from a competing column writer. Challenger: **converged**
 on focused ownership-contract design, with no positive contract accepted inside the proof scope.
-User decision on this next planning boundary is pending; AR-P2/AR-P3 stay open.
+The user approved resuming this focused design boundary with “resume, proceed” on
+2026-10-03. This resumes the already confirmed high-effort keyboard planning task;
+it does not approve an NMI hook or expand the modification set. AR-P2/AR-P3 stay open.
+
+### Contract-design result: reuse the existing NMI safety owner
+
+**Best next direction:** qualify the shared NMI prerequisite under the existing
+[DEF-7 owner](../rd-05-nmi-cia2/00-ambiguity-register.md), before accepting a keyboard
+interception mechanism. Do not create a parallel keyboard-owned NMI subsystem.
+This is a recommendation for the next bounded task, not an executable keyboard plan.
+
+| Boundary                                         | Result and decisive evidence                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stock returning NMI can change the driven column | **Verified complete / Fact** for T-04's bounded PAL VICE replay; [results](../keyboard-scan-proof/99-execution-plan.md#results) remain hardware-unverified. No replay or stronger qualification is added here.                                                                                                                                                                                                                                    |
+| Stock STOP interpretation during a scan          | **Verified partial / Inference** from pinned ROM instructions. With only Cursor U/D held, PA=$FE yields PB=$7F. `UD60` then drives $BD, observes $FF, and stores the earlier $7F in STKEY. `NSTOP` treats $7F as STOP; `NNMI19` takes the warm-start path although physical STOP is not held. T-04 deliberately used a returning shifted-key case and STKEY=$FF; it did not test this exit. Runtime and physical confirmation remain Unknown.     |
+| A firmware-clock guard                           | **Incorrect / Fact** as an interference detector: `NNMI19` calls `UD60`, after the clock increment in `UDTIM`. This returning path need not change the clock.                                                                                                                                                                                                                                                                                     |
+| Marker-only NMI chaining                         | **Incorrect / Inference** as the complete proposed remedy: detecting a contaminated sample after return cannot prevent the earlier false-STOP exit. A counter also needs a wrap proof; an idempotent flag avoids that extra problem, not the exit problem.                                                                                                                                                                                        |
+| A scan-aware NMI hook                            | **Unknown / Unknown** positive safety. Re-establishing stock-compatible CIA1 state before firmware scans, marking interference, and chaining is a conditional candidate only. Source/nesting, safe publication/removal, ownership, exact entry/exit state and full cost are not qualified.                                                                                                                                                        |
+| Current NMI source contract                      | **Verified complete / Fact** at the contract boundary: the unchanged [frozen profile](../../../../../spec/appendix-c64.md), lines 877–886, admits unbounded NMI self-preemption. The current [sink facts](../../../../../packages/compiler/src/target/profile.ts), lines 174–191, and [E10245 guard](../../../../../packages/compiler/src/semantic/whole-program.ts), lines 348–355, retain that restriction. A keyboard hook must not bypass it. |
+
+ROM authority is the unchanged `CBM-C64-KERNAL-03` content already pinned above:
+[time::UD60/UD70/UD80](https://raw.githubusercontent.com/mist64/cbmsrc/01bd60f162ef92212ef0cb67546ae8f42be34168/KERNAL_C64_03/time),
+[errorhandler::NSTOP](https://raw.githubusercontent.com/mist64/cbmsrc/01bd60f162ef92212ef0cb67546ae8f42be34168/KERNAL_C64_03/errorhandler)
+and [rs232nmi::NNMI19/TIMB](https://raw.githubusercontent.com/mist64/cbmsrc/01bd60f162ef92212ef0cb67546ae8f42be34168/KERNAL_C64_03/rs232nmi).
+The isolated source example assumes stable keys and no intervening second NMI; it is
+not a new observed VICE trace or a claim about every electrical input combination.
+
+#### Smallest conditional coordination contract
+
+If DEF-7 becomes qualified and separate authority accepts interception, a direct
+scan transaction could mark firmware interference and give the stock handler its
+declared CIA1 scan state before chaining. Captured rows affected by interference
+must not become named-key results. A bounded attempt policy can return acquisition
+uncertainty rather than invent input; that policy remains AR-P3's decision.
+It is distinct from electrical ghosting and joystick ambiguity.
+
+The acquisition window must include state restoration: clear the marker only when
+discarding an old attempt before any new column drive; restore the declared idle
+state before the final marker read. A later NMI cannot retroactively change saved
+rows. This is an analytical candidate, not an approved scan algorithm. Finite scan
+attempts do not bound NMI nesting or the stock `UD60`/`UD70` settling loops.
+
+Any later route must preserve the exact predecessor, entry A/X/Y and status,
+binary generated-body state and final full-status RTI behavior; leave the consuming
+CIA2 ICR read with firmware; and charge every shared byte, SFA home, saved link,
+hardware-stack path, emitted byte, existing-ROM path and placement/padding cost.
+Only reachable entry variants may be emitted; source interrupt handlers remain
+callback-only and ordinary helpers remain JSR/RTS. No positive route or cost is
+certified here. No state or code has been added, so this task's runtime-cost delta
+is zero; the conditional mechanism's complete cost remains Unknown.
+
+The [existing vector transaction](../../../../../packages/compiler/src/machine/lower-c64-interrupt.ts),
+lines 211–215 and 235–310, is IRQ-masked and writes two vector bytes. It is not safe
+NMI publication evidence. Matching the stock $FE47 low byte and publishing one
+high byte could avoid a torn vector, but neither the required placement nor its
+install/remove boundaries are proved. It does not solve nesting. The
+[startup save area](../../../../../packages/compiler/src/layout/startup.ts), lines
+14–37, supplies no CIA1 latch shadow. Do not add a manager to claim arbitrary
+old-latch restoration.
+
+#### Next authorization boundary
+
+The exact missing prerequisite is DEF-7's qualified finite simultaneous-entry
+bound covering every admitted NMI source, together with safe route publication
+and restoration. Human infrequency, one VICE event, SEI or a short scan is not that
+bound. The frozen unbounded row cannot be silently narrowed. Qualification might
+identify a necessary profile correction; changing the frozen specification or
+expert baseline would still require a separate, explicit authority and their
+existing qualification process.
+
+The recommended next task modifies only the existing DEF-7 discovery register
+and, at a justified lifecycle change, the feature roadmap. It has a finite exit:
+record a supportable source contract from new qualifying evidence or surface the
+specific user-owned source-contract fork and stop. Do not repeat DEF-7's completed
+negative nesting check or turn this into recurring proof/marker variants. No
+hook, compiler/test change, generalized NMI facility, new profile, dependency,
+harness or further T-04 replay is part of that recommendation. This expanded
+modification set awaits the user's approval; this task writes only the keyboard
+register. Raw best-effort observations or stock selected-key publication cannot
+silently replace the accepted all-64 named-key requirement.
+
+One fresh blind `design-challenger` independently selected the shared DEF-7
+direction. Its complexity verdict is **Simplify**: no second NMI owner, manager,
+dispatcher or harness; keep scan-scoped coordination only as a conditional
+analytical candidate. No larger support surface is recommended or approved.
+The source-library direction remains unchanged: saved-data interpretation belongs
+in ordinary Blend65; exact hardware/firmware ownership belongs at the platform
+primitive boundary. The joystick pilot's cost exception is not a keyboard waiver.
+
+The strongest counterargument is that a direct hook may work on real machines and
+this prerequisite delays useful input. That changes the decision only when the
+missing all-source and transition guarantees are qualified; a plausible shim is
+not the required proof. Confidence: **High** for sharing the existing prerequisite;
+the positive mechanism remains **Unknown**. Hardening: eliminated marker-only
+chaining using the false-STOP path and included restoration in the acquisition
+window. Challenger: **converged**. Expert lineage remains `2.0.1`, qualified content
+`1ce4852016e2a883cf1f733c6014c45e176bfc69`, with the already recorded interrupt-route,
+CIA-port and final-storage-closure boundaries. No frozen authority is changed.
