@@ -1,23 +1,29 @@
 # Ambiguity Register: RD-05 NMI and CIA2
 
-> **Status**: ❌ GATE BLOCKED — source investigation complete; all-source bound remains unqualified
+> **Status**: ❌ GATE BLOCKED — reconciliation candidate complete; frozen-contract decision required
 > **Last Updated**: 2026-10-03
 > **CodeOps Artifact Schema**: 1
 
-| Planning boundary | Scope                                                                                                                                                                                                                                                                                                                                    |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Target            | The next bounded `blend65-v4/RD-05` NMI/CIA2 planning task, including DEF-7. The user confirmed xhigh effort and continuation on 2026-09-30. This is not implementation authority or whole-RD closeout.                                                                                                                                  |
-| Context artifacts | Frozen Specification 4; RD-05 R5.15–R5.18/R5.20; the RD-04 DEF-7 decision; completed IRQ, CIA and CIA1-return plans; qualified expert 2.0.1; primary CPU/CIA/KERNAL evidence; current profile, semantic, storage and machine code.                                                                                                       |
-| Modification set  | For the approved 2026-10-03 bounded RESTORE investigation: only this existing register and the feature roadmap at a justified lifecycle change. No compiler, test, requirement, frozen specification or expert-skill change, new executable plan, hook or other support surface is authorized. Earlier discovery is retained as history. |
+| Planning boundary | Scope                                                                                                                                                                                                                                                                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Target            | The next bounded `blend65-v4/RD-05` NMI/CIA2 planning task, including DEF-7. The user confirmed xhigh effort and continuation on 2026-09-30. This is not implementation authority or whole-RD closeout.                                                                                                                                           |
+| Context artifacts | Frozen Specification 4; RD-05 R5.15–R5.18/R5.20; the RD-04 DEF-7 decision; completed IRQ, CIA and CIA1-return plans; qualified expert 2.0.1; primary CPU/CIA/KERNAL evidence; current profile, semantic, storage and machine code.                                                                                                                |
+| Modification set  | For the approved 2026-10-03 bounded source-contract reconciliation: only this existing register and the feature roadmap at a justified lifecycle change. No compiler, test, requirement, frozen specification or expert-skill change, new executable plan, hook or other support surface is authorized. Earlier discovery is retained as history. |
 
-| #     | Category                                             | Ambiguity / Gap                                                                                                                                                          | Options Presented                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | User Decision                                                                                                                                                                                                | Status                                               |
-| ----- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
-| AR-P1 | Planning target / effort                             | Which next work item is authorized?                                                                                                                                      | The named RD-05 NMI/CIA2 planning task, with xhigh effort.                                                                                                                                                                                                                                                                                                                                                                                                                                                  | User: “xhigh effor is confirmed, proceed further” on 2026-09-30, replying to the explicitly named planning task.                                                                                             | ✅ Resolved                                          |
-| AR-P2 | Scope / source safety (complex)                      | What is the smallest scope that can progress DEF-7 without inventing hardware guarantees or a runtime manager?                                                           | **Recommended:** a bounded proof-first slice on the four existing cooperative PRG profiles, using existing NMI/CIA2 APIs. Close permitted-source and live-handler re-entry facts first, then safe vector replacement and exact CIA2 handoff. If a permitted source remains unbounded or unknown, stop with the exact missing fact and retain the existing guard; do not invent a profile, promise a positive implementation, or silently defer the obligation. Raw takeover remains a separate RD-05 slice. | User: “Make sure we are not overcomplicating or overengineering. proceed further.” on 2026-10-01, accepting the sole scope recommendation presented immediately before the reply.                            | ✅ Resolved                                          |
-| AR-P3 | Verification / inherited project rule                | Which existing verification policy applies if this plan becomes executable?                                                                                              | Directed specification, assembly/cost and implementation tests; frozen-lockfile install, build, typecheck and complete tests at phase checkpoints; sequential four-profile VICE cases; revision-sensitive physical QA at RD-10. Planning-only documents use link, authority and consistency checks.                                                                                                                                                                                                         | Import the unchanged approved CIA1-return AR-P4 verification policy and current AGENTS.md impact-based rules; no new verification surface.                                                                   | ✅ Resolved                                          |
-| AR-P4 | Upstream profile qualification                       | The unchanged profile admits unbounded NMI nesting, which cannot fit a finite hardware stack. What qualified source contract could justify a finite bound?               | Reopen positive planning only with a qualified all-source nesting bound, or complete edge-spacing and worst-case route-time proof. Any correction to the frozen profile needs separate authority. Retain the existing DEF-7 guards meanwhile.                                                                                                                                                                                                                                                               | No source bound or frozen-spec correction is authorized. AR-P2's approved failure exit applies; DEF-7 remains open under RD-05.                                                                              | ❌ Open — positive implementation blocked            |
-| AR-P5 | Scope / bounded source investigation                 | May the keyboard prerequisite return to its existing DEF-7 owner for one new evidence check?                                                                             | Inspect missing RESTORE/all-source guarantees, not another T-04 replay or repetition of the completed unbounded-profile check. Exit with new qualifying evidence or the specific user-owned source-contract fork. No compiler/spec edits or new subsystem.                                                                                                                                                                                                                                                  | User: “proceed” on 2026-10-03, replying to the named high-effort, docs/evidence-only RESTORE investigation and its exact modification set.                                                                   | ✅ Resolved — investigation only; AR-P4 remains open |
-| AR-P6 | Product / source-contract reconciliation (sensitive) | Should positive NMI planning retain the unrestricted arrival guarantee, or seek explicit supported-machine/source conditions while preserving ordinary RESTORE behavior? | **Best option:** authorize one separate, bounded source-contract reconciliation task under DEF-7. Produce a concrete candidate and its remaining proof obligations for user decision; do not invent a finite number, assert that the frozen hardware fact is false, disable RESTORE, or add a hook/framework. The immediate safe alternative is to retain the unchanged contract and keep positive NMI/keyboard planning blocked.                                                                           | Recommendation only; no contract correction, source restriction or implementation is approved. The next task would modify only this existing register and the feature roadmap, not the frozen specification. | ❌ Open — next task needs user authority             |
+| #     | Category                                             | Ambiguity / Gap                                                                                                                                                                                       | Options Presented                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | User Decision                                                                                                                                                                                                                                                                           | Status                                                |
+| ----- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| AR-P1 | Planning target / effort                             | Which next work item is authorized?                                                                                                                                                                   | The named RD-05 NMI/CIA2 planning task, with xhigh effort.                                                                                                                                                                                                                                                                                                                                                                                                                                                  | User: “xhigh effor is confirmed, proceed further” on 2026-09-30, replying to the explicitly named planning task.                                                                                                                                                                        | ✅ Resolved                                           |
+| AR-P2 | Scope / source safety (complex)                      | What is the smallest scope that can progress DEF-7 without inventing hardware guarantees or a runtime manager?                                                                                        | **Recommended:** a bounded proof-first slice on the four existing cooperative PRG profiles, using existing NMI/CIA2 APIs. Close permitted-source and live-handler re-entry facts first, then safe vector replacement and exact CIA2 handoff. If a permitted source remains unbounded or unknown, stop with the exact missing fact and retain the existing guard; do not invent a profile, promise a positive implementation, or silently defer the obligation. Raw takeover remains a separate RD-05 slice. | User: “Make sure we are not overcomplicating or overengineering. proceed further.” on 2026-10-01, accepting the sole scope recommendation presented immediately before the reply.                                                                                                       | ✅ Resolved                                           |
+| AR-P3 | Verification / inherited project rule                | Which existing verification policy applies if this plan becomes executable?                                                                                                                           | Directed specification, assembly/cost and implementation tests; frozen-lockfile install, build, typecheck and complete tests at phase checkpoints; sequential four-profile VICE cases; revision-sensitive physical QA at RD-10. Planning-only documents use link, authority and consistency checks.                                                                                                                                                                                                         | Import the unchanged approved CIA1-return AR-P4 verification policy and current AGENTS.md impact-based rules; no new verification surface.                                                                                                                                              | ✅ Resolved                                           |
+| AR-P4 | Upstream profile qualification                       | The unchanged profile admits unbounded NMI nesting, which cannot fit a finite hardware stack. What qualified source contract could justify a finite bound?                                            | Reopen positive planning only with a qualified all-source nesting bound, or complete edge-spacing and worst-case route-time proof. Any correction to the frozen profile needs separate authority. Retain the existing DEF-7 guards meanwhile.                                                                                                                                                                                                                                                               | No source bound or frozen-spec correction is authorized. AR-P2's approved failure exit applies; DEF-7 remains open under RD-05.                                                                                                                                                         | ❌ Open — positive implementation blocked             |
+| AR-P5 | Scope / bounded source investigation                 | May the keyboard prerequisite return to its existing DEF-7 owner for one new evidence check?                                                                                                          | Inspect missing RESTORE/all-source guarantees, not another T-04 replay or repetition of the completed unbounded-profile check. Exit with new qualifying evidence or the specific user-owned source-contract fork. No compiler/spec edits or new subsystem.                                                                                                                                                                                                                                                  | User: “proceed” on 2026-10-03, replying to the named high-effort, docs/evidence-only RESTORE investigation and its exact modification set.                                                                                                                                              | ✅ Resolved — investigation only; AR-P4 remains open  |
+| AR-P6 | Product / source-contract reconciliation (sensitive) | Should positive NMI planning retain the unrestricted arrival guarantee, or seek explicit supported-machine/source conditions while preserving ordinary RESTORE behavior?                              | **Best option:** authorize one separate, bounded source-contract reconciliation task under DEF-7. Produce a concrete candidate and its remaining proof obligations for user decision; do not invent a finite number, assert that the frozen hardware fact is false, disable RESTORE, or add a hook/framework. The immediate safe alternative is to retain the unchanged contract and keep positive NMI/keyboard planning blocked.                                                                           | User: “I approve, proceed until all RD-05 is done, do not stop or pause, unless absolut;y neccssary. The effort level is set and confirmed.” on 2026-10-03. This approves the named reconciliation deliverable, not a yet-unpresented frozen-contract correction or source restriction. | ✅ Resolved — reconciliation only; AR-P4 remains open |
+| AR-P7 | Product / frozen proof-scope correction (sensitive)  | May a proved reentrant, invocation-private-storage-free generated NMI route remain expressible when the external aggregate stack and retained-firmware completion guarantees are explicitly unproved? | **Best option:** the narrow proof-scope candidate below. Retain real unbounded NMI facts, strict private-storage safety and all ABI/device/vector obligations; stop claiming universal external stack/completion safety. No assumed nesting number, event suppression, new profile or runtime guard. Keeping the unchanged blanket rejection is the safe alternative, but cannot complete this positive slice.                                                                                              | Proposal only. AR-P6 and the whole-RD continuation do not approve changing frozen rejection policy, its proof claims or specification-test expectations.                                                                                                                                | ❌ Open — exact authority correction needed           |
+
+The same instruction explicitly covers the effort-confirmation handoffs for the
+named remaining RD-05 batch. Recommendations still precede distinct tasks;
+another effort pause is not required unless the scope or risk materially changes.
+Verified local commits remain automatic. This continuation is not push authority.
 
 ## Discovery evidence
 
@@ -145,7 +151,7 @@ The source URLs above and hashes below preserve identity after that capture expi
 | Pinned KERNAL `time`                            | `f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf` |
 | Pinned KERNAL `rs232nmi`                        | `48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03` |
 
-#### Investigation exit and user-owned decision
+#### Historical AR-P5 exit and subsequent AR-P6 approval
 
 **Best option — AR-P6:** a separate bounded source-contract reconciliation task,
 not another identical source probe. The current frozen hardware row is not
@@ -155,7 +161,7 @@ arrivals, or may depend on an explicit, qualified set of machine, peripheral and
 source conditions. The latter could make a finite per-route proof possible;
 it does not establish one now or authorize a silent source restriction.
 
-The next task's deliverable would be one concrete contract candidate in this
+The proposed next task's deliverable was one concrete contract candidate in this
 register: exact admitted machines/sources, observable RESTORE/firmware behavior,
 each proposed assumption or exclusion, evidence that can qualify it, and the
 remaining entry/exit, resource and timing obligations. It must state any effect
@@ -178,6 +184,124 @@ converged on the bounded reconciliation task. Verdict: **Simplify** — one DEF-
 owner, no new support machinery. The strongest counterargument is that even
 ordinary stock operation may not yield a defensible finite guarantee. A failed
 candidate must finish blocked; more research is not the default exit.
+
+### AR-P6 source-contract reconciliation — complete, 2026-10-03
+
+**Result:** no qualified finite-arrival candidate was established. Restricting
+the candidate to stock boards, leaving CIA2 to KERNAL, or excluding additional
+peripherals does not supply a RESTORE bound or a completion bound for the stock
+settling loops. Those restrictions cannot honestly reopen the unchanged gate.
+There is no new source probe, numeric bound or physical qualification in this
+task. The exit is the specific proof-scope decision in AR-P7, not more research.
+
+**Best option — AR-P7:** distinguish correct generated interrupt code from a
+universal guarantee against unrestricted physical arrivals. This is an explicit
+relaxation of the frozen rejection policy, **not** a correction of a false
+hardware fact. The proposal does not change the language's general SFA model.
+
+#### Concrete candidate contract — not active authority
+
+1. Keep `masks_self_on_entry: false` and `external_reentry_bound: unbounded` for
+   NMI. Do not insert a finite depth, pulse interval, settling-iteration limit or
+   “human input is slow” premise. No board is newly declared timing-qualified.
+2. Permit an unbounded external NMI route only when its **complete transitive
+   generated path** is proved reentrant without invocation-private RAM/ZP homes.
+   This includes parameters, results, locals, staging, temporaries, spills and
+   helper scratch after instruction selection and storage closure. An apparently
+   empty source body or a body with no declared locals is not sufficient proof.
+3. Retain E10245 for unbounded private-storage overlap, recursive calls,
+   compiler-controlled growing stack cycles and incomplete generated reentrancy
+   proof. A separately qualified finite source bound could still admit disjoint
+   SFA instances through the existing model; none is supplied here. No shared
+   private frame, heap, dynamic activation storage, runtime depth selector or
+   nested-event guard is introduced.
+4. Keep exact register/status/D restoration, callback-only identity, source-bit
+   ownership and read counts, bank visibility, safe vector publication/removal,
+   predecessor lifetimes and page-safe links mandatory. Fixed installation links
+   are lifetime-owned objects, not private activation homes; handler-side changes
+   must not overwrite a link still used by an interrupted route. Globals remain
+   deliberately shared, with their existing hazard diagnostics. Reentrancy is not
+   inferred merely from an absence of SFA homes.
+5. Report unrestricted external aggregate hardware-stack use, retained-firmware
+   reentrancy and firmware completion guarantees as **unproved** wherever they
+   are not established. Never label a one-entry cost or a bounded generated
+   component as the whole-program peak/headroom. Keep exact per-entry stack,
+   output/ROM bytes, path costs and every bounded component visible. A claimed
+   finite deadline still requires a real completion/arrival proof; raster and
+   audio timing guarantees are not relaxed by this candidate.
+6. Keep each accepted edge's selected handler/acknowledgement/terminal behavior.
+   Do not drop or coalesce events, disable RESTORE, consume CIA2 ICR in a simple
+   chain, or add a scan hook. Retained firmware stays the pinned predecessor;
+   its uncontrolled external behavior is not relabelled safe. Any future hook
+   still needs its own exact ownership, behavior and cost proof.
+
+| Contract boundary              | Exact candidate coverage / remaining condition                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Machines                       | Only `c64-pal-prg-kernal-6581`, `c64-pal-prg-kernal-8580`, `c64-ntsc-prg-kernal-6581` and `c64-ntsc-prg-kernal-8580`, NMOS 6510 and pinned 901227-03. The existing stock/unexpanded contract remains. Raw takeover stays a separate RD-05 slice; no ninth profile or board whitelist.                                                                                               |
+| Sources                        | RESTORE plus every admitted CIA2 Timer A/B, TOD-alarm, serial and FLAG source, including retained firmware re-enable paths. Every enabled source still needs an owner and exact acknowledgement/dispatch. No additional source is silently excluded or assumed inactive.                                                                                                            |
+| Arrival/completion assumptions | No finite assumption is qualified. External aggregate stack exhaustion and retained-firmware completion/reentrancy remain unproved; physical safety is not a claim of this candidate.                                                                                                                                                                                               |
+| Observable game input          | No key or joystick port is removed; RESTORE is not a matrix key and stock RESTORE+STOP behavior is not intentionally replaced. Arbitrary repeated external edges can still exhaust the real machine. Named-key correctness, ghosting/joystick ambiguity and port restoration remain required.                                                                                       |
+| Exclusions                     | Cartridges/expansions remain excluded by the existing common contract. No new no-RESTORE, no-RS-232, quiet-user-port or stable-human-input restriction is approved or inferred.                                                                                                                                                                                                     |
+| Qualification                  | Independent behavior and assembly/cost oracles must establish generated reentrancy, exact volatile effects, entry/exit state, vector transitions and bounded costs. VICE cases exercise bounded nested arrivals, simultaneous sources and interrupted installation/removal; they do not prove unrestricted electrical arrival safety. Revision-sensitive physical QA remains RD-10. |
+
+#### Why this needs authority, and why it is not implementation permission
+
+The blanket rejection is explicit in frozen
+[`06-functions.md`](../../../../../spec/06-functions.md), lines 527–529 and the
+E10245 table; [`11-memory-model.md`](../../../../../spec/11-memory-model.md),
+lines 297–300/385; and
+[`15-platform-profile.md`](../../../../../spec/15-platform-profile.md),
+lines 266–269. `06-functions.md` §7.5 independently protects private SFA storage.
+Changing only a TypeScript guard would contradict these authorities.
+
+The concrete downstream authority correction would narrow only the external
+hardware-stack/firmware guarantee and the corresponding blanket rejection:
+consistent normative prose/diagnostic wording, RD-05 R5.17 and its complete-route
+acceptance/target-safety claims, and the dependent expert qualification cases.
+Private-storage/reentrancy safety and all other route proofs remain strict.
+Any specification edit needs an explicit exception to D3 in a separate authority
+maintenance checkpoint, with a new content identity. A substantive expert change
+needs a version bump, qualification and dependent audit before activation.
+Exact obsolete test expectations require a separately enumerated oracle change;
+no test edit is authorized by this proposal. No executable plan is created now.
+
+The existing code grounds a small direction rather than a new support system:
+`whole-program.ts:348–358` currently rejects before considering a handler;
+`storage/closure.ts:614–631` also rejects an unbounded stack result;
+`artifacts/evidence-types.ts:120–130` already separates unproved effects from
+bounded stack records. `artifacts/memory-evidence-validator.ts:210–234` has a
+source-located `machineState` effect record, while its stack records require
+finite peak/headroom arithmetic. `services/evidence.ts:234–236` currently emits
+`proved` with no unbounded effects. These are existing ownership boundaries,
+not approval to alter them. Reuse the current evidence surface if it can express
+the exact claim; do not add a new reporter, schema field or policy service.
+
+The R5.47 raw-memory `unproven` status is a useful comparison, **not** existing
+authority to waive NMI safety. The candidate still needs an explicit user choice.
+Its strongest counterargument is reduced proof coverage: the resulting build
+would not certify whole-machine safety under all externally admitted schedules.
+If that guarantee remains non-negotiable, keep the current rejection unchanged.
+
+**Limits of the result:** even approval of AR-P7 would not admit arbitrary
+storage-bearing NMI handlers, prove a finite source bound, clear keyboard AR-P2/
+AR-P3 or close RD-05. The keyboard scan still must prevent false STOP before
+firmware sees transient CIA1 columns and preserve correct row attribution. A
+marker after the damage, event-dropping guard or source workaround is insufficient.
+The narrower correction may enable a genuinely reentrant storage-free route;
+no such generated route, scan hook or runtime result is claimed here.
+
+This documentation-only task adds zero output bytes, cycles, SFA homes or stack
+frames. Positive route costs and safety remain Unknown pending qualification.
+
+Confidence: **High** that the candidate preserves the separate SFA obligation;
+**Medium** that it enables a useful implementation. A proved transitive
+storage-free route and the independent keyboard ownership proof would change
+that implementation confidence. Hardening narrowed the correction to an exact
+admission criterion, rather than a general safety waiver. Challenger:
+**converged** on narrow B; the fresh blind `design-challenger` independently
+confirmed the frozen rejection, current guard, complete storage inventory and
+separate keyboard failure. No larger conditional-private-storage contract,
+runtime guard or source restriction is part of this recommendation.
 
 ### Independent obligations — Unknown positive safety
 
@@ -298,3 +422,25 @@ and performance/security auditors are not applicable to this docs-only change.
 The feature remains 4/10 with RD-05 executing. The portfolio's existing 1/10
 roll-up mismatch is deferred on this non-integration branch; the roadmap engine
 reports no counter drift in the feature roadmap.
+
+## Verification — AR-P6 reconciliation
+
+Artifact checks pass for the exact two-document modification set, 57 local
+links with their named anchors, six primary source keys, four expert anchors,
+nine retained original-source hashes, pinned firmware patterns, current gate
+states and frozen-authority/spec-test integrity. Forced targeted Prettier and
+`git diff --check` pass. The feature remains 4/10 with RD-05 executing; the
+roadmap engine reports only the known portfolio 1/10 versus 4/10 drift, whose
+write is deferred on this non-integration branch. Captures:
+`/tmp/blend65-nmi-contract.YY4wl7/artifact-check.log`, `format-check.log` and
+`roadmap-check.log`. The roadmap retains its authored-documentation formatting
+exclusion. Independent read-only `correctness-reviewer` review returned **no
+findings** across correctness, maintainability, standards, API surface and
+concurrency. It checked the exact two-document diff and validation commands.
+
+This verifies a contract proposal, not the proposed behavior. No compiler,
+specification test, frozen specification or expert file changed. No new generated
+assembly, VICE or physical result is claimed. Compiler-suite execution and
+security/performance auditors are not applicable to this documentation-only
+checkpoint. All existing executable RD-05 slice/task checklists are complete;
+the remaining keyboard/NMI registers are blocked, not executable plans.
