@@ -117,9 +117,12 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P07 — Select KERNAL-chain, KERNAL-exclusive, or raw IRQ/NMI entry
 
 - **Risk / coverage cells:** Critical; `C64-P07`, `GAME-P07`.
-- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2 and strengthened
+- **Oracle status:** `frozen-project/external` — independently source-reviewed in Phase 2 and strengthened
   during the Phase-5 review to include task 5.2's previously omitted NMI half; no existing
-  invariant or disqualifier was weakened.
+  invariant or disqualifier was weakened. The conditional stock-NMINV-at-program-entry
+  policy is separately user-approved on 2026-10-03; independent source/oracle review
+  cleared its new discriminating fields before guidance authoring. Oracle fields
+  are frozen; qualification and activation remain separate.
 - **Evaluator prompt:** “Select among default KERNAL chaining, explicit KERNAL takeover, and raw installation for one IRQ or NMI source handler. State exact machine/video/chip, KERNAL revision, CINV/NMINV/hardware-vector and banking state, every enabled/physical source, and nesting assumptions. Assign compiler/platform/developer ownership; account for bytes, cycles, static link storage, stack and visibility; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Handler/helper source and assembly, selected profile, CINV/NMINV and hardware vector paths, ROM banking, KERNAL/raw entry assumptions, saved registers/status, CIA1/CIA2/RESTORE/cartridge source behavior and acknowledgement, vector-update sequence, exit sequence, and cost report.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -138,6 +141,13 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
   On only the four cooperative PRG profiles, a complete private-home-free reentrant NMI path may
   be expressible with unbounded external arrivals. External aggregate hardware-stack use and
   retained-firmware reentrancy/completion stay explicitly unproved; one-entry cost is not a peak.
+  Generated NMINV-installation users on those four profiles require stock `$FE47` at program
+  entry and no independent resident vector owner; reset alone does not establish this later
+  entry value. No-installation programs acquire no new vector-entry requirement. Matching-low
+  placement/high-byte-only publication is conditional on a complete `$47` invariant across
+  every reachable transition, complete predecessor capture and immutable live-link lifetime.
+  An unknown writer or mismatching initial low byte cannot be assumed safe. Preserves keyboard,
+  both joystick ports and RESTORE; does not turn this condition into a finite arrival guarantee.
 - **Disqualifying outcomes:** Uses one prologue/`RTI` blindly, double-pushes A/X/Y at CINV, skips
   prior KERNAL work without source ownership, exposes a raw sink under an unproven banking path,
   accepts visible raw-entry installation at `$0314`, permits unknown decimal mode at body entry,
@@ -145,7 +155,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
   assumes `SEI` protects a two-byte NMI-vector update, leaves generated reentrancy or source behavior open, places
   an indirect link at `$xxFF`, changes or liveness-elides a prior handler's observable entry
   flags/registers, hides static link/body/stack cost, treats the exception as a finite arrival bound,
-  or claims unrestricted external/firmware safety.
+  or claims unrestricted external/firmware safety. Assumes reset implies stock NMINV at a later
+  program entry, accepts high-only updates without the low-byte invariant or after an unproved
+  writer, adds the conditional entry restriction to no-installation programs, or treats alignment
+  savings as complete measured program cost.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Draft observation: partial — generic save/acknowledge/RTI duties exist,
   but KERNAL-vector versus raw-vector IRQ/NMI entry contracts do not
@@ -474,7 +487,10 @@ Unknown; this result is not an activation declaration.
   narrow proof-scope correction on 2026-10-03; NMOS CPU, CIA and stock KERNAL facts
   retain their primary-source authority. Independent source/oracle review cleared
   the corrected invariants on 2026-10-03 before candidate knowledge authoring.
-  Oracle fields are now frozen. Qualification and activation remain separate.
+  Those proof-scope fields remain frozen. Independent source/oracle review also
+  cleared the separately approved conditional stock-entry fields before new
+  guidance authoring. Oracle fields are frozen; qualification and activation
+  remain separate.
 - **Evaluator prompt:** “Assess cooperative NMI support on PAL/NTSC PRG profiles
   with either SID model and stock KERNAL 901227-03. Compare a private-home-free
   generated ingress, a helper that introduces scratch, a register-only local,
@@ -482,9 +498,11 @@ Unknown; this result is not an activation declaration.
   what is expressible, rejected, proved or unproved. Audit status/D, source and
   vector/link ownership; distinguish one-entry cost from program peak and finite
   timing. Keep normal keyboard/joystick and RESTORE behavior. Give the smallest
-  compiler/library boundary without a new runtime.”
+  compiler/library boundary without a new runtime. Contrast known stock `$FE47`,
+  unknown/custom initial NMINV, reset-only history and a later unproved writer;
+  assess high-byte-only publication and a no-generated-installation program.”
 - **Permitted raw artifacts:** Approved normative Chapters 06/11/14/15 and C64
-  appendix; NMOS CPU/CIA primary excerpts and pinned KERNAL `time`/`rs232nmi`;
+  appendix; NMOS CPU/CIA primary excerpts and pinned KERNAL `init`/`time`/`rs232nmi`;
   complete synthetic selected-instruction and storage inventories; immutable
   saved-link layout; hypothetical source effects and transition sequences.
 - **Forbidden material:** This hidden oracle, qualification/history, CodeOps
@@ -512,13 +530,25 @@ Unknown; this result is not an activation declaration.
   input manager, queue, scheduler or dispatcher. Ordinary saved-data interpretation
   belongs in Blend65 platform libraries; this correction does not approve an API
   or certify keyboard ambiguity/port restoration.
+  For generated NMINV-installation users only, applies the approved four-profile
+  stock `$FE47` program-entry/no-independent-resident-owner condition. Does not
+  infer later entry from reset or from the separate IRQ/CIA1 stock handback.
+  Proves low byte `$47` through all reachable transitions before high-only update,
+  complete predecessor capture before publication and immutable saved-link
+  lifetime while an interrupted route may still observe it. An unknown writer
+  invalidates the proof; no generated installation means no new entry condition.
+  Matching-low direction and nominal instruction savings do not qualify output,
+  omit padding/link/context cost or prove a finite external stack/deadline.
 - **Disqualifying outcomes:** Invents a nesting number or human-speed assumption;
   blanket-rejects proved private-free generated code on an approved profile;
   accepts an invocation-private RAM/ZP-bearing unbounded route, equates no source locals with reentrancy,
   certifies arbitrary shared effects, treats hardware stack as general local
   storage, suppresses events, consumes firmware-owned ICR, relies on `SEI` for
   vector safety, reports an external finite peak or deadline without proof, or
-  claims compiler/VICE/silicon qualification from this contract assessment.
+  claims compiler/VICE/silicon qualification from this contract assessment. Assumes
+  stock initial NMINV without the conditional entry contract, treats unknown
+  writers as preserving `$47`, allows saved-link reuse while a route remains
+  live, or applies the NMI-installation entry requirement to every program.
 - **Evidence required to grade:** Exact rule/source citations; complete transitive
   storage/effect trace; all route ownership and state boundaries; independent
   behavior and assembly/cost duties; explicit unknowns and bounded claims.
@@ -583,3 +613,26 @@ This append-only record does not change any oracle or historical result. Exact o
 | Q-P22 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
 | Q-P24 | Pass, fresh documentary qualification | input-boundary-final / grade-input-boundary-final; actual runtime 0c078efb; reviewed unchanged decisive facts apply to final 5a422482. |
 | Q-P23 | Pass, fresh documentary qualification | platform / grade-platform; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+
+## 2.0.3 bounded entry-contract qualification
+
+This append-only record preserves every oracle, old result, failed attempt and
+actual capture identity. It grades documentary reasoning, not compiler output,
+runtime behavior, keyboard acquisition or physical hardware.
+
+| Case | Current result | Decisive evidence |
+|---|---|---|
+| Q-P07 | Pass, fresh restricted evaluation and separate grade | nmi-boundary-final / grade-nmi-boundary-final; all six IRQ/NMI routes and twelve fixtures; exact 24-file input envelope. |
+| Q-P24 | Pass, fresh restricted evaluation and separate grade | Same paired capture, graded independently; conditional stock entry/no-hook distinction, complete low-byte/capture/live-link proof obligations and unproved external guarantees retained. |
+| Q-P23 | Pass, fresh unchanged-control evaluation and separate grade | control-boundary-final / grade-control-boundary-final; exact 16-file input envelope, bounded stock-handback fixture, no NMINV-entry restriction for no-hook programs. |
+
+The paired evaluator answer is `4126f2afb451b64ab118923aa78bf6294a8d0e6cc45d2216fc2225efeb5df36e`;
+its independent grade is `8d30d2949bfa4b53a99e812638c3651bcab55504762fff688307725711bcd256`.
+The control answer is `bef1f45f76ad777030e1ebcca296fca24599f6c17b6e3b487eca4c47452c7ba4`;
+its grade is `eee5ecb2d23a1ce50501908e17edc510d0ecf4e81860c7f27c6ce8b6e3c872bc`.
+Both have zero unresolved grading defects. Exact packets, lossless answers,
+requests, launch commands and receipts are retained in `../release.md`.
+The earlier overbroad packets, their genuine pre-pass/failed grades and focused
+completions are supporting only; they do not constitute final qualification.
+Other platform cases inherit only independently reviewed unchanged decisive
+fields from qualified 2.0.2/content `13b995d0ddacc304aa066e015c14c63678e99dcc`.

@@ -260,6 +260,14 @@ rejected with E10278 rather than silently resetting another owner. The stock-ser
 does not reconstruct missed KERNAL ticks or custom pre-entry state, and does not broaden CIA2/NMI,
 VIC-raster, D64, or raw-takeover ownership. Other captured-state restoration remains unchanged.
 
+On these four cooperative PRG profiles, a program using generated NMINV installation enters with
+the stock 901227-03 predecessor `$FE47` and no independently resident NMI vector owner. This
+conditional entry contract does not apply to programs without generated NMINV installation and
+is not inferred from reset having occurred earlier. It excludes custom pre-existing resident NMI
+service for NMI-installing programs, not keyboard, either joystick port or RESTORE. The compiler
+must still prove every vector transition, exact predecessor capture and live-link lifetime;
+external NMI arrivals and retained-firmware guarantees retain their Chapter 15 limits.
+
 #### Raw takeover profiles
 
 The four `*-takeover-*` profiles install complete IRQ `$FFFE/$FFFF` and NMI `$FFFA/$FFFB` vectors
@@ -779,8 +787,13 @@ and 4 existing-ROM bytes before NMINV. Existing ROM bytes are reported separatel
 bytes. Only reachable variants, saved links, and wrappers are emitted. Every replaceable sink has
 its matching restore operation and compile-time LIFO ownership proof.
 
-Installer code updates the two-byte vector inside a caller-state-preserving interrupt-disabled
-critical section; its actual emitted bytes and cycles are reported. The chain variant's two RAM
+IRQ installer code updates the two-byte vector inside a caller-state-preserving IRQ-disabled
+critical section; `SEI` is not NMI exclusion. NMINV publication/removal requires a separately
+proved sequence whose every intermediate address selects a valid old or new entry. Under the
+conditional stock-entry contract above, matching-low placement may use a high-byte-only update
+only after the complete `$47` invariant, coherent predecessor capture and immutable live-link
+lifetime are proved. Its actual emitted bytes, cycles and placement padding are reported; no
+runtime guard, event suppression or source-form restriction follows. The chain variant's two RAM
 bytes must start at a low byte no greater than `$FE`: `$xxFE` is valid, while `$xxFF` is relocated
 or rejected because NMOS `JMP ($xxFF)` fetches the high byte from `$xx00`. Any duplicated handler
 body/SFA homes, decimal normalization, status preservation, KERNAL entry/exit path, and every

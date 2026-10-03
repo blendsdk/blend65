@@ -182,13 +182,21 @@ programs and qualification evidence. They do not create supported game APIs. (AR
   are not syntactically banned; selection and final SFA closure cover all parameters, returns,
   staging, temporaries, spills and helper scratch. Existing shared-effect warnings, device/ABI,
   callback identity, vector publication/removal, link lifetime and banking obligations remain.
+  Generated NMINV-installation users on those four profiles require stock 901227-03 `$FE47`
+  at program entry without an independent resident vector owner; reset history alone is not
+  proof, and no-installation programs gain no new entry condition. Matching-low placement
+  with a high-byte-only publication/restoration is conditional on complete `$47` invariance
+  across all reachable transitions, coherent predecessor capture and immutable saved links
+  for every live observer, including after a LIFO pop. An unproved writer invalidates that
+  scheme. Normal keyboard, both joystick ports and RESTORE stay in scope. Complete layout,
+  padding, link, wrapper and instruction costs must be reported; nominal savings are not proof.
   For that exception, including programs with no generated NMI hook, unrestricted external
   aggregate stack and unproved retained-firmware reentrancy/completion are reported explicitly
   as unproved. R5.9's finite peak/capacity checks apply to complete proved bounded components;
   exact per-entry costs are not a full-program peak/headroom. Finite timing claims still require
   actual source/completion proof. Raw takeover and D64 gain no exception. No source exclusion,
   dropped/coalesced event, dynamic frame, heap, depth guard or runtime manager is introduced.
-  (AR-008, AR-013, AR-018; approved NMI-plan AR-P7)
+  (AR-008, AR-013, AR-018; approved NMI-plan AR-P7/AR-P10)
 - [ ] **R5.18 — Preserve shared-state reality.** Mainline, IRQ, and NMI private invocation storage
   receives disjoint SFA homes when overlap is possible, but globals, assets, device state, and
   deliberately shared game variables remain shared. Warn on statically visible lost-update RMW or
@@ -726,6 +734,9 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
     the evidence check. The four cooperative PRG profiles apply R5.17's explicit external
     stack/retained-firmware unproved boundary, including no-installed-hook programs. A bounded
     component is never labelled full-program peak/headroom; finite deadlines need separate proof.
+    Generated NMINV-installation evidence establishes R5.17's conditional stock entry and
+    complete vector-transition/capture/live-link proof. No-hook programs gain no entry
+    restriction; a high-byte-only direction is not treated as an implemented or measured pass.
 15. [ ] **AC-15 — Shared-state diagnostics:** Single-byte shared state remains shared; known
     cross-domain RMW loss and multi-byte tearing each warn with the shortest preemption path.
     Private mainline/IRQ/NMI homes are disjoint, and no warning is “fixed” by hidden masking or

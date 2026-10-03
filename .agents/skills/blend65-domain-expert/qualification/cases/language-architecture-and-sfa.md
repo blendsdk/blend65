@@ -1025,3 +1025,33 @@ This append-only record does not change any oracle or historical result. Exact o
 | Q-L31 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
 | Q-L32 | Pass, fresh documentary qualification | nmi-refined / grade-nmi-refined; actual runtime 1f84a10d; reviewed unchanged decisive facts apply to final 5a422482. |
 | Q-L33 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+
+## 2.0.3 bounded crosswalk completion
+
+Q-L01 **Pass**, jointly graded from the retained valid full audit and the fresh
+restricted completion. This is not a fresh semantic audit of all 45 paths.
+The unchanged 43-path fields retain their actual prior audit identity: exact
+answer `416aa3060c01d9bc38eafd7f5998587697d5b38afc624049185e0189bfdab237`,
+captured at intermediate runtime `1f84a10d...`, not relabelled final `5a422482...`.
+
+`crosswalk-final` completes the two changed normative paths, their direct branch
+links, inventory identity, all 59 retained diagnostic dispositions and the exact
+project-policy fields. Its permitted envelope is router/four references/all 45
+specification documents/exact policy/control/request (53 files). Answer hash:
+`b17ab56d61326f2963b54ce7dfc9059779d49882d82a447da3d5aec88a11f77b`.
+Separate joint grade `grade-crosswalk-final`:
+`b0f66f260c4eeeb5ee9c53198d68c9e4f88f753a0151c819df21fbe31efc4785`.
+Every frozen Q-L01 field passes, with zero evaluator/packet/grading defects.
+Exact captures and policy/source receipts remain in `../release.md`.
+
+All earlier failed/broad packets remain supporting only with their actual
+identities. The grader's original source-conflict counts are preserved.
+Independent source refutation establishes that binary-AND's level-6 note is a
+stale annotation: the governing table and grammar select level 7. The existing
+maintenance owner retains it and the separate Chapter-15 stability-description
+conflict. Neither determines the approved NMI behavior. The crosswalk requires
+substantive payload and direct routing, not duplication of every governing clause;
+its two direct obligation links are sufficient. No unrelated normative repair is
+made. Compiler/runtime/hardware and public keyboard qualification remain Unknown.
+Other language cases inherit only independently reviewed unchanged decisive fields
+from qualified 2.0.2/content `13b995d0ddacc304aa066e015c14c63678e99dcc`.

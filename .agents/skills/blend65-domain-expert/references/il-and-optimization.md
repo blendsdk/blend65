@@ -1,6 +1,6 @@
 # Intermediate Representation and Optimization Doctrine
 
-> **Baseline version**: `2.0.2`. This module specifies semantic payload and proof duties, not a
+> **Baseline version**: `2.0.3`. This module specifies semantic payload and proof duties, not a
 > mandatory IR count or pass framework.
 
 ## Optimization Contract
@@ -155,7 +155,7 @@ Explicit `word(&interruptFunction)` conversion exposes the raw-entry numeric add
 recognized sink and erases handler proof; the unconverted handler value is not an ordinary storable
 `word` or callable `fn`. Retain a visible source dependency for reachability and unsafe-use diagnostics.
 A visible store of that raw address to an exactly known incompatible firmware vector is E10252, a
-compile-time ABI error, not an optimization opportunity [BLEND65-SPEC-4-566da991, Chapter 06 §8].
+compile-time ABI error, not an optimization opportunity [BLEND65-SPEC-4-038b70e9, Chapter 06 §8].
 
 For `&local`, preserve the local identity and dynamic source-lifetime dependency separately from
 the numeric `word`. Propagate the dependency through identity copies, casts, conditional selection,
@@ -504,10 +504,10 @@ hardware proof, or one instruction-count decrease into a whole-program win.
 ## Sources
 
 - `[BLEND65-PROJECT-POLICY-P3-28627e0c, PRIME DIRECTIVE — expert assembly game developer]` — product/process authority for expert parity and tracked meet-level debt
-- `[BLEND65-SPEC-4-566da991, spec/02-type-system.md §Intermediate Overflow, §Constant Expression Evaluation, §Right Shift Semantics, §Overflow Behavior]`
-- `[BLEND65-SPEC-4-566da991, spec/04-expressions-operators.md §Arithmetic Operators, §Logical Operators, §Conditional Operator, §Memory Intrinsics]`
-- `[BLEND65-SPEC-4-566da991, spec/06-functions.md §Parameter Evaluation Order, §SFA Calling Convention]`
-- `[BLEND65-SPEC-4-566da991, spec/07-structs.md §Aliasing]`
-- `[BLEND65-SPEC-4-566da991, spec/12-intrinsics.md §CPU Control Intrinsics, §Memory Intrinsics]`
+- `[BLEND65-SPEC-4-038b70e9, spec/02-type-system.md §Intermediate Overflow, §Constant Expression Evaluation, §Right Shift Semantics, §Overflow Behavior]`
+- `[BLEND65-SPEC-4-038b70e9, spec/04-expressions-operators.md §Arithmetic Operators, §Logical Operators, §Conditional Operator, §Memory Intrinsics]`
+- `[BLEND65-SPEC-4-038b70e9, spec/06-functions.md §Parameter Evaluation Order, §SFA Calling Convention]`
+- `[BLEND65-SPEC-4-038b70e9, spec/07-structs.md §Aliasing]`
+- `[BLEND65-SPEC-4-038b70e9, spec/12-intrinsics.md §CPU Control Intrinsics, §Memory Intrinsics]`
 - `[LLVM-CODEGEN-22, Code Generator chapter]` — comparative pass-responsibility evidence only
 - `[LLVM-MOS-275C7FC, target implementation]` — comparative 6502 evidence only

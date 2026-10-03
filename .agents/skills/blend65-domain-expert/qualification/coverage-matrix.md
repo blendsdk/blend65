@@ -1,8 +1,16 @@
 # Qualification Coverage Matrix
 
-> **Candidate version**: `2.0.2`; qualification and activation are governed by `release.md`.
-> **Current candidate authority**: `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`
-> **Current change**: Approved cooperative NMI proof-scope correction and necessary source-defined
+> **Candidate version**: `2.0.3`; qualification and activation are governed by `release.md`.
+> **Current candidate authority**: `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b`
+> **Current change**: Approved conditional stock NMINV program-entry contract for generated
+> installation users only. No-hook programs acquire no new entry requirement. Matching-low
+> publication remains a proof direction, not compiler qualification. Four traced cases require
+> current qualification; the other 109 may inherit only independently reviewed unchanged decisive
+> fields. Exact packet-boundary corrections and earlier failed/supporting captures remain visible.
+> Documentary qualification is complete; immutable binding is pending. This header does not
+> activate the candidate.
+>
+> **Historical 2.0.2 change**: Approved cooperative NMI proof-scope correction and necessary source-defined
 > expert-copy repairs. Q-P24 is the sole new case; Q-L08/Q-P07 have strengthened oracles.
 > The final dependency-closed section below owns current coverage and applicability.
 > Earlier identities/results, including the historical matrix rows, remain historical lineage;
@@ -611,3 +619,32 @@ Every fresh case has independent passing grading, with actual packet identities 
 Only Q-L08/Q-P07 oracle expectations were strengthened, and Q-P24 was added; every other invariant remains byte-identical. The initial frozen Q-P24 oracle hash is `66ec79d012229d76fe7fd3835472218178dcc197f7cbc03ace1e4324c79eb4e6`. Source-defined guide corrections do not confer specification repair or compiler-test authority. Fifteen retained specification-copy items have separate maintenance ownership, not a blanket claim that all copies are reconciled.
 
 All 27 Language Guard rules and ten hardware-exception entries were assessed. The four-profile exception keeps unrestricted external NMI stack and retained-firmware reentrancy/completion unproved, including with no generated hook. Generated private-home closure, source ownership, status, banking, vector publication and accepted-event obligations remain strict. No finite deadline follows from one-entry costs. This is documentary expert qualification only; no compiler, artifact, VICE or silicon result is inferred. Final whole-task review, candidate/live equality, approval and immutable binding remain activation gates.
+
+## 2.0.3 dependency-closed qualification
+
+Four distinct cases receive fresh current documentary evidence; Q-L01 combines its valid prior
+full-audit fields with the new restricted completion. The remaining 109 inherit only reviewed
+unchanged decisive fields from qualified 2.0.2/content `13b995d0ddacc304aa066e015c14c63678e99dcc`.
+No oracle/history identity is rewritten; no compiler, runtime or hardware pass is implied.
+
+| Case | Current documentary evidence |
+|---|---|
+| Q-L01 | crosswalk-final / grade-crosswalk-final, jointly with exact prior full audit at actual intermediate runtime 1f84a10d; original failed/broad packets are supporting only. |
+| Q-P07 | nmi-boundary-final / grade-nmi-boundary-final; six routes, twelve fixtures and exact 24-file envelope. |
+| Q-P24 | Same pair, independently graded conditional entry/private-home-free proof scope; external guarantees remain unproved. |
+| Q-P23 | control-boundary-final / grade-control-boundary-final; exact 16-file bounded regression envelope. |
+
+Final full runtime (15 files): `031b07ef55d3896266d0fc12da5b48ce734253d091b6ee3b857836855f693c1d`.
+Actual paired/control runtime subset (14 files): `d0496ca344f338686b9851a0db35ed0e7e29dae89f694a17b101b095318ce063`.
+Actual Q-L01 subset (5 files): `a340ffe66a6c0f6d55abca4386ac87f9583b17c7effe7b150159086f470df6ef`.
+Metadata omitted from evaluated subsets is unchanged. The final guidance diff and complete 113
+frozen oracle set were independently checked; the two direct crosswalk links do not change
+the other cases' decisive facts. All raw capture identities/receipts remain in `release.md`.
+
+| Family | Exact inherited case IDs |
+|---|---|
+| L | `Q-L02`, `Q-L03`, `Q-L04`, `Q-L05`, `Q-L06`, `Q-L07`, `Q-L08`, `Q-L09`, `Q-L10`, `Q-L11`, `Q-L12`, `Q-L13`, `Q-L14`, `Q-L15`, `Q-L16`, `Q-L17`, `Q-L18`, `Q-L19`, `Q-L20`, `Q-L21`, `Q-L22`, `Q-L23`, `Q-L24`, `Q-L25`, `Q-L26`, `Q-L27`, `Q-L28`, `Q-L29`, `Q-L30`, `Q-L31`, `Q-L32`, `Q-L33` |
+| C | `Q-C01`, `Q-C02`, `Q-C03`, `Q-C04`, `Q-C05`, `Q-C06`, `Q-C07`, `Q-C08`, `Q-C09`, `Q-C10`, `Q-C11`, `Q-C12`, `Q-C13`, `Q-C14`, `Q-C15`, `Q-C16`, `Q-C17`, `Q-C18`, `Q-C19`, `Q-C20`, `Q-C21`, `Q-C22`, `Q-C23`, `Q-C24`, `Q-C25`, `Q-C26`, `Q-C27` |
+| P | `Q-P01`, `Q-P02`, `Q-P03`, `Q-P04`, `Q-P05`, `Q-P06`, `Q-P08`, `Q-P09`, `Q-P10`, `Q-P11`, `Q-P12`, `Q-P13`, `Q-P14`, `Q-P15`, `Q-P16`, `Q-P17`, `Q-P18`, `Q-P19`, `Q-P20`, `Q-P21`, `Q-P22` |
+| A | `Q-A01`, `Q-A02`, `Q-A03`, `Q-A04`, `Q-A05`, `Q-A06`, `Q-A07`, `Q-A08`, `Q-A09`, `Q-A10`, `Q-A11`, `Q-A12`, `Q-A13`, `Q-A14`, `Q-A15`, `Q-A16`, `Q-A17` |
+| R | `Q-R01`, `Q-R02`, `Q-R03`, `Q-R04`, `Q-R05`, `Q-R06`, `Q-R07`, `Q-R08`, `Q-R09`, `Q-R10`, `Q-R11`, `Q-R12` |

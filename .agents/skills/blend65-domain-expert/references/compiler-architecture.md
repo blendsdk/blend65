@@ -1,6 +1,6 @@
 # Compiler Architecture Doctrine
 
-> **Baseline version**: `2.0.2`. This module defines responsibilities and invariants, not a
+> **Baseline version**: `2.0.3`. This module defines responsibilities and invariants, not a
 > mandatory class diagram.
 
 ## Design Objective
@@ -256,10 +256,10 @@ not zero cost and must be redesigned or the measured gap filed.
 ## Sources
 
 - `[BLEND65-PROJECT-POLICY-P3-28627e0c, PRIME DIRECTIVE headings; Environment & dependencies; Project-specific: Skill/implementation independence]` — product/process authority for modern input, expert output, and the selected ACME toolchain
-- `[BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7, spec/00-introduction.md §Design Axioms]`
-- `[BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7, spec/15-platform-profile.md §Platform Profile Contract]`
-- `[BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7, spec/06-functions.md §SFA Calling Convention]`
-- `[BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7, spec/11-memory-model.md §Static Frame Allocation]`
+- `[BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b, spec/00-introduction.md §Design Axioms]`
+- `[BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b, spec/15-platform-profile.md §Platform Profile Contract]`
+- `[BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b, spec/06-functions.md §SFA Calling Convention]`
+- `[BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b, spec/11-memory-model.md §Static Frame Allocation]`
 - `[LLVM-CODEGEN-22, Code Generator chapter]` — comparative responsibility model only
 - `[LLVM-MOS-275C7FC, repository architecture and target implementation]` — comparative only
 - `[OSCAR64-1.32.273, compiler/codegen/CodeGenerator6502.cpp and compiler/optimizer/]` — comparative instruction-selection and optimization structure only

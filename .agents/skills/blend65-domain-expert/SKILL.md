@@ -5,8 +5,8 @@ description: Review, design, diagnose, or implement Blend65 behavior where decis
 
 # Blend65 Domain Expert
 
-> **Version**: `2.0.2` (activation status is governed by `qualification/release.md`)
-> **Knowledge identity**: `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`
+> **Version**: `2.0.3` (activation status is governed by `qualification/release.md`)
+> **Knowledge identity**: `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b`
 
 This skill supplies domain judgment on top of CodeOps. It does not replace the frozen Blend65
 specification, explicit product decisions, primary hardware/tool evidence, or normal CodeOps
@@ -38,6 +38,10 @@ architecture decisions.
   Distinguish proved generated reentrancy from unrestricted external stack/firmware guarantees:
   the narrow cooperative NMI exception never converts a per-entry cost into a full-program peak
   or a finite deadline. Keep those unproved boundaries explicit, even without a generated hook.
+  Only generated NMINV-installation users on those four profiles require stock `$FE47` at
+  program entry and no independent resident vector owner; reset history alone is not proof.
+  No-hook programs acquire no new entry condition. A matching-low update remains conditional
+  on every reachable vector transition, coherent capture and immutable live-link lifetime.
   Ordinary decoding of saved keyboard/joystick observations belongs in Blend65 target-platform
   libraries written in normal Blend65, not compiler-special decoding. Entry/storage/volatile
   lowering stays compiler-owned; debounce, repeat and gameplay policy remain developer-owned.
@@ -131,7 +135,7 @@ For every material audit, design, diagnosis, or parity conclusion, report:
 - `Claim kind`: `Fact`, `Inference`, `Unknown`, or `Recommendation`;
 - context and user-visible capability;
 - exact evidence and the decisive missing probe, if any;
-- knowledge lineage: `skillVersion=2.0.2`, the content commit from
+- knowledge lineage: `skillVersion=2.0.3`, the content commit from
   [qualification/release.md](qualification/release.md), `referencePath#heading`, and governing
   source-manifest keys;
 - complete relevant cost; and

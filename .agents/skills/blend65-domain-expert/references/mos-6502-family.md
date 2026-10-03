@@ -227,7 +227,7 @@ silently choosing one.
 | `RTS` | Pull low/high return address and continue at pulled address plus one | 6 cycles | Balanced call edge and preserved ABI state. |
 | IRQ | After qualifying instruction-boundary recognition, push PC high, PC low, represented status with `B=0`; set `I`; fetch `$FFFE/$FFFF` | 7 CPU cycles, 3 stack bytes before handler | Selected sink, source acknowledgement, D policy, register saves, SFA concurrency domain, and return/chaining behavior. |
 | NMI | Edge-triggered entry using `$FFFA/$FFFB`; same three CPU stack bytes | 7 CPU cycles before handler | NMI nesting/priority and shared-state policy are distinct from IRQ. |
-| `BRK` | Consume signature byte, push `PC+2` high/low and represented status with `B=1`; set `I`; fetch shared IRQ/BRK vector | 7 CPU cycles, 3 stack bytes before handler | Exact platform handler decides whether/where it returns. This CPU instruction is not a public Blend65 source operation; Chapter 12's five controls exclude it and Chapter 14 retires `asm_brk` [BLEND65-SPEC-4-566da991, Chapters 12 §1 and 14 §6]. |
+| `BRK` | Consume signature byte, push `PC+2` high/low and represented status with `B=1`; set `I`; fetch shared IRQ/BRK vector | 7 CPU cycles, 3 stack bytes before handler | Exact platform handler decides whether/where it returns. This CPU instruction is not a public Blend65 source operation; Chapter 12's five controls exclude it and Chapter 14 retires `asm_brk` [BLEND65-SPEC-4-038b70e9, Chapters 12 §1 and 14 §6]. |
 | `RTI` | Pull represented status, then PC low/high | 6 cycles | Returns only from a compatible interrupt frame; handler must balance extra saves first. |
 
 The reset row is the NMOS `nmos6502`/`nmos6510` contract. The two leading read addresses reflect

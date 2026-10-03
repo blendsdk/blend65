@@ -1,6 +1,6 @@
 # C64 Memory, Startup, and Runtime Ownership
 
-> **Baseline version**: `2.0.2`
+> **Baseline version**: `2.0.3`
 
 Use this reference when a Blend65 decision depends on the C64 address map, `$0000/$0001`
 banking, VIC-visible placement, startup, KERNAL coexistence, interrupt entry, loading, or resource
@@ -185,7 +185,7 @@ or finite-component stack use is not a full-program peak/headroom. Unrestricted 
 stack and unproved retained-firmware reentrancy/completion remain explicit, including with no
 generated NMI hook installed. Finite overflow is still E10238; finite deadlines require actual
 arrival/completion proof. This product boundary does not change CPU wrapping or hardware facts.
-[BLEND65-SPEC-4-566da991, Chapters 06 §5.5/§7.5 and 15 interrupt sources;
+[BLEND65-SPEC-4-038b70e9, Chapters 06 §5.5/§7.5 and 15 interrupt sources;
 MOS-PGM-1976, Chapters 3 and 9; CBM-C64-KERNAL-03, named IRQ/NMI paths]
 
 ## Startup contracts
@@ -222,7 +222,7 @@ exclusive `restoreIRQ()`. Stock BASIC/KERNAL entry, pinned to 901227-03, exclude
 IRQ/CIA1 service. It does not promise arbitrary old masks/latches: those are write-only, and the
 counter is not a latch snapshot. Exact captured port/vector/status/stack and other device
 obligations remain unchanged. D64, raw takeover, CIA2/NMI and VIC-raster ownership are not widened.
-[BLEND65-SPEC-4-566da991, `spec/appendix-c64.md` §Cooperative KERNAL profiles;
+[BLEND65-SPEC-4-038b70e9, `spec/appendix-c64.md` §Cooperative KERNAL profiles;
 MOS-6526-1981, printed pp.6–8]
 
 The handback is inline inside the existing `PHP; PHA; SEI` vector transaction, in this order:
@@ -251,7 +251,7 @@ nonstock predecessor, or known raw mutation outside the proved typed ownership c
 diagnosed with E10278. Do not introduce nested device-state capsules or hidden restoration
 objects. Returning `main` still requires empty ownership stacks; epilogue-only repair is too late
 for an earlier release. Stock compatibility neither reconstructs missed KERNAL ticks nor revives
-custom pre-entry service. [BLEND65-SPEC-4-566da991, `spec/appendix-c64.md` §Cooperative KERNAL profiles]
+custom pre-entry service. [BLEND65-SPEC-4-038b70e9, `spec/appendix-c64.md` §Cooperative KERNAL profiles]
 
 There is no extra source call, runtime flag, scheduler, data/ZP/scratch object or late SFA slot.
 Report the existing saved-link and stack costs, inline output bytes/cycles and full IRQ routes,
@@ -413,7 +413,7 @@ existing diagnostics, not an invented atomicity guarantee. Immutable installatio
 lifetime-owned, not activation-private scratch. External aggregate stack and unproved retained-ROM
 reentrancy/completion are separate from correct generated reentrancy and stay unproved. No
 RESTORE suppression, nested-event guard, dynamic frames, queue, scheduler or dispatcher follows.
-[BLEND65-SPEC-4-566da991, Chapters 06 §7.5 and 15 interrupt sources]
+[BLEND65-SPEC-4-038b70e9, Chapters 06 §7.5 and 15 interrupt sources]
 
 The approved platform-library boundary places ordinary interpretation of saved keyboard rows and
 both joystick observations in Blend65 C64 libraries, using ordinary source and normal lowering.
@@ -424,7 +424,27 @@ certainty, restoration or cost result follows from the private-free ingress alon
 
 Installing `$0318/$0319` is a two-byte transaction that `SEI` cannot protect. It occurs only in a
 profile-proven NMI-quiescent startup window, or through a separately proved update scheme whose
-every torn intermediate address is valid. For raw takeover, write the complete RAM vector beneath
+every intermediate address is a valid old or new entry. On the four cooperative PRG profiles,
+only programs using generated NMINV installation select stock 901227-03 `$FE47` at program entry,
+without an independently resident vector owner. Programs without generated installation acquire
+no new NMINV-entry condition. Reset's `RESTOR` initializes the vector, but later `VECTOR` callers
+can replace it: reset history alone does not prove the later PRG/SYS entry value.
+[BLEND65-SPEC-4-038b70e9, Chapter 15 interrupt sources and Appendix C64 cooperative profiles;
+CBM-C64-KERNAL-03, `init::START/RESTOR/VECTOR/VECTSS`]
+
+Matching-low placement may publish or restore just `$0319` only after proving that `$0318=$47`
+through every reachable installation, removal, generated/raw write and retained-firmware
+transition. Each intermediate entry must be complete and visible. An unproved writer invalidates
+the scheme. Capture the complete coherent predecessor before publication; its saved link remains
+immutable while any old route can still use it, including after a LIFO pop interrupted by NMI.
+The low-byte invariant does not permit shared-link reuse or close storage, A/X/Y/P/D, banking,
+source/ICR ownership or terminal-behavior obligations by itself. Normal keyboard, both joystick
+ports and RESTORE remain in scope; no finite external-arrival or retained-firmware guarantee is
+introduced. This is a conditional direction, not a qualified compiler implementation. Count full
+wrapper/link/layout/padding bytes and cycles; a nominal removed write is not the complete cost.
+[BLEND65-SPEC-4-038b70e9, Chapter 15 interrupt sources and Appendix C64 §9.2]
+
+For raw takeover, write the complete RAM vector beneath
 KERNAL ROM before clearing the mapping bit that exposes RAM; the ROM and raw routes must each remain
 valid on their side of that single mapping change. The chosen bank state must then keep the raw
 vector and handler visible at every NMI boundary. A scope that cannot prove this transition keeps

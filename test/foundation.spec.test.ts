@@ -26,6 +26,8 @@ const releaseCommit = "e063ef575d13c02c076c94e24616dd27ae4a75e2";
 const initialHead = "29df75554854dcdc43279308867a8c6725b08180";
 /** Immutable qualified content; only its release bookkeeping may change during activation. */
 const contentCommit = "13b995d0ddacc304aa066e015c14c63678e99dcc";
+/** Only this immutable pre-migration HEAD may retain the earlier active authority. */
+const startingHead = "3cc09eee524bcea39d4f68d8d0b28d4b6810ee13";
 const skillPath = ".agents/skills/blend65-domain-expert";
 const inactiveStatus =
   "> **Status**: Documentary qualification complete; inactive — whole-task review and content binding pending";
@@ -50,6 +52,20 @@ const inactiveIdentity = {
   ...candidateIdentity,
   expert: "a56c667b12450307b676c3f188e9a3898bb3852cff1fd0b14a8048a19a9f27ca",
   release: "7a8f7b8f993c04795eca6a7c791de8c94bccf64a9221468ceeb12c4b45d37b1b",
+  state: "inactive",
+};
+/** The qualified successor is pinned independently while public selection remains unchanged. */
+const nextIdentity = {
+  specificationFiles: "45",
+  specification: "2ea3decf9362644b657e9d20ffeadb318028615958263147e579bfeeb5aada0e",
+  normativeFiles: "18",
+  normative: "038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b",
+  expertFiles: "22",
+  expert: "f9ae4deed0aad8a36b631b428d1d93ae31bb3c414aa4ee9fd2f9176fcd1744d9",
+  runtimeFiles: "15",
+  runtime: "031b07ef55d3896266d0fc12da5b48ce734253d091b6ee3b857836855f693c1d",
+  router: "599a68a63721f89ddc7283461f1f2e3e4fee4ae2a3c1723393e81a7e25634030",
+  release: "3d9249ed8b598e9f4e6c394385dafa557435d446bcd32a5316602890bd32f964",
   state: "inactive",
 };
 const temporaryRoots: string[] = [];
@@ -123,6 +139,8 @@ function committedAuthorityFiles(root: string, commit: string): Map<string, Buff
 function candidateRecord(
   specification: ReadonlyMap<string, Buffer>,
   expert: ReadonlyMap<string, Buffer>,
+  version: string,
+  binding: string,
 ): Record<string, string> {
   const inventory = specification.get("00-normative-inventory.md")?.toString() ?? "";
   const section =
@@ -136,18 +154,19 @@ function candidateRecord(
   }
   const runtime = new Map([...expert].filter(([name]) => !name.startsWith("qualification/")));
   const release = expert.get("qualification/release.md") ?? Buffer.alloc(0);
-  const current = release.toString().split("## Historical 2.0.1 release record")[0] ?? "";
+  const current = release.toString().split(/^## Historical /m)[0] ?? "";
   const inactive =
     current.startsWith("# Blend65 Domain Expert Release Record\n") &&
-    current.includes("## Current 2.0.2 authority-maintenance candidate\n") &&
+    current.includes(`## Current ${version} authority-maintenance candidate\n`) &&
     current.split("\n").includes(inactiveStatus) &&
     current.includes("Candidate migration is not activation;");
   const active =
     current.startsWith("# Blend65 Domain Expert Release Record\n") &&
-    current.includes("## Current 2.0.2 release\n") &&
+    current.includes(`## Current ${version} release\n`) &&
     current.split("\n").includes(activeStatus) &&
-    current.includes("Expert `2.0.2` is the single active") &&
-    current.includes(contentCommit);
+    current.includes(`Expert \`${version}\` is the single active`) &&
+    binding !== "" &&
+    current.includes(binding);
   return {
     specificationFiles: String(specification.size),
     specification: recordDigest(specification),
@@ -274,20 +293,33 @@ describe("frozen execution authority and salvage ownership", () => {
     expect(inventory).toContain(frozenDigest);
   });
 
-  // Activation changes only pinned release bookkeeping, never the qualified content it selects.
-  it("should bind the exact active authority to immutable qualified content", async () => {
-    for (const key of Object.keys(candidateIdentity)) {
-      const root = await fixture({
-        "identity.json": JSON.stringify({ ...candidateIdentity, [key]: "mismatch" }),
-      });
-      expect(
-        candidateViolations(JSON.parse(await readFile(join(root, "identity.json"), "utf8"))),
-      ).toEqual([key]);
+  // A qualified successor never erases the exact content or rejection fixtures of earlier releases.
+  it("should preserve qualified authority history while binding the exact inactive candidate", async () => {
+    for (const identity of [candidateIdentity, nextIdentity]) {
+      for (const key of Object.keys(identity)) {
+        const root = await fixture({
+          "identity.json": JSON.stringify({ ...identity, [key]: "mismatch" }),
+        });
+        expect(
+          candidateViolations(
+            JSON.parse(await readFile(join(root, "identity.json"), "utf8")),
+            identity,
+          ),
+        ).toEqual([key]);
+      }
     }
     const contentSpec = committedAuthorityFiles("spec", contentCommit);
     const contentExpert = committedAuthorityFiles(skillPath, contentCommit);
     expect(
-      candidateViolations(candidateRecord(contentSpec, contentExpert), inactiveIdentity),
+      candidateViolations(
+        candidateRecord(contentSpec, contentExpert, "2.0.2", contentCommit),
+        inactiveIdentity,
+      ),
+    ).toEqual([]);
+    const previousSpec = committedAuthorityFiles("spec", startingHead);
+    const previousExpert = committedAuthorityFiles(skillPath, startingHead);
+    expect(
+      candidateViolations(candidateRecord(previousSpec, previousExpert, "2.0.2", contentCommit)),
     ).toEqual([]);
     const diskSpec = await authorityFiles(join(repository, "spec"));
     const diskExpert = await authorityFiles(join(repository, skillPath));
@@ -296,25 +328,28 @@ describe("frozen execution authority and salvage ownership", () => {
     const headExpert = committedAuthorityFiles(skillPath, head);
     expect(
       candidateViolations(
-        candidateRecord(headSpec, headExpert),
-        head === contentCommit ? inactiveIdentity : candidateIdentity,
+        candidateRecord(
+          headSpec,
+          headExpert,
+          head === startingHead ? "2.0.2" : "2.0.3",
+          head === startingHead ? contentCommit : "",
+        ),
+        head === startingHead ? candidateIdentity : nextIdentity,
       ),
     ).toEqual([]);
-    for (const specification of [diskSpec, headSpec]) {
-      expect([...specification.keys()].sort()).toEqual([...contentSpec.keys()].sort());
-      for (const [name, bytes] of contentSpec) {
-        expect(specification.get(name)?.equals(bytes), name).toBe(true);
+    expect([...previousSpec.keys()].sort()).toEqual([...contentSpec.keys()].sort());
+    for (const [name, bytes] of contentSpec) {
+      expect(previousSpec.get(name)?.equals(bytes), name).toBe(true);
+    }
+    expect([...previousExpert.keys()].sort()).toEqual([...contentExpert.keys()].sort());
+    for (const [name, bytes] of contentExpert) {
+      if (name !== "qualification/release.md") {
+        expect(previousExpert.get(name)?.equals(bytes), name).toBe(true);
       }
     }
-    for (const expert of [diskExpert, headExpert]) {
-      expect([...expert.keys()].sort()).toEqual([...contentExpert.keys()].sort());
-      for (const [name, bytes] of contentExpert) {
-        if (name !== "qualification/release.md") {
-          expect(expert.get(name)?.equals(bytes), name).toBe(true);
-        }
-      }
-    }
-    expect(candidateViolations(candidateRecord(diskSpec, diskExpert))).toEqual([]);
+    expect(
+      candidateViolations(candidateRecord(diskSpec, diskExpert, "2.0.3", ""), nextIdentity),
+    ).toEqual([]);
   });
 
   // Every baseline path belongs to one reviewed unit, including non-production fixture families.

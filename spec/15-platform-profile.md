@@ -281,6 +281,21 @@ real arrival/completion proof. `raw_interrupt_paths` is optional and names a har
 selected profile guarantees that the vector is both writable and active under that profile's
 fixed memory/banking contract. A raw installer is unavailable when no such path exists.
 
+For programs that use generated NMINV installation on the four cooperative PRG profiles above,
+program entry must select the stock 901227-03 NMINV predecessor `$FE47`, without an independently
+resident NMI vector owner. Programs not using generated NMINV installation acquire no new
+NMINV-entry condition. Reset initialization alone is not proof of the vector at a later PRG/SYS
+entry. The condition does not exclude keyboard, either joystick port or RESTORE, establish an
+arrival bound, or certify external stack or retained-firmware completion.
+
+Every publication and removal step must preserve a valid old or new NMI entry. A matching-low-byte
+scheme may replace only the vector's high byte when the complete `$47` low-byte invariant is
+proved through every reachable generated or retained-stock transition. An unproved writer
+invalidates that proof. Capture the complete predecessor before publication and retain immutable
+saved links while any live route can observe them, including an interrupted predecessor after
+LIFO removal. `SEI` does not protect NMI vector updates. These are safety obligations, not a
+required runtime mechanism or a claim that an implementation already satisfies them.
+
 `recognized_interrupt_vectors` records exact addresses whose entry ABI the compiler can know. It
 exists to diagnose a visible raw write that bypasses a required platform installer; it does not
 turn arbitrary runtime addresses into recognized sinks. A known ordinary-function mismatch is
