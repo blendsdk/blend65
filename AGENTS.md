@@ -316,7 +316,8 @@ workflow and expert directives preserved. No compiler capability claim is made. 
 ## CodeOps routing
 
 CodeOps routing is configured in `codeops/codeops.json`, with project-local role definitions in
-`.codex/agents/`. Routing may optimize execution and independent review, but it must never bypass
-material ambiguity, readiness, verification, or review gates. If a configured role is unavailable,
-use a bounded generic-agent packet or run inline while preserving the required gates and reviewer
-count.
+`.codex/agents/`. Follow `codeops/agent-routing.md` before planning or selecting phase reviewers;
+it assigns the applicable SFA/ABI, platform, emitted-code and semantics/DX responsibilities.
+Routing must never bypass material ambiguity, readiness, verification, or review gates. If a
+configured role is unavailable, report the fallback and use a bounded generic-agent packet while
+preserving required independence and reviewer count. Keep tightly coupled implementation inline.
