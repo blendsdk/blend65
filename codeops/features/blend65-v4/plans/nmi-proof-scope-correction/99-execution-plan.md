@@ -1,7 +1,7 @@
 # Task T-06: Approved NMI proof-scope correction
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
-> **Progress**: 0/1 tasks (0%)
+> **Progress**: 1/1 tasks (100%)
 > **Last Updated**: 2026-10-03
 > **Phase baseline tree**: 220505e0349adb6ec69c496c508217af6c03d39a
 > **Scope mode**: strict
@@ -46,20 +46,20 @@ synchronization waits for integration.
 
 ## Task
 
-- [~] T-06.1 Correct, qualify and activate the approved authority boundary. Qualified candidate migrated byte-exact; foundation/full verification, whole-task review and active binding remain.
-  **Deliverable:** Consistent normative wording and new raw-byte identity;
-  expert 2.0.2's strengthened positive/negative NMI oracle, changed/dependent
-  isolated captures and independent grades, source/semantics review,
-  dependent-decision dispositions and exact single-active release binding.
-  Keep historical captures unchanged. Record generated-route facts separately
-  from unproved external stack/firmware facts; do not claim compiler or silicon
-  qualification or close DEF-7/RD-05.
-  **Verify:** Specification membership/digest and exact approved diff,
-  skill topology/frontmatter/YAML/links/source keys, dependency closure,
-  oracle-first ordering and behavioral qualification, applicable Language
-  Guard and hardware-exception scan, targeted formatting/whitespace, candidate
-  to live byte equality, and independent whole-task correctness/semantics
-  review. AR-P9 adds directed foundation tests and full install/build/typecheck/test verification.
+- [x] T-06.1 Correct, qualify and activate the approved authority boundary. Verified on 2026-10-03: exact 2.0.2 content binding, all foundation negatives, complete project verification and independent binding-integrity review pass.
+      **Deliverable:** Consistent normative wording and new raw-byte identity;
+      expert 2.0.2's strengthened positive/negative NMI oracle, changed/dependent
+      isolated captures and independent grades, source/semantics review,
+      dependent-decision dispositions and exact single-active release binding.
+      Keep historical captures unchanged. Record generated-route facts separately
+      from unproved external stack/firmware facts; do not claim compiler or silicon
+      qualification or close DEF-7/RD-05.
+      **Verify:** Specification membership/digest and exact approved diff,
+      skill topology/frontmatter/YAML/links/source keys, dependency closure,
+      oracle-first ordering and behavioral qualification, applicable Language
+      Guard and hardware-exception scan, targeted formatting/whitespace, candidate
+      to live byte equality, and independent whole-task correctness/semantics
+      review. AR-P9 adds directed foundation tests and full install/build/typecheck/test verification.
 
 ## Verification and impact record
 
@@ -263,6 +263,59 @@ sequence govern it. The public selection stays 2.0.1. The next binding checkpoin
 must identify this actual commit, replace the temporary inactive guard with exact
 active protection, synchronize the three public fields, verify and independently
 review the binding. No additional push is authorized by this continuation.
+
+The actual ordinary content commit is
+`13b995d0ddacc304aa066e015c14c63678e99dcc`. Independent review cleared the
+complete content and buffer-only guard correction. A fresh post-commit run passes
+all 12 foundation tests, exercising the full committed-HEAD freeze rather than
+the pre-content path. The tree was clean after that checkpoint. Binding is the
+remaining part of this task; the content commit itself does not select 2.0.2.
+
+### Active binding verification — 2026-10-03
+
+The independent final authority oracle first produced the prescribed two RED
+results: old public metadata and the inactive disk bundle. Historical checks,
+all seven historical and eleven current negative fixtures, fixed content-commit
+bytes and every non-release disk/HEAD comparison passed. Evidence:
+`/tmp/blend65-inactive-authority-red.5PCu1g/active-binding-red.json`.
+
+The three public fields now select the approved specification identity, expert
+2.0.2 and actual content commit above. Only the release bookkeeping differs from
+qualified expert content. Its final hash is
+`1e2c67c3aaa5b68d6a094136e6b415280636d543e7280958770fca5ff4dfaea7`;
+the resulting full skill-tree digest is
+`16fc1cfe0161a4834d6ead608326cbf85dedf817943936c0320c1abf6b13bd66`.
+The existing foundation guard protects exact active working bytes and exact
+committed bytes, retaining only the fixed inactive content commit as the
+pre-binding historical case. Final install, build, typecheck and full `yarn test`
+pass: 3,422 tests, two existing compiler skips, and all 113 root files. VICE
+remained sequential. Captures: `/tmp/blend65-authority-binding.9MyTik/`.
+Independent binding-integrity review returns no findings, including actual
+content ancestry, complete membership, historical capture preservation and
+seven historical/eleven current negative fixtures. No generated-code,
+NMI-acceptance or new API change occurs.
+
+T-06 is complete. The qualified expert is 2.0.2, bound to content commit
+`13b995d0ddacc304aa066e015c14c63678e99dcc`; only its separately pinned release
+bookkeeping differs. The current register supersedes AR-P4's blanket admission
+gate, not the true absence of a finite external bound. DEF-7 still owns positive
+NMI implementation, vector/ABI/source ownership and keyboard prerequisites;
+those are not qualified by this authority checkpoint. RD-05 remains open.
+
+No compiler architecture or shipped platform-library behavior changed.
+`docs/index.md` has no techdocs opt-in (the file is absent); the existing
+`docs/platform-libraries.md` remains truthful and needs no change. No new
+documentation framework or unrelated authority-copy repair is introduced.
+
+Final tracking review found RV-003 (Minor): T-05's roadmap summary still called
+T-06 executing. That single current-status phrase now says complete. The review
+otherwise clears the exact T-06-only disposition; DEF-7/RD-05 and all separate
+implementation/keyboard decisions remain open. No authority or test byte changes.
+
+The read-only progress helper prints `Progress: [██████████] 1/1 tasks (100%)`.
+Its exit status remains 1 because it also expects a full-plan `00-index.md`;
+the execution skill explicitly permits this single-document mini-plan. The
+verified checklist is complete; no unnecessary index or workflow change is added.
 
 ### Dependent decision audit
 

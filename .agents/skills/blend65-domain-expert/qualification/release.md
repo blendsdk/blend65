@@ -1,24 +1,26 @@
 # Blend65 Domain Expert Release Record
 
-## Current 2.0.2 authority-maintenance candidate
+## Current 2.0.2 release
 
-> **Candidate version**: `2.0.2`
-> **Status**: Documentary qualification complete; inactive — whole-task review and content binding pending
+> **Active qualified version**: `2.0.2`
+> **Status**: Active qualified and frozen — exact approval, byte-identical migration and immutable content binding complete
 > **Recorded**: 2026-10-03 · branch `feature/v4-rebuild`
 
 This section alone declares current release state. Every earlier release/capture section below
-is historical, including its old active-state language. The selected authority remains 2.0.1
-through its immutable qualified content until the following binding activates this exact bundle.
-Candidate migration is not activation; affected work remains paused until binding. No parallel
-installed skill or new qualification infrastructure is introduced.
+is historical, including its old active-state language. Expert `2.0.2` is the single active
+qualified and frozen baseline, bound to the immutable content commit below. That checkpoint
+qualified the exact inactive content; this subsequent binding selects it and synchronizes only
+the existing public identity fields and foundation guards. No parallel installed skill or new
+qualification infrastructure is introduced. Only this release record differs from the qualified
+skill content; its bookkeeping bytes are independently pinned by the foundation guard.
 
 | Current field | Value |
 |---|---|
-| Candidate router | `2.0.2`; SHA-256 `74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f` |
-| Candidate runtime-payload digest | `5a422482f1c82d1ed15f61d35e447f9cd6e9af80bd930841a82a4c0de8128bef` |
-| Candidate Specification | `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7` |
-| Immutable content commit | Pending green whole-task checkpoint |
-| Content-checkpoint full skill-tree digest | Pending immutable content checkpoint |
+| Active router | `2.0.2`; SHA-256 `74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f` |
+| Active runtime-payload digest | `5a422482f1c82d1ed15f61d35e447f9cd6e9af80bd930841a82a4c0de8128bef` |
+| Active Specification | `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7` |
+| Immutable content commit | `13b995d0ddacc304aa066e015c14c63678e99dcc` |
+| Content-checkpoint full skill-tree digest | `a56c667b12450307b676c3f188e9a3898bb3852cff1fd0b14a8048a19a9f27ca` |
 | Qualification payload digest | `5944207baae30d079a5bb965fc4441c651a909dc40a79566665d44437c16b8be`; six qualification files, excluding this release record |
 | Preceding qualified version/content | `2.0.1`; `1ce4852016e2a883cf1f733c6014c45e176bfc69` |
 | Qualified scope | Documentary expert reasoning and approved four-cooperative-PRG proof boundary; existing qualified CPU/platform scope otherwise unchanged |
@@ -26,12 +28,12 @@ installed skill or new qualification infrastructure is introduced.
 
 | Current gate | State | Boundary |
 |---|---|---|
-| Structure/source | Pass for staged candidate | 22 regular skill files, 13 references, unchanged metadata, 77 runtime links/108 source keys; exact 18-normative/45-total specification set and approved five-file diff. |
-| Coverage/behavior | Pass for staged documentary candidate | 38 dependency-traced fresh cases plus 75 unchanged-input inherited cases; 113 disjoint total. Q-L29 uses separately graded original/focused evidence jointly; its original FAIL remains. Failed and superseded responses remain visible. |
+| Structure/source | Pass | 22 regular skill files, 13 references, unchanged metadata, 77 runtime links/108 source keys; exact 18-normative/45-total specification set and approved five-file diff. |
+| Coverage/behavior | Pass for documentary scope | 38 dependency-traced fresh cases plus 75 unchanged-input inherited cases; 113 disjoint total. Q-L29 uses separately graded original/focused evidence jointly; its original FAIL remains. Failed and superseded responses remain visible. |
 | Normative/oracle consistency | Pass | Only Q-L08/Q-P07 strengthened and Q-P24 added; source review cleared exact final facts and required fields. No oracle weakening. |
 | Language Guard/HLE | Pass at stated scope | All 27 rules assessed; P1/P2/P4/H5/C5 retain explicit profile/bounded-evidence conditions. All ten HLE entries accounted; no new exception. |
-| Whole-task independent review | Pending | Source applicability review is complete; final coherent phase diff still needs its separate quality gate. |
-| Candidate/live equality and binding | Equality pass; binding pending | The qualified five-file specification correction and 22-file expert bundle are migrated byte-exact. Selected authority remains 2.0.1 until the green content checkpoint and subsequent binding. |
+| Whole-task independent review | Pass | Source/semantics, complete content, exact guard preservation and bounded binding-integrity reviews are clear. No generated-code/API or NMI-acceptance qualification follows. |
+| Candidate/live equality and binding | Pass | All 45 specification files and 22 expert files were migrated byte-exact into the immutable content checkpoint. Only this separately pinned release bookkeeping differs after binding; working and committed authority bytes remain protected. The three public fields select the exact 2.0.2 content. |
 
 ## Historical 2.0.1 release record
 

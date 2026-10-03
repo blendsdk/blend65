@@ -22,22 +22,33 @@ const authorityCommit = "5deb2a5341bea00cf6050a0aba4668315198d91a";
 const frozenDigest = "1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf";
 /** Immutable activation checkpoint; every specification and expert file stays byte-exact. */
 const releaseCommit = "e063ef575d13c02c076c94e24616dd27ae4a75e2";
-/** The sole pre-migration HEAD still contains the previously selected authority. */
+/** Historical last checkpoint before migration, retained only for the earlier freeze proof. */
 const initialHead = "29df75554854dcdc43279308867a8c6725b08180";
+/** Immutable qualified content; only its release bookkeeping may change during activation. */
+const contentCommit = "13b995d0ddacc304aa066e015c14c63678e99dcc";
 const skillPath = ".agents/skills/blend65-domain-expert";
 const inactiveStatus =
   "> **Status**: Documentary qualification complete; inactive — whole-task review and content binding pending";
-/** Independently qualified raw-byte identities; these are not read from candidate declarations. */
+const activeStatus =
+  "> **Status**: Active qualified and frozen — exact approval, byte-identical migration and immutable content binding complete";
+/** Independently qualified raw-byte identities; these are not read from release declarations. */
 const candidateIdentity = {
   specificationFiles: "45",
   specification: "d6c6e8f15e70be4dca9d623ef42257498b4567995b5b92bb2d4b33e4827d39d5",
   normativeFiles: "18",
   normative: "566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7",
   expertFiles: "22",
-  expert: "a56c667b12450307b676c3f188e9a3898bb3852cff1fd0b14a8048a19a9f27ca",
+  expert: "16fc1cfe0161a4834d6ead608326cbf85dedf817943936c0320c1abf6b13bd66",
   runtimeFiles: "15",
   runtime: "5a422482f1c82d1ed15f61d35e447f9cd6e9af80bd930841a82a4c0de8128bef",
   router: "74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f",
+  release: "1e2c67c3aaa5b68d6a094136e6b415280636d543e7280958770fca5ff4dfaea7",
+  state: "active",
+};
+/** The fixed content checkpoint is inactive, not an open-ended permission for pending releases. */
+const inactiveIdentity = {
+  ...candidateIdentity,
+  expert: "a56c667b12450307b676c3f188e9a3898bb3852cff1fd0b14a8048a19a9f27ca",
   release: "7a8f7b8f993c04795eca6a7c791de8c94bccf64a9221468ceeb12c4b45d37b1b",
   state: "inactive",
 };
@@ -131,6 +142,12 @@ function candidateRecord(
     current.includes("## Current 2.0.2 authority-maintenance candidate\n") &&
     current.split("\n").includes(inactiveStatus) &&
     current.includes("Candidate migration is not activation;");
+  const active =
+    current.startsWith("# Blend65 Domain Expert Release Record\n") &&
+    current.includes("## Current 2.0.2 release\n") &&
+    current.split("\n").includes(activeStatus) &&
+    current.includes("Expert `2.0.2` is the single active") &&
+    current.includes(contentCommit);
   return {
     specificationFiles: String(specification.size),
     specification: recordDigest(specification),
@@ -142,13 +159,16 @@ function candidateRecord(
     runtime: recordDigest(runtime),
     router: sha256(expert.get("SKILL.md") ?? Buffer.alloc(0)),
     release: sha256(release),
-    state: inactive ? "inactive" : "missing",
+    state: active ? "active" : inactive ? "inactive" : "missing",
   };
 }
 
 /** Report every candidate mismatch rather than trusting a release file's self-declared hashes. */
-function candidateViolations(record: Readonly<Record<string, string>>): readonly string[] {
-  return Object.entries(candidateIdentity)
+function candidateViolations(
+  record: Readonly<Record<string, string>>,
+  expected: Readonly<Record<string, string>> = candidateIdentity,
+): readonly string[] {
+  return Object.entries(expected)
     .filter(([key, value]) => record[key] !== value)
     .map(([key]) => key);
 }
@@ -201,10 +221,10 @@ describe("frozen execution authority and salvage ownership", () => {
   // Public build metadata identifies the exact frozen specification and qualified expert baseline.
   it("should expose the frozen specification and expert identities in public build metadata", () => {
     expect(BUILD_INFO.specificationId).toBe(
-      "BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf",
+      "BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7",
     );
-    expect(BUILD_INFO.expertVersion).toBe("2.0.1");
-    expect(BUILD_INFO.expertContentCommit).toBe("1ce4852016e2a883cf1f733c6014c45e176bfc69");
+    expect(BUILD_INFO.expertVersion).toBe("2.0.2");
+    expect(BUILD_INFO.expertContentCommit).toBe(contentCommit);
   });
 
   // Frozen bytes and repository lineage apply to ordinary clones, independent of local worktrees.
@@ -254,8 +274,8 @@ describe("frozen execution authority and salvage ownership", () => {
     expect(inventory).toContain(frozenDigest);
   });
 
-  // A qualified candidate can change disk bytes without silently selecting a new public authority.
-  it("should bind the exact inactive candidate bytes while retaining the historical selection", async () => {
+  // Activation changes only pinned release bookkeeping, never the qualified content it selects.
+  it("should bind the exact active authority to immutable qualified content", async () => {
     for (const key of Object.keys(candidateIdentity)) {
       const root = await fixture({
         "identity.json": JSON.stringify({ ...candidateIdentity, [key]: "mismatch" }),
@@ -264,19 +284,37 @@ describe("frozen execution authority and salvage ownership", () => {
         candidateViolations(JSON.parse(await readFile(join(root, "identity.json"), "utf8"))),
       ).toEqual([key]);
     }
-    const disk = candidateRecord(
-      await authorityFiles(join(repository, "spec")),
-      await authorityFiles(join(repository, skillPath)),
-    );
-    expect(candidateViolations(disk)).toEqual([]);
+    const contentSpec = committedAuthorityFiles("spec", contentCommit);
+    const contentExpert = committedAuthorityFiles(skillPath, contentCommit);
+    expect(
+      candidateViolations(candidateRecord(contentSpec, contentExpert), inactiveIdentity),
+    ).toEqual([]);
+    const diskSpec = await authorityFiles(join(repository, "spec"));
+    const diskExpert = await authorityFiles(join(repository, skillPath));
     const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repository }).toString().trim();
-    if (head !== initialHead) {
-      const committed = candidateRecord(
-        committedAuthorityFiles("spec", head),
-        committedAuthorityFiles(skillPath, head),
-      );
-      expect(candidateViolations(committed)).toEqual([]);
+    const headSpec = committedAuthorityFiles("spec", head);
+    const headExpert = committedAuthorityFiles(skillPath, head);
+    expect(
+      candidateViolations(
+        candidateRecord(headSpec, headExpert),
+        head === contentCommit ? inactiveIdentity : candidateIdentity,
+      ),
+    ).toEqual([]);
+    for (const specification of [diskSpec, headSpec]) {
+      expect([...specification.keys()].sort()).toEqual([...contentSpec.keys()].sort());
+      for (const [name, bytes] of contentSpec) {
+        expect(specification.get(name)?.equals(bytes), name).toBe(true);
+      }
     }
+    for (const expert of [diskExpert, headExpert]) {
+      expect([...expert.keys()].sort()).toEqual([...contentExpert.keys()].sort());
+      for (const [name, bytes] of contentExpert) {
+        if (name !== "qualification/release.md") {
+          expect(expert.get(name)?.equals(bytes), name).toBe(true);
+        }
+      }
+    }
+    expect(candidateViolations(candidateRecord(diskSpec, diskExpert))).toEqual([]);
   });
 
   // Every baseline path belongs to one reviewed unit, including non-production fixture families.
