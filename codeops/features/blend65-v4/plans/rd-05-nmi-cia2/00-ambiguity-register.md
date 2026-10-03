@@ -1,13 +1,13 @@
 # Ambiguity Register: RD-05 NMI and CIA2
 
-> **Status**: 🔄 APPROVED MAINTENANCE — AR-P10 resolved; T-08 documentary qualification/migration complete, content checkpoint/binding pending; public selection remains expert 2.0.2
+> **Status**: 🔄 PLANNING RESUMED — AR-P10/T-08 authority maintenance complete; expert 2.0.3 qualified and bound; compiler and keyboard proof gates remain open
 > **Last Updated**: 2026-10-03
 > **CodeOps Artifact Schema**: 1
 
 | Planning boundary | Scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Target            | The next bounded `blend65-v4/RD-05` NMI/CIA2 planning task, including DEF-7. The user confirmed xhigh effort and continuation on 2026-09-30. This is not implementation authority or whole-RD closeout.                                                                                                                                                                                                                                                                                  |
-| Context artifacts | Frozen Specification 4; RD-05 R5.15–R5.18/R5.20; the RD-04 DEF-7 decision; completed IRQ, CIA and CIA1-return plans; qualified expert 2.0.2; primary CPU/CIA/KERNAL evidence; current profile, semantic, storage and machine code.                                                                                                                                                                                                                                                       |
+| Context artifacts | Frozen Specification 4; RD-05 R5.15–R5.18/R5.20; the RD-04 DEF-7 decision; completed IRQ, CIA and CIA1-return plans; qualified expert 2.0.3; primary CPU/CIA/KERNAL evidence; current profile, semantic, storage and machine code.                                                                                                                                                                                                                                                       |
 | Modification set  | AR-P6 approved this register and the feature roadmap for reconciliation. AR-P8 additionally approves the T-05 diagnostic mini-plan and existing keyboard register. A temporary assembly hook is diagnostic evidence only. T-06 separately completed AR-P7/AR-P9 authority maintenance and identity guards; its mini-plan records that exact scope. No production hook, NMI-acceptance test or new API is authorized by this planning register. Earlier discovery is retained as history. |
 
 | #      | Category                                             | Ambiguity / Gap                                                                                                                                                                                       | Options Presented                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | User Decision                                                                                                                                                                                                                                                                                     | Status                                                     |
@@ -21,7 +21,7 @@
 | AR-P7  | Product / frozen proof-scope correction (sensitive)  | May a proved reentrant, invocation-private-storage-free generated NMI route remain expressible when the external aggregate stack and retained-firmware completion guarantees are explicitly unproved? | **Best option:** the narrow proof-scope candidate below. Retain real unbounded NMI facts, strict private-storage safety and all ABI/device/vector obligations; stop claiming universal external stack/completion safety. No assumed nesting number, event suppression, new profile or runtime guard. Keeping the unchanged blanket rejection is the safe alternative, but cannot complete this positive slice.                                                                                              | User explicitly approved the correction on 2026-10-03 and requested saving/pushing first. T-06 owns the separate frozen-authority maintenance and expert requalification; compiler/API/spec-test changes remain separate gates.                                                                   | ✅ Resolved — authority maintenance complete               |
 | AR-P8  | Scope / developer experience / bounded proof         | May the approved ordinary-input direction be tested through one minimal internal scan-aware ingress?                                                                                                  | One temporary assembly proof under DEF-7, with explicit stock behavior, transition, state and cost expectations. Keep ordinary saved-data interpretation in Blend65 libraries. No production subsystem or frozen-authority change.                                                                                                                                                                                                                                                                          | User: “I approve” on 2026-10-03, replying to the deeper assessment's focused contract-and-proof recommendation. [T-05](../keyboard-ingress-proof/99-execution-plan.md) owns the diagnostic proof; AR-P7 was open at that decision; T-06 authority maintenance and AR-P9 binding are now complete. | ✅ Resolved — proof only                                   |
 | AR-P9  | Runtime / active identity synchronization            | May T-06 update the three public identity fields and corresponding foundation guards before binding the approved authority?                                                                           | **Best option:** the exact two-file extension below, retaining historical negatives and byte-exact candidate/active checks in two green checkpoints. No generated-code or NMI-acceptance change.                                                                                                                                                                                                                                                                                                            | User explicitly approved the bounded identity synchronization on 2026-10-03.                                                                                                                                                                                                                      | ✅ Resolved — exact two-file extension                     |
-| AR-P10 | Product / machine-entry proof (sensitive)            | May NMI-using programs on the four cooperative PRG profiles require the stock NMINV predecessor at entry, without an independent resident vector owner?                                               | **Best option:** qualify the exact stock-entry condition below, then prove matching-low placement and one-byte publication through the existing compiler owners. No new API, runtime guard, source-form ban or finite NMI bound. Broader arbitrary-predecessor support needs a separately costed direct publication scheme.                                                                                                                                                                                 | User: “go with the best possible option, and proceed further” on 2026-10-03, accepting the exact entry condition and bounded authority-maintenance scope presented.                                                                                                                               | ✅ Resolved — maintenance approved; activation pending     |
+| AR-P10 | Product / machine-entry proof (sensitive)            | May NMI-using programs on the four cooperative PRG profiles require the stock NMINV predecessor at entry, without an independent resident vector owner?                                               | **Best option:** qualify the exact stock-entry condition below, then prove matching-low placement and one-byte publication through the existing compiler owners. No new API, runtime guard, source-form ban or finite NMI bound. Broader arbitrary-predecessor support needs a separately costed direct publication scheme.                                                                                                                                                                                 | User: “go with the best possible option, and proceed further” on 2026-10-03, accepting the exact entry condition and bounded authority-maintenance scope presented.                                                                                                                               | ✅ Resolved — authority qualified and bound                |
 
 The same instruction explicitly covers the effort-confirmation handoffs for the
 named remaining RD-05 batch. Recommendations still precede distinct tasks;
@@ -81,23 +81,35 @@ preserving all historical/current negative fixtures and complete raw-byte
 protection through the same two ordinary green checkpoints. No compiler
 lowering, NMI-acceptance expectation, new API, dependency or release framework is
 authorized by that maintenance scope. Those implementation gates remain separate.
-Until qualification and binding, expert 2.0.2 stays active and all current
-compiler guards remain unchanged.
+The qualified content and binding checkpoints now pass. Expert 2.0.3 is selected
+and bound to the exact content below. All current compiler guards remain unchanged.
 
 **Status:** Resolved — the user approved the best option and exact maintenance scope
 on 2026-10-03. [T-08](../nmi-stock-entry-contract/99-execution-plan.md) owns the
-staged expert 2.0.3 correction, qualification and identity binding. This approval
-is not an active-release, generated-code or runtime qualification claim.
+expert 2.0.3 correction, qualification and identity binding, now complete. This
+maintenance qualifies the authority only, not generated code or runtime behavior.
 Confidence: High for the missing invariant; Medium for the minimum complete
 implementation after approval. Hardening: independent challenger converged on
 the entry-contract gate; no positive artifact/runtime claim follows.
-Lineage: expert 2.0.2, content `13b995d0ddacc304aa066e015c14c63678e99dcc`,
+Lineage: expert 2.0.3, content `22cc5f00f381c82d347cf342be4fcff16bc291c6`,
 `c64-memory-and-runtime.md#revision-pinned-nmi-contracts-and-costs`,
 `sfa-and-abi.md#interrupt-route-completion-gate`; CBM-C64-KERNAL-03 and MOS-PGM-1976.
 
-## Current qualified binding — T-06 complete
+## Current qualified binding — T-08 complete
 
-Expert 2.0.2 is the sole active authority, bound to immutable content
+Expert 2.0.3 is selected in the worktree, bound to qualified content
+`22cc5f00f381c82d347cf342be4fcff16bc291c6` and specification
+`BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b`.
+The [T-08 checkpoint](../nmi-stock-entry-contract/99-execution-plan.md#binding-checkpoint-verified)
+preserves forty negative fixtures and every specification/non-release expert
+byte. Actual RED, directed 12/12 GREEN and independent live binding review pass.
+The second install/build/typecheck and full local suite pass: 3,422 tests with
+the same two existing compiler skips. Independent draft/live binding reviews
+are clear. This is authority maintenance, not generated NMI or keyboard qualification.
+
+### Historical T-06 qualified binding
+
+T-06 activated expert 2.0.2, bound to immutable content
 `13b995d0ddacc304aa066e015c14c63678e99dcc` and specification
 `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`.
 [T-06](../nmi-proof-scope-correction/99-execution-plan.md) records 38 fresh and

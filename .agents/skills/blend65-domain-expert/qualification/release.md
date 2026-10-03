@@ -1,36 +1,40 @@
 # Blend65 Domain Expert Release Record
 
-## Current 2.0.3 authority-maintenance candidate
+## Current 2.0.3 release
 
-> **Candidate qualified version**: `2.0.3`
-> **Status**: Documentary qualification complete; inactive — whole-task review and content binding pending
+> **Active qualified version**: `2.0.3`
+> **Status**: Active qualified and frozen — exact approval, byte-identical migration and immutable content binding complete
 > **Recorded**: 2026-10-03 · branch `feature/v4-rebuild`
 
-This section alone declares current candidate state. Every earlier release and
+This section alone declares current release state. Every earlier release and
 capture section below is historical, including its old active-state language.
-Candidate migration is not activation; the existing public selection remains
-qualified 2.0.2/content `13b995d0ddacc304aa066e015c14c63678e99dcc` until the
-ordinary content checkpoint, exact review and subsequent immutable binding.
-There is no parallel installed skill or new qualification/release framework.
+Expert `2.0.3` is the single active qualified and frozen baseline, bound to the
+immutable content commit below. That green checkpoint qualified the exact
+inactive content; this subsequent binding selects it and synchronizes only the
+three existing public identity fields and foundation guards. Only this release
+record differs from the qualified expert content, and its complete bookkeeping
+bytes are independently pinned. There is no parallel installed skill or new
+qualification/release framework.
 
-| Current candidate field | Value |
+| Current field | Value |
 |---|---|
 | Router | `2.0.3`; SHA-256 `599a68a63721f89ddc7283461f1f2e3e4fee4ae2a3c1723393e81a7e25634030` |
 | Full runtime payload | `031b07ef55d3896266d0fc12da5b48ce734253d091b6ee3b857836855f693c1d`; 15 files |
 | Specification | `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b` |
 | Qualification payload | `48a6225edef7aa6dfb085982133d029554ffb286a12ed08dbbbfa9de0ecb58b0`; six files, excluding this release record |
-| Content binding | Pending ordinary green content checkpoint and subsequent binding |
+| Immutable content commit | `22cc5f00f381c82d347cf342be4fcff16bc291c6` |
+| Content-checkpoint full skill-tree digest | `f9ae4deed0aad8a36b631b428d1d93ae31bb3c414aa4ee9fd2f9176fcd1744d9` |
 | Preceding qualified version/content | `2.0.2`; `13b995d0ddacc304aa066e015c14c63678e99dcc` |
 | Qualified scope | Documentary conditional stock-entry contract and unchanged expert knowledge at the dependency-closed boundary |
 | Non-qualified scope | Compiler/artifacts/NMI installation, full keyboard acquisition, unrestricted external stack/firmware completion, finite deadlines and physical hardware |
 
-| Candidate gate | State | Boundary |
+| Current gate | State | Boundary |
 |---|---|---|
 | Structure/source | Pass | Exactly 22 regular skill files, 13 references, unchanged UI metadata, 81 runtime links/108 source keys; 18 normative/45 total spec files. Only approved inventory/Chapter 15/appendix paths differ; other 42 raw files are unchanged. |
 | Oracle/coverage | Pass at documentary scope | All113 pre-guidance oracle hashes exact; only Q-P07/Q-P24 were strengthened before guidance. Four cases have fresh current evidence; 109 inherit independently reviewed unchanged decisive fields. No oracle weakening. |
 | Separate behavioral grades | Pass | Q-P07/Q-P24 fresh paired grade, Q-P23 fresh regression grade, Q-L01 joint valid-prior/fresh-completion grade pass every frozen field with zero grading/packet defects. |
 | Language Guard/HLE | Pass at stated scope | All27 actual guard rules and ten existing disclosures assessed. Conditional entry/no-hook distinction and complete storage/vector/link/source/ABI obligations remain. No new exception, syntax or runtime. |
-| Whole-task/live/binding | Pending | Exact reviewed migration, preserved historical/current negative guards, full verification and both ordinary green checkpoints must finish before activation. |
+| Whole-task/live/binding | Pass | Source/content/guard and bounded binding reviews are clear. Both ordinary checkpoints preserve complete authority membership/raw bytes and all old negatives. Full install/build/typecheck and owned tests pass; public identity selects the exact qualified content. Only release bookkeeping differs from that content. No compiler behavior, NMI-acceptance oracle or API changes. |
 
 ### Current evidence dispositions
 

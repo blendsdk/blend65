@@ -1,7 +1,7 @@
 # Task T-08: Approved cooperative NMI stock-entry contract
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
-> **Progress**: 0/1 tasks (0%)
+> **Progress**: 1/1 tasks (100%)
 > **Last Updated**: 2026-10-03
 > **Phase baseline tree**: 969d5b4d3a877753ef40bad57472d51893ed0b30
 > **Scope mode**: strict
@@ -43,7 +43,7 @@ The existing compiler guards remain. Portfolio synchronization waits for integra
 
 ## Task
 
-- [ ] T-08.1 Correct, qualify and bind the approved conditional entry contract.
+- [x] T-08.1 Correct, qualify and bind the approved conditional entry contract.
       **Deliverable:** Exact approved normative wording and identity; expert 2.0.3
       discriminating stock/unknown/no-hook entry oracle; independent source/oracle
       review, isolated changed/dependent captures and separate grades; dependent
@@ -58,10 +58,11 @@ The existing compiler guards remain. Portfolio synchronization waits for integra
 
 ## Evidence and current state
 
-Public selection remains 2.0.2/content `13b995d0` until binding. T-06 remains
-complete; T-07's unrelated retained-copy maintenance remains backlog. The exact
-qualified 2.0.3 candidate is now migrated into the worktree but remains inactive.
-Initial staging root:
+The green content checkpoint is `22cc5f00f381c82d347cf342be4fcff16bc291c6`.
+Public selection and the release record now bind expert 2.0.3 to that content in
+the worktree. Directed binding checks, independent review and the second full
+verification checkpoint pass. T-06 remains complete; T-07's unrelated
+retained-copy maintenance remains backlog. Initial staging root:
 
 `/tmp/blend65-nmi-entry-authority.IFzbfD`.
 
@@ -75,8 +76,9 @@ closure is Q-P07/Q-P24, Q-L01's changed-document completion jointly with its pri
 full audit, and unchanged IRQ/CIA1 control Q-P23. The other 109 cases may inherit
 unchanged decisive fields only after the final guidance diff check.
 
-Documentary qualification and byte-exact live migration are complete. The green
-content checkpoint and final binding are pending. No new push authority.
+Documentary qualification, byte-exact live migration, the green content checkpoint
+and final binding verification are complete. This checkpoint records
+the verified binding; it supplies no new push authority.
 
 ## Authority and impact checks
 
@@ -113,7 +115,7 @@ vector/storage/source, keyboard or hardware qualification work.
 | T-06 / AR-P6–P7 generated-route proof scope | Unaffected | Private-home-free reentrancy, finite-component accounting and unproved external/firmware guarantees stay unchanged. |
 | AR-P10 entry and matching-low publication | Corrected | Approved conditional stock entry is made explicit. Matching-low publication remains a proof direction, not accepted compiler output. |
 | T-05 temporary keyboard ingress | Unaffected | Its local observations/costs do not qualify installation transitions, full keyboard safety or a production API. |
-| IRQ/CIA1 final-exclusive handback | Revalidated knowledge; activation pending | Fresh restricted Q-P23 evaluation and separate grade pass with no findings. The NMINV-only entry condition does not spread to IRQ/no-hook programs. |
+| IRQ/CIA1 final-exclusive handback | Revalidated knowledge | Fresh restricted Q-P23 evaluation and separate grade pass with no findings. The NMINV-only entry condition does not spread to IRQ/no-hook programs. |
 | Positive NMI/compiler and keyboard decisions | Remain open | Existing guards and NMI-acceptance expectations are untouched. Complete vector/link/ABI/source/banking proof and keyboard AR-P2/P3 remain separately owned. |
 | Unrelated assets, optimizations and user-host QA | Unaffected | No new implementation, library subsystem or release-host requirement. |
 
@@ -191,17 +193,18 @@ contract without duplicating every normative clause. No extra repair is needed.
 Fresh restricted Q-P23 also passes its separate grade, with zero unresolved
 findings. Its exact sixteen-file packet, complete turn, exit-zero receipt and
 answer hash are retained. Q-P07/Q-P24's separate paired grade now passes with zero
-findings. Byte-exact migration and authority/guard review are complete; final
-verification, the content checkpoint and binding remain pending.
+findings. Byte-exact migration, authority/guard review, the content checkpoint
+and final binding verification are complete. Both ordinary checkpoints are green.
 All 113 frozen oracle hashes still match the pre-guidance record. Independent
 review reconfirms final runtime `031b07ef...f693c1d` and 109 unchanged-decisive-field
 inheritance; the older `candidate-check.json` remains an honest `fee1...` receipt.
 
 ## Qualified candidate and checkpoints
 
-All four current documentary grades pass. The migrated candidate has one inactive
-2.0.3 release section; its earlier releases and all seventeen new captures remain
-exact historical/supporting evidence. Qualified identities before migration:
+All four current documentary grades pass. At the content checkpoint, the migrated
+candidate had one inactive 2.0.3 release section; its earlier releases and all
+seventeen new captures remain exact historical/supporting evidence. Qualified
+identities before migration:
 
 | Payload | SHA-256 |
 |---|---|
@@ -215,10 +218,12 @@ The implementation-blind author updated only the existing foundation guard for
 the first checkpoint. Its actual 11-green/1-red result preserves all eighteen old
 negative fixtures and adds eleven successor counterfeits through the same pipeline.
 After byte-exact migration the directed foundation suite passes all twelve cases.
-The fixed initial HEAD is `3cc09eee524bcea39d4f68d8d0b28d4b6810ee13`.
-Only that exact HEAD may still expose old active 2.0.2 bytes during first migration;
-disk and every later HEAD must match the fixed qualified inactive 2.0.3 bytes.
-Public metadata remains 2.0.2/content `13b995d0` until the second checkpoint.
+At the first checkpoint, the fixed initial HEAD was
+`3cc09eee524bcea39d4f68d8d0b28d4b6810ee13`. Only that exact HEAD could expose old
+active 2.0.2 bytes during first migration; disk and every later HEAD had to match
+the fixed qualified inactive 2.0.3 bytes. Public metadata retained 2.0.2/content
+`13b995d0` until the second checkpoint. The final guard replaces that temporary
+exception with the exact qualified content commit and requires active disk.
 No release declaration supplies its own expected hash. Final binding must select
 the actual content commit, require active disk, and preserve every non-release
 authority byte from that commit. Both checkpoints require full verification and
@@ -241,3 +246,50 @@ links and whitespace checks pass. The content checkpoint preserves public 2.0.2
 selection and the exact inactive 2.0.3 release; binding is the remaining task edge.
 Evidence lives in `stage1-*.log` under the staging root and the crash-safe qualified
 snapshot. No implementation, NMI-acceptance or package metadata change occurred.
+
+### Binding checkpoint verified
+
+The implementation-blind second-stage guard produced ten green cases and two
+expected failures before metadata or release writes. The parent reproduced that
+RED: the public specification identity was old, and disk mismatched only the
+expert-tree digest, release digest and active state. All forty negative fixtures
+passed, including all seven historical 2.0.1 and eleven historical 2.0.2 cases.
+The fixed inactive 2.0.3 content and active release each retain eleven counterfeit
+cases through the existing pipeline. No old negative or raw-byte guard was removed.
+
+After the exact reviewed release-record copy and three public identity writes,
+foundation passes 12/12. Install, build and typecheck pass. All 45 specification
+files and 21 non-release expert files equal content `22cc5f00`; exact membership
+is preserved. Active full-tree digest is
+`cf624c04fd9c50f5148e5a3b90bc6bb899db52cab9673913c6f410e1816c5101`;
+release digest is `61d151028f874cda5932b8859d59cf3affbd51e300571b0b3eecc2f47df51627`.
+Only HEAD equal to the qualified content commit may remain inactive. Disk and
+every other HEAD must match the independently pinned active release. Historical
+proofs remain fixed; release declarations never supply their own expected hashes.
+
+Independent draft, live binding and final tracking reviews report no findings. The full local
+Linux suite passes: 3,422 tests, with the same two existing compiler skips.
+The root suite passes all 113 files/1,662 tests, including sequential VICE; the
+compiler workspace passes 1,671 tests, language server 21, CLI 62 and editor 6.
+The root run takes 654.21 seconds; the complete command takes 734.79 seconds.
+Both ordinary checkpoints are green. Targeted formatting and whitespace checks
+pass. Evidence is in `stage2-*.log` under the staging root. No generated NMI,
+keyboard, API or physical qualification follows.
+
+### Remaining ownership and deferral check
+
+This task expires the missing stock-entry authority gate, not the independent
+implementation proofs. DEF-7 remains owned by RD-05. The next bounded planning
+work must prove all vector transitions, coherent capture, immutable predecessor
+links, generated-route reentrancy, full ABI/status/banking and exact CIA2 source
+ownership before changing compiler admission. The existing NMI-acceptance oracle
+and keyboard AR-P2/AR-P3 need their separate exact approval gates. T-07 retains
+the unrelated specification-copy discoveries. External stack/firmware completion,
+finite deadlines and physical hardware remain unproved; no new ownerless deferral
+or silent RD closeout is introduced.
+
+The read-only roadmap counter engine confirms the feature's unchanged 4/10 RD
+progress. Its sole numeric drift is the known 1/10 portfolio row; synchronization
+remains deferred to integration on this non-integration branch. No portfolio or
+other feature was modified. The following local binding commit preserves exactly
+the qualified content; it does not authorize a push.

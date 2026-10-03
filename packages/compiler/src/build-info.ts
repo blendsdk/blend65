@@ -4,9 +4,9 @@ export const BUILD_INFO = Object.freeze({
   version: "0.1.0",
   /** Frozen normative language corpus consumed by this rebuild. */
   specificationId:
-    "BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7",
+    "BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b",
   /** Sole active qualified expert release. */
-  expertVersion: "2.0.2",
+  expertVersion: "2.0.3",
   /** Qualified expert content, excluding its later release-record binding. */
-  expertContentCommit: "13b995d0ddacc304aa066e015c14c63678e99dcc",
+  expertContentCommit: "22cc5f00f381c82d347cf342be4fcff16bc291c6",
 });
