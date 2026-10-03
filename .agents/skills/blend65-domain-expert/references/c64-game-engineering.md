@@ -1,6 +1,6 @@
 # C64 Game Engineering and Compiler Realization
 
-> **Baseline version**: `2.0.1`
+> **Baseline version**: `2.0.2`
 
 Use this reference to translate a C64 game requirement or expert technique into modern Blend65
 source, deterministic compiler/platform behavior, expert-quality assembly, explicit resource cost,
@@ -715,7 +715,7 @@ reject every second/third-SID requirement and every known clock/model mismatch w
 not activate hardware or retime, retune, filter-adapt, or translate a SID payload.
 
 The complete normative Blend65 selector/type rules come from
-[BLEND65-SPEC-4-1c2a2d75, `spec/appendix-c64.md` §7 and F015]. Producer release evidence is
+[BLEND65-SPEC-4-566da991, `spec/appendix-c64.md` §7 and F015]. Producer release evidence is
 provenance: SpritePad/CharPad files do not encode the producing application version. The format
 claim is qualified only against representative files produced by the pinned release plus an exact
 schema/parser review.

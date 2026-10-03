@@ -133,15 +133,19 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
   The revision-pinned NMI route recognizes that `$FE43` reaches NMINV without saving registers:
   a chain saves status before A/X/Y, restores A/X/Y before status, and then jumps to a page-safe
   saved prior NMINV; exclusive/raw forms save A/X/Y and end in `RTI`. CIA2 ICR is consumed once by
-  one owner, RESTORE/cartridge behavior and NMI nesting are closed, and a raw vector is populated
+  one owner, RESTORE/cartridge behavior and generated NMI reentrancy are closed, and a raw vector is populated
   before its bank state becomes visible. No use of `SEI` is accepted as NMI exclusion.
+  On only the four cooperative PRG profiles, a complete private-home-free reentrant NMI path may
+  be expressible with unbounded external arrivals. External aggregate hardware-stack use and
+  retained-firmware reentrancy/completion stay explicitly unproved; one-entry cost is not a peak.
 - **Disqualifying outcomes:** Uses one prologue/`RTI` blindly, double-pushes A/X/Y at CINV, skips
   prior KERNAL work without source ownership, exposes a raw sink under an unproven banking path,
   accepts visible raw-entry installation at `$0314`, permits unknown decimal mode at body entry,
   treats NMINV as though KERNAL already saved registers, consumes CIA2 state before a chained owner,
-  assumes `SEI` protects a two-byte NMI-vector update, leaves RESTORE/cartridge/nesting open, places
+  assumes `SEI` protects a two-byte NMI-vector update, leaves generated reentrancy or source behavior open, places
   an indirect link at `$xxFF`, changes or liveness-elides a prior handler's observable entry
-  flags/registers, or hides static link/body/stack cost.
+  flags/registers, hides static link/body/stack cost, treats the exception as a finite arrival bound,
+  or claims unrestricted external/firmware safety.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Draft observation: partial — generic save/acknowledge/RTI duties exist,
   but KERNAL-vector versus raw-vector IRQ/NMI entry contracts do not
@@ -463,6 +467,66 @@ Unknown; this result is not an activation declaration.
 - **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade passed Q-P22; exact evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Pass — the Specification 4 Phase-4 qualification passed without a material finding.
 
+## Q-P24 — Reentrant NMI code is not an unlimited external-stack guarantee
+
+- **Risk / coverage cells:** Critical; `C64-P24`, `GAME-P24`, `SFA-L08`.
+- **Oracle status:** `frozen-project/external` — explicit user approval of the
+  narrow proof-scope correction on 2026-10-03; NMOS CPU, CIA and stock KERNAL facts
+  retain their primary-source authority. Independent source/oracle review cleared
+  the corrected invariants on 2026-10-03 before candidate knowledge authoring.
+  Oracle fields are now frozen. Qualification and activation remain separate.
+- **Evaluator prompt:** “Assess cooperative NMI support on PAL/NTSC PRG profiles
+  with either SID model and stock KERNAL 901227-03. Compare a private-home-free
+  generated ingress, a helper that introduces scratch, a register-only local,
+  shared state, a growing stack cycle and a no-installed-handler program. Decide
+  what is expressible, rejected, proved or unproved. Audit status/D, source and
+  vector/link ownership; distinguish one-entry cost from program peak and finite
+  timing. Keep normal keyboard/joystick and RESTORE behavior. Give the smallest
+  compiler/library boundary without a new runtime.”
+- **Permitted raw artifacts:** Approved normative Chapters 06/11/14/15 and C64
+  appendix; NMOS CPU/CIA primary excerpts and pinned KERNAL `time`/`rs232nmi`;
+  complete synthetic selected-instruction and storage inventories; immutable
+  saved-link layout; hypothetical source effects and transition sequences.
+- **Forbidden material:** This hidden oracle, qualification/history, CodeOps
+  plans, current compiler/tests as authority, prior model answers, author history,
+  and unallowlisted repository or Web content.
+- **Expected decision invariants:** Keeps NMI non-self-masking and externally
+  unbounded. Admits only a complete generated path proved reentrant with no
+  invocation-private RAM/ZP homes on the four cooperative PRG profiles; source
+  locals/helpers are not syntactically banned. Closes parameters/results/staging/
+  temporaries/spills/helper scratch after selection and SFA closure. Rejects
+  hidden private scratch, incomplete generated invocation-private/ABI/device
+  reentrancy and growing compiler-controlled stack cycles. Preserves source-defined
+  non-atomic shared effects, their volatile order/count and existing W10211/W10212
+  hazard diagnostics; shared RMW alone is not a new source prohibition. Recursion retains E10180/E10181 and ordinary
+  finite overflow retains E10238. Keeps callback-only identity, exact A/X/Y/P/D,
+  banking and page-safe immutable/lifetime-owned links, event/terminal behavior
+  and one consuming CIA2 ICR owner. Installation state is not activation-private
+  scratch; a live predecessor cannot be overwritten. `SEI` is not NMI exclusion.
+  Reports unrestricted external aggregate stack and unproved retained-firmware
+  reentrancy/completion even with no installed generated handler. Per-entry CPU
+  three-byte frames and generated saves remain exact; bounded costs cannot be
+  labelled full peak/headroom. Finite deadlines require real source/completion
+  proof. Raw takeover and D64 receive no new exception. No source exclusion,
+  RESTORE suppression, dropping/coalescing, dynamic frames/heap/depth guard,
+  input manager, queue, scheduler or dispatcher. Ordinary saved-data interpretation
+  belongs in Blend65 platform libraries; this correction does not approve an API
+  or certify keyboard ambiguity/port restoration.
+- **Disqualifying outcomes:** Invents a nesting number or human-speed assumption;
+  blanket-rejects proved private-free generated code on an approved profile;
+  accepts an invocation-private RAM/ZP-bearing unbounded route, equates no source locals with reentrancy,
+  certifies arbitrary shared effects, treats hardware stack as general local
+  storage, suppresses events, consumes firmware-owned ICR, relies on `SEI` for
+  vector safety, reports an external finite peak or deadline without proof, or
+  claims compiler/VICE/silicon qualification from this contract assessment.
+- **Evidence required to grade:** Exact rule/source citations; complete transitive
+  storage/effect trace; all route ownership and state boundaries; independent
+  behavior and assembly/cost duties; explicit unknowns and bounded claims.
+- **Red-baseline result:** Pending expected failure against the unchanged 2.0.1
+  authority. No earlier output is relabelled.
+- **Focused result:** Pending isolated candidate evaluation and separate grade.
+- **Definitive result:** Pending exact-content independent release review.
+
 ## Q-P23 — Return to stock BASIC after exclusive CIA1 timer ownership
 
 - **Risk / coverage cells:** Critical; `CASE-Q-P23`, `SPEC-20`.
@@ -489,3 +553,33 @@ grades and independent review are retained, including prior failures and bounded
 corrective dispositions. Actual compiler output, runtime and hardware remain
 Unknown; this result is not an activation declaration.
 
+## 2.0.2 Dependency-Closed Result Record
+
+This append-only record does not change any oracle or historical result. Exact output, packet hashes, separate grades, failed attempts and corrective dispositions are retained in `../release.md`. Qualification covers documentary reasoning, not compiler implementation, unrestricted external NMI guarantees or physical hardware.
+
+| Case | Result | Evidence and applicability |
+|---|---|---|
+| Q-P01 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-P02 | Pass, fresh documentary qualification | timing / grade-timing; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P03 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-P04 | Pass, fresh documentary qualification | timing / grade-timing; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P05 | Pass, fresh documentary qualification | timing / grade-timing; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P06 | Pass, fresh documentary qualification | timing / grade-timing; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P07 | Pass, fresh documentary qualification | input-boundary-final / grade-input-boundary-final; actual runtime 0c078efb; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P08 | Pass, fresh documentary qualification | platform / grade-platform; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P09 | Pass, fresh documentary qualification | platform / grade-platform; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P10 | Pass, fresh documentary qualification | platform / grade-platform; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P11 | Pass, fresh documentary qualification | final-corrections / grade-final-corrections; actual runtime 639cd727; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P12 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-P13 | Pass, fresh documentary qualification | timing / grade-timing; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P14 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-P15 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-P16 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-P17 | Pass, fresh documentary qualification | timing / grade-timing; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P18 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-P19 | Pass, fresh documentary qualification | timing / grade-timing; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P20 | Pass, fresh documentary qualification | final-corrections / grade-final-corrections; actual runtime 639cd727; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P21 | Pass, fresh documentary qualification | platform / grade-platform; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P22 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-P24 | Pass, fresh documentary qualification | input-boundary-final / grade-input-boundary-final; actual runtime 0c078efb; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-P23 | Pass, fresh documentary qualification | platform / grade-platform; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |

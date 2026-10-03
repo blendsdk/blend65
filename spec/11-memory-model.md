@@ -275,7 +275,7 @@ Parameters, locals, and return values **never** touch the hardware stack.
 ### 5.2 Stack Budget
 
 The platform profile supplies raw stack capacity and bytes reserved for firmware/platform use. The
-compiler derives usable capacity and computes the worst simultaneous peak across the call graph,
+compiler derives usable capacity and, for bounded execution, computes the worst simultaneous peak across the call graph,
 interrupt/preemption graph, and explicit stack deltas:
 
 ```
@@ -294,7 +294,13 @@ One possible simultaneous path:
 
 The six-byte entry is charged once for every interrupt entry that can be live simultaneously; it is
 not pre-subtracted as a single fixed allowance. `asm_cli()` and platform non-maskable sources affect
-which entries can overlap. An unbounded re-entry path is rejected with E10245. A finite peak beyond
+which entries can overlap. Unbounded invocation-private overlap, compiler-controlled growing-stack
+cycles, incomplete generated reentrancy and unbounded hardware-stack re-entry outside the
+selected-profile exception are E10245. Chapter 06 §7.5's narrow cooperative NMI
+exception admits only a proved reentrant generated path without private RAM/ZP homes; it leaves
+unrestricted external aggregate hardware-stack use and retained-firmware reentrancy/completion
+unproved, including with no generated NMI handler installed. Report exact per-entry and bounded
+component costs separately, not as a finite whole-program peak/headroom. A finite peak beyond
 capacity is E10238. Source status-stack analysis tracks relative depth. Pulls may not consume
 pre-entry state; joins and loop backedges require identical depths; all exits must restore the empty
 relative state (E10248). A status-save cycle whose depth grows without a static bound is E10245.
@@ -334,7 +340,9 @@ Hardware stack:
   Main calls:       8 bytes
   IRQ entry/calls: 14 bytes
   Explicit pushes:  2 bytes
-  Total peak:      24 / 236 usable bytes (10%)
+  Bounded mainline/IRQ component: 24 / 236 usable bytes (10%)
+  External aggregate NMI stack: unproved
+  Retained-firmware reentrancy/completion: unproved
 
 Startup routine:   42 bytes, 68 cycles
 
@@ -382,7 +390,7 @@ This chapter owns resource and allocation predicates; Chapter 14 owns their cano
 | E10032 | Static zero-page placement exceeds the selected profile's allocatable range. | Placement fails. |
 | E10034 | The final output binary exceeds the selected platform's binary-size limit. | Artifact emission fails. |
 | E10238 | RAM, data, array, frame, or another target resource exceeds its selected-profile budget. | The named resource cannot be placed. |
-| E10245 | A storage-bearing execution path or hardware-stack path can overlap itself without a static bound. | SFA/stack analysis cannot prove a finite peak. |
+| E10245 | Unbounded invocation-private overlap, compiler-controlled growing-stack cycles, incomplete generated reentrancy proof, or unbounded hardware-stack re-entry outside the selected-profile exception. | Compilation fails; Chapter 06 §7.5's narrow NMI exception does not certify unrestricted external stack or retained firmware. |
 | E10248 | A source status-save path pops above function entry, joins unequal depths, or exits with a nonempty relative state. | Safe deterministic `RTS`/`RTI` state cannot be preserved. |
 | E10260 | A local-origin address or derived fragment may remain observable after its local's dynamic source lifetime. | SFA cannot safely reuse the home, so the escaping use is rejected rather than pinned. |
 | E10272 | A `place(...)` clause has an illegal owner, key, duplicate key, value, or region. | The declaration is rejected before layout. |

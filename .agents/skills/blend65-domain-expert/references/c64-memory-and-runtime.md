@@ -1,6 +1,6 @@
 # C64 Memory, Startup, and Runtime Ownership
 
-> **Baseline version**: `2.0.1`
+> **Baseline version**: `2.0.2`
 
 Use this reference when a Blend65 decision depends on the C64 address map, `$0000/$0001`
 banking, VIC-visible placement, startup, KERNAL coexistence, interrupt entry, loading, or resource
@@ -177,8 +177,16 @@ IRQ interrupted by NMI when allowed. A conservative formula is:
 `stackPeak = deepestJSRReturnBytes + interruptFrames + handlerSaves + explicitStackBytes + guard`.
 
 SFA removes general local-variable frames; it does not remove the hardware stack. A full stack
-budget must account for the 6510's wrap within page one and fail compilation when the declared
-bound is not provable. [MOS-PGM-1976, Chapters 3 and 9; CBM-C64-KERNAL-03, named IRQ paths]
+budget must account for the 6510's wrap within page one. Unbounded invocation-private overlap,
+compiler-controlled growing-stack cycles and incomplete generated reentrancy fail compilation.
+Under only the four cooperative PRG profiles' Chapter 15 exception, a proved private-home-free
+generated NMI route may remain expressible without an external nesting bound. Its exact one-entry
+or finite-component stack use is not a full-program peak/headroom. Unrestricted external aggregate
+stack and unproved retained-firmware reentrancy/completion remain explicit, including with no
+generated NMI hook installed. Finite overflow is still E10238; finite deadlines require actual
+arrival/completion proof. This product boundary does not change CPU wrapping or hardware facts.
+[BLEND65-SPEC-4-566da991, Chapters 06 §5.5/§7.5 and 15 interrupt sources;
+MOS-PGM-1976, Chapters 3 and 9; CBM-C64-KERNAL-03, named IRQ/NMI paths]
 
 ## Startup contracts
 
@@ -214,7 +222,7 @@ exclusive `restoreIRQ()`. Stock BASIC/KERNAL entry, pinned to 901227-03, exclude
 IRQ/CIA1 service. It does not promise arbitrary old masks/latches: those are write-only, and the
 counter is not a latch snapshot. Exact captured port/vector/status/stack and other device
 obligations remain unchanged. D64, raw takeover, CIA2/NMI and VIC-raster ownership are not widened.
-[BLEND65-SPEC-4-1c2a2d75, `spec/appendix-c64.md` §Cooperative KERNAL profiles;
+[BLEND65-SPEC-4-566da991, `spec/appendix-c64.md` §Cooperative KERNAL profiles;
 MOS-6526-1981, printed pp.6–8]
 
 The handback is inline inside the existing `PHP; PHA; SEI` vector transaction, in this order:
@@ -243,7 +251,7 @@ nonstock predecessor, or known raw mutation outside the proved typed ownership c
 diagnosed with E10278. Do not introduce nested device-state capsules or hidden restoration
 objects. Returning `main` still requires empty ownership stacks; epilogue-only repair is too late
 for an earlier release. Stock compatibility neither reconstructs missed KERNAL ticks nor revives
-custom pre-entry service. [BLEND65-SPEC-4-1c2a2d75, `spec/appendix-c64.md` §Cooperative KERNAL profiles]
+custom pre-entry service. [BLEND65-SPEC-4-566da991, `spec/appendix-c64.md` §Cooperative KERNAL profiles]
 
 There is no extra source call, runtime flag, scheduler, data/ZP/scratch object or late SFA slot.
 Report the existing saved-link and stack costs, inline output bytes/cycles and full IRQ routes,
@@ -340,7 +348,8 @@ bytes, not output-file bytes.
 | exclusive-CINV Blend65 wrapper plus `$EA81` tail | 27 + body | 4 + body (6-byte tail in ROM) | 6 | `CLD; body/ack; JMP $EA81`; restore-only tail restores Y/X/A and CPU-pushed status through `RTI`; it deliberately skips the preceding CIA1 ICR read |
 | raw A/X/Y-preserving wrapper after CPU acceptance | 37 + body | 12 + body | 6 | save A/X/Y; `CLD`; body/ack; restore Y/X/A; `RTI` restores CPU-pushed status |
 
-Thus entry-to-body is 36 cycles through this KERNAL revision. Exclusive completion is 63 cycles
+Thus IRQ acceptance-to-CINV dispatch is 36 cycles through this KERNAL revision; add the selected
+compiler prologue before claiming binary Blend65-body entry. Exclusive completion is 63 cycles
 plus body/ack from IRQ acceptance; the generic raw template is 44 cycles plus body/ack. A raw
 specialization may omit a save only when final liveness proves that register dead across every
 interrupted point. A default chain cannot claim a fixed total until the saved prior handler and
@@ -393,8 +402,25 @@ runtime. An exclusive/raw handler that owns CIA2 reads ICR once, handles every r
 restores an exact mask from software-owned state if sources continue. RESTORE is an external NMI
 input with stock RESTORE+STOP behavior, while cartridges have device-specific NMI acknowledgement;
 neither is made safe by writing CIA2. A takeover must define their behavior or prove the source
-absent. Because I does not mask NMI, any possible new edge during a handler needs a finite nesting
-contract and disjoint SFA/stack capacity; otherwise compilation rejects the sink.
+absent. I does not mask NMI. A storage-bearing route needs a finite bound and disjoint private
+homes; no such all-source bound is inferred from the CIA2 mask or human input speed. The four
+cooperative PRG profiles additionally allow only a complete transitive generated route proved
+reentrant with no invocation-private RAM/ZP homes after selection/closure. Locals or helpers may
+qualify if their selected storage does; source spelling is not proof. Exact A/X/Y/status/D,
+source/ICR ownership/count, banking, event/terminal behavior, vector publication/removal and
+predecessor lifetime still require proof. Shared effects retain source-defined interleavings and
+existing diagnostics, not an invented atomicity guarantee. Immutable installation links are
+lifetime-owned, not activation-private scratch. External aggregate stack and unproved retained-ROM
+reentrancy/completion are separate from correct generated reentrancy and stay unproved. No
+RESTORE suppression, nested-event guard, dynamic frames, queue, scheduler or dispatcher follows.
+[BLEND65-SPEC-4-566da991, Chapters 06 §7.5 and 15 interrupt sources]
+
+The approved platform-library boundary places ordinary interpretation of saved keyboard rows and
+both joystick observations in Blend65 C64 libraries, using ordinary source and normal lowering.
+The compiler owns only the required entry/storage/volatile and proof boundaries. This is product
+ownership, not a new CPU fact or an accepted keyboard API. Debounce/repeat, scheduling and game
+policy remain user code; no manager, event queue or hidden runtime is supplied. No full scan,
+certainty, restoration or cost result follows from the private-free ingress alone.
 
 Installing `$0318/$0319` is a two-byte transaction that `SEI` cannot protect. It occurs only in a
 profile-proven NMI-quiescent startup window, or through a separately proved update scheme whose

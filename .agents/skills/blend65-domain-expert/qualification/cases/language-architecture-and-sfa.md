@@ -228,7 +228,10 @@ Unknown; this result is not an activation declaration.
 - **Forbidden material:** This case’s hidden invariants, coverage status, plans, current compiler tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
 - **Expected decision invariants:** Models reentrancy/interference across complete
   mainline/IRQ/NMI/helper reachability; allocates disjoint invocation-private homes for bounded
-  overlap; leaves globals/assets/MMIO shared; rejects entry-ABI mismatch and unbounded overlap.
+  overlap; leaves globals/assets/MMIO shared; rejects entry-ABI mismatch and unbounded
+  invocation-private overlap. The approved cooperative NMI exception requires complete generated
+  reentrancy without private RAM/ZP homes; it is not a general exemption from storage proof and
+  does not prove external aggregate hardware-stack or retained-firmware safety.
 - **Disqualifying outcomes:** Considers only direct caller/callee edges, accepts possible silent
   corruption, clones shared program state, or invents a hidden software stack.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
@@ -982,3 +985,43 @@ Unknown; this result is not an activation declaration.
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
+
+## 2.0.2 Dependency-Closed Result Record
+
+This append-only record does not change any oracle or historical result. Exact output, packet hashes, separate grades, failed attempts and corrective dispositions are retained in `../release.md`. Qualification covers documentary reasoning, not compiler implementation, unrestricted external NMI guarantees or physical hardware.
+
+| Case | Result | Evidence and applicability |
+|---|---|---|
+| Q-L01 | Pass, fresh documentary qualification | corpus-refined / grade-corpus-refined; actual runtime 1f84a10d; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-L02 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L03 | Pass, fresh documentary qualification | language / grade-language; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-L04 | Pass, fresh documentary qualification | language / grade-language; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-L05 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L06 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L07 | Pass, fresh documentary qualification | language / grade-language; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-L08 | Pass, fresh documentary qualification | nmi-refined / grade-nmi-refined; actual runtime 1f84a10d; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-L09 | Pass, fresh documentary qualification | language / grade-language; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-L10 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L11 | Pass, fresh documentary qualification | nmi-refined / grade-nmi-refined; actual runtime 1f84a10d; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-L12 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L13 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L14 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L15 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L16 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L17 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L18 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L19 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L20 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L21 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L22 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L23 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L24 | Pass, fresh documentary qualification | language / grade-language; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-L25 | Pass, fresh documentary qualification | nmi-refined / grade-nmi-refined; actual runtime 1f84a10d; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-L26 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L27 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L28 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L29 | Pass, fresh joint documentary qualification | final-precision plus decimal-surface-completion, independently graded jointly by grade-decimal-surface-completion-recovered; both actual runtimes 5a422482. The original full response/grade remains FAIL for its explicit source-surface omission; the focused capture alone is not a complete original run. All frozen invariants pass jointly; no oracle or knowledge change. |
+| Q-L30 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L31 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-L32 | Pass, fresh documentary qualification | nmi-refined / grade-nmi-refined; actual runtime 1f84a10d; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-L33 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |

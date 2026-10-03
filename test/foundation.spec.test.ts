@@ -10,14 +10,37 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const execute = promisify(execFile);
 const repository = fileURLToPath(new URL("../", import.meta.url));
-const committedBytes = (path: string): Buffer =>
-  execFileSync("git", ["show", `HEAD:${path}`], { cwd: repository });
+/** The complete release record exceeds Git's default subprocess buffer; never truncate authority. */
+const committedBytes = (path: string, commit = releaseCommit): Buffer =>
+  execFileSync("git", ["show", `${commit}:${path}`], {
+    cwd: repository,
+    maxBuffer: 2 * 1024 * 1024,
+  });
 const baseline = "3c993529f55cfe880426a35c09c8f9b456487ff5";
 const finalV3 = "4c2f27f54273a713c0bbf398bf6c56be45f4aae3";
 const authorityCommit = "5deb2a5341bea00cf6050a0aba4668315198d91a";
 const frozenDigest = "1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf";
 /** Immutable activation checkpoint; every specification and expert file stays byte-exact. */
 const releaseCommit = "e063ef575d13c02c076c94e24616dd27ae4a75e2";
+/** The sole pre-migration HEAD still contains the previously selected authority. */
+const initialHead = "29df75554854dcdc43279308867a8c6725b08180";
+const skillPath = ".agents/skills/blend65-domain-expert";
+const inactiveStatus =
+  "> **Status**: Documentary qualification complete; inactive — whole-task review and content binding pending";
+/** Independently qualified raw-byte identities; these are not read from candidate declarations. */
+const candidateIdentity = {
+  specificationFiles: "45",
+  specification: "d6c6e8f15e70be4dca9d623ef42257498b4567995b5b92bb2d4b33e4827d39d5",
+  normativeFiles: "18",
+  normative: "566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7",
+  expertFiles: "22",
+  expert: "a56c667b12450307b676c3f188e9a3898bb3852cff1fd0b14a8048a19a9f27ca",
+  runtimeFiles: "15",
+  runtime: "5a422482f1c82d1ed15f61d35e447f9cd6e9af80bd930841a82a4c0de8128bef",
+  router: "74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f",
+  release: "7a8f7b8f993c04795eca6a7c791de8c94bccf64a9221468ceeb12c4b45d37b1b",
+  state: "inactive",
+};
 const temporaryRoots: string[] = [];
 
 /** Each negative structural input is an ordinary real directory, not a mock filesystem. */
@@ -48,6 +71,84 @@ function identityViolations(record: Readonly<Record<string, string>>): readonly 
     release: "8a681fdefa7ef524ec4f21193521fde7d6d82760158f759d9836a9d4def9227b",
   };
   return Object.entries(expected)
+    .filter(([key, value]) => record[key] !== value)
+    .map(([key]) => key);
+}
+
+/** Enumerate every actual file, including untracked additions; links cannot conceal membership. */
+async function authorityFiles(root: string, prefix = ""): Promise<Map<string, Buffer>> {
+  const files = new Map<string, Buffer>();
+  for (const entry of await readdir(join(root, prefix), { withFileTypes: true })) {
+    const path = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      for (const [name, bytes] of await authorityFiles(root, path)) files.set(name, bytes);
+    } else if (entry.isFile()) {
+      files.set(path, await readFile(join(root, path)));
+    } else {
+      throw new Error(`Authority member is not a regular file: ${path}`);
+    }
+  }
+  return files;
+}
+
+/** GNU-style records bind both raw file bytes and exact membership in byte-sorted path order. */
+function recordDigest(files: ReadonlyMap<string, Buffer>): string {
+  const names = [...files.keys()].sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)));
+  return sha256(names.map((name) => `${sha256(files.get(name)!)}  ${name}\n`).join(""));
+}
+
+/** Read only the fixed authority roots from a commit, with the same record format as disk bytes. */
+function committedAuthorityFiles(root: string, commit: string): Map<string, Buffer> {
+  const names = execFileSync("git", ["ls-tree", "-r", "--name-only", commit, "--", root], {
+    cwd: repository,
+  })
+    .toString()
+    .trim()
+    .split("\n");
+  return new Map(names.map((name) => [name.slice(root.length + 1), committedBytes(name, commit)]));
+}
+
+/** Independently bind the full trees, declared normative members and non-qualification runtime. */
+function candidateRecord(
+  specification: ReadonlyMap<string, Buffer>,
+  expert: ReadonlyMap<string, Buffer>,
+): Record<string, string> {
+  const inventory = specification.get("00-normative-inventory.md")?.toString() ?? "";
+  const section =
+    inventory.split(/## Normative Files\r?\n/u)[1]?.split("## Non-Normative Files")[0] ?? "";
+  const names = [...section.matchAll(/\| `([^`]+)` \|/g)].map((match) => match[1]!);
+  const normative = new Map<string, Buffer>();
+  for (const name of names) {
+    const bytes = specification.get(name);
+    if (!bytes || normative.has(name)) throw new Error(`Invalid normative member: ${name}`);
+    normative.set(name, bytes);
+  }
+  const runtime = new Map([...expert].filter(([name]) => !name.startsWith("qualification/")));
+  const release = expert.get("qualification/release.md") ?? Buffer.alloc(0);
+  const current = release.toString().split("## Historical 2.0.1 release record")[0] ?? "";
+  const inactive =
+    current.startsWith("# Blend65 Domain Expert Release Record\n") &&
+    current.includes("## Current 2.0.2 authority-maintenance candidate\n") &&
+    current.split("\n").includes(inactiveStatus) &&
+    current.includes("Candidate migration is not activation;");
+  return {
+    specificationFiles: String(specification.size),
+    specification: recordDigest(specification),
+    normativeFiles: String(names.length),
+    normative: recordDigest(normative),
+    expertFiles: String(expert.size),
+    expert: recordDigest(expert),
+    runtimeFiles: String(runtime.size),
+    runtime: recordDigest(runtime),
+    router: sha256(expert.get("SKILL.md") ?? Buffer.alloc(0)),
+    release: sha256(release),
+    state: inactive ? "inactive" : "missing",
+  };
+}
+
+/** Report every candidate mismatch rather than trusting a release file's self-declared hashes. */
+function candidateViolations(record: Readonly<Record<string, string>>): readonly string[] {
+  return Object.entries(candidateIdentity)
     .filter(([key, value]) => record[key] !== value)
     .map(([key]) => key);
 }
@@ -114,7 +215,7 @@ describe("frozen execution authority and salvage ownership", () => {
     await execute("git", ["merge-base", "--is-ancestor", authorityCommit, "HEAD"], {
       cwd: repository,
     });
-    const inventory = await readFile(join(repository, "spec/00-normative-inventory.md"), "utf8");
+    const inventory = committedBytes("spec/00-normative-inventory.md").toString();
     const normative =
       inventory.split(/## Normative Files\r?\n/u)[1]?.split("## Non-Normative Files")[0] ?? "";
     const names = [...normative.matchAll(/\| `([^`]+)` \|/g)].map((match) => match[1]!);
@@ -122,8 +223,7 @@ describe("frozen execution authority and salvage ownership", () => {
     const records = await Promise.all(
       names.sort().map(async (name) => `${sha256(committedBytes(`spec/${name}`))}  ${name}\n`),
     );
-    const skill = join(repository, ".agents/skills/blend65-domain-expert");
-    const release = await readFile(join(skill, "qualification/release.md"));
+    const release = committedBytes(`${skillPath}/qualification/release.md`);
     const record = {
       base: await git("rev-parse", `${finalV3}^{commit}`),
       authority: await git("rev-parse", `${authorityCommit}^{commit}`),
@@ -150,10 +250,33 @@ describe("frozen execution authority and salvage ownership", () => {
         identityViolations(JSON.parse(await readFile(join(root, "identity.json"), "utf8"))),
       ).toEqual([key]);
     }
-    expect(
-      await git("diff", releaseCommit, "--", "spec", ".agents/skills/blend65-domain-expert"),
-    ).toBe("");
+    expect(await git("diff", releaseCommit, initialHead, "--", "spec", skillPath)).toBe("");
     expect(inventory).toContain(frozenDigest);
+  });
+
+  // A qualified candidate can change disk bytes without silently selecting a new public authority.
+  it("should bind the exact inactive candidate bytes while retaining the historical selection", async () => {
+    for (const key of Object.keys(candidateIdentity)) {
+      const root = await fixture({
+        "identity.json": JSON.stringify({ ...candidateIdentity, [key]: "mismatch" }),
+      });
+      expect(
+        candidateViolations(JSON.parse(await readFile(join(root, "identity.json"), "utf8"))),
+      ).toEqual([key]);
+    }
+    const disk = candidateRecord(
+      await authorityFiles(join(repository, "spec")),
+      await authorityFiles(join(repository, skillPath)),
+    );
+    expect(candidateViolations(disk)).toEqual([]);
+    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repository }).toString().trim();
+    if (head !== initialHead) {
+      const committed = candidateRecord(
+        committedAuthorityFiles("spec", head),
+        committedAuthorityFiles(skillPath, head),
+      );
+      expect(candidateViolations(committed)).toEqual([]);
+    }
   });
 
   // Every baseline path belongs to one reviewed unit, including non-production fixture families.

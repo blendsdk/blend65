@@ -1,8 +1,14 @@
 # Qualification Coverage Matrix
 
-> **Baseline version**: `2.0.1`; qualification and activation are governed by `release.md`.
-> **Current candidate authority**: `BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf`
-> **Current change**: CIA1 stock-service handback and the already-approved RD-04
+> **Candidate version**: `2.0.2`; qualification and activation are governed by `release.md`.
+> **Current candidate authority**: `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`
+> **Current change**: Approved cooperative NMI proof-scope correction and necessary source-defined
+> expert-copy repairs. Q-P24 is the sole new case; Q-L08/Q-P07 have strengthened oracles.
+> The final dependency-closed section below owns current coverage and applicability.
+> Earlier identities/results, including the historical matrix rows, remain historical lineage;
+> they are not fresh results or claims of current activation.
+>
+> **Historical 2.0.1 change**: CIA1 stock-service handback and the already-approved RD-04
 > E10280/E10281 diagnostic identity corrections. Q-P23 is the sole new case.
 > Q-P23/Q-P07/Q-P09/Q-L29/Q-L01/Q-L24/Q-A15 receive fresh qualification;
 > Q-C13/Q-L03/Q-L06/Q-R08/Q-P10 are fixed controls. Other cases may inherit only
@@ -586,3 +592,22 @@ No compiler code, test, artifact, emulator or silicon observation is part of
 this authority qualification. No second active baseline or qualification runner
 is introduced. Activation remains governed by the exact-content approval and
 two-commit release binding, not by an individual case's Pass.
+
+## 2.0.2 NMI dependency-closed qualification
+
+The current candidate uses normative identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`, router `74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f`, and final runtime `5a422482f1c82d1ed15f61d35e447f9cd6e9af80bd930841a82a4c0de8128bef`. Each case has its current append-only result/evidence row in the file below. Older matrix rows and captures retain their historical identities; they are not new runs.
+
+| Case file | Fresh documentary cases | Unchanged decisive-fact inheritance | Total |
+|---|---:|---:|---:|
+| `cases/c64-platform-and-games.md` | 16 | 8 | 24 |
+| `cases/cpu-lowering-and-optimization.md` | 6 | 21 | 27 |
+| `cases/language-architecture-and-sfa.md` | 11 | 22 | 33 |
+| `cases/parity-recovery-and-portability.md` | 1 | 16 | 17 |
+| `cases/routing-and-evidence.md` | 4 | 8 | 12 |
+| Total | 38 | 75 | 113 |
+
+Every fresh case has independent passing grading, with actual packet identities retained. Q-L29 qualifies the original and focused response jointly: its original full response remains FAIL, and the focused answer alone is not a complete original run. The final separate grade checks every original invariant. Earlier semantic/cost/ownership failures and corrections remain visible in release.md. Q-P11/Q-P20 additionally retain their focused workload completion. The 75 inherited cases apply only at independently reviewed unchanged contracts and decisive inputs, using prior content `1ce4852016e2a883cf1f733c6014c45e176bfc69` and its actual capture lineage.
+
+Only Q-L08/Q-P07 oracle expectations were strengthened, and Q-P24 was added; every other invariant remains byte-identical. The initial frozen Q-P24 oracle hash is `66ec79d012229d76fe7fd3835472218178dcc197f7cbc03ace1e4324c79eb4e6`. Source-defined guide corrections do not confer specification repair or compiler-test authority. Fifteen retained specification-copy items have separate maintenance ownership, not a blanket claim that all copies are reconciled.
+
+All 27 Language Guard rules and ten hardware-exception entries were assessed. The four-profile exception keeps unrestricted external NMI stack and retained-firmware reentrancy/completion unproved, including with no generated hook. Generated private-home closure, source ownership, status, banking, vector publication and accepted-event obligations remain strict. No finite deadline follows from one-entry costs. This is documentary expert qualification only; no compiler, artifact, VICE or silicon result is inferred. Final whole-task review, candidate/live equality, approval and immutable binding remain activation gates.

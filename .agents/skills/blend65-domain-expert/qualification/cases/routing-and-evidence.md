@@ -244,3 +244,22 @@ Unknown; this result is not an activation declaration.
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
+
+## 2.0.2 Dependency-Closed Result Record
+
+This append-only record does not change any oracle or historical result. Exact output, packet hashes, separate grades, failed attempts and corrective dispositions are retained in `../release.md`. Qualification covers documentary reasoning, not compiler implementation, unrestricted external NMI guarantees or physical hardware.
+
+| Case | Result | Evidence and applicability |
+|---|---|---|
+| Q-R01 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-R02 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-R03 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-R04 | Pass, fresh documentary qualification | final-corrections / grade-final-corrections; actual runtime 639cd727; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-R05 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-R06 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-R07 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-R08 | Pass, fresh documentary qualification | final-precision / grade-final-precision; actual runtime 5a422482; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-R09 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |
+| Q-R10 | Pass, fresh documentary qualification | routing / grade-routing; actual runtime b87ef4e3; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-R11 | Pass, fresh documentary qualification | final-precision / grade-final-precision; actual runtime 5a422482; reviewed unchanged decisive facts apply to final 5a422482. |
+| Q-R12 | Inherited, unchanged decisive facts only | Prior qualified 2.0.1 lineage (content 1ce4852016e2a883cf1f733c6014c45e176bfc69) and its retained result/capture identities; not a fresh 2.0.2 run. |

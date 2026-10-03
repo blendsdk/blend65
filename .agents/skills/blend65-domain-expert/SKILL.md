@@ -5,8 +5,8 @@ description: Review, design, diagnose, or implement Blend65 behavior where decis
 
 # Blend65 Domain Expert
 
-> **Version**: `2.0.1` (activation status is governed by `qualification/release.md`)
-> **Knowledge identity**: `BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf`
+> **Version**: `2.0.2` (activation status is governed by `qualification/release.md`)
+> **Knowledge identity**: `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`
 
 This skill supplies domain judgment on top of CodeOps. It does not replace the frozen Blend65
 specification, explicit product decisions, primary hardware/tool evidence, or normal CodeOps
@@ -35,6 +35,12 @@ architecture decisions.
   existing-ROM versus output-byte costs. For a C64 route, also load
   `c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts` for vector, banking, firmware-entry,
   and terminal-owner facts; add `c64-hardware.md` for the source device and acknowledgement.
+  Distinguish proved generated reentrancy from unrestricted external stack/firmware guarantees:
+  the narrow cooperative NMI exception never converts a per-entry cost into a full-program peak
+  or a finite deadline. Keep those unproved boundaries explicit, even without a generated hook.
+  Ordinary decoding of saved keyboard/joystick observations belongs in Blend65 target-platform
+  libraries written in normal Blend65, not compiler-special decoding. Entry/storage/volatile
+  lowering stays compiler-owned; debounce, repeat and gameplay policy remain developer-owned.
   A cooperative CIA1 final-exclusive release also loads
   `c64-memory-and-runtime.md#stock-cia1-service-on-final-exclusive-release`; arbitrary prior
   write-only device state is not recoverable by reads.
@@ -87,6 +93,10 @@ must not trigger the whole knowledge base.
 | Status audit, parity, harness value, salvage, recovery, course correction | [Evidence, parity, and recovery](references/evidence-parity-and-recovery.md) | Each domain module traversed by the named behavior |
 | Source dispute, revision, provenance, known erratum | [Source manifest](references/source-manifest.md) | The knowledge module whose claim is disputed |
 
+For a raster IRQ using SFA scratch, the smallest complete route is SFA, CPU, C64 hardware,
+C64 memory/runtime and the lowering casebook. Scratch concurrency and entry/machine preservation
+already cross those boundaries even without supplied assembly; absent output remains Unknown.
+
 ## Decision Sequence
 
 1. Fix the language/API contract and intended user-visible behavior.
@@ -121,7 +131,7 @@ For every material audit, design, diagnosis, or parity conclusion, report:
 - `Claim kind`: `Fact`, `Inference`, `Unknown`, or `Recommendation`;
 - context and user-visible capability;
 - exact evidence and the decisive missing probe, if any;
-- knowledge lineage: `skillVersion=2.0.1`, the content commit from
+- knowledge lineage: `skillVersion=2.0.2`, the content commit from
   [qualification/release.md](qualification/release.md), `referencePath#heading`, and governing
   source-manifest keys;
 - complete relevant cost; and

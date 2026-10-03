@@ -1,10 +1,10 @@
 # Blend65 Semantics Crosswalk
 
-> **Baseline version**: `2.0.1`. This module routes decisions to the reconciled specification;
+> **Baseline version**: `2.0.2`. This module routes decisions to the reconciled specification;
 > it does not replace it.
 >
 > **Current source identity**:
-> `BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf`,
+> `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`,
 > derived from the 18 normative files in `spec/00-normative-inventory.md`. The complete
 > Specification 4 tree has 45 Markdown files: 18 normative and 27 non-normative. Any specification
 > edit invalidates this binding.
@@ -102,7 +102,13 @@ Track two independent axes:
    with that answer.
 
 A subordinate-document mismatch can leave current behavior determined while still blocking release
-consistency. Specification 4 froze only after its semantic-diff review found no unexplained change.
+consistency for that copy; it does not make the governing field unknown or authorize silently editing
+the frozen corpus. Compare the same semantic property before reporting a conflict: loop-wide name
+scope and an address borrow's dynamic iteration lifetime are different properties. Recompute a
+retained cost example from its actual addressing forms; an approximate summary cannot override the
+displayed instructions. Label the affected copy and its maintenance owner. Specification 4 froze
+only after its semantic-diff review found no unexplained change; later findings must retain their
+actual discovery and historical provenance.
 Any genuine contradiction returns the affected field to
 `blocked-conflict`: cite both
 sides and exclude only that field until an explicit product ruling and specification repair are
@@ -583,12 +589,12 @@ allocation, or optimization is incomplete is an implementation defect and an inf
 
 ## Hardware-Limitation Exception Register
 
-This is the canonical register for Blend65 behavior that deliberately differs from normal modern
+This is a derivative disclosure inventory for Blend65 behavior that deliberately differs from normal modern
 language expectations because the selected hardware and no-runtime constraint cannot provide that
 behavior at acceptable cost. It is a documentation input and a design control, not a general escape
 hatch for weak lowering.
 
-An entry may become authoritative only when all of these conditions hold:
+An entry may record an accepted exception only when all of these conditions hold:
 
 1. the product owner explicitly accepts the exception;
 2. the exact hardware or resource constraint is stated, and compiler convenience is not the reason;
@@ -598,8 +604,10 @@ An entry may become authoritative only when all of these conditions hold:
 6. the language and user documentation obligations are named.
 
 Pending entries preserve a visible decision and documentation need, but they do not authorize
-compiler behavior. Accepted entries govern the candidate knowledge while their specification and
-documentation status remains explicit.
+compiler behavior. Accepted entries summarize their governing normative rules and explicit product
+decisions; acceptance of an inventory row cannot amend or override the frozen corpus. Any necessary
+authority change needs its own approved maintenance and qualification. Keep each entry's specification
+and documentation status explicit.
 
 | ID | Status | Mainstream expectation | Forced constraint | Blend65 contract and runtime cost | Developer mitigation and documentation |
 |---|---|---|---|---|---|
@@ -656,8 +664,16 @@ AR-P8 separates invocation-private execution storage from deliberately shared pr
   domain-specific machine-code variants only when absolute home references or specialized callees
   require them. A storage-free routine whose call targets remain identical may stay shared;
 - IRQ/NMI masking and preemption come from the selected platform contract. A potentially
-  self-nesting entry is legal only when its complete transitive path is storage-free/reentrant or a
-  finite bound is proven; otherwise compilation fails instead of adding a nesting counter, dynamic
+  self-nesting entry needs a finite bound for invocation-private homes. Only the four cooperative
+  PRG profiles' Chapter 15 NMI exception additionally permits a complete transitive generated path
+  proved reentrant without private RAM/ZP after final selection/storage closure. Parameters,
+  results, locals, staging, temporaries, spills and helper scratch all participate; source spelling
+  alone is no proof. Immutable installation-owned links have separately proved lifetimes. The
+  exception leaves unrestricted external aggregate stack and unproved retained-firmware
+  reentrancy/completion explicit, even without a generated NMI handler; per-entry costs are not
+  full-program peaks and finite timing still needs arrival/completion proof. Unbounded private
+  overlap, compiler-controlled growing-stack cycles and incomplete generated proof still fail.
+  Shared effects and warning severity are unchanged. Otherwise compilation fails instead of adding a nesting counter, dynamic
   frame selector, frame-copy protocol, or software stack;
 - module/global variables, assets, and MMIO are never cloned as part of SFA specialization. They
   retain their shared identity, so real interrupt ordering remains observable;
@@ -666,12 +682,15 @@ AR-P8 separates invocation-private execution storage from deliberately shared pr
   read-modify-write sequences can lose updates and multi-byte accesses can tear. Emit a precise
   warning when an unprotected hazard is statically visible; do not silently mask interrupts or
   duplicate state; and
-- preserve function identity and source-handler provenance through direct scalar
-  declaration/assignment/copy, identity casts, conditional merges, and profile-recognized platform
-  sinks while every source remains known and unescaped. Diagnose a known ordinary/interrupt source
-  mismatch, reject erased/unknown provenance at a recognized sink, and reject a visible raw-entry
-  address written to an exactly known incompatible firmware vector. A completely opaque raw address
-  remains an explicit hardware boundary and cannot be certified safe.
+- preserve ordinary `fn` identity and target sets through typed scalar/aggregate storage, parameters,
+  returns and conditional selection. A handler value instead flows directly or through a same-kind
+  conditional to a compatible recognized sink, or through explicit one-way `word` conversion; it has
+  no user-spellable storage type and cannot convert to an ordinary function value. Diagnose a known
+  ordinary/interrupt source mismatch, reject erased/unknown provenance at a recognized sink, and
+  retain visible source dependency after numeric proof erasure for reachability and unsafe-use
+  diagnostics. A visible raw-entry address written to an exactly known incompatible firmware vector
+  fails with E10252. A completely opaque raw address remains an explicit hardware boundary and cannot
+  be certified safe [BLEND65-SPEC-4-566da991, Chapters 02 §2 and 06 §8].
 
 The build report accounts for every domain variant and disjoint home. A resource failure names the
 conflicting mainline/IRQ/NMI paths and the exact ROM, RAM, ZP, or stack deficit; it does not ask the
@@ -682,7 +701,7 @@ would make Blend65 differ from mainstream source behavior, add a pending entry a
 product ruling before implementation. If the constraint later disappears, reopen the exception
 rather than preserving it for compatibility by default.
 
-The diagnostic rescan extracts active `E#####`/`W#####` rows from Chapter 14 and the feature index.
+The diagnostic rescan extracts active `E#####`/`W#####` rows from Chapter 14 only.
 Chapter 14 contains 184 unique active diagnostic codes and is the
 only public-field authority. The feature index is navigation only. Retired or remapped meanings
 remain only in Chapter 14's migration history and cannot be reassigned.
@@ -732,7 +751,7 @@ contributing lifetimes/paths, and a likely source or target-profile remedy.
 ## Source Traceability
 
 Use citations such as
-`[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/06-functions.md §FN-10]`.
+`[BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7, spec/06-functions.md §FN-10]`.
 A citation is an audit
 pointer, not proof that the cited text is consistent. Record any new direct contradiction in the
 qualification conflict register before relying on either side. When the live `spec/**/*.md` path

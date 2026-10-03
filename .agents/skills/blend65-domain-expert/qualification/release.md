@@ -1,5 +1,40 @@
 # Blend65 Domain Expert Release Record
 
+## Current 2.0.2 authority-maintenance candidate
+
+> **Candidate version**: `2.0.2`
+> **Status**: Documentary qualification complete; inactive — whole-task review and content binding pending
+> **Recorded**: 2026-10-03 · branch `feature/v4-rebuild`
+
+This section alone declares current release state. Every earlier release/capture section below
+is historical, including its old active-state language. The selected authority remains 2.0.1
+through its immutable qualified content until the following binding activates this exact bundle.
+Candidate migration is not activation; affected work remains paused until binding. No parallel
+installed skill or new qualification infrastructure is introduced.
+
+| Current field | Value |
+|---|---|
+| Candidate router | `2.0.2`; SHA-256 `74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f` |
+| Candidate runtime-payload digest | `5a422482f1c82d1ed15f61d35e447f9cd6e9af80bd930841a82a4c0de8128bef` |
+| Candidate Specification | `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7` |
+| Immutable content commit | Pending green whole-task checkpoint |
+| Content-checkpoint full skill-tree digest | Pending immutable content checkpoint |
+| Qualification payload digest | `5944207baae30d079a5bb965fc4441c651a909dc40a79566665d44437c16b8be`; six qualification files, excluding this release record |
+| Preceding qualified version/content | `2.0.1`; `1ce4852016e2a883cf1f733c6014c45e176bfc69` |
+| Qualified scope | Documentary expert reasoning and approved four-cooperative-PRG proof boundary; existing qualified CPU/platform scope otherwise unchanged |
+| Non-qualified scope | Compiler implementation/artifacts, full keyboard acquisition/interpretation, unrestricted external NMI stack/firmware guarantees, finite deadlines without source proof and physical hardware |
+
+| Current gate | State | Boundary |
+|---|---|---|
+| Structure/source | Pass for staged candidate | 22 regular skill files, 13 references, unchanged metadata, 77 runtime links/108 source keys; exact 18-normative/45-total specification set and approved five-file diff. |
+| Coverage/behavior | Pass for staged documentary candidate | 38 dependency-traced fresh cases plus 75 unchanged-input inherited cases; 113 disjoint total. Q-L29 uses separately graded original/focused evidence jointly; its original FAIL remains. Failed and superseded responses remain visible. |
+| Normative/oracle consistency | Pass | Only Q-L08/Q-P07 strengthened and Q-P24 added; source review cleared exact final facts and required fields. No oracle weakening. |
+| Language Guard/HLE | Pass at stated scope | All 27 rules assessed; P1/P2/P4/H5/C5 retain explicit profile/bounded-evidence conditions. All ten HLE entries accounted; no new exception. |
+| Whole-task independent review | Pending | Source applicability review is complete; final coherent phase diff still needs its separate quality gate. |
+| Candidate/live equality and binding | Equality pass; binding pending | The qualified five-file specification correction and 22-file expert bundle are migrated byte-exact. Selected authority remains 2.0.1 until the green content checkpoint and subsequent binding. |
+
+## Historical 2.0.1 release record
+
 > **Active qualified version**: `2.0.1`
 > **Status**: Active qualified and frozen — exact approval, byte-identical migration and immutable content binding complete
 > **Recorded**: 2026-09-30
@@ -4752,3 +4787,6882 @@ e1a14afa11ff99d9c271e2c3352bf943d368c2d5b3624399a9942a84f8bc7e91  control.py
 > No files were modified.
 
 </details>
+
+## 2.0.2 NMI Proof-Scope Qualification — 2026-10-03
+
+This maintenance episode is staged and inactive while final grading and the whole-task
+review remain pending. Its final runtime candidate is
+`5a422482f1c82d1ed15f61d35e447f9cd6e9af80bd930841a82a4c0de8128bef`,
+router `74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f`,
+and normative identity
+`BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`.
+The earlier header is the untouched 2.0.1 release history, not candidate activation.
+
+The user explicitly approved the four-cooperative-PRG proof-scope correction and its
+separate authority maintenance. Only Chapters 06/11/14/15 and the non-normative identity
+record change. Hardware nesting remains externally unbounded; generated NMI admission
+requires a complete transitive reentrancy proof with no invocation-private RAM/ZP after
+final instruction selection and SFA closure. All device/ABI/status/D/vector/link/banking
+obligations, recursion and finite capacity checks remain. External aggregate stack and
+unproved retained-firmware reentrancy/completion are explicit, even without a generated
+hook. Exact component costs are not a program peak or finite deadline. No source-local
+ban, dropped event, source exclusion, dynamic frame, guard, runtime subsystem, new API,
+compiler or compiler-test change is included. Ordinary saved-input interpretation stays
+in ordinary Blend65 target-platform libraries; debounce/repeat and gameplay remain developer
+policy, not a built-in game engine.
+
+### Oracle, source and impact ordering
+
+Q-L08 and Q-P07 are strengthened only at the approved private-home and proof-scope
+boundary; Q-P24 is new. Its oracle-only SHA-256 is
+`66ec79d012229d76fe7fd3835472218178dcc197f7cbc03ace1e4324c79eb4e6`.
+Independent source review found and corrected two draft precision mistakes before guide
+authoring: private RAM/ZP rather than all named storage, and shared warnings rather than
+new rejections. The original draft remains identified in the evidence manifest. Existing
+E10180/E10181 recursion ownership, E10238 finite capacity, E10248 status balance and
+E10278 device ownership are not reassigned. E10245 still covers disallowed unbounded
+hardware-stack use outside the selected exception. No oracle was weakened after a failure.
+
+All 27 Language Guard rows were independently assessed: P1/P2/P4/H5/C5 have explicit
+profile/bounded-evidence conditions; the other rows pass at the correction's scope.
+The final all-45-spec/all-13-reference scan accounts for all ten HLE entries. HLE-004
+and its interrupt-domain subsection already own this exception; no new HLE is invented.
+
+The initial runtime was `b87ef4e32cc3854e01994c140218c8157e4ba947d599916d501a4bc46f8cf983`.
+It supplied fresh dependency-traced evaluation for 38 of 113 cases. Qualification then
+found pre-existing BRK source and function/handler-flow knowledge defects; source-defined
+repairs produced `1f84a10dff93f598e5a8a8d16eda2d30d3e38327146bd30c2762df48f4e77e7f`.
+Q-L01/Q-L11/Q-L29/Q-L32/Q-P07/Q-P24 receive new evidence with Q-C07 as an unchanged
+control; Q-L08/Q-L25 are additionally rerun. The Q-L01 answer itself initially failed
+scope-versus-borrow and mixed-addressing-cost reasoning; its failure is preserved.
+Derivative HLE/Chapter-14 diagnostic ownership and bounded copy/historical uncertainty
+were clarified against existing source owners, not by changing language semantics.
+
+The initial Q-R04 grade exposed a pre-existing route/oracle mismatch: lowering was
+incorrectly conditional. Final routing guidance now always loads the five necessary
+modules for raster-IRQ/SFA-scratch assessment; missing output remains Unknown. Fresh
+Q-R04/Q-R08 evidence tests the route and simplicity control. Q-P11/Q-P20 also receive
+fresh responses for evaluator omissions already covered by unchanged knowledge.
+The source reviewer compared actual packets and cleared all precise repairs. Earlier
+`b87ef4e3`/`1f84a10d` evidence may qualify only unchanged decisive facts and keeps its
+actual identity; no historical result is relabelled as a fresh final-runtime capture.
+
+That routing refinement was runtime `639cd727` / router `0152f760`. A subsequent
+Q-P24 grade passed every numbered route/cost assessment but failed exact ordinary-input
+ownership: it allowed developer decoding as an alternative owner. The corresponding
+guide gap was repaired explicitly without weakening Q-P24: saved keyboard/both-joystick
+interpretation belongs to ordinary Blend65 target-platform libraries; compiler proof
+remains separate; debounce/repeat/scheduling/gameplay remain user policy. Independent
+review cleared runtime `0c078efb` / router `74b1c0b9` for new Q-P24/Q-P07 evidence.
+The fresh Q-C07 grade then reported one minor historical boundary-label error: the 36
+cycles reach CINV dispatch, not binary Blend65-body entry. The evaluator independently
+corrected it and all numerical rows passed. The final guide names dispatch and charges
+the selected compiler prologue separately; no instruction, table or numeric fact changes.
+Actual packet identities remain preserved through these focused refinements.
+
+Retained wording/copy issues have separate local authority-maintenance ownership (T-07).
+No required governing field is unresolved: inventory/canonical chapter owners determine
+authority; Chapter 02 determines consumer-dependent widening; current Chapter 06 determines
+JSR/RTS ABI. The deferred FUT-016 displayed absolute-store sequence is 13 caller bytes/
+15 cycles plus 3 bytes/5 cycles to return (16/20 total); ZP stores give 14/18 total,
+with two static return bytes per variant. Its approximate summary mixes those assumptions.
+A claimed header-borrow contradiction was independently refuted: lexical name scope is
+not dynamic borrowed-address lifetime. Variable offsets are not prohibited by F011.
+Absence of historical review evidence in a fresh packet does not falsify historical events.
+This qualification does not certify all retained copies as reconciled.
+
+The independently graded refined corpus audit passed Q-L01 but found two remaining
+duplicate guide remnants. SFA now separates ordinary typed `fn` storage/parameters/returns
+from non-storable handler expressions and explicit one-way `word` exposure. IL now uses the
+router's exact Status/Claim kind fields, with conflict disposition separate. Final runtime
+is `5a422482f1c82d1ed15f61d35e447f9cd6e9af80bd930841a82a4c0de8128bef`;
+router, specification and all oracles are unchanged. Independent source review cleared
+the exact fixes and the Q-L29/Q-R11/Q-R08-control precision cone. Q-L01's earlier audit
+retains its actual identity and is not relabelled a fresh repaired-candidate corpus run.
+
+Source review distinguishes the audit's 17 historical findings from final state: two expert
+remnants are repaired; the other 15 are retained specification-copy maintenance owned by T-07.
+No required governing field is unresolved. Binary AND level seven is determined by Chapter 04's
+precedence table, which the grammar explicitly designates as behavior owner; its level-six
+annotation is stale. The known CINV write still has the exact prescribed E10252; no general
+multiple-error precedence rule is invented. F018's older raw-stack-capacity prose is subordinate
+to corrected Chapters 06/15. Three illustrative empirical generalizations remain unmeasured,
+not compiler/parity/hardware evidence. T-07 grants no unapproved specification repair.
+
+### Capture interpretation and rejected setups
+
+The following details retain exact model outputs and per-file read-boundary hashes.
+The `2.0.2` detail label names this maintenance episode, not an invented version for old
+baseline content. Every capture keeps its actual supplied router/specification identity.
+All accepted evaluators were fresh OS-isolated Codex 0.159.0 / gpt-6.1-sol / xhigh turns,
+without author history or qualification/oracle files; graders were separate fresh turns.
+Readonly `/work` packets, nonroot UID 1000, dropped capabilities, read-only container,
+no host-home/worktree/socket mount, and positive/negative access controls were enforced.
+Grading packets additionally allow their exact frozen `oracle.md` and captured answer.
+The image is `6622b5ce13429346f91fcdb936ec2e026ccc28465409fd25b7f79c623e7a20af`.
+Only the credential file is mounted for authentication; its contents are never captured.
+
+The overbroad `baseline/` setup, unused `focused/` packet and aborted `suite/nmi/`
+misspelled-file setup are rejected, not passing release evidence. The latter was stopped
+only after its exact task-owned mount was resolved. `baseline-narrow` honestly pre-passes
+seven numbered NMI assessments but misses ordinary library interpretation and conflicts
+with raw corrected authority; its prompt also omitted one boundary from frozen Q-P24.
+It is not advertised as a pre-authoring red run or final-spec qualification. The earlier
+`focused-narrow` response has an older raw subset identity and is supporting only.
+The definitive `nmi-final` packet repaired the allowed filenames and exact ingress fixture.
+
+Early graders relocated the original `/work/request.md` to `evaluator-request.md`, so
+minor fixture citation failures in those grades are packet-presentation issues, not changed
+semantics. Later grading keeps both files and reads `grade-request.md`; original captures
+are not edited. The first corpus report was recovered only from completed literal report
+writes plus its captured inert final correction command; no captured command was executed,
+and that composite is not falsely claimed byte-identical to an unrecovered temporary file.
+
+<details>
+<summary>2.0.2 language: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/language`. Raw run-log SHA-256: `d512dbe3c4641d822a35f3a130de846770feb75cf7f9559b7dd0708afc516ec4`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `a89bf0203a3cfe78a1a44e344c8771a473ef12df65e8a6e6dc5b7e417d9daba4`; packet-record SHA-256: `c4bc9e5b722b8adcc649f150ddac4bdd67f53c36f27cf3d738f107278b999d5d`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+a8491691a68583e228f100d5c138ad5031445b2a763e3010259b76169f85995b  request.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+```
+
+> The supplied Q-L03, Q-L04, Q-L09 and Q-L24 proposals violate the packet’s contracts. Q-L07 requires rejection of both recursive forms. Actual compiler behavior remains **Unknown**: the fixtures are hypothetical, and no compiler execution or measurement is supplied.
+>
+> Shared lineage: `skillVersion=2.0.2`; `contentCommit=Unknown`. I did not read unavailable qualification files. `SPEC` below denotes the manifest’s declared identity, `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`; this partial packet cannot independently reproduce its full-corpus digest. Hardware facts use the packet’s local distillations and source records.
+>
+> Exact profile, video/chip/ROM revisions, banking state, placement, optimization options and tool execution are unspecified. Numerical costs below are explicitly conditional calculations from documented instructions, never measurements.
+>
+> **Q-L03 — Preserve both volatile reads**
+>
+> **Status: Incorrect**, assessing the proposed rewrite. **Claim kind: Inference**, from the supplied fixture and documented effects.
+>
+> Required behavior is two distinct byte reads at `$DC0D`, in source order. [OP-E1](/work/spec/04-expressions-operators.md:42) requires preservation of observable evaluation order; [`peek`](/work/spec/04-expressions-operators.md:501) reads one byte. The skill’s [memory-effects contract](/work/references/il-and-optimization.md:172) preserves each intrinsic access’s identity, count, width and order.
+>
+> With C64 I/O visible, `$DC0D` is CIA1 ICR. Its read returns pending source bits and clears the returned interrupt data/IRQ condition. One read clears **both initially pending bits 0 and 1**; masking the returned value afterward would not acknowledge only one. Bit 7 depends on enabled-source state, which the fixture does not supply. See [CIA ICR effects](/work/references/c64-hardware.md:279).
+>
+> The observable traces differ:
+>
+> - Original: the first read captures bits 0 and 1 into `a` and clears them. With no further arrival, the second read has no pending source bits. If, for example, bit 2 arrives between accesses, the second read captures and clears it into `b`.
+> - Rewrite: `b=a` repeats the first snapshot. There is no second acknowledgement, so a newly arrived bit remains pending.
+>
+> Thus both returned values and device state can differ. The banking snapshot is unknown; the CIA counterexample assumes I/O visibility. That uncertainty supplies no permission to eliminate either explicitly volatile access.
+>
+> The semantic/effect representation must preserve two ordered reads. IL optimization owns the failed equivalence decision; machine optimization must uphold it too. Selection then chooses legal accesses without extra device reads. The first result’s lifetime follows its uses; the second read creates a new result. Reusing a register or storage home cannot make those results identical. Any required spill belongs in SFA closure.
+>
+> **Cost reasoning.** For a conditional NMOS 6510 straight-line implementation with two distinct ordinary byte homes:
+>
+> | Placement of `a`, `b` | Correct two loads and two stores | Proposed one load and two stores, reusing A |
+> |---|---:|---:|
+> | Absolute RAM | 12 instruction bytes, 16 CPU cycles | 9 bytes, 12 cycles |
+> | Zero page | 10 instruction bytes, 14 CPU cycles | 7 bytes, 10 cycles |
+>
+> Each absolute device load is 3 bytes/4 cycles. Absolute stores are 3 bytes/4 cycles; ZP stores are 2 bytes/3 cycles. These are derived from the [NMOS instruction grid](/work/references/mos-6502-family.md:97) and [load/store rules](/work/references/6502-lowering-casebook.md:60). A separate reload for `b=a` changes the proposed cost.
+>
+> This illustration materializes two bytes of result storage and requires no additional pointer, helper, scratch, table, padding or hardware-stack storage. Actual placement, spills, surrounding calls/startup, artifact size and elapsed time under interrupts or DMA remain **Unknown**. Saving one access is not a valid parity improvement because the work is not equivalent.
+>
+> **Smallest remedy — Recommendation:** prevent CSE/access elision using the existing ordered-effect metadata; preserve the original legal source. The smallest future verification needs a behavior oracle covering both pending bits and an intervening arrival, plus a separate instruction/access-count oracle proving exactly two reads. Establish compiler/output identity and machine configuration before execution.
+>
+> **Lineage:** `references/il-and-optimization.md#memory-effects-and-volatility`; `references/c64-hardware.md#interrupt-control`; `references/6502-lowering-casebook.md#volatility-and-device-memory`. Governing keys: `SPEC`; `MOS-6526-1981`, printed p.7; `CBM-C64-PRG-1982`, I/O map p.320; `MOS-PGM-1976`, instruction/addressing tables.
+>
+> **Q-L04 — Keep C64 map facts in the selected target**
+>
+> **Status: Incorrect**, assessing compiler-injected addresses in generic semantic nodes. **Claim kind: Inference.**
+>
+> [A5](/work/spec/00-introduction.md:106) puts platform-specific facts in profiles and libraries. The [responsibility map](/work/references/compiler-architecture.md:26) and [target-neutral front end](/work/references/compiler-architecture.md:49) expressly separate typed semantics from concrete machine addresses.
+>
+> The analyzer should retain the named register identity, declared width, direction, volatility, effects and source association. The selected platform owns resolution to CIA1 `$DC00` and VIC `$D020`, together with their visibility and device rules. CPU selection owns instruction legality; serialization owns assembler syntax.
+>
+> This does **not** prohibit a programmer-written numeric address literal in a generic expression: Chapter 04 explicitly permits `peek($D020)`. The defect is embedding the C64 map as generic analyzer knowledge.
+>
+> These entries also require separate effects: `$DC00` is CIA1 port A, while `$D020` is VIC border color. Their byte-sized register identities do not make their read/write protocols interchangeable. Named volatility must survive optimization, and physical visibility depends on selected banking. Neither register is an invocation-private SFA home. Any address-calculation temporary or spill introduced by lowering is.
+>
+> The fixture’s non-C64 context reinforces this separation. The governing [product boundary](/work/spec/00-introduction.md:25), however, qualifies only nine C64 profiles; it does not establish current non-C64 compiler support.
+>
+> **Cost reasoning.** Resolving an existing symbolic register reference at compile time requires no additional runtime call, lookup table, dispatcher, copy, RAM, ZP, scratch or hardware-stack allocation. It can produce the same direct instruction as an expert-written constant address. Concrete operation costs remain **Unknown**, because the proposal supplies no actual register access sequence. Compiler-host representation costs, whole-program code/data/padding, placement and packaging costs are likewise unmeasured.
+>
+> **Smallest remedy — Recommendation:** replace the injected map constants with references to the existing named target-register declarations, then bind addresses through the supplied profile interface. Preserve its widths and volatile effects; no new registry or pass is justified.
+>
+> The smallest future probe inspects the typed representation and selected-target binding with a C64 profile and a minimal abstract profile having different map facts. It must show that changing a map changes target binding without changing generic semantic meaning. Such a probe does not qualify another machine.
+>
+> **Lineage:** `references/compiler-architecture.md#target-neutral-front-end` and `#target-composition`; `references/target-portability.md#fact-ownership`. Governing keys: `SPEC`, Chapter 00 A5/product boundary; `BLEND65-PROJECT-POLICY-P3-28627e0c`, architecture responsibilities; `CBM-C64-PRG-1982`, register/I/O maps.
+>
+> **Q-L07 — Reject the recursive SCC before allocation**
+>
+> **Status: Unknown**, for actual compiler SCC handling. **Claim kind: Unknown** for implementation; the required rejection is a **Fact**.
+>
+> [FN-6](/work/spec/06-functions.md:217) forbids direct and indirect recursion. The required public diagnostics are:
+>
+> - `f → g → f`: **E10181**, `Indirect recursion detected — cycle: f → g → f`.
+> - Direct `f → f`: **E10180**, `Direct recursion — function 'f' calls itself; use iteration or an explicit fixed-capacity work structure`.
+>
+> [Chapter 14](/work/spec/14-diagnostics.md:177) owns those templates. The indirect-cycle diagnostic includes the complete ordered cycle through primary and related spans; exact source coordinates cannot be supplied from this fixture.
+>
+> The semantic/whole-program call analysis must include finite function-value targets and compiler-visible external targets, not just direct syntax calls. [Finite target proof](/work/spec/06-functions.md:378) feeds recursion, effects, stack analysis and SFA. Unknown external edges cannot establish a closed acyclic graph.
+>
+> During `f` calling `g`, surviving `f` state remains live. When `g` calls `f`, another `f` activation begins before the first ends. Storage-bearing activations require disjoint homes; arbitrarily breaking the SCC and coloring it as a DAG loses that requirement. The recursion prohibition also applies to storage-free functions. Ordinary nested argument evaluation whose inner invocation finishes before the outer invocation begins must not be falsely rejected as recursion.
+>
+> **Cost reasoning.** Correct rejection emits no program artifact and adds no runtime mechanism. For a hypothetical ordinary call chain with `k` active `JSR` edges, return addresses alone require `2k` hardware-stack bytes, before interrupts and explicit saves. Each `JSR` costs 6 cycles and each `RTS` 6; a newly included pair occupies 4 instruction bytes. Private-home sizes are unspecified, and this fixture supplies no activation bound from which to derive finite frame/ZP/stack demand or completion time.
+>
+> The compiler must not silently introduce a heap, dynamic frames, software stack or runtime selector. An explicit iterative work structure has application-specific capacity, bytes and execution costs that cannot be invented here.
+>
+> **Smallest remedy — Recommendation:** if the SCC is accepted, repair the existing complete call-graph cycle check before frame coloring. Poison the rejected construct, suppress dependent allocation errors and produce no artifact. No bounded-recursion product exception is supplied.
+>
+> The smallest future evidence consists of focused results for the mutual cycle, direct self-edge and a cycle exposed through function-value targets, checking canonical codes, ordered spans and artifact absence.
+>
+> **Lineage:** `references/sfa-and-abi.md#call-graph-roots-and-escape`; `references/blend65-semantics.md#hardware-limitation-exception-register`, HLE-001. Governing keys: `SPEC`, Chapter 00 A2, Chapter 06 FN-6/§4.3 and Chapter 14; `MOS-PGM-1976`, stack/subroutine chapters.
+>
+> **Q-L09 — An unknown caller invalidates the proposed overlay**
+>
+> **Status: Incorrect**, assessing the direct-only graph and overlay. **Claim kind: Inference.**
+>
+> Address-taking keeps `H` reachable and requires a stable address for its required entry. An opaque retaining consumer may invoke it after the passing call returns, while some caller state is live, or from an interrupt domain. A graph containing only known direct calls therefore cannot prove the overlay safe. See [function-address behavior](/work/spec/06-functions.md:895) and [roots/escape analysis](/work/references/sfa-and-abi.md:144).
+>
+> Two lifetimes matter:
+>
+> - Retaining the code address keeps the applicable entry reachable for the external-use lifetime.
+> - `H`’s **8-byte scratch** is invocation-private and live while its activation needs it. A caller local surviving that activation must retain its value throughout.
+>
+> An `H` scratch write into the proposed shared range can overwrite that live local. External or interrupt entry also requires analysis of transitive callees, staging, spills and helper scratch.
+>
+> Ordinary `H` remains an ordinary `JSR`/`RTS` callback when called by an interrupt handler. It does not acquire an `RTI` entry merely because its caller runs in an interrupt domain. If overlapping domains require distinct fixed-address variants, a checked external contract must establish which stable variant each caller uses. Duplicating scratch alone cannot make one escaped fixed-address entry safe under arbitrary reentry.
+>
+> The responsible boundary is whole-program root/escape and execution-domain analysis, followed by SFA interference and final closure. The ABI/platform boundary owns any external entry contract. External entry convention and overlap bounds remain **Unknown** here.
+>
+> Diagnostic distinctions matter: merely retaining `&H` is not an escaping-local **E10260** case. A known `H` with unknown callers is also different from a typed call with no finite target set, which is **E10277**. Failure to bound invocation-private overlap or prove generated reentrancy is owned by **E10245**.
+>
+> **Cost reasoning.** If the caller local occupies `L` bytes and all of it is simultaneously live with `H`’s scratch, those objects require `L+8` disjoint bytes. Removing an overlap of `r` bytes adds `r` bytes to that local allocation comparison, before other coloring opportunities. Neither `L`, `r` nor final placement is supplied.
+>
+> For `k` simultaneously live storage-bearing `H` activations, scratch alone requires `8k` distinct bytes. The fixture does not prove finite `k`, and does not identify the scratch as ZP. Count scratch within frame/storage demand once. Other homes, specialized code bytes, dispatch/argument moves, cycles, padding and final program totals remain **Unknown**.
+>
+> A materialized ordinary function value occupies two bytes. Conditional fixed-address materialization into absolute storage costs 10 instruction bytes/12 cycles, or 8 bytes/10 cycles into ZP, per [address-of costs](/work/spec/04-expressions-operators.md:476). The consumer’s actual passing/storage form is unspecified. A conventional call additionally retains two return-address bytes while active; a complete interrupt-caller budget requires its actual entry route.
+>
+> **Smallest remedy — Recommendation:** add `H` and its escape to the existing root/domain analysis and forbid this overlay. A checked external ABI and overlap contract may permit bounded disjoint homes and necessary variants. If private overlap cannot be bounded, reject with the owning diagnostic. An opaque boundary’s lack of external ABI certification must remain explicit.
+>
+> The smallest future probe needs the consumer contract, expanded graph, simultaneous-liveness/interference evidence and complete storage closure. An interrupt caller additionally needs the entry, state-restoration and ownership proofs described below.
+>
+> **Lineage:** `references/sfa-and-abi.md#call-graph-roots-and-escape`, `#interference-and-reentrancy`, `#overlay-and-coloring-proof` and `#final-storage-closure`. Governing keys: `SPEC`, Chapter 00 A2 and Chapter 06 §§4.3, 5.2, 7.5 and 8; `MOS-PGM-1976`, subroutine/stack facts.
+>
+> **Q-L24 — Emit the owning error, suppress its cascades, emit no artifact**
+>
+> **Status: Incorrect**, assessing the proposed diagnostic stream and artifact output. **Claim kind: Inference.**
+>
+> The helper requires **2 invocation-private ZP bytes**, and overlapping NMI activations have no supplied bound. [Execution-domain SFA](/work/spec/06-functions.md:757) requires disjoint homes for overlapping private storage and closes that proof after helper selection.
+>
+> The narrow cooperative NMI exception permits a complete transitive generated path proved reentrant **without invocation-private RAM or ZP** after selection and final closure. These two bytes prevent qualification. Moving them into ordinary RAM would retain the same private-overlap problem. The exception belongs only to the four cooperative PRG profiles; raw takeover and D64 receive no such exception.
+>
+> The owning error is **E10245**, whose canonical template is:
+>
+> > Execution path '\<path\>' has unbounded private-storage overlap, disallowed unbounded stack use, or unproved generated reentrancy
+>
+> [Chapter 14 supplies the template](/work/spec/14-diagnostics.md:218); [Chapter 06 supplies the predicate](/work/spec/06-functions.md:976). The actual path and spans require source evidence. The diagnostic should identify the responsible NMI/helper chain, two private bytes and missing overlap bound. This is not merely a finite ZP-capacity **E10238** failure.
+>
+> The execution-domain/SFA closure owner emits the root and marks the rejected construct invalid. Under [root-error recovery](/work/spec/14-diagnostics.md:54), the **five dependent allocation failures are suppressed**. Independently provable violations would still be reported, but none are supplied here. The required stream therefore has **one root error**.
+>
+> The driver must then enforce [no compilation artifact](/work/spec/14-diagnostics.md:77): no assembly, PRG, object code, serialized IL, maps, symbols or other usable build products derived from this invalid program. Diagnostics remain available. An explicitly requested recovery dump is allowed only when unmistakably invalid and barred from later compilation, assembly, packaging or caching.
+>
+> **Interrupt obligations remain explicit.** The actual selected sink/route is **Unknown**; rejecting this helper does not establish a valid replacement route.
+>
+> - An `interrupt function` is callback-only. Recognized sinks select their matching raw or firmware entry; only reachable variants are emitted. Ordinary helpers retain `JSR`/`RTS`.
+> - Generated NMOS handler bodies establish `D=0`. A chained NMINV wrapper saves status **before** A/X/Y, restores A/X/Y, then restores status immediately before jumping to its predecessor. Raw/exclusive completion restores the full interrupted status, including D, through `RTI`.
+> - A two-byte saved indirect link may begin at `$xxFE`; `$xxFF` must be relocated or rejected for NMOS indirect `JMP`. Installation-owned immutable predecessor links have route lifetimes, distinct from activation-private scratch, and cannot be reused while observable.
+> - With the stock prior NMI handler owning CIA2 acknowledgement, a simple chain must not consume `$DD0D`. An owning replacement reads ICR exactly once, handles every returned pending bit, and maintains masks from proved ownership; reading ICR cannot recover its write-only mask. RESTORE and cartridge behavior require separate ownership.
+> - `SEI` does not block NMI. Publishing/removing the two-byte vector requires a proved quiescent window or valid torn intermediate states. A raw vector must be complete beneath ROM before banking exposes it, and every reachable bank state must keep its vector and handler visible.
+> - If Q-L09’s external interrupt caller instead uses CINV, firmware already owns A/X/Y saves. Default chaining preserves entry status around the binary body; exclusive completion uses its pinned restore tail. For 901227-03, the 16-byte entry and 6-byte `$EA81` restore tail are existing ROM and contribute zero output bytes where applicable.
+>
+> These requirements come from the [interrupt-route gate](/work/references/sfa-and-abi.md:330) and [C64 entry/exit contracts](/work/references/c64-memory-and-runtime.md:321).
+>
+> **Cost reasoning.** Two private bytes per simultaneous helper activation require `2k` disjoint ZP bytes for `k` live activations. No finite bound is supplied. Consequently there is no justified finite static allocation or peak demand. Correct rejection emits no artifact bytes and injects no runtime recovery mechanism; that is a required outcome, not an observed result.
+>
+> For cost orientation only, the packet gives these conditional NMOS/901227-03 route baselines:
+>
+> | Route | Generated wrapper | CPU acceptance through wrapper boundary | Per-entry wrapper stack |
+> |---|---:|---:|---:|
+> | NMINV chain | 16 output bytes, 43 cycles | 57 cycles to predecessor | 7 bytes |
+> | Exclusive NMINV | 12 output bytes, 37 cycles | 51 cycles through return | 6 bytes |
+> | Raw NMI | 12 output bytes, 37 cycles | 44 cycles through return | 6 bytes |
+>
+> These exclude body/source action, interrupted-instruction completion and bus stalls. The chain additionally needs its predecessor’s variable path cost. NMINV traverses a **4-byte existing ROM stub**, contributing zero output bytes and 7 cycles; CPU acceptance contributes 7 cycles and 3 stacked bytes. A live installation needing restoration/chaining has a two-byte predecessor word. A newly included helper `JSR`/`RTS` pair contributes 4 instruction bytes/12 cycles and two live return-address bytes, with shared helper code attributed once. See [NMI costs](/work/references/c64-memory-and-runtime.md:367).
+>
+> Body, installer/removal, acknowledgement, helper, layout/padding, loader/startup and final artifact costs remain **Unknown**. These per-entry terms prove neither unrestricted external aggregate stack usage nor retained-firmware reentrancy/completion. NMI is externally unbounded; no finite deadline or whole-program headroom follows, even without a generated hook. A proved finite component must compare its unchanged peak against capacity minus the selected profile reserve; the reserve reduces availability, not measured usage.
+>
+> **Smallest remedy — Recommendation:** poison the failed route at closure, suppress the five dependent errors and enforce the driver’s artifact gate. To make the source admissible, a selected implementation would have to eliminate both private bytes and prove the entire transitive route reentrant and private-home-free, or supply a valid bounded-overlap contract. Register allocation might achieve the former, but this packet does not prove feasibility. Silently sharing private state or dropping/coalescing NMI events would change the contract.
+>
+> The smallest future compiler check verifies one E10245, no dependent allocation diagnostics and no usable output. Any later acceptance claim additionally requires final selected-storage closure and the complete route proof. Configured emulator evidence can validate bounded paths; source/reentry guarantees and revision-sensitive RESTORE, cartridge or CIA behavior require their appropriate primary evidence or targeted hardware QA.
+>
+> **Lineage:** `references/sfa-and-abi.md#final-storage-closure`, `#interrupt-route-completion-gate` and `#hardware-stack-duties`; `references/c64-memory-and-runtime.md#revision-pinned-nmi-contracts-and-costs`; `references/blend65-semantics.md#diagnostic-doctrine`. Governing keys: `SPEC`, Chapters 06 and 14; `MOS-PGM-1976`; `MOS-HW-1976`; `MOS-6526-1981`, printed p.7; `CBM-C64-KERNAL-03`, `rs232nmi::NMI/NNMI/NMIRTI/PREND` and named IRQ entry/restore paths.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-language: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-language`. Raw run-log SHA-256: `36ae69d7bd7e90509c6c3e936ac16289683b238857fafd8f9c47fbe157e810bf`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `6183525283dabde07d967e8ed7b61ea1b6f3434d5f5f51310187985807051a77`; packet-record SHA-256: `e2231914b6a9fb3570b0eccb8a1b87d1be38752649c06228cf51fb05f2f5f741`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+a89bf0203a3cfe78a1a44e344c8771a473ef12df65e8a6e6dc5b7e417d9daba4  evaluated-answer.md
+a8491691a68583e228f100d5c138ad5031445b2a763e3010259b76169f85995b  evaluator-request.md
+c0b7496ee21691b4e0a12d1db94f855695b696f5da93ef78b7d6b6bb03dee9b6  oracle.md
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+1163090182e87a021b66a806495b419eb35c73ee5feb560e4a910bf0d0062a6c  request.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+```
+
+> **All five cases PASS independently.** The evaluated answer satisfies the frozen written-contract expectations. Compiler implementation and runtime behavior remain **Unknown**.
+>
+> Review status: **Verified complete** for this packet-only assessment. Claim kind: **Inference** from source comparison. Lineage: `skillVersion=2.0.2`, `contentCommit=Unknown`; the [declared specification identity](/work/references/source-manifest.md:33) is not independently digest-verified.
+>
+> | Case | Grade | Exact decisive output evidence | Finding / severity |
+> |---|---|---|---|
+> | Q-L03 | **PASS** | “Required behavior is two distinct byte reads at `$DC0D`, in source order”; the rewrite has “no second acknowledgement.” [Evidence](/work/evaluated-answer.md:11) | No grading defect. Rejects access elision and preserves MMIO effects. |
+> | Q-L04 | **PASS** | “The selected platform owns resolution to CIA1 `$DC00` and VIC `$D020`”; programmer-written numeric literals remain permitted. [Evidence](/work/evaluated-answer.md:45) | No grading defect. Preserves the target-neutral frontend and declarative binding. |
+> | Q-L07 | **PASS** | Mutual recursion receives **E10181**; direct recursion receives **E10180**. It expressly rejects arbitrary SCC breaking and DAG coloring. [Evidence](/work/evaluated-answer.md:67) | No grading defect. Requires explicit rejection without a hidden frame runtime. |
+> | Q-L09 | **PASS** | “A graph containing only known direct calls therefore cannot prove the overlay safe”; “Duplicating scratch alone cannot make one escaped fixed-address entry safe under arbitrary reentry.” [Evidence](/work/evaluated-answer.md:90) | No grading defect. Uses conservative roots, interference and external ABI assumptions. |
+> | Q-L24 | **PASS** | “The owning error is **E10245**”; “five dependent allocation failures are suppressed”; no assembly, PRG or other usable build product is permitted. [Evidence](/work/evaluated-answer.md:125) | No grading defect. Correct owning diagnostic, recovery and artifact suppression. |
+>
+> **Q-L03.** [OP-E1](/work/spec/04-expressions-operators.md:42), the [`peek` contract](/work/spec/04-expressions-operators.md:501), and [ordered memory effects](/work/references/il-and-optimization.md:172) support rejection. Under the explicitly conditional I/O-visible C64 context, [CIA ICR reads](/work/references/c64-hardware.md:279) clear both initially pending source bits. A later arrival distinguishes the second read from reuse of the first snapshot. The answer correctly leaves bit 7 and banking unspecified, traces separate result lifetimes, assigns the failed rewrite to optimization, and returns any spills to SFA closure.
+>
+> Its arithmetic matches `MOS-PGM-1976` instruction facts in the [NMOS grid](/work/references/mos-6502-family.md:97):
+>
+> - Absolute result homes: correct **12 instruction bytes / 16 cycles**, proposed **9 / 12**.
+> - ZP result homes: correct **10 / 14**, proposed **7 / 10**.
+>
+> These illustrations use two result-storage bytes and introduce no pointer, helper or stack allocation. The apparent saving—3 instruction bytes and 4 cycles—changes observable work and cannot establish parity. Actual output, placement and elapsed timing remain unknown. Preserving existing ordered-effect metadata is the smallest remedy.
+>
+> **Q-L04.** [A5](/work/spec/00-introduction.md:106) and the [frontend responsibility boundary](/work/references/compiler-architecture.md:49) place concrete map resolution outside generic semantic analysis. The answer preserves register identity, width, direction and effects; distinguishes shared MMIO from invocation-private lowering temporaries; and permits ordinary numeric address literals. Its qualification caveat also follows the [C64-only product boundary](/work/spec/00-introduction.md:25). The fixture’s non-C64 wording cannot establish current support.
+>
+> Compile-time symbolic binding requires **zero additional runtime lookup, call, copy or storage mechanism**. This is an incremental abstraction-cost conclusion, not a claim that register accesses cost zero. The packet supplies no access sequence, so concrete instruction costs and final packaging costs correctly remain unknown. Binding through the existing profile declarations is sufficient.
+>
+> **Q-L07.** [Chapter 06 FN-6](/work/spec/06-functions.md:217) and [F018 FN-6](/work/spec/evaluations/F018-functions.md:217) agree on rejecting both recursive forms. [Chapter 14](/work/spec/14-diagnostics.md:177) supplies the exact public templates and requires the ordered cycle through source locations. The answer includes function-value targets, surviving caller state and overlapping activations, while correctly distinguishing ordinary nested argument evaluation from recursion.
+>
+> Required rejection produces **no compilation artifact and no runtime fallback**. Conditional ordinary-call accounting is correct: `JSR` plus `RTS` contributes **4 instruction bytes / 12 cycles**, with **2 bytes per active return address**, hence `2k` bytes for `k` active calls before other saves. Private-home demand and finite execution bounds are unspecified. `Unknown` describes actual compiler handling; it does not weaken the required rejection.
+>
+> **Q-L09.** The [function-address rules](/work/spec/06-functions.md:895), [root/escape policy](/work/references/sfa-and-abi.md:144), and [interference rules](/work/references/sfa-and-abi.md:166) invalidate the direct-only overlay proof. The answer separates the retained code address’s reachability lifetime from the scratch’s activation lifetime. It also preserves ordinary callback `JSR`/`RTS` behavior and requires an external contract to bind any safe fixed-address variants.
+>
+> Its conditional storage accounting is sound: **`L+8` disjoint bytes**, **`r` additional bytes** when removing `r` bytes of overlap, and **`8k` scratch bytes** for simultaneously live scratch instances. The packet supplies neither `L`, `r`, finite `k` nor ZP placement. A materialized function value uses two storage bytes; [fixed-address materialization](/work/spec/04-expressions-operators.md:476) costs **10 instruction bytes / 12 cycles** into absolute storage or **8 / 10** into ZP. External dispatch, other homes and interrupt-route totals remain unknown. Rejecting the overlay pending conservative analysis is appropriate.
+>
+> **Q-L24.** The helper’s two private ZP bytes prevent the private-home-free cooperative NMI exception under [INT-4 and final closure](/work/spec/06-functions.md:757). [E10245’s predicate](/work/spec/06-functions.md:976) and [canonical template](/work/spec/14-diagnostics.md:218) match the answer. [Recovery rules](/work/spec/14-diagnostics.md:54) suppress dependent errors while preserving independent causes; [artifact rules](/work/spec/14-diagnostics.md:77) prohibit usable outputs while allowing properly isolated invalid diagnostic dumps.
+>
+> The `2k` private-ZP requirement has no supplied finite bound. The conditional route figures also match the [revision-pinned NMI source](/work/references/c64-memory-and-runtime.md:367):
+>
+> | Route | Generated wrapper bytes / cycles | Cycles from CPU acceptance to stated boundary | Per-entry stack, including CPU frame |
+> |---|---:|---:|---:|
+> | NMINV chain | 16 / 43 | 57 to predecessor | 7 bytes |
+> | Exclusive NMINV | 12 / 37 | 51 through return | 6 bytes |
+> | Raw NMI | 12 / 37 | 44 through return | 6 bytes |
+>
+> CPU acceptance contributes 7 cycles and three stacked bytes; the NMINV stub contributes 7 cycles and four **existing-ROM** bytes, with zero output bytes. The answer correctly accounts for two-byte predecessor links and helper call overhead without double-counting shared helper code. It explicitly preserves callback-only handler identity, reachable variants, decimal/status restoration, saved-link boundaries, acknowledgement ownership and safe vector/banking transitions. Per-entry costs establish neither unrestricted aggregate stack usage nor a finite deadline.
+>
+> The strongest possible objections do not justify failures: missing measurements are permitted here; hypothetical bad proposals are not observed compiler failures; and the answer’s `Incorrect` labels assess those proposals. Its findings and remedies remain separate. All shown source use stays within the packet, although the isolation script alone is not an execution log. No separate historical response capture is supplied, and historical manifest identities are not reassigned to the evaluated capture.
+>
+> **Final unresolved counts:** Critical **0**, Major **0**, Minor **0**; evaluator omissions **0**, demonstrated knowledge/source defects **0**, grading-blocking packet defects **0**. Missing execution results, exact source coordinates, placement, configuration and immutable content identity remain evidence limitations—not invented measurements or qualification claims.
+
+</details>
+
+<details>
+<summary>2.0.2 cpu: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/cpu`. Raw run-log SHA-256: `de4dcb7adfcb2a3682b768b1875e6160e9f3e27c80d27c05f1f6c0b449bdf0b2`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `fac52d0b1528b71ce56593c30d26ca0c8fe4d20cb88875a36be54f1f1109fc16`; packet-record SHA-256: `adefc237234818d4f5335b322289e7a07a98a32f6524ded71cf63b9cfe9af66e`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+1444eea47a2a382b982cd6777871c736353fbf4c0b3ed7162718b7201422cc4f  request.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+```
+
+> The governing packet supports the decisions below. These are contract assessments and derived costs; no compiler output, assembled artifact, VICE run, or physical measurement is established.
+>
+> Lineage throughout: `skillVersion=2.0.2`; `contentCommit=Unknown` because the qualification release is unavailable and was not read. The declared specification identity is `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`; this partial packet does not independently reproduce its digest. CPU assumptions are NMOS 6510, cooperative visible C64 I/O/ROM, and KERNAL 901227-03. Video standard, DMA stalls, concrete placement, and execution-tool configuration remain unspecified. Cycle figures below are CPU instruction costs within the stated scope.
+>
+> **Q-C07 — Establish binary body entry and preserve both return and chain observers.**
+>
+> **Status:** `Verified complete` for the decimal-state rule and the explicitly scoped templates below. **Claim kinds:** `Fact` for specified hardware/ABI behavior; `Inference` for derived costs. Complete installed-route behavior and timing are `Unknown`.
+>
+> NMOS IRQ/NMI entry pushes the interrupted status and sets I; it leaves D unchanged. KERNAL’s CINV entry saves A/X/Y but also leaves D unchanged. Consequently, neither entry proves binary `ADC` behavior. The generated body must establish `D=0`, and ordinary addition must separately establish its incoming carry.
+>
+> A decisive illustrative body is:
+>
+> ```asm
+> CLC
+> LDA #$09
+> ADC #$01
+> ```
+>
+> It costs **5 bytes/6 cycles**. With D clear it produces `$0A`; with D set it produces packed-decimal `$10`. IRQ entry supplies neither the required D state nor a source-independent carry. This example is a reasoning oracle, not observed execution.
+>
+> The body changes A and N/Z/C/V, preserves X/Y, and performs no data-memory access. `CLD` adds **1 byte/2 cycles**, changes only D, and supplies the binary precondition.
+>
+> For a chain, “inherited status/registers” means the state actually presented at the hook. It need not equal the original interrupted state: KERNAL has already performed dispatch work. The prior observer in this fixture reads inherited P/A/X/Y, so preserving only status is insufficient when the body changes A.
+>
+> A suitable A-only CINV chain is:
+>
+> ```asm
+> PHP
+> PHA                 ; preserve A inherited at CINV
+> CLD
+> ; binary body and owned source action
+> PLA
+> PLP                 ; after PLA, which changes N/Z
+> JMP (savedCINV)
+> ```
+>
+> This additional A preservation has an explicit reason: the prior observer. It protects a different boundary from KERNAL’s saves for the eventual interrupted return.
+>
+> The following totals exclude the body, acknowledgement, installation/removal, prior-handler work, interrupted-instruction completion, and bus stalls:
+>
+> | IRQ form | Generated bytes | Wrapper/exit cycles after hook or hardware entry | Cycles from IRQ acceptance | Stack bytes live for this entry |
+> |---|---:|---:|---:|---:|
+> | CINV status-only chain | 6 | 14 | 50 to predecessor | 7 |
+> | CINV chain preserving inherited A | 8 | 21 | 57 to predecessor | 8 |
+> | CINV chain preserving inherited A/X/Y | 16 | 43 | 79 to predecessor | 10 |
+> | Exclusive CINV, including ROM restore tail timing | 4 | 27 | 63 through return | 6 |
+> | Raw IRQ, full A/X/Y saves | 12 | 37 | 44 through return | 6 |
+> | Raw IRQ, A-only save for the illustrated body | 4 | 15 | 22 through return | 4 |
+>
+> The status-only chain is **incorrect for the illustrated A-clobbering body and supplied observer**. With that 5-byte/6-cycle body, the A-preserving CINV chain totals **13 emitted bytes/63 cycles to the predecessor**. Exclusive CINV totals **9 bytes/69 cycles through return**. The specialized raw A-only template totals **9 bytes/28 cycles through return**.
+>
+> Important route obligations:
+>
+> - **CINV entry:** CPU acceptance is 7 cycles; `PULS` to CINV is 29 cycles and **16 existing ROM bytes, zero emitted bytes**. Its branch timing assumes no page crossing.
+> - **Exclusive CINV:** use `CLD; body/ack; JMP $EA81` only with the pinned restore-only tail and ownership of every enabled source. That tail occupies **6 existing ROM bytes, zero emitted bytes**. It skips the preceding CIA1 ICR read. Its final `RTI` restores interrupted N/V/D/I/Z/C and PC; a separate `PHP/PLP` pair is unnecessary.
+> - **Raw IRQ:** under the declared visible-ROM state, RAM `$FFFE/$FFFF` is not the active vector. Raw selection therefore requires an additional profile-proved banking/vector contract. Populate the underlying RAM vector before exposing it and keep IRQ/NMI vectors, handlers, and private homes visible throughout the transition.
+> - **Save elision:** the A-only raw cost applies because this explicit body leaves X/Y unchanged. It does not justify omitting saves for registers that another body or acknowledgement clobbers.
+> - **Source identity:** an `interrupt function` is callback-only. Recognized sinks select its entry variant, and only reachable variants are emitted. Reusable helpers retain ordinary `JSR/RTS`.
+>
+> NMINV requires separate treatment. The 901227-03 `$FE43` stub executes `SEI; JMP ($0318)`: **7 cycles, 4 existing ROM bytes**, no register save, and no decimal clear.
+>
+> | NMI form | Generated bytes excluding body | Cycles from acceptance excluding body | Entry stack bytes |
+> |---|---:|---:|---:|
+> | NMINV chain, full A/X/Y preservation | 16 | 57 to predecessor | 7 |
+> | NMINV chain, A-only specialization | 8 | 35 to predecessor | 5 |
+> | Exclusive NMINV, full saves | 12 | 51 through return | 6 |
+> | Raw NMI, full saves | 12 | 44 through return | 6 |
+>
+> A full NMINV chain must save **status before A/X/Y**, establish D clear, restore A/X/Y, then execute `PLP` immediately before chaining. Otherwise restore instructions alter flags observed by the predecessor. Exclusive/raw NMI rely on final `RTI` for interrupted status restoration.
+>
+> The storage and traffic ledger is:
+>
+> - CPU entry writes three stack bytes and reads two hardware-vector bytes.
+> - KERNAL CINV adds three register-save writes. The A-only chain adds two pushes/two pulls; a full observer-preserving chain adds four pushes/four pulls. Each indirect chain jump reads its two-byte saved link.
+> - Exclusive CINV restores three saved registers and the three-byte CPU frame. Full raw IRQ/NMI likewise has six stack writes and six architectural stack reads across entry/return; the A-only raw template has four of each.
+> - A saved predecessor needs **two lifetime-owned RAM bytes per simultaneously live installation**. It is not activation-private scratch. `$xxFE` is a valid link start; `$xxFF` must be relocated or rejected for NMOS indirect `JMP`.
+> - The templates require **no ZP, SFA private homes, tables, or intrinsic padding**. Installation code, link initialization, placement-induced payload/padding, and restoration costs are not supplied.
+> - Device traffic remains source-specific. VIC acknowledgement writes the owned `$D019` bits; a CIA ICR read consumes all returned pending bits. A simple stock NMINV chain must leave CIA2’s consuming read to its predecessor. An owning replacement must read once and handle every returned source bit.
+>
+> **Finding and remedy:** retain CINV chaining unless exclusive ownership or a raw profile is proved; establish binary entry and preserve every inherited state component the predecessor observes. An NMI route additionally needs source ownership, vector publication/removal, link lifetime, and complete generated reentrancy proof. `SEI` does not mask NMI. External aggregate stack and retained-firmware completion remain unproved, including without a generated NMI hook.
+>
+> The smallest missing proof starts with the actual handler/source/installation sequence and identified bytes, then configured VICE checks for state restoration, acknowledgement count, and stack use. Physical QA remains necessary for revision-sensitive NMI, RESTORE, cartridge, and nesting claims.
+>
+> Sources: [fixture](/work/request.md:41); raw [Functions §7.4–7.9](/work/spec/06-functions.md:708), [platform interrupt contract](/work/spec/15-platform-profile.md:243); `references/mos-6502-family.md#reset-interrupt-and-stack-behavior` and `#decimal-behavior`; [interrupt-route completion gate](/work/references/sfa-and-abi.md:330); [C64 interrupt contracts and costs](/work/references/c64-memory-and-runtime.md:321). Governing keys: `MOS-PGM-1976` Ch.3 §3.3, Ch.9 §§9.5–9.9, Appendices B/C; `MOS-HW-1976`; `CBM-C64-KERNAL-03` `PULS/PULS1`, `KPREND`, `NMI/NNMI/NMIRTI/PREND`; `MOS-6526-1981`.
+>
+> **Q-C18 — Include IRQ overlap, and retain the hybrid candidate.**
+>
+> **Status:** `Verified partial`: the supplied byte/cycle arithmetic and private-home obligations are determined. Exact helper binding, save instructions, register/flag clobbers, and complete stack/traffic totals are `Unknown`. **Claim kinds:** `Fact`, `Inference`, and conditional `Recommendation`.
+>
+> The helper costs, per call:
+>
+> \[
+> 30+6_{\text{JSR}}+6_{\text{RTS}}+12_{\text{ABI}}=54\text{ cycles}.
+> \]
+>
+> Each site contributes **7 bytes**: 3-byte `JSR` plus 4-byte ABI saves. A newly reachable helper contributes **17 bytes**, including its one-byte `RTS`.
+>
+> Two sequential mainline sites can share one private-home set. A mainline activation interrupted by the IRQ call overlaps the IRQ activation, so the helper requires disjoint homes: **4 ZP bytes and 8 private RAM bytes** across these two domains. Sharing the same private cells is incorrect.
+>
+> For direct helper code with fixed references to those homes, domain-specific code variants give:
+>
+> | Candidate | Complete operation code bytes | Mainline call cycles | IRQ call cycles | ZP/private RAM | Additional simultaneously active helper-return bytes |
+> |---|---:|---:|---:|---:|---:|
+> | Inline at all three sites | 72 | 38 | 38 | 0 / 0 | 0 |
+> | Helper variants in mainline and IRQ | 55 | 54 | 54 | 4 / 8 | 4 |
+> | Mainline helper; IRQ inline | 55 | 54 | 38 | 2 / 4 | 2 |
+>
+> The calculations are:
+>
+> - All inline: `3 × 24 = 72` bytes.
+> - Two helper variants: `2 × 17 + 3 × 7 = 55` bytes.
+> - Hybrid: `17 + 2 × 7 + 24 = 55` bytes.
+>
+> The hybrid weakly improves the fully cloned helper choice: identical code size, fewer private homes and return-stack bytes, and faster IRQ work. It must remain a candidate.
+>
+> The packet does **not** identify the helper’s addressing/binding mechanism. If unchanged code can safely reach disjoint domain homes with the supplied costs and no extra mechanism, one shared body would total **38 bytes** (`17 + 21`). That requires proof; it cannot be inferred from “shared helper,” and an uncharged runtime selector cannot supply it.
+>
+> For the fixed-home comparison above:
+>
+> - **Speed:** all inline.
+> - **Size:** mainline helper plus inline IRQ.
+> - **Balanced:** if direct lowering starts with inline, retain it; the hybrid trades fewer bytes for slower mainline execution and more resources.
+> - No optimization objective was supplied for this question, so there is no unconditional size-versus-speed winner.
+>
+> Both alternatives preserve the specified values/effects by fixture stipulation. The helper remains an ordinary `JSR/RTS` function, with binary entry supplied by the surrounding ABI. Its concrete A/X/Y and flag clobbers are unspecified. `JSR/RTS` themselves preserve flags and add **two stack writes/two stack reads per call**. The 4-byte/12-cycle saves do not identify instructions, so their stack peak and memory traffic cannot honestly be inferred.
+>
+> The 2-byte ZP plus 4-byte RAM requirements are homes, not read/write counts. Multiply-body traffic is unspecified. Helper tables/data are not supplied; padding is explicitly zero. IRQ wrappers, acknowledgement, enclosing call chains, startup, and external NMI costs must be added separately. All-inline selection makes this otherwise-unretained helper and its private homes unreachable.
+>
+> **Unbounded NMI contrast:** the scratch-using helper has unbounded activation-private overlap without a real re-entry bound and fails the SFA/reentrancy requirement. The cooperative PRG exception applies only to a complete transitive generated path proved reentrant with **no activation-private RAM/ZP homes**. Storage-free inline code might qualify after that full proof. The exception supplies neither unrestricted aggregate stack bounds nor retained-ROM completion, and does not extend to D64 or raw takeover.
+>
+> **Remedy:** compare inline, safe helper binding/variants, and the hybrid after storage closure. The smallest missing evidence is the actual helper/save sequence and home references, sufficient to settle code sharing, clobbers, traffic, and stack peak.
+>
+> Sources: [fixture](/work/request.md:42); raw [execution-domain SFA and private closure](/work/spec/06-functions.md:757); `references/6502-lowering-casebook.md#calls-returns-abi-and-helpers`; `references/sfa-and-abi.md#interference-and-reentrancy`; `references/il-and-optimization.md#calls-helpers-and-clobbers`. Governing keys: `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976` Ch.8/9, and the manifest’s [Q-C18 source mapping](/work/references/source-manifest.md:1563).
+>
+> **Q-C23 — Reject this operand patch; use a domain-owned indirect pointer.**
+>
+> **Status:** `Incorrect` for the supplied self-modifying candidate. The safe-form contract is `Verified complete`; actual emitted code and throughput are `Unknown`. **Claim kinds:** `Inference` and `Recommendation`.
+>
+> Writable code satisfies only one precondition. Re-entry defeats ownership.
+>
+> Let mainline address bytes be `M_hi:M_lo` and IRQ address bytes be `I_hi:I_lo`:
+>
+> 1. Mainline writes `M_lo` to `$2501`.
+> 2. IRQ enters, writes both `I_lo` and `I_hi`, and executes its access.
+> 3. Mainline resumes and writes `M_hi` to `$2502`.
+> 4. Mainline executes an operand containing **`M_hi:I_lo`**, rather than its intended address.
+>
+> Correct register restoration does not repair the overwritten operand. Protecting only the two stores would also be insufficient if another invocation can repatch before execution. A protocol must cover the address publication and consuming access.
+>
+> Here is an explicit derived comparison with address low in A, high in X, result in A, and incoming Y dead:
+>
+> ```asm
+> ; Patched absolute form
+> STA $2501           ; 3 bytes, 4 cycles
+> STX $2502           ; 3 bytes, 4 cycles
+> ; $2500: LDA abs    ; 3 bytes, 4 cycles; operand now patched
+> ```
+>
+> ```asm
+> ; Safe form; ptr belongs to this execution domain
+> STA ptr             ; 2 bytes, 3 cycles
+> STX ptr+1           ; 2 bytes, 3 cycles
+> LDY #$00            ; 2 bytes, 2 cycles
+> LDA (ptr),Y         ; 2 bytes, 5 cycles
+> ```
+>
+> | Scoped cost | Patched absolute | Safe indirect |
+> |---|---:|---:|
+> | Complete displayed setup/access | 9 bytes / 12 cycles | 8 bytes / 13 cycles |
+> | Including ordinary `RTS` | 10 bytes / 18 cycles | 9 bytes / 19 cycles |
+> | Also including one caller `JSR` | 13 bytes / 24 cycles | 12 bytes / 25 cycles |
+> | Private ZP | 0 | 2 bytes per overlapping domain |
+> | Setup writes | 2 code-operand writes | 2 pointer writes |
+> | Access reads, excluding instruction fetch | 1 target read | 2 pointer reads + 1 target read |
+>
+> If the address must first be loaded from a two-byte absolute RAM home, add **6 bytes/8 cycles and two reads** to either displayed setup. Other input locations require their own materialization costs.
+>
+> Both forms produce A and N/Z from the final read and preserve X, C, V, D, and I. The safe sequence also sets Y to zero; a live incoming Y requires preservation or another qualified form. D does not affect these loads/stores.
+>
+> With Y zero, there is no indexed page-cross penalty or crossing dummy read. For a general nonzero Y, NMOS `LDA (zp),Y` costs `5+p` cycles and a crossing performs the uncorrected-high dummy read before the corrected read. That bus effect must be safe for the target address. The pointer pair must fit legal owned ZP; it cannot wrap its high byte into `$0000`.
+>
+> Across overlapping mainline/IRQ domains, the safe choice needs **four ZP bytes**. It introduces no additional general frame, stack, table, or bank transition in this explicit sequence; ordinary call return bytes are separately shown. Final program replication, padding, input homes, and loading costs require actual layout.
+>
+> **Finding and remedy:** the proposed patch is unsafe regardless of its isolated one-cycle access advantage. Keep the legal runtime-address operation and lower it indirectly. Reconsider self-modification only after proving exclusive ownership or synchronization, every IRQ/NMI re-entry path, exact patch/execution visibility and banking, complete setup/protocol costs, and measured benefit against the best safe form. None is supplied here; `SEI` alone would not settle NMI.
+>
+> Sources: [fixture](/work/request.md:43); raw [runtime-address ownership](/work/spec/12-intrinsics.md:175); `references/6502-lowering-casebook.md#self-modifying-specialization` and `#pointers-and-addresses`; [CPU addressing and bus effects](/work/references/mos-6502-family.md:78). Governing keys: `MOS-PGM-1976` Ch.5 and Appendices B/C; `MOS-6510-1982`; `CBM-C64-PRG-1982` pp.311/320; `BLEND65-SPEC-4-566da991`.
+>
+> **Q-C25 — Filter hard failures first; apply mode ordering to the same feasible frontier.**
+>
+> **Status:** `Verified complete` for selection over the supplied closed bounded scope. External aggregate NMI stack and firmware/deadline guarantees are `Unknown`. **Claim kinds:** `Fact` and `Inference`.
+>
+> Use the packet’s complete quantities:
+>
+> | Candidate | B | R: ZP, RAM/SFA, stack, scratch | T: worst, best | Disposition |
+> |---|---:|---|---|---|
+> | BASE | 100 | [8,32,20,0] | [100,60] | Feasible baseline |
+> | FAST | 120 | [8,32,18,0] | [80,50] | Feasible |
+> | SMALL | 80 | [8,32,20,0] | [130,70] | Feasible |
+> | DOM | 80 | [8,32,18,0] | [80,50] | Feasible |
+> | BADZP | 70 | [17,32,20,0] | [70,40] | Reject: 17 exceeds ZP limit 16 |
+> | BADTIME | 60 | [8,32,20,0] | [150,80] | Reject: worst 150 exceeds deadline 140 |
+>
+> Selections are:
+>
+> | Frontier | `none` | `balanced` | `speed` | `size` |
+> |---|---|---|---|---|
+> | With DOM | BASE | DOM | DOM | DOM |
+> | Without DOM or its duplicate | BASE | BASE | FAST | SMALL |
+> | With DOM and exact duplicate ZDOM | BASE | DOM* | DOM* | DOM* |
+> | DOM removed but ZDOM retained | BASE | ZDOM | ZDOM | ZDOM |
+>
+> \*Using stable lexical ID ordering. The specified tie mechanism is stable candidate identity; the packet does not independently define its comparator. DOM and ZDOM have identical semantic costs, so another declared stable identity order could choose ZDOM without changing the cost result.
+>
+> The reasoning is componentwise:
+>
+> - DOM improves BASE’s B, stack, and both timing components.
+> - DOM equals FAST’s R/T and reduces B from 120 to 80.
+> - DOM equals SMALL’s B and other resources, while improving stack and both timing components.
+> - Its exact duplicate does not invalidate dominance over the baseline and unequal competitors; identity resolves their cost tie.
+> - Without either dominant copy, FAST exchanges larger B for better T/stack, while SMALL exchanges smaller B for worse T. No candidate dominates all feasible competitors. Balanced therefore retains BASE.
+> - Speed lexicographically minimizes **T, then R, then B**; size minimizes **B, then R, then T**. Neither uses weights or guessed frequencies.
+> - `none` performs deterministic direct lowering from BASE without optional search or B/R/T comparison. It still performs mandatory legality, SFA, layout, branch repair, emission, packaging, and hard checks.
+>
+> The hard failures are rejected in every mode. Their attractive bytes or timing cannot compensate for a violated capacity.
+>
+> For the D64 illustration, SMALL and DOM remain **B80** despite the supplied allocation-block difference. A D64 block is a 256-byte sector with at most 254 file-payload bytes, but filesystem links, slack, BAM, directory, and allocation overhead are excluded from B. The standard 35-track image remains **174,848 bytes**; one more allocated sector does not enlarge that fixed image by 256 bytes. The packet does not specify which candidate incurs the extra block or why.
+>
+> Real disk-capacity/loading constraints still filter feasibility. Their container overhead does not change the optimization preference when the logical target payload and other closed costs remain as supplied.
+>
+> R/T describe the same complete bounded compiler-controlled component for every candidate. The unproved external NMI/firmware boundary is neither zero nor an additional invented numeric cost, and the component deadline does not prove an unrestricted full-system deadline. This accounting comparison does not grant D64 the cooperative PRG NMI exception.
+>
+> Sources: [closed fixture](/work/request.md:44); [optimization modes and finite frontier](/work/references/il-and-optimization.md:22); raw [stack proof scope](/work/spec/11-memory-model.md:275); [D64 contract](/work/references/c64-memory-and-runtime.md:264). Governing keys: `BLEND65-SPEC-4-566da991`, `CBM-1541-D64-35`; mode policy is the supplied skill’s optimization contract.
+>
+> **Q-C26 — Commit after downstream closure, retaining feasible alternatives.**
+>
+> **Status:** `Verified complete` for selection from the supplied closed vectors. **Claim kinds:** `Fact`, `Inference`, and `Recommendation`.
+>
+> The local saving does not establish the whole-program winner. Selection may be finalized only after closing the smallest complete owning scope over:
+>
+> - reachability, callbacks/interrupt roots, helpers and tables;
+> - ABI saves, scratch, spills, ZP/SFA interference and placement;
+> - branch range/repair, page effects and padding;
+> - banking, load dependencies, and target payload construction.
+>
+> Discovery of new private storage reopens SFA closure. A post-closure rewrite must use already-proved reserved storage, return to closure, or be rejected as that late-stage transformation. It cannot acquire anonymous emitter scratch.
+>
+> Keep BASE, W, C, and every viable qualified interaction that can change the closed result live until this comparison is complete. Local inconvenience is not semantic infeasibility.
+>
+> | Candidate | B | R | T | Closed change from BASE |
+> |---|---:|---|---|---|
+> | BASE | 100 | [8,32,20,0] | [100,60] | Baseline |
+> | W | 130 | [12,40,20,0] | [90,55] | +30 B, +4 ZP, +8 RAM/SFA; −10 worst/−5 best cycles |
+> | C | 90 | [8,32,20,0] | [110,65] | −10 B; +10 worst/+5 best cycles |
+>
+> The local 8-byte saving would suggest B92 before downstream costs. The final B130 therefore contains **38 bytes beyond that local-only estimate**. The fixture does not allocate those bytes among helper, table, padding, repair, or loader terms; no such split should be invented.
+>
+> | Feasible candidates | `balanced` | `speed` | `size` |
+> |---|---|---|---|
+> | BASE, W, C | BASE | W | C |
+> | BASE, C, after W is proved semantically infeasible | BASE | BASE | C |
+>
+> Balanced retains BASE because W improves timing while worsening B/resources, and C improves B while worsening timing. Speed selects W’s `[90,55]`; size selects C’s B90. If W is genuinely infeasible, speed selects BASE’s better timing over C.
+>
+> All supplied hard limits pass. Therefore W cannot be removed merely because its local implementation or downstream closure is awkward. A feasible regression remains part of the comparison even when a mode does not select it. `none`, if assessed, retains mandatory direct BASE lowering.
+>
+> The complete supplied vectors determine these choices. They do not expose instruction-level flags or memory traces, so they cannot support a separate emitted-code audit or fabricated traffic breakdown.
+>
+> **Remedy:** maintain the alternatives through deterministic closure, then apply the mode selector once all affected costs and hard proofs are settled. No additional downstream probe is needed for this fixture’s numerical selection; an implementation claim would require actual sequences, maps, and independent behavior/cost evidence.
+>
+> Sources: [fixture](/work/request.md:46); `references/il-and-optimization.md#optimization-modes-and-finite-frontier`, `#control-flow-and-layout`, and `#fixed-points-and-pass-order`; [final storage closure](/work/references/sfa-and-abi.md:409); `references/6502-lowering-casebook.md#page-and-branch-alignment`. Governing keys: `BLEND65-SPEC-4-566da991`; `MOS-PGM-1976` branch/addressing costs; supplied optimization policy.
+>
+> **Q-C27 — A budget does not prove closure; exact search proves only its bounded frontier.**
+>
+> **Status:** `Verified complete` for the completion/search contract. A claim that cap1 proves optimized completion is `Incorrect`. The actual winning sequence and its costs are `Unknown`. **Claim kinds:** `Fact`, `Inference`, and `Recommendation`.
+>
+> Finding r1 after one iteration proves only that a candidate was found. Because r1 updates structured facts and opens r2, stopping there leaves a qualified applicable opportunity unexplored.
+>
+> For **balanced, speed, and size**, completion requires the same finite qualified frontier and the same proved closure. Repeat affected analysis, rewrites, reachability, helper/resource binding, SFA, layout, branch repair, and packaging feedback until stability is established by a finite-state argument, finite lattice, or well-founded measure. An iteration cap can diagnose non-convergence; it cannot certify success. The three modes differ in their final selector, not their search completeness or iteration allowance.
+>
+> A structured peephole must retain:
+>
+> - the unchanged candidate;
+> - all applicable qualified substitutions;
+> - candidates opened by refreshed semantic, register, flag, liveness, alias, memory-effect, and layout facts, including r1 followed by r2.
+>
+> First-match greedy selection is insufficient. Candidate order is not a complete B/R/T proof. Pruning is valid only when feasibility or dominance remains sound after downstream interactions.
+>
+> `none` performs mandatory correct direct lowering and closure, including legal instruction selection and resource/layout checks. It performs no optional rewrite enumeration, optimization fixed-point search, B/R/T competition, or expert-parity gate.
+>
+> The tiny exact region can legally be enumerated when all supplied bounds and assumptions are made explicit:
+>
+> - official NMOS 6510 legality;
+> - a finite opcode/operand alphabet;
+> - straight-line sequences of length **0–3**;
+> - live-ins A/C and live-outs A/Z, with every other observable state obligation specified;
+> - ordinary RAM, no interrupts, and proved memory effects/aliases;
+> - complete instruction, data, ZP/frame/stack, setup, padding/layout costs;
+> - an independent decidable equivalence oracle.
+>
+> For an alphabet of K concrete instruction instances, the unfiltered space is finite:
+>
+> \[
+> 1+K+K^2+K^3.
+> \]
+>
+> A/C provide **512 register input combinations**. Exhausting those combinations is sufficient only if all other relevant initial state is fixed, excluded by proof, or also covered by the oracle. Variable RAM inputs and observable writes cannot be silently omitted. Loads/stores in ordinary RAM still require an effects proof.
+>
+> The independent behavior oracle must check A/Z and every other observable obligation. A separate assembly/cost oracle must check the legal sequence and its complete costs. Final-value agreement alone does not establish safe memory effects, stack balance, or intended output quality.
+>
+> The contrasts resolve as follows:
+>
+> | Condition | Honest disposition |
+> |---|---|
+> | Memory-effects proof missing | Equivalence is unknown; do not admit the rewrite from A/Z agreement alone |
+> | Sequence bound absent | Finite enumeration and its completion are unproved |
+> | Cap1 found r1 but r2 remains reachable | Successful partial search, incomplete optimized closure |
+> | All legal sequences within the explicit bound checked against both oracles | Optimal within that bounded qualified frontier and the selected mode ordering |
+> | Newly discovered winning expert candidate | Reopen the affected frontier as parity debt; qualify it and reclose dependent choices |
+>
+> Even completed exact enumeration supports **frontier-optimality within the declared region, alphabet, length bound, assumptions, and costs**. It does not prove universal mathematical optimality across longer sequences, different storage, helper/table choices, or whole-program layouts.
+>
+> **Remedy:** refresh facts after r1, retain the newly enabled alternatives, and prove closure before selecting. Use exact enumeration only for the explicitly bounded region. The packet supplies no concrete r1/r2 streams, alphabet inventory, or candidate cost results, so no particular machine sequence or numerical optimum can be named.
+>
+> Sources: [fixture](/work/request.md:47); [finite frontier and exact-search conditions](/work/references/il-and-optimization.md:22), [fixed points](/work/references/il-and-optimization.md:388), and [two-oracle proof](/work/references/il-and-optimization.md:406); [transformation proof](/work/references/evidence-parity-and-recovery.md:104). Governing keys: `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976`, and the supplied optimization/qualification policy.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-cpu: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-cpu`. Raw run-log SHA-256: `b1e4c71f5f7df941fa8834ab744247c7ca558e61c92f379adb5b76018d15ee9a`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `82a0c5326b7d86de639dfc1b26ad3ece3ecd2b7f31c6fd6cea46b01cb53cda41`; packet-record SHA-256: `83c550ebebb295dc91fd5024db122568013e03648531c0c7a72c51ef7e2cabcd`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+fac52d0b1528b71ce56593c30d26ca0c8fe4d20cb88875a36be54f1f1109fc16  evaluated-answer.md
+1444eea47a2a382b982cd6777871c736353fbf4c0b3ed7162718b7201422cc4f  evaluator-request.md
+18a5684936e5c9db313ee23581a9fced340a79b2dfc1e025933b53d739413c21  oracle.md
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+45b9955f2ecdfc41e81f94834ffe235d633adf347e2af7b88e4fd1e88e1f6f1f  request.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+```
+
+> **All six cases PASS as contract assessments.** One minor citation defect remains. These grades do not qualify a compiler implementation, artifact, emulator run, or physical machine.
+>
+> | Case | Grade | Decisive output evidence and independent check |
+> |---|---|---|
+> | **Q-C07** | **PASS** | The answer states that NMOS entry “leaves D unchanged” and establishes binary body entry with `CLD` ([output](/work/evaluated-answer.md:9)). `CLC; LDA #$09; ADC #$01` correctly costs **5 bytes/6 cycles**, producing `$0A` in binary and `$10` in decimal. The A-preserving CINV chain costs **8 bytes/21 wrapper cycles**, hence **13 bytes/63 cycles to the predecessor** with that body. Exclusive CINV gives **9 bytes/69 cycles through return**; raw A-only gives **9 bytes/28 cycles**. The other IRQ/NMI wrapper totals also agree with the [pinned route costs](/work/references/c64-memory-and-runtime.md:336). It preserves inherited observer state, distinguishes firmware saves from generated saves, charges stack/link storage, and relies on final `RTI` for interrupted status/D restoration. It never imports the CMOS decimal-clear guarantee into NMOS behavior. |
+> | **Q-C18** | **PASS** | The answer includes call, return, ABI, reachability and overlapping private storage ([output](/work/evaluated-answer.md:90)). Helper execution is **30+6+6+12 = 54 cycles**; each site contributes **7 bytes**. All-inline is **72 bytes**; two fixed-home helper variants are **55 bytes**, with **4 ZP/8 private RAM bytes**; the hybrid is also **55 bytes**, with **2 ZP/4 RAM bytes** and faster IRQ execution. These calculations match the [fixture](/work/evaluator-request.md:42) and [raw domain-storage rules](/work/spec/06-functions.md:757). Crucially, **38-byte shared code is conditional on safe home binding**, not asserted as proved. Unknown save instructions, clobbers and traffic are legitimate packet limits. |
+> | **Q-C23** | **PASS** | The interleaving produces **`M_hi:I_lo`**, proving that writable code alone does not make operand patching safe ([output](/work/evaluated-answer.md:141)). Under its explicit A/X inputs and dead-Y assumption, patched setup/access costs **9 bytes/12 cycles**, versus indirect **8 bytes/13 cycles**; adding `RTS` and one caller `JSR` gives **13/24** versus **12/25**. The [NMOS instruction grid](/work/references/mos-6502-family.md:103) supports those totals. The answer charges pointer writes/reads and **two private ZP bytes per overlapping domain**, preserves the required flags, and rejects self-modification without ownership, interrupt safety and measured benefit. Runtime addresses remain legal under the [raw specification](/work/spec/12-intrinsics.md:174). |
+> | **Q-C25** | **PASS** | The complete selection table is correct ([output](/work/evaluated-answer.md:194)). With DOM, modes `none/balanced/speed/size` select **BASE/DOM/DOM/DOM**; without DOM or ZDOM they select **BASE/BASE/FAST/SMALL**. **BADZP: 17>16** and **BADTIME: 150>140** are correctly infeasible. Stable identity resolves only the exact DOM/ZDOM tie; lexical ordering is explicitly an assumption because the comparator is unspecified. SMALL and DOM remain **B80** despite container allocation differences. The fixed D64 image is **683×256 = 174,848 bytes**, consistent with the [packet geometry](/work/references/c64-memory-and-runtime.md:264). External NMI/firmware uncertainty is kept outside the complete bounded comparison. |
+> | **Q-C26** | **PASS** | The answer retains viable alternatives until downstream closure ([output](/work/evaluated-answer.md:238)). W’s local estimate is **B92**; final **B130** therefore adds **38 bytes beyond that estimate**. Its closed changes are **+4 ZP, +8 RAM/SFA, −10 worst/−5 best cycles**. With BASE/W/C, `balanced/speed/size` select **BASE/W/C**; after W is genuinely semantically infeasible, they select **BASE/BASE/C**. `none` retains BASE. The [fixture](/work/evaluator-request.md:46) supports every vector; the answer correctly refuses to invent a helper/table/padding breakdown. Closure and late-storage handling agree with the [SFA rule](/work/references/sfa-and-abi.md:409). |
+> | **Q-C27** | **PASS** | “Stopping there leaves a qualified applicable opportunity unexplored” correctly rejects cap1 as completion proof ([output](/work/evaluated-answer.md:276)). All optimized modes require the same finite frontier and deterministic closure; structured peepholes retain unchanged and newly enabled candidates. Exact search is conditional on the complete legality/state/effect/cost proof packet. For K concrete instructions and lengths 0–3, **1+K+K²+K³** is correct; A/C supply **512 register-input combinations**, explicitly insufficient if other observable state remains uncovered. Missing memory proof or sequence bounds blocks admission/completion. Separate behavior and assembly/cost oracles are required, and the claim remains **frontier-optimal**, consistent with the [governing policy](/work/references/il-and-optimization.md:83). |
+>
+> The passes survive the main counterchecks: Q-C07 explicitly rejects its status-only chain for the supplied A-observing predecessor; Q-C18 does not assume free code sharing; Q-C23 rejects the attractive unsafe form; Q-C25 does no optional optimization in `none`; Q-C26 retains feasible tradeoffs; and Q-C27 claims no completed numerical search. Missing installed routes, helper sequences, throughput measurements, dependency breakdowns and concrete search results remain appropriately unproved. Their absence does not justify invented evidence or an implementation failure.
+>
+> **Minor finding:** all six fixture citations target nonexistent lines 41–47 of the three-line [request.md](/work/request.md). Their actual evidence is in [evaluator-request.md](/work/evaluator-request.md:38). Correct those links. This is a navigation defect in the furnished capture; the packet does not establish whether the evaluator or later packet relocation caused it. It does not demonstrate fabricated facts or outside-source use.
+>
+> Lineage remains `skillVersion=2.0.2`, declared specification identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`, and **content commit Unknown**. No qualification file or external source was read, and no historical evaluated capture was supplied.
+>
+> **Final unresolved counts:** **0 Critical, 0 Major, 1 Minor** finding affecting six citations; **0 failed cases**. No substantive knowledge contradiction or material evaluator omission was identified.
+
+</details>
+
+<details>
+<summary>2.0.2 timing: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/timing`. Raw run-log SHA-256: `ea8641994a48efb412561c6afcead6d780420edf2266198c95899ee4f390b395`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `549c4030ff4396733725c10913edd29441862112612d5463e3aba5727e56690e`; packet-record SHA-256: `9ee7374d494d70b8475499d1d05eaa94b4ae50f4ae3fbb1da91c6b9a4a8a6f2c`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+e7612fe242f15559b14e3239a44851bc7d10af04bcc5d4ade4519a0a3d80d1ad  request.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+```
+
+> The packet supports several definite contract failures, but it supplies no assembled candidate or execution trace. Compiler support, runnable-artifact status, measured timing, and hardware qualification are therefore **Unknown** throughout.
+>
+> This review uses `skillVersion=2.0.2`. The skill declares knowledge identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`; that digest is not independently reproduced here. The candidate content commit and activation status are **Unknown**. No qualification files or external sources were read.
+>
+> **Shared machine, interrupt, and cost context**
+>
+> The governing [fixture inventory](/work/request.md:35) specifies a stock C64 with NMOS 6510, KERNAL 901227-03, no cartridge or expansion, and these two timing cases:
+>
+> | Case | VIC | Clocks/line | Governing profile geometry |
+> |---|---|---:|---|
+> | PAL | 6569R3 | 63 | 312 lines; 19,656 clocks/frame |
+> | NTSC | 6567R8 | 65 | 263 lines; 17,095 clocks/frame |
+>
+> The geometry comes from the [raw platform specification](/work/spec/15-platform-profile.md:72). These are elapsed clock capacities, not guaranteed CPU progress. Early NTSC 6567R56A timing is excluded.
+>
+> The SID alternatives are 6581 and 8580 at `$D400`, with unchanged digital accesses for these fixtures. That establishes neither identical analogue output nor an audio-player workload. CIA revisions, board/PLA revision, complete interrupt-source configuration, assembler settings, optimization/safety modes, loader behavior, and initial device state remain **Unknown**.
+>
+> For a proposed cooperative PRG contract, select a complete `c64-pal-prg-kernal-6581` or `c64-ntsc-prg-kernal-6581` identity, or its listed 8580 sibling. These are separate profile selections; timing, SID, ownership, and artifact fields cannot be mixed independently. The raw specification assigns E10279 to invalid selections. The fixture itself does not establish a selected build profile.
+>
+> The first cooperative profile drives banking bits as outputs and owns latch bits `$06`: LORAM=0, HIRAM=1, CHAREN=1, giving CPU-visible KERNAL and I/O. Full DDR/latch values, unrelated cassette bits, CIA2 `$DD00/$DD02`, VIC bank, and final addresses are not supplied. CPU and VIC visibility must be proved separately.
+>
+> The following **derived route costs** apply only when the corresponding route contract is selected and valid. Let `W` be application-body cycles, `A` owned acknowledgement cycles, and `P` prior-handler cycles. They exclude interrupted-instruction completion, recognition jitter, DMA stalls, and installation/removal.
+>
+> | Route | Entry to binary-mode body | Fixed cycles through generated terminal | Generated wrapper bytes | Fixed live stack component |
+> |---|---:|---:|---:|---:|
+> | CINV chain | 41 | `50 + W + A + P` | 6, plus body/ack | 7 |
+> | Exclusive CINV | 38 | `63 + W + A` | 4, plus body/ack | 6 |
+> | Raw IRQ, preserving A/X/Y | 22 | `44 + W + A` | 12, plus body/ack | 6 |
+> | NMINV chain | 32 | `57 + W + A + P` | 16, plus body/source action | 7 |
+> | Exclusive NMINV | 29 | `51 + W + A` | 12, plus body/source action | 6 |
+> | Raw NMI, preserving A/X/Y | 22 | `44 + W + A` | 12, plus body/source action | 6 |
+>
+> Hardware acceptance is 7 cycles and three stack bytes. KERNAL IRQ dispatch to CINV adds 29 cycles and **16 existing ROM bytes**, producing the 36-cycle dispatch boundary; normalization precedes the body afterward. Exclusive CINV additionally uses the **six existing ROM bytes** at `$EA81`. Those ROM bytes contribute zero output-file bytes. NMINV dispatch uses the four existing ROM bytes at `$FE43`, costing seven cycles without saving A/X/Y. Prior-handler costs and stack use are **Unknown**.
+>
+> Every admitted route must satisfy these obligations:
+>
+> - An `interrupt function` is callback-only. Reusable helpers use ordinary `JSR`/`RTS`; only sink-reachable interrupt variants are emitted.
+> - CINV chaining uses `PHP; CLD; body/ack; PLP`, then one jump through the saved prior vector. It uses the firmware’s existing A/X/Y saves.
+> - Raw and exclusive bodies establish D clear; their final `RTI` restores the complete interrupted status, including D and I.
+> - NMINV chaining saves status before A/X/Y and restores A/X/Y before status and the prior-handler jump.
+> - Each chain owns a two-byte saved link. `$xxFE` is a valid link start; `$xxFF` requires relocation or another proved lowering.
+> - CINV and NMINV occupy existing two-byte RAM vectors at `$0314` and `$0318`. Raw routes require active, writable two-byte vectors at `$FFFE` or `$FFFA`, populated before exposing RAM and valid throughout banking transitions.
+> - A raster owner acknowledges `$D019` bit 0 with an exact write-one-to-clear operation. A known-value immediate load/store costs 5 bytes/6 nominal cycles. CIA1 and CIA2 consuming ICR reads each have exactly one assigned owner; a simple chain must preserve the prior owner’s source information.
+> - IRQ masking does not exclude NMI. Unrestricted external NMI aggregate stack use and retained-firmware reentrancy/completion remain unproved, including without a generated NMI hook. The narrow cooperative PRG exception does not establish finite deadlines.
+>
+> These stack figures are bounded components, not whole-program peaks: add live calls, explicit saves, body storage, and permitted nesting. For the first PAL cooperative profile, capacity minus reserve is `256 − 20 = 236`; actual bounded peak and unrestricted aggregate use remain **Unknown**.
+>
+> For **each request**, unless quantified below, application code bytes, tables/data bytes, padding, serialized payload, RAM residency, ZP, SFA temporaries/spills, startup bytes/cycles, vector installation/removal bytes/cycles, complete IRQ cycles, and complete stack use are individually **Unknown**. Loader code bytes, loader data bytes, transfer time, initialization/loading cycles, scratch RAM, ZP, stack, destination/visibility windows, and interference are likewise individually **Unknown**. Nothing establishes zero loader interference. A proposed resident raster interval should exclude loading explicitly.
+>
+> These shared obligations come from [raw specification §3.2](/work/spec/15-platform-profile.md:243), [sfa-and-abi.md#interrupt-route-completion-gate](/work/references/sfa-and-abi.md:330), [c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts](/work/references/c64-memory-and-runtime.md:321), and [c64-game-engineering.md#machine-bound-workload-completion-gate](/work/references/c64-game-engineering.md:638). Governing manifest keys are `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976` Chapters 8–9/Appendices B–C, `MOS-HW-1976` interrupt timing, `CBM-C64-KERNAL-03` named entry/restore paths, and `MOS-6526-1981` p.7.
+>
+> **Q-P02 — Changing `$01` while interrupts remain possible**
+>
+> **Status: Incorrect** for the proposed safe scope; **claim kind: Inference** from the supplied banking and interrupt facts.
+>
+> The [fixture](/work/request.md:37) writes `$01=$34`. Assuming `$0000` drives bits 0–2 as outputs, `$34` selects LORAM=0, HIRAM=0, CHAREN=1: CPU accesses see RAM throughout the ROM/I/O windows. CHAREN does not expose I/O when both ROM-selection bits are zero. Thus KERNAL code, hardware vectors, and `$D000–$DFFF` accesses cease selecting the required ROM/devices. `$01` does not change the VIC bank.
+>
+> If DDR bits are not outputs, the effective banking state is **Unknown**; the stored byte alone cannot establish it. The literal also changes cassette-related latch bits, whose ownership and incoming values are unspecified.
+>
+> **Disposition and ownership:** issue a diagnostic for an asserted safe banking contract that lacks valid interrupt paths. Preserve the exact effects of an ordinary raw store; do not silently introduce masking, restoration, or a different value. The platform contract owns banking and source policy; compiler effects analysis preserves access order and physical target identity; SFA owns any function-lifetime save homes; startup owns vector publication.
+>
+> `SEI` addresses maskable IRQ only. RESTORE can still take NMI while KERNAL is absent. Writing CIA2 masks would neither exclude RESTORE nor recover arbitrary old masks through an ICR read. A valid scope needs paths valid in every exposed configuration, exact owned latch/DDR restoration, incoming-I preservation, and specified pending-source behavior.
+>
+> **Costs:** a zero-page `LDA #$34; STA $01` costs 4 code bytes/5 nominal cycles; an already-live `$34` needs only the 2-byte/3-cycle store. `SEI` adds 1 byte/2 cycles. A status-preserving `PHP; SEI; …; PLP` adds 3 bytes/9 cycles and one live stack byte, but remains NMI-unsafe. Valid restoration, shadow storage, register preservation, device-mask handling, and blocked-IRQ latency are **Unknown**. `$0000/$0001` are registers, not allocatable ZP. Once KERNAL is hidden, the shared firmware-route costs cannot describe the resulting path.
+>
+> **Counterexample:** RESTORE arrives after the `$34` store. Hardware fetches the underlying RAM NMI vector, whose validity is unspecified, instead of reaching the required ROM/NMINV path.
+>
+> **Smallest remedy and independent proof:** first determine whether the intended RAM access actually requires banking—writes beneath selected BASIC/KERNAL ROM already reach RAM. If banking remains necessary, supply a complete local transaction contract. Independently derive CPU read/write selections, then inspect assembled accesses and all exits. Future configured VICE probes must inject IRQ/NMI around transitions and verify vectors, physical targets, DDR/latch restoration, status, acknowledgement ownership, and stack. Physical RESTORE/edge claims require targeted hardware evidence; finite deadlines additionally require an arrival/completion contract.
+>
+> Basis: [c64-memory-and-runtime.md#safe-banking-transaction](/work/references/c64-memory-and-runtime.md:89) and [#cpu-address-view](/work/references/c64-memory-and-runtime.md:46). Manifest keys: `MOS-6510-1982`, “INPUT/OUTPUT PORT REGISTERS”; `CBM-C64-PRG-1982`, pp.261–265/308/311; `CBM-C64-KERNAL-03`, `vectors`, `PULS`, and `NMI/NNMI`.
+>
+> **Q-P04 — PAL and NTSC raster budgets**
+>
+> **Status: Incorrect** for a guarantee that both supplied workloads fit their stated single lines; **claim kind: Inference**.
+>
+> Use the exact PAL63 and NTSC65 cases above. The [ordinary-line fixture](/work/request.md:38) excludes DMA, but does not establish starting cycle, IRQ placement, banking, loader exclusion, or instruction path.
+>
+> | Work | PAL upper capacity | NTSC upper capacity | Consequence before other overhead |
+> |---|---:|---:|---|
+> | 64 cycles, ordinary no-DMA line | 63 | 65 | PAL exceeds by 1; NTSC has only 1 spare |
+> | 50 cycles, standard 40-fetch badline | 23 | 25 | Exceeds by 27 on PAL and 25 on NTSC |
+>
+> The badline figures are theoretical upper capacities after the standard forty character-fetch takeovers, not measured CPU progress. Additional DMA and path-dependent stalls can reduce them.
+>
+> If the ordinary line also contains hardware acceptance, even `7 + 64 = 71` exceeds both standards before saves or acknowledgement. The full generic raw route costs `108 + A` nominal cycles; exclusive CINV costs `127 + A`; chaining additionally requires the prior-handler path. Entry occurring earlier must still be charged to the complete schedule.
+>
+> **Disposition and ownership:** require separate profile-bound local schedules and diagnose an impossible or unproved timing promise. The user owns cadence, event placement, and overrun policy. Platform metadata supplies timing/source facts; compiler layout and costing account for each path. Do not scale line numbers or silently change gameplay cadence.
+>
+> **Costs:** the work’s instruction bytes and memory requirements are **Unknown**; cycle totals do not determine them. IRQ costs use the shared ledger only under a selected valid route. A binary containing both schedules must charge both code/data sets and startup selection; those figures are **Unknown**. Loader and startup costs remain individually **Unknown**.
+>
+> **Counterexample:** code taking 64 cycles begins at the first CPU opportunity of an otherwise empty PAL line. It necessarily crosses into the next line, despite its possible NTSC fit.
+>
+> **Smallest remedy and independent proof:** reduce or move work and provide two complete schedules. Independently enumerate paths, final page crossings, entry timing, bus availability, acknowledgements, and loading windows. Inspect final bytes/layout, then trace first and last relevant writes and overrun outcomes separately on the specified PAL and NTSC models. Physical timing compatibility remains unverified.
+>
+> Basis: [c64-game-engineering.md#palntsc-adaptation](/work/references/c64-game-engineering.md:217) and [c64-hardware.md#vic-ii-bus-arbitration](/work/references/c64-hardware.md:93). Manifest keys: `VIC-BAUER-2024` §§2.4.3/3.5–3.8/3.12; `CSG-6567-318014` sheets 10–16; `MOS-PGM-1976` timing tables. The preliminary manufacturer sheet does not establish every PAL revision’s timing.
+>
+> **Q-P05 — Thirty nominal cycles on a badline**
+>
+> **Status: Incorrect** for treating 30 nominal CPU cycles as fitting wholly on the declared standard badline; **claim kind: Inference**.
+>
+> The [fixture](/work/request.md:39) has raster `$33`, DEN on, and YSCROLL=3. `$33 & 7 = 3`, and `$33` lies in the pinned `$30–$F7` badline-eligible range. Badline qualification also requires DEN to have been established at raster `$30`; that history is not supplied. It is a necessary contract precondition.
+>
+> Under the declared standard badline condition, forty character-fetch takeovers leave upper capacities of 23 PAL or 25 NTSC CPU opportunities. Thirty nominal cycles exceed those by seven or five before other costs. The actual access/stall trace remains **Unknown**.
+>
+> **Disposition and ownership:** reject the asserted line-local timing promise until an instruction/bus schedule closes. Ordinary source remains legal. The user chooses the display/work window; platform timing facts and compiler layout determine whether the promised accesses fit.
+>
+> **Costs and visibility:** RAM visibility does not grant CPU access while VIC owns the relevant second-half bus slots. BA warning and AEC takeover must be replayed against reads/writes; BA is not an unconditional extra three-cycle subtraction. Normal first-half refresh, graphics, pointer, and idle accesses are not additional CPU-denied slots. Body bytes, data, RAM/ZP/SFA, padding, actual elapsed cycles, and memory targets are **Unknown**. The shared IRQ and loader ledgers apply; raw completion would already be `74 + A` nominal cycles if this 30-cycle body belongs to that route.
+>
+> **Counterexample:** an intended read or `$D018` store falls inside the denied interval. The CPU stalls and the operation reaches the device after its intended raster deadline, regardless of the operand’s ordinary RAM accessibility.
+>
+> **Smallest remedy and independent proof:** move work to a proved available window or reduce it. Independently establish DEN history, register state, starting cycle, and an exact read/write instruction path. A future trace must show BA/RDY/AEC interactions and final write cycles on each claimed model, rather than compare only nominal instruction totals.
+>
+> Basis: [c64-hardware.md#badlines](/work/references/c64-hardware.md:95). Manifest keys: `VIC-BAUER-2024` §§3.5–3.7; `CSG-6567-318014` sheets 14–16; `MOS-HW-1976` bus timing.
+>
+> **Q-P06 — Eight sprites triggering DMA**
+>
+> **Status: Unknown** for whether the 50-cycle work fits the intended interval; **claim kind: Unknown**.
+>
+> The [fixture](/work/request.md:40) establishes eight enabled sprites with Y triggering DMA. It does not provide the channel fetch schedule, starting cycle, previous display/DMA state, Y expansion, badline overlap, or complete work path. “No expansion” in the machine inventory excludes expansion hardware; it does not establish sprite-expansion register values.
+>
+> Before DMA and other costs, 50 cycles leave 13 PAL or 15 NTSC clocks. That margin is insufficient evidence of fit. The packet does not justify assigning one fixed eight-sprite penalty to this particular triggering line.
+>
+> For each model, the relevant capacity is:
+>
+> `cyclesPerLine − |union of CPU-denied phi2 slots|`
+>
+> Actual instruction progress additionally depends on BA/RDY timing. Badline and sprite overlaps must be unioned; first-half pointer/refresh activity must not be counted as second-half denial.
+>
+> **Disposition and ownership:** require a model-specific local slot contract; diagnose an unproved stable-window claim. The user owns sprite state and event placement. Platform timing facts and compiler scheduling/layout own the availability and path calculation.
+>
+> **Costs and visibility:** exact denial/progress slots, elapsed work cycles, body bytes, data, padding, ZP/SFA, and total stack are **Unknown**. Sprite images need valid 64-byte block placement; pointer bytes must belong to the active screen matrix and select VIC-visible data. Actual addresses, image residency, and loading costs are **Unknown**. If this is a complete generic raw IRQ path, `44 + 50 + A = 94 + A` nominal cycles already exceeds either line without DMA.
+>
+> **Counterexample:** the work’s final device write falls behind a sprite BA-low interval, making it late even though a no-DMA calculation reports spare clocks.
+>
+> **Smallest remedy and independent proof:** provide per-channel enable/Y/expansion/DMA state and the exact interval. Independently replay every path against the selected model’s fetch/denial table, including cross-line activity and badline overlap. Later assembled and configured VICE traces must verify final register-write cycles and lateness handling; physical revision claims need targeted QA.
+>
+> Basis: [c64-hardware.md#sprite-dma](/work/references/c64-hardware.md:126). Manifest keys: `VIC-BAUER-2024` §3.8; `CSG-6567-318014` sprite/system-interface sheets; `NINE-AKESSON`, sprite DMA/timing sections.
+>
+> **Q-P13 — IRQ-only sorter and update helpers**
+>
+> **Status: Unknown** for a complete multiplexer or raster-fit guarantee; **claim kind: Unknown**. The supplied storage facts nevertheless support a conditional allocation conclusion.
+>
+> The [fixture](/work/request.md:41) declares a user-authored sorter reachable only under a non-self-nesting IRQ, eight private scratch bytes, and a 24-byte shared object list published by mainline.
+>
+> **Disposition and ownership:** use ordinary helper lowering with SFA call-domain analysis, plus an explicit publication/raster contract. The compiler owns private-home separation and necessary machine variants. The user owns sorting policy, shared-list publication, channel reuse, and late behavior. The platform owns direct VIC operations and interrupt entry/acknowledgement contracts.
+>
+> For an IRQ-only helper, its eight private bytes do not require a second mainline instance. They must be placed in IRQ-visible storage and included in transitive SFA closure. Non-self-nesting IRQ does not prove NMI absence or global stack bounds.
+>
+> If mainline also calls the scratch-bearing helper and IRQ can preempt that call, allocate two disjoint eight-byte homes or prove non-overlap. The known private subtotal becomes 16 bytes. Domain-specific code is needed when absolute home references or specialized callees differ; storage-free identical code can remain shared.
+>
+> The 24-byte list remains shared program state. SFA must not clone or overlay it as private scratch. Its publication protocol is unspecified. A selector cannot make in-place rewriting of one 24-byte list coherent by itself.
+>
+> **Costs and visibility:**
+>
+> - IRQ-only known storage subtotal: `8 + 24 = 32` bytes, separating private scratch and shared state.
+> - Concurrent mainline/IRQ helper case: `16 + 24 = 40` known bytes, before additional ABI homes, temporaries, pointers, and publication storage.
+> - Each ordinary helper call adds 3 call-site bytes, one shared 1-byte `RTS`, 12 execution cycles, and two live return-address stack bytes, before marshalling/saves.
+> - Updating eight channels’ X-low, Y, and pointer fields entails 24 destination writes. A straightforward unrolled absolute-store portion alone costs 72 code bytes/96 cycles; value loads and bookkeeping are additional. Thus a full such refresh cannot fit one 63/65-clock line.
+> - X-high ownership at `$D010`, other shared sprite registers, active-screen pointer tails, image placement, sort paths, code variants, padding, IRQ source/entry, and complete schedule costs remain **Unknown**. Loader terms retain their individual Unknowns.
+>
+> The skill’s separately costed Q-P13 baseline is **inapplicable**. This fixture does not bind its exclusive raw IRQ, no-NMI/no-banking-competitor conditions, fixed bank/screen, unexpanded sprite shape, schedule layout, or event sequence. Its totals cannot be transferred to this 24-byte list.
+>
+> **Counterexample:** mainline is halfway through sorting when IRQ enters the same helper using the same eight scratch bytes. IRQ overwrites mainline’s live private state; shared-list updates can independently expose a mixed record set.
+>
+> **Smallest remedy and independent proof:** close helper reachability/storage and supply a coherent publication protocol with explicit costs. Independently define expected sorted order and channel reuse, then verify publication interleavings, disjoint homes, call targets, every X/Y/pointer write, shared-register ownership, entry/exit, DMA deadlines, and late paths. Assemble and charge the sorter itself before claiming fit.
+>
+> Basis: [sfa-and-abi.md#interference-and-reentrancy](/work/references/sfa-and-abi.md:166), [#final-storage-closure](/work/references/sfa-and-abi.md:409), and [c64-game-engineering.md#sprite-multiplexing](/work/references/c64-game-engineering.md:224). Manifest keys: `BLEND65-SPEC-4-566da991`, Chapters 06/15 as locally represented; `VIC-BAUER-2024` §§3.8/3.12; `MOS-PGM-1976` Chapter 8. `HESSIAN-1.2` and `C64-GAMEFRAME-C634F6F` are comparative technique evidence, not authority to supply a game engine.
+>
+> **Q-P17 — Variable-path helper inside a stable region**
+>
+> **Status: Incorrect** for the supplied called-helper path satisfying the 40-cycle contract; **claim kind: Inference**.
+>
+> The [fixture](/work/request.md:42) gives helper paths of 20/35 cycles excluding `JSR`/`RTS`:
+>
+> | Path | Body | Call/return | Total | Against 40 |
+> |---|---:|---:|---:|---|
+> | Short | 20 | 12 | 32 | 8 spare |
+> | Long | 35 | 12 | 47 | exceeds by 7 |
+>
+> These nominal totals omit any additional argument/result movement, saves, page crossings, and stalls. The paths also have distinct memory/device effects, so replacing one with the other is not equivalent.
+>
+> **Disposition and ownership:** diagnose the failed local stable-region contract while retaining ordinary helper calls elsewhere. The user owns timing-visible events and permissible work movement. Compiler selection/layout may inline or otherwise optimize only with preserved effects and independent path proofs. Platform metadata supplies entry, DMA, and ownership facts.
+>
+> Inlining removes the call/return cost, producing nominal 20/35-cycle bodies before other costs. Both could then meet a 40-cycle deadline, but their 15-cycle difference still does not prove stable event timing. Padding must preserve each path’s effects, flags, accesses, and write deadlines.
+>
+> **Costs and assumptions:** use the exact PAL/NTSC cases above; trigger line/cycle, stable-entry route, banking, DMA schedule, and source exclusions are **Unknown**. The call/return pair costs four code bytes at program scope and two live stack bytes. Body sizes, duplication, padding, SFA/ZP, stabilization bytes/cycles, and full route costs are **Unknown**. The shared IRQ/loader ledger applies. The skill’s PAL double-IRQ template cannot be selected without its complete preconditions or generalized to NTSC.
+>
+> **Counterexample:** taking the 35-cycle helper path consumes 47 cycles and crosses the declared 40-cycle boundary. Padding the short path cannot repair the overrun.
+>
+> **Smallest remedy and independent proof:** move variable work outside the region or prove a legal inline/specialized form. Independently enumerate effects and write deadlines for every reachable path. Inspect final calls, branches, addresses, padding, and bus slots; future traces must verify event cycles across entry jitter and path extremes. Physical timing compatibility remains unproved.
+>
+> Basis: [c64-game-engineering.md#stable-entry-and-local-contracts](/work/references/c64-game-engineering.md:129), [6502-lowering-casebook.md#calls-returns-abi-and-helpers](/work/references/6502-lowering-casebook.md:802), and [il-and-optimization.md#two-oracle-proof](/work/references/il-and-optimization.md:406). Manifest keys: `MOS-PGM-1976` Chapters 4/8 and timing appendices; `VIC-BAUER-2024` §§3.5–3.8/3.12; `STABLE-RASTER-CB64-2025`, bounded listing/cycle comments.
+>
+> **Q-P19 — Explicit FLI and related VIC techniques**
+>
+> **Status: Unknown** for the intended timed FLI contract; **claim kind: Unknown**.
+>
+> The [fixture](/work/request.md:43) explicitly requests FLI on PAL 6569R3. Its exact timing/bus trace is absent. Although a fixed framebuffer/bank layout is intended, numerical addresses and a final layout are not supplied. NTSC65 comparison does not qualify an NTSC FLI kernel.
+>
+> **Disposition and ownership:** expose FLI through a named local timing/layout contract and reject its timing guarantee until the required events close. Ordinary `$D011/$D018` stores retain observable order and count. Do not recognize arbitrary loops as FLI or introduce renderer policy. The user owns rendering and framebuffer policy; the platform owns exact register-event semantics; compiler/linker own correct effects, placement, lowering, and cost reporting.
+>
+> A local FLI contract must fix the final **device-write cycles**, not merely instruction-start cycles; `$D011/$D018` ownership; bank and matrix/bitmap addresses; CPU/VIC visibility; DEN/YSCROLL and raster-high-bit handling; sprite activity; entry stabilization; IRQ/NMI interference; restoration; and failure/fallback behavior. Those proofs are **Unknown**.
+>
+> For the skill’s explicitly selected standard FLI baseline:
+>
+> - Eight 1 KiB matrices require **8,192 bytes**, including their tails.
+> - The bitmap contains **8,000 bytes**; its 8 KiB placement block and unused space must be distinguished from payload.
+> - Color RAM holds **1,000 meaningful nibbles** in a **1,024-address device range**. It is separate from ordinary bank RAM.
+> - Two known-value immediate/absolute writes per active line cost **10 code bytes/12 nominal cycles** when individually emitted. For `N` lines, their execution contributes `12N` nominal cycles; loop/unroll size, loads, padding, stabilization, and stalls are additional.
+> - Entry/exit, restoration writes, tables, ZP, SFA, stack, serialized assets, Color RAM initialization, loader visibility, and complete frame cost remain individually **Unknown**.
+>
+> These are conditional template costs, not this fixture’s measured or finalized totals. CPU-accessible RAM is not sufficient proof of VIC visibility, particularly in the character-ROM windows of banks 0 and 2.
+>
+> The template requires the matrix-selection `$D018` write followed by badline creation through `$D011` at cycle 14. Its documented invalid first three c-accesses produce a 24-pixel side artifact; unrestricted left-edge colors cannot be promised.
+>
+> The other named families require separate contracts:
+>
+> | Technique | Packet-local requirement | Isolated known-value write cost, excluding complete kernel |
+> |---|---|---:|
+> | FLD | Declared display-start lines and YSCROLL changes before the badline decision | 5 bytes/6 cycles per change |
+> | Line crunch | Begun badline, negation before cycle 14, VCBASE/RC and wrap behavior | 5 bytes/6 cycles per step |
+> | Border opening | Exact `$D011`/`$D016` edge events and restore state | 10 bytes/12 cycles for two writes |
+> | Sprite crunch | Y-expanded DMA state, `$D017` timing, shared ownership, MC/MCBASE evolution | 10 bytes/12 cycles for two writes |
+>
+> Their complete code, data, residency, entry/stabilization, interrupt, and loader costs are **Unknown**. None follows automatically from ordinary stores.
+>
+> **Counterexample:** an optimizer merges or reorders repeated `$D011/$D018` stores because their final values match. The register state may match afterward while matrix fetches and badline timing change, destroying the intended display.
+>
+> **Smallest remedy and independent proof:** retain ordered general lowering and supply the exact named FLI event/layout contract. Independently derive fetches, pixel/color behavior, side artifacts, and restore state. Inspect final bytes and memory placement, then use a pinned VICE model to observe final bus-write cycles, BA/AEC behavior, fetch addresses, output/error markers, acknowledgements, and stack. PAL 6569R3 physical timing and revision-sensitive compatibility require targeted hardware evidence.
+>
+> Basis: [c64-game-engineering.md#q-p19-cycle-event-templates](/work/references/c64-game-engineering.md:409), [c64-hardware.md#volatile-and-rmw-policy](/work/references/c64-hardware.md:379), and [il-and-optimization.md#memory-effects-and-volatility](/work/references/il-and-optimization.md:172). Manifest keys: `VIC-BAUER-2024` §§3.14.1–3.14.4/3.14.7; `FRAGILITY-AKESSON`, named line-crunch/timing sections; `CBM-C64-PRG-1982`, pp.101–104 and VIC register map; `MOS-PGM-1976`, instruction timing tables. These provenance keys identify the packet’s sources; they do not imply external inspection or executed proof.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-timing: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-timing`. Raw run-log SHA-256: `eec9be5bd8800d67abbfd2f593b9f7315ac4c6fbd7909fa75563ca2b8faaed18`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `2f87a87463285e3c9139610df63acef18a9ee2d387a3aaeb2e7f69a0d8948791`; packet-record SHA-256: `242ffcb2d754f159aa1c3c77fe9bce98c83f1bfde695070c4ca168ab50d9f4fb`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+549c4030ff4396733725c10913edd29441862112612d5463e3aba5727e56690e  evaluated-answer.md
+e7612fe242f15559b14e3239a44851bc7d10af04bcc5d4ade4519a0a3d80d1ad  evaluator-request.md
+7499ffb8668fe89b54fa3316c0d11987959998871012adc2c1a3223358611aab  oracle.md
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+0d7276218ea17a28e9527de6958256498e2d21a684e3e592d538be461e892083  request.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+```
+
+> **All seven cases PASS the frozen contract assessment.** One Minor citation defect remains. These grades do not qualify compiler implementation, artifacts, runtime timing, or physical hardware.
+>
+> I assessed [evaluated-answer.md](/work/evaluated-answer.md) against [oracle.md](/work/oracle.md), the [raw fixtures](/work/evaluator-request.md:33), and relevant packet references. No unavailable qualification files or external sources were read. No historical answer capture was supplied.
+>
+> | Case | Grade | Exact decisive output evidence | Independent rationale |
+> |---|---|---|---|
+> | **Q-P02** | **PASS** | “Preserve the exact effects of an ordinary raw store” ([line 60](/work/evaluated-answer.md:60)); “`SEI` addresses maskable IRQ only” ([line 62](/work/evaluated-answer.md:62)). | Treats banking as shared observable context, requires exact restoration and valid interrupt paths, and diagnoses the unsafe promise. It does not move bank writes freely. |
+> | **Q-P04** | **PASS** | “PAL exceeds by 1; NTSC has only 1 spare” ([line 80](/work/evaluated-answer.md:80)). | Uses separate PAL63/NTSC65 capacities, includes DMA and interrupt overhead, and requires complete schedules. It does not universalize PAL timing. |
+> | **Q-P05** | **PASS** | “BA warning and AEC takeover must be replayed against reads/writes” ([line 107](/work/evaluated-answer.md:107)). | Accounts for bus stealing, DEN history, instruction stallability, and register-write deadlines. It does not infer fit from nominal instruction totals. |
+> | **Q-P06** | **PASS** | “The packet does not justify assigning one fixed eight-sprite penalty” ([line 121](/work/evaluated-answer.md:121)). | Includes model-specific DMA pressure and overlapping denied slots. Leaving fit **Unknown** is justified by the missing channel/state schedule. |
+> | **Q-P13** | **PASS** | “The 24-byte list remains shared program state” ([line 151](/work/evaluated-answer.md:151)); concurrent private storage becomes “16 bytes” ([line 149](/work/evaluated-answer.md:149)). | Connects publication, private scratch, SFA interference, ordinary helper ABI, VIC placement, and raster deadlines. Hardware is not reviewed in isolation. |
+> | **Q-P17** | **PASS** | Long path: “35”, “12”, “47”, “exceeds by 7” ([line 178](/work/evaluated-answer.md:178)). | Enforces the explicit 40-cycle contract, preserves distinct path effects, and diagnoses failure. Neither average cycles nor source shape establishes stability. |
+> | **Q-P19** | **PASS** | “Do not recognize arbitrary loops as FLI” ([line 200](/work/evaluated-answer.md:200)); `$D011` badline creation “at cycle 14” ([line 214](/work/evaluated-answer.md:214)). | Maps the supplied FLI intent to an explicit template with device-write timing, layout, ownership, restoration, and artifact limitations. It introduces no arbitrary peephole or renderer policy. |
+>
+> The source and cost checks supporting those grades are:
+>
+> - **Q-P02:** The [fixture](/work/evaluator-request.md:37) and [bank-selection table](/work/references/c64-memory-and-runtime.md:66) support the conditional conclusion: with banking pins driven as outputs, `$34` hides KERNAL and I/O. The [transaction contract](/work/references/c64-memory-and-runtime.md:89) requires DDR/latch, incoming I, device-mask, and pending-source preservation. `LDA #$34; STA $01` costs **4 bytes/5 nominal cycles**; the store alone costs **2/3**. `SEI` adds **1/2**; `PHP; SEI; …; PLP` adds **3/9 and one stack byte**. None proves NMI safety. Restoration and blocked-interrupt costs correctly remain Unknown. The RESTORE counterexample and proposed transition/access probes are decisive.
+>
+> - **Q-P04:** The [raw timing records](/work/spec/15-platform-profile.md:85) establish **63/65 clocks per line**, respectively **19,656/17,095 clocks per frame**. The [fixture](/work/evaluator-request.md:38) therefore makes 64-cycle work impossible within one PAL line and leaves only one nominal NTSC clock. Under the explicitly stated standard forty-fetch badline assumption, upper capacities are **23/25**, so 50-cycle work exceeds them by **27/25**. These are upper capacities, not guaranteed CPU progress. Full raw and exclusive-CINV paths with the 64-cycle body are **108+A** and **127+A** nominal cycles. Separate final layouts, paths, entry placement, DMA, and loading windows remain necessary.
+>
+> - **Q-P05:** The [fixture](/work/evaluator-request.md:39) satisfies `$33 & 7 = 3`; [badline rules](/work/references/c64-hardware.md:95) additionally require DEN history at `$30`. The answer explicitly preserves that missing precondition. Conditional on the standard badline, 30 cycles exceed **23/25** opportunities by **7/5**. A generic complete raw route would cost **74+A** nominal cycles. Actual stalls and write cycles remain Unknown; BA/RDY/AEC replay is required. First-half VIC activity and BA warning are correctly not subtracted as independent fixed penalties.
+>
+> - **Q-P06:** The [fixture](/work/evaluator-request.md:40) lacks the complete fetch/state schedule required by [sprite-DMA rules](/work/references/c64-hardware.md:126). The **13/15-clock** margins are explicitly before DMA. Availability uses the union of denied second-phase slots, avoiding overlap double-counting. A complete generic raw route would cost **94+A** nominal cycles, already exceeding either line. Sprite pointers require VIC-visible images in **64-byte blocks**. Actual image residency, elapsed cycles, and slot counts remain Unknown; the proposed channel-state and cross-line replay resolves them.
+>
+> - **Q-P13:** The [fixture](/work/evaluator-request.md:41) supports known storage subtotals of **8+24=32 bytes**, or **16+24=40 bytes** when mainline and IRQ activations overlap. These are not complete SFA totals. [Interference rules](/work/references/sfa-and-abi.md:166) require disjoint private homes while retaining shared-state identity; [closure](/work/references/sfa-and-abi.md:409) includes additional parameters, returns, temporaries, spills, and helper scratch. Each ordinary call adds **3 call-site bytes**, a **1-byte RTS per applicable body**, **12 cycles**, and **two live stack bytes**. Twenty-four unrolled absolute stores alone cost **72 bytes/96 cycles**, excluding loads and bookkeeping. Publication coherence and the sorter’s complete cost remain Unknown. Declining the separate, differently conditioned multiplexer baseline is correct.
+>
+> - **Q-P17:** The [fixture](/work/evaluator-request.md:42) excludes call overhead from its 20/35-cycle bodies. The [call-cost source](/work/references/6502-lowering-casebook.md:802) adds **12 cycles**, producing **32/47**, plus **four instruction bytes** and **two live stack bytes**. Inlining could remove that overhead, but the remaining **15-cycle path difference** does not establish stable event timing. Distinct effects cannot be exchanged merely to equalize cycles. Final path/effect, padding, placement, and bus proofs are correctly required.
+>
+> - **Q-P19:** The [fixture](/work/evaluator-request.md:43) selects PAL FLI; the [explicit template](/work/references/c64-game-engineering.md:409) supports **8,192 matrix bytes**, **8,000 bitmap payload bytes**, and **1,000 meaningful Color RAM nibbles**. Bitmap placement occupies an **8 KiB block**; Color RAM has a separate **1,024-address device range**. Two independently emitted immediate/absolute writes cost **10 bytes/12 nominal cycles**, contributing **12N cycles** over N lines. These exclude stabilization, DMA stalls, restoration, and loading. The cycle-14 rule and **24-pixel side artifact** are conditional template facts, not measured fixture results.
+>
+> The shared interrupt ledger also checks out against the packet’s [IRQ](/work/references/c64-memory-and-runtime.md:336) and [NMI](/work/references/c64-memory-and-runtime.md:367) baselines:
+>
+> | Route | Entry through normalization | Nominal total | Generated wrapper bytes | Fixed live stack component |
+> |---|---:|---:|---:|---:|
+> | CINV chain | 41 | `50+W+A+P` | 6 | 7 |
+> | Exclusive CINV | 38 | `63+W+A` | 4 | 6 |
+> | Raw IRQ | 22 | `44+W+A` | 12 | 6 |
+> | NMINV chain | 32 | `57+W+A+P` | 16 | 7 |
+> | Exclusive NMINV | 29 | `51+W+A` | 12 | 6 |
+> | Raw NMI | 22 | `44+W+A` | 12 | 6 |
+>
+> Here W is body work, A acknowledgement/source action, and P the prior-handler path. Body/acknowledgement bytes are additional. The answer separately charges **16 existing IRQ-dispatch ROM bytes**, **six existing exclusive-tail ROM bytes**, and **four NMI-stub ROM bytes**, each contributing zero output bytes. Chains require two-byte saved links; `$xxFE` is valid and `$xxFF` needs another proved placement/lowering. Callback-only identity, reachable variants, status/D restoration, acknowledgement ownership, and vector visibility are covered.
+>
+> These figures exclude interrupted-instruction completion, recognition jitter, stalls, installation/removal, and permitted nesting. **236 bytes is available capacity, not measured peak or headroom.** The answer correctly leaves complete application/layout/SFA costs and individual loader/startup quantities Unknown. Unrestricted external NMI stack use and retained-firmware completion remain unproved.
+>
+> **Finding — Minor, evaluator citation defect:** Eight fixture citations point to `/work/request.md:35–43`, but this packet’s `request.md` contains only three lines. The actual evidence is in [evaluator-request.md](/work/evaluator-request.md:35). Correct those links. The quoted facts are recoverable and match the packet, so this does not change the technical grades.
+>
+> I specifically reconsidered whether missing traces, conditional badline assumptions, unavailable sprite slots, or inapplicable reference baselines required failure. They do not: the answer labels these boundaries and makes no execution guarantee. Conversely, its exact measurable arithmetic is supported.
+>
+> Lineage: supplied `skillVersion=2.0.2`, declared `BLEND65-SPEC-4-566da991…`; content commit, activation, and full-corpus digest reproduction remain **Unknown**. Primary/practitioner identities are pinned in the packet’s manifest; no external inspection is implied.
+>
+> **Final unresolved counts:** **7 PASS, 0 FAIL; 0 Critical, 0 Major, 1 Minor finding.** No demonstrated substantive knowledge defect or packet defect. Contract feasibility remains Unknown for Q-P06, Q-P13, and Q-P19; implementation/runtime qualification remains Unknown for all seven.
+
+</details>
+
+<details>
+<summary>2.0.2 platform: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/platform`. Raw run-log SHA-256: `f18cb766ed3a669445cdf4c428ff3344f9e58b51c36db9e615df6ddf414a5667`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `c00b1c802b4cbe38ad3a7386d80efc7407e20d99383c7ffbcdcc9af1e06eb2a8`; packet-record SHA-256: `614c96b5ebf6e827b0d1d1425fd832641eabd53d0b5d404b617036ff6e9295c1`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+e2513945ef493f76c12dd433aa36a77f06a141187b5fcd35a8710efe195fbdd3  request.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+```
+
+> The packet supports a contract assessment, but it supplies no compiler output or execution measurements. For **every numbered request**, generated lowering, assembled artifact, runtime behavior, measured timing, and physical silicon compatibility have **Status: `Unknown`; Claim kind: `Unknown`**. The conclusions below distinguish documented **Facts**, calculated **Inferences**, and proposed **Recommendations**.
+>
+> I applied [the supplied skill](/work/SKILL.md), `skillVersion=2.0.2`. Its declared knowledge identity is `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`; that is a specification identity, not a candidate content commit. **`contentCommit=Unknown`**. I did not read qualification files, reproduce the full specification digest, or claim skill activation or qualification.
+>
+> **Shared machine, interrupt, and cost context**
+>
+> Each answer applies separately to these four indivisible profiles:
+>
+> | Exact profile | Video timing record | SID endpoint |
+> |---|---|---|
+> | `c64-pal-prg-kernal-6581` | 985,248 cycles/s; 312 × 63; 19,656 cycles/frame | MOS 6581 at `$D400` |
+> | `c64-pal-prg-kernal-8580` | Same PAL record | MOS 8580 at `$D400` |
+> | `c64-ntsc-prg-kernal-6581` | 1,022,730 cycles/s; 263 × 65; 17,095 cycles/frame | MOS 6581 at `$D400` |
+> | `c64-ntsc-prg-kernal-8580` | Same NTSC record | MOS 8580 at `$D400` |
+>
+> The CPU is an **NMOS MOS 6510**, using documented instructions, on a stock unexpanded C64. KERNAL is pinned to **901227-03**. PAL uses the 6569-family timing baseline; NTSC uses the later 6567R8-family baseline. **Exact VIC, CIA, SID mask revisions and board identity are unspecified**. The early 262-line/64-cycle NTSC model is outside this assessment.
+>
+> During cooperative application execution, processor-port bits 0–2 are outputs selecting mapping `$06`: BASIC out, KERNAL and I/O visible. This does not authorize an unconditional whole-byte `$36` write. Startup and exit preserve the profile’s captured port values and directions. CPU banking and CIA2-selected VIC banking are separate resources.
+>
+> RESTORE remains enabled; external NMI reentry is unbounded. `SEI` masks IRQ, **not NMI**. Consequently, nominal instruction costs and bounded component stack costs do not establish a full-program stack peak, completion bound, or finite deadline.
+>
+> The relevant IRQ baselines are documented/calculated expectations:
+>
+> | Route | Nominal cycles | Generated wrapper bytes | Existing ROM bytes | Bounded stack at body entry |
+> |---|---:|---:|---:|---:|
+> | CINV chain, through jump to predecessor | `50 + body/ack` | `6 + body/ack` | 16 before CINV; predecessor path additional | 7 |
+> | Exclusive CINV, through final `RTI` | `63 + body/ack` | `4 + body/ack` | 16 before CINV + 6 at `$EA81` | 6 |
+> | Retained stock NMI | `14 + variable stock-handler path` | No generated NMI wrapper required | 4-byte entry stub + variable stock-handler footprint | CPU frame 3; further saves follow |
+>
+> Those totals exclude interrupted-instruction completion, DMA stalls, and additional calls or explicit pushes.
+>
+> The source `interrupt function` is callback-only. Recognized sinks select the matching entry variant; only reachable variants are emitted. A CINV chain uses `PHP; CLD; body; PLP; JMP (savedCINV)`. Exclusive CINV uses `CLD`, then the pinned `$EA81` restore-only tail. Its eventual `RTI` restores the complete interrupted status, including D and I. Reusable helpers remain ordinary `JSR`/`RTS` functions, with their SFA interference checked separately. Each saved predecessor link occupies two lifetime-owned RAM bytes; an indirect-jump link may begin at `$xxFE`, but not `$xxFF`.
+>
+> A generated NMINV chain would require status save before A/X/Y, binary body entry, restoration of Y/X/A before status, and a page-safe predecessor jump: **16 wrapper bytes, 43 cycles**, or **57 cycles plus body to the predecessor**, with seven bounded stack bytes. Raw routes are unavailable in these four profiles; their distinct save/restore/`RTI` ABI must not be substituted for CINV.
+>
+> Common packaging and loader accounting applies to every answer:
+>
+> - The specified PRG has a **two-byte container header** and **12-byte BASIC stub** at `$0801`, entering startup at `$080D`. These are specification sizes, not inspected artifact bytes.
+> - Emitted code/data/padding and trailing nonserialized mutable/SFA storage share `$0801–$CFFF`: **51,199 bytes total**, not separate code and RAM pools. General compiler ZP is **142 bytes**. Cooperative stack capacity after the firmware reserve is **236 bytes**.
+> - Startup code bytes, initialization cycles, captured-state RAM, startup ZP, and startup stack use are individually **Unknown**.
+> - Loader code/data footprint, transferred payload length, load time, transport cycles, loader scratch/ZP, and loader stack use are individually **Unknown**. No loader/decompressor implementation is supplied.
+> - The specified design loads initialized data at its final address without a second startup copy. Any additional copy, replication, decompression, or overlay must have its own explicit cost and lifetime proof.
+>
+> Shared lineage: [profile contract §3](/work/spec/15-platform-profile.md:50), [C64 Appendix §§1–5](/work/spec/appendix-c64.md:10), [interrupt entry and exit contracts](/work/references/c64-memory-and-runtime.md:321), [interrupt-route completion gate](/work/references/sfa-and-abi.md:330), and [machine-bound workload completion gate](/work/references/c64-game-engineering.md:638). Governing source keys include `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976`, `MOS-6510-1982`, `CBM-C64-KERNAL-03`, and `VIC-BAUER-2024`.
+>
+> **Q-P08 — Acknowledge VIC raster IRQ**
+>
+> **Disposition: platform-API lowering. Recommendation:** represent the operation as “acknowledge raster,” lowering to a selected write-one mask. The platform owns VIC semantics; compiler effect preservation and instruction selection own the exact access sequence.
+>
+> Assumptions: the four profiles above, I/O visible, `$D01A=$01`, raster and at least one sprite-collision interrupt flag pending, and no new VIC event during the compared instruction sequence. The fixture does not identify which collision flag; retain that uncertainty rather than inventing a byte value.
+>
+> Let `c` be the pending collision mask, a nonzero subset of `$06`. The relevant status bits read from `$D019` are `r & $0F = $01 | c`, with bit 7 set because raster is enabled and pending. Unused read bits need not be guessed.
+>
+> The reference sequence is:
+>
+> ```asm
+> LDA #$01
+> STA $D019
+> ```
+>
+> All CPU bus accesses, starting at address `p`, are:
+>
+> 1. Read opcode at `p`.
+> 2. Read immediate operand at `p+1`.
+> 3. Read `STA` opcode at `p+2`.
+> 4. Read destination low byte at `p+3`.
+> 5. Read destination high byte at `p+4`.
+> 6. Write `$01` to `$D019`.
+>
+> There is **no `$D019` read**. Raster is acknowledged; pending collision interrupt flags remain. With only raster enabled, the VIC interrupt condition clears, absent a new event.
+>
+> The tempting alternative is:
+>
+> ```asm
+> ASL $D019
+> ```
+>
+> Starting at `q`, its accesses are:
+>
+> 1. Read opcode at `q`.
+> 2. Read address low byte at `q+1`.
+> 3. Read address high byte at `q+2`.
+> 4. Read `r` from `$D019`.
+> 5. Write the old value `r` to `$D019`.
+> 6. Write `(r << 1) & $FF` to `$D019`.
+>
+> The old-value write acknowledges **every pending source whose bit was read as one**, including the collision flag. The shifted write issues another, different acknowledgement mask. This is not equivalent.
+>
+> **Costs and state:**
+>
+> - Direct sequence: **5 code bytes, 6 nominal cycles**, one device write, no new RAM/ZP/SFA/stack storage in this isolated inline form. A becomes `$01`; N=0 and Z=0; C is unchanged.
+> - If A is already provably `$01` and reusable: **3 bytes, 4 cycles**, with flags preserved.
+> - `ASL absolute`: **3 bytes, 6 cycles**, one device read and two writes; it changes N/Z/C. Smaller code does not establish equivalent behavior.
+> - With the recommended cooperative CINV chain containing only this acknowledgement: **11 generated handler bytes**, **two saved-link RAM bytes**, **56 nominal cycles to the predecessor**, and seven bounded stack bytes. The predecessor’s complete path and NMI interference remain **Unknown**.
+> - Installer/restorer size and cycles, final placement/padding, full IRQ duration, and loader costs remain **Unknown**.
+>
+> **Counterexample:** the supplied simultaneous raster/collision state. `ASL` consumes collision interrupt information that `STA $D019` with `$01` preserves. **Status of that substitution: `Incorrect`; Claim kind: `Inference`.**
+>
+> **Independent proof:** derive expected pending flags from write-one-to-clear semantics, then independently check assembled bytes and all six bus accesses. After obtaining and identifying an artifact, use configured VICE 3.10 to observe collision-flag retention and IRQ-line behavior. Timing or revision claims require exact hardware QA.
+>
+> Lineage: [VIC register contract](/work/references/c64-hardware.md:43) and [NMOS bus-visible accesses](/work/references/mos-6502-family.md:192). Source keys: `CBM-C64-PRG-1982`, printed p.151 and Appendix G p.391; `CSG-6567-318014`, sheets 11–14; `MOS-PGM-1976`, instruction/timing tables.
+>
+> **Q-P09 — CIA interrupt-control register**
+>
+> **Disposition: separate typed platform operations. Recommendation:** use `enableInterruptSources(mask)`, `disableInterruptSources(mask)`, and `readAndClearPendingSources()`. The platform owns the device effects; the compiler preserves volatile count, direction, and order.
+>
+> Assumptions: the four profiles above, MOS 6526 documented semantics, CIA1 I/O visible, initial mask timer A + timer B (`$03`), pending timer A + FLAG (`$11`), and no intervening source event for the two-read comparison. Exact CIA revision-dependent edge timing is unspecified. CIA2 pending sources remain KERNAL-owned.
+>
+> The comparisons are:
+>
+> | Operation | Effect |
+> |---|---|
+> | Write `$81` to `$DC0D` | Set timer-A mask bit; timer B remains enabled. Resulting mask is `$03`. |
+> | Write `$01` to `$DC0D` | Clear timer-A mask bit; timer B remains enabled. Resulting mask is `$02`. |
+> | First read of the initial fixture | Return timer A + FLAG, with the established interrupt indication: `$91`; consume pending data and interrupt condition. |
+> | Second read, with no new event | Return `$00`. |
+>
+> Neither write assigns a complete mask byte or acknowledges pending sources. A read exposes pending data, **not the write-only mask**. Bit 7 must not be reconstructed merely from the current mask: its documented meaning concerns an enabled source having caused an interrupt. Exact pin/edge timing across disabling an already asserted source is an unmeasured boundary.
+>
+> Constant forms are direct:
+>
+> ```asm
+> LDA #$81
+> STA $DC0D
+> ```
+>
+> ```asm
+> LDA #$01
+> STA $DC0D
+> ```
+>
+> Each costs **5 bytes and 6 nominal cycles**, with exactly one ICR write and no preceding read. A read is `LDA $DC0D`: **3 bytes, 4 cycles**, one consuming access. Two independent reads cost **6 bytes, 8 cycles**, excluding result stores or preservation. Each absolute result store adds **3 bytes and 4 cycles**. These inline forms require no new ZP/SFA/stack storage; retaining results requires declared storage.
+>
+> Ownership of each consuming read must be singular. Reading CIA2 `$DD0D` before chaining to its stock predecessor clears the source data that the predecessor owns. Masking the returned value afterward cannot undo that consumption.
+>
+> **Costs beyond the operations:** any owning CIA1 exclusive IRQ route inherits the shared **63 + body/ack** cycle baseline, four wrapper bytes, two saved-link RAM bytes, six bounded entry-stack bytes, and 22 existing-ROM bytes. Those ICR methods do not install a route themselves. Full handlers, installer/restorer costs, source dispatch, SFA homes, NMI paths, final placement, and loader costs remain **Unknown**.
+>
+> **Counterexample:** a simple NMINV chain reads `$DD0D`, then jumps to the KERNAL handler. The latter reads already-consumed state and may choose the wrong source-dependent path. **Status of that proposed chain: `Incorrect`; Claim kind: `Inference`.** The smallest remedy is to leave CIA2 ICR consumption to its predecessor. A composite owning adapter would require a separately selected, fully specified contract.
+>
+> **Independent proof:** use an independent mask/pending-state oracle, covering simultaneous bits and new events between reads. Separately assert zero reads for enable/disable, two accesses for two requested reads, and zero CIA2 ICR reads in a simple chain. Then check the identified artifact in configured VICE, with physical CIA edge/revision checks where required.
+>
+> Lineage: [CIA interrupt control](/work/references/c64-hardware.md:279) and [NMI contracts](/work/references/c64-memory-and-runtime.md:367). Source keys: `MOS-6526-1981`, printed p.7; `CBM-C64-KERNAL-03`, `rs232nmi::NNMI`.
+>
+> **Q-P10 — Input scanning while CIA2 selects the VIC bank**
+>
+> **Disposition: platform scan operations governed by a local CIA1 ownership contract. Recommendation:** preserve raw input observations and expose ambiguity unless a declared combined scan algorithm proves a stronger interpretation.
+>
+> Assumptions: the four profiles above; CIA1 PRA/PRB/DDRA/DDRB at `$DC00–$DC03` are scan-owned; PBON is disabled; joystick 2 uses PA0–PA4 and joystick 1 uses PB0–PB4; inputs are active low. CIA2 `$DD00/$DD02` controls VIC-bank selection and retains its other owners. IRQ and a returning stock RESTORE path may disturb CIA1 scanning.
+>
+> A port read observes pins, including output-configured pins; it does not reliably recover an output latch. Exact restoration therefore requires already-owned latch knowledge or shadows and known directions. The packet supplies **no latch-restoration proof**.
+>
+> With released joystick lines and no interfering matrix drive, a raw five-bit sample is:
+>
+> ```asm
+> LDA $DC00
+> AND #$1F
+> ```
+>
+> Joystick 1 uses `$DC01` instead. Each costs **5 bytes and 6 nominal cycles**, excluding Boolean conversion, publication, setup, or restoration. These are conditional candidates: the shared lines must actually be released.
+>
+> A constant keyboard coordinate can use one one-low PA column write and a PB bit test: **10 bytes, 12 nominal cycles** for immediate column setup, absolute PA write, absolute PB read, and immediate mask. That excludes DDR setup, settling requirements, restoration, and Boolean/result handling.
+>
+> The reference’s bounded **keyboard-only** eight-column candidate costs **103 code bytes and 130 cycles**, with eight absolute result stores and an eight-byte snapshot. It sets DDRA=`$FF`, DDRB=`$00`, samples eight columns, and leaves PA=`$FF`. It does **not** prove restoration of arbitrary prior latches/directions, or valid combined joystick/keyboard interpretation.
+>
+> No CIA1 scan operation may access CIA2. For reference, `$DD00 & 3` selects inverted banks `3→$0000`, `2→$4000`, `1→$8000`, `0→$C000`; `$DD02` must drive those bits. Changing that field requires separate CIA2 ownership and preservation proof.
+>
+> **Costs and limits:**
+>
+> - Direct samples add no IRQ installer, scheduler, debounce, repeat, or hidden full-scan work.
+> - Actual combined-scan code/cycles, latch/DDR storage, snapshot-publication costs, SFA/ZP, settling time, restoration stack, and worst-case retry cost are each **Unknown**.
+> - An IRQ-only `PHP; SEI; …; PLP` envelope adds **3 bytes, 9 cycles, one bounded stack byte**, but does not prevent RESTORE interference and therefore cannot establish scan exclusivity here.
+> - Existing KERNAL IRQ/NMI costs remain additional. Full scan deadlines and aggregate stack remain **Unknown**.
+> - CIA2 bank-update code/state costs, final visibility, and loader costs remain **Unknown**; a CIA1-only scan adds zero CIA2 accesses by contract.
+>
+> **Counterexample:** joystick 1 holds a PB row low while a keyboard column is driven. A naïve scan interprets that low bit as a key in that column. A second hazard is restoring a saved pin read as if it were the original latch.
+>
+> **Independent proof:** exercise the declared key/joystick combinations, including ghosting and electrically ambiguous cases; check exact port/DDR access order and VIC-bank preservation. Inject IRQ and returning RESTORE interference at scan boundaries. Since the packet supplies neither ambiguity handling nor restoration proof, a guaranteed combined, restored snapshot remains **Unknown**; ordinary raw observations remain expressible.
+>
+> Lineage: [ports and data direction](/work/references/c64-hardware.md:201), [Input](/work/references/c64-game-engineering.md:506), and [VIC view and placement](/work/references/c64-memory-and-runtime.md:114). Source keys: `MOS-6526-1981`, printed p.5; `CBM-C64-PRG-1982`, printed pp.93, 101–102, 343–344.
+>
+> **Q-P11 — Player-neutral game audio**
+>
+> **Disposition: exact hash-bound platform adapter, with diagnostics for missing contracts.**
+>
+> **Finding:** the packet has no exact callable player/export contract. Consequently, callable music/SFX capability is **Unknown**, and use of uncontracted embedded data through `c64.audio` must receive **E10256**. This does not prevent valid embedding.
+>
+> PSID container metadata establishes load/init/play fields and format declarations. It does not establish SFX entry points, clobbers, writable state, reentrancy, voice arbitration, or device ownership. The accepted subset is self-contained fixed-load PSID v1–v4; zero play, RSID, MUS, incompatible topology, and other excluded forms retain the Appendix’s rejection rules. Header words are big-endian; a payload-supplied load address is little-endian and stripped from emitted data. Placement is final and fixed, without a runtime relocation copy.
+>
+> The public operations are the supplied player-neutral surface:
+>
+> ```blend65
+> audioInitDefault(&AUDIO);
+> audioInit(&AUDIO, 0);
+> audioInitNamed(&AUDIO, "victory");
+> audioTick(&AUDIO);
+> audioTriggerSfx(&AUDIO, "explosion");
+> audioTriggerSfxOn(&AUDIO, "explosion", 2);
+> ```
+>
+> Names resolve at compile time. Dynamic numeric forms require an explicit type/range contract. An unavailable operation, cue, dynamic form, or voice is **E10257**.
+>
+> | Integration path | Required callable contract |
+> |---|---|
+> | Music-only | Exact init/tick/subtune ABI, cadence, writable state, clobbers, placement, model support, and costs |
+> | Integrated music/SFX | All music fields plus effect inventory, voice mapping, priority, replacement, same-frame requests, and music-resume rules |
+> | Minimal SFX-only | Exact small player, effect/voice operations, immediate or tick behavior, state, ownership, and its own costs |
+> | Custom exact player | Hash-bound developer-supplied code/data with the same complete ABI, ownership, placement, and proof obligations |
+>
+> **Exact identity:** unknown for all four intended paths. GoatTracker **2.77** is the first adapter family, whose release archive is pinned locally by SHA-256 `96c2bd6a6ab3aca2f5bb18b1c764ac6ea69ac245cae14002a72cd87c554561ef`. That archive identity does not identify this game’s export, song data, options, effect inventory, or enabled features. SID Factory II remains a candidate, not a callable contract supplied here.
+>
+> For a proved matching GoatTracker export, the documented family forms are:
+>
+> - Init: subtune in A, `JSR start`.
+> - Tick: `JSR start+3`.
+> - SFX with `-Dx`: effect address in A/Y, channel offset in X, `JSR start+6`.
+> - Logical voices **0, 1, 2** map to native offsets **0, 7, 14**.
+>
+> Address-byte order, exact entries, supported forms, and effect data must still match the accepted export. API numeric songs are zero-based; a container or player’s numbering convention requires an explicit mapping.
+>
+> **Cadence and call domains:** source owns every tick call site. `audioTick()` performs exactly one update and installs no interrupt. Once per frame would mean approximately **50.124542 updates/s PAL** or **59.826265 NTSC**; this is not an automatic conversion or established player requirement. Legal init/tick/trigger domains and any faster cadence are **Unknown** until the contract states them.
+>
+> **ABI and storage:** the exact contract must enumerate A/X/Y/flag clobbers; D/I requirements and preservation; `$01` effects; stack use; writable RAM/ZP; self-modifying ranges; and MMIO effects. `const` prevents Blend65 source mutation but does not make player bytes ROM-safe. Export-declared mutable ranges require writable CPU-visible placement and cannot conflict with SFA, loader, or firmware storage.
+>
+> **Voice and device ownership:** independent voice assignments do not establish independent ownership of global SID filter/volume registers. Arbitration must specify priority, replacement, queued-request semantics, same-frame ordering, and resume behavior. The game owns scheduling; the player owns only the SID/CIA/IRQ resources explicitly declared. Any enabled VIC/CIA1 IRQ sources, CIA2 NMI sources, and RESTORE path remain separately accounted. No guessed CIA ownership follows from PSID speed metadata.
+>
+> **Profile compatibility:** each contract must explicitly support the selected PAL/NTSC record and the single `$D400` endpoint with its concrete 6581 or 8580 model. Unknown header metadata makes no compatibility claim. A contract may close unknown metadata, but cannot contradict a specific declaration. Physical analog equivalence is **Unknown**.
+>
+> **Costs:**
+>
+> | Constant call shape | Call-site bytes | Nominal setup + `JSR` cycles |
+> |---|---:|---:|
+> | One immediate subtune load + init call | 5 | 8 |
+> | Tick call | 3 | 6 |
+> | Three immediate register loads + SFX call | 9 | 12 |
+>
+> A normal player `RTS` contributes another six cycles inside the player path; each `JSR` adds two live return-address stack bytes. Player body cycles, internal call depth, clobber-preservation costs, and actual stack peak are **Unknown**.
+>
+> For **each selected path and enabled feature**, player code bytes, song/effect/table bytes, mutable RAM, ZP, initialization cycles, tick best/worst/path cycles, trigger/arbitration/resume cycles, placement padding, and loading costs are individually **Unknown**. Feature pruning belongs to a proved export/contract; an arbitrary PSID cannot be assumed strip-safe. Constant-name lookup tables, generic dispatchers, copied payloads, runtime schedulers, mixers, and compiler queues have **zero authorized inclusion**.
+>
+> **Counterexample:** mainline enters an SFX routine using player ZP/RAM, then an IRQ tick uses the same writable state. Separate compiler SFA homes cannot repair the external player’s shared state. Diagnose reachable non-reentrant overlap with **E10258**, or use only a declared bounded inline critical section that masks every racing source and restores prior state. `SEI` alone cannot exclude a racing NMI.
+>
+> **Independent proof:** first supply exact export bytes/hash/options and all contract fields. Independently verify song/effect selection, arbitration and resume, cadence, writable ranges, and unsafe-overlap rejection. Separately verify direct call sequences, placement, every enabled-feature resource, and complete call paths. Then obtain selected-profile SID register traces in configured VICE; named physical chips/boards require targeted audible/filter QA.
+>
+> Lineage: [Appendix §7.3.1](/work/spec/appendix-c64.md:553), [Music and sound effects](/work/references/c64-game-engineering.md:442), [SID scheduling and ownership](/work/references/c64-hardware.md:368), and [GoatTracker provenance](/work/references/source-manifest.md:1371). Source keys: `BLEND65-SPEC-4-566da991`, `HVSC-SID-FORMAT-20260906`, `GOATTRACKER-2.77`, `SIDFACTORYII-0254B04`, `MOS-6581-SID`, `LIBSIDPLAYFP-3.1.1`.
+>
+> **Q-P20 — Optimize the scrolling/rendering hot path**
+>
+> **Disposition: compiler cost-guided lowering of equivalent user-authored work. Recommendation:** preserve the supplied 1,000-byte update as the general path; select an alternative only when its equivalence, layout, and complete cost are established. The packet proves no winning strategy.
+>
+> Assumptions: the four profiles above, CPU mapping `$06`, source/destination CPU visibility, and declared VIC bank. Exact screen/charset addresses, scroll mode, Color RAM work, sprite-DMA schedule, update window, and IRQ publication protocol are **Unknown**.
+>
+> Ownership is divided explicitly: the user owns scrolling/rendering representation and visible-update policy; the optimizer owns equivalent loop/copy lowering; the linker owns intervals, alignment and visibility; the platform owns coordinated VIC/CIA2 operations. There is no compiler-supplied renderer or buffer manager.
+>
+> | Candidate | Established reasoning | Outstanding cost/proof |
+> |---|---|---|
+> | Full 1,000-byte copy | Must perform the same update, respecting overlap and observable ordering | Loop/unroll choice, source and destination layout, branches, stalls, and complete frame fit |
+> | Bank/base/pointer flip | Legal only if the next complete visible state already exists | Preparation work, second buffer, coordinated register writes, Color RAM, and publication |
+> | Extra pre-shifted charset data | Supplied extra payload is **1,024 bytes** | Padding, complete charset placement, indexing, loader cost, and actual cycle saving |
+> | Dirty 40-byte region | Legal only if other cells are already correct | Detection/list/addressing costs, color/object updates, and dense-change behavior |
+>
+> Two evolving frame buffers are **distinct state**, not replicated identical data.
+>
+> For a conditional straight-line copy with A disposable, fixed absolute RAM addresses and safe ordering, each byte uses `LDA abs; STA abs`: **6 code bytes, 8 cycles**. Thus 1,000 bytes give **6,000 code bytes, 8,000 nominal cycles**, exactly 1,000 source reads and 1,000 destination writes, and no new ZP/SFA/stack scratch. This is a calculated candidate, not supplied compiler output or a measured recommendation.
+>
+> Likewise, 40 fixed-position bytes would use **240 code bytes and 320 nominal cycles**, excluding discovery, address lists, setup, and other rendering obligations. A indexed/looped form trades code size against control and page costs; its actual total remains **Unknown**.
+>
+> A screen matrix reserves **1,024 bytes**, although only 1,000 cells are visible. Its last eight bytes are sprite pointers. Two screens reserve **2,048 bytes**, an extra 1,024 over one. Color RAM occupies 1,024 addresses and cannot be flipped through `$D018`. If two screens, a 2,048-byte charset and Color RAM coexist, their address-space total is **5,120 bytes**, including 48 screen-tail bytes and 24 nonvisible Color RAM addresses; tables, assets and padding are additional.
+>
+> A `$D018` change must derive from final placement: screen alignment 1 KiB, charset alignment 2 KiB, and correct selected-bank visibility. Banks 0 and 2 contain VIC character-ROM windows at relative `$1000–$1FFF`. A CIA2 bank change requires separate shared-port coordination.
+>
+> **IRQ and loader accounting:** a mainline copy adds no IRQ route itself. If source selects an IRQ publication/split route, its body, acknowledgement, wrapper, saved link, installer, bounded stack, DMA-adjusted full path, and NMI interference must be charged separately. Their actual values are **Unknown**, as are preparation/loading cycles, scratch/ZP/stack and final resident layout.
+>
+> **Counterexample:** replace the copy with a base flip when the inactive buffer has stale cells, or when Color RAM still describes the previous frame. The visible result changes. Dense updates can also make a dirty strategy more expensive than copying.
+>
+> **Independent proof:** compare complete visible frames, color state, object transforms and publication order against an independent scrolling oracle. Separately inspect code/data/padding, all update traffic, loop paths and loader transfers. Replay model-specific badline/sprite-DMA timing and interrupt interference in configured VICE. No measured strategy win or finite frame deadline follows from this packet.
+>
+> Lineage: [Scrolling and rendering](/work/references/c64-game-engineering.md:356), [placement and replication doctrine](/work/references/c64-memory-and-runtime.md:480), [copy lowering](/work/references/6502-lowering-casebook.md:851), and [two-oracle proof](/work/references/il-and-optimization.md:406). Source keys: `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976`, `CBM-C64-PRG-1982`, `VIC-BAUER-2024`; practitioner examples are comparative only.
+>
+> **Q-P21 — User-authored sprite multiplexer**
+>
+> **Disposition: ordinary Blend65 lowering plus typed VIC operations and local timing/ownership contracts. Recommendation:** compile the developer’s 12-object multiplexer without introducing a built-in multiplexer or scheduler.
+>
+> Assumptions: the four profiles above; eight physical VIC sprites; CPU mapping `$06`; sprite data, active screen and pointer table in a compatible VIC bank. Exact chip revision, event lines/windows, expansion state, DMA, record layout, sort algorithm and interrupt nesting are **Unknown**.
+>
+> The supplied fixture gives **channel assignment and late/drop policy to the user**. That explicit scope governs the broad reference table’s compiler-allocation wording.
+>
+> Ownership:
+>
+> - **User:** sorting/bucketing choice, visibility, channel assignments, event schedule, priorities and late/drop behavior.
+> - **Compiler:** correct ordinary calls/loops/arrays, proved range/layout optimizations, and complete generated cost.
+> - **Platform:** direct VIC writes, placement-derived pointer fields, shared-register semantics and narrow timing contracts.
+> - **SFA/linker:** private-home interference, schedule publication, sprite/screen visibility, alignment and loader liveness.
+>
+> For a source-selected exclusive CINV raster route, the body begins with D clear, never repeats KERNAL A/X/Y saves, acknowledges its owned source, and finishes through `$EA81`. Every enabled CIA1/VIC IRQ source must be handled or disabled under a valid handoff. Final release inherits Q-P23. Other source-selected route choices need their corresponding contracts; none is inferred from the word “multiplexer.”
+>
+> Position, image pointer, color and shared fields must become visible before the relevant fetch. `$D010`, enable, expansion, multicolor and priority fields need complete ownership or proved shadows. Mainline publishes complete schedules; a two-byte pointer is not inherently atomic. IRQ callbacks cannot be called as ordinary helpers.
+>
+> **Costs:**
+>
+> - Actual sorter code, best/worst cycles, records, schedule bytes and scratch are **Unknown**. Twelve objects do not identify an algorithm. For example, a selected insertion-sort workload can encounter 66 inverted pairs, but that is not this program’s measured comparison/move count.
+> - A constant independent VIC write is **5 bytes, 6 nominal cycles**; reuse of a proven A value reduces it to **3 bytes, 4 cycles**. Dynamic loads, shared-field preservation and timing add explicit costs.
+> - Each exclusive raster event has the shared **63 + body/ack** nominal route cost, four wrapper bytes per reachable handler variant, and six bounded stack bytes before helper calls. Each installation owns a two-byte saved link. Actual event count, full handler paths, initializer/restorer costs, and IRQ-specific peak are **Unknown**.
+> - Native sprite records consume 64 bytes each, but the number of distinct images is unspecified; twelve logical objects need not mean twelve images.
+> - Each active screen reserves 1,024 bytes; its eight pointer bytes are included. Schedule buffers, shadows, SFA/domain variants, ZP, padding and loader windows remain **Unknown**.
+> - NMI interference prevents an unsupported finite event deadline or aggregate stack claim.
+>
+> **Counterexample:** a later object reuses a channel before the previous sprite’s display/DMA state is finished. Y/pointer/color writes then affect the prior object or miss the intended fetch. Sorting by Y alone does not prove safe reuse.
+>
+> **Independent proof:** use a logical oracle for visible objects, channel reuse and exact drop decisions, including more than eight overlapping objects. Separately inspect complete event code, shared-field writes, schedule storage, SFA separation, publication and per-path costs. After obtaining an identified artifact, test boundary lines and late events against model-specific DMA in VICE, with targeted physical checks for cycle-exact claims.
+>
+> Lineage: [Sprite multiplexing](/work/references/c64-game-engineering.md:224), [VIC sprites](/work/references/c64-hardware.md:138), [local raster contracts](/work/references/c64-game-engineering.md:129), and [SFA interrupt-route gate](/work/references/sfa-and-abi.md:330). Source keys: `BLEND65-SPEC-4-566da991`, `CSG-6567-318014`, `VIC-BAUER-2024`, `CBM-C64-KERNAL-03`; the Q-P21 fixture in [request.md](/work/request.md) governs user policy ownership.
+>
+> **Q-P23 — Final exclusive IRQ release and stock CIA1 service**
+>
+> **Disposition: approved profile-specific inline platform handback.**
+>
+> **Fact:** on the four cooperative PRG profiles, entered from stock BASIC with KERNAL 901227-03, the final compiler-owned exclusive `restoreIRQ()` restores **stock CIA1 Timer A service**. It does not restore arbitrary previous masks/latches, lost ticks, or custom resident service.
+>
+> The exact reloads are:
+>
+> | Video profile | Decimal reload | Word | Low byte, then high byte |
+> |---|---:|---|---|
+> | PAL, either SID model | **16421** | **`$4025`** | `$25`, `$40` |
+> | NTSC, either SID model | **17045** | **`$4295`** | `$95`, `$42` |
+>
+> These are pinned stock KERNAL values, not values invented from frame rate.
+>
+> The public operations remain exactly those supplied:
+>
+> `setIRQExclusive(handler)`, `restoreIRQ()`, `readTimerACounter()`, `readTimerBCounter()`, `writeTimerALatch(word)`, `writeTimerAControl(byte)`, `enableInterruptSources(mask)`, `disableInterruptSources(mask)`, and `readAndClearPendingSources()`.
+>
+> There is no extra source call, runtime flag, device-state capsule, scheduler, or late function-storage allocation.
+>
+> Inside the existing caller-state-preserving IRQ-masked vector transaction, final release must:
+>
+> 1. Write `$1F` to `$DC0D`, disabling all five CIA1 interrupt masks.
+> 2. Read CRA, retain its TOD-input bit, and stop Timer A with `CRA = old & $80`.
+> 3. Stop Timer B in pinned stock mode with `$DC0F=$08`.
+> 4. Read `$DC0D` **exactly once after both timers stop**. Discard ending-game pending events.
+> 5. Write the selected Timer A reload low byte to `$DC04`, then high byte to `$DC05`. Since A is stopped, the high-byte latch write also loads its counter.
+> 6. Restore **both exact saved predecessor CINV bytes** at `$0314/$0315` while IRQ remains masked.
+> 7. Write `$81` to `$DC0D`, enabling only timer A.
+> 8. Load/start A with `CRA = (retained TOD-input bit) | $11`; LOAD is a strobe.
+> 9. Restore caller A and complete CPU status, including I and D. The caller’s original I state determines whether service resumes immediately.
+>
+> The predecessor is the saved LIFO identity, not a guessed ROM address. CIA1 must not be enabled before both vector bytes are restored.
+>
+> One direct **assembly expectation**, using absolute saved-link accesses and the stopped CRA to retain its TOD bit, is:
+>
+> ```asm
+> PHP
+> PHA
+> SEI
+>
+> LDA #$1F
+> STA $DC0D
+>
+> LDA $DC0E
+> AND #$80
+> STA $DC0E
+>
+> LDA #$08
+> STA $DC0F
+>
+> LDA $DC0D
+>
+> ; PAL instance; NTSC uses $95, then $42.
+> LDA #$25
+> STA $DC04
+> LDA #$40
+> STA $DC05
+>
+> LDA saved_previous_cinv
+> STA $0314
+> LDA saved_previous_cinv+1
+> STA $0315
+>
+> LDA #$81
+> STA $DC0D
+>
+> LDA $DC0E
+> AND #$80
+> ORA #$11
+> STA $DC0E
+>
+> PLA
+> PLP
+> ```
+>
+> This is an implementable proposed sequence, **not supplied emitted code**. Its correctness still requires the retained external paths and device interference to satisfy the stated ownership contract.
+>
+> Calculated costs for this exact inline expectation:
+>
+> | Component | Bytes | Nominal cycles |
+> |---|---:|---:|
+> | Existing `PHP; PHA; SEI` and `PLA; PLP` | 5 | 16 |
+> | Two absolute saved-link reads and CINV writes | 12 | 16 |
+> | Added CIA1 handback operations | 46 | 56 |
+> | **Entire inline restore transaction** | **63** | **88** |
+>
+> Both video variants have identical instruction sizes and nominal costs. The transaction has **two bounded explicit stack bytes** and leaves X/Y unchanged. It adds no RAM/ZP/SFA scratch object beyond the existing two-byte saved link. A call wrapper, surrounding generated instructions, layout/padding, bus stalls and NMI interference are excluded; actual output and runtime totals remain **Unknown**.
+>
+> The device accesses are exactly:
+>
+> - ICR: `$1F` write, one consuming read, `$81` write.
+> - CRA: two reads and two writes in this candidate.
+> - CRB: one `$08` write.
+> - Timer A latch: one low write, then one high write.
+> - Timer B counter/latch: no access.
+> - CINV: two saved-link reads and two vector writes.
+>
+> The active exclusive IRQ route separately costs **63 + body/ack** nominal cycles, four generated wrapper bytes, two saved-link RAM bytes, and six bounded entry-stack bytes, with **16 + 6 existing-ROM bytes** contributing no output bytes. Typed timers do not remove the need to acknowledge every owned enabled source. Installer cost, body/helper costs, SFA/ZP, complete stack paths, startup/exit costs and loader costs remain **Unknown**.
+>
+> Counter reads are observations. A direct low-then-high A/X word-return candidate costs **6 bytes, 8 cycles** before other ABI traffic. It is not an atomic running-counter snapshot and reveals no reload latch. A constant latch write costs **10 bytes, 12 cycles**; a constant control or ICR-mask write costs **5 bytes, 6 cycles**. Those are calculated operation candidates, not measured output.
+>
+> The required contrasts are:
+>
+> | Case | Required contract |
+> |---|---|
+> | Final exclusive lease with CIA1 mutations | Perform stock handback at final `restoreIRQ()`. |
+> | Final exclusive lease with counter reads only, or no typed CIA1 writes | Still perform stock handback: the exclusive route displaced stock IRQ service. |
+> | Counter reads without an exclusive lease | No stock-handback obligation arises from observation. |
+> | Ordinary chained route | Does not acquire the final-exclusive CIA1 handback. |
+> | Clean inner LIFO restore | Vector-only pop. |
+> | Inner route that changed CIA1 | **E10278**; do not silently reset the outer owner. |
+> | Known raw CIA1 mutation outside proved typed ownership | **E10278**; do not fabricate recoverable state. |
+> | Custom pre-entry resident IRQ/CIA1 handler | Excluded by the stock-entry contract; unqualified predecessor is **E10278**, not permission to overwrite custom service. |
+>
+> **Can reads recover arbitrary old masks/latches? No.** The ICR mask and timer reload latch are write-only. ICR reads consume pending sources; counter reads observe changing counters. They cannot establish arbitrary previous mask/latch state or reconstruct lost ticks.
+>
+> **Can whole `IOINIT` satisfy the release? No.** It also affects CIA2, SID, ports and mapping, exceeding the scoped CIA1 handback.
+>
+> **Can main-return-only repair satisfy it? No.** An earlier final `restoreIRQ()` must restore service immediately under its contract. Returning `main` still requires balanced helper stacks and released exclusive resources; its epilogue retains the other captured-state obligations.
+>
+> **Counterexample:** release the final exclusive handler after it only reads Timer A, restore CINV, and postpone Timer A service until `main` returns. Stock service remains displaced after release. That violates the approved handback contract.
+>
+> **Independent proof:** first produce and identify generated output for all four profiles. Independently model the final stock state and discarded pending events; separately inspect device counts/order, exact reload bytes, saved-vector identity, status restoration, storage and instruction costs. Cover incoming I/D states, clean inner pops, CIA1-changing inner rejection, raw-mutation rejection, counter-only leases, reads without leases and nonstock predecessors.
+>
+> Run the four profiles **sequentially** in configured VICE 3.10, checking actual Timer A service after release and normal return to BASIC. Physical CIA-edge and RESTORE/reentry claims require targeted hardware evidence. No output, runtime or silicon result is supplied here; unrestricted NMI stack and retained-firmware completion remain unproved.
+>
+> Lineage: [governing cooperative PRG exit contract](/work/spec/appendix-c64.md:217), [stock CIA1 service on final exclusive release](/work/references/c64-memory-and-runtime.md:218), [IRQ costs](/work/references/c64-memory-and-runtime.md:336), and [CIA timers/ICR](/work/references/c64-hardware.md:253). Source keys: `BLEND65-SPEC-4-566da991`; `MOS-6526-1981`, printed pp.6–8; `CBM-C64-KERNAL-03`, `init::IOKEYS/IO010/IO020/SIXTY/SIXTYP`, `irqfile::PIOKEY`, and `editor.2::KPREND`. The explicit product approval and fixture in [request.md](/work/request.md) govern this stock-service exception.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-platform: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-platform`. Raw run-log SHA-256: `cebd5b0820c9d5e2148a9c600bd55d62b5e6c2a197296ef3041a5b5d8a8127cc`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `d7bcf2b8b9a7c0a9579d024be45d6b2e6596c20bb6791973b8c982b2c4aa46f2`; packet-record SHA-256: `28b77b6fe6704fd700fc07ab5ce08ac1a8023c548ea10683ec9e346fbd57fe7f`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+c00b1c802b4cbe38ad3a7386d80efc7407e20d99383c7ffbcdcc9af1e06eb2a8  evaluated-answer.md
+e2513945ef493f76c12dd433aa36a77f06a141187b5fcd35a8710efe195fbdd3  evaluator-request.md
+a7ee4f76677cae003ec2b6ff82c76f12bd1ab9b6a8c96ea282e05b71a21a7cab  grade-request.md
+da31d181a84df60c8ec1d2366c4b000e1af11129337344c6561622e39306b0a7  oracle.md
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+e2513945ef493f76c12dd433aa36a77f06a141187b5fcd35a8710efe195fbdd3  request.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+```
+
+> **Five cases PASS; Q-P11 and Q-P20 FAIL for completeness omissions.** The checked byte/cycle calculations agree with the supplied instruction tables.
+>
+> I graded [evaluated-answer.md](/work/evaluated-answer.md) against the unchanged [frozen oracle](/work/oracle.md), using only this packet. Lineage: `skillVersion=2.0.2`, declared specification identity `BLEND65-SPEC-4-566da991`; `contentCommit=Unknown`. No separately identified historical capture is supplied, so I make no candidate-versus-historical attribution.
+>
+> Grades below assess the written contract answer. Compiler implementation, generated artifacts, runtime, measured timing and silicon qualification remain **Status: Unknown; Claim kind: Unknown** for every case.
+>
+> | Case | Grade | Decisive output evidence, source and cost reasoning |
+> |---|---|---|
+> | **Q-P08** | **PASS** | [Answer line 70](/work/evaluated-answer.md:70): “There is **no `$D019` read**,” and collision flags remain pending. Lines 83–87 correctly distinguish the NMOS RMW read, old-value write and shifted-value write. This satisfies selected-source acknowledgement under [VIC semantics](/work/references/c64-hardware.md:62) and [NMOS bus effects](/work/references/mos-6502-family.md:192), governed by `CBM-C64-PRG-1982`, `CSG-6567-318014` and MOS CPU sources. Direct acknowledgement is **5 bytes/6 cycles**; rejected `ASL absolute` is **3/6** but changes device effects and flags. The acknowledgement-only chain correctly totals **11 generated bytes/56 cycles to predecessor**, two link bytes and seven bounded stack bytes. Remaining route/layout/loader costs are Unknown. No finding. |
+> | **Q-P09** | **PASS** | [Answer line 113](/work/evaluated-answer.md:113) gives masks **`$03` after `$81`**, **`$02` after `$01`**, and reads **`$91`, then `$00`**, under its stated no-new-event assumption. Line 118 explicitly rejects mask readback; line 134 preserves CIA2 consumption ownership. These match [ICR semantics](/work/references/c64-hardware.md:279), source `MOS-6526-1981`, printed p.7, and the pinned KERNAL NMI contract. Each constant write is **5 bytes/6 cycles**; two reads are **6/8**, before retention stores. CIA2 pre-consumption is correctly rejected, with independent access-count and state-oracle proof specified. No finding. |
+> | **Q-P10** | **PASS** | [Answer line 150](/work/evaluated-answer.md:150) distinguishes pin observations from output-latch recovery; line 165 says CIA1 scanning must never access CIA2. This preserves the [port/DDR contract](/work/references/c64-hardware.md:201), governed by `MOS-6526-1981` and `CBM-C64-PRG-1982`. Raw joystick sampling correctly costs **5 bytes/6 cycles**; the conditional keyboard snapshot is **103/130**, plus eight snapshot bytes and excluded preservation work. The **3-byte/9-cycle** IRQ-masking envelope does not exclude RESTORE. Guaranteed combined interpretation and restoration correctly remain Unknown because their proofs are absent. No finding. |
+> | **Q-P11** | **FAIL — Major evaluator omission** | [Answer line 209](/work/evaluated-answer.md:209) correctly leaves export identity Unknown, identifies GoatTracker 2.77 as the first family and retains SID Factory II as a candidate. Lines 222–240 correctly cover external writable state, clobbers, source-owned cadence and unsafe overlap: separate SFA homes cannot repair shared player state. Call-site costs **5/8 init**, **3/6 tick**, **9/12 SFX** are correct; player bodies, enabled features and preservation costs remain Unknown. However, the entire section omits the frozen requirement that **“multi-SID/GTUltra requires a separate profile”** ([oracle line 41](/work/oracle.md:41)). That rule is available in [the supplied audio reference](/work/references/c64-game-engineering.md:480). Single-SID assumptions and rejection of incompatible PSID topology do not explicitly complete this requirement. |
+> | **Q-P20** | **FAIL — Major evaluator omission** | [Answer line 254](/work/evaluated-answer.md:254) compares full copying, flips, pre-shifted data and dirty updates; lines 263–269 add unrolling and placement. Its conditional copy costs are correct: **6,000 bytes/8,000 cycles** for 1,000 bytes, **240/320** for 40 bytes. Two screens consume **2,048 bytes**; the stated screens/charset/Color-RAM address-space total is **5,120 bytes**. It correctly avoids claiming frame fit or a measured winner. But **justified static replication is not compared**, as required by [oracle line 52](/work/oracle.md:52). “Two evolving frame buffers are distinct state” at line 261 classifies buffering; it does not assess immutable replication’s consumer constraint, necessity, duplicate/padding bytes, loading cost, benefit and coherence obligations supplied by [the replication doctrine](/work/references/c64-memory-and-runtime.md:485). |
+> | **Q-P21** | **PASS** | [Answer line 289](/work/evaluated-answer.md:289) keeps sorting, visibility, channel assignment, scheduling and late/drop policy user-owned. Compiler/platform responsibilities remain ordinary lowering, optimization, direct VIC operations and local contracts. Lines 294–296 preserve source acknowledgement, firmware terminal ownership, shared-register ownership and schedule-publication hazards. Constant writes correctly cost **5 bytes/6 cycles**, or **3/4** with reusable A. Exclusive-event accounting correctly separates **63 + body/ack cycles**, four wrapper bytes, two saved-link bytes and six bounded entry-stack bytes. Actual schedules, private SFA homes, shared buffers and deadlines remain unproved. The fixture governs the ambiguous allocation wording in [the reference table](/work/references/c64-game-engineering.md:233). No output defect. |
+> | **Q-P23** | **PASS** | [Answer lines 336 onward](/work/evaluated-answer.md:336) preserves the required masked order: clear masks; stop A/B; consume ICR once; reload A low/high; restore both exact saved CINV bytes; enable Timer A; TOD-preserving load/start; restore caller status. Reloads **PAL 16421/`$4025`**, **NTSC 17045/`$4295`** match [raw specification authority](/work/spec/appendix-c64.md:241) and [pinned KERNAL source locations](/work/references/source-manifest.md:782). Independent calculation confirms **63 bytes/88 nominal cycles**, comprising **5/16** status envelope, **12/16** vector restoration and **46/56** CIA1 operations. Two explicit stack bytes and the existing two-byte link require no added RAM/ZP/SFA scratch. Lines 420–433 cover counter-only leases, observations without leases, clean inner pops, E10278 cases, unrecoverable masks/latches, IOINIT rejection and immediate release. No finding. |
+>
+> The shared context correctly bounds all cases to four cooperative NMOS 6510 profiles, KERNAL 901227-03, mapping `$06`, the stated PAL/NTSC timing records and unspecified physical revisions. It separates **51,199 shared allocation bytes**, **142 compiler ZP bytes**, **236 usable stack bytes**, the **two-byte PRG header** and **12-byte BASIC stub**. IRQ accounting separates generated wrappers from **16 existing-ROM entry bytes** and the **six-byte exclusive restore tail**. Callback-only identity, reachable variants, complete status restoration, page-safe links and ordinary helper calls are explicit. Bounded costs do not certify aggregate stack, retained-firmware completion or deadlines under unbounded NMI.
+>
+> I second-guessed both failures: neither requires invented measurements. Q-P11 needs the explicit separate-profile boundary. Q-P20 can state that replication is presently unjustified and leave its unavailable costs Unknown; it still must assess that alternative. Conversely, missing scan-restoration proof, player exports or machine measurements do not invalidate the passing cases’ honest Unknown conclusions. The supplied audio text also lacks A/Y address-byte ordering for an exact export, so that value must not be invented.
+>
+> The failures are **evaluator omissions**, because both omitted rules exist in the packet. There is one **Minor source ambiguity** in the multiplexer allocation table, correctly contained by the evaluated answer. Packet limitations remain separate: the immutable content commit is unavailable, and [control.py](/work/control.py:1) supplies a boundary-check script without an execution/access transcript proving evaluator isolation. I inspected the script without executing its qualification-file reads.
+>
+> **Final unresolved counts:** 2 Major evaluator findings; 1 Minor source ambiguity; 0 Critical findings or confirmed source factual errors; 2 packet provenance/isolation evidence limitations. **Case totals: 5 PASS, 2 FAIL.** All seven implementation/runtime qualification groups remain Unknown.
+
+</details>
+
+<details>
+<summary>2.0.2 routing: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/routing`. Raw run-log SHA-256: `fbcead7acf978835c8f2bbce95abe613ae0d9c58c33cd56e976ac5680d6a1c24`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `3947d5732833cc6e2f83092e902c924d2897f6edb3cfe2007200f0f3e00925e1`; packet-record SHA-256: `b03ca3f59762071ea3704256d7fc59de26390f1ebe492c5cef3ca2afab366229`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+5a61b5753f2aac43d1a4e2f2f39ffde2802d2c5039d8e769e7955178b2834937  request.md
+```
+
+> The skill applies to all five requests. These are hypothetical contract assessments; none establishes current compiler behavior.
+>
+> Shared lineage is `skillVersion=2.0.2`, `contentCommit=Unknown`, with knowledge identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. The recovery fixtures separately identify active baseline **2.0.1**, immutable commit **`1ce4852016e2a883cf1f733c6014c45e176bfc69`**. That commit must not be assigned to 2.0.2.
+>
+> I used only this packet and did not read qualification files. Its specification extracts and pinned source descriptions support the contract reasoning below; the underlying specification corpus and manufacturer originals were not independently inspected. No assembled bytes, compiler execution, VICE result, physical measurement, or candidate qualification is claimed.
+>
+> All answers use the shared references [evidence-parity-and-recovery.md#finding-and-recommendation-shape](/work/references/evidence-parity-and-recovery.md:356) and the relevant authority records in [source-manifest.md](/work/references/source-manifest.md:9). Each reference set below adds only the necessary domain modules.
+>
+> **Q-R04 — Raster IRQ using SFA scratch**
+>
+> **Applies:** Yes. This crosses SFA interference, interrupt ABI, C64 banking, and device acknowledgement. The fixture is [request.md:28](/work/request.md:28).
+>
+> **Smallest sufficient reference set:** The shared references plus:
+>
+> - [sfa-and-abi.md#interrupt-route-completion-gate](/work/references/sfa-and-abi.md:330), including interference and final closure.
+> - [c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts](/work/references/c64-memory-and-runtime.md:321), including banking and revision-pinned costs.
+> - [c64-hardware.md#control-bases-raster-and-interrupts](/work/references/c64-hardware.md:43).
+> - [mos-6502-family.md#reset-interrupt-and-stack-behavior](/work/references/mos-6502-family.md:221).
+>
+> Governing source keys are `BLEND65-SPEC-4-566da991`—functions, SFA, and platform contracts—plus `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6510-1982`, `CBM-C64-KERNAL-03`, `CBM-C64-PRG-1982`, and revision-bounded `VIC-BAUER-2024`. Existing compiler behavior supplies no authority.
+>
+> **Material assumptions and missing context:** PAL 6569R3, NMOS 6510, KERNAL 901227-03, CINV entry, and H’s **8 RAM/2 ZP private scratch** are supplied facts. I assume the source is a callback-only `interrupt function` installed through a recognized CINV sink; source-kind and installer proof are absent. CINV alone does not establish whether the route chains or uses exclusive ownership.
+>
+> The selected profile, startup/container, actual ROM hash, reservations, allocation, helper call graph, IRQ nesting, NMI behavior, enabled sources, prior-handler identity, `$0000` DDR, `$0001` latch/bank states, cartridge/PLA context, optimization mode, and tool configuration remain unknown. No raster deadline or bounded display/DMA state is supplied.
+>
+> **Status: `Unknown`; claim kind: `Unknown`** for safe execution, allocation validity, complete timing, runtime correctness, and parity.
+>
+> The established contract and its implications are:
+>
+> - The source interrupt function is callback-only. H remains an ordinary `JSR`/`RTS` helper.
+> - Recognized sinks select the matching entry variant; only sink-reachable variants are emitted.
+> - If IRQ can preempt mainline while H’s scratch is live, its invocation-private homes must be disjoint. For one simultaneously active mainline H and one IRQ H, the conditional requirement is **16 RAM/4 ZP**, before other storage. **8 RAM/2 ZP** suffices only with proved non-overlap. No such proof is supplied.
+> - Absolute scratch references or specialized callees may require separate H machine variants. Scratch separation does not clone globals or make shared read-modify-write and multi-byte accesses atomic.
+> - NMOS hardware entry and this KERNAL entry leave D unchanged. KERNAL already saves A/X/Y; a CINV variant must not repeat those saves.
+> - Default chaining requires `PHP; CLD; body/ack; PLP; JMP (savedCINV)`, preserving entry status for the prior handler and chaining exactly once.
+> - Exclusive CINV requires binary body state and the pinned `$EA81` restore-only tail. It must own every enabled source because that tail skips the preceding CIA1 ICR service.
+> - Raw IRQ is a different entry contract: it owns register saves and ends with `RTI`. Raw and exclusive completion restore the complete interrupted status, including D and I; they do not need an extra `PHP`/`PLP` pair.
+> - A two-byte indirect saved link may begin at **`$xxFE`**. At **`$xxFF`**, NMOS high-byte wrapping requires relocation, rejection, or a separately proved alternative. The link needs two writable, lifetime-owned bytes.
+> - The named raster acknowledgement is a useful source contract, but its emitted effect is unproved. The reference effect writes `$01` to `$D019`; generic NMOS RMW cannot substitute without exact bus-effect proof.
+> - Every reachable banking state must preserve the required entry/vector, code, scratch, I/O acknowledgement, and terminal path. Mainline writes to `$01` make this an unresolved safety obligation. Exact restoration requires ownership of DDR and latch state; a pin-mixed read is not automatically a latch snapshot.
+>
+> The revision-pinned nominal costs are **reference-derived expectations**, not measurements of this fixture. Here, `B` and `C` include the complete application body, acknowledgement, helper work, and associated moves/calls.
+>
+> | CINV route | Cycles from CPU acceptance | Generated code | Existing ROM executed | Route stack component |
+> |---|---:|---:|---:|---:|
+> | Default chain, through jump to prior handler | `50 + C`, then prior-handler cost | `6 + B` bytes | 16-byte entry, zero output bytes; prior path extra | 7 bytes before body calls |
+> | Exclusive, through completion | `63 + C` | `4 + B` bytes | 16-byte entry plus 6-byte restore tail, zero output bytes | 6 bytes before body calls |
+>
+> Both include **7-cycle/3-stack-byte hardware entry** and the **29-cycle KERNAL-to-CINV segment**. The chain wrapper contributes 14 cycles; the exclusive wrapper and restore tail contribute 27.
+>
+> Further attributable costs:
+>
+> - Reference raster acknowledgement, with A not already `$01`: **5 code bytes/6 nominal cycles**, included within `B/C`.
+> - Each direct H call site: **3 bytes/6 cycles**. Each emitted H body has a **1-byte/6-cycle `RTS`**; each invocation uses two return-address stack bytes. Argument/result moves, saves, H instructions, and banking are additional.
+> - Holding the chain’s `PHP` across one H call gives a **9-byte per-entry component**; exclusive gives **8 bytes**. Interrupted mainline return addresses, other pushes, prior-handler paths, and NMI are additional. These are not full-program peaks.
+> - Helper variants, installation/removal, saved-link initialization, data, padding, placement, scratch initialization, memory traffic, and bank transactions remain unmeasured.
+> - Interrupted-instruction completion, badlines, sprite DMA, entry jitter, and source frequency prevent converting nominal CPU counts into a proven raster deadline.
+>
+> NMI remains a separate boundary: `SEI` does not mask it. Storage-bearing overlapping routes need finite bounds and disjoint homes. The narrow cooperative exception requires the complete generated NMI path to be reentrant and private-home-free; it cannot justify H’s storage-bearing overlap. External aggregate stack and retained-firmware completion remain unproved even without a generated hook. A full stack result must compare the unchanged measured peak with **256 minus the profile reserve**, both presently unresolved.
+>
+> If raw takeover is selected instead, the complete RAM vector must be populated before banking exposes it, with valid routes on both sides of the transition.
+>
+> **Finding:** The packet cannot certify this IRQ. Concurrent helper storage and banking are unresolved, while the source acknowledgement alone proves neither.
+>
+> **Smallest remedy/proof:** First obtain a bounded source/profile/ABI and SFA closure record establishing sink ownership, interference, homes, reachable bank states, predecessor lifetime, and terminal owner. Then establish identified assembly and final bytes/layout before configured VICE observation of entry/status restoration, acknowledgement, concurrency, banking, and stack. Physical claims require targeted hardware evidence; no current VICE verification exists.
+>
+> **Q-R08 — Generalized registry for one local rewrite**
+>
+> **Applies:** Yes. This is compiler architecture and optimization proof, rather than generic tooling maintenance. The fixture is [request.md:29](/work/request.md:29).
+>
+> **Smallest sufficient reference set:** The shared references plus [compiler-architecture.md#each-transition-is-accountable](/work/references/compiler-architecture.md:112), [il-and-optimization.md#pass-rule-packet](/work/references/il-and-optimization.md:368), and [blend65-semantics.md#semantic-preservation-checklist](/work/references/blend65-semantics.md:128). CPU/lowering modules are unnecessary until a machine-form or numerical output claim is made.
+>
+> Governing keys are `BLEND65-SPEC-4-566da991`, particularly type/expression semantics, and `BLEND65-PROJECT-POLICY-P3-28627e0c` for architecture and proof policy. The registry’s existence or resemblance to another compiler would not establish its necessity.
+>
+> **Material assumptions:** There is one current consumer; the existing semantic rewrite accepts typed operands; effect/type proof is stipulated. That stipulation is not an inspected proof or a normative language source. CPU, target, placement, and tool details are unnecessary to choose the seam, but would be necessary for concrete machine costs.
+>
+> **Finding and recommendation:** Decline the registry/plugins/rule DSL and express the rule through the existing typed rewrite seam. This is a **`Recommendation`**. Actual rewrite implementation and output improvement have **status `Unknown`, claim kind `Unknown`**.
+>
+> The five machinery-gate answers are:
+>
+> 1. No demonstrated failure requires a registry; the immediate obligation is one correct identity rewrite.
+> 2. No inability of the direct typed seam is demonstrated.
+> 3. One consumer needs the rewrite; no additional consumer of registry/plugin distinctions is identified.
+> 4. No replaced complexity or unavoidable failure without the registry is demonstrated.
+> 5. Decline the machinery now; reconsider only after a concrete unmet obligation appears.
+>
+> The missing necessity answers trigger [SKILL.md#anti-overengineering-gate](/work/SKILL.md:146): **“If any answer is missing, do not add the machinery.”**
+>
+> The direct rule still requires a precise contract: match typed addition by literal zero; preserve the result type, promotions and conversions, arithmetic context, evaluation of x exactly once, and its effect/access order. For example, returning a byte-valued x directly is insufficient if the typed addition produces a word. The rewrite belongs after the required semantic facts exist and before their accountable discharge. Removing an addition supplies a termination measure.
+>
+> **Cost reasoning:** The proposed direct rule need introduce no runtime call, helper, table, scratch, SFA home, stack save, or dispatcher. That does **not** establish a machine-code saving: existing selection might already eliminate the addition. Bytes, cycles, placement effects, and whole-program improvement are unknown. Registry construction, ordering/configuration, plugin interfaces, DSL processing, and qualification maintenance add unquantified compiler complexity without demonstrated benefit.
+>
+> **Smallest next proof:** Specify the rule’s preconditions and one independent behavior oracle covering values, conversions, and effect count/order, plus a separate output/resource expectation. Differential optimized/unoptimized results alone are insufficient. No new pass framework is required.
+>
+> **Q-R10 — Useful enhancement during recovery**
+>
+> **Applies:** Yes. This concerns the domain skill’s frozen recovery baseline and activation governance. The fixture is [request.md:30](/work/request.md:30).
+>
+> **Smallest sufficient reference set:** [SKILL.md#freeze-and-errata](/work/SKILL.md:160) and the shared references, particularly [evidence-parity-and-recovery.md#knowledge-lineage-and-version-impact](/work/references/evidence-parity-and-recovery.md:327). No CPU, lowering, or C64 module is needed for this process decision.
+>
+> **Material assumptions:** Recovery remains active although paused; 2.0.1 and its supplied immutable commit remain the qualified baseline. The 2.0.2 router/runtime material is staged without final qualification or binding. The requested addition is ordinary support lore, with no proven critical false fact.
+>
+> **Facts:** These are the supplied recovery conditions. A version banner or staged files do not establish activation.
+>
+> **Status: `Unknown`; claim kind: `Unknown`** for 2.0.2 qualification, activation eligibility, and any executable capability. Staging alone also does not establish `Scaffold/stub`; no placeholder implementation is identified.
+>
+> **Finding and recommendation:** Defer the ordinary addition to the next between-journey baseline. The controlling supplied instruction is [SKILL.md:163](/work/SKILL.md:163): **“During compiler recovery, ordinary useful additions wait for the next between-journey baseline.”** Pausing recovery does not satisfy that condition, and the critical-erratum exception is unsupported here.
+>
+> **Cost reasoning:** No runtime saving, generated cost, or new compiler capability is measurable from a proposed knowledge addition. Its attributable costs are authoring, source governance, discriminating cases, dependent qualification, independent review, and decision-impact audit; no effort or execution totals are supplied. Bundling it into current recovery would expand that proof scope.
+>
+> **Smallest next action:** Record the proposed addition for the later baseline without activating it. A substantive later change requires a patch-or-greater version bump, qualification of changed/dependent cases, independent review, targeted decision dispositions, and atomic activation of one baseline. Binding an already-qualified content commit is bookkeeping; it neither establishes qualification nor requires another bump.
+>
+> **Q-R11 — Material finding with mixed evidence**
+>
+> **Applies:** Yes. Dynamic memory access, lowering scratch, SFA closure, and cost attribution are core domain concerns. The fixture is [request.md:31](/work/request.md:31).
+>
+> **Smallest sufficient reference set:** The shared references plus [blend65-semantics.md#semantic-preservation-checklist](/work/references/blend65-semantics.md:128), [sfa-and-abi.md#final-storage-closure](/work/references/sfa-and-abi.md:409), [6502-lowering-casebook.md#pointers-and-addresses](/work/references/6502-lowering-casebook.md:824), and [mos-6502-family.md#bus-visible-accesses](/work/references/mos-6502-family.md:192). C64 references are unnecessary because this fixture names no C64 configuration.
+>
+> Governing keys are `BLEND65-SPEC-4-566da991`, especially memory intrinsics and SFA; `MOS-PGM-1976`; and `WDC-65C02S-2022` where CPU-dependent bus behavior differs.
+>
+> **Material assumptions:** `addr` and `v` satisfy the required source types/conversions. “Two private ZP bytes after closure” means new function-execution storage outside the frozen inventory, without a subsequent closure pass. Source typing, CPU, target, mode, aliases, register state, interrupts, banking, layout, tools, and actual instruction sequence are otherwise absent. R04’s machine context must not be imported into this distinct fixture.
+>
+> | Assessed boundary | Status | Claim kind and evidence |
+> |---|---|---|
+> | Hypothetical post-closure allocation | `Incorrect` | **Inference** from the stipulated new storage and the closure contract |
+> | Current compiler’s corresponding behavior | `Unknown` | **Unknown**: no live implementation evidence |
+> | Independent verification of 6 bytes/11 cycles | `Unknown` | **Unknown**: supplied figure, without instructions or artifact bytes |
+> | Runtime correctness and parity | `Unknown` | **Unknown**: no execution or equivalent expert comparison |
+>
+> **Established source obligations:** Dynamic-address `poke` is permitted. Address/value evaluation and required conversions must preserve language order; the ordered byte write retains its address, value, access identity, count, and effects. Pointer scratch discovered during legalization or resource binding belongs in SFA before final emission. A literal-only restriction would substitute a compiler limitation for the source contract.
+>
+> **Finding:** In the hypothetical output, adding two private ZP bytes after closure invalidates the storage certificate. This establishes a contract violation, not an observed live miscompile. An actual collision or corrupt runtime result remains unknown.
+>
+> **Cost reasoning:** The packet reports **6 code bytes/11 cycles** for a static fragment and **2 private ZP bytes**. The numerical fragment is not independently verified and does not cover caller/helper code or runtime effects. The ZP bytes are function-execution storage; do not double-count them as another two general-RAM bytes.
+>
+> A complete ledger would include address/value evaluation and staging, pointer initialization, caller/helper bodies and call sites, returns, spills/saves, data, padding, displaced ZP allocations, concurrent-domain homes, stack, memory/bus accesses, setup, banking, and applicable path/page conditions. These are unknown, not zero. An indirect form additionally needs valid pointer placement and selected-CPU dummy-access proof where device visibility matters.
+>
+> No parity ratio is available. A literal-address store performs different address work and cannot automatically serve as an equivalent baseline.
+>
+> **Smallest remedy/proof:** Keep dynamic-address source legal. Declare the pointer home before closure, or return new storage to SFA and recompute interference, placement, and budgets. Already-reserved scratch is usable only if its ownership/lifetime contract covers this operation.
+>
+> Start proof by obtaining identified source, target/options, the pre/post-closure inventory, and emitted instructions. Then establish bytes/layout and execute against an independent ordered-write oracle, with a separate complete resource expectation. The packet supports no shortcut to an already runnable artifact.
+>
+> **Q-A15 — Critical false CPU fact discovered after decisions**
+>
+> **Applies:** Yes. This is a processor-authority erratum with interrupt/BCD and recovery-lineage consequences. The fixture is [request.md:32](/work/request.md:32).
+>
+> **Smallest sufficient reference set:** [SKILL.md#freeze-and-errata](/work/SKILL.md:160), the shared references, [mos-6502-family.md#decimal-behavior](/work/references/mos-6502-family.md:255), [sfa-and-abi.md#interrupt-route-completion-gate](/work/references/sfa-and-abi.md:330), [c64-memory-and-runtime.md#revision-pinned-nmi-contracts-and-costs](/work/references/c64-memory-and-runtime.md:367), and [blend65-semantics.md#binary-and-packed-bcd-arithmetic-invariant](/work/references/blend65-semantics.md:345).
+>
+> Governing primary keys are `MOS-PGM-1976`, Chapters 3 and 8–9 and instruction timings; `MOS-HW-1976`, interrupt sequencing; `MOS-6510-1982`, the compatible core; `WDC-65C02S-2022`, Table 7-1; and `CBM-C64-KERNAL-03`, the named IRQ/NMI paths. Blend65’s generated-body and typed-BCD obligations come from `BLEND65-SPEC-4-566da991`.
+>
+> **Material assumptions:** The disputed fact concerns NMOS interrupt entry, not W65C02S. The supplied stronger MOS interrupt-status description is accepted within this hypothetical packet. Which individual decisions depend on it must be determined through their records; no per-decision proof or qualification result is supplied. The ordinary useful addition remains separate.
+>
+> | Boundary | Status | Claim kind and conclusion |
+> |---|---|---|
+> | Documented NMOS entry leaves D unchanged | `Verified complete` | **Fact**, within the packet’s supplied primary-description scope; no execution claim |
+> | Claim “NMOS interrupt clears D” | `Incorrect` | **Fact**: contradicted by the stronger CPU authority |
+> | Supplied CPU/NMI guides’ corrected D wording | `Verified partial` | **Fact**: those inspected portions already distinguish NMOS and CMOS; full guide/release qualification is unproved |
+> | Staged 2.0.2 qualification and activation | `Unknown` | **Unknown**: no final qualification/binding |
+> | Affected compiler output, runtime, and parity | `Unknown` | **Unknown**: no corresponding artifacts or traces |
+>
+> No `Scaffold/stub` boundary is established. Missing qualification is not evidence of a stub.
+>
+> **Facts:** NMOS entry saves interrupted status and sets I without clearing D. `RTI` restores the saved status. W65C02S supplies a different entry-D rule. KERNAL 901227-03’s CINV entry and NMINV stub also do not clear D. A historical qualified label cannot override this primary fact.
+>
+> **Inference:** Any decision that used NMOS entry as proof of binary handler state loses that justification. Binary handler/helper arithmetic may run in decimal mode when preempting a typed BCD region. The required correction must establish binary body state while preserving the interrupted or chained status boundary.
+>
+> For NMI, the complete route obligation remains:
+>
+> - NMINV entry has no KERNAL A/X/Y save. A chain saves status **before** A/X/Y, clears D for the body, restores Y/X/A **before** status, then jumps through its page-safe prior link.
+> - Exclusive/raw routes save and restore their owned registers and end with `RTI`, restoring full interrupted status; no redundant `PHP`/`PLP` pair is needed.
+> - A simple stock chain must not consume CIA2 ICR owned by its predecessor. An owning replacement reads it exactly once and handles every returned source bit.
+> - CIA2 masks are not recovered by reading ICR. RESTORE, cartridge behavior, banking/vector publication, predecessor lifetime, and re-entry remain separate obligations.
+> - The source handler remains callback-only, helpers remain ordinary functions, and only reachable variants are emitted. Per-entry stack does not establish aggregate stack capacity or finite completion.
+>
+> **Equivalent-work cost reasoning:** A handler relying on the false D-clear assumption fails the D=1 contract. Comparing its smaller cost with a correct handler would compare different work. No valid parity ratio follows.
+>
+> The known conditional normalization costs are:
+>
+> | Compiler sequence | Code | Nominal NMOS cycles | Additional stack |
+> |---|---:|---:|---:|
+> | `CLD` | 1 byte | 2 | 0 |
+> | `PHP` plus `PLP` | 2 bytes | 7 | 1 peak byte |
+>
+> These sequences add no helper, ZP, or SFA home. They are already included in the applicable wrapper totals and must not be counted twice. Reuse R04’s IRQ totals only with matching ROM, route, and ownership assumptions.
+>
+> For the pinned NMI routes, the corresponding reference expectations are:
+>
+> | NMI route | Compiler wrapper | Output | Fixed acceptance-to-boundary cost | Route stack component |
+> |---|---:|---:|---:|---:|
+> | NMINV chain | `43 + body` cycles | `16 + body` bytes | `57 + body` cycles to predecessor | 7 bytes |
+> | Exclusive NMINV | `37 + body` cycles | `12 + body` bytes | `51 + body` cycles through return | 6 bytes |
+> | Raw NMI | `37 + body` cycles | `12 + body` bytes | `44 + body` cycles through return | 6 bytes |
+>
+> The NMINV routes include **7-cycle hardware acceptance** and the **7-cycle/4-existing-ROM-byte stub**, which contributes zero output bytes. The chain additionally owns a **two-byte saved link**; `$xxFE` is valid, `$xxFF` needs repair. Predecessor paths, body/helper work, live mainline stack, nesting, installation, data/padding, acknowledgement, banking, bus stalls, and source frequency remain additional or unknown. BCD staging, carry ownership, inline decimal regions, and output costs also require their own identified cases; this erratum does not close BCD implementation conformance.
+>
+> **Finding:** The false fact is a critical knowledge/oracle defect. Paused decisions relying on it must remain reopened until their evidence is repaired.
+>
+> **Smallest evidence-backed next action:** Record the MOS-backed erratum, reject the false D-clear oracle, and strengthen a focused case distinguishing NMOS D=1 entry from CMOS behavior. Its independent expectation should require binary handler work, correct prior-handler status where chained, and exact interrupted-status restoration so the preempted BCD operation can resume. No executed result is presently available.
+>
+> Then follow [SKILL.md:166](/work/SKILL.md:166): **“A proven critical false fact follows this path immediately; never patch it silently or restart unrelated work.”** Prepare a patch-or-greater errata candidate from 2.0.1, qualify changed and dependent cases, obtain independent review, audit dependent decisions, and activate atomically. Candidate content identity remains unknown until actually established.
+>
+> Assign dispositions from evidence:
+>
+> - **`unaffected`**: unrelated asset grammar.
+> - **`invalidated/reopened`**: decisions relying on false entry-D normalization without replacement proof.
+> - **`corrected`**: decisions whose conclusion changes and whose affected records are repaired.
+> - **`revalidated`**: decisions retaining their conclusion after fresh applicable proof.
+>
+> The packet does not establish completed per-case dispositions. Keep the ordinary useful enhancement deferred; it does not acquire erratum authorization by association.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-routing: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-routing`. Raw run-log SHA-256: `7f7adc8db5d64e2144341069599c62744e789bb7072af77b8b30e52a484b7179`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `ade40b44472dcb40d133c7afc66a7a494bbd364e86b4f9d2b2494fc9d33f7b15`; packet-record SHA-256: `c09d1cc1fb663ee61b8e4048629e09cda224951cdf23bb3f9db1f3c6bfc44566`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+3947d5732833cc6e2f83092e902c924d2897f6edb3cfe2007200f0f3e00925e1  evaluated-answer.md
+5a61b5753f2aac43d1a4e2f2f39ffde2802d2c5039d8e769e7955178b2834937  evaluator-request.md
+4528c2bbd12ea1e48618c72c3b350b96c90f2442c5c0842d9caa7359c862c5cb  grade-request.md
+9d27c4777b64c7e15583dfc37e928cee0ee7db8b1266c8b0f7e606a893894107  oracle.md
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+5a61b5753f2aac43d1a4e2f2f39ffde2802d2c5039d8e769e7955178b2834937  request.md
+```
+
+Verbatim captured text uses lossless JSON-string encoding to retain original hard-break spaces
+and final newline without adding Git trailing-whitespace errors. Decoding the string reproduces
+the captured UTF-8 bytes and SHA-256 above; no evaluator text or result was changed.
+
+```json
+"**Q-R04 fails; the other four cases pass.** These grades assess the captured contract response, not compiler implementation, runtime correctness, or release qualification.\n\n| Case | Grade | Decisive captured evidence | Finding / severity |\n|---|---|---|---|\n| Q-R04 | **FAIL** | Its [“smallest sufficient reference set”](/work/evaluated-answer.md:13) lists SFA, C64 memory, C64 hardware, and CPU modules, but omits lowering. The [frozen invariant](/work/oracle.md:8) explicitly requires lowering. | **Major evaluator omission.** The substantive IRQ reasoning is otherwise sound. |\n| Q-R08 | **PASS** | [“Decline the registry/plugins/rule DSL and express the rule through the existing typed rewrite seam.”](/work/evaluated-answer.md:77) All five machinery-gate questions are addressed. | No demonstrated defect. |\n| Q-R10 | **PASS** | [“Defer the ordinary addition to the next between-journey baseline”](/work/evaluated-answer.md:107), followed by a patch-or-greater bump, qualification, independent review, targeted impact audit, and atomic activation. | No silent baseline modification or competing active version is authorized. |\n| Q-R11 | **PASS** | Post-closure allocation is explicitly [“Incorrect” / “Inference”](/work/evaluated-answer.md:125); live compiler behavior, numerical verification, runtime, and parity remain `Unknown`. Finding and remedy are separate. | Correctly identifies a hypothetical storage-contract violation without inventing a live miscompile. |\n| Q-A15 | **PASS** | [“Prepare a patch-or-greater errata candidate from 2.0.1, qualify changed and dependent cases, obtain independent review, audit dependent decisions, and activate atomically.”](/work/evaluated-answer.md:201) | Correct critical-erratum response; affected decisions remain reopened and unrelated asset grammar remains unaffected. |\n\n**1. Q-R04 — Reference failure, with correct substantive reasoning.**  \nThe supplied fixture establishes PAL 6569R3, NMOS 6510, KERNAL 901227-03, CINV entry, and H’s 8 RAM/2 ZP private scratch. It supplies no allocation, entry, banking, or execution proof. The response correctly leaves safe execution, complete timing, allocation validity, and parity `Unknown`.\n\nIts storage reasoning agrees with [SFA interference](/work/references/sfa-and-abi.md:166): one overlapping mainline and IRQ invocation conditionally require **16 RAM/4 ZP**, before other homes. Separate private homes do not clone globals or prevent shared read-modify-write losses and multi-byte tearing. Callback-only handler identity, ordinary `JSR`/`RTS` helpers, reachable variants, banking visibility, full status restoration, and the `$xxFE`/`$xxFF` saved-link distinction are preserved.\n\nThe cost arithmetic agrees with the [revision-pinned IRQ baseline](/work/references/c64-memory-and-runtime.md:336):\n\n- Chain: `7 + 29 + 14 + C = 50 + C` cycles to the predecessor; **6+B output bytes**, **16 existing ROM bytes**, and a **7-byte route stack component**.\n- Exclusive CINV: `7 + 29 + 27 + C = 63 + C` cycles through completion; **4+B output bytes**, **16+6 existing ROM bytes**, and a **6-byte route stack component**.\n- Raster acknowledgement: `LDA #$01; STA $D019` is **5 bytes/6 cycles**, with the device effect governed by [the VIC acknowledgement contract](/work/references/c64-hardware.md:62).\n- H: each direct call site is **3 bytes/6 cycles**; each emitted `RTS` is **1 byte/6 cycles**; a live call adds **2 stack bytes**. Thus the stated chain/exclusive components with one H call are **9/8 bytes**, not full-program peaks.\n\nBody/helper attribution, installation, saved-link initialization, data, padding, loader/startup, banking, bus stalls, predecessor work, and aggregate stack remain unmeasured. No nominal total proves a raster deadline. The proposed probe correctly starts with source/profile/ABI and closure evidence, then assembly and bytes before configured execution.\n\nI considered passing this case because its domain conclusions are correct and no emitted assembly is supplied. That cannot satisfy the frozen, unconditional reference invariant. Q-R11’s lowering citation cannot repair Q-R04’s independently declared reference set.\n\n**2. Q-R08 — Correctly rejects unsupported machinery.**  \nThe one-consumer fixture supports the existing typed seam; [compiler architecture](/work/references/compiler-architecture.md:124) and the [pass-rule contract](/work/references/il-and-optimization.md:368) support that choice. The response preserves result types, promotions, conversions, arithmetic context, and x’s single evaluation and effect order.\n\nIts cost claim is appropriately conditional: the direct rewrite need introduce no runtime dispatcher, helper, table, scratch, SFA home, or stack save. It does **not** claim measured byte or cycle savings; existing selection might already remove the addition. Registry construction and maintenance costs are unquantified. The independent behavior oracle and separate output/resource expectation are the smallest suitable next proof. Missing implementation measurements do not make this contract recommendation fail.\n\n**3. Q-R10 — Correct freeze and activation decision.**  \nThe response follows [Freeze and Errata](/work/SKILL.md:160): paused recovery still falls within recovery, so an ordinary useful addition waits. Later substantive change requires qualification and atomic replacement of the single active baseline.\n\nThe identities remain correct: **2.0.1** is the fixture’s qualified baseline at `1ce4852016e2a883cf1f733c6014c45e176bfc69`; supplied **2.0.2** is staged, with `contentCommit=Unknown`. The historical commit is not assigned to the candidate. A version banner does not establish activation.\n\nNo runtime saving or generated cost is established. Authoring, source review, discriminating cases, dependent qualification, independent review, and impact audit are attributable process costs, with no supplied effort totals. Final qualification and content binding remain missing evidence, not an invented stub or automatic failure.\n\n**4. Q-R11 — Correct effects, closure, and cost boundaries.**  \nDynamic-address `poke` remains legal. The response preserves address/value evaluation, conversions, ordered write identity, count, and effects. [Final Storage Closure](/work/references/sfa-and-abi.md:409) prohibits downstream discovery of new function storage; [pointer lowering](/work/references/6502-lowering-casebook.md:824) requires suitable pointer placement and selected-CPU bus reasoning.\n\nThe packet’s **6 code bytes/11 cycles** are faithfully reported as a fragment, without independent numerical verification. The **2 private ZP bytes** are counted once. Evaluation/staging, pointer initialization, callers/helpers, returns, saves, spills, concurrent homes, data/padding, stack, bus traffic, and applicable banking/path conditions remain `Unknown`. Comparing against a literal-address store would omit different address work, so no parity ratio follows.\n\nThe remedy—declare the home before closure, use contract-covered reserved scratch, or recompute closure—addresses the finding without restricting source. Identified source/options, pre/post-closure inventories, and instructions are the appropriate first probe.\n\n**5. Q-A15 — Correct authority correction and bounded costs.**  \nThe stronger packet authority establishes that NMOS entry leaves D unchanged; W65C02S differs. The relevant authority records are [MOS programming/hardware sources](/work/references/source-manifest.md:613), [the WDC delta](/work/references/source-manifest.md:674), and [the pinned KERNAL paths](/work/references/source-manifest.md:753). The response correctly limits `Verified complete` to the documented fact and keeps compiler output, execution, candidate qualification, and activation `Unknown`.\n\nThe numerical expectations agree with [the NMI baseline](/work/references/c64-memory-and-runtime.md:367):\n\n| Route | Wrapper cycles | Output bytes | Acceptance-to-boundary cycles | Route stack component |\n|---|---:|---:|---:|---:|\n| NMINV chain | `43+C` | `16+B` | `57+C` to predecessor | 7 bytes |\n| Exclusive NMINV | `37+C` | `12+B` | `51+C` through return | 6 bytes |\n| Raw NMI | `37+C` | `12+B` | `44+C` through return | 6 bytes |\n\nNMINV includes **7 hardware cycles plus a 7-cycle, 4-existing-ROM-byte stub**, contributing zero output bytes. `CLD` costs **1 byte/2 cycles**; `PHP` plus `PLP` costs **2 bytes/7 cycles and one peak stack byte**. These already belong in applicable wrapper totals. The chain’s two-byte saved link is separate storage.\n\nPredecessor paths, body/helpers, live mainline stack, nesting, source handling, installation, banking, data/padding, and stalls remain additional or unknown. A handler relying on false D normalization performs different work from a correct handler, so its smaller cost cannot establish parity. The focused NMOS-D=1/CMOS regression, changed/dependent qualification, and targeted decision dispositions satisfy the frozen recovery invariant; completed qualification is not claimed.\n\nThere is also a **Major packet/source inconsistency**: the [manifest’s Q-R04 row](/work/references/source-manifest.md:1574) makes lowering conditional on emitted-code review, while the frozen oracle requires it unconditionally. This explains the routing failure but does not change the grade. Reconcile that conflict through the governed version/qualification process; do not silently rewrite the oracle.\n\n**Final unresolved counts:** captured-response defects **0 Critical / 1 Major / 0 Minor**; separate packet/source inconsistencies **0 Critical / 1 Major / 0 Minor**. These are two linked findings. The hypothetical critical CPU falsehood is the audit subject, not a false statement newly introduced by the response. No separate historical response capture was supplied, so none is retroactively failed or relabelled."
+```
+
+</details>
+
+<details>
+<summary>2.0.2 nmi-final: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/nmi-final`. Raw run-log SHA-256: `08cc29952e69d31b74c1137af074dcce54b31c8696b3b140a9d4aeb210c55ab0`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `a79cde45c00b157bf698a1fbd579556ee5e79bf4e3cc268d974d6fc5280367d4`; packet-record SHA-256: `6897d1453d5d6ef4e6e90bf341bc517de6ac99e2309434e1683943e89f205006`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+03ecf37e0da86fa26e88d2fc5295a3f6363b6c12a6f4e1e0fb2ffa81414ee76c  request.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+```
+
+Verbatim captured text uses lossless JSON-string encoding to retain original hard-break spaces
+and final newline without adding Git trailing-whitespace errors. Decoding the string reproduces
+the captured UTF-8 bytes and SHA-256 above; no evaluator text or result was changed.
+
+```json
+"The supplied behavior is wrong where it shares overlapping private homes, substitutes hardware-stack frames for SFA, accepts escaping local addresses, or confuses raw and firmware interrupt ABIs. The cooperative NMI exception permits a proved reentrant generated path without private RAM/ZP homes; it does **not** prove unrestricted stack safety, firmware completion, or finite timing.\n\nThis is a packet-only contract assessment. Required behavior below is a **Fact** from the specification; instruction arithmetic and consequences of the hypothetical paths are **Inferences**. Remedies are **Recommendations**. Actual compiler output, artifact construction, VICE behavior, and silicon behavior each have status **Unknown**.\n\nLineage throughout: `skillVersion=2.0.2`; declared knowledge identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. The skill’s immutable content commit and qualification/activation status are **Unknown**. No qualification files were read, and the partial specification packet cannot independently reproduce the full specification digest. Governing source keys are `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6510-1982`, `CBM-C64-PRG-1982`, `CBM-C64-KERNAL-03`, and `MOS-6526-1981`, as applicable below.\n\n**Q-L08 — Overlapping mainline and IRQ helper storage**\n\n**Status: Incorrect; claim kind: Inference**, for the supplied provisional allocator that shares H’s private homes.\n\nAn IRQ can interrupt H after mainline has written its scratch but before its last use. The IRQ’s invocation can overwrite that scratch; mainline then resumes with changed intermediate values, pointer bytes, or results. Interrupt register restoration does not restore RAM/ZP scratch.\n\nH’s complete private inventory must therefore have distinct mainline and IRQ instances:\n\n| H resource | One instance | Two overlapping instances |\n|---|---:|---:|\n| RAM | 8 bytes | 16 bytes |\n| ZP pointer | 2 bytes | 4 bytes |\n\nThat is an additional **8 RAM bytes and 2 ZP bytes** compared with one shared instance. Placement and possible overlay with other, non-overlapping functions require the final interference proof. The private-free NMI ingress supplies no third H instance because it does not call H.\n\nThe proof must include parameters/results, caller staging, locals, temporaries, spills, pointer pairs, and every transitive helper’s scratch. Caller values live across calls interfere with callee storage; mainline private values also interfere with feasible preempting IRQ private values. Storage-free code can remain shared. Fixed absolute home references or calls to specialized helpers require corresponding machine-code variants; their code-byte and cycle costs are unknown without selected bodies.\n\nGlobals remain shared. A visible shared read/modify/write hazard receives **W10211**; a tearing multi-byte access receives **W10212**. SFA separation must preserve actual shared access order and must not insert masking or duplicate globals.\n\nFor bounded stack analysis, sum simultaneously live call returns, interrupt frames, saves, and explicit pushes. Compare that unchanged demand with capacity minus reserve. Do not subtract reserve from measured demand. Unbounded storage-bearing overlap is **E10245**, and a finite resource excess uses the applicable budget error.\n\nThe responsible boundary is whole-program call/preemption analysis plus **final SFA/resource binding**, including helper discovery after selection. The smallest remedy is to add the missing interference and allocate H’s disjoint homes, specializing code only where required.\n\nSources: [Ch 06 §7.5–7.6](/work/spec/06-functions.md:757), [Ch 11 §3.4](/work/spec/11-memory-model.md:157), [fixture](/work/request.md:102); skill lineage `sfa-and-abi.md#interference-and-reentrancy`, `#final-storage-closure`, and `#hardware-stack-duties`.\n\n**Q-L11 — Hardware-stack locals and restored opcode intrinsics**\n\n**Status: Incorrect; claim kind: Fact**, for both proposed changes.\n\nSpecification 4 retains SFA as the sole general execution-storage model. Ordinary parameters, locals, results, staging, temporaries, spills, and helper scratch belong in statically allocated homes or their proved register representation. Their source lifetimes and concurrent instances still determine interference.\n\nThe hardware stack has separate owners:\n\n| Use | Stack demand | Ownership |\n|---|---:|---|\n| Active ordinary `JSR` | 2 bytes | Matching ordinary `RTS` |\n| Accepted IRQ/NMI | 3 bytes | Matching interrupt terminal |\n| Selected register saves | Normally 3 bytes | Compiler or firmware ABI |\n| Live source `asm_php()` | 1 byte | Matching source `asm_plp()` in that activation |\n| Generated chain-status save | 1 byte | Generated wrapper |\n\nA source pull cannot consume caller saves, return addresses, CPU interrupt frames, or generated ABI saves. Source status analysis starts empty relative to each function entry; joins/backedges must agree, and exits must return to empty. Violations are **E10248**. Compiler-controlled unbounded stack growth is **E10245**.\n\nThe complete public CPU-control surface is:\n\n`asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, `asm_nop`.\n\nThus `asm_pha`, `asm_pla`, and `asm_brk` are ordinary unresolved names—**E10239** absent an ordinary declaration—not restored language intrinsics. Hardware instruction availability does not expand the source language.\n\nEach permitted intrinsic emits its specified effect exactly once:\n\n| Intrinsic | Bytes | Cycles |\n|---|---:|---:|\n| `asm_sei`, `asm_cli`, `asm_nop` | 1 | 2 |\n| `asm_php` | 1 | 3 |\n| `asm_plp` | 1 | 4 |\n\nThe analysis adds **zero runtime instructions and zero SFA bytes**. `SEI` does not block NMI.\n\nCompiler-generated `PHA`/`PLA` remain legal ABI instructions. `BRK` hardware semantics—seven acceptance cycles, three stack bytes, shared IRQ vector, represented B set—do not authorize a public `asm_brk`. The supplied primary KERNAL source also shows a stock warm-start terminal through `$A002`, rather than a guaranteed return to the instruction after BRK.\n\nThe smallest remedy is to retain SFA and the closed intrinsic surface, with existing stack-kind/depth analysis and ABI-owned save/restore lowering. A general local stack would violate the contract and require unspecified access, preservation, and resource costs.\n\nSources: [A2](/work/spec/00-introduction.md:63), [hardware-stack rules](/work/spec/11-memory-model.md:262), [closed intrinsics](/work/spec/12-intrinsics.md:25), [diagnostic registry](/work/spec/14-diagnostics.md:216), [primary warm-start path](/work/primary/kernal-rs232nmi:27); skill lineage `sfa-and-abi.md#hardware-stack-duties`, `mos-6502-family.md#reset-interrupt-and-stack-behavior`. Any older summary describing a public bound BRK form is superseded by the raw Specification 4 surface.\n\n**Q-L25 — A two-byte slot discovered after provisional allocation**\n\n**Status: Verified complete; claim kind: Fact**, for the contract allowing discovery after *provisional* allocation.  \n**Status: Incorrect; claim kind: Inference**, if the slot bypasses final SFA closure.\n\nLate discovery is expected. Legalization can introduce a helper or expanded operation; binding can introduce a spill. The new slot must carry its value identity, width, live interval, region/visibility constraints, clobbers, call edges, and execution domain back into allocation.\n\nThe compiler must then recompute interference, placement, specialization, and budgets before freezing homes. Otherwise the two bytes can overlap a live argument, borrowed local, result, helper scratch, or preempted invocation and change observable values or memory accesses.\n\nFor the supplied request:\n\n- A simultaneously live spill requires **2 bytes per overlapping private instance**.\n- If it is RAM storage live alongside all eight existing H bytes, each H instance becomes 10 RAM bytes: **20 RAM bytes plus 4 ZP bytes** for mainline and IRQ.\n- Whether existing dead ranges can absorb some or all of that increment is **Unknown** until the new live interval is supplied.\n- Loads/stores, helper code, added calls, register saves, and changed addressing costs are also **Unknown** without the selected operations.\n\nAllocation must converge with bounded progress. After closure, a transformation needing new storage must use a previously proved reservation or reopen closure. The emitter cannot take anonymous RAM/ZP.\n\nThe responsible seam is **legalization/helper discovery → resource binding → SFA closure**. The smallest remedy is to return this slot to the existing inventory and rerun affected allocation; no new runtime or generalized framework is required.\n\nSources: [complete private closure](/work/spec/06-functions.md:804), [final allocation rule](/work/spec/11-memory-model.md:157); skill lineage `sfa-and-abi.md#final-storage-closure`, `il-and-optimization.md#legalization`, `compiler-architecture.md#function-storage-reaches-closure`.\n\n**Q-L29 — One handler identity, three IRQ routes, and a direct CINV write**\n\n**Status: Verified complete; claim kind: Fact**, for the route contracts. The incompatible direct write is **Incorrect**. Actual materialized variants are **Unknown** because no artifact is supplied.\n\n`onRasterIRQ` remains one callback-only source handler. It cannot be called ordinarily: **E10051**. Its helper remains an ordinary `JSR`/`RTS` function.\n\nProvenance-preserving same-kind values retain handler identity, allowing recognized sinks to select an entry variant. Conversion to numeric `word` erases handler proof: a recognized sink then rejects unknown/erased provenance with **E10247**. An ordinary function supplied as a handler is **E10244**.\n\nLet `B` be body/helper cycles, `A` source-acknowledgement cycles, and `P` the complete predecessor path. The baseline costs below exclude interrupted-instruction completion and bus stalls.\n\n| Applicable route | Generated sequence and terminal | Generated wrapper bytes | Acceptance-to-terminal/chain cycles | Base entry stack |\n|---|---|---:|---:|---:|\n| Cooperative `setIRQ` | `PHP; CLD; body/ack; PLP; JMP (prior)` | 6 | `50+B+A+P` | 7 |\n| Cooperative `setIRQExclusive` | `CLD; body/ack; JMP $EA81`; ROM restores Y/X/A and executes `RTI` | 4 | `63+B+A` | 6 |\n| Takeover `setRawIRQ` | Compiler saves A/X/Y; `CLD`; body/ack; restores Y/X/A; `RTI` | 12 | `44+B+A` | 6 |\n\nThe components are:\n\n- Hardware acceptance: **7 cycles, 3 stack bytes, zero output bytes**.\n- KERNAL PULS-to-CINV: **29 cycles, 16 existing-ROM bytes, zero output bytes**, adding three register saves.\n- Chain wrapper: **14 cycles**; its status normalization is 3 bytes/9 cycles and its indirect tail 3 bytes/5 cycles.\n- Exclusive wrapper: **5 cycles**; `$EA81` adds **22 cycles and 6 existing-ROM bytes**, with zero output bytes.\n- Raw save/normalize/restore/RTI wrapper: **37 cycles**.\n\nThe first body instruction occurs after **41 cycles** for the chain, **38** for exclusive CINV, and **22** for raw entry.\n\nCINV already owns the A/X/Y saves: neither CINV variant repeats them. Chaining restores entry flags, including D, before reaching the predecessor. Exclusive/raw bodies also begin with D clear, but their eventual `RTI` restores the complete interrupted status, including the interrupted D and I. Specification 4 exposes no raw decimal-control intrinsic.\n\nAn ordinary direct helper call contributes a **3-byte `JSR`, six call cycles, and two live stack bytes**; its `RTS` is one byte/six cycles in the helper. Body, marshalling, scratch, and deeper calls are additional.\n\nVIC raster acknowledgement remains explicit developer behavior. The reference immediate form `LDA #$01; STA $D019` costs **5 bytes/6 cycles** and performs one selected write. That is an expectation, not evidence that this fixture emitted it. Generic NMOS RMW is not automatically equivalent.\n\nEach live installation needing restoration owns a **two-byte predecessor word**, including exclusive installations even though their handler wrapper has no chain-link operand. Installation nesting is compile-time LIFO; inconsistent joins/restores or ownership-invalidating writes are **E10278**, and unbounded installation depth is **E10245**. Installer/restorer code costs are unknown.\n\n`$30FE` is a valid indirect-link start: its bytes are `$30FE/$30FF`. `$30FF` is invalid for the ordinary NMOS indirect form: its high-byte fetch comes from `$3000`, not `$3100`. Relocate it or diagnose placement.\n\nThe default build’s visible `pokew($0314, &onRasterIRQ)` is **E10252**: outside the recognized sink it exposes raw-entry dependency, while CINV requires the post-save ABI. That erroneous build emits **no artifact**. The table describes paths after fixing that error.\n\nAvailability is profile-specific. Cooperative profiles expose CINV helpers and exclude raw installation; takeover profiles expose proved raw paths and exclude KERNAL CINV helpers. If `$FFFE/$FFFF` is not proved writable **and active**, `setRawIRQ` is unavailable. Writable underlying RAM alone is insufficient while ROM still supplies the active vector. A genuinely opaque raw boundary cannot be certified.\n\nOnly reachable variants are emitted. Alternative IRQ routes do not automatically require simultaneous private frames when they cannot overlap; nesting and preemption determine that. Every duplicated body, specialized helper, private home, live link, installer, and padding byte must nevertheless be charged.\n\nThe smallest remedy is identity-preserving sink selection with the correct ABI, final SFA closure, page-safe links, and lifecycle checks.\n\nSources: [interrupt contracts](/work/spec/06-functions.md:669), [installation/ownership](/work/spec/06-functions.md:810), [function provenance](/work/spec/06-functions.md:895), [profile sink rules](/work/spec/15-platform-profile.md:243), [C64 route costs](/work/spec/appendix-c64.md:746); skill lineage `sfa-and-abi.md#interrupt-route-completion-gate`, `c64-memory-and-runtime.md#revision-pinned-irq-cost-baselines`, `c64-hardware.md#volatile-and-rmw-policy`.\n\n**Q-L32 — Local-address provenance and lifetime**\n\n**Status: Verified complete; claim kind: Fact**, for the borrow contract. Accepting the described escapes, or silently pinning L, is **Incorrect**.\n\nA static physical address does not give an automatic local a program lifetime. The borrow belongs to L’s lexical scope, current invocation, and—where applicable—current loop incarnation.\n\n| Use | Required result |\n|---|---|\n| `p=&L`; word copies and casts | Legal within lifetime; retain L provenance |\n| Conditional selection | Retains every contributing local origin |\n| `q=p+1`, arithmetic or bitwise derivation | Retains provenance; ordinary word arithmetic wraps modulo 65,536 |\n| `lo(q)` / `hi(q)` | Both fragments retain provenance |\n| Store p in a lifetime-contained local aggregate | Legal; aggregate contents retain provenance |\n| `peek`/`poke` using p as an address while L lives | Legal address consumption, subject to ordinary access/mutability rules |\n| Load ordinary data through p | Loaded data does not inherit address provenance |\n| U forwards to V, with every V path non-retaining | Legal; transitive user-function proof required |\n| V retains p globally on any reachable path | **E10260**, with origin and U→V escape path |\n| Return `low`, p, q, or another derived fragment | **E10260** |\n| Store derived address data in module/ZP state, raw memory, or MMIO | **E10260** |\n| Publish to IRQ or hardware consumer | **E10260** |\n| Unknown/external/opaque consumer | **E10260**, absent the required proof |\n| Observe a loop-local address from another iteration | **E10260** |\n\n“V reads synchronously” is sufficient only when inspection proves that **every reachable path** dereferences, mutates, copies locally, or forwards solely within the referent’s lifetime. A synchronous function can still retain an address. User summaries are inferred transitively; library/platform parameter positions need an explicit non-retaining contract.\n\nEach independent escaping use is rejected; diagnostics identify the first escape along that path and its local origin. The full source design containing these escapes therefore produces no artifact. Known writes through read-only-derived storage independently violate **E10123**. Numeric `p+1` also does not establish that a later access targets a valid object; the packet supplies insufficient object-size/access facts to decide that.\n\nRequired interference includes:\n\n- L against every live callee home while U/V can observe its borrow.\n- Caller staging/results and other values that survive U/V.\n- Mainline L and other private homes against feasible IRQ private homes.\n- The two concurrently live instances of the owner and every storage-bearing transitive helper.\n- U/V storage against callers or each other wherever their live values overlap.\n\nDead storage need not interfere merely because it belongs to a caller. Proven mutually exclusive sibling paths may overlay.\n\nSequential calls and later iterations may reuse the same home after all legal borrows end. Earlier identity is unobservable; the language promises neither fresh nor stable cross-lifetime addresses. Mainline plus one bounded IRQ require two disjoint live instances. Materializing different fixed `&L` constants, accessing different homes, or calling specialized callees requires corresponding variants. Register-only storage-free code with identical targets may remain shared. Unbounded private overlap is **E10245**.\n\nCosts:\n\n- Provenance and non-retaining analysis: **zero runtime metadata, checks, or calling-convention fields**.\n- Addressable L: `sizeof(L)` bytes per required live instance; its size is unspecified.\n- Materialized word copies/parameters: two bytes each; fragments: one byte each; aggregate size and final overlay are unspecified.\n- Caller→U→V adds four live return-address bytes for those two calls, before other stack terms.\n- Fixed-address materialization into an absolute word destination has the supplied reference cost **10 bytes/12 cycles**, or **8 bytes/10 cycles** for ZP stores. Folding/register reuse may remove that work.\n- `lo`/`hi` can add no instructions when the selected byte is already available; otherwise count the actual load.\n- Final ROM/RAM/ZP, copy, helper, and instruction costs remain **Unknown** without selected code and liveness.\n\nPinning L for program lifetime changes the automatic-local contract, exposes otherwise forbidden cross-call identity, prevents legitimate reuse, and can introduce shared-state collisions. It is **not equivalent**. The smallest remedy is hidden provenance and transitive containment analysis, followed by ordinary SFA liveness/variants. Persistent data should be explicitly module-owned or caller-owned.\n\nSources: [Ch 04 §8.3](/work/spec/04-expressions-operators.md:378), [non-retaining parameters](/work/spec/06-functions.md:395), [memory/lifetime rules](/work/spec/11-memory-model.md:106), [E10260](/work/spec/14-diagnostics.md:235); skill lineage `sfa-and-abi.md#lifetime-model` and `#local-address-borrow-completion-gate`.\n\n**Q-P07 — Selecting IRQ/NMI ownership**\n\n**Status: Verified complete; claim kind: Fact**, for the route distinctions.  \n**Status: Unknown; claim kind: Unknown**, for a complete machine-specific timing/ownership certificate: exact silicon revisions and complete source-enable state are absent.\n\nFor the supplied requirement to retain normal input and RESTORE behavior, choose **cooperative chaining**. Exclusive KERNAL entry and raw takeover are expressible ownership choices only when their larger obligations are discharged.\n\nThe supplied cooperative contexts are:\n\n- `c64-pal-prg-kernal-6581`\n- `c64-pal-prg-kernal-8580`\n- `c64-ntsc-prg-kernal-6581`\n- `c64-ntsc-prg-kernal-8580`\n\nEach is a stock unexpanded C64 with NMOS 6510, one SID at `$D400`, and KERNAL **901227-03**. PAL uses the 312×63 baseline at 985,248 cycles/s; NTSC uses 263×65 at 1,022,730 cycles/s. These identify baseline timing records, not an exact board/VIC/CIA silicon revision. Exact revisions remain unknown.\n\nThe compiler owns processor-port mask `$07`: low mapping bits are `$06` cooperatively, `$05` for takeover, driven as outputs. Bits 3–7 are preserved; whole-byte `$36/$35` values are only examples. CIA2 `$DD00/$DD02` ownership is preserved; their exact values are unspecified.\n\nCooperatively, ROM and I/O remain visible:\n\n- IRQ hardware vector enters PULS, then CINV `$0314/$0315`, after A/X/Y saves.\n- NMI hardware vector enters `$FE43`, then NMINV `$0318/$0319`, without saves or decimal normalization.\n- This fixture’s predecessor NMINV is fixed `$FE47`. A general CINV installer must save its actual predecessor.\n\nTakeover first populates both underlying RAM vectors, `$FFFE/$FFFF` and `$FFFA/$FFFB`, before exposing them. Both sides of the banking transition must remain valid; `SEI` cannot make the NMI transition safe.\n\nThe complete source audit must enumerate:\n\n| Source class | Required accounting |\n|---|---|\n| VIC IRQ | Raster, sprite/background collision, sprite/sprite collision, light pen; enabled masks and pending state |\n| CIA1 IRQ | Timer A/B, TOD alarm, serial completion, FLAG |\n| CIA2 NMI | Timer A/B, TOD alarm, serial completion, FLAG; retained firmware ownership here |\n| Physical RESTORE | Remains possible; unbounded external arrival |\n| Cartridge/expansion | Absent under the qualified stock profile; different configurations need their own contract |\n\nThe packet fixes VIC raster handling and one non-self-nesting IRQ, but does not list all actual masks/pending states or RS-232 activation. Stock CIA1 Timer A service must be retained or deliberately disabled/handled. No all-source certificate follows merely from a raster acknowledgement.\n\nOwnership is divided as follows:\n\n- **Compiler:** callback identity, ABI variant, register/status/D restoration, ordinary helper ABI, private storage, stack/resource analysis, reachability and diagnostics.\n- **Platform/profile/library:** exact vector/ROM/bank contracts, typed installation and restoration, immutable links, publication rules, resource windows.\n- **Developer:** owned device source actions, exclusive handling/disablement of every remaining source, shared-state protocol, and actual timing assumptions.\n\nIRQ costs are those in Q-L29. NMI baseline costs are:\n\n| NMI route | Generated wrapper bytes | Acceptance-to-chain/completion cycles | Entry stack | Existing ROM |\n|---|---:|---:|---:|---|\n| NMINV chain | 16 | `57+B+A+P` | 7 | 4-byte/7-cycle stub; predecessor additional |\n| Exclusive NMINV | 12 | `51+B+A` | 6 | 4-byte/7-cycle stub |\n| Raw NMI | 12 | `44+B+A` | 6 | No firmware entry stub |\n\nA general NMINV chain saves status **before** A/X/Y and restores registers **before** status. Exclusive/raw NMI rely on final `RTI` for interrupted P/D restoration. CIA2 ICR has exactly one consuming owner: a simple stock chain does not read it; an owning replacement reads once and handles every returned bit.\n\nEach live install requiring restoration has a two-byte static predecessor word. Only reachable wrappers/bodies/helpers are emitted. Links, handlers, homes, and terminal code must remain visible throughout every reachable bank state and live route.\n\nCooperative resources are 256 stack bytes minus 20 reserve = **236 usable bytes**, 142 allocatable ZP bytes, and one shared **51,199-byte** code/data/BSS span. Takeover has zero firmware reserve but must charge all owned entries. The standard BASIC stub contributes **12 payload bytes**; the PRG load-address header contributes **2 container bytes**, excluded from payload. Installer, startup, loader, initialization, padding, and full body costs/time are individually unknown without artifacts.\n\nOn final cooperative exclusive IRQ release, the platform must restore stock CIA1 service: clear masks, stop timers, consume ICR once, reload Timer A low/high with PAL `$4025` or NTSC `$4295`, restore exact CINV, enable Timer A and start it while preserving TOD configuration. Arbitrary old write-only masks/latches cannot be recovered by reads. Emitted release costs remain unknown.\n\nA decisive counterexample is placing a raw save/restore/RTI handler into CINV. Firmware has already pushed A/X/Y; raw `RTI` then consumes the wrong stack bytes. E10252 correctly rejects the visible write.\n\nIndependent proof must first establish actual artifact identity, bytes, placement, vectors and configured machine. Then check entry D/register state, save ownership, acknowledgement count/order, terminal P/PC/S, shared effects, publication states, and stack demand against separate instruction/resource expectations. VICE 3.10 observations would be configuration-bound; RESTORE, CIA-edge, silicon and nesting claims require targeted physical evidence. None is supplied.\n\nSources: [profile identities](/work/spec/appendix-c64.md:10), [banking/startup](/work/spec/appendix-c64.md:217), [IRQ/NMI contracts](/work/spec/appendix-c64.md:746), [primary NMI](/work/primary/kernal-rs232nmi:2); skill lineage `c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts`, `#revision-pinned-nmi-contracts-and-costs`, `#stock-cia1-service-on-final-exclusive-release`, and `c64-game-engineering.md#machine-bound-workload-completion-gate`.\n\n**Q-P24 — Cooperative NMI and every numbered fixture**\n\nThe four cooperative PRG profiles above admit a complete transitive generated NMI path proved reentrant without invocation-private RAM/ZP homes. NMI remains non-self-masking and externally unbounded. This admission policy leaves unrestricted aggregate stack and retained-firmware reentrancy/completion **Unknown**.\n\nAll cases retain callback-only handler identity, ordinary helper `JSR`/`RTS`, binary body entry, exact outgoing status, source ownership, visibility, and vector/link lifetime obligations.\n\n**1. The exact private-free ingress at `$2147`**\n\n**Status: Verified complete; claim kind: Inference**, for the supplied hypothetical sequence’s bounded instruction/state/cost analysis. Actual generated-artifact and runtime boundaries remain **Unknown**.\n\n`PHP` saves entry status before flag-changing work; `PHA` preserves A; `CLD` establishes binary mode. X/Y are untouched. `PLA` restores A but changes N/Z, so the following `PLP` is necessary. The indirect jump preserves the restored register/status state for `$FE47`.\n\nThe generated path has no private RAM/ZP homes or helper calls. ACTIVE and INTERFERED are shared globals. Repeated constant-one stores and constant `$7F` port writes do not overwrite another activation’s private state. Every nested entry still performs its own source-defined accesses and chain.\n\nThe exact instruction accounting is:\n\n| Instruction | Bytes | Cycles |\n|---|---:|---:|\n| `PHP` | 1 | 3 |\n| `PHA` | 1 | 3 |\n| `CLD` | 1 | 2 |\n| `LDA $3000` | 3 | 4 |\n| `BEQ chain` | 2 | 3 taken / 2 not taken |\n| `LDA #$01` | 2 | 2 |\n| `STA $3001` | 3 | 4 |\n| `LDA #$7F` | 2 | 2 |\n| `STA $DC00` | 3 | 4 |\n| `PLA` | 1 | 4 |\n| `PLP` | 1 | 4 |\n| `JMP ($3002)` | 3 | 5 |\n\nThus:\n\n- Code: **23 bytes**, `$2147–$215D`.\n- `chain=$2159`; branch displacement `$0A`, within page `$21`.\n- Inactive generated path: **28 cycles**.\n- Active generated path: **39 cycles**.\n- Hardware acceptance: **7 cycles/3 stack bytes**.\n- ROM stub: **7 cycles/4 existing-ROM bytes**, zero output bytes.\n- Acceptance to `$FE47`: **42 inactive / 53 active cycles**.\n- Generated one-entry peak: **5 stack bytes**—CPU 3, PHP 1, PHA 1.\n- Private RAM/ZP: **0/0**.\n- Shared/static data footprint: **4 RAM bytes**—ACTIVE, INTERFERED, and the two-byte PRIOR.\n- `$3002` is a page-safe indirect-link start.\n\nInitializing PRIOR as a serialized word would add two output data bytes; complete data initialization and sparse-image padding are not supplied. The 23 code bytes exclude ROM bytes and installer/remover code.\n\nOn entry to `$FE47`, the generated PHP/PHA bytes have been removed, leaving the CPU’s three-byte frame. Stock A/X/Y saves then reach six live bytes for that unnested prefix. Their prefix costs **13 cycles/5 existing-ROM bytes**. The normal stock register-restore/RTI tail costs **22 cycles/6 existing-ROM bytes**. Stock calls, source branches, and nonreturning RESTORE+STOP behavior remain additional; five bytes is not the full route or program peak.\n\nThe generated chain performs **zero CIA2 ICR reads**. Stock NNMI owns its mask write and consuming read. Restoring entry D before chaining and eventual interrupted D on a stock `RTI` preserves the ABI; it does not independently prove stock arithmetic or nested firmware correctness.\n\nPublication/removal changes only NMINV high byte `$0319`: `$FE47 ↔ $2147`. The unchanged low byte `$47` means every vector state names one complete valid route. PRIOR remains immutable and all code/data already exists. An NMI between instructions therefore sees the old or new route. An old in-flight ingress remains safe because its code/data/link survive removal.\n\nThe selected high-byte `STA` itself is **3 bytes/4 cycles**; an immediate load plus store is **5 bytes/6 cycles** if that form is selected. Complete caller-preserving installation/removal sequences are absent and remain unknown.\n\n**2. Empty-looking source with mutable helper scratch**\n\n**Status: Incorrect; claim kind: Inference**, for accepting this route under the exception.\n\nThe transitive final inventory contains **2 private ZP bytes and 2 private RAM bytes per invocation**. With no finite nested-NMI bound, no finite number of disjoint instances suffices. Reject with **E10245**.\n\nSource brevity proves nothing about scratch. The smallest remedy is an equivalent selected form with no private homes, if available, or rejection under the supplied unbounded contract. No nesting guard or dynamic allocator follows.\n\n**3. Register-only local and home-free helper**\n\n**Status: Verified complete; claim kind: Fact**, for expressibility under the stated selected-instruction proofs.\n\nNeither a local declaration nor a helper call is grounds for rejection. If the complete transitive path has no private RAM/ZP homes and its register/status/device effects are proved reentrant, it qualifies.\n\nA real direct helper call adds **3 call-site bytes, 6 call cycles, 2 stack bytes**, plus its body and one-byte/six-cycle `RTS`. Its body and total cost are unspecified. Any selected save or spill must be charged; a late private spill would invalidate admission.\n\n**4. Shared counter versus constant-one flag**\n\n**Status: Verified complete; claim kind: Inference**, for the hazard distinction. Empty private inventory alone is insufficient.\n\nFor the counter:\n\n1. Outer entry loads n.\n2. Nested entry stores n+1.\n3. Outer resumes and stores n+1.\n\nOne update is lost: **W10211**. The source remains expressible with that warning; the compiler must preserve its interleaving and must not promise atomic counting. A shared multi-byte value can also produce **W10212**.\n\nA flag set only to one by nested entries has an idempotent effect: nested setters do not lose the “at least one interference” indication. Clearing it, interpreting it as an event count, or coordinating other writers needs a separate protocol proof.\n\nThe compiler must neither clone the globals nor silently mask NMI, and every specified write remains observable. Exact costs require selected instructions.\n\n**5. Growing status cycle, recursion, and the 237-byte candidate**\n\nEach supplied candidate has a separate result:\n\n| Candidate | Status / claim kind | Required diagnostic |\n|---|---|---|\n| Unmatched generated status push per iteration | **Incorrect / Inference** | **E10245**: compiler-controlled unbounded stack demand |\n| Direct recursive call cycle | **Incorrect / Fact** | **E10180** |\n| Indirect recursive cycle | **Incorrect / Fact** | **E10181**, ordered cycle |\n| Finite 237-byte demand, capacity 256, reserve 20 | **Incorrect / Inference** | **E10238** |\n\nFor the finite candidate:\n\n`237 > 256 − 20 = 236`\n\nIt exceeds usable capacity by **one byte**. Reserve changes capacity, not measured use. It also reaches the 188-byte warning threshold, but the hard error controls artifact emission.\n\nA corresponding source `asm_php` loop additionally violates equal-depth backedges/exit state under **E10248**. Generated pushes do not become legal merely because their source body looks balanced.\n\n**6. No installed generated handler**\n\n**Status: Incorrect; claim kind: Inference**, for the reporter’s full-program safety, completion, and deadline claims.\n\nInstalling no generated hook contributes zero generated NMI wrapper/link costs. It does not remove stock RESTORE/RS-232 routes or physical NMI arrival.\n\nThe finite mainline/IRQ stack demand is valid only for that bounded component. Firmware reserve is neither an external-arrival bound nor proof of firmware reentrancy/completion.\n\nThe primary source supplies an independent counterexample to assumed finite completion: `UD60` and `UD70` repeatedly sample ROWS until two reads agree. Changing physical inputs or nested activity can keep them unequal; no finite iteration bound is supplied. NNMI calls `UD60`, and RESTORE+STOP can warm-start BASIC instead of returning to the interrupted program.\n\nA finite raster deadline requires actual arrival/completion bounds, interrupt recognition latency, every generated and retained-ROM path, nested calls, and VIC bus availability. One-entry cost supplies none of those aggregate guarantees.\n\nSources: [input-stability loops](/work/primary/kernal-time:49), [NNMI calls and warm-start branch](/work/primary/kernal-rs232nmi:20).\n\n**7. CIA2 ICR consumption, two-byte publication, and reused links**\n\nAll three proposed failures are **Incorrect / Inference**:\n\n- **Read CIA2 ICR, then chain to stock `$FE47`:** the first read clears returned pending bits. Stock’s later read can lose source information or enter the wrong path. A simple chain must leave ICR consumption to stock. A complete explicitly selected replacement could own one read and dispatch its saved bitset, but its storage and every path require proof.\n- **Update both NMINV bytes under `SEI`:** NMI remains possible between stores and can observe a torn address. Require a real quiescent window or proof that every intermediate route is valid. The fixed one-byte case has that proof.\n- **Overwrite a predecessor while an interrupted old ingress can use it:** violates link lifetime, even if the vector now names a newer route. Keep each live route’s link intact; helper lifecycle mismatches are **E10278**. Failed generated-reentrancy proof remains **E10245**.\n\nNo universal runtime registry is needed. The smallest boundary is compile-time route ownership/lifetime analysis plus direct proved publication.\n\n**Input preservation, scope, and remaining evidence**\n\nThe packet’s known CIA1 latches/DDRs, PBON-off state, and ACTIVE restoration bracket are essential to case 1. `$7F` selects PA column 7 while leaving PA bits 0–4 high; it does not prove a complete keyboard/joystick scanner.\n\nNamed keyboard interpretation must use the actual PA-column/PB-row matrix. RESTORE is a separate NMI input. Joystick port 2 uses PA0–4 and port 1 uses PB0–4, active low. Reads require released lines and accounted keyboard/joystick overlap, including ghosting and ambiguity. Both latches/DDRs and unrelated bits must be preserved.\n\nThe hook records interference but does not establish how saved rows are repaired, interpreted, debounced, or published. Those input behaviors and their costs remain **Unknown**. Keeping stock chaining preserves the intended normal RESTORE route rather than suppressing it; unlimited firmware correctness remains unproved.\n\nRaw takeover and the D64 profile receive **no cooperative private-home-free NMI exception**. Under this same unbounded generated-NMI scenario they cannot inherit PRG admission. Raw takeover owns both vectors and every source/terminal; D64 retains its separate loader contract, including application observer/writer quiescence while required KERNAL service continues. A no-generated-hook program still has explicitly unproved external firmware/stack boundaries.\n\nThe smallest compiler/library remedy is to enforce existing identity, ABI, transitive storage closure, shared-effect diagnostics, and vector/link ownership proofs after final selection. No new runtime, guard, queue, dispatcher, event suppression, or RESTORE suppression is authorized.\n\nSources: [stack and exception rules](/work/spec/06-functions.md:501), [INT-4](/work/spec/06-functions.md:757), [selected-profile scope](/work/spec/15-platform-profile.md:266), [all raw cases](/work/request.md:62), [D64 scope](/work/spec/appendix-c64.md:275), [CIA/input facts](/work/references/c64-hardware.md:201); skill lineage `sfa-and-abi.md#interrupt-route-completion-gate`, `c64-memory-and-runtime.md#revision-pinned-nmi-contracts-and-costs`, `mos-6502-family.md#official-nmos-instruction-and-addressing-grid`.\n\nNo hypothetical path here establishes compiler support or runtime qualification. The smallest later evidence step is actual emitted source, artifact identity, bytes/layout and configuration; execution and physical observations follow that boundary."
+```
+
+</details>
+
+<details>
+<summary>2.0.2 grade-nmi-final: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-nmi-final`. Raw run-log SHA-256: `c193c16b0da2b01003f8f14d8bae4e3b2a02f5c4ae6bf150444e2874f5451fa4`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `fc5831b1a5e6960f54209c8fa8258be5dbb6fbbf2a69b211a79087b6d78ef927`; packet-record SHA-256: `d689e849484eac5ae1107cea673341503af136785c29c8c523cce7cf159db386`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+a79cde45c00b157bf698a1fbd579556ee5e79bf4e3cc268d974d6fc5280367d4  evaluated-answer.md
+03ecf37e0da86fa26e88d2fc5295a3f6363b6c12a6f4e1e0fb2ffa81414ee76c  evaluator-request.md
+a2dfc3aaf80fd5bb48c2a27233a9c6f49051f4ed7be2435a0d9bdce741467c48  oracle.md
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+2428bde628d4a54f9e144fb30136e53218f412134e7c72e6fdcee824cb596d35  request.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+```
+
+> **All seven cases PASS against the frozen oracle.** These are contract-assessment passes; compiler, artifact, VICE, silicon, and activation qualification remain **Unknown**. Two separate findings remain unresolved.
+>
+> I applied the supplied skill version **2.0.2**, retaining its declared `BLEND65-SPEC-4-566da991` identity. Its immutable content commit is Unknown. No qualification files or external sources were read, and no historical capture was reassigned as candidate evidence.
+>
+> | Case | Grade | Decisive evaluated-answer evidence | Independent source and cost assessment |
+> |---|---|---|---|
+> | **Q-L08** | **PASS** | “distinct mainline and IRQ instances”; complete private inventory, transitive helper interference, shared globals, and E10245 are addressed at [lines 13 onward](/work/evaluated-answer.md:13). The raw/CINV mismatch is explicitly rejected elsewhere in the same answer at [line 130](/work/evaluated-answer.md:130). | [INT-4 and complete closure](/work/spec/06-functions.md:757) require the stated separation. Two H instances require **16 RAM + 4 ZP bytes**, an increment of **8 RAM + 2 ZP**. The supplied private-free NMI path never calls H. Code specialization and final placement costs correctly remain Unknown. |
+> | **Q-L11** | **PASS** | “sole general execution-storage model”; five public controls only; removed spellings are unresolved names, **E10239** absent ordinary declarations. Caller/generated stack ownership and **E10248** balance are explicit at [line 36](/work/evaluated-answer.md:36). | [Stack rules](/work/spec/06-functions.md:501) and the [closed intrinsic surface](/work/spec/12-intrinsics.md:25) support this. JSR returns cost **2 stack bytes**, CPU interrupt frames **3**, and each live PHP **1**. All five controls occupy **1 code byte**; SEI/CLI/NOP take **2 cycles**, PHP **3**, PLP **4**. Analysis adds no runtime or SFA storage. |
+> | **Q-L25** | **PASS** | “return this slot to the existing inventory”; recompute interference and budgets; no anonymous emitter storage at [line 77](/work/evaluated-answer.md:77). | [Final allocation](/work/spec/11-memory-model.md:157) and [storage closure](/work/references/sfa-and-abi.md:409) support iterative provisional allocation followed by closure. The spill costs **2 bytes per overlapping private instance**. **20 RAM + 4 ZP** is correctly conditional on RAM placement and simultaneous liveness with H’s existing storage. Overlay and instruction costs remain Unknown. |
+> | **Q-L29** | **PASS** | One callback-only handler; distinct sink variants; explicit VIC acknowledgement; ordinary helper ABI; `$30FE` valid, `$30FF` rejected; visible CINV write **E10252** at [line 98 onward](/work/evaluated-answer.md:98). | [Generated variants](/work/spec/06-functions.md:708), [profile sinks](/work/spec/15-platform-profile.md:243), and [C64 routes](/work/spec/appendix-c64.md:746) agree. IRQ chain/exclusive/raw wrappers cost **6/4/12 bytes**, with base stack **7/6/6 bytes** and cycle formulas **50+B+A+P / 63+B+A / 44+B+A**. Saved predecessor words cost **2 bytes each**. Raw installation requires a writable **and active** vector. Unknown bodies, installers, duplication and layout costs are disclosed. |
+> | **Q-L32** | **PASS** | Copies, conditionals, arithmetic and `lo`/`hi` retain provenance; contained aggregates remain legal; transitive non-retaining positions are required; escapes receive **E10260**, and pinning is rejected at [line 144 onward](/work/evaluated-answer.md:144). | [Borrow semantics](/work/spec/04-expressions-operators.md:378) and [parameter contracts](/work/spec/06-functions.md:395) agree. Sequential reuse is permitted; bounded concurrent invocations need disjoint homes and required address variants. Analysis costs **zero runtime metadata/checks**. L costs `sizeof(L)` per live instance; two nested calls hold **4 return-address bytes**. Address materialization **10 bytes/12 cycles**, or **8/10** to ZP, is explicitly supported by [F006](/work/spec/evaluations/F006-address-of.md:190). Final totals remain Unknown. |
+> | **Q-P07** | **PASS** | Cooperative chaining is selected for retained input/RESTORE; CINV and NMINV saves differ; CIA2 has one consuming owner; raw vectors precede bank exposure; unrestricted safety remains unproved at [line 198 onward](/work/evaluated-answer.md:198). | [Profile identities and machine bounds](/work/spec/appendix-c64.md:10), [bank transitions](/work/spec/appendix-c64.md:217), and [primary NMI entry](/work/primary/kernal-rs232nmi:2) agree. Generic NMI chain/exclusive/raw wrappers cost **16/12/12 bytes**, stack **7/6/6**, cycles **57+B+A+P / 51+B+A / 44+B+A**. Cooperative usable stack is **236 bytes**, ZP **142**, shared allocation span **51,199**; BASIC stub **12 payload bytes**, PRG header **2 container bytes**. Missing source masks, silicon revisions and complete timing remain Unknown. |
+> | **Q-P24** | **PASS** | Every numbered fixture is answered at [line 265 onward](/work/evaluated-answer.md:265), including private scratch rejection, legal register-only locals, shared-effect warnings, stack diagnostics, no-hook limitations, and publication/link failures. | The narrow [INT-4 exception](/work/spec/06-functions.md:757) and [four-profile scope](/work/spec/15-platform-profile.md:266) are preserved. Neither raw takeover nor D64 inherits it. Generated reentrancy is separated from external stack accumulation, retained-firmware completion, and finite deadlines. Detailed checks follow below. |
+>
+> For the route formulas, `B`, `A`, and `P` remain separate body/helper, acknowledgement, and predecessor-path costs. Existing IRQ ROM contributes **16 bytes/29 cycles** before CINV; the exclusive restore tail contributes **6 bytes/22 cycles**, with **zero emitted output bytes**. A direct helper call adds **3 code bytes/6 cycles/2 live stack bytes**, plus its body and **1-byte/6-cycle RTS**. The proposed VIC acknowledgement form costs **5 bytes/6 cycles**; the answer correctly presents it as an expectation rather than observed output.
+>
+> Every numbered Q-P24 fixture independently passes:
+>
+> | Fixture | Independent check |
+> |---|---|
+> | **1 — Exact ingress** | From the [supplied instruction sequence](/work/evaluator-request.md:99) and [NMOS grid](/work/references/mos-6502-family.md:97): **23 code bytes**, `$2147–$215D`; `chain=$2159`, displacement `$0A`. Generated paths take **28 inactive / 39 active cycles**. Adding CPU acceptance **7** and ROM stub **7** gives **42/53 cycles to `$FE47`**. Generated per-entry stack demand is **5 bytes**; private RAM/ZP **0/0**; shared/static footprint **4 RAM bytes**. Publication’s absolute store costs **3 bytes/4 cycles**, or **5/6** with an immediate load. Complete installer and packaging costs remain Unknown. |
+> | **2 — Helper scratch** | **2 private ZP + 2 private RAM bytes per invocation**, with unbounded overlap, requires **E10245**. An empty-looking source body cannot establish reentrancy. |
+> | **3 — Register-only local/helper** | Legal under the supplied complete selected-instruction proofs. Source-local or helper spelling alone is insufficient grounds for rejection. Any later private spill invalidates admission. |
+> | **4 — Shared effects** | The counter’s lost update receives **W10211**, rather than a new prohibition. Constant-one setters preserve the stated idempotent indication, without certifying other writers or protocols. Access order/count stays observable. |
+> | **5 — Stack candidates** | Growing generated push cycle: **E10245**. Direct/indirect recursion: **E10180/E10181**. Finite demand: **237 > 256−20=236**, so **E10238**, exceeding capacity by **1 byte**. A growing source PHP backedge also violates **E10248**. |
+> | **6 — No generated handler** | Zero generated wrapper/link cost does not eliminate stock NMI routes. [UD60/UD70](/work/primary/kernal-time:49) have no supplied finite retry bound; [RESTORE+STOP](/work/primary/kernal-rs232nmi:20) can warm-start BASIC. Finite mainline/IRQ demand therefore proves neither unrestricted stack safety nor firmware completion or a raster deadline. |
+> | **7 — Ownership/publication** | Reading firmware-owned CIA2 ICR before chaining loses consumed state. `SEI` cannot protect a two-byte NMI update. Overwriting a still-live predecessor violates lifetime ownership. The immutable link and fixed one-byte `$FE47↔$2147` publication provide the supplied old/new-route proof. |
+>
+> The stock `$FE47` save prefix adds **5 existing-ROM bytes/13 cycles**, reaching six live stack bytes for that unnested prefix; the restore/RTI tail adds **6 existing-ROM bytes/22 cycles**. Stock branches and calls remain additional. These terms do not establish a full route peak or completion bound. Keyboard interpretation, joystick coexistence, ambiguity and restoration are likewise left unproved beyond the supplied assumptions.
+>
+> Two findings remain:
+>
+> - **F1 — Low, evaluator citation defect.** [Answer line 30](/work/evaluated-answer.md:30) and [line 401](/work/evaluated-answer.md:401) point fixture citations into the short `request.md`; the evidence actually resides in [evaluator-request.md:102](/work/evaluator-request.md:102) and [line 62](/work/evaluator-request.md:62). The E10260 pointer at [answer line 191](/work/evaluated-answer.md:191) targets diagnostic line 235, which contains E10264; E10260 is at [line 231](/work/spec/14-diagnostics.md:231). Correcting the pointers is sufficient. The underlying claims are independently supported.
+> - **F2 — High, supplied knowledge/source defect.** The supplied CPU reference states “Blend65’s bound form emits `$00 $EA`” at [line 230](/work/references/mos-6502-family.md:230), contradicting the [closed source surface](/work/spec/12-intrinsics.md:61) and [BRK retirement](/work/spec/14-diagnostics.md:367). The evaluated answer correctly follows raw authority, so Q-L11 passes. The stale statement remains in the supplied **2.0.2** reference; qualification of corrected knowledge is outside this assessment.
+>
+> Second-checking the passes found no invented nesting bound, hidden runtime, shared-state cloning, ABI mismatch acceptance, or incorrect measurable result. Missing artifacts, measurements, complete costs, and activation metadata legitimately remain Unknown.
+>
+> **Unresolved counts:** **0 failing cases; 0 critical findings; 1 high knowledge finding; 0 medium findings; 1 low evaluator finding; 0 demonstrated packet defects.**
+
+</details>
+
+<details>
+<summary>2.0.2 nmi-boundary: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/nmi-boundary`. Raw run-log SHA-256: `a17cff3d362d407ecc09a7344ff17d08afe2506d390a2c4cbedaad19f717a3ff`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `7f4145f105afeb9edfd404d2a37012ce75b246435d82ee9f0b3f7db0205f1289`; packet-record SHA-256: `8f06482c70dcf093f4558f0949005f0ec43e051158f25cfae2c1bf9dfb5a40e9`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+100293d6f9cfb77032a7346af6db9617ea4055371c91581da8e935bc1f2a8234  request.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+```
+
+> Default **NMINV chaining** is the appropriate selection for the supplied ingress because it retains stock RESTORE and RS-232 handling. The four cooperative PRG profiles permit a proved reentrant generated NMI path without invocation-private RAM/ZP homes even though external NMI arrival is unbounded. **That permission does not prove full-program stack safety, retained-firmware reentrancy/completion, or a finite deadline.**
+>
+> This is a packet-only contract assessment. “Verified” below applies only to the expressly named analytical boundary. Actual compiler support, assembled artifacts, VICE results and silicon results are **Unknown**. Diagnostics are the required contract outcomes, not observed compiler output.
+>
+> Lineage: `skillVersion=2.0.2`; supplied specification identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. The skill content commit and release activation are **Unknown** because qualification files are outside this assessment. The specification digest is a supplied identity, not a substitute for that commit or a digest independently reproduced here.
+>
+> The governing packet sources are:
+>
+> - [Chapter 06, §§5.5 and 7](/work/spec/06-functions.md:501), [Chapter 11, §5.2](/work/spec/11-memory-model.md:275), and [Chapter 15, interrupt contracts](/work/spec/15-platform-profile.md:243): language, SFA, stack, entry variants and the cooperative exception.
+> - [SFA and ABI — interrupt-route completion gate](/work/references/sfa-and-abi.md:330), `#hardware-stack-duties` and `#final-storage-closure`: complete route and transitive-storage obligations.
+> - [C64 memory — interrupt entry and exit contracts](/work/references/c64-memory-and-runtime.md:321), `#revision-pinned-irq-cost-baselines` and `#revision-pinned-nmi-contracts-and-costs`: firmware entry, banking, source ownership and component costs.
+> - [C64 hardware — ports and data direction](/work/references/c64-hardware.md:201) and `#interrupt-control`: keyboard/joystick wiring and consuming ICR reads.
+> - [MOS processor — official instruction grid](/work/references/mos-6502-family.md:97) and `#reset-interrupt-and-stack-behavior`, plus [lowering cost vocabulary](/work/references/6502-lowering-casebook.md:44): instruction costs and effects.
+> - [Diagnostic registry](/work/spec/14-diagnostics.md:211) and [evidence boundaries](/work/references/evidence-parity-and-recovery.md:69): rejection and reporting rules.
+>
+> Their source-manifest keys are `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976`—instruction tables and Chapters 3/9; `MOS-HW-1976`—interrupt sequences; `MOS-6510-1982`—port registers; `CBM-C64-PRG-1982`—printed pp.93, 261–265, 308/311, 320 and 343–344; `MOS-6526-1981`—printed pp.5–8; `CBM-C64-KERNAL-03`—the named firmware routines; and `ZAKS-6502-1980`—Chapter 3 p.3-13 for indirect-jump wrap. These are local packet extracts and provenance records; I did not fetch their external originals.
+>
+> **Machine, visibility and source context**
+>
+> The assessment covers exactly these indivisible profile identities:
+>
+> | Profile | Video / nominal CPU clock | SID |
+> |---|---|---|
+> | `c64-pal-prg-kernal-6581` | PAL / 0.985248 MHz | MOS 6581 at `$D400` |
+> | `c64-pal-prg-kernal-8580` | PAL / 0.985248 MHz | MOS 8580 at `$D400` |
+> | `c64-ntsc-prg-kernal-6581` | NTSC / 1.022730 MHz | MOS 6581 at `$D400` |
+> | `c64-ntsc-prg-kernal-8580` | NTSC / 1.022730 MHz | MOS 8580 at `$D400` |
+>
+> All use the documented NMOS 6510 instruction set, stock unexpanded C64 ownership and KERNAL **901227-03**. The profiles exclude cartridges, REU, turbo and additional SID chips. Exact board/PLA, VIC-II revision and CIA revisions are **Unknown**. In particular, NTSC does not identify whether the VIC is an early 6567R56A or later 6567R8. Consequently, nominal instruction costs below do not establish raster scheduling or physical edge behavior. These distinctions come from [the common profile contract](/work/spec/appendix-c64.md:31) and [the hardware model declaration](/work/references/c64-hardware.md:11).
+>
+> The cooperative mapping drives processor-port bits 0–2 as outputs with low-bit value `$06`: BASIC out, KERNAL and I/O visible. Its writes are:
+>
+> ```text
+> $0001 := (saved_port & $F8) | $06
+> $0000 := saved_ddr | $07
+> ```
+>
+> The unrelated captured bits are retained; `$36` is only an example whole-byte value. Handler `$2147` and data `$3000–$3003` are visible RAM; `$DC00` must select CIA1; predecessor `$FE47` must select KERNAL ROM. CIA2 `$DD00/$DD02` values and VIC-bank selection are not supplied and remain **Unknown**, although this ingress does not alter them. [Profile startup/banking authority](/work/spec/appendix-c64.md:217).
+>
+> Every route must account for these sources:
+>
+> | Interrupt | Sources requiring an explicit enabled/disabled/absent/retained assignment |
+> |---|---|
+> | IRQ | VIC raster, sprite-background collision, sprite-sprite collision and light pen; CIA1 Timer A, Timer B, TOD alarm, serial completion and FLAG; any additional external IRQ source if the machine contract is expanded |
+> | NMI | CIA2 Timer A, Timer B, TOD alarm, serial completion and FLAG; physical RESTORE; cartridge/other external NMI sources if present |
+>
+> Stock CIA1 Timer A service is retained by the cooperative baseline. The packet supplies no complete live VIC/CIA masks, pending-bit inventory, RS-232 configuration or peripheral signal bounds. Firmware availability does not prove that every firmware-supported source is enabled. Cartridges are absent under these profiles; RESTORE remains physical and cannot be dismissed by assuming slow human input.
+>
+> IRQ sets I on entry and ordinarily prevents further IRQ entry unless code reenables it. NMI can preempt mainline, IRQ and NMI; **I and `SEI` do not mask it**, and the stipulated external reentry bound is unbounded.
+>
+> **Q-P07 — route selection, ownership and costs**
+>
+> **Selection: default NMINV chain. Status: Verified partial; claim kind: Inference.** It matches the supplied predecessor and preserves stock source/terminal handling. The selected generated component is assessable; the complete firmware/input/timing contract is not established.
+>
+> The exact supplied NMI vector state is:
+>
+> ```text
+> ROM hardware vector $FFFA/$FFFB → $FE43
+> $FE43: SEI; JMP ($0318)
+> NMINV $0318/$0319: $FE47 before publication, $2147 while installed
+> PRIOR $3002/$3003: immutable $FE47 throughout the program lifetime
+> ```
+>
+> CINV is at `$0314/$0315`. The packet names its stock predecessor as `KEY` and the IRQ hardware target as `PULS`; it does not provide their numeric addresses or this program’s current CINV contents. Those values are **Unknown**, not guessed. The exact stock NMI entry/source/terminal instructions are present in [the primary NMI source](/work/primary/kernal-rs232nmi:2).
+>
+> The alternatives have different obligations:
+>
+> | Route | Required ownership and terminal behavior |
+> |---|---|
+> | Default CINV chain | Firmware has saved A/X/Y. Generated binary-mode body preserves entry status, acknowledges its owned source, then chains exactly once through its predecessor. |
+> | Exclusive CINV | Firmware still owns the saves. Application owns every enabled IRQ source, skips prior service and jumps to the pinned `$EA81` restore-only tail. |
+> | Raw IRQ | Only the CPU frame exists. Application/compiler own saves, source acknowledgement and final `RTI`; writable, active RAM vector must be proved. |
+> | Default NMINV chain | ROM stub has saved no registers. Generated ingress preserves affected A/X/Y and entry P, establishes D=0, restores before chaining, and leaves CIA2 ICR to its predecessor. |
+> | Exclusive NMINV | Own or explicitly replace every NMI behavior, including RESTORE and CIA2; save/restore affected registers and finish with `RTI`. |
+> | Raw NMI | Additionally own every vector/banking transition and reachable bank state. `SEI` supplies no NMI protection. |
+>
+> For this request, exclusive NMI lacks a supplied replacement for normal RESTORE/RS-232 behavior. Raw installation is unavailable on the four cooperative profiles. Neither is a justified alternative to the supplied chain.
+>
+> An `interrupt function` is callback-only, with signature `(): void`. Recognized sinks select the appropriate entry variant; only sink-reachable variants are emitted. Ordinary reusable helpers retain `JSR`/`RTS`. Required diagnostics include E10051 for directly calling an interrupt function, E10244 for installing an ordinary function in a handler sink, E10247 for erased/unknown provenance at a recognized sink, and E10252 for a visible raw-entry address written to an incompatible firmware vector. Truly opaque hardware writes remain uncertifiable boundaries. [Chapter 06, §§7.3–7.7](/work/spec/06-functions.md:696).
+>
+> A chain must preserve **the exact entry value of any register or live flag its predecessor can observe**. Saving the interrupted program’s state elsewhere is not automatically sufficient. In particular, CINV’s existing firmware saves protect eventual interrupted A/X/Y restoration; they do not automatically restore current CINV-entry registers before the predecessor executes. Additional preservation needs an explicit observer/clobber proof and cost.
+>
+> An untouched register already satisfies preservation and requires no push merely because it is named A/X/Y. A modified register may omit restoration only when every relevant interrupted/predecessor observer proves its entry value unobservable. Restore instructions themselves can change N/Z, so a chain restores registers **before its final `PLP`**. For NMINV, status is saved before register preservation. Exclusive/raw routes establish D=0 and rely on their eventual `RTI` to restore the complete interrupted status, including D and I; they need no extra status pair merely for decimal normalization.
+>
+> The following are the packet’s generic baselines, with full A/X/Y preservation where applicable. **Status: Verified complete; claim kind: Fact, for these stated component baselines only.**
+>
+> | Route | Generated wrapper bytes | Nominal cycles from CPU acceptance | One-entry stack peak before body calls/pushes | Separately charged existing ROM |
+> |---|---:|---:|---:|---|
+> | CINV chain | 6 | `50 + body/ack`, to predecessor | 7 | 16-byte entry, 29 cycles; predecessor follows |
+> | Exclusive CINV | 4 | `63 + body/ack`, through restore/RTI | 6 | 16-byte entry plus 6-byte restore tail |
+> | Raw IRQ | 12 | `44 + body/ack`, through RTI | 6 | None |
+> | NMINV chain | 16 | `57 + body/source action`, to predecessor | 7 | 4-byte stub, 7 cycles; predecessor follows |
+> | Exclusive NMINV | 12 | `51 + body/source action`, through RTI | 6 | 4-byte stub |
+> | Raw NMI | 12 | `44 + body/source action`, through RTI | 6 | None |
+>
+> Hardware acceptance is 7 cycles and three stack bytes. Compiler wrapper costs are 14 cycles for CINV chaining, 43 for generic NMINV chaining, and 37 for raw/exclusive A/X/Y-preserving wrappers. Exclusive CINV has 5 generated cycles (`CLD` and jump), then the existing 22-cycle restore tail. Existing ROM contributes **zero output bytes**.
+>
+> Every live install requiring chaining or subsequent restoration needs its own two-byte predecessor word. An exclusive/raw entry variant’s zero *chain-link* term does not erase saved-vector storage needed for restoration. Links beginning at `$xxFE` are valid; `$xxFF` must be relocated or rejected for NMOS indirect `JMP`. Installation ownership is interprocedural LIFO; invalid restores/joins are E10278. Publication, removal and link lifetime need separate proofs.
+>
+> The IRQ contrast’s raster acknowledge has the direct expectation `LDA #1; STA $D019`: **5 bytes, 6 nominal cycles**, if A is not already proved one. It writes one to the selected VIC latch; generic RMW is not equivalent. The complete IRQ body, helper clobbers, installer output and full path costs are unspecified and **Unknown**.
+>
+> Ownership is:
+>
+> | Owner | Responsibility |
+> |---|---|
+> | Compiler | Callback provenance; sink-selected ABI; A/X/Y/P/D preservation; helper/call effects; complete transitive SFA closure; generated reentrancy and bounded stack analysis; diagnostics and emitted costs |
+> | Platform/profile/library | Firmware revision and vector contracts; mapping/visibility; source-specific device effects; installation/restoration lowering; static link lifetime and stock-service boundaries |
+> | Developer/application source | Choose chaining/exclusive/raw ownership; select and acknowledge actual owned sources; define shared effects and input policy; supply required external assumptions |
+>
+> If an exclusive IRQ lease is selected, its final stock CIA1 handback is also an obligation: clear masks, stop timers, consume ICR once, restore the exact saved CINV and stock Timer A service—PAL `$4025`, NTSC `$4295`—then restore caller status. Arbitrary write-only masks/latches cannot be reconstructed by reads. Its actual inline output/cost is **Unknown** without selected code; ordinary chaining does not acquire this handback obligation. [Exact release contract](/work/references/c64-memory-and-runtime.md:218).
+>
+> A counterexample is a chain body that clobbers A and jumps directly to `$FE47`: FE47 saves the clobbered value and can later restore it to the interrupted program. Case 1 avoids this with `PHA`/`PLA`. Independent proof must check interrupted and predecessor entry state separately, rather than merely finding an `RTI` somewhere downstream.
+>
+> **Q-P24 — cooperative admission and the smallest boundary**
+>
+> **Admission policy: Verified complete; claim kind: Fact.** On exactly the four cooperative PRG profiles above, an externally unbounded NMI route may qualify when its complete generated path is proved reentrant and has **no invocation-private RAM/ZP homes after instruction selection and final storage closure**. The inventory includes parameters, results, locals, argument staging, temporaries, spills, pointer pairs and all helper scratch. Source-local names are not machine homes.
+>
+> Immutable installation-owned links are permitted, with separately proved lifetimes. Shared globals/MMIO remain shared. The exception adds neither atomicity nor external stack/completion guarantees. Raw takeover and D64 receive no extension. [Chapter 06, §7.5](/work/spec/06-functions.md:757), [Chapter 15](/work/spec/15-platform-profile.md:269).
+>
+> **Smallest boundary: Recommendation.** Retain function identity and interrupt effects in existing compiler representations; select the declared entry variant; close all late helper/spill storage through SFA; prove generated state/device/terminal behavior; and use the existing platform vector/link contract. Ordinary source code implements input interpretation. No new runtime, frame selector, nesting guard, manager, dispatcher, queue or input API follows from this assessment.
+>
+> The comparisons requested by Q-P24 are resolved individually below.
+>
+> **1. Selected ingress at `$2147`**
+>
+> **Generated-route assessment: Verified partial; claim kind: Inference.** The stated instructions prove the local preservation, storage and fixed-link properties. They do not prove the complete input transaction, firmware execution or unrestricted aggregate stack.
+>
+> `PHP` captures NMINV-entry status, including D and the already-set I. `PHA` protects A; X/Y are untouched. `CLD` establishes binary body entry. The body performs one shared ACTIVE read; when nonzero, it stores one to INTERFERED, then `$7F` to CIA1 PA. `PLA` restores A but changes N/Z; the following `PLP` restores entry flags and D before the indirect jump. The jump leaves only the original three-byte CPU frame live for FE47.
+>
+> B is a pushed-status representation, not a persistent processor mode: `PHP`’s represented B=1 does not corrupt the original hardware interrupt frame.
+>
+> The layout is independently calculable:
+>
+> ```text
+> code interval: [$2147, $215E) — 23 bytes
+> chain label:   $2159
+> BEQ offset:    $0A from post-operand PC $214F
+> ```
+>
+> All relevant branch addresses remain in page `$21`.
+>
+> **Component cost derivation: Verified complete; claim kind: Inference, limited to this stipulated instruction stream.**
+>
+> | Component | Code bytes | Inactive cycles | Active cycles |
+> |---|---:|---:|---:|
+> | `PHP; PHA; CLD` | 3 | 8 | 8 |
+> | `LDA $3000; BEQ chain` | 5 | 7: taken branch | 6: untaken branch |
+> | Constant-one INTERFERED store | 5 | 0 | 6 |
+> | Constant `$7F` CIA1 PA store | 5 | 0 | 6 |
+> | `PLA; PLP; JMP ($3002)` | 5 | 13 | 13 |
+> | **Generated ingress** | **23** | **28** | **39** |
+> | CPU acceptance | 0 | 7 | 7 |
+> | Existing ROM stub | 0 output; 4 ROM | 7 | 7 |
+> | **CPU acceptance through jump to FE47** | **23 output** | **42** | **53** |
+>
+> Equivalently, the specialized wrapper is **8 bytes/21 cycles**, the test is **5 bytes/7 or 6 cycles**, and the active-only actions are **10 bytes/12 cycles**. These costs use the [NMOS instruction grid](/work/references/mos-6502-family.md:97).
+>
+> The storage ledger is:
+>
+> | Resource | Exact supplied component |
+> |---|---|
+> | Invocation-private RAM/SFA | 0 |
+> | ZP | 0 |
+> | Shared state | ACTIVE 1 byte; INTERFERED 1 byte |
+> | Immutable lifetime-owned link | PRIOR 2 bytes |
+> | Generated code | 23 bytes |
+> | Known RAM occupancy | 27 bytes: code plus these four data bytes |
+> | Helpers / call returns | None |
+> | Extra generated saves | 2 live stack bytes: P and A |
+> | Peak through generated ingress, including CPU frame | **5 stack bytes** |
+> | At the jump to FE47 | **3 live stack bytes** |
+>
+> FE47 subsequently saves A/X/Y: **5 existing-ROM bytes, 13 cycles and three additional live stack bytes**, bringing that single activation to six live bytes before its calls. Its `PREND` restore/RTI sequence is **6 existing-ROM bytes/22 cycles**. Those are successive portions of one activation; five and six are not summed into an eleven-byte peak. Stock calls and nested entries add separate live costs. [Primary saves](/work/primary/kernal-rs232nmi:4), [primary restore tail](/work/primary/kernal-rs232nmi:89).
+>
+> Thus complete service cost is:
+>
+> ```text
+> 42 or 53 nominal cycles + the actual FE47 source/terminal path
+> ```
+>
+> The second term is not supplied as a finite bound. Interrupted-instruction completion, nested entries and VIC bus denial are also outside the 42/53 figure.
+>
+> Within the supplied code there is no padding. Whole-image padding, startup, initialization, installer/remover code, remaining code/data and serialized versus BSS placement are **Unknown**. The profile separately specifies a two-byte PRG header and 12-byte BASIC stub; the 27-byte component occupancy is not the PRG file size.
+>
+> The publication proof is narrow and valid: NMINV’s low byte stays `$47`; one high-byte write selects either `$FE47` or `$2147`. Every dispatch sees a valid old/new address, and code/data/link exist beforehand and remain live afterward. PRIOR at `$3002` also avoids indirect-jump wrap.
+>
+> The actual publication/removal instruction sequences are unspecified. If selected as immediate load plus absolute store, each has the expectation **5 bytes/6 cycles**; that conditional expectation is not observed installer output.
+>
+> The ingress reads neither CIA ICR. CIA2 consumption stays with stock FE47, which performs one read after disabling masks. CIA1 PA is deliberately shared device state; known latch/DDR ownership and PBON-off are fixture facts. ACTIVE bracketing does not, by itself, prove the scanner’s complete restoration, invalid-sample handling or publication algorithm.
+>
+> The generated ingress always chains once, including when ACTIVE is zero. Stock firmware owns the eventual terminal: normally restore/`RTI`, but RESTORE+STOP can take the warm-start route. It is incorrect to assign this chain its own terminal `RTI`.
+>
+> **2. Helper introduces a ZP pair and two RAM scratch bytes**
+>
+> **Acceptance of this candidate: Incorrect; claim kind: Fact. Required rejection: E10245.**
+>
+> The final inventory contains **four invocation-private bytes per simultaneously live activation**:
+>
+> ```text
+> 2 ZP pointer bytes + 2 RAM multiplication scratch bytes
+> ```
+>
+> Unbounded nested NMI cannot receive infinitely many distinct static homes. An empty-looking source body does not remove transitive helper storage, and moving the pointer to RAM would not solve unbounded private overlap. Selection must return this storage to SFA closure.
+>
+> For a hypothetically proved finite bound `k`, these four bytes alone require `2k` ZP and `2k` RAM bytes, plus any other overlapping private homes. No such bound exists here.
+>
+> A simple direct helper `JSR`/`RTS` contributes **4 code bytes, 12 cycles and two live stack bytes**, excluding its body, argument/result traffic and preservation. Complete helper bytes/cycles and aggregate stack are **Unknown**. Entry-state, source, visibility and link proofs would still be mandatory even if the scratch problem were removed. [Final storage closure](/work/references/sfa-and-abi.md:409).
+>
+> The smallest remedy is a selected, equivalently behaving implementation with no private homes, if one is available, or a real finite reentry bound. It is not a runtime guard or a source-level helper ban.
+>
+> **3. Register-only local; helper with no RAM/ZP homes**
+>
+> **Specified local/storage boundary: Verified partial; claim kind: Inference. Source-spelling rejection would be Incorrect.**
+>
+> Neither an ordinary local nor a helper call is grounds for rejection. Under the stipulated selected-instruction preservation and shared-effect proofs:
+>
+> - The register-only local adds zero RAM/ZP homes.
+> - The helper adds zero private RAM/ZP homes.
+> - A direct helper call still contributes the ordinary call/return and stack costs above.
+> - Every modified live A/X/Y/P value must still be preserved through nested entry and predecessor observation.
+>
+> They are eligible for the cooperative exception. Complete admission still requires callback identity, all transitive paths, source/ICR ownership, banking, terminal behavior and publication/link lifetime. The packet does not supply their full instruction listings or cost totals, so those totals and whole-route proof are **Unknown**. A late spill or scratch byte would change the inventory and require reassessment.
+>
+> **4. Shared increment versus a flag always set to one**
+>
+> **Claim that an empty private inventory proves both effects safe: Incorrect; claim kind: Inference.**
+>
+> For the increment, a valid counterexample is:
+>
+> ```text
+> outer loads 10
+> nested entry loads 10 and stores 11
+> outer resumes and stores 11
+> ```
+>
+> One update is lost. The operation remains expressible with its actual shared interleaving; the statically visible unprotected hazard receives **W10211**. A multi-byte tearing hazard receives W10212 where applicable. These warnings do not become a new source prohibition, and SFA does not clone globals or insert masking.
+>
+> For the different flag, **the nested set-only property is Verified complete; claim kind: Inference**, under the stated all-writers-store-one assumption. Repeated completed stores of one cannot lose a required increment or tear that byte. This does not prove a larger notification protocol: a mainline clear, test/clear sequence, or snapshot publication needs its own ordering proof.
+>
+> Both operations retain source-defined access order/count. No flag/counter address or selected increment listing is supplied; their code/cycle costs are **Unknown**, and their shared objects are charged once as globals, not per activation. [Shared-state contract](/work/spec/06-functions.md:797), [warning registry](/work/spec/14-diagnostics.md:300).
+>
+> **5. Growing status-push cycle, recursion and finite overflow**
+>
+> **Each stated invalid candidate: Incorrect; claim kind: Fact.**
+>
+> | Candidate | Required outcome and reasoning |
+> |---|---|
+> | Generated cycle retains an unmatched status push every iteration | **E10245**: compiler-controlled stack growth is unbounded. One `PHP` adds 1 code byte, 3 cycles and one more live byte per traversal. The NMI exception does not excuse it. |
+> | Invalid source status-stack joins/exits/underflow | **E10248** for the corresponding relative-LIFO violation. A callee cannot consume caller, CPU-frame or compiler-ABI saves. |
+> | Direct recursive call cycle | **E10180**, independently of whether locals occupy RAM |
+> | Indirect recursive call cycle | **E10181**, with the cycle path |
+> | Bounded 237-byte generated peak | **E10238**: `237 > 256 − 20 = 236` |
+>
+> The measured bounded peak stays **237**. The reserve reduces capacity; it is not measured usage and is neither added to nor subtracted from the peak. The deficit is exactly one byte. W10180’s profile threshold is 188 bytes, but a warning cannot make the hard overflow acceptable.
+>
+> Recursive code/cycle totals and further storage are **Unknown** from these descriptions. No transparent software stack, recursive frame runtime or nesting selector is authorized. [Stack-budget rule](/work/spec/11-memory-model.md:275), [recursion rule](/work/spec/06-functions.md:217).
+>
+> **6. No generated NMI handler, retained stock firmware**
+>
+> **Reporter’s full-program safety/completion/deadline claim: Incorrect; claim kind: Fact.**
+>
+> There are zero generated NMI-handler wrapper bytes, private homes or handler installation links in this candidate. A properly analysed finite mainline/IRQ component may have an exact bounded peak; its numeric value is unspecified here.
+>
+> However, the program still permits physical RESTORE and retained CIA2/RS-232 NMI paths. The 20-byte firmware reserve is a capacity policy, not an external arrival bound or proof of firmware completion. Full-program stack safety and retained-firmware reentrancy/completion remain **Unknown**, expressly even without an installed generated hook.
+>
+> The primary source gives decisive reasons not to assume fixed completion:
+>
+> - Stock NMI calls `UD60` and `STOP` on the relevant path. [NMI source](/work/primary/kernal-rs232nmi:14).
+> - `UD60` and `UD70` repeat until successive keyboard-row reads agree. No row-stability bound is supplied. [Time source](/work/primary/kernal-time:49).
+> - RS-232 paths use mutable firmware state, call other routines and can reenable CIA2 interrupts before finishing. [RS-232 source](/work/primary/kernal-rs232nmi:118).
+> - RESTORE+STOP calls restoration routines and jumps through `$A002` to warm start rather than returning through `RTI`. [Terminal source](/work/primary/kernal-rs232nmi:27).
+>
+> A known one-entry instruction cost cannot certify a raster deadline. This case does not require inventing an application-handler rejection; it requires correctly scoped reporting.
+>
+> **7. CIA2 ICR consumption, two-byte publication and overwritten links**
+>
+> **CIA2-read-then-stock-chain candidate: Incorrect; claim kind: Fact.**
+>
+> A CIA2 ICR read consumes all returned pending source bits. Jumping afterward to stock FE47 causes its own read to observe altered/cleared information, potentially changing source classification and service. Masking the first read’s result cannot undo that consumption.
+>
+> A simple stock chain performs **zero** CIA2 ICR reads. An explicitly selected owning replacement/composite must consume once, retain and handle every returned bit, and prove its storage, masks, effects and terminal behavior. No such replacement is supplied. Its cost is **Unknown** and it is not inferred as a runtime.
+>
+> **“Both vector bytes under `SEI` are safe”: Incorrect; claim kind: Fact.**
+>
+> `SEI` blocks IRQ, not NMI. If both bytes genuinely change, an intervening NMI can see a hybrid address. The packet supplies no proof that such intermediate destinations are valid.
+>
+> If a two-store sequence writes the *same* low `$47` in case 1, it does not create a torn destination merely by having two stores; its safety follows from the invariant low byte and valid live endpoints, **not from `SEI`**. The supplied one-high-byte scheme provides that simpler publication proof.
+>
+> **Overwrite a still-observable predecessor link: Incorrect; claim kind: Fact.**
+>
+> An interrupted old ingress can later execute `JMP (PRIOR)`. Reusing that word prematurely changes its route even after the vector has been restored. Vector removal and lifetime retirement are separate obligations. Invalid helper ownership/lifetimes require rejection under the ownership contract, including E10278 where its predicate applies; incomplete generated reentrancy remains E10245. No new diagnostic number is invented for an unsafe transaction.
+>
+> **Fixed one-byte update and immutable retained link: Verified complete; claim kind: Inference, for those publication/lifetime properties alone.** Case 1 supplies both valid endpoints, unchanged low byte, preexisting code/data and continued old-link lifetime. It does not thereby prove external stack or firmware completion. [NMI publication contract](/work/references/c64-memory-and-runtime.md:417), [installation ownership](/work/spec/06-functions.md:842).
+>
+> **Keyboard, both joystick ports and RESTORE**
+>
+> **Implementation owner: an ordinary application source function, or an ordinary explicitly selected C64 library function, interprets captured keyboard rows and saved joystick bytes.** The compiler lowers that function through normal semantics, ABI and SFA. The hook does not interpret the snapshot. This request establishes no new public input API, manager or runtime.
+>
+> Interpretation must use the packet’s exact active-low matrix: PA selects a column and PB supplies rows. For example, column PA7 contains Space at PB4 and Run/Stop at PB7; column PA0 contains Delete at PB0. `$7F` selects PA7, which is relevant to the stock STOP check. RESTORE is an NMI input, not a matrix key; SHIFT LOCK holds the left-shift matrix contact.
+>
+> Both saved joystick bytes require their proper wiring:
+>
+> | Joystick | CIA1 pins | Bits 0–4 |
+> |---|---|---|
+> | Port 2 | PA0–PA4 | Up, down, left, right, fire; zero means asserted |
+> | Port 1 | PB0–PB4 | Up, down, left, right, fire; zero means asserted |
+>
+> The capture contract must release the relevant joystick lines, preserve both latches/DDRs and unrelated bits, account for keyboard/joystick electrical sharing and ghosting, and define invalid/ambiguous samples. A keyboard-only scan that ignores either joystick’s interference does not satisfy this request. CIA2 VIC-bank/serial ownership must remain separate. [Exact matrix and wiring](/work/references/c64-hardware.md:201).
+>
+> Case 1 retains the stock RESTORE route by always chaining and preserving its incoming registers/status. It also retains RESTORE+STOP’s legitimate warm-start terminal; replacing every accepted edge with a local `RTI` would alter that behavior.
+>
+> **Complete named-key/dual-joystick capture, restoration and publication: Unknown.** The packet supplies the ingress and fixture facts, not the full scanning/interpretation transaction. ACTIVE and INTERFERED alone do not establish that capability.
+>
+> **Takeover, D64, finite timing and independent proof**
+>
+> Raw takeover exposes RAM vectors with low-bit mapping `$05`, keeps I/O visible, owns every IRQ/NMI source and prohibits KERNAL/CINV/NMINV helpers during application execution. Both complete underlying RAM vectors must exist before banking out KERNAL, and both sides of the transition must remain valid. It receives **no cooperative NMI exception**: the stipulated unbounded reentry cannot be admitted on that exception even with zero private homes. Normal input and RESTORE behavior would need explicitly proved replacements and separate costs. [Takeover contract](/work/spec/appendix-c64.md:263).
+>
+> The sole D64 profile is `c64-pal-d64-kernal-6581`; it also receives **no exception**. It has a contained boot PRG and reachable load units, with application IRQ/NMI/audio observers and writers quiescent during loading while required KERNAL service remains. Its specified image size is 174,848 bytes. The optional immediate-input loader setup has a separate **27-byte/37-cycle** component cost; disk transfer, ROM service, stack and completion are variable and not covered by that figure. These packaging facts do not prove this candidate runnable or NMI-safe. [D64 contract](/work/references/c64-memory-and-runtime.md:264).
+>
+> A finite timing claim needs an actual bound on relevant accepted arrivals, nested live entries and service completion, plus every source/terminal path, interrupted-instruction/IRQ latency, final branch placement and model-specific VIC bus denial. The stipulated unbounded arrivals and unboundedly assumed firmware completion provide no such proof.
+>
+> The smallest independent proof package would therefore:
+>
+> 1. Establish actual compiler/profile/source identity and complete post-selection storage, call, clobber and ownership inventories.
+> 2. Obtain an actual artifact and independently check encoded instructions, symbols, layout, PRG startup, vectors, links and cost expectations.
+> 3. Check a separate behavior oracle at every relevant interruption boundary: distinct A/X/Y values, D=0/1, live flags, ACTIVE paths, shared interleavings, source bits, publication/removal and RESTORE’s return/warm-start outcomes.
+> 4. Record exact VICE 3.10 configurations and observations for all four profiles, then perform targeted physical checks for CIA/RESTORE edges, relevant silicon revisions and any claimed nesting/timing bounds.
+>
+> None of those compiler, assembler, VICE or physical results is in this packet. This assessment establishes the contract decisions and stated component reasoning; it cannot establish implementation qualification, full-program peak/headroom, complete normal-input behavior or a finite raster deadline.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-nmi-boundary: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-nmi-boundary`. Raw run-log SHA-256: `4f43442752629a6b40d8f6052b420a92f58084e5482bcffd300cd34f0d7d7c5c`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `a1ea5ed41e19fdd0452f451a74b8e0a34bf4af23aebda16161cf89d0966d5e5e`; packet-record SHA-256: `10c63f9f521d2cb7c5114732edbbf7f3ab270cf3d19637b279143a4c88d8be73`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+7f4145f105afeb9edfd404d2a37012ce75b246435d82ee9f0b3f7db0205f1289  evaluated-answer.md
+100293d6f9cfb77032a7346af6db9617ea4055371c91581da8e935bc1f2a8234  evaluator-request.md
+96c2fc6a06e70f653f19ddbc324af5dba246b2315f2d1d61c887c1e8d6d0cef8  grade-request.md
+b850a67df04fde610a21f78eaca5a22f77b48e4ae80a887f568c804bfd658873  oracle.md
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+7a8dbe7cc4f23de170d20759a140d7f007a468ce07ca3d845f88401bdd0f9f56  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+100293d6f9cfb77032a7346af6db9617ea4055371c91581da8e935bc1f2a8234  request.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+```
+
+> **Q-P07: PASS. Q-P24: PASS.** Each independently satisfies its [frozen oracle](/work/oracle.md:1). These grades concern the contract assessment; implementation, artifact, VICE and silicon qualification remain **Unknown**.
+>
+> Applied lineage: `skillVersion=2.0.2`, supplied specification identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. Content commit and activation remain **Unknown**; unavailable qualification files were not read.
+>
+> | Case | Grade | Decisive evaluated-output evidence | Finding / severity |
+> |---|---|---|---|
+> | Q-P07 | **PASS** | Selects “default NMINV chain” ([line 53](/work/evaluated-answer.md:53)); distinguishes all six routes and their costs ([line 68](/work/evaluated-answer.md:68)); preserves predecessor-observable registers/status ([line 81](/work/evaluated-answer.md:81)); charges two-byte links and their lifetimes ([line 98](/work/evaluated-answer.md:98)). Raw visibility, source ownership, decimal state and terminal ownership remain explicit. | No grading defect; severity **None**. Complete runtime-route verification remains partial. |
+> | Q-P24 | **PASS** | Requires “no invocation-private RAM/ZP homes after instruction selection and final storage closure” ([line 116](/work/evaluated-answer.md:116)); separately resolves all seven cases; explicitly leaves external stack and firmware completion Unknown “even without an installed generated hook” ([line 264](/work/evaluated-answer.md:264)). | No grading defect; severity **None**. The permission is correctly limited to the four cooperative PRG profiles. |
+>
+> The source basis is the supplied normative [function contracts](/work/spec/06-functions.md:757), [stack rules](/work/spec/11-memory-model.md:275), [profile exception](/work/spec/15-platform-profile.md:267), and [C64 profile/banking contracts](/work/spec/appendix-c64.md:217). Hardware and firmware authority comes from the packet’s `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6510-1982`, `MOS-6526-1981`, `CBM-C64-PRG-1982`, `CBM-C64-KERNAL-03` and `ZAKS-6502-1980` extracts and provenance records. External originals were not fetched.
+>
+> Every numbered request is accounted for:
+>
+> | Request | Independent grading rationale, source and cost |
+> |---|---|
+> | **1. Selected ingress** | **PASS.** The answer correctly traces `PHP; PHA; CLD` and `PLA; PLP`: A is restored, X/Y remain untouched, and entry flags/D are restored before the predecessor executes ([output](/work/evaluated-answer.md:128)). The [pinned NMI contract](/work/references/c64-memory-and-runtime.md:369) establishes that `$FE43` saves no registers. Code/data visibility, the immutable `$3002` link and the fixed-low-byte publication scheme are supported. Full scanning/restoration and external firmware behavior remain Unknown. Exact costs are independently checked below. |
+> | **2. Helper scratch** | **PASS.** Required rejection is **E10245** ([output](/work/evaluated-answer.md:195)). The inventory has **2 ZP + 2 RAM invocation-private bytes**; unbounded overlap cannot receive distinct finite static homes. This follows from [final storage closure](/work/references/sfa-and-abi.md:409) and Chapter 06 §7.5. A simple direct `JSR`/`RTS` component costs **4 code bytes, 12 cycles and 2 live stack bytes**; helper-body, marshalling and preservation costs remain Unknown. |
+> | **3. Register-only local / private-free helper** | **PASS.** Source spelling supplies no rejection ground ([output](/work/evaluated-answer.md:215)). Each stipulated storage component adds **0 private RAM/ZP bytes**. A direct helper call retains the ordinary call costs above. Complete admission still requires transitive ABI, device, terminal, visibility and lifetime proofs; missing full listings leave whole-route costs Unknown. This preserves the [normative exception](/work/spec/06-functions.md:777). |
+> | **4. Shared increment / set-only flag** | **PASS.** The lost-update example—both entries load 10 and ultimately store 11—is valid. The increment remains expressible with **W10211**, and applicable multi-byte tearing retains **W10212** ([output](/work/evaluated-answer.md:236); [registry](/work/spec/14-diagnostics.md:300)). Repeated completed stores of one prove only the stated set-only property. Shared globals are charged once; unspecified selected code costs remain Unknown. Access order/count and non-atomic semantics are preserved. |
+> | **5. Growing stack, recursion, finite overflow** | **PASS.** Growing generated status depth requires **E10245**; invalid source status-stack joins/exits/underflow retain **E10248**. Direct/indirect recursion retain **E10180/E10181** ([output](/work/evaluated-answer.md:248)). Each executed `PHP` adds **3 cycles and 1 live stack byte**; its static opcode occupies **1 byte**. The bounded comparison is exactly **237 > 256 − 20 = 236**, requiring **E10238**, with a **1-byte deficit**. The measured peak remains 237; the reserve reduces capacity ([stack authority](/work/spec/11-memory-model.md:295)). |
+> | **6. No generated handler** | **PASS.** There are **0 generated NMI-wrapper bytes, private homes or installation links**, while retained firmware remains reachable ([output](/work/evaluated-answer.md:262)). The finite mainline/IRQ bound cannot establish full-program safety or a raster deadline. Primary [UD60/UD70 loops](/work/primary/kernal-time:49), [early CIA2 reenabling](/work/primary/kernal-rs232nmi:137), and [warm-start terminal](/work/primary/kernal-rs232nmi:27) support the explicit completion/reentrancy Unknowns. No numeric mainline/IRQ peak was invented. |
+> | **7. ICR, vector publication, link lifetime** | **PASS.** Reading CIA2 ICR before chaining consumes predecessor-owned pending state; the simple generated chain performs **0 reads**, with stock firmware owning its read ([output](/work/evaluated-answer.md:279); [CIA authority](/work/references/c64-hardware.md:279)). `SEI` cannot protect a genuinely changing two-byte NMI vector. A still-observable predecessor word cannot be overwritten. The supplied one-high-byte update is safe under its valid-endpoint/lifetime fixtures ([publication authority](/work/references/c64-memory-and-runtime.md:417)). Its link occupies **2 bytes**; unspecified transaction costs stay Unknown. **5 bytes/6 cycles** is correctly conditional on immediate-load/absolute-store selection. |
+>
+> The case-1 arithmetic is correct, using the [NMOS instruction grid](/work/references/mos-6502-family.md:97):
+>
+> - Code: `3 + 5 + 5 + 5 + 5 = 23` bytes, occupying `[$2147,$215E)`. The chain label is `$2159`; branch displacement is `$0A`, without a page crossing.
+> - Inactive path: `8 + 7 + 13 = 28` generated cycles.
+> - Active path: `8 + 6 + 6 + 6 + 13 = 39` generated cycles.
+> - CPU acceptance contributes **7 cycles/3 stack bytes**; the existing ROM stub contributes **4 ROM bytes/7 cycles/0 output bytes**. Totals through the jump to FE47 are therefore **42/53 nominal cycles**.
+> - Private RAM/SFA and ZP are **0**. Shared state occupies **2 bytes**, the immutable link **2 bytes**, and known component RAM occupancy is **27 bytes** including code.
+> - Generated saves add **2 stack bytes**, giving **5 live bytes** through the ingress and **3** at the jump. Stock FE47 subsequently saves A/X/Y: **5 ROM bytes/13 cycles**, reaching **6 live bytes before calls**. Its restore/RTI tail is **6 ROM bytes/22 cycles**, supported by the [primary saves](/work/primary/kernal-rs232nmi:4) and [tail](/work/primary/kernal-rs232nmi:89). Successive component peaks are correctly not added together.
+>
+> The six generic route baselines also match the [packet’s IRQ](/work/references/c64-memory-and-runtime.md:336) and [NMI](/work/references/c64-memory-and-runtime.md:378) expectations:
+>
+> | Route | Generated wrapper bytes | Fixed nominal cycles from CPU acceptance | One-entry stack component | Existing ROM, charged separately |
+> |---|---:|---:|---:|---|
+> | CINV chain | 6 | 50 to predecessor | 7 bytes | 16-byte entry / 29 cycles |
+> | Exclusive CINV | 4 | 63 through RTI | 6 bytes | 16-byte entry plus 6-byte / 22-cycle tail |
+> | Raw IRQ | 12 | 44 through RTI | 6 bytes | None |
+> | NMINV chain, full A/X/Y template | 16 | 57 to predecessor | 7 bytes | 4-byte / 7-cycle stub |
+> | Exclusive NMINV | 12 | 51 through RTI | 6 bytes | 4-byte / 7-cycle stub |
+> | Raw NMI | 12 | 44 through RTI | 6 bytes | None |
+>
+> Body, acknowledgement, calls, predecessor service, nested entries and bus stalls remain additional terms. The IRQ raster acknowledgement expectation is correctly **5 bytes/6 cycles**. Case 1’s untouched X/Y justify its smaller specialized wrapper. Startup, installer, complete IRQ output, image padding and file size remain Unknown.
+>
+> The answer explicitly assigns captured-data interpretation to ordinary application or selected C64-library source, lowered through normal ABI/SFA ([line 297](/work/evaluated-answer.md:297)). It names both joystick ports, keyboard coordinates and RESTORE’s return/warm-start behavior, while leaving complete capture, ambiguity handling and port restoration Unknown. Takeover and D64 receive no cooperative exception. The D64 **174,848-byte** geometry and conditional loader **27-byte/37-cycle** setup match the [supplied source](/work/references/c64-memory-and-runtime.md:264).
+>
+> I second-checked possible failure grounds: missing measurements are disclosed; shared RMW remains legal with its warnings; untouched registers need no redundant save; and fixed-low-byte vector safety comes from the address invariant. Complete generated admission is never inferred solely from an empty private-storage inventory. The independent proof duties separately require behavior, encoded layout/cost, configured VICE observations and targeted physical evidence.
+>
+> **Unresolved grading findings:** Critical **0**, High **0**, Medium **0**, Low **0**. **Failing cases: 0/2.** No knowledge/source defect, material evaluator omission or packet contradiction was found. Missing identities, live-source configuration, complete input transactions and implementation/runtime evidence remain explicit evidence limits.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-corpus: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-corpus`. Raw run-log SHA-256: `a845327311b260616d61c25be6b82e48f97133abc19d85560cf381e12b0c19f3`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `9c7e15cb2d8dd8480753ab9613e0ecb2cfe7dbdc0667dccebb8a85592b1f1ddb`; packet-record SHA-256: `544c2eda19cdf003146158175310203acd55783ef91e8cb3f3a113f3cbed139e`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+abc1410b4d0fa8a58cf87acbf5c507ee6d2dcbdc878d4650855b0cce46e59894  evaluated-answer.md
+6f337f0daab46ecbe9b49f210aefaa62a52b00b8b11d24f842f814369d96399e  evaluator-request.md
+2cc0704696b4d784e93471da081814cefe8eac1f8df5b3917e43902e296fdaac  oracle.md
+006e5003573d85d7da96c8bebf69c730434829cacff3402eabd7ec32dd9f56bc  policy-excerpts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+ca5ff59895c776e1d02199b39a2585b928fef7a19f9ed23a047ad0cf009914c2  request.md
+ab393b09a630b8b8db90c7fb5e273ff0bbef1e5299c2902affbf4a33d43a6b0a  spec/00-feature-index.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1a1bc184c81b036c7e5cdcc4785a8d591795ac35552f727b4a299d1597d713bb  spec/00-normative-inventory.md
+4312fb663eeb3f26137aadcc8acbfa6ba586ef19996f54254409f8ead7982d1c  spec/01-lexical-structure.md
+73f7deb046abcc2caa6bcced73bd62c741bb2c0e954b16cfb1633e3cbdab8651  spec/02-type-system.md
+e8c017b9671b9cf1c8ac633cf4aee59fd1591df13ea94ddab323b7c42a11807d  spec/03-variables.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+187ea573d6ddaf6a033321f9118835c2b3442118e1e363dcd68bc634f59b0ab2  spec/05-statements-control-flow.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+a3afc05f37ab7118ed365ae570ff98ca05ac2ca73120b5b48280b58b98f8cd45  spec/07-structs.md
+500a6c18f84dc54a41fd7fe82b0fb5e0029bc1e050615ec9c929e148f76be515  spec/08-arrays-strings.md
+e0772e924b761ed16e58b14f72906d4fa3014ed3bf2e9886fd01759a127192d6  spec/09-enums.md
+a5ad0cc83e34867de7b1e1ada3d94efb1a136230cf199578c7a0d7a283a57383  spec/10-modules.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+29a16540be2a29cc4d4e5ba3bed0e407b9644dd25d4acc803666cf3df71079e7  spec/13-data-inclusion.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+cd79fa582b71c3126916f455f6d623c3c1a8fd35b064cae22ee4a311261a19df  spec/evaluations/F001-multi-file.md
+d522d443a3f946ac6d0201ada84d45e321c35094e951bd3ecb1d616bd9f1d98a  spec/evaluations/F002-modules.md
+9673502debd656fe4733a160454d1d86ed6adcbf70fb7bc68325f67d49385920  spec/evaluations/F003-module-contents.md
+dd7ef96a96873a1ff1ff1a9c3bf97ea07ece0717051ff485432b6a951abb8162  spec/evaluations/F004-entry-point.md
+add33b6dd89783250bd495247264966aadee57d4dec3dc44a1698fdbe1442aa3  spec/evaluations/F005-memory-placement.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+bb503f0aa1aff317c71cb8a61c5e071b9f3c8bbeea1476438306f3b82c60dc04  spec/evaluations/F008-for-loop.md
+2d5116b586c2abe6bb4ee43a2372f974dc90e719177443bfe714c53c542d72ce  spec/evaluations/F009-switch-statement.md
+9013ae2793ba44f96c13e9fdb567b324e6bd5a8f331af9083605eff12fe2f359  spec/evaluations/F010-signed-types.md
+4118af9de2c2b34022a883cddc5762e87bd164cda03ed38f47fe4f77577db026  spec/evaluations/F011-structs.md
+c06a710a4dca63f35d91af4850f2ba1aa6e94c06e1bd89bc81b0d5720c96fc5c  spec/evaluations/F012-cpu-control-intrinsics.md
+1a36d5db689bb97d84b93318e604a7da31a36c38dc057993c3192c0907731faa  spec/evaluations/F013-control-flow.md
+938d3adb011bb60eac49dcfe160c65c48b2279aa610a1bb2c82cb3171c53ba2f  spec/evaluations/F014-arrays.md
+cc383e7d7258c1cb7eecd8a51bffa360098fda5ddfbb2a8752061a5e647a942f  spec/evaluations/F015-data-inclusion.md
+0ccfec6274dadc849eb93a3440bb090f9b24f77119f7b297fa5217f827608f4e  spec/evaluations/F016-type-system.md
+ecf5e10be85f9610c20d400aac6dbda2cc8dea0a1edbbccfce2b87a32e7ff44d  spec/evaluations/F017-operators.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+15628edf3f35fb2252f20ad938b16b8b6006f32d196ffe0d8ffa8e496f3fa017  spec/evaluations/F019-variables.md
+3a6d7e2e07dedfed392dc407e1cb598042f5aad270152740f99ae056e492b945  spec/evaluations/F020-memory-intrinsics.md
+a77babccebc4b20ee55f062ace152674a46860ebb53fdec9fd2408b85eea441a  spec/evaluations/F021-lexical-structure.md
+0d12f268294ce67560417599b4e2a88b69f743f7d4f00aaed9e412f4c5719e6f  spec/evaluations/F022-enums.md
+66dc1c0ad8222f09871b3550ae032a0d0cfcecb7cf338174e85af29bdbd2d303  spec/evaluations/F024-conditional-operator.md
+f14a19ee370fbfe6de5c3a4b0c599d1a5cf4359863a2110efe2c1d3b303e2f4d  spec/evaluations/F025-comptime-functions.md
+e38910dbf5e9a710b8171081c1698730bfd835df058b6267d5b2edf54d0dbcea  spec/future-considerations.md
+8d4533443a31067627f790540c5e1c3900a57cff52ea2b751908b4917e3fed94  spec/grammar.ebnf.md
+```
+
+> | Case | Verdict | Severity | Decisive evaluated-output evidence |
+> |---|---|---|---|
+> | Q-L01 | **FAIL** | Major | [Closure 3](/work/evaluated-answer.md:292) combines “~20 cycles” with “~11 caller bytes” for the displayed threaded call. [D3](/work/evaluated-answer.md:58) declares a borrow-lifetime conflict without a governing statement granting a conflicting lifetime. |
+>
+> Two findings prevent a pass:
+>
+> 1. **Major — an inconsistent cost claim is repeated rather than identified.** The [FUT-016 example](/work/spec/future-considerations.md:335) displays two immediate loads, two four-cycle absolute stores, and a direct jump. The supplied [absolute-store encoding](/work/spec/04-expressions-operators.md:525) and [two-load/two-store example](/work/spec/evaluations/F020-memory-intrinsics.md:176) establish **13 caller bytes and 15 caller cycles**. Adding the separately identified three-byte, five-cycle indirect return gives **16 instruction bytes and 20 cycles**, excluding the body. Two-byte zero-page stores instead give **11 caller bytes and 18 total cycles**. Thus 11 caller bytes and 20 cycles combine different addressing assumptions.
+>
+>    The return pair correctly costs **two static bytes per allocated activation variant**; these threaded call/return instructions consume **zero hardware-stack bytes**. Placement, padding, replicated bodies, and whole-program totals remain Unknown. The raw proposal’s approximate table is itself inconsistent with its displayed sequence. Quoting proposal figures and disclaiming measurements does not resolve that documentary conflict. **Remedy:** report the discrepancy and give costs under explicit addressing assumptions.
+>
+> 2. **Major — name scope is mistaken for borrowed-address lifetime.** [Chapter 04](/work/spec/04-expressions-operators.md:386) expressly gives a for-header local a new source lifetime each iteration and prohibits observing an earlier borrow from a later iteration. [Chapter 05](/work/spec/05-statements-control-flow.md:248) specifies initialization once and [loop-wide binding visibility](/work/spec/05-statements-control-flow.md:263); neither grants an address borrow spanning iterations. The supplied [SFA reference](/work/references/sfa-and-abi.md:133) also distinguishes physical-slot reuse from dynamic lifetime.
+>
+>    These statements can coexist. The evaluated answer supplies no contrary borrow-lifetime rule, so its specific `Unknown` conclusion is unsupported. **Remedy:** remove D3’s conflict claim, retain loop-wide name scope, and apply the stated E10260 lifetime boundary. Compiler enforcement remains Unknown.
+>
+> The other material oracle checks succeed:
+>
+> | Boundary | Assessment and source reasoning |
+> |---|---|
+> | Inventory and identity | Disk, inventory, candidate crosswalk, and answer each contain exactly **45 distinct paths**, with no omissions or extras. All requested per-path facets are present. Roles match the [inventory](/work/spec/00-normative-inventory.md:17): **18 normative, 27 non-normative**. The recomputed normative digest matches `566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. |
+> | Conversion question | Correct: [TS-4](/work/spec/02-type-system.md:161) permits same-signedness widening; [TS-14](/work/spec/02-type-system.md:413) permits enum-to-byte use. A4 does not invalidate either. The quoted standalone widening costs are correctly distinguished from consumer-dependent emitted costs. |
+> | Policy provenance | Correct: [Appendix C64](/work/spec/appendix-c64.md:42) prescribes ACME 0.97, corroborated by the supplied [policy excerpt](/work/policy-excerpts.md:25). Parity-debt issue creation and the push restriction come from [project policy](/work/policy-excerpts.md:6), rather than language or CPU semantics. No measured parity result triggers an issue here. |
+> | Future register and F001 | The answer inspects all **19 FUT entries and two rejected entries**, preserving their actual dispositions. It correctly limits [F001](/work/spec/evaluations/F001-multi-file.md:11) to its four supplied-input rules without inventing discovery or duplicate-module guarantees. |
+> | Storage, effects, and ABI | Correctly preserves caller-owned aggregate returns, per-activation SFA closure, nested-call staging, private overlapping homes, shared globals/MMIO, and caller-origin aggregate-parameter borrows. IRQ/NMI component costs distinguish generated bytes from existing ROM and do not certify an external stack peak or deadline. |
+> | Warnings and hardware limits | Correctly separates [W10190](/work/spec/03-variables.md:539) from [W10141](/work/spec/08-arrays-strings.md:842), and retains unchecked address wrapping, banking/MMIO effects, default-off checks, and [LOAD’s possible-overwrite boundary](/work/spec/appendix-c64.md:703). Diagnostic counts independently match **184 active codes: 155 errors and 29 warnings**. |
+> | Evidence limits and history | Compiler/runtime measurements, content commit, and activation appropriately remain Unknown. Historical identities are not relabelled or forced to fail. The captured corrections address wording and component details but leave both findings above unresolved. No unavailable qualification files or inert commands were executed. |
+>
+> The answer’s D1, D2, and D4–D11 groups are corroborated documentation or candidate-knowledge findings; detecting those defects is successful evaluator work. The two findings above concern the evaluator’s own reasoning.
+>
+> **Final unresolved grading counts:** **1 failing case; 2 Major findings; 0 Critical; 0 Minor.** Missing implementation evidence is not counted as failure. Lineage: `skillVersion=2.0.2`; `contentCommit=Unknown`; `activation=Unknown`. This is a packet-only documentary grade, not implementation or runtime qualification.
+
+</details>
+
+<details>
+<summary>2.0.2 nmi-refined: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/nmi-refined`. Raw run-log SHA-256: `52afa23fd5401e8ba1f5d2e950a9c41d601150e65e42cd52a68c82d366d20987`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `30ef34f4152c3ece1fcd522fe8908140621d5ce8f9edeac3d6dd4d5f7bc79dc1`; packet-record SHA-256: `51302290a8e27a421f3099f153e6f630e8da85171dc72c01d3833e83620c7ded`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+c966648ea7a58952561909b9a127f1617b50ee583f2845bcd07fb43602b2e51b  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+8a9442f517478c54b07aeb2acc4c801f6f1d154b9cc72f28f6a64351ed7ffd7a  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+8a0f6a8343a5d5bd6a7428b8f580e9d0cd97d06805fa1759d0ddf59d4853091b  request.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+```
+
+> The shared-home allocator, hardware-stack local-frame proposal, and acceptance of escaping local addresses contradict Specification 4. Late storage discovery is permitted only if allocation returns to SFA closure. The supplied NMI ingress can satisfy the narrow cooperative generated-code contract, while unrestricted stack safety, retained-firmware completion, and finite deadlines remain unproved.
+>
+> This is a packet-only assessment. Instruction counts and cycles below are **derivations**, not compiler, ACME, VICE, or silicon measurements. Actual compiler capability, emitted artifacts, and execution results are **Unknown**.
+>
+> Lineage throughout: `skillVersion=2.0.2`; advertised specification identity `566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. The immutable candidate content commit and release activation are **Unknown**; unavailable qualification files were not read. Relevant source-manifest keys are `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6510-1982`, `CBM-C64-KERNAL-03`, `CBM-C64-PRG-1982`, `MOS-6526-1981`, `CSG-6567-318014`, and `VIC-BAUER-2024`. Tool expectations are ACME 0.97 and VICE 3.10, without evidence that either was run.
+>
+> **Q-L08**
+>
+> **Status: Incorrect — the proposed shared private homes. Claim kind: Inference from the governing contract.**
+>
+> Ordinary helper calls from mainline and IRQ are legal. If IRQ can preempt mainline while both reach H, their concurrently live parameters, results, locals, staging, temporaries, spills, pointer pairs, and helper scratch must have disjoint static homes.
+>
+> Register preservation does not preserve RAM scratch. For example, IRQ can overwrite a pointer between its setup and mainline’s indirect access, or overwrite multiplication scratch before mainline consumes its result. Mainline then resumes with preserved registers but corrupted values, addresses, or device effects. The helper’s scratch remains live until its last possible use, including across preemption.
+>
+> For the supplied H inventory, two simultaneously possible invocations require:
+>
+> | Resource | Shared proposal | Required concurrent allocation | Increase |
+> |---|---:|---:|---:|
+> | RAM homes | 8 bytes | 16 bytes | 8 bytes |
+> | ZP pointer homes | 2 bytes | 4 bytes | 2 bytes |
+>
+> Those are H’s supplied terms, before other callers’ storage, alignment, or fragmentation. Globals remain shared. Unprotected cross-domain read/modify/write receives **W10211**; tearing multi-byte state receives **W10212**. Private-frame separation does not make either operation atomic.
+>
+> The responsible boundary is whole-program call/preemption and lifetime analysis, followed by SFA closure after helper selection. Fixed-address references or specialized callees can require separate machine-code variants. Storage-free code with identical targets can remain shared. Variant bytes and body cycles are **Unknown** because no generated body is supplied.
+>
+> Each ordinary `JSR`/`RTS` pair contributes 12 cycles, 3 call-site bytes plus one callee `RTS` byte, and two live stack bytes, excluding argument and result traffic. Raw/exclusive IRQ entry contributes six live bytes; default CINV chaining contributes seven while its status save is held. All feasible overlapping calls must be added. The private-free NMI ingress does not require a third H instance because it does not call H. If unbounded NMI instead reaches storage-bearing H, finite duplication cannot solve the overlap: **E10245** applies.
+>
+> **Smallest remedy — Recommendation:** give the overlapping mainline and IRQ paths disjoint H homes and specialize only references that require different fixed addresses. Recompute final budgets. Do not require duplicate helper source, silently mask IRQ, or introduce a runtime frame selector.
+>
+> Sources: [Functions §7.5–7.6](/work/spec/06-functions.md:757), [Memory model §3.4](/work/spec/11-memory-model.md:157), [diagnostic registry](/work/spec/14-diagnostics.md:295). Reference lineage: `sfa-and-abi.md#interference-and-reentrancy`, `#final-storage-closure`.
+>
+> **Q-L11**
+>
+> **Status: Incorrect — hardware-stack homes for all locals and the proposed public opcode controls. Claim kind: Fact.**
+>
+> Specification 4 uses SFA for general function-execution storage. Parameters, locals, temporaries, spills, and helper scratch do not become hardware-stack data frames merely because the processor supports pushes.
+>
+> Hardware-stack ownership is explicit:
+>
+> | Owner | Live stack contribution |
+> |---|---:|
+> | Each active ordinary call | 2 return-address bytes |
+> | Each accepted CPU interrupt | 3 PC/status bytes |
+> | Selected register preservation | Its actual saved-register bytes |
+> | Each unmatched source `asm_php()` | 1 status byte |
+> | General locals/parameters/results | No hardware-stack data frames |
+>
+> Ordinary helpers retain `JSR`/`RTS`; interrupt variants must honor raw or firmware entry ownership and the corresponding terminal. Caller status saves, return addresses, CPU frames, compiler register saves, and a callee’s source status saves are distinct entries. A callee or handler cannot consume another owner’s bytes.
+>
+> The complete public CPU-control surface is:
+>
+> `asm_sei()`, `asm_cli()`, `asm_php()`, `asm_plp()`, `asm_nop()`.
+>
+> `asm_pha`, `asm_pla`, and `asm_brk` are unresolved names under the supplied proposal, ordinarily **E10239**. They are not public controls. Backend use of legal `PHA`, `PLA`, or other instructions remains possible under a proved ABI. The former missing-BRK-contract diagnostic **E10259** is retired.
+>
+> Each source function begins status-stack analysis with an empty relative sequence. Reachable joins and backedges require identical state; every exit must restore emptiness. Underflow, unequal joins, and nonempty exits are **E10248**. Unbounded compiler-controlled stack growth is **E10245**.
+>
+> The hardware existence of `BRK` also establishes no useful source return contract. It consumes a signature byte, stacks `PC+2` and status, and uses the IRQ/BRK vector. The supplied stock KERNAL `TIMB` path calls restoration routines and jumps through `$A002` to BASIC warm start; it does not return to the operation’s call site.
+>
+> For cooperative profiles, a finite bounded component is checked against:
+>
+> `measuredPeak <= 256 - 20 = 236 bytes`.
+>
+> The peak is unchanged by the reserve. **W10180** begins at 188 bytes; **E10238** rejects a finite peak above 236. Unrestricted NMI remains a separate unproved boundary.
+>
+> **Smallest remedy — Recommendation:** retain SFA homes and the five-name source surface; retain backend pushes only for their existing bounded ABI duties. Preserve exact source control effects and relative status-stack analysis.
+>
+> Sources: [Hardware-stack purpose](/work/spec/11-memory-model.md:264), [complete CPU-control surface and effects](/work/spec/12-intrinsics.md:10), [diagnostic retirement](/work/spec/14-diagnostics.md:366), [primary `TIMB`](/work/primary/kernal-rs232nmi:25). Reference lineage: `sfa-and-abi.md#hardware-stack-duties`, `mos-6502-family.md#reset-interrupt-and-stack-behavior`.
+>
+> **Q-L25**
+>
+> **Status: Incorrect — if legalization obtains anonymous storage or preserves an allocation that excludes its new slot. Claim kind: Inference.**
+>
+> Discovering a spill or helper slot after *provisional* allocation is legal. Emitting it without closing storage is not.
+>
+> A spill holds a source value over its real definition/use interval. Helper scratch can likewise remain observable across calls and interrupts. Treating either as an untracked fixed byte can overwrite another live value or recreate Q-L08’s cross-domain corruption. Its owner, width, lifetime, aliases, region, visibility, and preemption class therefore enter the same storage inventory as source locals.
+>
+> The required sequence is:
+>
+> 1. Record the new spill/helper requirement and any new call edge.
+> 2. Merge it into the complete SFA inventory.
+> 3. Recompute liveness, interference, domain instances, placement, and resource budgets.
+> 4. Repeat with bounded progress until no function storage remains undiscovered.
+> 5. Freeze homes before emission.
+>
+> A later transformation needing scratch must use already reserved scratch whose proved contract covers it, or return to closure.
+>
+> The supplied two-byte spill requires two bytes per simultaneously live instance: four bytes for overlapping mainline and IRQ instances unless a valid lifetime proof permits other overlay. A ZP pointer-class request instead consumes fitting contiguous ZP pairs; an ordinary pair cannot start at `$FF`. Static growth can be reduced by proven reuse, so the final allocation total is **Unknown**.
+>
+> Selected absolute byte loads/stores cost 3 bytes and 4 cycles each; ZP forms cost 2 bytes and 3 cycles. The number of spill accesses, helper calls, additional saves, and variants is absent, so their complete code and cycle cost is **Unknown**, not zero. A newly introduced private helper home can also invalidate a previously qualifying cooperative NMI path.
+>
+> The boundary belongs jointly to legalization/helper selection, resource binding, and SFA orchestration. The emitter translates finalized machine operations; it does not allocate.
+>
+> **Smallest remedy — Recommendation:** return the two-byte requirement through the existing allocation interface and re-close affected storage. No new general pass, runtime, or storage registry is established as necessary.
+>
+> Sources: [SFA call sequence and closure](/work/spec/06-functions.md:479), [final allocation after helper discovery](/work/spec/11-memory-model.md:157). Reference lineage: `compiler-architecture.md#function-storage-reaches-closure`, `il-and-optimization.md#legalization`, `sfa-and-abi.md#final-storage-closure`.
+>
+> **Q-L29**
+>
+> **Status: Incorrect — the default build’s direct CINV write. Required route contracts are Facts; hypothetical route selection is an Inference. Actual emission is Unknown.**
+>
+> `onRasterIRQ` is callback-only. It cannot be called as an ordinary function (**E10051**). Its ordinary helper remains a `JSR`/`RTS` function.
+>
+> Handler values can flow directly or through same-kind conditional selection to compatible recognized sinks. They have no user-spellable storage type; the premise does not authorize storing them in an ordinary `fn` or implicitly treating them as a `word`.
+>
+> The legal numeric exposure is `word(&onRasterIRQ)`. That conversion permanently erases handler proof but retains visible source dependency for reachability and unsafe-use diagnostics. An ordinary `fn(...)` value, by contrast, can use typed scalar/aggregate storage, parameters, returns, and calls with a finite target-set proof.
+>
+> The applicable paths are:
+>
+> | Sink | Applicable profile and emitted entry contract | Stack and terminal owner |
+> |---|---|---|
+> | `setIRQ` | Cooperative CINV chain; no second A/X/Y save; `PHP; CLD`, body, `PLP`, saved-link jump | CPU + KERNAL own six bytes; compiler holds one status byte during body. Prior handler owns subsequent service and final exit. |
+> | `setIRQExclusive` | Cooperative CINV exclusive; `CLD`, body, `JMP $EA81` | CPU/KERNAL own six bytes. Pinned ROM tail restores Y/X/A and executes `RTI`. |
+> | `setRawIRQ` | Takeover profile only, with writable and active `$FFFE/$FFFF`; compiler save, `CLD`, body, restore, `RTI` | CPU owns three bytes; compiler owns register saves and direct terminal. |
+>
+> Only sink-reachable variants are emitted in a valid program. Cooperative and takeover profiles have different routing maps: takeover replaces the cooperative maps. The three APIs are not universally available in one build.
+>
+> For the standard full-register templates, let **B** be the selected body/helper/acknowledgement path cycles:
+>
+> | Route | Generated wrapper bytes | Cycles from CPU acceptance | Live entry bytes during body |
+> |---|---:|---:|---:|
+> | CINV chain | 6 | `50 + B`, then variable prior-handler path | 7 |
+> | CINV exclusive | 4 | `63 + B`, including `$EA81` tail | 6 |
+> | Raw IRQ | 12 | `44 + B` | 6 |
+>
+> These include seven hardware-acceptance cycles. CINV contributes another 29 cycles and **16 existing-ROM bytes, zero output bytes**. The exclusive restore tail contributes 22 cycles and **six existing-ROM bytes, zero output bytes**. Chain normalization is 3 bytes/9 cycles; exclusive/raw `CLD` is 1 byte/2 cycles. Every eventual `RTI` restores the complete interrupted status, including D. The chain restores entry flags, including D, before handing control to its predecessor.
+>
+> Each active helper call adds two stack bytes. Its `JSR`/`RTS` overhead is 12 cycles before parameter/result traffic. A straightforward raster acknowledgement, `LDA #$01; STA $D019`, contributes 5 bytes/6 cycles; a proved existing A=`$01` can remove the load. The actual body, helper inventory, and acknowledgement selection are absent, so their final totals are **Unknown**.
+>
+> The source owns VIC raster acknowledgement. The compiler must preserve its device write count/order and must not invent CIA acknowledgement. An exclusive handler must additionally handle or disable every enabled IRQ source; acknowledging raster alone does not discharge that obligation.
+>
+> The chain needs one two-byte predecessor link:
+>
+> - `$30FE` is valid: indirect fetch reads `$30FE/$30FF`.
+> - `$30FF` is invalid for this NMOS form: its high-byte fetch reads `$3000`, not `$3100`. Relocate or reject that placement.
+>
+> A wrapper’s zero chain-link requirement does not remove restore ownership. Each simultaneously live installation needing later restoration or chaining requires one predecessor word; the same word can satisfy both uses. Finite balanced LIFO ownership is required. Invalid restores or inconsistent ownership receive **E10278**.
+>
+> The supplied `pokew($0314, &onRasterIRQ)` does not select a CINV variant. Numeric raw exposure requires the explicit conversion, and even `pokew($0314, word(&onRasterIRQ))` is **E10252**: the raw-entry address has the wrong CINV stack/exit ABI. Consequently, the default build containing that write emits **no artifact**.
+>
+> A known ordinary-function value at a handler sink is **E10244**; erased/unknown provenance at a recognized sink is **E10247**. A genuinely opaque vector boundary remains uncertifiable rather than receiving an invented compatible ABI.
+>
+> When a hardware vector is not proved **both writable and active**, the raw installer is unavailable. Writing underlying RAM while ROM still supplies the active vector does not install a raw route. A matching direct raw write, where permitted, invalidates helper-owned restore state.
+>
+> **Smallest remedy — Recommendation:** preserve source identity through sink analysis, select the appropriate entry variant, repair page-unsafe links, and replace the direct CINV write with the typed cooperative installer. Final selection, helper storage, and all reachable roots must close through SFA.
+>
+> Sources: [interrupt variants](/work/spec/06-functions.md:708), [installation and ownership](/work/spec/06-functions.md:810), [handler flow](/work/spec/06-functions.md:895), [exact C64 route costs](/work/spec/appendix-c64.md:746), [takeover routing maps](/work/spec/appendix-c64.md:1007). Reference lineage: `sfa-and-abi.md#interrupt-route-completion-gate`, `c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts`. Governing hardware keys: `CBM-C64-KERNAL-03`, `MOS-PGM-1976`, `CSG-6567-318014`.
+>
+> **Q-L32**
+>
+> **Status: Incorrect — accepting the specified escapes or pinning L to make them legal. Claim kind: Fact. Legal contained uses are established by the contract; their final allocation is Unknown.**
+>
+> `&L` has source type `word` and hidden origin, lifetime, and mutability provenance. A fixed address does not give L program lifetime.
+>
+> | Use | Required decision |
+> |---|---|
+> | `p=&L`, word copies, casts, conditional selection | Legal within the borrow lifetime; retain contributing local-origin dependencies. |
+> | `q=p+1` and other arithmetic/bitwise derivations | Legal derivation with ordinary word arithmetic; retain provenance. |
+> | `lo(q)` / `hi(q)` | Retain address-derived provenance despite producing a byte. |
+> | Store p in the stated contained local aggregate | Legal because the destination lifetime is wholly contained in L’s lifetime. |
+> | `peek(p)` or `poke(p, ordinaryData)` while L lives | Legal consumption through the address; preserve the memory operation’s effects. |
+> | Ordinary data loaded through p | Does not acquire address provenance merely because its address was borrowed. |
+> | U forwards p to V; every V path only consumes synchronously and does not retain | Legal, with a transitive non-retaining proof for those exact parameter positions. |
+> | V retains globally, returns an address-derived value, publishes it, or forwards to unknown code | **E10260**, identifying the first retaining/unproven use and the L→U→V path. |
+> | Owner returns `low` | **E10260**: the derived fragment escapes L’s invocation. |
+> | Store p or a derived fragment in module/ZP state, raw memory, or MMIO | **E10260**. A raw destination supplies no contained-object lifetime proof. |
+> | Publish to an IRQ/hardware consumer or an opaque/external boundary | **E10260**. |
+> | Preserve a loop-local address into a later iteration | **E10260**. Each iteration has a distinct source lifetime. |
+>
+> A synchronous call is insufficient by itself: it can retain a value globally. User-function contracts are inferred across every reachable path. Library/platform parameter positions need an explicit non-retaining contract; unknown or retaining positions reject the borrow.
+>
+> Conditional merging retains dependencies from contributing local origins. `q=p+1` adds one byte-address unit with modulo-65536 word semantics; it does not erase lifetime or mutability. Forming an end numeric address explicitly is distinct from dereferencing it. Address-of an array element still obeys ordinary bounds: known `&items[length(items)]` is **E10240**, not a special one-past element. Known writes through read-only-derived addresses are **E10123**.
+>
+> The SFA obligations are:
+>
+> - L remains non-reusable through every legal derived use and the complete U/V chain.
+> - L interferes with every callee/helper home that can be live while the borrow observes L.
+> - Staging, U/V parameter homes, results, aggregates, spills, and scratch acquire their own real simultaneous-liveness edges.
+> - Feasible mainline/IRQ overlap creates cross-domain interference, including owner-to-owner L instances and each concurrently live transitive home.
+> - Mutually exclusive or sequential storage can overlay only after alias, lifetime, call, and preemption proof.
+>
+> Sequential calls may reuse the same address. The language promises neither fresh nor stable addresses across invocations or iterations because the previous borrow cannot remain observable.
+>
+> For bounded mainline plus one IRQ invocation, L receives two disjoint homes. Different fixed `&L` constants can require domain-specific owner variants; U/V variants are needed only if home references or specialized callees differ. Storage-free routines with identical targets can remain shared. Globals remain shared.
+>
+> Costs follow the selected inventory:
+>
+> - If L occupies **s** bytes, its two concurrent homes occupy `2s`.
+> - A materialized word copy or word parameter occupies 2 bytes per instance; a byte fragment occupies 1; the aggregate occupies its actual size.
+> - Borrow analysis adds no runtime metadata, check, calling-convention field, heap, or persistent local.
+> - A fixed address materialized into an absolute word home uses the specification’s 10-byte/12-cycle sequence; a ZP destination uses 8 bytes/10 cycles. Folding or other consumers can remove that materialization.
+> - Dynamic memory accesses can require an SFA-owned two-byte ZP pair. Every remaining U/V call contributes its selected call, argument, return, save, and stack costs.
+>
+> L’s type, aggregate shape, selected instructions, and final liveness are absent. Complete ROM/RAM/ZP totals and cycles are therefore **Unknown**.
+>
+> Pinning L for program lifetime changes automatic-local semantics and evades required E10260 rejection. One pinned home also fails concurrent invocation privacy. Multiple permanent homes still do not legalize escaping automatic addresses.
+>
+> **Smallest remedy — Recommendation:** retain provenance through derivations, infer parameter-position non-retention, diagnose each independent first escape, and extend legal-borrow interference. Persistent addresses should explicitly name module-level or caller-owned storage.
+>
+> Sources: [address provenance and lifetime](/work/spec/04-expressions-operators.md:378), [address materialization cost](/work/spec/04-expressions-operators.md:476), [non-retaining parameters](/work/spec/06-functions.md:395), [borrow-aware coloring](/work/spec/11-memory-model.md:157). Reference lineage: `sfa-and-abi.md#local-address-borrow-completion-gate`, `il-and-optimization.md#operation-and-effect-model`.
+>
+> **Q-P07**
+>
+> **Status: Verified partial — route selection and documented ABI/cost contracts. Claim kind: Fact/Inference as identified below. Complete machine configuration and timing certification are Unknown.**
+>
+> For the requested retention of KERNAL service and normal RESTORE behavior, select **default CINV chaining for IRQ** or **default NMINV chaining for a qualifying NMI handler**. Explicit CINV exclusivity and raw installation require broader source ownership than acknowledging one source.
+>
+> The packet supplies these machine facts:
+>
+> | Context | Supplied facts |
+> |---|---|
+> | Machine | Stock unexpanded C64, documented NMOS 6510 instructions; no cartridge, REU, turbo, or additional SID |
+> | PAL | 312×63 cycles, 985,248 cycles/second; 6569 family |
+> | NTSC | Later 263×65 baseline, 1,022,730 cycles/second; excludes early 6567R56A timing |
+> | SID | Exactly one selected MOS 6581 or MOS 8580 at `$D400` |
+> | Firmware | KERNAL 901227-03; source manifest pins recovered source commit `01bd60f162ef92212ef0cb67546ae8f42be34168` |
+> | Cooperative banking | `$0000` low bits `$07` outputs; `$0001` low latch bits `$06`: BASIC out, I/O and KERNAL visible |
+> | Takeover banking | Same owned DDR bits; latch low bits `$05`: BASIC/KERNAL out, I/O visible; underlying RAM vectors active |
+> | Visibility | Handler code, links, and interrupt-needed homes must remain CPU-visible in every reachable entry state |
+>
+> Exact VIC/CIA mask revisions, board/PLA revision, ROM binary hash, complete port bytes, CIA2 VIC-bank state, and complete device masks are **Unknown**. The banking values above are owned low-bit contracts, not unconditional whole-byte `$36`/`$35` stores.
+>
+> The cooperative vector paths are:
+>
+> - IRQ `$FFFE/$FFFF →` KERNAL PULS, then CINV `$0314/$0315`; firmware saves A/X/Y.
+> - NMI `$FFFA/$FFFB → $FE43`, `SEI; JMP ($0318)`; NMINV `$0318/$0319` initially names `$FE47`. No registers are saved by the stub.
+> - Raw takeover uses complete underlying RAM IRQ and NMI vectors, installed before the bank transition. Both the old ROM route and new RAM route must remain valid through that transition.
+>
+> Every potential source must be accounted for:
+>
+> | Domain | Sources requiring ownership or a disabled/absent proof |
+> |---|---|
+> | VIC IRQ | Raster, sprite/background collision, sprite/sprite collision, light pen |
+> | CIA1 IRQ | Timer A, Timer B, TOD alarm, serial completion, FLAG |
+> | CIA2 NMI | Timer A, Timer B, TOD alarm, serial completion, FLAG |
+> | Physical NMI | RESTORE remains possible |
+> | Expansion | Cartridge/expansion sources are excluded by the stock profile; an expanded deployment would need a different proof |
+>
+> The fixture names raster acknowledgement and retained firmware CIA2 ownership. It does not supply every enabled bit. Stock CIA1 Timer A service is a cooperative baseline, not proof that every other source is disabled.
+>
+> IRQ is self-masked on acceptance; the supplied IRQ is non-self-nesting. `CLI` or other re-enabling changes the preemption graph. NMI is non-self-masking, can preempt mainline/IRQ/NMI, and has no finite external bound. Human input speed or CIA mask changes supply no such bound.
+>
+> Ownership is divided as follows:
+>
+> - **Compiler:** callback identity, sink variants, register/status/D preservation, ordinary helper ABI, final storage, interference, bounded stack analysis, and exact volatile lowering.
+> - **Platform/profile:** addresses, banking, firmware revision and entry/tail contracts, resource windows, and installation/restoration rules.
+> - **Developer or explicitly selected library:** owned-source acknowledgement, handling/disabling all sources under exclusivity, input interpretation, and workload scheduling.
+>
+> IRQ costs are the Q-L29 ledger. Standard NMI templates add:
+>
+> | Route | Generated wrapper | Acceptance-to-boundary cycles, excluding body | Entry stack | Chain link |
+> |---|---:|---:|---:|---:|
+> | NMINV chain | 16 bytes | 57 to prior handler; prior path follows | 7 bytes | 2 bytes |
+> | Exclusive NMINV | 12 bytes | 51 through `RTI` | 6 bytes | 0 |
+> | Raw NMI | 12 bytes | 44 through `RTI` | 6 bytes | 0 |
+>
+> The NMINV stub contributes **4 existing-ROM bytes/7 cycles**, zero output bytes. Hardware acceptance contributes 7 cycles/3 stack bytes. Helper calls and explicit saves add their live terms. Restore-owned predecessor words remain necessary where lifecycle requires them.
+>
+> **Counterexample — Inference:** an exclusive CINV handler acknowledges VIC raster and jumps to `$EA81` while leaving CIA1 Timer A enabled and unhandled. `$EA81` skips the preceding CIA1 ICR read. The pending CIA source can remain asserted, and retained service is omitted. Raster acknowledgement alone is insufficient.
+>
+> An independent proof needs a source/device-state oracle for every enabled source, original/restored A/X/Y/P/D and stack shape, publication states, predecessor lifetime, and all exits. A separate instruction/layout oracle derives bytes and path costs. Later execution requires a supplied, identified artifact and verified bytes before configured VICE observations, followed by targeted physical QA for revision-sensitive CIA/RESTORE behavior. Finite runs cannot prove unrestricted NMI bounds.
+>
+> For cooperative PRG exclusive IRQ release, the narrow final handback restores stock CIA1 Timer A service: PAL `$4025` or NTSC `$4295`, with the prescribed masks, controls, one ICR read, saved CINV restoration, and caller status. Arbitrary old write-only masks/reload latches cannot be reconstructed from reads. That exception does not broaden CIA2/NMI or D64 ownership.
+>
+> Startup has a 12-byte BASIC stub; PRG has a two-byte load header excluded from payload accounting. Installer/restorer bodies, padding, complete startup, load time, and full program footprint are **Unknown**. Resident PRG introduces no application streaming loader merely because a route is installed. D64 adds the selected reachable KERNAL sequential loader and its separate quiescence/transfer obligations; its costs are not supplied.
+>
+> Sources: [machine/profile and startup contracts](/work/spec/appendix-c64.md:31), [cooperative/raw ownership](/work/spec/appendix-c64.md:217), [interrupt source metadata](/work/spec/15-platform-profile.md:243), [source-manifest firmware pin](/work/references/source-manifest.md:761). Reference lineage: `c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts`, `#stock-cia1-service-on-final-exclusive-release`, `c64-hardware.md#cia-register-effects-and-ownership`.
+>
+> **Q-P24 — including all seven numbered raw fixtures**
+>
+> The applicable exception is confined to:
+>
+> - `c64-pal-prg-kernal-6581`
+> - `c64-pal-prg-kernal-8580`
+> - `c64-ntsc-prg-kernal-6581`
+> - `c64-ntsc-prg-kernal-8580`
+>
+> It admits a completely proved reentrant generated NMI path with **no invocation-private RAM/ZP homes after selection and storage closure**. It permits source locals and helpers when their selected forms meet that condition. It does not certify unrestricted aggregate stack, retained-ROM reentrancy/completion, or finite timing.
+>
+> **1. Fixed private-free ingress**
+>
+> **Status: Verified partial — the stipulated selected generated component and fixed publication scheme. Claim kind: Inference. Artifact and runtime boundaries: Unknown.**
+>
+> The exact selected code occupies `$2147–$215D`, 23 bytes:
+>
+> | Selected component | Code bytes | Inactive cycles | Active cycles |
+> |---|---:|---:|---:|
+> | `PHP; PHA; CLD` | 3 | 8 | 8 |
+> | `LDA $3000; BEQ chain` | 5 | 7 | 6 |
+> | `LDA #$01; STA $3001` | 5 | 0 | 6 |
+> | `LDA #$7F; STA $DC00` | 5 | 0 | 6 |
+> | `PLA; PLP; JMP ($3002)` | 5 | 13 | 13 |
+> | **Generated total** | **23** | **28** | **39** |
+> | Hardware acceptance | 0 | 7 | 7 |
+> | Existing `$FE43` ROM stub | 0 output; 4 ROM | 7 | 7 |
+> | **Acceptance to `$FE47`** | **23 output code** | **42** | **53** |
+>
+> All branch paths stay in page `$21`; no branch page penalty applies. These are uninterrupted instruction costs, excluding interrupted-instruction completion, nesting, VIC stalls, and the subsequent firmware path.
+>
+> The generated path has:
+>
+> - **0 private RAM, 0 private ZP, 0 helper calls.**
+> - Two shared bytes at `$3000/$3001`.
+> - One immutable two-byte installation link at `$3002/$3003`, containing `$FE47`.
+> - **27 resident component bytes:** 23 code + 2 shared state + 2 link bytes. Serialized data, image padding, other code/data, and full PRG size remain **Unknown**.
+> - Two compiler stack bytes while P and A are saved; including the CPU frame, the generated component’s one-entry peak is **5 bytes**.
+>
+> X/Y are unchanged. P is saved before A; `CLD` establishes binary body entry; `PLA` restores A; subsequent `PLP` restores entry flags, including D, before the indirect jump. Nested generated entries preserve their own state and resume the interrupted generated entry correctly, conditional on stack bytes not having been externally exhausted.
+>
+> `PRIOR` is page-safe and immutable for every live route. It is installation-owned storage, not a private activation slot.
+>
+> Old `$FE47` and new `$2147` share low byte `$47`. A single high-byte store at `$0319` therefore leaves either a complete old address or a complete new address. Code/data is already published, and removal does not invalidate an interrupted old ingress’s immutable link. This establishes the address-transition argument. It does not mean `SEI` protects NMI.
+>
+> No installer instructions are supplied. A constant-load/absolute-store high-byte update would cost 5 code bytes/6 cycles per update; the store alone is 3 bytes/4 cycles. Those are conditional component derivations, not a measured installer total.
+>
+> The ingress performs no CIA ICR read. Stock `$FE47` retains CIA2 acknowledgement and normal RESTORE dispatch. From the primary source:
+>
+> - Stock A/X/Y save: 5 existing-ROM bytes/13 cycles, bringing a nonnested entry to six live CPU/register bytes after this ingress has released its saves.
+> - Stock `LDA #$7F; STA $DD0D; LDY $DD0D`: 8 existing-ROM bytes/10 cycles, including one CIA2 ICR read.
+> - `PREND` restore/`RTI`: 6 existing-ROM bytes/22 cycles when that returning tail is reached.
+>
+> All contribute zero output bytes. They are components, not a complete stock-handler cost. Stock calls and branches add other terms, and RESTORE+STOP can reach warm start instead of `RTI`.
+>
+> The active path’s stores of one and `$7F` are defined shared/device effects. ACTIVE’s stipulated restoration bracket matters, but the packet supplies no complete scan and retry program. Full input preservation remains **Unknown**.
+>
+> **2. Empty-looking body with scratch-bearing helper**
+>
+> **Status: Incorrect — acceptance under the exception. Claim kind: Fact/Inference.**
+>
+> The transitive selected path contains two mutable ZP bytes and two private RAM scratch bytes per invocation. Unbounded nested NMI would require unbounded simultaneously private instances. **E10245** rejects it.
+>
+> The four supplied private bytes cannot be ignored because the source body appears empty. Parameters, results, staging, spills, and other helper homes also require closure. A `JSR`/`RTS` pair adds 12 cycles and two live return bytes, but the helper’s complete code/cycle inventory is **Unknown**.
+>
+> The smallest remedy is a genuinely private-home-free selected form, if available, or a real finite reentry contract. A nesting guard, event dropping, RESTORE suppression, or dynamic frames are not authorized remedies.
+>
+> **3. Register-only local and home-free helper**
+>
+> **Status: Verified partial — expressibility under the stipulated complete selected proofs. Claim kind: Fact.**
+>
+> Neither source spelling justifies rejection. A register-only local adds no RAM/ZP home. A helper with no transitive private homes can qualify if entry/exit, register clobbers, status/D, shared effects, and every reachable path are proved.
+>
+> A remaining ordinary helper call still contributes its actual call bytes/cycles and two stack bytes. Register preservation is charged as selected. This proves no unrestricted external peak or firmware guarantee.
+>
+> **4. Shared counter and idempotent set flag**
+>
+> **Status: Incorrect — the claim that an empty private-storage inventory proves atomic shared effects. Claim kind: Inference.**
+>
+> For the stipulated interruptible counter load/store sequence, outer and nested entries can read the same old value and both store the same increment. One update is lost. Preserve that interleaving and issue **W10211**; do not promote it to a new source prohibition or silently make it atomic. A shared multi-byte access can additionally require **W10212**.
+>
+> A byte flag whose nested entries only store constant one has an idempotent final-value effect for those entries. That fact does not remove observable stores or prove unrelated clearing/interpretation protocols. Exact volatile count/order remains required.
+>
+> Private-state reentrancy and shared-effect atomicity are distinct proof boundaries.
+>
+> **5. Growing stack cycle, recursion, and 237-byte candidate**
+>
+> **Status: Incorrect — each proposed accepted candidate. Claim kind: Fact.**
+>
+> - An unmatched generated status push on every compiler-controlled iteration is unbounded generated stack growth: **E10245**. The cooperative exception does not excuse it.
+> - Source status-save imbalance also follows **E10248**’s join/backedge/exit rules.
+> - Direct recursive calls retain **E10180**; indirect recursive cycles retain **E10181**.
+> - The finite candidate remains **237 bytes**. Capacity is `256 − 20 = 236`; **E10238** rejects it. Subtracting reserve from measured use to report 217 would be wrong. It also crosses the 188-byte warning threshold.
+>
+> **6. No generated NMI handler**
+>
+> **Status: Incorrect — the reporter’s full-program safety and deadline claims. Claim kind: Inference.**
+>
+> A finite mainline/IRQ demand establishes only that bounded component. With stock RESTORE/RS-232 paths retained and externally unbounded NMI, aggregate stack and retained-firmware reentrancy/completion remain **Unknown**, even without a generated hook.
+>
+> The primary `UD60` and `UD70` routines loop until consecutive input samples agree. No finite settling bound is supplied. The primary RESTORE+STOP path also reaches `TIMB`, which performs a BASIC warm start. “Firmware always completes and returns” is therefore not an established contract.
+>
+> One-entry cycles cannot certify a raster deadline.
+>
+> **7. CIA2 ICR consumption, two-byte update under SEI, and reused link**
+>
+> **Status: Incorrect — the proposed route/publication proofs. Claim kind: Fact/Inference.**
+>
+> - Reading CIA2 ICR before jumping to stock `$FE47` consumes returned pending bits before their firmware owner reads them. A simple chain must perform **zero** such reads. A selected replacement must own one read, process every returned bit, and prove its full replacement contract; none is supplied.
+> - `SEI` does not mask NMI. Updating both NMINV bytes can expose a torn target. Without a proven quiescent window or valid intermediate-address scheme, the installation must be rejected.
+> - Overwriting a predecessor word while an interrupted ingress can still read it violates link lifetime. A later sink restore after ownership invalidation is **E10278**.
+> - Where the resulting generated reentrancy cannot be proved, **E10245** applies. The packet does not assign a distinct public diagnostic number to every possible device/publication failure; none is invented here.
+>
+> The fixed case-1 high-byte update avoids a torn address, and its immutable link avoids reuse while live. Both arguments are needed.
+>
+> **Input, scope, and the smallest boundary**
+>
+> Ordinary interpretation of saved rows—named-key mapping, joystick decoding, ambiguity handling, debounce/repeat, and acting on INTERFERED—belongs to developer code or an explicitly selected ordinary library function. Compiler entry/storage/volatile lowering remains a separate responsibility.
+>
+> The input wiring contract is CIA1 PA for keyboard column selection and PB for row reads. Joystick port 2 uses PA0–PA4; port 1 uses PB0–PB4. Inputs are active low, and shared keyboard lines can create ambiguity. The stated `$7F` output releases PA0–PA4 while selecting PA7; it does not alone prove either complete joystick sampling or named-key interpretation. Both DDRs/latches, PBON, restoration, and sample validity must follow the declared scan contract. RESTORE remains an NMI input and retains its stock path.
+>
+> The smallest compiler/library boundary is:
+>
+> - Preserve callback-only identity and select the NMINV entry.
+> - Close and inspect **all transitive selected storage**, including helpers and spills.
+> - Prove exact A/X/Y/P/D, terminal, ICR, banking, publication, and link-lifetime behavior.
+> - Keep shared effects and existing warning severity.
+> - Use ordinary functions for saved-sample interpretation outside the unbounded NMI path.
+> - Report exact generated components and explicitly unproved external guarantees.
+>
+> This needs no new heap, runtime selector, dispatcher, scheduler, frame-copy mechanism, guard, queue, or source suppression.
+>
+> Raw takeover and D64 receive **no new exception**. Raw takeover owns both active RAM vectors, all NMI behavior and bank transitions, and the required nesting proof. The D64 profile retains its separate loader/quiescence contract; the four cooperative PRG exception cannot be extended to it without a governing change.
+>
+> Finite timing requires real bounds on arrivals, simultaneous sources, nested work, retained-firmware completion, interrupted-instruction latency, selected paths, and VIC bus stalls. Exact revisions/configuration and a concrete workload are also needed. None follows from 28/39 ingress cycles.
+>
+> Sources: [cooperative exception and transitive closure](/work/spec/06-functions.md:757), [four-profile scope](/work/spec/15-platform-profile.md:243), [raw fixtures](/work/request.md:62), [primary NMI dispatch/source handling](/work/primary/kernal-rs232nmi:2), [primary RESTORE terminal](/work/primary/kernal-rs232nmi:20), [primary return tail](/work/primary/kernal-rs232nmi:87), [primary settling loops](/work/primary/kernal-time:49), [CIA input and ICR contracts](/work/references/c64-hardware.md:201). Reference lineage: `sfa-and-abi.md#interrupt-route-completion-gate`, `#hardware-stack-duties`, `c64-memory-and-runtime.md#revision-pinned-nmi-contracts-and-costs`, `c64-game-engineering.md#input`.
+>
+> The smallest missing evidence for implementation claims is an identified compiler artifact and complete storage/layout report, followed by byte verification and configured execution observations. This packet establishes contract decisions and selected component derivations; it establishes no compiler acceptance, emitted PRG/D64 correctness, VICE result, silicon result, complete input implementation, unrestricted stack safety, or finite deadline.
+
+</details>
+
+<details>
+<summary>2.0.2 baseline-narrow: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/baseline-narrow`. Raw run-log SHA-256: `ed70dbc51eeb1f8ab8cc0d8fe57a87a3683d632af0426bbd4c3260ede505fe3c`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `639705b986d335d745317056a94c23e6580de4528480e389c2b683ff4b2939d1`; packet-record SHA-256: `f469f8d0b67c001fdec94634159b64db7c1a82c44539dcacf0d93d063c82a617`.
+
+```text
+8111b2ebc7584ee427a16951be0bfafce199ae6166094de8befa9f092848ce68  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+4f3ea96e261ba9cc8f62b16ab5a7ed7f616b4980b7fa6efff4624d336f9a95cd  references/6502-lowering-casebook.md
+3dfda1f0ea2e33e1e8632f56fd08dbf02030300a5ad9f101c278539ebeda56a3  references/acme-and-artifacts.md
+f4353dbb552e470084be965b963cb161ede43c0407fc6eaf344d3c096dea2437  references/blend65-semantics.md
+d3bcc7a53424be398a7ef2e4c331ba403b7f02d648fd177904704ae1194dc112  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+199ca9b200158e532a21325ed2f1ffd9d84741aa929a6654f9d07350b167b16c  references/c64-memory-and-runtime.md
+893c724b6ec7a84dfd66e7e73d8669783459b56472b2bb503788bc664d814e85  references/compiler-architecture.md
+d25a45598a7669bf28ac0725c472760e3918cfb29151862d8beba9bb40a05b31  references/evidence-parity-and-recovery.md
+7b38b1c9888df1aae0b1f63862c1f1824e1f905b4465a3ef1a24da8d95d40549  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+4ee1b17f456e47d2bd2c854c343559a677c8ef367ccdaf8b9b33ddc7fb2f2ffb  references/sfa-and-abi.md
+4bca2b8bd8d3e0e0d115c291d11797ef12ecd3b2c0bc4316f3a518c951788392  references/source-manifest.md
+028efcd8220207b3d370cf09075ffa99074b53833d2388a83305d0c24775e5b8  references/target-portability.md
+0e5df5834fdd111d9ca7d923e710703b443feddae7b1c20b978b2d39bc769f9d  request.md
+1c19dd7b1b22dbc9924d192fd9318c5b99569a000f005c645229839a138250cf  spec/06-functions.md
+10fba9b9133c4ef9db6099ca12b8d939ffa4d2f61e9c5c18c656ab36f62d150d  spec/11-memory-model.md
+89b5195976a2caf08f2eb1abecb523e830e18cffca0ebed1ab881bd48ad90823  spec/14-diagnostics.md
+07b06e5ad9808b4d903901c45873c0ab5b697c6a22c27029ee75251700627dc7  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+```
+
+Verbatim captured text uses lossless JSON-string encoding to retain original hard-break spaces
+and final newline without adding Git trailing-whitespace errors. Decoding the string reproduces
+the captured UTF-8 bytes and SHA-256 above; no evaluator text or result was changed.
+
+```json
+"**Case 1 is expressible under the raw-spec exception for these four cooperative PRG profiles.** That establishes a generated-component boundary; unrestricted external stack use, retained-firmware reentrancy/completion, and raster deadlines remain unproved.\n\nThis applies equally to `c64-pal-prg-kernal-6581`, `c64-pal-prg-kernal-8580`, `c64-ntsc-prg-kernal-6581`, and `c64-ntsc-prg-kernal-8580`: NMOS 6510, KERNAL 901227-03, cooperative mapping. SID choice does not change these instruction costs. PAL/NTSC changes the timing context and bus availability.\n\nThe following specification requirements are **Facts**; conclusions about the stipulated paths are **Inferences**. Actual compiler acceptance, emitted artifact correctness, VICE behavior, and silicon behavior each have **Status: Unknown; Claim kind: Unknown**.\n\nThe earlier skill conflicts with the supplied authority in two decisive places:\n\n- [SFA hardware-stack duties](/work/references/sfa-and-abi.md:357) says an unbounded preemption cycle is rejected, and [the NMI reference](/work/references/c64-memory-and-runtime.md:393) requires finite nesting or rejects the sink. The raw [§7.5](/work/spec/06-functions.md:776) and [profile contract](/work/spec/15-platform-profile.md:267) instead permit a completely proved reentrant generated NMI path without private RAM/ZP homes on these four profiles, while explicitly withholding external stack and firmware guarantees.\n- The earlier [save-elision wording](/work/references/c64-memory-and-runtime.md:378) requires entry values to be dead or unobservable. Read literally, that would unnecessarily require saving untouched X/Y. The raw contract requires exact preservation; leaving a register unchanged satisfies that obligation. The generic 16-byte, 43-cycle, seven-stack-byte wrapper is therefore a template, not a mandatory cost floor.\n\nI apply the raw specs without changing or inferring activation of the supplied skill.\n\n1. **Fixed ingress — Status: Verified partial; Claim kind: Inference.**  \n   The stipulated generated segment satisfies the private-home-free exception. `ACTIVE` and `INTERFERED` are deliberate shared state. The immutable installation-owned `PRIOR` word is not invocation-private scratch. There is no generated helper, staging, spill, pointer pair, or other private RAM/ZP home.\n\n   `PHP` saves ingress status before `CLD`; `PHA` saves A; X/Y remain unchanged. `PLA` restores A, then `PLP` restores the architectural flags, including D, before the flag-preserving indirect jump. Hardware and the ROM stub have already established I=1 at ingress; the original interrupted I remains in the CPU frame. PHP’s represented B bit is not a persistent processor flag.\n\n   The generated terminal is exactly one chain jump to `$FE47`, with the CPU frame intact. It neither executes `RTS` nor prematurely executes `RTI`. No generated ICR read consumes the predecessor’s source information. Shared flag stores and CIA1 writes retain their stipulated order/count.\n\n   These facts support generated-component admissibility. They do not establish complete input behavior, every source-level installation obligation, or firmware completion.\n\n2. **Hidden helper storage — Status: Incorrect if accepted; Claim kind: Inference.**  \n   The final inventory contains **two private ZP bytes and two private RAM bytes per invocation**. Unbounded overlapping NMI invocations cannot receive a finite set of disjoint SFA homes. Reject with **E10245**, regardless of the empty-looking source body.\n\n   Closure must include every transitive parameter/result home, local, argument or target staging value, temporary, spill, pointer pair, and helper scratch byte discovered after instruction selection. A source-only inventory is insufficient. See [complete closure](/work/spec/06-functions.md:771).\n\n   A direct helper `JSR`/`RTS` also adds two live hardware-stack bytes and 12 cycles, with three call-site bytes plus the helper’s one-byte `RTS`; helper body and marshalling costs are additional and unspecified here.\n\n3. **Register local and home-free helper — Status: Incorrect to reject by spelling alone; Claim kind: Fact.**  \n   Neither a source local nor a helper call is itself disqualifying. The raw spec explicitly permits locals that remain in registers and helpers without private homes. Under the supplied complete selected-instruction proofs, they may qualify.\n\n   The proof must cover the entire selected call path and preserve live registers, flags, D, stack balance, shared effects, and terminal behavior. Any subsequently introduced spill or helper scratch reopens closure. Ordinary helpers retain `JSR`/`RTS`; the source interrupt function remains callback-only.\n\n4. **Shared counter versus set-one flag — Status: Incorrect to infer reentrancy from an empty inventory; Claim kind: Inference.**  \n   If an outer entry loads `counter=n`, a nested entry stores `n+1`, and the outer entry then stores its own `n+1`, an increment is lost. Empty private storage proves no atomicity.\n\n   A flag that every entry merely stores as one is idempotent: repeated set-one operations agree on its final value, provided no conflicting clear/reset occurs during those overlaps. That narrower property still does not prove the whole route.\n\n   The counter’s source-defined shared RMW remains expressible. A statically visible lost-update hazard receives **W10211**, rather than a new source prohibition; multi-byte tearing receives **W10212**. Preserve the source accesses and their order/count. Separately incomplete *generated* reentrancy still triggers E10245. See [shared-state rules](/work/spec/06-functions.md:798) and [warning registry](/work/spec/14-diagnostics.md:300).\n\n5. **Growing stack, recursion, and finite overflow — Status: Incorrect if accepted; Claim kind: Fact.**\n   - An unbounded compiler-controlled cycle accumulating a generated status push is **E10245**. The external-NMI exception does not excuse compiler-controlled stack growth.\n   - Source `asm_php()`/`asm_plp()` underflow, unequal join/backedge depths, or nonempty exit state is **E10248**.\n   - Direct recursion is **E10180**; indirect recursion is **E10181**, with the ordered cycle. Register-only storage does not legalize recursion.\n   - A finite 237-byte generated peak exceeds `256−20=236` usable bytes by one: **E10238**. The unchanged measured peak is compared with reduced capacity. The 188-byte **W10180** threshold does not replace the hard error.\n\n   These are distinct predicates in [stack analysis](/work/spec/06-functions.md:523) and the [canonical diagnostics](/work/spec/14-diagnostics.md:210).\n\n6. **No generated NMI handler — Status: Incorrect reporter conclusion; Claim kind: Inference.**  \n   A finite mainline/IRQ demand proves only that bounded component. Retaining stock RESTORE/RS-232 leaves externally unbounded NMI entry possible. The 20-byte firmware reserve does not certify unlimited nested entries or firmware completion.\n\n   The local primary evidence independently defeats “firmware always completes”:\n   - [UD60/UD70](/work/primary/kernal-time:49) repeat reads until input settles; no finite settling bound is supplied.\n   - [RESTORE+STOP](/work/primary/kernal-rs232nmi:20) reaches `TIMB`, calls restoration routines, and jumps through `$A002`. It does not return to the interrupted application via `RTI`.\n   - [RS-232 paths](/work/primary/kernal-rs232nmi:49) restore CIA2 masks, call helpers, and modify firmware workspace. Their unrestricted nested safety is not established.\n\n   External aggregate stack, firmware reentrancy/completion, and the claimed raster deadline each remain **Unknown**. The raw spec expressly requires this distinction even without an application NMI handler.\n\n7. **Source consumption and installation lifetime — Status: Incorrect for the unsafe alternatives; Claim kind: Inference.**  \n   Reading CIA2 ICR before chaining consumes the pending bits that stock `$FE47` subsequently expects to read. One read may clear several simultaneous sources; masking its returned value does not undo consumption. A simple stock chain must perform **zero generated `$DD0D` reads**. A replacement that captures and dispatches a bitset requires an explicitly proved and costed complete ownership contract.\n\n   Writing both NMINV bytes under `SEI` is insufficient: I does not mask NMI. Without a quiescent window or a proof that every intermediate dispatch is valid, reject certification of the installation. Likewise, overwriting a predecessor link still reachable by an interrupted ingress violates its lifetime contract. Invalid helper ownership/restoration receives **E10278**; incomplete generated reentrancy falls under **E10245**. No separate diagnostic number should be invented.\n\n   In contrast, case 1 changes `$0319` only. The low byte remains `$47`, so dispatch can select only `$FE47` or `$2147`. Both destinations and the link already exist; the link remains immutable. Even a ROM indirect fetch spanning the high-byte store obtains one of those two valid addresses. **That bounded publication/removal argument is Verified complete / Inference**, subject to retaining the old ingress and its dependencies for every live route.\n\n   `PRIOR=$3002` reads `$3002/$3003`, avoiding the NMOS `$xxFF` indirect-jump wrap.\n\nCase 1’s fixed component costs are exact from the supplied instruction model:\n\n| Component | Generated code bytes | Existing ROM bytes | Nominal cycles | Live-stack effect |\n|---|---:|---:|---:|---|\n| Hardware acceptance | 0 | 0 | 7 | +3 |\n| `$FE43`: `SEI; JMP ($0318)` | 0 | 4 | 7 | 0 |\n| `PHP; PHA; CLD` | 3 | 0 | 8 | +2 |\n| `PLA; PLP; JMP ($3002)` | 5 | 0 | 13 | −2 |\n| Stock `$FE47` A/X/Y saves | 0 | 5 | 13 | +3 |\n| Stock CIA2 mask-clear write and ICR capture | 0 | 8 | 10 | 0 |\n| Stock `PREND` restore/`RTI` tail, when reached | 0 | 6 | 22 | releases ROM saves and CPU frame |\n\nThus the specialized generated wrapper is **8 bytes and 21 cycles**, excluding its body. Its per-entry peak is **five stack bytes**, including the CPU frame. At predecessor entry, only those three CPU-frame bytes remain. The stock saves subsequently make six live bytes; a stock `JSR` makes at least eight, before deeper callee work or nesting. These are successive component costs, not a single total peak.\n\nThe request does not give `ACTIVE`/`INTERFERED` addresses or all body mnemonics. For a direct `LDA ACTIVE; BEQ tail` test, followed by immediate loads and direct stores of the two constants, exact totals are:\n\n| ACTIVE / INTERFERED addressing | Complete generated code bytes | Inactive generated cycles | Active generated cycles | Acceptance through predecessor entry, inactive / active |\n|---|---:|---:|---:|---:|\n| absolute / absolute | 23 | 28 | 39 | 42 / 53 |\n| ZP / absolute | 22 | 27 | 38 | 41 / 52 |\n| absolute / ZP | 22 | 28 | 38 | 42 / 52 |\n| ZP / ZP | 21 | 27 | 37 | 41 / 51 |\n\nFor these compact layouts beginning at `$2147`, the branch stays within page `$21`. The CIA1 store remains absolute. These conditional totals do not assert an unspecified body encoding.\n\nAdditional exact storage is **two link bytes plus the two shared flag bytes**; private RAM/ZP demand is zero. Shared ZP placement, if selected, still consumes the ZP budget. A high-byte `STA $0319` costs three bytes/four cycles; immediate constant setup plus that store costs five bytes/six cycles per update. Caller preservation and other installation work are unspecified. Full PRG size, padding, startup/restoration costs, and final flag placement remain Unknown.\n\nInstruction costs derive from the [NMOS grid](/work/references/mos-6502-family.md:103); the [primary NMI listing](/work/primary/kernal-rs232nmi:1) establishes the ROM operations. All cycle figures exclude interrupted-instruction completion, nested interruptions, bus stalls, and the variable predecessor path.\n\nThe remaining route audit obligations are:\n\n- **Identity and reachability:** an installed source handler must be `interrupt function (): void`, callback-only. Ordinary calls to it are E10051; an ordinary function at a recognized handler sink is E10244; erased sink provenance is E10247; a visible incompatible raw-entry write is E10252. Emit only sink-reachable entry variants and charge their complete transitive storage and code.\n- **Visibility:** cooperative startup drives processor-port low bits as outputs and selects latch low bits `$06`, preserving unrelated bits. KERNAL and I/O must remain visible wherever `$FE43`, `$FE47`, and `$DC00` are used. The low RAM ingress/link addresses fit that mapping; flags, all callees, vector state, and any bank transitions still need complete lifetime/visibility proofs.\n- **Source and terminal ownership:** stock firmware owns the CIA2 ICR consumption and retained RESTORE/RS-232 behavior. On returning stock paths, `PREND` restores A/X/Y and `RTI` restores the complete interrupted status, including D and I. RESTORE+STOP has the separate warm-start terminal.\n- **Lifecycle:** matching install/restore operations must satisfy the interprocedural per-sink LIFO contract. Atomic vector replacement does not itself prove balanced ownership or safe reclamation.\n\nKeeping named keyboard interpretation and both joystick ports requires a complete CIA1 scan/publication protocol. CIA1 PA selects active-low keyboard columns; PB reads rows. `$7F` selects PA7, including Run/Stop at PB7, and releases PA0–PA4. Joystick **port 2 uses PA0–PA4**; **port 1 uses PB0–PB4**; their bits mean up/down/left/right/fire, active low. Preserve both DDRs, both output latches, and other owned pins. Known state and disabled PBON remove specific restoration uncertainties, but do not prove filtering, ghosting handling, debounce, or correct simultaneous input interpretation.\n\n`INTERFERED` can invalidate an interrupted sample, with interpretation occurring separately after restoration. The packet does not supply the complete flag-clear, sampling, validation, and publication sequence, so complete input correctness and finite retry completion remain Unknown. RESTORE stays an external NMI source with its stock behavior; suppressing it or dropping accepted events is not an authorized remedy. See the [input wiring and matrix](/work/references/c64-hardware.md:201).\n\nA finite timing claim needs a real arrival/completion contract: bounded accepted NMI interference and nesting, bounded firmware paths—including input settling—and an explicit treatment of warm-start termination. It also needs the mainline/IRQ workload, instruction-placement paths, exact VIC timing, badline/sprite bus denial, banking, and restoration costs. One entry cost supplies none of those missing bounds.\n\nThe exception does **not** extend to takeover or D64. [Takeover profiles](/work/spec/appendix-c64.md:263) use reserve zero and require complete raw vectors in underlying RAM before exposing them, valid paths on both sides of the mapping transition, ownership of every enabled source, and a proved nesting/stack contract. KERNAL calls and NMINV helpers are unavailable during execution; retaining normal RESTORE behavior would require an explicit replacement contract. [D64](/work/spec/appendix-c64.md:275) is a distinct profile with loader/publication obligations and quiescent application IRQ/NMI/audio observers during loads; sharing cooperative banking does not import this PRG exception.\n\nLineage: supplied `skillVersion=2.0.1`; relevant reference headings are `sfa-and-abi.md#interrupt-route-completion-gate`, `#final-storage-closure`, `c64-memory-and-runtime.md#revision-pinned-nmi-contracts-and-costs`, and `c64-hardware.md#cia-register-effects-and-ownership`. Source keys are the declared `BLEND65-SPEC-4-1c2a2d75`, `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6510-1982`, `MOS-6526-1981`, `CBM-C64-PRG-1982`, and `CBM-C64-KERNAL-03`. The packet lacks `qualification/release.md`, so the skill content commit and full-corpus digest binding are unverified. No implementation, network access, activation inference, or runtime verification was performed."
+```
+
+</details>
+
+<details>
+<summary>2.0.2 grade-baseline: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-baseline`. Raw run-log SHA-256: `d47d13a3dfe024bcf648b87fc7b9dd8b951905846f416bde6a6791b229082334`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `e6bfac4b92084b09d08438e9d595b51d56522916aa4620c7e3f13e65f402b4f7`; packet-record SHA-256: `c6b8d84f17c39d7f429f0a1acb270cf8510c910681c13fd2f42e071e29b54b47`.
+
+```text
+8111b2ebc7584ee427a16951be0bfafce199ae6166094de8befa9f092848ce68  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+639705b986d335d745317056a94c23e6580de4528480e389c2b683ff4b2939d1  evaluated-answer.md
+0e5df5834fdd111d9ca7d923e710703b443feddae7b1c20b978b2d39bc769f9d  evaluator-request.md
+66ec79d012229d76fe7fd3835472218178dcc197f7cbc03ace1e4324c79eb4e6  oracle.md
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+4f3ea96e261ba9cc8f62b16ab5a7ed7f616b4980b7fa6efff4624d336f9a95cd  references/6502-lowering-casebook.md
+3dfda1f0ea2e33e1e8632f56fd08dbf02030300a5ad9f101c278539ebeda56a3  references/acme-and-artifacts.md
+f4353dbb552e470084be965b963cb161ede43c0407fc6eaf344d3c096dea2437  references/blend65-semantics.md
+d3bcc7a53424be398a7ef2e4c331ba403b7f02d648fd177904704ae1194dc112  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+199ca9b200158e532a21325ed2f1ffd9d84741aa929a6654f9d07350b167b16c  references/c64-memory-and-runtime.md
+893c724b6ec7a84dfd66e7e73d8669783459b56472b2bb503788bc664d814e85  references/compiler-architecture.md
+d25a45598a7669bf28ac0725c472760e3918cfb29151862d8beba9bb40a05b31  references/evidence-parity-and-recovery.md
+7b38b1c9888df1aae0b1f63862c1f1824e1f905b4465a3ef1a24da8d95d40549  references/il-and-optimization.md
+68838b0e38c60198c165160f2823759239ab27d233f72ed1dfc1e9e6b49716bf  references/mos-6502-family.md
+4ee1b17f456e47d2bd2c854c343559a677c8ef367ccdaf8b9b33ddc7fb2f2ffb  references/sfa-and-abi.md
+4bca2b8bd8d3e0e0d115c291d11797ef12ecd3b2c0bc4316f3a518c951788392  references/source-manifest.md
+028efcd8220207b3d370cf09075ffa99074b53833d2388a83305d0c24775e5b8  references/target-portability.md
+371f64ace64e9566d2516dea025b2ce853df26b69d645b33164abffcee02ee01  request.md
+1c19dd7b1b22dbc9924d192fd9318c5b99569a000f005c645229839a138250cf  spec/06-functions.md
+10fba9b9133c4ef9db6099ca12b8d939ffa4d2f61e9c5c18c656ab36f62d150d  spec/11-memory-model.md
+89b5195976a2caf08f2eb1abecb523e830e18cffca0ebed1ab881bd48ad90823  spec/14-diagnostics.md
+07b06e5ad9808b4d903901c45873c0ab5b697c6a22c27029ee75251700627dc7  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+```
+
+> **Q-P24: FAIL for completeness.** All seven numbered path assessments pass, and the reported costs are correct. The remaining failure is an omitted compiler/library ownership boundary required by the frozen oracle.
+>
+> This grades the supplied [evaluated-answer.md](/work/evaluated-answer.md) capture. It establishes no compiler, emulator, silicon, qualification, or activation result.
+>
+> | Request | Grade | Decisive output evidence and independent assessment |
+> |---|---|---|
+> | **1. Fixed ingress** | **PASS** | The answer identifies `ACTIVE`/`INTERFERED` as shared state and `PRIOR` as installation-owned, with no private homes ([output](/work/evaluated-answer.md:15)). It correctly preserves A through `PHA`/`PLA`, leaves X/Y unchanged, restores entry status—including D—through `PLP`, and chains once with the CPU frame intact. This meets the narrow [raw §7.5 exception](/work/spec/06-functions.md:776). Its **Verified partial / Inference** boundary correctly excludes firmware completion and complete input correctness. Exact costs are checked below. |
+> | **2. Hidden helper scratch** | **PASS** | “**Two private ZP bytes and two private RAM bytes per invocation … Reject with E10245**” ([output](/work/evaluated-answer.md:24)). Unbounded overlapping invocations cannot obtain disjoint finite static homes. The answer includes parameters, results, staging, temporaries, spills, pointers and helper scratch after selection, as [closure requires](/work/spec/06-functions.md:771). A direct `JSR`/`RTS` adds **4 instruction bytes, 12 cycles and 2 live return-address bytes**; unspecified helper and marshalling costs correctly remain unmeasured. |
+> | **3. Register local/home-free helper** | **PASS** | “**Neither a source local nor a helper call is itself disqualifying**” ([output](/work/evaluated-answer.md:31)). The [raw contract](/work/spec/06-functions.md:780) explicitly permits both under complete selected-path proofs. The answer preserves callback-only handler identity and ordinary helper `JSR`/`RTS`, and reopens closure if spills appear. Private RAM/ZP is zero as stipulated; full instruction costs are not supplied. |
+> | **4. Shared effects** | **PASS** | The answer gives the decisive lost-update trace, distinguishes conditionally idempotent set-one stores, and states “**shared RMW remains expressible**” ([output](/work/evaluated-answer.md:40)). Empty private storage supplies no atomicity guarantee. **W10211** and conditional multi-byte **W10212** match the [registry](/work/spec/14-diagnostics.md:300) and [shared-state rules](/work/spec/06-functions.md:798). It preserves access order/count rather than introducing masking or cloned globals. Selected RMW code and exact costs are unspecified. |
+> | **5. Stack growth, recursion, overflow** | **PASS** | Every separate candidate is correctly classified ([output](/work/evaluated-answer.md:43)): generated growing-stack cycle **E10245**; malformed source status-stack balance **E10248**; direct recursion **E10180**; indirect recursion **E10181**; finite overflow **E10238**. These follow [stack analysis](/work/spec/06-functions.md:523) and the [diagnostic registry](/work/spec/14-diagnostics.md:177). **237 > 256−20 = 236**, exceeding usable capacity by **1 byte**. The **188-byte** warning threshold does not replace the hard error. |
+> | **6. No installed generated handler** | **PASS** | “**External aggregate stack, firmware reentrancy/completion, and the claimed raster deadline each remain Unknown**” ([output](/work/evaluated-answer.md:58)). The [raw specification](/work/spec/06-functions.md:530) explicitly applies this distinction without an application handler. Primary [UD60/UD70](/work/primary/kernal-time:49) contain settling loops; [TIMB](/work/primary/kernal-rs232nmi:27) warm-starts through `$A002`; retained RS-232 paths use helpers and firmware workspace. A finite mainline/IRQ component and 20-byte reserve prove neither unlimited external stack safety nor eventual application resumption. |
+> | **7. ICR/vector/link ownership** | **PASS** | “**Zero generated `$DD0D` reads**” in a stock chain ([output](/work/evaluated-answer.md:61)) correctly preserves the predecessor’s consuming read. [CIA ICR semantics](/work/references/c64-hardware.md:279) clear returned pending sources, potentially several at once. The answer correctly rejects reliance on `SEI`, requires valid intermediate dispatches, and preserves live predecessor links. **E10278** is appropriately tied to helper ownership/restoration; incomplete generated reentrancy uses **E10245**. The one-byte `$0319` update selects only `$FE47` or `$2147`; `$3002/$3003` is page-safe. A `STA $0319` is **3 bytes/4 cycles**, or **5 bytes/6 cycles** with immediate setup; other installation costs remain Unknown. |
+> | **Required compiler/library boundary** | **FAIL** | The answer says “**interpretation occurring separately after restoration**” ([output](/work/evaluated-answer.md:107)), but never assigns ordinary saved-data interpretation to **Blend65 platform libraries**, as [oracle lines 43–45](/work/oracle.md:43) require. Temporal separation does not establish responsibility ownership. **Major completeness omission**, with no demonstrated unsafe acceptance. |
+>
+> The shared route audit also passes. [Output lines 100–103](/work/evaluated-answer.md:100) cover callback identity, reachable variants, banking, terminal ownership and interprocedural LIFO lifetime. Returning stock paths restore A/X/Y and the full interrupted status through `RTI`; RESTORE+STOP retains its distinct warm-start terminal.
+>
+> [Output lines 105–111](/work/evaluated-answer.md:105) correctly retain named keyboard interpretation, both joystick ports and normal RESTORE behavior without certifying combined-input correctness. PA7/PB7 identifies Run/Stop; joystick port 2 uses PA0–PA4 and port 1 uses PB0–PB4, active low, matching the [local wiring/matrix source](/work/references/c64-hardware.md:208). Known latches/directions and disabled PBON do not prove filtering, ghosting handling or complete restoration/publication. Takeover and D64 receive no new exception, consistent with [Chapter 15](/work/spec/15-platform-profile.md:267) and the [appendix](/work/spec/appendix-c64.md:263).
+>
+> I independently recomputed case 1 using the [NMOS instruction grid](/work/references/mos-6502-family.md:103) and the [primary NMI listing](/work/primary/kernal-rs232nmi:2):
+>
+> | Fixed component | Emitted instruction bytes | Existing ROM bytes | Nominal cycles | Stack contribution |
+> |---|---:|---:|---:|---|
+> | CPU acceptance | 0 | 0 | 7 | +3 |
+> | `$FE43` stub | 0 | 4 | 7 | 0 |
+> | `PHP; PHA; CLD` | 3 | 0 | 8 | +2 |
+> | `PLA; PLP; JMP ($3002)` | 5 | 0 | 13 | −2 |
+> | Stock A/X/Y saves | 0 | 5 | 13 | +3 |
+> | Stock CIA2 mask-clear/capture | 0 | 8 | 10 | 0 |
+> | `PREND` restore/`RTI`, when reached | 0 | 6 | 22 | Releases stock saves and CPU frame |
+>
+> Thus the generated wrapper is **8 bytes/21 cycles**. Its one-entry peak is **3+2=5 stack bytes**. Three remain at predecessor entry; stock saves make six; one stock `JSR` makes eight before deeper work. None is an unrestricted program peak.
+>
+> The conditional body totals also reproduce exactly:
+>
+> | ACTIVE / INTERFERED addressing | Generated bytes | Inactive / active cycles | CPU acceptance through predecessor entry |
+> |---|---:|---:|---:|
+> | Absolute / absolute | 23 | 28 / 39 | 42 / 53 |
+> | ZP / absolute | 22 | 27 / 38 | 41 / 52 |
+> | Absolute / ZP | 22 | 28 / 38 | 42 / 52 |
+> | ZP / ZP | 21 | 27 / 37 | 41 / 51 |
+>
+> These totals assume the answer’s expressly stated `LDA; BEQ` and immediate-load/direct-store body. Their branches remain within page `$21`. They are **conditional calculations, not invented emitted measurements**: the packet lacks final flag addresses and a fully specified body encoding. Storage is **two link bytes plus two shared flag bytes**, with **zero invocation-private RAM/ZP**. Artifact serialization, padding, startup/restoration totals and unrestricted external peak remain Unknown.
+>
+> Second-guessing the passes does not reveal a disqualifier. Untouched X/Y need no preservation traffic; balanced ABI saves are not general local-variable frames; shared lost updates are not a new source prohibition; and private-home-free generated admissibility does not prove retained firmware. The source-driven behavior analysis and separately derived instruction ledger satisfy this hypothetical assessment’s documentary boundary. Missing implementation measurements are correctly Unknown.
+>
+> Second-guessing the failure confirms a limited omission: the compiler duties are described, but library ownership is absent. The smallest remedy is an explicit statement that the compiler owns handler identity, effects, final SFA closure, selected ABI and static safety/cost proofs, while Blend65 platform libraries interpret saved input data in ordinary Blend65. This approves no API or input/restoration guarantee and adds no runtime machinery.
+>
+> Two other findings must remain distinct:
+>
+> - **Knowledge/source defect — Critical:** the supplied [SFA summary](/work/references/sfa-and-abi.md:363) and [NMI summary](/work/references/c64-memory-and-runtime.md:396) blanket-reject unbounded preemption without the raw specification’s narrow exception. The evaluated answer correctly applies stronger authority; this conflict does **not** make its numbered conclusions fail.
+> - **Packet prompt mismatch — Moderate:** the oracle’s quoted prompt explicitly requests the smallest compiler/library boundary ([oracle](/work/oracle.md:9)); the actual [evaluator-request.md](/work/evaluator-request.md:36) omits that instruction. This explains the omission but does not change the frozen grading criterion. The save-elision wording is additionally ambiguous; the answer correctly qualifies its literal reading rather than asserting a universal hardware defect.
+>
+> **Final counts:** seven numbered assessments **PASS**, zero **FAIL**; one mandatory ownership-boundary failure, making **Q-P24 FAIL**. Unresolved material findings: **1 evaluator omission, 1 knowledge/source conflict, 1 packet prompt mismatch**. No wrong measurable result or unsupported qualification guarantee was found.
+>
+> Lineage: supplied `skillVersion=2.0.1`, declared `BLEND65-SPEC-4-1c2a2d75`; governing references include the interrupt-route gate, final storage closure, pinned NMI contracts and CIA ownership. Skill content commit and full-corpus digest binding remain **Unknown**. No unavailable qualification file or external content was read.
+
+</details>
+
+<details>
+<summary>2.0.2 corpus-first: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/corpus`. Raw run-log SHA-256: `aedf5a174cb6a3646efd49083d7cc61653b29347f66db937247af9ef05ccb23b`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `abc1410b4d0fa8a58cf87acbf5c507ee6d2dcbdc878d4650855b0cce46e59894`; packet-record SHA-256: `cd7d1caf02aade09f5f17d6772e769506e5e17f9ec8015c5e7824a60a5162e73`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+006e5003573d85d7da96c8bebf69c730434829cacff3402eabd7ec32dd9f56bc  policy-excerpts.md
+f223343842aa5d0cef608f5ed3c35cb42675d2c7a9c1c8ec03c6d0479cf85508  references/blend65-semantics.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+40ab7967ee587bd1599d0fdb3ff100c1ce5dc9b30b3d28bbab88f8c676f70792  references/il-and-optimization.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+6f337f0daab46ecbe9b49f210aefaa62a52b00b8b11d24f842f814369d96399e  request.md
+ab393b09a630b8b8db90c7fb5e273ff0bbef1e5299c2902affbf4a33d43a6b0a  spec/00-feature-index.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1a1bc184c81b036c7e5cdcc4785a8d591795ac35552f727b4a299d1597d713bb  spec/00-normative-inventory.md
+4312fb663eeb3f26137aadcc8acbfa6ba586ef19996f54254409f8ead7982d1c  spec/01-lexical-structure.md
+73f7deb046abcc2caa6bcced73bd62c741bb2c0e954b16cfb1633e3cbdab8651  spec/02-type-system.md
+e8c017b9671b9cf1c8ac633cf4aee59fd1591df13ea94ddab323b7c42a11807d  spec/03-variables.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+187ea573d6ddaf6a033321f9118835c2b3442118e1e363dcd68bc634f59b0ab2  spec/05-statements-control-flow.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+a3afc05f37ab7118ed365ae570ff98ca05ac2ca73120b5b48280b58b98f8cd45  spec/07-structs.md
+500a6c18f84dc54a41fd7fe82b0fb5e0029bc1e050615ec9c929e148f76be515  spec/08-arrays-strings.md
+e0772e924b761ed16e58b14f72906d4fa3014ed3bf2e9886fd01759a127192d6  spec/09-enums.md
+a5ad0cc83e34867de7b1e1ada3d94efb1a136230cf199578c7a0d7a283a57383  spec/10-modules.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+29a16540be2a29cc4d4e5ba3bed0e407b9644dd25d4acc803666cf3df71079e7  spec/13-data-inclusion.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+cd79fa582b71c3126916f455f6d623c3c1a8fd35b064cae22ee4a311261a19df  spec/evaluations/F001-multi-file.md
+d522d443a3f946ac6d0201ada84d45e321c35094e951bd3ecb1d616bd9f1d98a  spec/evaluations/F002-modules.md
+9673502debd656fe4733a160454d1d86ed6adcbf70fb7bc68325f67d49385920  spec/evaluations/F003-module-contents.md
+dd7ef96a96873a1ff1ff1a9c3bf97ea07ece0717051ff485432b6a951abb8162  spec/evaluations/F004-entry-point.md
+add33b6dd89783250bd495247264966aadee57d4dec3dc44a1698fdbe1442aa3  spec/evaluations/F005-memory-placement.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+bb503f0aa1aff317c71cb8a61c5e071b9f3c8bbeea1476438306f3b82c60dc04  spec/evaluations/F008-for-loop.md
+2d5116b586c2abe6bb4ee43a2372f974dc90e719177443bfe714c53c542d72ce  spec/evaluations/F009-switch-statement.md
+9013ae2793ba44f96c13e9fdb567b324e6bd5a8f331af9083605eff12fe2f359  spec/evaluations/F010-signed-types.md
+4118af9de2c2b34022a883cddc5762e87bd164cda03ed38f47fe4f77577db026  spec/evaluations/F011-structs.md
+c06a710a4dca63f35d91af4850f2ba1aa6e94c06e1bd89bc81b0d5720c96fc5c  spec/evaluations/F012-cpu-control-intrinsics.md
+1a36d5db689bb97d84b93318e604a7da31a36c38dc057993c3192c0907731faa  spec/evaluations/F013-control-flow.md
+938d3adb011bb60eac49dcfe160c65c48b2279aa610a1bb2c82cb3171c53ba2f  spec/evaluations/F014-arrays.md
+cc383e7d7258c1cb7eecd8a51bffa360098fda5ddfbb2a8752061a5e647a942f  spec/evaluations/F015-data-inclusion.md
+0ccfec6274dadc849eb93a3440bb090f9b24f77119f7b297fa5217f827608f4e  spec/evaluations/F016-type-system.md
+ecf5e10be85f9610c20d400aac6dbda2cc8dea0a1edbbccfce2b87a32e7ff44d  spec/evaluations/F017-operators.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+15628edf3f35fb2252f20ad938b16b8b6006f32d196ffe0d8ffa8e496f3fa017  spec/evaluations/F019-variables.md
+3a6d7e2e07dedfed392dc407e1cb598042f5aad270152740f99ae056e492b945  spec/evaluations/F020-memory-intrinsics.md
+a77babccebc4b20ee55f062ace152674a46860ebb53fdec9fd2408b85eea441a  spec/evaluations/F021-lexical-structure.md
+0d12f268294ce67560417599b4e2a88b69f743f7d4f00aaed9e412f4c5719e6f  spec/evaluations/F022-enums.md
+66dc1c0ad8222f09871b3550ae032a0d0cfcecb7cf338174e85af29bdbd2d303  spec/evaluations/F024-conditional-operator.md
+f14a19ee370fbfe6de5c3a4b0c599d1a5cf4359863a2110efe2c1d3b303e2f4d  spec/evaluations/F025-comptime-functions.md
+e38910dbf5e9a710b8171081c1698730bfd835df058b6267d5b2edf54d0dbcea  spec/future-considerations.md
+8d4533443a31067627f790540c5e1c3900a57cff52ea2b751908b4917e3fed94  spec/grammar.ebnf.md
+```
+
+> Completed the [audit report](/tmp/blend65-crosswalk-audit.md).
+>
+> Both enumerated conversions are valid. All 45 paths were audited; inventory and digest match. The report documents 11 finding groups, including stale summaries and governing-text conflicts.
+>
+> Used supplied local evidence only. Compiler/runtime qualification, content commit, and activation remain Unknown.
+>
+> ## Exact report fragments captured in completed evaluator commands
+>
+> # Local specification crosswalk audit
+>
+> Both conversions in the question are valid. All 45 supplied specification paths appear exactly once in the candidate crosswalk. Its blanket reconciliation claims nevertheless fail: the local packet contains stale evaluation text, inconsistent governing prose, and unsupported handler-flow wording. This is a documentary audit, not compiler or runtime qualification.
+>
+> ## Language question
+>
+> **Status: Verified complete. Claim kind: Fact.** [A4](/work/spec/00-introduction.md:100) requires declaration type annotations and explicit cross-signedness/narrowing casts; its supplied wording does not prohibit every implicit conversion. [TS-4](/work/spec/02-type-system.md:161) expressly permits same-signedness mixed-width widening: `byte + word` zero-extends the byte and produces `word`; `sbyte + sword` sign-extends and produces `sword`. Its `1000 + byte(42)` example produces 1042.
+>
+> [TS-14](/work/spec/02-type-system.md:413) expressly permits enum-to-byte assignment, arguments, `poke`, arithmetic, and comparison. [EN-9](/work/spec/09-enums.md:185) corroborates this. Both are enumerated implicit conversions consistent with A4. Enum-to-byte is the **only** implicit conversion out of an enum: enum-to-word/sword is not implicit; use `word(dir)` explicitly. Implicit byte-to-enum remains invalid; an explicit enum cast accepts any byte without member-range checking ([TS-15](/work/spec/02-type-system.md:426)).
+>
+> The destination does not widen earlier arithmetic. [TS-9](/work/spec/02-type-system.md:299) gives byte 200 + byte 100 as 44 before assignment to word. True constant contexts instead use TS-18 full precision. Legal widening has consumer-dependent emitted cost; TS-4 gives standalone stored zero extension as 11–14 cycles/8–11 ROM bytes and sign extension as 16–21 cycles/17–20 ROM bytes, not a universal surcharge. Those are documentary cost contracts, not observed output.
+>
+> ## Evidence and boundaries
+>
+> Inspected [request.md](/work/request.md), supplied [SKILL.md](/work/SKILL.md), [policy excerpts](/work/policy-excerpts.md), all four references—[semantics](/work/references/blend65-semantics.md), [architecture](/work/references/compiler-architecture.md), [SFA/ABI](/work/references/sfa-and-abi.md), [IL/optimization](/work/references/il-and-optimization.md)—and every specification path below. Used local reads, path comparisons, and hashing only. No network, unprovided branches, or unprovided reference content was used. Supplied sources remain untouched; `/work` is read-only.
+>
+> | Assessed boundary | Status | Claim kind | Evidence and limit |
+> |---|---|---|---|
+> | Exact path membership | Verified complete | Fact | Disk = inventory = candidate: 45 files, 18 normative and 27 non-normative, no missing/extra/duplicate path. F023 is expressly retired. |
+> | Local corpus identity | Verified complete | Fact | All 45 are regular UTF-8/LF Markdown files without symlinks. Recomputed the normative digest using GNU-style records with paths relative to `spec/`, bytewise sorted, then hashing their concatenation. |
+> | Diagnostic membership/count | Verified complete | Fact | Chapter 14 has 184 unique active rows: 155 E codes, 29 W codes, no duplicate active code. This does not prove implemented predicates. |
+> | Candidate substantive alignment | Verified partial | Fact | Many major boundaries are represented correctly, but D1–D11 prevent all-document reconciliation. |
+> | Blanket retained-copy reconciliation | Incorrect | Fact | The supplied packet itself contains counterexamples; matching membership/hash does not establish consistency. |
+> | For-header borrow lifetime | Unknown | Unknown | Competing governing descriptions require authorized specification clarification of this field. |
+> | Compiler acceptance, lowering, allocation, assembly, artifact construction, runtime, timing, parity | Unknown | Unknown | No implementation, emitted artifact, fixture run, measurement, or equivalence oracle is supplied. Requirements and evaluation “Pass” labels are not qualification. |
+> | Content commit, release history, activation | Unknown | Unknown | Release evidence is intentionally absent; the normative hash cannot identify a skill-content commit or activation. |
+>
+> Recomputed identity: `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. Lineage: `skillVersion=2.0.2`, `contentCommit=Unknown`, `activation=Unknown`. Reference provenance is the four supplied paths and sections named in routing below. Embedded source-manifest keys are declarations, not independently authenticated records: the manifest is unprovided. The current supplied policy SHA-256 is `0047dbcea892147b9ef929129041349ccc4606eb02d38a8b3be03183e559d25d`; the references' older `BLEND65-PROJECT-POLICY-P3-28627e0c` citation does not establish equivalence to it.
+>
+> Historical P3 digests, SC/AR/evaluator narratives, claimed pre-freeze semantic-diff success, and the inventory's RD-01 closeout are **Unknown as historical events**. Their text was inspected; historical corpora/closeout evidence were not supplied. No external accepted ruling was used.
+>
+> The exact policy excerpts are repository/workflow authority, not language or CPU semantics. They select ACME 0.97, freeze `spec/`, require branching before default-branch work, authorize coherent green commits, prohibit automatic pushes, and require a debt issue after an actual measured expert-parity “meet.” No generated-code parity measurement exists here, so that issue trigger does not arise. The roadmap excerpt ends mid-sentence; no missing obligation is reconstructed. No commit, push, roadmap change, or remote issue action was performed.
+>
+> ## Routing and status conventions
+>
+> Every path first uses **S** = supplied semantic crosswalk. **A** = architecture (Target-Neutral Front End, Responsibility Map, Target Composition, Required Pipeline Invariants, Restriction Triage). **F** = SFA/ABI (Storage Ownership Boundary, Lifetime Model, Local-address borrow completion gate, Nested Argument Evaluation, Interference and Reentrancy, Interrupt-route completion gate, Hardware Stack Duties, Final Storage Closure). **I** = IL/optimization (Mandatory Semantic Payload, Memory Effects and Volatility, Arithmetic and Constant Evaluation, Control Flow and Layout, Calls/Helpers/Clobbers, Machine State as Explicit Effects, Two-Oracle Proof Obligation).
+>
+> Additional correct router branches are named but **unprovided**: **CM** `c64-memory-and-runtime.md`, **CH** `c64-hardware.md`, **CG** `c64-game-engineering.md`, **AA** `acme-and-artifacts.md`, **CPU/L** `mos-6502-family.md` plus `6502-lowering-casebook.md`, **TP** `target-portability.md`, **EP** `evidence-parity-and-recovery.md`, **SM** `source-manifest.md`. Their content was not fetched; branch-specific completion remains Unknown. The normative appendix supports local documentary C64 conclusions, not completion of absent branch checklists or primary-evidence qualification.
+>
+> Path payloads/consequences are documentary **Facts**. Per-path status evaluates the stated local crosswalk alignment only. “Verified complete” does not mean exhaustive implementation conformance. Each N/A names an independent, genuinely inapplicable facet and its reason; missing implementation/artifact/observation is Unknown, never N/A.
+>
+> ## Findings and smallest remedies
+>
+> All remedies are **Recommendations**, not edits to the frozen specification.
+>
+> | ID | Status / claim kind | Finding with raw evidence | Smallest remedy |
+> |---|---|---|---|
+> | D1 | Unknown / Unknown, disputed authority wording | [Introduction §7](/work/spec/00-introduction.md:201) permits platform examples to become normative when their appendix **or evaluation** says so. [Inventory Authority Rule](/work/spec/00-normative-inventory.md:7) makes evaluations non-normative. The candidate does not identify this inconsistency. | Record an erratum removing the evaluation-authority alternative. Do not elevate evaluation examples over the governing chapters. |
+> | D2 | Incorrect / Fact | [Enum cost summary](/work/spec/09-enums.md:242) assigns `word(dir)` universal “0 cycles (compile-time).” [TS-4](/work/spec/02-type-system.md:180) and TS-12 give consumer-dependent, potentially nonzero stored widening. A live enum stored into an independently observable word may need zeroing/moves. Legality is unaffected. | Distinguish byte-backed type erasure from zero extension/materialization; flag this cost-copy contradiction. |
+> | D3 | Unknown / Unknown, disputed lifetime | [Chapter 04](/work/spec/04-expressions-operators.md:386) gives a **for-header** local a new source lifetime each iteration and forbids later-iteration borrow use. [Chapter 05](/work/spec/05-statements-control-flow.md:246) initializes once, retains the header binding through condition/update/body, and uses ordinary liveness. [SFA Lifetime Model](/work/references/sfa-and-abi.md:92) describes that whole-loop scope. | Clarify header-local dynamic borrow lifetime separately from per-iteration body locals. A thought case forming `&i` in iteration one and using a contained borrow in iteration two isolates the dispute. No compiler run can settle governing-text conflict. |
+> | D4 | Verified partial / Fact, shallow summaries | [Chapter 05 scope summary](/work/spec/05-statements-control-flow.md:261) and [F008 decision row](/work/spec/evaluations/F008-for-loop.md:345) list only `let`/`const`; [explicit grammar/prose](/work/spec/05-statements-control-flow.md:227) also accepts `loadable const`, with ordinary scope and no runtime storage. | Add the omitted declaration form to summaries. Its explicit acceptance is determined; do not reject it or allocate a hidden frame home. |
+> | D5 | Incorrect / Fact | [F004 library example](/work/spec/evaluations/F004-entry-point.md:53) uses `--platform c64`; [Chapter 15](/work/spec/15-platform-profile.md:40) rejects every shorthand/non-table ID with E10279. | Replace the example's profile argument with a full listed ID. The CLI invocation itself remains unqualified. |
+> | D6 | Incorrect / Fact | [F016 TS-A7](/work/spec/evaluations/F016-type-system.md:503) says refusal of implicit byte-to-enum “prevents invalid enum values,” and enum formalization is future. Governing TS-15/EN-10 already permit any byte through an unchecked explicit cast. | Retain implicit/explicit asymmetry; remove obsolete future tense and member-validity rationale. |
+> | D7 | Incorrect / Fact | [F024](/work/spec/evaluations/F024-conditional-operator.md:96), its examples/test/diagnostic copies use E10081 for mixed-signedness conditional **arms**. [Chapter 04](/work/spec/04-expressions-operators.md:303) and [Chapter 14](/work/spec/14-diagnostics.md:169) require E10162. | Reconcile arm-specific copies with E10162; preserve E10081 for mixed-signedness integer operations inside an arm. |
+> | D8 | Incorrect / Fact, overbroad storage ownership | [F011 SFA table](/work/spec/evaluations/F011-structs.md:283) absorbs globals/constants/user ZP into “SFA Behavior,” gives every struct a fixed address despite dynamic element offsets, and says loop locals have “ONE instance” without activation scope. [Chapter 11](/work/spec/11-memory-model.md:106) and supplied SFA separate function storage from platform layout and concurrent private homes. | Relabel storage ownership, distinguish allocated base from dynamic offset, and qualify reuse by proven nonoverlap per allocated activation/domain variant. |
+> | D9 | Incorrect / Fact, overbroad effect summary | [F020 table](/work/spec/evaluations/F020-memory-intrinsics.md:56) says all function calls are side-effectful and can “Never” be optimized. Its neighboring prose allows normal proofs; [Chapter 06](/work/spec/06-functions.md:378) allows devirtualization, and supplied IL requires precise effects. | Preserve observable call effects/order while allowing proof-preserving transformation. Do not weaken mandatory memory-intrinsic access count/order or exact CPU effects. |
+> | D10 | Incorrect / Fact, unsupported handler flow | [Candidate bullet](/work/references/blend65-semantics.md:677) groups function/handler values under scalar declaration/assignment/copy and identity casts. [TS handler rule](/work/spec/02-type-system.md:74) permits only compatible sink arguments, same-kind conditionals, or explicit word conversion, with no user handler type. [IL wording](/work/references/il-and-optimization.md:154) also needs to distinguish typed `&handler` from numeric exposure. | Separate ordinary `fn` flow from handler flow; do not invent handler locals/fields. Spell raw numeric exposure `word(&handler)`, with one-way proof erasure and E10247 at a recognized sink. |
+> | D11 | Incorrect / Fact for independent authority; Unknown / Unknown for history | [Candidate HLE register](/work/references/blend65-semantics.md:586) calls itself canonical and permits accepted entries to become authoritative. It is derivative under the supplied inventory. Its [diagnostic-rescan claim](/work/references/blend65-semantics.md:693) names the feature index, though [the index](/work/spec/00-feature-index.md:78) deliberately copies no diagnostic registry. Historical repairs/freeze success have no supplied corroboration. | Make HLE rows derivative pointers to normative owners; acceptance cannot override the frozen corpus. Extract active public rows from Chapter 14 only. Label historical outcomes unverified in this packet. |
+>
+> Useful consistent duplication is not extra authority: feature predicates versus Chapter 14 public fields, grammar syntax versus chapter semantics, and profile IDs versus appendix concrete deltas have different roles. FUT-009 openly repeats FUT-001's resolved field-address idea; that is historical rationale duplication, not a second rule. Candidate internal links are useful navigation, but a path-name row or internal summary link alone is shallow evidence for full source-level coverage.
+>
+> ## Every supplied path
+>
+> ### spec/00-normative-inventory.md
+>
+> **Authority:** non-normative membership/identity owner. **Payload:** 18 normative members alone define this corpus; regular UTF-8/LF files, self-excluded digest ([raw rule](/work/spec/00-normative-inventory.md:7)). **Consequence:** verify membership and sorted raw-file identity before semantic use. **Boundary:** the digest omits non-normative/reference changes and cannot identify a content commit/release. **Route:** S Authority and Use; SM for unavailable lineage. **N/A:** runtime effects/frame allocation; the record executes nothing. **Status:** Verified complete for local membership/hash alignment.
+>
+> ### spec/00-feature-index.md
+>
+> **Authority:** non-normative navigation. **Payload:** feature-to-owner links; F023 retired, `type` reserved; Chapter 14 alone owns public diagnostics ([raw index](/work/spec/00-feature-index.md:67)). **Consequence:** resolve the governing owner before accepting rules. **Boundary:** future-item contracts are reached through a supporting link; the index copies no active diagnostic rows. **Route:** S Authority and Use / Diagnostic Doctrine. **N/A:** an independent diagnostic registry/capability verdict; the file expressly supplies neither. **Status:** Verified partial; the candidate's diagnostic extraction claim is D11.
+>
+> ### spec/00-introduction.md
+>
+> **Authority:** normative scope/axioms. **Payload:** explicit declarations, SFA, deterministic effects with narrow registered unspecified values, target-neutral core ([A4/A5](/work/spec/00-introduction.md:100)). **Consequence:** retain width/effects and reject source restrictions caused only by incomplete lowering. **Boundary:** TS-4/TS-14 coexist with A4; evaluation-example authority wording is disputed, D1. **Route:** S semantic preservation + A Restriction Triage + F Interference and Reentrancy. **N/A:** native binary asset schema; axioms prescribe constraints, not decoder layouts. **Status:** Verified partial for documentary alignment.
+>
+> ### spec/01-lexical-structure.md
+>
+> **Authority:** normative lexing. **Payload:** UTF-8, case-sensitive names, reserved spellings, closed escapes, maximal munch, byte-counted positions ([escapes](/work/spec/01-lexical-structure.md:387)). **Consequence:** exact token value/spelling/spans; preserve symbolic characters for later semantic encoding without target knowledge in the lexer. **Boundary:** malformed escapes differ from valid but profile-unmappable characters. **Route:** S lexical preservation + A Target-Neutral Front End. **N/A:** activation interference/stack allocation; tokens define no function homes. **Status:** Verified complete for this frontend distinction.
+>
+> ### spec/02-type-system.md
+>
+> **Authority:** normative typing/conversions. **Payload:** enumerated widening/enum erasure, operand-derived widths, full-precision constants, nominal identity, exact aggregate shapes and word queries ([TS-4](/work/spec/02-type-system.md:161); [query/size rules](/work/spec/02-type-system.md:539)). **Consequence:** retain extension kind, wrap barriers, constant/runtime role and ordered extents in typed IL. **Boundary:** no implicit narrowing/cross-signedness/enum-to-word, no user handler storage type. **Route:** S + I Mandatory Semantic Payload / Arithmetic and Constant Evaluation + F representations. **N/A:** device acknowledgement; types cannot choose an IRQ source. **Status:** Verified complete for stated type rules; D10 concerns candidate flow wording.
+>
+> ### spec/03-variables.md
+>
+> **Authority:** normative declarations/storage/initialization. **Payload:** loadable const is package-only without a resident address/home; placement has four closed keys ([raw storage forms](/work/spec/03-variables.md:64)). **Consequence:** separate platform globals/assets from SFA; startup dependency and captured-success-range dataflow govern publishable reads. **Boundary:** W10190 is local read-path only; failed/mutated/non-must-alias load reads are E10276. **Route:** S + A ownership + F homes + I dataflow; CM/AA for placement/loading. **N/A:** SFA allocation for the packaged unit itself; no runtime object exists. **Status:** Verified complete for these distinctions.
+>
+> ### spec/04-expressions-operators.md
+>
+> **Authority:** normative expressions/effects/provenance. **Payload:** left-to-right once-only evaluation; compound assignment orders target address/old value/RHS; conditional evaluates selected arm only ([raw evaluation](/work/spec/04-expressions-operators.md:42)). **Consequence:** IL/CFG retain place identity, short-circuit edges, width barriers and borrow dependencies through derivations. **Boundary:** aggregate-parameter fields/elements inherit caller lifetime; local escape E10260, conditional incompatibility E10162; header lifetime D3. **Route:** S + I effects/control + F Local-address borrow completion gate. **N/A:** disk-image format; expression rules create no packaging protocol. **Status:** Verified partial, D3/D7.
+>
+> ### spec/05-statements-control-flow.md
+>
+> **Authority:** normative statements/CFG. **Payload:** initializer once; condition before body; update after normal completion/continue, skipped by break/return; loadable const header explicit ([loop contract](/work/spec/05-statements-control-flow.md:219)). **Consequence:** normal scope/liveness/CFG without hidden iterator; preserve switch auto-break and explicit fallthrough edges. **Boundary:** boolean conditions and fixed-width loop behavior; header summary/lifetime need D3/D4. **Route:** S + I Control Flow and Layout + F Lifetime Model. **N/A:** an independent loader protocol; header loadables reuse Chapter 13. **Status:** Verified partial.
+>
+> ### spec/06-functions.md
+>
+> **Authority:** normative calls/function values/SFA/interrupt/comptime. **Payload:** exact finite target sets feed call-graph analysis; caller-owned aggregate returns; callback-only handlers ([value rules](/work/spec/06-functions.md:303)). **Consequence:** stage nested arguments and close every temporary/spill/helper home per overlapping activation; emit only reachable entry variants. **Boundary:** recursion E10180/E10181, unknown callable provenance E10277, unbounded private overlap E10245; cooperative NMI exception proves no external finite stack bound. **Route:** S + F nested arguments/interrupt gate/closure + I calls; CM/CH/CPU/L. **N/A:** general dynamic-frame fallback; forbidden. **Status:** Verified partial because candidate handler flow is D10.
+>
+> ### spec/07-structs.md
+>
+> **Authority:** normative structs. **Payload:** no padding, declaration-order fields, two-byte by-reference parameters, exact-type assignment and caller-owned returns ([layout/parameter rules](/work/spec/07-structs.md:95)). **Consequence:** close snapshots/destinations/helpers; preserve alias-safe copy. A proven nonoverlap unrolled copy has the stated 6–8 cycles/4–6 ROM bytes per byte form. **Boundary:** `&parameter.field` retains caller origin/read-only permission; W10112 needs proven same-base overlap. **Route:** S + F homes/borrow + I alias/copy. **N/A:** separate struct character encoding; literal encoding belongs elsewhere. **Status:** Verified complete for these contracts; D8 is F011's copy.
+>
+> ### spec/08-arrays-strings.md
+>
+> **Authority:** normative arrays/literals/indexing. **Payload:** exact fixed shape; full-precision extents/object size 0..65535; any-size parameter carries two-byte address plus word count ([size rules](/work/spec/08-arrays-strings.md:82)). **Consequence:** retain promoted indices/scaling/cast barriers; length always word; const permission changes no ABI shape. **Boundary:** zero-size address has no valid element; W10141 nonzero uninitialized mutable arrays; unchecked effective addresses wrap modulo 65536, not extent. **Route:** S + I arithmetic/effects + F borrowed parameters; CM/CH/CG. **N/A:** heap resizing/slice allocation; absent source forms, not missing lowering. **Status:** Verified complete for these distinctions.
+>
+> ### spec/09-enums.md
+>
+> **Authority:** normative enums. **Payload:** byte-backed nominal identity, implicit enum-to-byte, unchecked explicit byte-to-enum, cross-enum comparison restriction ([EN-9/10](/work/spec/09-enums.md:185)). **Consequence:** preserve nominal type until allowed erasure, without runtime descriptors. **Boundary:** unnamed bytes are valid enum values; enum-to-word is explicit and its materialization cost is consumer-dependent. **Route:** S conversions + I type/arithmetic payload. **N/A:** runtime member validation/registry allocation; explicit casts introduce neither. **Status:** Verified partial because cost summary D2 contradicts widening rules.
+>
+> ### spec/10-modules.md
+>
+> **Authority:** normative modules/imports/entry/startup. **Payload:** same-name modules across supplied files merge; actual transitive initializer reads/calls determine dependency order ([merge rule](/work/spec/10-modules.md:41)). **Consequence:** resolve whole-program symbols/calls/initialization before lowering; ASCII tie order, not import order. **Boundary:** import cycles allowed, actual initializer cycles E10194; exactly one no-argument void main for programs, optional for libraries. **Route:** S + A source composition + I initialization effects + F call graph. **N/A:** native-asset decoding; namespaces encode no payload. **Status:** Verified complete; F001's narrower scope does not erase merge.
+>
+> ### spec/11-memory-model.md
+>
+> **Authority:** normative storage/memory. **Payload:** SFA owns function parameters/results/locals/temps/spills/helper scratch per overlap variant; platform owns globals/assets ([boundary](/work/spec/11-memory-model.md:106)). **Consequence:** close all storage before emission, including pointer scratch/return destinations and borrow liveness. **Boundary:** hardware stack separate; unchanged peak ≤ capacity minus reserve; globals/MMIO retain shared identity across domains. **Route:** S + F ownership/stack/closure + I alias/effects; CM for ranges. **N/A:** selecting a new instruction set; selected-profile legality is owned elsewhere. **Status:** Verified complete for ownership/budget routing; D8 is subordinate.
+>
+> ### spec/12-intrinsics.md
+>
+> **Authority:** normative intrinsics. **Payload:** five CPU controls, function-relative balanced PHP/PLP LIFO, BCD-owned carry/D, ordered memory effects ([CPU controls](/work/spec/12-intrinsics.md:25)). **Consequence:** explicit IL machine effects, SFA dynamic-address ZP pairs per domain, inline BCD without hidden runtime. **Boundary:** unequal joins/backedges/nonempty exits/caller-save consumption E10248; static bad BCD digits E10254, runtime bad digits selected-CPU results. **Route:** S + I Machine State as Explicit Effects + F stack/scratch; CPU/L/CM/CH. **N/A:** public raw decimal-mode/full-opcode API; neither exists. **Status:** Verified complete for the documentary surface/effects.
+>
+> ### spec/13-data-inclusion.md
+>
+> **Authority:** normative embed/loadable contracts. **Payload:** raw import differs from registered handlers; canonical same path/selector/representation/residency aliases one object ([embed rules](/work/spec/13-data-inclusion.md:71)). **Consequence:** emit requested objects only; package-only units have no resident/SFA/startup bytes; load success publishes captured proved range only. **Boundary:** selector literals/pinned formats, distinct selections/residencies, destination lifetime/shape/visibility, trusted-media HLE-010. **Route:** S + A handler/layout split + I load dataflow + F destination/scratch; CG/CM/AA. **N/A:** SFA ownership of packaged bytes; only executing function storage enters SFA. **Status:** Verified complete for those distinctions.
+>
+> ### spec/14-diagnostics.md
+>
+> **Authority:** sole normative public registry. **Payload:** owns codes/severity/templates/spans/suppression/history; chapters own trigger predicates ([ownership](/work/spec/14-diagnostics.md:10)). **Consequence:** retain independent roots/notes/poison; errors suppress target assembly/IL/maps as well as binary; suppress warnings before promotion. **Boundary:** promoted warnings retain W code; retired meanings cannot be reused; E10162 owns incompatible arms. **Route:** S Diagnostic Doctrine + A frontend/driver. **N/A:** new source/storage restrictions invented by message wording; owning predicates govern. **Status:** Verified partial; count correct, but D7/D11 reveal stale derived ownership/code claims.
+>
+> ### spec/15-platform-profile.md
+>
+> **Authority:** normative selected-profile contract. **Payload:** exactly nine full IDs, non-table selection E10279 before lowering/no artifact ([profile table](/work/spec/15-platform-profile.md:22)). **Consequence:** declarative CPU/timing/maps/budgets/encoding/sinks constrain target composition/layout and reachable variants. **Boundary:** four cooperative PRG profiles alone permit private-home-free generated NMI exception; no finite external arrival/firmware completion follows, even without installed generated hook. **Route:** S + A composition + F interrupt/stack; CM/CH/CG/AA, TP for future seams. **N/A:** future-machine ID qualification; closed active set excludes it. **Status:** Verified complete for these documentary boundaries; D5 is F004's example.
+>
+> ### spec/appendix-c64.md
+>
+> **Authority:** normative concrete C64/platform-library/asset/artifact owner. **Payload:** 6510, startup/port ownership, native selectors, encoding maps, D64 protocol and exact IRQ/NMI terminals ([machine contract](/work/spec/appendix-c64.md:31)). **Consequence:** account resident/BSS bytes, shared RAM/ZP, wrapper/link/staging bytes and device-visible placement; ACME 0.97 and VICE 3.10 x64sc are prescribed. **Boundary:** RTI vs firmware-owned saves/tails, D restoration, page-safe links, acknowledgement, active banking and HLE-010 overwrite. **Route:** S + F/I + CM/CH/CG/AA/CPU/L. **N/A:** 65C02 opcode qualification; selected CPU is 6510. **Status:** Verified complete for stated documentary contracts, expanded below; execution remains Unknown.
+>
+> ### spec/grammar.ebnf.md
+>
+> **Authority:** normative master syntax. **Payload:** all three for-local forms, right-associative assignment/conditional, postfix call/index/field and literal embed selectors ([for grammar](/work/spec/grammar.ebnf.md:260)). **Consequence:** parse without target/symbol guesses; retain structure for semantic role/type/place checks. **Boundary:** parsed intrinsics/addresses still need semantic restrictions; grammar cannot grant handler storage or escaping borrows. **Route:** S + A Target-Neutral Front End + I expression/CFG representation. **N/A:** lifetime/range/profile proof inside context-free productions; semantic analysis must supply it. **Status:** Verified complete for syntax ownership; D3/D4 cannot justify deleting explicit syntax.
+>
+> ### spec/evaluations/F001-multi-file.md
+>
+> **Authority:** non-normative evaluation. **Payload:** supplied `.blend` inputs, one binary, paths semantically irrelevant, cross-file resolution via modules/imports ([four rules](/work/spec/evaluations/F001-multi-file.md:11)). **Consequence:** no module identity inferred from directories. **Boundary:** F001 leaves discovery, module-to-file mapping, duplicate-module policy and diagnostic stability unspecified; Chapter 10 separately defines same-name merge. **Route:** S authority/modules + A source composition. **N/A:** discovery algorithm/stable-diagnostic promises from “Guard Pass”; neither is in its rules. **Status:** Verified complete for minimal scope; acceptance is not compiler evidence.
+>
+> ### spec/evaluations/F002-modules.md
+>
+> **Authority:** non-normative evaluation. **Payload:** mandatory named module and same-name cross-file merge ([rules](/work/spec/evaluations/F002-modules.md:23)). **Consequence:** symbol/import resolution uses module identity, not filename. **Boundary:** merged scope still rejects duplicate declarations; derived messages defer to Chapter 14 rather than establish public wording. **Route:** S modules/diagnostics + A symbols/composition. **N/A:** namespace frame allocation; namespaces are compile-time structure. **Status:** Verified complete for merge/namespace routing, with no independent diagnostic-message authority assigned.
+>
+> ### spec/evaluations/F003-module-contents.md
+>
+> **Authority:** non-normative evaluation. **Payload:** declarations-only module bodies; mutable initializers execute in scheduled startup, not free-standing module statements ([startup discussion](/work/spec/evaluations/F003-module-contents.md:44)). **Consequence:** distinguish immutable folded data from executable initialization and collect real dependencies. **Boundary:** import cycles/forward calls do not make cyclic initialization safe. **Route:** S startup + A frontend/driver + I effects. **N/A:** module activation ABI; modules are not runtime calls. **Status:** Verified complete for this separation under Chapters 03/10.
+>
+> ### spec/evaluations/F004-entry-point.md
+>
+> **Authority:** non-normative evaluation/example. **Payload:** single no-argument void main, fallthrough allowed, library main optional ([rules](/work/spec/evaluations/F004-entry-point.md:15)). **Consequence:** driver/root discovery schedules startup and platform exit. **Boundary:** library example still requires a full profile ID; shorthand `c64` is D5. **Route:** S entry + A driver + F roots; CM/AA startup/exit. **N/A:** proving CLI success from a displayed shell example; no supplied run. **Status:** Verified partial, unreconciled profile example.
+>
+> ### spec/evaluations/F005-memory-placement.md
+>
+> **Authority:** non-normative evaluation. **Payload:** closed at/align/noCross/region constraints, without weakening stronger profile/asset rules ([placement](/work/spec/evaluations/F005-memory-placement.md:14)). **Consequence:** platform layout jointly solves visibility, ranges, padding/alignment; no hidden relocation copy on failure. **Boundary:** impossible combinations use Chapters 03/14; user/global ZP is not SFA. **Route:** S placement + A ownership + F boundary; CM/CG/AA. **N/A:** source place selecting private frame addresses; that owner is illegal. **Status:** Verified complete for ownership/failure routing.
+>
+> ### spec/evaluations/F006-address-of.md
+>
+> **Authority:** non-normative evaluation. **Payload:** directly addressable parameters/locals/fields/indexed elements, components evaluated once ([address rules](/work/spec/evaluations/F006-address-of.md:29)). **Consequence:** retain caller-origin/read-only provenance through aggregate parameters and infer non-retaining contracts transitively. **Boundary:** E10260 escape, E10123 read-only write, E10240 known invalid index; laundering cannot erase local dependency. **Route:** S addressability + F borrow gate + I alias/provenance. **N/A:** heap promotion of escapes; unauthorized model. **Status:** Verified complete for these address forms; header-specific lifetime D3 remains separate.
+>
+> ### spec/evaluations/F007-interrupt-functions.md
+>
+> **Authority:** non-normative evaluation. **Payload:** callback-only handlers with no user storage type; compatible sink/same-kind conditional flow ([sink rules](/work/spec/evaluations/F007-interrupt-functions.md:140)). **Consequence:** selected roots, private domains and bounded installer saved-vector words enter resource closure; shared hazards warn rather than silently mask. **Boundary:** ordinary mismatch, erased provenance, incompatible raw vector and LIFO restore are distinct failures; CIA1 final release cannot recover arbitrary write-only state. **Route:** S + F interrupt gate + I effects; CM/CH/CPU/L. **N/A:** first-class user handler fields/locals; no such type. **Status:** Verified partial, candidate overreach D10.
+>
+> ### spec/evaluations/F008-for-loop.md
+>
+> **Authority:** non-normative evaluation. **Payload:** ordinary clauses/declarations including loadable const, left-to-right lists, initializer once, lexical shadowing, mutable counters ([rules](/work/spec/evaluations/F008-for-loop.md:33)). **Consequence:** ordinary CFG plus bounded induction recognition, no second range runtime. **Boundary:** continue updates, break/return skip update; fixed-width wrap; E10262 only its proved unreachable-termination predicate. **Route:** S + I control + F lifetimes. **N/A:** hidden iterator object; explicitly avoided. **Status:** Verified partial, omitted loadable summary D4 and disputed governing header lifetime D3.
+>
+> ### spec/evaluations/F009-switch-statement.md
+>
+> **Authority:** non-normative evaluation. **Payload:** integer/enum selection, constant labels, last default, auto-break, explicit final fallthrough ([rules](/work/spec/evaluations/F009-switch-statement.md:150)). **Consequence:** once-only selector, case scopes and explicit dispatch edges. **Boundary:** no boolean selector, implicit fallthrough or duplicate labels; switch transparent to loop break/continue. **Route:** S + I Control Flow and Layout; CPU/L for dispatch. **N/A:** range-case syntax; FUT-007 deferred. **Status:** Verified complete for ordinary switch contract.
+>
+> ### spec/evaluations/F010-signed-types.md
+>
+> **Authority:** non-normative evaluation/lowering rationale. **Payload:** same-signedness widening, sign-preserving shift and explicit cross-signedness casts ([widening](/work/spec/evaluations/F010-signed-types.md:112)). **Consequence:** IL retains signed comparison/division/shift and selected extension; reinterpretation differs from ordinary moves. **Boundary:** unsigned minus/mixed signedness reject; standalone stored costs are not fixed surcharges inside a consumer. **Route:** S + I arithmetic; CPU/L for sequences. **N/A:** runtime signed type descriptors; signedness is compile-time data. **Status:** Verified complete for this documentary cost boundary, exposing D2 elsewhere.
+>
+> ### spec/evaluations/F011-structs.md
+>
+> **Authority:** non-normative evaluation. **Payload:** packed layout, two-byte reference parameter, exact value copy/caller-owned returns ([aggregate rules](/work/spec/evaluations/F011-structs.md:149)). **Consequence:** close destinations/snapshots and preserve origin in direct field addresses. **Boundary:** its SFA table absorbs platform storage and overstates fixed address/one instance, D8; indexed elements retain dynamic offsets. **Route:** S + F ownership/borrow + I alias/copy. **N/A:** SFA ownership of globals/constants/user ZP; platform owns those. **Status:** Verified partial, allocation rationale unreconciled.
+>
+> ### spec/evaluations/F012-cpu-control-intrinsics.md
+>
+> **Authority:** non-normative evaluation. **Payload:** only SEI/CLI/PHP/PLP/NOP; one-byte opcodes $78/$58/$08/$28/$EA with 2/2/3/4/2 cycles ([cost table](/work/spec/evaluations/F012-cpu-control-intrinsics.md:48)). **Consequence:** explicit I/status/stack effects; relative balanced-save analysis adds no runtime bytes. **Boundary:** cannot consume caller/interrupt/return saves; no raw SED, BRK or full opcode escape. **Route:** S + I machine effects + F stack; CPU/L for emitted verification. **N/A:** general inline-assembly register allocation; fixed surface grants none. **Status:** Verified complete for documentary surface, not execution.
+>
+> ### spec/evaluations/F013-control-flow.md
+>
+> **Authority:** non-normative evaluation. **Payload:** braces, boolean conditions, lexical shadowing and all-path returns ([conditions](/work/spec/evaluations/F013-control-flow.md:126)). **Consequence:** resolve scope identities/reachability/returns before optimization. **Boundary:** no integer truthiness; discussion shorthand “no implicit conversions” cannot override TS-4/TS-14. **Route:** S + A semantics + I CFG. **N/A:** truthiness conversion operation; explicit boolean rules exclude it. **Status:** Verified complete for governing boolean/block routing, with shorthand read narrowly.
+>
+> ### spec/evaluations/F014-arrays.md
+>
+> **Authority:** non-normative evaluation. **Payload:** fixed extents, promoted direct indices, borrowed any-size address plus word count ([index examples](/work/spec/evaluations/F014-arrays.md:148)). **Consequence:** distinguish ordinal 265/510 from explicit byte narrowing; four-byte any-size ABI/word length never change at 255. **Boundary:** W10141 independently includes nonzero module arrays; const permission does not prove other aliases immutable. **Route:** S + I arithmetic/effects + F parameters/borrow; CM/CG. **N/A:** first-class slice storage/return; T[] is contextual. **Status:** Verified complete for these distinctions.
+>
+> ### spec/evaluations/F015-data-inclusion.md
+>
+> **Authority:** non-normative evaluation. **Payload:** raw embed versus registered native selectors, compile-time decode/reuse without unrequested variants ([handler discussion](/work/spec/evaluations/F015-data-inclusion.md:52)). **Consequence:** frontend owns syntax/types, handler owns binary validation, platform owns residency/visibility, packager owns load units. **Boundary:** loadable is not resident; selector shape/pinned revision matter; future target/handler notes activate nothing. **Route:** S + A ownership + I load effects + F destination; CG/CM/AA. **N/A:** runtime decoder/converter linkage; decoding is compile-time. **Status:** Verified complete for routing, with historical implementation wording unqualified.
+>
+> ### spec/evaluations/F016-type-system.md
+>
+> **Authority:** non-normative evaluation. **Payload:** narrow wrap precedes widening; proven wrap warnings include assignment/argument/return/explicit widening ([width discussion](/work/spec/evaluations/F016-type-system.md:278)). **Consequence:** retain reaching value/range facts and barriers rather than infer width from destination. **Boundary:** queries always word; stale enum rationale/formalization D6. **Route:** S + I arithmetic/constant evaluation. **N/A:** runtime enum-range validation; explicit casts unchecked. **Status:** Verified partial, unreconciled rationale.
+>
+> ### spec/evaluations/F017-operators.md
+>
+> **Authority:** non-normative evaluation/lowering rationale. **Payload:** signed division/remainder, bounded runtime-zero behavior, stable shifts/promoted indices ([division](/work/spec/evaluations/F017-operators.md:439)). **Consequence:** preserve rounding/sign/wrap; selected helper, not operator spelling, determines W10171. **Boundary:** constant zero E10160; unsigned masking is not generic signed-negative remainder; unspecified result is not optimizer UB. **Route:** S + I arithmetic/proof + F helper scratch; CPU/L. **N/A:** default exception/handler runtime; forbidden mandatory zero handler. **Status:** Verified complete for contracts; selected output Unknown.
+>
+> ### spec/evaluations/F018-functions.md
+>
+> **Authority:** non-normative evaluation/ABI rationale. **Payload:** monotonically widened finite target sets; distinct scalar/exact-aggregate/any-size parameter forms; allocated private variants all count ([target sets](/work/spec/evaluations/F018-functions.md:316)). **Consequence:** stage nested calls; account two/four-byte parameter homes, caller return destination, snapshots/helpers/spills and feasible stack paths. **Boundary:** stack-free homes would be per allocated activation, not one global slot; finite examples cannot bound external NMI aggregate. **Route:** S + F nested arguments/closure/stack + I calls; CM/CH/CPU/L. **N/A:** enabling FUT-016/tail-call optimization from rationale; deferred. **Status:** Verified complete for documentary activation accounting.
+>
+> ### spec/evaluations/F019-variables.md
+>
+> **Authority:** non-normative evaluation. **Payload:** no implicit mutable clearing, local read-path W10190, package-only local loadables, dependency startup ([warning discussion](/work/spec/evaluations/F019-variables.md:211)). **Consequence:** reaching-assignment and initializer-dependency analyses are distinct; no hidden loadable startup allocation. **Boundary:** deferral of broader interprocedural definite assignment does not defer required transitive initializer dependency analysis. **Route:** S + I dataflow/effects + F homes + A ownership; CM/AA. **N/A:** module-wide W10190 from an uninitialized declaration; predicate is local reads. **Status:** Verified complete for the distinction; W10141 independent.
+>
+> ### spec/evaluations/F020-memory-intrinsics.md
+>
+> **Authority:** non-normative evaluation. **Payload:** retained ordered memory accesses; dynamic pointer uses SFA two-byte ZP pair ([effects](/work/spec/evaluations/F020-memory-intrinsics.md:33)). **Consequence:** preserve address/value order and helper clobbers; complete dynamic poke stored form 23–26 cycles/14–17 ROM bytes includes required homes, excludes operand computation. **Boundary:** before-consumer/stored-result peek costs differ; little-endian representation alone proves no temporal byte order; universal call “Never” is D9. **Route:** S + I memory effects + F scratch; CM/CH/CPU/L. **N/A:** blanket ordinary-variable volatility; normal proof allowed. **Status:** Verified partial, overbroad call table.
+>
+> ### spec/evaluations/F021-lexical-structure.md
+>
+> **Authority:** non-normative evaluation. **Payload:** UTF-8/BOM, reserved spellings, closed escapes/maximal munch and byte-counted positions ([spans](/work/spec/evaluations/F021-lexical-structure.md:622)). **Consequence:** preserve source identity and valid symbolic escapes for semantic encoding. **Boundary:** bad escape/hex differs from target-unmappable literal; reserved future words are not features. **Route:** S lexical/diagnostics + A frontend. **N/A:** choosing screen/PETSCII bytes in lexer; profile semantics owns mapping. **Status:** Verified complete for frontend boundary.
+>
+> ### spec/evaluations/F022-enums.md
+>
+> **Authority:** non-normative evaluation. **Payload:** nominal byte-backed enum, implicit byte erasure and unchecked explicit enum cast ([conversions](/work/spec/evaluations/F022-enums.md:88)). **Consequence:** erase typing without a runtime registry while retaining any required move. **Boundary:** zero incremental bit-conversion cost does not merge independent live objects; cross-enum comparison requires allowed erasure. **Route:** S + I type/arithmetic payload. **N/A:** runtime member metadata/validation; neither follows from nominal typing. **Status:** Verified complete for that distinction; D2/D6 are other copies.
+>
+> ### spec/evaluations/F024-conditional-operator.md
+>
+> **Authority:** non-normative evaluation. **Payload:** selected arm only; primitive/enum/exact function/same-kind handler results, no whole aggregates ([type rules](/work/spec/evaluations/F024-conditional-operator.md:90)). **Consequence:** selected-arm CFG and merged finite targets preserve effects/conversions. **Boundary:** mixed-signedness arms E10162, despite stale E10081 copies; aggregate assignment/return does not grant aggregate conditional arms. **Route:** S + I CFG/payload + F reachable targets. **N/A:** whole-aggregate conditional destination construction; source form disallowed. **Status:** Verified partial, D7.
+>
+> ### spec/evaluations/F025-comptime-functions.md
+>
+> **Authority:** non-normative evaluation. **Payload:** deterministic typed evaluation/trig under shared comptime-budget-v1 ([budget](/work/spec/evaluations/F025-comptime-functions.md:115)). **Consequence:** no runtime body/SFA/helper; retained result bytes alone enter target layout; caching cannot reduce semantic charge. **Boundary:** exactly 16,777,216 steps/live bytes and depth 512 legal; next attempt fails before work/arguments and yields no partial target artifact. **Route:** S + A evaluator + I constant evaluation; AA retained bytes. **N/A:** runtime SFA evaluator activations; host logical storage is separate. **Status:** Verified complete for formula/budget routing, no evaluator qualification.
+>
+> ### spec/future-considerations.md
+>
+> **Authority:** non-normative resolved/deferred/rejected register. **Payload:** 19 FUT entries and two REJ entries retain adoption/reconsideration reasons ([use rule](/work/spec/future-considerations.md:9)). **Consequence:** route resolved ideas to normative owners; retain deferred grammar/ABI/optimizer/handler seams as design pressure. **Boundary:** “resolved/implemented” is not an observation; FUT-016 cannot provide an available flag or single-global-slot return ABI. **Route:** S future/hardware limits + A triage + F/I affected seams; TP/CPU/L for future feasibility. **N/A:** current qualification of proposed machines/features; register supplies none. **Status:** Verified complete for status/navigation distinction; each entry inspected below.
+>
+> ## Required closure entries
+>
+> ### Closure 1 — Every FUT entry and its reason
+>
+> **Status: Verified complete. Claim kind: Fact, documentary inspection only.** All 19 FUT entries were inspected individually: 11 resolved, eight deferred. A resolved register label is not evidence that a compiler implements its normative replacement. Resolved items have no open deferred trigger stated; their owning current contract must be used instead.
+>
+> | Raw entry | Local disposition and substantive resolution/reason | Reconsideration or failure boundary; affected branch |
+> |---|---|---|
+> | [FUT-001](/work/spec/future-considerations.md:36) | Resolved: direct addresses of fields/elements, once-only components, ordinary word plus hidden origin/read-only/lifetime provenance. | Use Chapters 04/07/08; no manual raw-address restriction. S/F/I. |
+> | [FUT-002](/work/spec/future-considerations.md:47) | Resolved: parameters are directly addressable; aggregate subobjects borrow the caller's origin. | No parameter copy merely to make addressing legal; non-retaining/lifetime proof remains. S/F/I. |
+> | [FUT-003](/work/spec/future-considerations.md:58) | Resolved: exact ordinary fn values and finite target sets permit indirect calls. | Unknown/erased callable proof E10277; interrupt handlers remain distinct/non-callable. S/F/I. |
+> | [FUT-004](/work/spec/future-considerations.md:70) | Resolved: whole-program call/preemption analysis allocates disjoint private homes and necessary code variants. | Globals remain shared; unbounded private overlap fails, narrow cooperative NMI exception does not bound external stack. S/F/I, CM/CH. |
+> | [FUT-005](/work/spec/future-considerations.md:91) | Resolved: recognized typed platform sinks select correct source-kind/ABI variant; finite balanced install/restore ownership. | Not raw word certification or a public handler storage type; erased proof/mismatched restore fail. S/F/I, CM/CH. |
+> | [FUT-006](/work/spec/future-considerations.md:111) | Deferred labels: flags already express multilevel loop exit; labels add declarations/scoping for small convenience. | Revisit frequent real deep exits, conflict-free syntax, minimal single-jump cost. S/A/I, CPU/L. |
+> | [FUT-007](/work/spec/future-considerations.md:140) | Deferred range cases: if/else or comma labels suffice; `..` adds grammar/expansion complexity. | Revisit frequent ranges, clean grammar, efficient checks (documented eight-byte range form), defined fallthrough interaction. S/A/I, CPU/L. |
+> | [FUT-008](/work/spec/future-considerations.md:173) | Resolved const struct parameters: read-only permission without extra ABI/storage. | “Implemented” wording is not a supplied run; other aliases can still mutate. S/F/I. |
+> | [FUT-009](/work/spec/future-considerations.md:185) | Resolved field addresses; expressly the same underlying issue as FUT-001. | Duplicate rationale, not independent authority; aggregate-parameter caller lifetime still applies. S/F/I. |
+> | [FUT-010](/work/spec/future-considerations.md:196) | Resolved aggregate returns: exact type/shape, caller-owned destination, alias-safe construction/copy. | No heap/hidden dynamic frame; retired aggregate-return restrictions must not return. S/F/I. |
+> | [FUT-011](/work/spec/future-considerations.md:208) | Deferred extern assembly: needs ABI, object/link format, symbols/placement, tools and complete register/flag/stack/memory effects. | Revisit real cycle-counted demand, simple format/calling convention, manageable linker, full guard review. Mentioned assemblers are proposals, not selected alternatives. S/A/F/I/AA. |
+> | [FUT-012](/work/spec/future-considerations.md:235) | Deferred copy intrinsic: duplicates alias-safe aggregate assignment/return; optimization belongs in lowering. | Revisit frequent actual copies, copy-loop optimization, and clean overlap semantics. S/I/F, CPU/L. |
+> | [FUT-013](/work/spec/future-considerations.md:258) | Resolved table generation: typed comptime functions plus deterministic integer trigonometry. | Shared exact budgets; retained constant bytes count, no runtime evaluator. S/A/I. |
+> | [FUT-014](/work/spec/future-considerations.md:270) | Resolved alignment via closed place constraints. | Combine constraints, do not weaken asset/profile visibility; impossible placement rejects. S/A, CM/CG/AA. |
+> | [FUT-015](/work/spec/future-considerations.md:281) | Deferred PNG/BMP conversion: quantization/dithering/palette choices duplicate specialist tooling. Native Koala decomposition is already a different contract. | Revisit demand, deterministic per-mode algorithms/quality and separately qualified handler without core syntax changes. S/A/CG. |
+> | [FUT-016](/work/spec/future-considerations.md:311) | Deferred stack-free calls: current JSR/RTS is faster/smaller; threaded return uses two static bytes per allocated activation variant and page-safe indirect jump. | Revisit real stack pressure, measured useful patterns, reliable NMOS boundary workaround and clean flag without semantic change. No recursion alone proves no overlap. S/F/I, CPU/L/CM. |
+> | [FUT-017](/work/spec/future-considerations.md:378) | Deferred barrier: memory intrinsics and five CPU controls already have exact effects; no distinct current contract. | Revisit real cross-statement scheduling/order need and simple parameterless void form. S/I/A. |
+> | [FUT-018](/work/spec/future-considerations.md:403) | Deferred separate volatile API: every current peek/poke already volatile-ordered. | Revisit sound pure-RAM proof, measured lost optimization and clean qualifier without weakening MI-1. S/I, CM/CH. |
+> | [FUT-019](/work/spec/future-considerations.md:422) | Resolved descending-exclusive loops through ordinary boolean conditions in the single for form. | No parallel range grammar/iterator surface is needed. S/I/F. |
+>
+> Also inspected [REJ-001](/work/spec/future-considerations.md:468): transparent aliases obscure real types/costs without nominal safety and add redundant surface; future composite ergonomics would need renewed justification, preferably nominal design. F023's absence is intentional. [REJ-002](/work/spec/future-considerations.md:504) rejects inline/full-opcode assembly due register ownership, embedded-assembler/tool complexity and conflict with ordinary source/output quality; reconsideration needs repeated cycle-counted demand and solved labels/register contracts beyond a qualified extern seam. Exactly five CPU controls remain public; BCD is a separate typed arithmetic surface.
+>
+> [Future-machine notes](/work/spec/future-considerations.md:15) name C64 Ultimate compatibility, X16 65C02/VERA/banking, Atari 800XL ANTIC/display memory and 7800 MARIA DMA limits as future design pressure. They create no active target ID, implementation, or hardware qualification.
+>
+> ### Closure 2 — W10190 and W10141 are independent
+>
+> **Status: Verified complete. Claim kind: Fact.** [Chapter 03 W10190](/work/spec/03-variables.md:539) applies to a control-flow path that may read a **function-local mutable variable before first assignment**. It is a read-path warning; module-level storage is exempt from this warning. [Chapter 08 W10141](/work/spec/08-arrays-strings.md:842) applies to a **nonzero mutable array declaration without initializer**, including module-level arrays. Zero-length arrays have no elements and do not warn. A local nonzero array can receive W10141 at declaration and W10190 at a reaching read; distinct predicates, not duplicate reports. Existing stored bits remain valid-width values, with ordinary effects and no implicit clearing or optimizer UB. W10140 covers partial initialization separately. F019's local example must not be repurposed as a global W10190 rule.
+>
+> ### Closure 3 — Frames, overlap, and optional return homes
+>
+> **Status: Verified complete. Claim kind: Fact for documentary accounting.** [Chapter 11](/work/spec/11-memory-model.md:106), [function closure](/work/spec/06-functions.md:803), and supplied F Final Storage Closure require every parameter/result/local/temp/spill/helper scratch home to close **per allocated activation/domain/entry variant**. Sequential lifetimes may reuse a slot after proof; bounded overlapping invocations require distinct private homes and address-specific variants where necessary. Globals/assets/MMIO retain shared identity. Ordinary nested `f(1, f(2, 3))` argument evaluation requires staging, not a false recursive-cycle diagnosis.
+>
+> FUT-016 is future-only: its displayed threaded call uses two RAM bytes per allocated activation, ~20 cycles versus JSR/RTS's 12, ~11 caller bytes versus a three-byte JSR site, and a separate three-byte indirect-return instruction. Its return word must avoid `$xxFF` on NMOS. Do not multiply only by source-function count or assume no recursion means one simultaneous activation. Those proposal/example numbers are not current emitted code or a measured workload.
+>
+> [Installer ownership](/work/spec/06-functions.md:842) requires a two-byte predecessor word for **each simultaneously live** install that must restore/chain, finite balanced maximum, and matching per-sink join/exit transformations; E10278 rejects mismatches, E10245 unbounded growth. No runtime ownership token/dispatcher is added.
+>
+> [Stack budget](/work/spec/11-memory-model.md:275) compares the unchanged bounded simultaneous peak to raw capacity minus reserve. C64 raw capacity 256; cooperative reserve 20 gives 236 usable, explicit warning threshold 188; takeover reserve 0 gives 256 usable. Existing retained threshold is not silently recalculated just because the takeover reserve changed. An absent threshold defaults to floor(80% of usable). Private SFA bytes are not hardware-stack usage. External unbounded NMI/firmware behavior remains unproved, even without a generated hook; finite component costs cannot become whole-program peak/headroom.
+>
+> ### Closure 4 — Addressability and retained caller-object lifetime
+>
+> **Status: Verified partial. Claim kind: Fact for determined forms; Unknown for header cross-iteration borrow.** [Chapter 04 places/provenance](/work/spec/04-expressions-operators.md:351), [struct field addresses](/work/spec/07-structs.md:279), [F006](/work/spec/evaluations/F006-address-of.md:29), and F Local-address borrow completion gate permit direct addresses of locals, scalar parameters, struct fields and indexed elements, evaluating each base/index once. A scalar parameter borrows its invocation; **a field or element reached through an aggregate parameter retains the caller object's origin/lifetime**, not an invented callee-local copy.
+>
+> Known read-only-derived writes are E10123. Local dependencies survive copies/casts/conditionals, lo/hi and arithmetic/bitwise derivation; merely loading data through the pointer does not transfer its address dependency. Borrow uses extend SFA liveness. Non-retaining calls may dereference/forward only through proved non-retaining positions; return, longer-lived storage, asynchronous/hardware publication or opaque escape is E10260. Do not pin the slot, add a heap, or revive retired parameter/field-address restrictions. D3 prevents a resolved claim specifically about later-iteration for-header borrows.
+>
+> ### Closure 5 — All HLE entries and concrete C64 boundaries
+>
+> **Status: Verified partial. Claim kind: Fact for represented contracts; candidate register authority is Incorrect (D11), disputed header lifetime Unknown (D3).** The ten candidate HLE entries were inspected individually and traced to raw governing rules. Their “accepted” labels are derivative documentation, not independent authority or observed compiler behavior.
+>
+> | Entry | Governing raw evidence and actual boundary | Storage/effect/cost consequence |
+> |---|---|---|
+> | HLE-001 | [Chapter 06 recursion](/work/spec/06-functions.md:219): reject direct/indirect cycles, distinct from nested argument evaluation. | Zero added recursion runtime; explicit iterative/work-structure alternative. |
+> | HLE-002 | [Division by zero](/work/spec/04-expressions-operators.md:133): static zero E10160; runtime default terminates with valid-width unspecified quotient/remainder and only declared arithmetic effects. | No injected default check/trap/fallback/scratch or assumed nonzero divisor; optional default-off check is separate and must be costed. |
+> | HLE-003 | [Bounds contract](/work/spec/08-arrays-strings.md:224): compile-time proven OOB rejected; runtime default exact mapped modulo-65536 address. | No default check/clamp/modulo-extent; unproved bounds cannot become optimizer assumptions; explicit instrumentation costs vary by operands/layout. |
+> | HLE-004 | [Interrupt entries](/work/spec/06-functions.md:696), [profile NMI limits](/work/spec/15-platform-profile.md:267), [C64 routes](/work/spec/appendix-c64.md:746). | Callback-only identity, sink-selected reachable variants, disjoint private homes, status/D restoration, no double A/X/Y save, page-safe links and complete route costs; no general dispatcher. |
+> | HLE-005 | [W10190](/work/spec/03-variables.md:539) and [W10141](/work/spec/08-arrays-strings.md:842), distinct scopes above. | No implicit initialization bytes/cycles; indeterminate bits remain ordinary valid-width values/effects. |
+> | HLE-006 | [BCD](/work/spec/12-intrinsics.md:88): four unsigned byte/word add/sub signatures; static bad nibble E10254, runtime invalid digits use selected-CPU decimal ADC/SBC result. | Owned CLC/SEC, low-to-high carry, discard final carry, modulo 100/10000, D clear at end; inline SED/arithmetic/CLD, no helper/validation/runtime scratch. Adjacent regions require IRQ/NMI D proof. |
+> | HLE-007 | [Borrow contract](/work/spec/04-expressions-operators.md:378), [callee proof](/work/spec/06-functions.md:395). | No escape/pinning/heap/implicit static local; retain dependency and extend liveness, separate bounded overlap homes. Header lifetime remains D3. |
+> | HLE-008 | [Any-size parameters](/work/spec/08-arrays-strings.md:584), [fixed identity](/work/spec/02-type-system.md:570). | Fixed contiguous stored arrays only; contextual T[] carries address + word count, no first-class slice/resize/allocation/copy/helper. |
+> | HLE-009 | [TS-24](/work/spec/02-type-system.md:560), [word queries](/work/spec/04-expressions-operators.md:584). | Full-precision extent/object domain 0..65535; stable word sizeof/offsetof/length; reject unrepresentable object/sizeof(T[]) without wider runtime. |
+> | HLE-010 | [C64 trusted-media disclosure](/work/spec/appendix-c64.md:703) and [load effects](/work/spec/13-data-inclusion.md:169). | Stock LOAD has no length cap; readable oversized replacement can overwrite outside destination before false is returned. No checksum/staging/relocation copy/hostile-media containment. |
+>
+> C64 routing must preserve the distinctions below, not substitute an undifferentiated “interrupt supported” or “asset imported” summary:
+>
+> - [Memory/startup](/work/spec/appendix-c64.md:55): allocatable $0801–$CFFF is 51,199 bytes; code/data draw from the same range. Loaded prefix plus trailing BSS is one owned interval. User/compiler ZP $02–$8F is 142 bytes. PRG load header is `$01,$08`; BASIC stub is 12 bytes at $0801–$080C, SYS 2061 reaches $080D. Processor-port ownership is low mask $07; cooperative latch low bits $06, takeover $05, preserving bits 3–7. These are prescribed values, not observed layout.
+> - [IRQ/NMI route ownership](/work/spec/appendix-c64.md:746): CPU hardware entry is 7 cycles/3 stack bytes. KERNAL IRQ's already-saved A/X/Y entry is 29 cycles/16 existing-ROM bytes, zero emitted entry bytes; never save them twice. Chained wrapper PHP/CLD/PLP is three emitted bytes/9 cycles/one live status byte plus three-byte/five-cycle indirect jump and unknown prior-handler work. Exclusive CLD + JMP $EA81 is four emitted bytes/five cycles plus 22-cycle existing-ROM tail. Raw/exclusive-owned A/X/Y/RTI sequence is 12 emitted bytes/37 cycles. KERNAL NMI stub is seven cycles/four existing-ROM bytes without register saves; chained generated NMI wrapper is 16 emitted bytes/43 cycles plus prior-handler work. Body, acknowledgement, installation, nested calls, loader interactions and external entry costs must remain separate. Saved links are two bytes: $xxFE start valid, $xxFF invalid on NMOS. RTI restores full interrupted P including D; chained terminal restores entry flags before prior handler. Source acknowledgement remains source-owned.
+> - [Cooperative CIA1 final-exclusive release](/work/spec/appendix-c64.md:217): only the four cooperative PRG profiles' stock-entry lifecycle is covered. Perform a masked transaction restoring stock service, with one ICR read, required mask/timer/TOD-bit ordering, PAL timer reload 16,421 ($4025) or NTSC 17,045 ($4295), low then high byte, and correct CINV/status terminal. Do not generalize to arbitrary prior write-only state, raw/takeover/D64, or nested dirty release; no extra function home is implied by the release proof.
+> - [SpritePad](/work/spec/appendix-c64.md:389): Pro 3.80/SPD v5, counts/flags/indices/bounds validated; native sprite records are 63 bitmap bytes + packed attribute = 64. Default selector is sprites; count is word; table also specifies colors, attributes, tiles/tags/overlay distances and animation starts/ends/timers/flags. No file-wide multicolor/base-block/implicit offset selector. Explicit derived attribute table costs separate bytes. Placement validates 64 alignment/VIC bank; block = bank-relative address/64, without runtime calculation.
+> - [CharPad](/work/spec/appendix-c64.md:432): Pro 3.88/CTM v9; validate complete header/ordered blocks/flags/counts/dimensions/indices/exact EOF, not just magic/version. No default (E10132). Charset, tiles/map, forced-word, packed12, split planes, colors/method and dimensions/mode have exact typed selector contracts. Largest index ≤255 chooses byte, larger word; mismatched declared type E10144. Packed12 is N low bytes then ceil(N/2) packed high bytes, odd final upper nibble zero; `$123,$456,$789` → `$23,$56,$89,$41,$07`; >4095/absent layer cannot truncate. Emit requested representations only. Charset aligns 2048; D018 field comes from final bank-relative placement, not file metadata.
+> - [SID](/work/spec/appendix-c64.md:492): accepted PSID v1–4, not RSID/MUS/unsupported PlaySID; zero-play forms are excluded. Pinned declared `HVSC-SID-FORMAT-20260906` digest is `b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0`; its external source is not supplied for authentication. Big-endian header offsets $76 for v1, $7C for v2–4; load=0 consumes little-endian payload load address, init=0 uses effective load. Exact selected PAL/NTSC/SID model matters; “unknown” and “both” differ; incompatible profile E10261, no conversion or multi-SID qualification. Audio contract map is empty: importing a SID does not infer SFX APIs; absent hash-bound contract E10256. GoatTracker 2.77 is future qualification intent, not active evidence. Scheduling/IRQ ownership belongs to source.
+> - [Koala](/work/spec/appendix-c64.md:628): exact 10,003 bytes/$6000 header; strip two metadata bytes, preserve 8000 bitmap + 1000 screen + 1000 color + one background byte including high nibbles. No default. Bitmap 8192 alignment, screen 1024 alignment, same selected 16-KiB VIC bank; D018 fields derive from placement. Color RAM transfer is explicit runtime work, not hidden handler copying.
+> - [D64/LOAD](/work/spec/appendix-c64.md:663): only `c64-pal-d64-kernal-6581`; 174,848-byte standard 35-track image, 683 sectors ×256, 664 file-data blocks excluding track 18, 18 directory sectors ×8 =144 closed files, type $82. File link bytes precede up to254 data bytes; final payload count = byte1−1. Reachable transport uses stock KERNAL 901227-03 SETLFS $FFBA, SETNAM $FFBD, LOAD $FFD5, boot device FA, secondary address0, evaluated destination once, direct final writes. True requires carry clear and exact returned one-past-end low16 bits; conceptual $10000 returns $0000, beyond it rejects. Source must quiesce its asynchronous/audio routes while required stock service remains active. Failure invalidates captured destination range, without proving physical overwrite containment (HLE-010).
+>
+> These documentary details do not complete absent CG native-fixture, CM/CH machine-route, AA artifact or CPU/L instruction checklists. No aggregate ROM/RAM/cycle total is asserted without layout and actual reachable paths.
+>
+> ### Closure 6 — F001's minimal supplied-input contract
+>
+> **Status: Verified complete. Claim kind: Fact.** [F001's four rules](/work/spec/evaluations/F001-multi-file.md:11) cover supplied source files, one output binary, filename/directory irrelevance and module/import cross-file references. Input discovery, module-to-file mapping, duplicate-module policy and diagnostic stability are unspecified **there**. This does not erase [Chapter 10's explicit same-module merge](/work/spec/10-modules.md:41), visibility, or initialization rules. Its guard verdict is rationale, not a run result.
+>
+> ### Closure 7 — Exactly nine full profile IDs
+>
+> **Status: Verified complete. Claim kind: Fact.** [Chapter 15 table](/work/spec/15-platform-profile.md:28) and [appendix table](/work/spec/appendix-c64.md:15) list exactly:
+>
+> 1. `c64-pal-prg-kernal-6581`
+> 2. `c64-pal-prg-kernal-8580`
+> 3. `c64-pal-prg-takeover-6581`
+> 4. `c64-pal-prg-takeover-8580`
+> 5. `c64-ntsc-prg-kernal-6581`
+> 6. `c64-ntsc-prg-kernal-8580`
+> 7. `c64-ntsc-prg-takeover-6581`
+> 8. `c64-ntsc-prg-takeover-8580`
+> 9. `c64-pal-d64-kernal-6581`
+>
+> E10279 rejects `c64`, partial `c64-pal`, unqualified `c64-pal-d64-kernal-8580`, unknown `c64u-pal`, and every other non-table selection before lowering with no artifact. No independent video/SID/ownership/artifact switches synthesize new combinations. Running a C64 artifact on compatible hardware does not create a target. “First implementation profile” is specification intent, not evidence of completed implementation. D5's example must use a full listed ID.
+>
+> ### Additional closure — Unchecked C64 indexing and explicit safety
+>
+> **Status: Verified complete. Claim kind: Fact.** [Array bounds](/work/spec/08-arrays-strings.md:224) and [C64 safety](/work/spec/appendix-c64.md:807) define default unchecked indexing: `(base + index * element_size) modulo 65536`; multi-byte access proceeds byte by byte from $FFFF to $0000, observing active banking/MMIO. There is no implicit modulo-by-length, clamp, trap, or assumption of valid bounds. Compile-time proven invalid element still fails.
+>
+> `--bounds-check` is default-off, independent of default-off `--division-zero-check`. It evaluates base/index once and tests signed index nonnegative and less than extent before address formation/access; sound proof may remove it. C64 stop is exactly SEI + self-JMP: four ROM bytes, two entry cycles then three per loop, zero RAM/ZP/stack/error-string/returning path. NMI/external hardware continue. Successful-path comparisons, branches, staging/register/SFA and layout costs require selected lowering; no fixed total or observed stop behavior is claimed.
+>
+> ## Additional exact compile-time boundary
+>
+> **Status: Verified complete. Claim kind: Fact for supplied formulas/limits only.** [Chapter 06 budget](/work/spec/06-functions.md:1216) shares counters across all check/build roots in deterministic root order: 16,777,216 abstract steps, 16,777,216 peak live logical bytes, depth512. Step16,777,217, allocation above the byte limit or entry at depth513 fails before the work/argument evaluation/allocation. Cached evaluation charges uncached semantic work, including logical copies even if physically elided; failed roots/dependents poison and publish no target artifact. No CLI/environment override is allowed.
+>
+> [Exact trig](/work/spec/04-expressions-operators.md:643) uses integer phases over 2^k, amplitude 2^(k−1)−1, nearest with half away from zero; cosine uses wrapped quarter turn. Declared canonical sin8 stream hash is `fec3247a063767c499a18d6efdb1e5f86f96f859e2e98a859d621e93af013259`; sin16 little-endian stream hash is `e0313f89310605acaa740fa67cf9fb157e363c9bd4af10fea66d8846735c5a50`. These were read as normative expected values, not regenerated or compiler-verified. No runtime function/helper/frame is implied; retained constant output bytes still require target layout.
+>
+> ## Result and next evidence
+>
+> The conversions and exact inventory are determined. Candidate path coverage is complete; candidate documentary consistency is partial, with D1–D11 actionable findings and D3's specific unresolved lifetime field. No path is excused by a generic “rationale only” or absent-artifact N/A.
+>
+> Smallest next work is a documentation errata/reconciliation proposal for D1–D11, with authorized clarification of governing conflicts before changing frozen `spec/`. Compiler-status assessment would separately require the actual implementation and focused source cases, then emitted assembly/layout/artifacts, behavior and cost oracles, and selected-machine observations. Those probes are future evidence requests, not tests purportedly run here. Release activation/commit questions require the intentionally absent release record. This report creates no alternative semantic authority and makes no compiler/runtime qualification claim.
+>
+>
+> ## Exact evaluator-emitted final correction commands (inert evidence, never executed)
+>
+> ```text
+> python3 - <<'PY'
+> from pathlib import Path
+> p=Path('/tmp/blend65-crosswalk-audit.md')
+> s=p.read_text()
+> s=s.replace('spec/evaluations/F008-for-loop.md:33','spec/evaluations/F008-for-loop.md:36')
+> s=s.replace('[fixed identity](/work/spec/02-type-system.md:570)','[fixed identity](/work/spec/02-type-system.md:575)')
+> s=s.replace('[TS-24](/work/spec/02-type-system.md:560)','[TS-24](/work/spec/02-type-system.md:563)')
+> s=s.replace('[function closure](/work/spec/06-functions.md:803)','[function closure](/work/spec/06-functions.md:804)')
+> s=s.replace('**N/A:** proving CLI success from a displayed shell example; no supplied run.','**N/A:** requiring a main root in a library-only build; the rule expressly exempts it. CLI execution remains Unknown.')
+> s=s.replace('**N/A:** discovery algorithm/stable-diagnostic promises from “Guard Pass”; neither is in its rules.','**N/A:** per-file activation ABI or loader packaging; source composition defines neither. Its unspecified discovery/diagnostic promises remain undetermined.')
+> s=s.replace('**N/A:** current qualification of proposed machines/features; register supplies none.','**N/A:** runtime semantics imposed by deferred/rejected entries; this non-normative register cannot activate those forms.')
+> s=s.replace('plus 22-cycle existing-ROM tail.','plus six-byte/22-cycle existing-ROM tail, zero emitted tail-ROM bytes.')
+> s=s.replace('Saved links are two bytes: $xxFE start valid, $xxFF invalid on NMOS.','Before body/helper/explicit-push additions, raw and exclusive register-owning routes have six live entry/save bytes; chained routes have seven, including the status wrapper. KERNAL CINV exclusive likewise starts with six already-owned entry/save bytes. Saved links are two bytes: $xxFE start valid, $xxFF invalid on NMOS.')
+> s=s.replace('shares counters across all check/build roots in deterministic root order:','shares counters across all check/build roots: dependencies first, then fully qualified owning-name case-sensitive ASCII order among ready roots and grammar left-to-right order within an owner, independent of input paths/order or host scheduling. Limits:')
+> s=s.replace('Audio contract map is empty:', 'Selectors are data (const byte[], default), init_address and play_address (word); validate song count 1..256, start song, reserved fields/flags and complete nonwrapping writable payload with callable addresses inside it. Audio contract map is empty:')
+> p.write_text(s)
+> print('updated citations and scope exclusions; added exact route stack/tail and root-order boundaries')
+> PY
+> ```
+
+</details>
+
+<details>
+<summary>2.0.2 grade-nmi-refined: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-nmi-refined`. Raw run-log SHA-256: `da5288bbc4568effb6edb56389f7dadf72ace0551b1cb8957d4fb341253754c0`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `e3974f9a52bf46c327b8be6ed92c507394d18f33a1895785eb1656a7f1e37139`; packet-record SHA-256: `8de9e6eb7992ae03e0bbd69223d4a0c79c6619218045333ea3501a160b00d182`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+30ef34f4152c3ece1fcd522fe8908140621d5ce8f9edeac3d6dd4d5f7bc79dc1  evaluated-answer.md
+8a0f6a8343a5d5bd6a7428b8f580e9d0cd97d06805fa1759d0ddf59d4853091b  evaluator-request.md
+2428bde628d4a54f9e144fb30136e53218f412134e7c72e6fdcee824cb596d35  grade-request.md
+a2dfc3aaf80fd5bb48c2a27233a9c6f49051f4ed7be2435a0d9bdce741467c48  oracle.md
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+c966648ea7a58952561909b9a127f1617b50ee583f2845bcd07fb43602b2e51b  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+8a9442f517478c54b07aeb2acc4c801f6f1d154b9cc72f28f6a64351ed7ffd7a  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+8a0f6a8343a5d5bd6a7428b8f580e9d0cd97d06805fa1759d0ddf59d4853091b  request.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+```
+
+> **6 cases PASS; Q-P24 FAILS on one Major ownership finding.** The reported numerical costs check out. Missing compiler, artifact, VICE, silicon, and timing evidence correctly remains **Unknown**.
+>
+> I used the supplied skill, `skillVersion=2.0.2`, and its advertised `BLEND65-SPEC-4-566da991` identity. Candidate content commit and activation remain **Unknown**; unavailable qualification files were not read. Only one evaluated capture is supplied, so no historical capture was substituted or graded.
+>
+> | Case | Grade | Decisive output evidence, governing source, and cost reasoning |
+> |---|---|---|
+> | **Q-L08** | **PASS** | The answer requires “disjoint static homes” for concurrently live parameters, results, staging, locals, spills, pointers, and helper scratch ([output](/work/evaluated-answer.md:11)). H therefore needs **16 RAM + 4 ZP bytes**, versus the proposal’s 8 + 2. It traces corruption across preemption, preserves shared globals and hazard warnings, and rejects storage-bearing unbounded NMI with E10245. Its shared ABI discussion rejects the visible CINV mismatch ([output](/work/evaluated-answer.md:139)). These decisions match [Chapter 06 §7.5](/work/spec/06-functions.md:757) and [Chapter 11 §3.4](/work/spec/11-memory-model.md:157). Variant bytes and complete body costs correctly remain Unknown. |
+> | **Q-L11** | **PASS** | The answer preserves SFA, distinguishes return addresses, CPU frames, generated saves, and source status saves, and lists exactly `asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, `asm_nop` ([output](/work/evaluated-answer.md:38)). Removed spellings are unresolved names, ordinarily E10239, exactly as [Chapter 12 CC-6](/work/spec/12-intrinsics.md:70) specifies. Joins, backedges, exits, and ownership follow [Chapter 06](/work/spec/06-functions.md:540). Calls contribute **2 stack bytes**, CPU entries **3**, and each live source PHP **1**; a PHP/PLP pair emits **2 code bytes/7 cycles**. The **236-byte usable capacity** and **188-byte warning threshold** are correct. No general stack frames or runtime are introduced. |
+> | **Q-L25** | **PASS** | “Freeze homes before emission” follows an explicit merge/recompute/closure sequence ([output](/work/evaluated-answer.md:78)). Provisional discovery is legal; anonymous post-closure allocation is rejected. A two-byte spill needs **2 bytes per live instance**, hence **4** for the stipulated overlapping mainline/IRQ instances before proven overlays. Absolute byte loads/stores cost **3 bytes/4 cycles**; ZP forms **2/3**. Access counts, final allocation, helpers, and variants remain Unknown. This matches [normative closure](/work/spec/06-functions.md:493), [final allocation](/work/spec/11-memory-model.md:161), and [the architecture boundary](/work/references/compiler-architecture.md:137). |
+> | **Q-L29** | **PASS** | The answer preserves callback-only identity, selects distinct sink variants, keeps helpers on JSR/RTS, establishes binary body entry, restores outgoing status/D, and charges links and reachable variants ([output](/work/evaluated-answer.md:102)). `$30FE` is valid; `$30FF` wraps its high-byte fetch to `$3000` and must move or be rejected. The exact supplied `pokew($0314,&onRasterIRQ)` receives **E10252**, suppressing the default artifact. Raw installation requires a writable **and active** vector. These match [Chapter 06](/work/spec/06-functions.md:708), [profile metadata](/work/spec/15-platform-profile.md:280), and [C64 route contracts](/work/spec/appendix-c64.md:746). The route ledger below is correct; absent body, installer, and complete allocation totals remain Unknown. |
+> | **Q-L32** | **PASS** | The use table preserves provenance through copies, conditionals, arithmetic, bitwise operations, and byte fragments; loaded data does not inherit it ([output](/work/evaluated-answer.md:155)). Contained aggregates and transitively non-retaining U/V positions remain legal. Returns, persistent/raw/MMIO stores, publication, unknown consumers, and iteration escapes receive **E10260** at the first escape. Borrow liveness and concurrent variants are accounted for; pinning is rejected. Governing rules are [Chapter 04 §8.3](/work/spec/04-expressions-operators.md:378) and [Chapter 06 §4.4](/work/spec/06-functions.md:395). Two concurrent L homes cost **2s bytes**; materialized words/fragments cost **2/1 bytes per instance**. Fixed-address materialization is **10 bytes/12 cycles absolute**, **8/10 ZP**. Analysis adds zero runtime metadata; complete selected totals remain Unknown. |
+> | **Q-P07** | **PASS** | The answer distinguishes the IRQ save path from `$FE43 → NMINV`, which saves no registers ([output](/work/evaluated-answer.md:223)). It declares PAL/later-NTSC, NMOS 6510, SID choice, 901227-03, cooperative/takeover low-bit banking, source classes, and nesting; missing revisions and enabled masks remain Unknown. Its CIA1 counterexample correctly shows why raster acknowledgement alone cannot justify exclusivity ([output](/work/evaluated-answer.md:259)). The NMI state, ICR, publication, and lifetime analysis is supplied in the shared Q-P24 discussion. Sources: [machine/banking contract](/work/spec/appendix-c64.md:217), [NMI primary entry](/work/primary/kernal-rs232nmi:2), and [route proof obligations](/work/references/c64-memory-and-runtime.md:367). Startup contributes a stipulated **12-byte BASIC stub**; the **2-byte PRG header** is metadata. Full startup, installation, padding, loader, and program totals remain Unknown. |
+> | **Q-P24** | **FAIL — Major** | All seven numbered fixture decisions and their measurable costs withstand checking. However, the answer assigns saved-input interpretation to “**developer code or an explicitly selected ordinary library function**” ([output](/work/evaluated-answer.md:386)). The frozen expectation instead says it “**belongs in Blend65 platform libraries**” ([oracle](/work/oracle.md:204)). The alternative developer ownership does not establish that required boundary. This failure concerns responsibility placement, not generated reentrancy, CPU facts, or arithmetic. |
+>
+> The IRQ/NMI template costs are independently reproducible from [the supplied C64 contracts](/work/spec/appendix-c64.md:763). Here **B** includes the selected body, acknowledgement, and helper work.
+>
+> | Standard route | Generated wrapper bytes | Cycles from CPU acceptance | Entry stack bytes | Chain-link bytes |
+> |---|---:|---:|---:|---:|
+> | CINV chain | 6 | `7 + 29 + 14 + B = 50 + B`, then predecessor | 7 | 2 |
+> | CINV exclusive | 4 | `7 + 29 + 5 + 22 + B = 63 + B` | 6 | 0 |
+> | Raw IRQ | 12 | `7 + 37 + B = 44 + B` | 6 | 0 |
+> | NMINV chain | 16 | `7 + 7 + 43 + B = 57 + B`, then predecessor | 7 | 2 |
+> | NMINV exclusive | 12 | `7 + 7 + 37 + B = 51 + B` | 6 | 0 |
+> | Raw NMI | 12 | `7 + 37 + B = 44 + B` | 6 | 0 |
+>
+> Existing ROM contributes **16 bytes** before CINV, an additional **6 bytes** for the exclusive `$EA81` tail, or **4 bytes** for the NMINV stub; all contribute **zero output bytes**. Restore ownership can still require predecessor words where the chain-link column is zero. Each ordinary call adds **12 cycles**, **2 live stack bytes**, and **3 call-site bytes plus a callee RTS byte**, excluding marshalling. The illustrative raster acknowledgement costs **5 bytes/6 cycles**. Unspecified bodies, copies, saves, installers, placement, and complete paths cannot be assigned invented totals.
+>
+> Every numbered Q-P24 fixture was checked separately:
+>
+> | Fixture | Subdecision | Evidence and cost assessment |
+> |---|---|---|
+> | **1. Fixed ingress** | **PASS** | The [exact supplied sequence](/work/evaluator-request.md:102) occupies `$2147–$215D`: **23 code bytes**. Generated inactive/active paths take **28/39 cycles**; adding hardware acceptance and the ROM stub gives **42/53** to `$FE47`. Resident components total **27 bytes**: code 23, shared state 2, immutable link 2. Private RAM/ZP is **0/0**; the generated one-entry stack contribution is **5 bytes**, not an external peak. P/A ordering, unchanged X/Y, D restoration, page-safe link, and the fixed one-byte publication argument are correct ([output](/work/evaluated-answer.md:284)). |
+> | **2. Scratch helper** | **PASS** | **2 private ZP + 2 private RAM bytes per invocation** invalidate the unbounded exception: E10245. Complete helper costs remain Unknown; call overhead is separately charged ([output](/work/evaluated-answer.md:330)). |
+> | **3. Register local/home-free helper** | **PASS** | Source spelling alone does not justify rejection. Admission depends on complete selected ABI/effect proofs and zero transitive private RAM/ZP homes ([output](/work/evaluated-answer.md:340)); actual call and preservation costs remain chargeable. |
+> | **4. Shared effects** | **PASS** | The interrupted load/store increment can lose an update: W10211, with W10212 for applicable multi-byte tearing. Constant-one stores have an idempotent final-value effect without permitting store elimination or proving a wider protocol. Exact selected costs are absent ([output](/work/evaluated-answer.md:348)). |
+> | **5. Growth/recursion/237 bytes** | **PASS** | Generated growing-stack cycles remain E10245; source imbalance E10248; direct/indirect recursion E10180/E10181. **237 exceeds `256−20=236`**, so E10238 applies. Reserve does not reduce measured usage to 217 ([output](/work/evaluated-answer.md:358)). |
+> | **6. No generated handler** | **PASS** | Finite mainline/IRQ demand does not prove aggregate stack, firmware completion, or a deadline. [UD60/UD70](/work/primary/kernal-time:49) supply no finite settling bound; [TIMB](/work/primary/kernal-rs232nmi:25) reaches warm start. The answer preserves these Unknown boundaries ([output](/work/evaluated-answer.md:367)). |
+> | **7. ICR/vector/link ownership** | **PASS** | A simple chain performs zero firmware-owned CIA2 ICR reads; [stock NNMI](/work/primary/kernal-rs232nmi:9) owns its consuming read. SEI cannot exclude NMI, and a live predecessor cannot be overwritten. Later invalid restoration is E10278; unproved generated reentrancy remains E10245 ([output](/work/evaluated-answer.md:377)). |
+>
+> The stock NMI component derivations also check: register saving **5 ROM bytes/13 cycles**, mask-write/ICR-read **8/10**, and PREND **6/22**. They are not a complete firmware path or unrestricted stack bound. Full input preservation remains Unknown; both joystick ports, keyboard ambiguity, latch/DDR restoration, and RESTORE remain obligations. Raw takeover and D64 receive no new exception.
+>
+> The Q-P24 failure survives reconsideration: a selected ordinary library *could* be a platform library, but the answer permits developer code as an alternative owner. Accepting that wording would weaken the frozen expectation. Conversely, missing artifacts or physical observations are not grounds to fail the other cases.
+>
+> **Attribution and remedy:** the output ownership mismatch is established. The supplied [Input guidance](/work/references/c64-game-engineering.md:506) and normative excerpts lack the explicit saved-data library-placement instruction, exposing a supporting knowledge/packet coverage gap; causation cannot be established. The smallest remedy is to assign ordinary saved-input interpretation to Blend65 platform libraries while retaining compiler entry/storage/volatile responsibilities, without approving an API or claiming complete input behavior.
+>
+> **Unresolved counts:** **1 failing case; 1 Major output finding; 1 supporting knowledge/packet coverage gap; 0 Critical output findings; 0 incorrect numerical results.** Implementation and runtime qualification remain **Unknown**.
+
+</details>
+
+<details>
+<summary>2.0.2 control-refined: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/control-refined`. Raw run-log SHA-256: `d53c333faf36b2a578268a49649f023e76beca5aefa5a10c07b414aac10dfa0e`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `5cec29cba2ba8ceaffc1878ee01db9dfacf4640e9d7efb8c9b937d8e1f6ab7ed`; packet-record SHA-256: `1aa0a2b2823832ee6e67b52639b0c0d245580fc45d258265dff772ea271491f4`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+c966648ea7a58952561909b9a127f1617b50ee583f2845bcd07fb43602b2e51b  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+8a9442f517478c54b07aeb2acc4c801f6f1d154b9cc72f28f6a64351ed7ffd7a  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+10a978b90142a0ebe74904843127c5fd0600065ff9d36591d85c647e486ba829  request.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+```
+
+> **Q-C07. Ordinary handler arithmetic must be binary even when interrupted code has D set.** NMOS 6510 interrupt entry leaves D unchanged, so the compiler must establish D=0 before the first Blend65 statement or ordinary helper call. The eventual return must restore the interrupted D value. Chaining also preserves the prior handler’s observable hook-entry P/A/X/Y.
+>
+> **Status:** compiler conformance, selected lowering, final storage, emitted artifacts, runtime behavior and complete route timing are **Unknown**. The packet supplies contract evidence and permits instruction-cost calculations; it supplies no implementation or execution proof.
+>
+> Lineage: supplied `blend65-domain-expert`, `skillVersion=2.0.2`; declared knowledge identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. Content commit and activation are **Unknown**. I have not read unavailable qualification files or reproduced the complete specification digest.
+>
+> **CPU behavior and the arithmetic result**
+>
+> | Boundary | NMOS 6510 | Selected CMOS delta: W65C02S |
+> |---|---|---|
+> | IRQ/NMI acceptance | Saves PC/status, sets I; leaves D unchanged | Clears live D on interrupt entry |
+> | Ordinary `ADC` lowering | Requires a proved D=0 boundary and owned incoming carry | Hardware entry can establish D=0, subject to the subsequent firmware path |
+> | Interrupt return | `RTI` restores interrupted status, including D and I | Clearing live D on entry does not authorize losing the interrupted D on return |
+> | Decimal `ADC`/`SBC` | NMOS decimal N/Z/V must not be treated as portable adjusted-result flags | Selected CMOS flag behavior differs; each decimal arithmetic instruction adds one cycle |
+>
+> The authorities recorded in the packet are `MOS-PGM-1976`, Chapter 3 §3.3 and Chapter 9 §§9.5–9.9; `MOS-HW-1976`, interrupt sequencing; `MOS-6510-1982`, compatible processor core; and `WDC-65C02S-2022`, Table 7-1. See [processor facts](/work/references/mos-6502-family.md:221) and [source pins](/work/references/source-manifest.md:619). This CMOS comparison does not establish a supported CMOS C64 profile.
+>
+> For an ordinary byte addition, the required value is `(left + right) mod 256`. A machine `ADC` computes `(A + operand + incoming_C) mod 256` when D=0, so plain addition must establish C=0 with `CLC` or an equivalent proof. IRQ entry does not establish that carry.
+>
+> The packet supplies no operands, so its particular numeric result is **Unknown**. A discriminating **proposed oracle**, using `$09 + $01`, is:
+>
+> | D | Incoming C | Result in A |
+> |---:|---:|---:|
+> | 0 | 0 | `$0A` — required ordinary addition |
+> | 0 | 1 | `$0B` |
+> | 1 | 0 | `$10` |
+> | 1 | 1 | `$11` |
+>
+> These are arithmetic expectations, not observations. `CLD` alone does not establish carry; `CLC` alone does not establish binary mode. See [flag ownership](/work/references/mos-6502-family.md:58).
+>
+> **Required compiler boundaries**
+>
+> 1. **Source semantics and handler identity.** Ordinary `+`, `-`, `+=` and `-=` remain binary. An `interrupt function` has signature `(): void`, is callback-only and cannot be called normally: E10050/E10051 enforce those boundaries. Ordinary helpers remain legal and retain `JSR`/`RTS`. A recognized sink preserves handler identity and selects its entry variant; only reachable variants are emitted. Multiple required variants must charge their bodies and storage separately. [Governing functions specification](/work/spec/06-functions.md:669).
+>
+> 2. **Profile, entry and terminal selection.** CINV is a post-register-save firmware hook. `setIRQ` selects chaining; `setIRQExclusive` selects the pinned restore tail. A visible raw-entry address written to incompatible CINV is E10252. Known wrong function kind is E10244; erased or unknown provenance at a recognized sink is E10247. The cooperative profile’s `raw_interrupt_paths` is empty: a raw route is a conditional comparison here, not an available installation under the supplied banking contract. [Profile entry contracts](/work/spec/15-platform-profile.md:243), [selected vectors and raw-path record](/work/spec/15-platform-profile.md:416).
+>
+> 3. **IL and effects.** Track D, C, N/Z/V/I, register clobbers, stack ownership, calls, MMIO count/order and interrupt visibility separately. Binary-body normalization cannot be removed because flags appear locally unused: both body-entry and outgoing status contracts require proof. Explicit CPU controls preserve their exact ordered effects. The public controls are only `asm_sei`, `asm_cli`, `asm_php`, `asm_plp` and `asm_nop`; there is no source `asm_cld`/`asm_sed` escape. [Raw intrinsic specification](/work/spec/12-intrinsics.md:28), [IL machine-state obligations](/work/references/il-and-optimization.md:313).
+>
+> 4. **BCD regions and asynchronous restoration.** Typed `bcd_add`/`bcd_sub` own D and carry, evaluate operands once in order, propagate word carry low-to-high and leave D clear. They lower inline without a linked helper. A decimal region cannot absorb ordinary arithmetic, address formation or calls; control-flow boundaries, machine effects and every IRQ/NMI path must preserve its contract. An interrupt during such a region must resume it with the saved D and carry intact. Same-width unsigned byte/word overloads are accepted; signed or mixed-width calls use E10172, and known invalid digits use E10254. Runtime-invalid digits retain selected-CPU behavior rather than gaining an invented portable result or validator. [Governing BCD contract](/work/spec/12-intrinsics.md:88).
+>
+> 5. **Register binding and observer preservation.** The prior observer reads **hook-entry** P/A/X/Y. Those values need not equal the interrupted program’s original registers, because firmware has already executed. CINV’s saved original A/X/Y ensures eventual restoration to the interrupted program; it does not by itself restore hook-entry registers before chaining. Preserve every observed value that the complete body, acknowledgement or helpers can change. Restore status last, because register pulls/transfers change N/Z.
+>
+> 6. **Helpers and final SFA closure.** Inventory parameters, results, locals, staging, temporaries, spills, ZP pairs and helper scratch after instruction selection. Overlapping invocations receive disjoint private homes; code specialization follows when fixed addresses require it. Globals, assets and MMIO retain shared identity. Frame separation does not establish atomicity. No emitter may acquire unaccounted scratch after closure. [Raw execution-domain rules](/work/spec/06-functions.md:757), [memory model](/work/spec/11-memory-model.md:106), [closure gate](/work/references/sfa-and-abi.md:409).
+>
+> 7. **Installation, device ownership and layout.** Prove balanced per-sink LIFO installation, exact predecessor lifetime, safe vector publication/removal, banking visibility, acknowledgement ownership and terminal behavior. Each simultaneously live installation needing restore or chaining retains one two-byte predecessor word. An NMOS indirect link beginning at `$xxFE` is valid; `$xxFF` must be relocated, rejected or handled by a separately costed alternative. No generic dispatcher or automatic device acknowledgement follows from the handler declaration. [Installation ownership](/work/spec/06-functions.md:842), [complete route gate](/work/references/sfa-and-abi.md:330).
+>
+> **Exact local entry and restore costs — calculated, not measured**
+>
+> The following notation expands into ordinary NMOS instructions:
+>
+> ```asm
+> ; SAVE: 5 bytes, 13 cycles, 3 stack bytes
+> PHA
+> TXA
+> PHA
+> TYA
+> PHA
+>
+> ; RESTORE: 5 bytes, 16 cycles, releases those 3 bytes
+> PLA
+> TAY
+> PLA
+> TAX
+> PLA
+> ```
+>
+> Other exact terms are:
+>
+> - CPU acceptance: **7 cycles**, three pushed bytes, zero output bytes.
+> - `PHP; CLD; PLP`: **3 bytes / 9 cycles**, one temporarily live status byte.
+> - `CLD`: **1 byte / 2 cycles**.
+> - Indirect `JMP`: **3 bytes / 5 cycles**; absolute `JMP`: **3 bytes / 3 cycles**.
+> - `RTI`: **1 byte / 6 cycles**.
+> - Pinned 901227-03 PULS-to-CINV segment: **16 existing ROM bytes / 29 cycles**, with three firmware register saves.
+> - `$EA81` restore-only tail: **6 existing ROM bytes / 22 cycles**, implementing RESTORE plus `RTI`.
+> - `$FE43` NMI stub, `SEI; JMP ($0318)`: **4 existing ROM bytes / 7 cycles**, with no register save or decimal clear.
+>
+> Instruction costs come from [the official NMOS grid](/work/references/mos-6502-family.md:97). Revision-specific route terms come from [IRQ baselines](/work/references/c64-memory-and-runtime.md:336), [NMI baselines](/work/references/c64-memory-and-runtime.md:367), and `CBM-C64-KERNAL-03`, pinned to recovered source commit `01bd60f162ef92212ef0cb67546ae8f42be34168`, specifically `irqfile::PULS/PULS1`, `editor.2::KPREND`, `vectors::NMI` and `rs232nmi::NMI/NNMI/NMIRTI/PREND`. [Manifest precision](/work/references/source-manifest.md:761).
+>
+> In this table, entry cycles include CPU acceptance and applicable firmware through establishment of binary body entry. Exit cycles start after the body. Fixed sums exclude body/acknowledgement, prior-handler work, interrupted-instruction completion, bus stalls and further preemption.
+>
+> | Route and wrapper | Output wrapper bytes | Existing ROM instruction bytes | Entry cycles | Exit cycles | Fixed sum | Component stack peak |
+> |---|---:|---:|---:|---:|---:|---:|
+> | CINV status-only chain: `PHP; CLD; …; PLP; JMP (saved)` | 6 | 16 | 41 | 9 | 50 | 7 |
+> | CINV chain preserving A only: `PHP; PHA; CLD; …; PLA; PLP; JMP (saved)` | 8 | 16 | 44 | 13 | 57 | 8 |
+> | CINV chain preserving P/A/X/Y: `PHP; SAVE; CLD; …; RESTORE; PLP; JMP (saved)` | 16 | 16 | 54 | 25 | 79 | 10 |
+> | Exclusive CINV: `CLD; …; JMP $EA81` | 4 | 22 | 38 | 25 | 63 | 6 |
+> | Raw IRQ: `SAVE; CLD; …; RESTORE; RTI` | 12 | 0 | 22 | 22 | 44 | 6 |
+> | NMINV chain: `PHP; SAVE; CLD; …; RESTORE; PLP; JMP (saved)` | 16 | 4 | 32 | 25 | 57 | 7 |
+> | Exclusive NMINV: `SAVE; CLD; …; RESTORE; RTI` | 12 | 4 | 29 | 22 | 51 | 6 |
+> | Raw NMI: `SAVE; CLD; …; RESTORE; RTI` | 12 | 0 | 22 | 22 | 44 | 6 |
+>
+> Two qualifications are decisive:
+>
+> - **The six-byte CINV chain is insufficient whenever the body changes a register read by the supplied observer.** Binary ADC changes A. Preserving all hook-entry registers adds **10 bytes, 29 cycles and three stack bytes** to that baseline. These extra saves protect the observer; they have a distinct purpose from firmware’s interrupted-register saves. An A-only specialization is valid only after proving the entire body, acknowledgement and helper path preserves X/Y. The packet cannot establish the actual selected specialization.
+> - **36 cycles reaches CINV dispatch, not normalized Blend65 body entry.** Adding the relevant compiler prologue produces the entry figures above. Exclusive/raw routes need no extra `PHP`/`PLP` for interrupted-status restoration: their eventual `RTI` restores it.
+>
+> A chain additionally retains a **two-byte writable predecessor link**. Its complete timing is the listed fixed sum plus body/acknowledgement and the actual prior path. That path is **Unknown**. If it eventually uses `$EA81`, the tail’s six ROM bytes and 22 cycles belong within the prior path and must not be counted twice. Existing vector words and hook slots are machine storage; the ROM instruction columns are not emitted PRG bytes.
+>
+> **Binary body, helpers and remaining storage costs**
+>
+> A canonical memory-to-memory byte addition is:
+>
+> ```asm
+> LDA left
+> CLC
+> ADC right
+> STA result
+> ```
+>
+> With three nonindexed accesses, let `k` be the number using absolute instead of ZP addressing. Its exact cost is **`7+k` code bytes and `11+k` cycles**, `k=0..3`. It clobbers A and arithmetic flags, requires the established D=0 boundary and introduces no helper or hidden scratch.
+>
+> An ordinary `JSR`/`RTS` pair costs **4 code bytes, 12 cycles and two live stack bytes**, excluding argument evaluation/stores, body, result handling, spills, bank changes and helper data. Byte results return in A; word results use A low/X high. Parameters and private execution storage belong to SFA.
+>
+> The raw specification’s explicit byte-add example—one immediate and one absolute-memory argument, absolute parameter homes and result destination—costs **40 cycles and 25 code bytes**: caller 24 cycles/17 bytes, callee including `RTS` 16 cycles/8 bytes. Its two byte parameters require two private home bytes per materialized concurrent instance. That is a supplied specification example, not the fixture’s unknown helper selection. [Exact source and sequences](/work/spec/06-functions.md:551), [cost assumptions](/work/spec/06-functions.md:644).
+>
+> All body storage, helper variants, result homes, padding, shipped link initialization, installation code, startup/loader work and complete artifact sizes remain **Unknown**. A retained predecessor consumes RAM even if its initial contents need not ship as PRG data. A PRG’s two-byte load header is container overhead and is not loaded into RAM.
+>
+> The supplied profile record gives **256 stack bytes − 20 reserved = 236 usable**, with default warning threshold **188**. These are capacities, not measured usage. Add every simultaneously live call, entry, observer save and explicit status save to a bounded peak, then compare that unchanged peak against usable capacity. E10238 rejects finite overflow; E10248 rejects invalid source status-stack balance. [Raw stack rules](/work/spec/06-functions.md:501).
+>
+> **NMI, acknowledgement and restoration limits**
+>
+> CINV chain and exclusive routes use firmware’s register frame; exclusive completion jumps to `$EA81`, deliberately skipping the preceding CIA1 ICR read. Exclusive ownership must therefore cover every enabled source instead of leaving skipped stock service responsible.
+>
+> NMINV differs: `$FE43` reaches the hook without saving A/X/Y. A chain saves P **before** its register transfers and restores registers **before** `PLP`. A simple chain leaves the consuming `$DD0D` read to its stock predecessor. An owning replacement reads CIA2 ICR once, handles every returned source bit and restores masks from known software-owned state. CIA masks are write-only; reading ICR cannot recover them. VIC acknowledgement is a selected write-one operation. The compiler must not infer the source or insert acknowledgement. [Device effects](/work/references/c64-hardware.md:279).
+>
+> NMI is not blocked by `SEI`. Updating its two-byte hook requires a proved quiescent window or an update scheme with valid intermediate targets. Raw takeover must populate the complete underlying RAM vector before exposing it, and preserve valid routes across the banking transition.
+>
+> The four cooperative PAL/NTSC PRG 6581/8580 profiles admit the narrow NMI exception only after proving the complete selected generated path reentrant without invocation-private RAM/ZP homes. Locals and helpers are not prohibited by spelling; their final storage matters. Immutable installation links remain separately lifetime-owned.
+>
+> That exception does **not** prove unrestricted external aggregate stack usage, retained-ROM reentrancy/completion, a finite deadline or whole-program headroom—even without a generated NMI hook. Unbounded private overlap, incomplete generated reentrancy and compiler-controlled growing-stack cycles remain E10245. Raw takeover and D64 receive no extension. [Governing exception](/work/spec/15-platform-profile.md:267).
+>
+> If “restore” also means final exclusive `restoreIRQ()`, its stock CIA1 handback is separate from interrupt return. It clears masks, stops both timers, consumes ICR once, reloads Timer A low/high with PAL **16421/$4025** or NTSC **17045/$4295**, restores the exact predecessor CINV, enables `$81` and starts Timer A while preserving TOD selection. The documented transaction bracket `PHP; PHA; SEI … PLA; PLP` costs **5 bytes/16 cycles and two temporary stack bytes**; the complete selected handback cost is **Unknown**. [Scoped release contract](/work/references/c64-memory-and-runtime.md:218).
+>
+> **Independent proof needed**
+>
+> First obtain a concrete source case and record compiler identity/options, exact profile, selected routes, ROM identity and final private-home inventory. Inspect emitted assembly, then assembled bytes/maps for normalization, carry ownership, observer preservation, correct terminals, reachable variants, link placement, banking and complete storage/cost accounting.
+>
+> The behavior oracle must independently require binary arithmetic, unchanged prior-observer P/A/X/Y, restored interrupted status/registers/PC/stack, correct acknowledgement count/order and correct resumption of interrupted decimal carry chains. Include D=0/1, C=0/1, arithmetic boundaries and IRQ/NMI interruptions inside byte/word BCD regions.
+>
+> A separate assembly/resource oracle must check instruction legality and the exact calculated terms above, including ROM versus output bytes, helper marshalling, private storage, simultaneous stack use and every complete route. Comparing optimized and unoptimized outputs is supporting evidence; both can share a defect. [Independent-oracle requirement](/work/references/evidence-parity-and-recovery.md:104).
+>
+> Configured VICE 3.10 `x64sc` observations would then test the identified artifact and machine settings. Targeted physical QA remains necessary for RESTORE/cartridge behavior, CIA revision-sensitive behavior and any claimed arrival/re-entry bound. **Neither emulator verification nor physical verification is supplied.**
+>
+> The smallest remedy is localized ABI lowering: establish binary entry, preserve the observer’s required state, select the correct terminal, and close helper/storage resources before emission. No new runtime mechanism is justified by this packet.
+
+</details>
+
+<details>
+<summary>2.0.2 corpus-refined: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/corpus-refined`. Raw run-log SHA-256: `de1e1d9bbf8639589cd944901c87fc319df70133a3a50dd23b7f12fc2c452902`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `416aa3060c01d9bc38eafd7f5998587697d5b38afc624049185e0189bfdab237`; packet-record SHA-256: `cc85ee2d5a9c3a211735eea319732a9a1ee24e3a9a5750e81a3052c8329c7abf`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+006e5003573d85d7da96c8bebf69c730434829cacff3402eabd7ec32dd9f56bc  policy-excerpts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c966648ea7a58952561909b9a127f1617b50ee583f2845bcd07fb43602b2e51b  references/il-and-optimization.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+6f337f0daab46ecbe9b49f210aefaa62a52b00b8b11d24f842f814369d96399e  request.md
+ab393b09a630b8b8db90c7fb5e273ff0bbef1e5299c2902affbf4a33d43a6b0a  spec/00-feature-index.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1a1bc184c81b036c7e5cdcc4785a8d591795ac35552f727b4a299d1597d713bb  spec/00-normative-inventory.md
+4312fb663eeb3f26137aadcc8acbfa6ba586ef19996f54254409f8ead7982d1c  spec/01-lexical-structure.md
+73f7deb046abcc2caa6bcced73bd62c741bb2c0e954b16cfb1633e3cbdab8651  spec/02-type-system.md
+e8c017b9671b9cf1c8ac633cf4aee59fd1591df13ea94ddab323b7c42a11807d  spec/03-variables.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+187ea573d6ddaf6a033321f9118835c2b3442118e1e363dcd68bc634f59b0ab2  spec/05-statements-control-flow.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+a3afc05f37ab7118ed365ae570ff98ca05ac2ca73120b5b48280b58b98f8cd45  spec/07-structs.md
+500a6c18f84dc54a41fd7fe82b0fb5e0029bc1e050615ec9c929e148f76be515  spec/08-arrays-strings.md
+e0772e924b761ed16e58b14f72906d4fa3014ed3bf2e9886fd01759a127192d6  spec/09-enums.md
+a5ad0cc83e34867de7b1e1ada3d94efb1a136230cf199578c7a0d7a283a57383  spec/10-modules.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+29a16540be2a29cc4d4e5ba3bed0e407b9644dd25d4acc803666cf3df71079e7  spec/13-data-inclusion.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+cd79fa582b71c3126916f455f6d623c3c1a8fd35b064cae22ee4a311261a19df  spec/evaluations/F001-multi-file.md
+d522d443a3f946ac6d0201ada84d45e321c35094e951bd3ecb1d616bd9f1d98a  spec/evaluations/F002-modules.md
+9673502debd656fe4733a160454d1d86ed6adcbf70fb7bc68325f67d49385920  spec/evaluations/F003-module-contents.md
+dd7ef96a96873a1ff1ff1a9c3bf97ea07ece0717051ff485432b6a951abb8162  spec/evaluations/F004-entry-point.md
+add33b6dd89783250bd495247264966aadee57d4dec3dc44a1698fdbe1442aa3  spec/evaluations/F005-memory-placement.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+bb503f0aa1aff317c71cb8a61c5e071b9f3c8bbeea1476438306f3b82c60dc04  spec/evaluations/F008-for-loop.md
+2d5116b586c2abe6bb4ee43a2372f974dc90e719177443bfe714c53c542d72ce  spec/evaluations/F009-switch-statement.md
+9013ae2793ba44f96c13e9fdb567b324e6bd5a8f331af9083605eff12fe2f359  spec/evaluations/F010-signed-types.md
+4118af9de2c2b34022a883cddc5762e87bd164cda03ed38f47fe4f77577db026  spec/evaluations/F011-structs.md
+c06a710a4dca63f35d91af4850f2ba1aa6e94c06e1bd89bc81b0d5720c96fc5c  spec/evaluations/F012-cpu-control-intrinsics.md
+1a36d5db689bb97d84b93318e604a7da31a36c38dc057993c3192c0907731faa  spec/evaluations/F013-control-flow.md
+938d3adb011bb60eac49dcfe160c65c48b2279aa610a1bb2c82cb3171c53ba2f  spec/evaluations/F014-arrays.md
+cc383e7d7258c1cb7eecd8a51bffa360098fda5ddfbb2a8752061a5e647a942f  spec/evaluations/F015-data-inclusion.md
+0ccfec6274dadc849eb93a3440bb090f9b24f77119f7b297fa5217f827608f4e  spec/evaluations/F016-type-system.md
+ecf5e10be85f9610c20d400aac6dbda2cc8dea0a1edbbccfce2b87a32e7ff44d  spec/evaluations/F017-operators.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+15628edf3f35fb2252f20ad938b16b8b6006f32d196ffe0d8ffa8e496f3fa017  spec/evaluations/F019-variables.md
+3a6d7e2e07dedfed392dc407e1cb598042f5aad270152740f99ae056e492b945  spec/evaluations/F020-memory-intrinsics.md
+a77babccebc4b20ee55f062ace152674a46860ebb53fdec9fd2408b85eea441a  spec/evaluations/F021-lexical-structure.md
+0d12f268294ce67560417599b4e2a88b69f743f7d4f00aaed9e412f4c5719e6f  spec/evaluations/F022-enums.md
+66dc1c0ad8222f09871b3550ae032a0d0cfcecb7cf338174e85af29bdbd2d303  spec/evaluations/F024-conditional-operator.md
+f14a19ee370fbfe6de5c3a4b0c599d1a5cf4359863a2110efe2c1d3b303e2f4d  spec/evaluations/F025-comptime-functions.md
+e38910dbf5e9a710b8171081c1698730bfd835df058b6267d5b2edf54d0dbcea  spec/future-considerations.md
+8d4533443a31067627f790540c5e1c3900a57cff52ea2b751908b4917e3fed94  spec/grammar.ebnf.md
+```
+
+> **1. Both conversions are explicitly valid.**
+>
+> `byte + word` uses TS-4: the `byte` is implicitly zero-extended, and the expression has type `word`. Enum-to-`byte` use is explicitly permitted by TS-14, including assignment, arguments, `poke`, arithmetic, and comparison.
+>
+> A4 does not cancel these rules. Its actual text requires explicit annotations and explicit narrowing or cross-signed conversions; it does not prohibit the conversions specifically enumerated elsewhere. Sources: [A4](/work/spec/00-introduction.md:100), [TS-4](/work/spec/02-type-system.md:161), [TS-14](/work/spec/02-type-system.md:413), and [EN-9](/work/spec/09-enums.md:185).
+>
+> The boundaries matter:
+>
+> - Same-signed mixed-width arithmetic widens; mixed-signed arithmetic still requires a cast.
+> - Enum-to-`byte` is the only implicit conversion **from an enum**. An enum does not implicitly become `word` or `sword`; use `word(enumValue)` when appropriate.
+> - Byte-to-enum requires an explicit cast and performs no member-value check.
+> - Assigning an expression to a wider destination does not retroactively widen its arithmetic. A runtime `byte + byte` wraps at byte width before a later conversion to `word`.
+>
+> These are language conclusions, **Status: `Verified complete`; Claim kind: `Fact`**. Actual compiler acceptance is **`Unknown`** because no implementation or compiler-run evidence is supplied.
+>
+> The cost is consumer-dependent:
+>
+> | Operation | Complete accounting boundary supported by the packet |
+> |---|---|
+> | Enum-to-byte reinterpretation | No additional conversion instructions. An independently materialized enum variable occupies one byte; ordinary loads, stores, arithmetic, or MMIO still cost work. Enum declarations themselves emit no code/data. [Source](/work/spec/09-enums.md:247) |
+> | Stored byte-to-word zero extension | The displayed four instructions cost **11–14 cycles and 8–11 code bytes**, depending on zero-page/absolute homes. This includes the transfer and high-byte store. [Source](/work/spec/evaluations/F010-signed-types.md:384) |
+> | Displayed mixed-width addition | The seven-instruction `word + byte` sequence costs **19–24 cycles and 13–18 code bytes**. `ADC #0` incorporates the extension; charging a separate widening sequence would double-count work. [Source](/work/spec/evaluations/F017-operators.md:622) |
+> | Additional storage and whole-program cost | A materialized word occupies two bytes. Any function-execution home belongs to SFA; actual homes, overlays, scratch, padding, stack use, and artifact totals are **`Unknown`** without selected lowering and layout. |
+>
+> These are supplied instruction-accounting examples, not measured compiler or hardware results.
+>
+> **2. The crosswalk contains every required path, but its consistency claims do not pass.**
+>
+> The independent membership and digest checks establish:
+>
+> | Boundary | Result | Status / claim kind |
+> |---|---|---|
+> | Exact Markdown inventory | **45 files: 18 normative, 27 non-normative** | `Verified complete` / `Fact` |
+> | Candidate crosswalk membership | **45 rows; no missing, extra, or duplicate paths** | `Verified complete` / `Fact` |
+> | Normative digest | Recomputed digest matches `566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7` | `Verified complete` / `Fact` |
+> | Diagnostic registry cardinality | **184 unique active codes: 155 errors, 29 warnings**; normative code references resolve to active or retired entries | `Verified complete` / `Fact` |
+> | Per-path semantic representation | The boundaries below are supported; identified defects prevent a blanket reconciliation result | `Verified partial` / `Fact` |
+> | Claim that retained copies are consistently reconciled | Disproved by the contradictions and examples below | `Incorrect` / `Fact` |
+> | Content commit, release activation, qualification outcome | Absent from the authorized evidence | `Unknown` / `Unknown` |
+> | Compiler, emitted artifacts, runtime conformance, measured parity | No corresponding implementation/run evidence | `Unknown` / `Unknown` |
+>
+> Membership authority and the digest algorithm come from [the inventory](/work/spec/00-normative-inventory.md:7). A matching normative digest does not authenticate the non-normative files or establish release activation.
+>
+> Applied lineage is `skillVersion=2.0.2`, with the declared specification identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. Content commit and activation remain `Unknown`. The supplied references are the [semantic crosswalk](/work/references/blend65-semantics.md:90), [architecture doctrine](/work/references/compiler-architecture.md:26), [SFA/ABI doctrine](/work/references/sfa-and-abi.md:38), and [IL doctrine](/work/references/il-and-optimization.md:110).
+>
+> The references declare policy key `BLEND65-PROJECT-POLICY-P3-28627e0c`; the packet supplies an excerpt asserting AGENTS SHA-256 `0047dbcea892147b9ef929129041349ccc4606eb02d38a8b3be03183e559d25d`. Their external binding is unverified. I used the [exact excerpts](/work/policy-excerpts.md:3), without reading AGENTS, qualification files, or unavailable references.
+>
+> For the tables, **Sem** means semantics, **A** architecture, **S** SFA/ABI, and **I** IL. **C64 memory**, **hardware**, **assets/game**, **artifacts**, and **CPU/lowering** identify additional branches prescribed by the router. Those references are outside this packet; their contents and independent qualification are `Unknown`. Relevant specification contracts are cited directly.
+>
+> Each path row has **Status: `Verified partial`; Claim kind: `Fact`** for the stated documentary boundary. Costs recomputed from displayed forms are **`Inference`**, not measurements. A row does not certify every sentence in its file.
+>
+> **Per-path audit — authority and core specifications**
+>
+> | Exact path and authority | Substantive payload and compiler/storage/effect consequence | Interaction or failure boundary | Correct branch; cost and genuinely inapplicable facets |
+> |---|---|---|---|
+> | [spec/00-feature-index.md](/work/spec/00-feature-index.md:1) — non-normative navigation | Routes features to owners; evaluation prose remains subordinate. Compiler decisions must follow the referenced governing chapter. | F023 is intentionally retired; an absent F023 file is not missing coverage. The index must not duplicate diagnostic authority. | **Sem, A.** Index processing adds no target operation. ABI, frame, MMIO, and execution-cycle obligations are inapplicable to navigation itself. |
+> | [spec/00-normative-inventory.md](/work/spec/00-normative-inventory.md:7) — non-normative membership/identity owner | Defines exact normative membership and raw-file digest construction. Establish this identity before using semantic authority. | It excludes itself from the digest; normative identity does not bind non-normative content or prove activation. | **Sem, A.** Hashing is host audit work; target ROM/RAM/ZP/stack and execution costs are inapplicable. |
+> | [spec/00-introduction.md](/work/spec/00-introduction.md:63) — normative axioms | SFA, deterministic bounded behavior, explicit typing, and the qualified C64 scope constrain every stage. No hidden frame runtime or mandatory safety machinery follows from the axioms. | Hardware exceptions must remain explicit; A4 must be read with enumerated conversion rules. Its document map omits F025. | **Sem, A, S, I.** No universal cycle total follows from an axiom. Concrete instruction, placement, and device costs are delegated, not zero. |
+> | [spec/01-lexical-structure.md](/work/spec/01-lexical-structure.md:387) — normative lexing | UTF-8 source, closed escapes, maximal munch, and byte-based spans must survive tokenization. Target encoding occurs later. | `\xNN` supplies an exact byte; other literal content retains scalar/escape identity. Contextual words must not become invented keywords. | **Sem, A.** Lexer acceptance has no target frame, ABI, or instruction cost. Encoded literal data costs belong downstream. |
+> | [spec/02-type-system.md](/work/spec/02-type-system.md:161) — normative typing | Preserve width, signedness, nominal identity, conversion kind, and constant/runtime arithmetic distinctions through legalization. | Same-signed widening is valid; destination width does not change an earlier narrow operation. Object/query limits reject invalid types before allocation. | **Sem, I, S; CPU/lowering for machine forms.** Widening costs are consumer-dependent. Heap or wider hidden arithmetic is inapplicable because neither is the prescribed representation. |
+> | [spec/03-variables.md](/work/spec/03-variables.md:177) — normative declarations/storage | Shadowing uses stable declaration identity; scalar constants, resident aggregates, mutable storage, and package-only `loadable const` have distinct storage/init consequences. | Child initializer sees the outer binding until completion; same-scope duplicate is E10003. Successful load publication requires captured-range/must-alias proof. | **Sem, S, I, A; C64 memory/artifacts for placement/loading.** Omitted initialization costs zero init instructions, not zero storage. Package-only values have no resident/SFA home. |
+> | [spec/04-expressions-operators.md](/work/spec/04-expressions-operators.md:42) — normative expressions | Immediate operands evaluate once, left-to-right; assignments preserve place identity and selected effects. Local-origin address provenance survives derivations. | Short circuit and conditional arms skip effects; escaping local borrows fail E10260. Binary `&` has a conflicting numeric precedence annotation. | **Sem, I, S; CPU/lowering.** Selected instructions, helpers, checks, and materialization determine cost. No automatic heap promotion is applicable. |
+> | [spec/05-statements-control-flow.md](/work/spec/05-statements-control-flow.md:217) — normative statements | Three-clause `for` preserves initialization/condition/update order, lexical identities, and generic CFG behavior; loop-local `loadable const` stays package-only. | `continue` reaches update; `break`/`return` skip it. E10262 requires the specified proof, not a blanket rejection of modular loops. | **Sem, I, S.** Displayed counted-loop control is five bytes and 1,281 cycles including setup, before body and branch-page penalties. No hidden iterator/frame is applicable. |
+> | [spec/06-functions.md](/work/spec/06-functions.md:111) — normative calls, functions, interrupts, comptime | Exact aggregate parameters use two-byte addresses; unsized parameters use address plus word count. Aggregate results use caller-owned destinations; callee/arguments are evaluated once in order. | Finite function targets, recursion rejection, staging, overlap, callback-only handlers, sink-selected variants, and final helper discovery all affect closure. | **Sem, S, I, A; C64 memory/hardware for interrupt routes.** JSR/RTS alone is 12 cycles and two live stack bytes; frames/variants are per allocated activation. Comptime calls emit no target body/frame. |
+> | [spec/07-structs.md](/work/spec/07-structs.md:95) — normative struct layout/value semantics | Fields are packed in declaration order. By-reference calls and exact value copies retain alias identity and caller-owned return storage. | A field reached through an aggregate parameter remains directly addressable and retains caller-object lifetime/constness; overlapping copies must preserve value semantics. | **Sem, S, I.** Displayed unrolled copy costs 4–6 code bytes and 6–8 cycles per byte, plus any required addressing/snapshot work. Device-specific asset meaning is not authored here. |
+> | [spec/08-arrays-strings.md](/work/spec/08-arrays-strings.md:118) — normative arrays/literals | All four integer index types are accepted; direct subscript arithmetic uses the specified ordinal promotion until an explicit narrow barrier. Preserve shape, extent, encoding, and alias facts. | Default unchecked addressing wraps modulo 65,536, including byte continuation across `$FFFF`; constant OOB still fails. Unsized parameters are not stored slice values. | **Sem, I, S; C64 memory for wrap/MMIO, artifacts for literal data.** Exact/unsized parameter homes are two/four bytes per activation. Zero-length objects have no element bytes; dynamic collection allocation is inapplicable. |
+> | [spec/09-enums.md](/work/spec/09-enums.md:174) — normative enums | Byte-backed nominal identity remains until a permitted conversion; enum-to-byte is implicit, byte-to-enum explicit and unchecked for membership. | Different enums do not become interchangeable. The enum-to-word cost summary overstates “zero cycles.” | **Sem, I.** Declaration: zero code/data; materialized enum: one byte; byte reinterpretation adds no instructions. Ordinary transfer/use and word materialization remain chargeable. |
+> | [spec/10-modules.md](/work/spec/10-modules.md:41) — normative program structure | Each file starts with a module declaration; same-name modules merge regardless of filenames. Initializer scheduling follows dependencies, transitive reads/calls, and effect order. | Imports are qualified module names, not path strings. Unique `main(): void` is not callable; library builds may omit it. Initializer cycles fail E10194. | **Sem, A, S, I.** Name resolution adds no runtime lookup. Fall-through entry avoids a separate JSR/RTS entry call; startup callees still contribute SFA and stack costs. |
+> | [spec/11-memory-model.md](/work/spec/11-memory-model.md:108) — normative memory/resources | SFA closes parameters, returns, locals, staging, spills, helpers, and overlapping activation homes; globals/assets/layout have separate owners. | A bounded peak must fit capacity minus reserve. No-recursion does not prove one frame per function; external NMI guarantees remain separate. | **Sem, S, A, I; C64 memory.** Count resident data, BSS, frame overlap, ZP pairs, stack, and layout separately. “Typically 30–60%” savings lacks packet measurements. |
+> | [spec/12-intrinsics.md](/work/spec/12-intrinsics.md:43) — normative intrinsics | Exactly five CPU controls; kind-correct status-stack effects; typed BCD; volatile memory operations preserve count/order and dynamic addresses. | A callee cannot pop caller/ABI status bytes. BCD owns carry and decimal transitions; invalid constant nibbles fail E10254. | **Sem, I, S; CPU/lowering and C64 hardware as used.** Each CPU control is one code byte; cycles are 2/2/3/4/2. Dynamic addressing scratch is SFA-owned. A general opcode/inline-assembly API is inapplicable. |
+> | [spec/13-data-inclusion.md](/work/spec/13-data-inclusion.md:122) — normative embedding/loading | Literal selector keys belong to registered handlers; canonical identical path/selector/representation outputs share immutable identity. Residency and packaging remain separate. | Registered one-argument calls are handler-specific, not universally raw. Callable audio requires an exact contract; trusted KERNAL loading cannot contain an oversized replacement. | **Sem, A, I, S for loader scratch; C64 assets/game, memory, artifacts.** Import emits no runtime transformation; selected bytes, padding, physical residency, and loading still cost resources. |
+> | [spec/14-diagnostics.md](/work/spec/14-diagnostics.md:10) — normative public registry | Owns public code/severity/message fields; semantic chapters own trigger predicates. Root poisoning/recovery must suppress all target artifacts after errors. | Suppress warnings before promotion; promoted warnings retain W codes. Retired codes cannot be reused. | **Sem, A.** Diagnostics add no injected runtime reporter. Compiler recovery/publication effects apply; target ABI and per-diagnostic execution cycles are inapplicable. |
+> | [spec/15-platform-profile.md](/work/spec/15-platform-profile.md:22) — normative profile contract | Nine indivisible qualified identities select CPU/video/SID/ownership/artifact/resource contracts. Target-neutral frontend consumes declarative semantic facts. | Partial/unqualified IDs fail E10279. Sink metadata, exact entry variants, audio topology, and the four-profile NMI exception cannot be inferred from symbol spelling. | **Sem, A, S, I; C64 memory/hardware/artifacts.** Resource limits and timing records are prescribed contracts, not observed conformance. Generic mixed-profile cost totals are inapplicable. |
+> | [spec/appendix-c64.md](/work/spec/appendix-c64.md:55) — normative concrete target contract | Defines shared memory/ZP, startup/return, encoding maps, native assets, loader, banking, interrupt ABI, and exact ownership obligations. | VIC/CPU visibility, firmware versus raw entry, SID compatibility, final exclusive CIA1 handback, and HLE-010 remain material. | **Sem, A, S, I; C64 memory, hardware, assets/game, artifacts, CPU/lowering.** Full cost ledger appears below. Cartridge reset behavior is inapplicable to these disk-artifact profiles; physical/runtime proof is absent. |
+>
+> **Per-path audit — evaluations and remaining files**
+>
+> Evaluation acceptance labels are design records, not compiler-run results or independent language authority.
+>
+> | Exact path and authority | Substantive payload and compiler/storage/effect consequence | Interaction or failure boundary | Correct branch; cost and genuinely inapplicable facets |
+> |---|---|---|---|
+> | [spec/evaluations/F001-multi-file.md](/work/spec/evaluations/F001-multi-file.md:13) — rationale | Supplied source files compile together into one binary; paths have no language meaning; cross-file references use modules. | Input discovery, module-to-file mapping, duplicate-module policy, and diagnostic stability are unspecified **here**. | **Sem, A.** No mandatory runtime lookup. Those four unspecified facets are inapplicable to F001’s claims; F002/Chapter 10 supply other module rules. |
+> | [spec/evaluations/F002-modules.md](/work/spec/evaluations/F002-modules.md:19) — rationale | Mandatory first module declaration and same-name merging require module identity independent of filenames. | Duplicate declarations remain distinct from same-name module merging; public diagnostics belong to Chapter 14. | **Sem, A.** No runtime module object or name lookup is introduced. Independent ABI/device contracts are inapplicable to module naming. |
+> | [spec/evaluations/F003-module-contents.md](/work/spec/evaluations/F003-module-contents.md:29) — rationale | Declaration-only module contents, visibility, optional initialization, and startup calls need declaration/effect classification. | Uninitialized storage is not implicitly cleared; exported/private meaning comes from declarations, not invented visibility keywords. | **Sem, A, S, I.** Initializer work is real startup work; omission adds zero clearing instructions. A runtime module-body mechanism is inapplicable. |
+> | [spec/evaluations/F004-entry-point.md](/work/spec/evaluations/F004-entry-point.md:14) — rationale | Unique void `main`, library exception, and fall-through startup identify program roots. | Calls to `main` are rejected; the supplied `--platform c64` library example violates complete-ID selection. | **Sem, A, S.** Fall-through avoids a JSR/RTS entry call and its two-byte return state. A general runtime entry dispatcher is inapplicable. |
+> | [spec/evaluations/F005-memory-placement.md](/work/spec/evaluations/F005-memory-placement.md:60) — rationale | Automatic resident/package-only placement and explicit constraints must stay symbolic until platform layout. | Explicit module ZP and total profile budgets differ from function scratch allocation; local placement does not bypass SFA. | **Sem, S, A; C64 memory/artifacts.** Charge object sizes, alignment/gaps, and simultaneous scratch separately. Hidden relocation copies are inapplicable. |
+> | [spec/evaluations/F006-address-of.md](/work/spec/evaluations/F006-address-of.md:29) — rationale | Parameters, fields, indexed elements, and locals are directly addressable with provenance-aware lifetimes. | Returning/publishing a local-origin borrow fails E10260; aggregate-parameter subobjects retain caller lifetime and constness. | **Sem, S, I.** Displayed fixed-address materialization is 8 bytes/10 cycles for ZP or 10 bytes/12 cycles absolute. Manual-address restrictions and heap promotion are inapplicable. |
+> | [spec/evaluations/F007-interrupt-functions.md](/work/spec/evaluations/F007-interrupt-functions.md:33) — rationale | Callback-only source identity, exact entry variant, binary-mode body entry, restoration, and disjoint private homes must survive lowering. | Firmware handlers must not double-save A/X/Y or directly RTI; shared globals remain shared. | **Sem, S, I; C64 memory/hardware, CPU/lowering.** Raw wrapper is 12 bytes/37 cycles before hardware acceptance; chain links/variants and full route costs remain additional. No generic dispatcher is applicable. |
+> | [spec/evaluations/F008-for-loop.md](/work/spec/evaluations/F008-for-loop.md:60) — rationale | Ordinary three-clause effects, scope, mutation, and wrapping require generic CFG first; specialization requires proof. | Its summary omits allowed `loadable const`, and its blanket storage sentence needs a package-only exception. | **Sem, I, S.** No hidden iterator; register counting is conditional on clobber/liveness proof. Package-only initializer declarations require zero SFA home and zero per-iteration initialization. |
+> | [spec/evaluations/F009-switch-statement.md](/work/spec/evaluations/F009-switch-statement.md:81) — rationale | Auto-break and explicit source-order fallthrough preserve CFG and case scope. | Claimed chain/table thresholds are lowering guidance, not mandatory normative strategy. The approximate fallthrough-use percentage has no supplied measurement. | **Sem, I; CPU/lowering.** A compare/branch core is four bytes; table setup, entries, range handling, pages, and paths add cost. No empirical frequency assumption is applicable. |
+> | [spec/evaluations/F010-signed-types.md](/work/spec/evaluations/F010-signed-types.md:342) — rationale | Same-width casts reinterpret bits; same-family widening preserves values; signed comparison/shift need exact semantics. | “Free cast” does not alias independently observable variables or erase transfer costs. | **Sem, I, S; CPU/lowering.** Displayed zero/sign extension costs are 11–14/16–21 cycles and 8–11/17–20 bytes. Native C64 asset semantics are inapplicable. |
+> | [spec/evaluations/F011-structs.md](/work/spec/evaluations/F011-structs.md:147) — rationale | Packed layout, by-reference parameters, caller destinations, AoS/SoA choices, and alias-visible copying constrain representation. | Layout preference is not a source restriction; module/global assets must not be mislabeled function SFA. | **Sem, S, I, A.** Direct/indirect field cores exclude pointer setup; copies include all bytes and overlap protection. Universal superiority of AoS or SoA is inapplicable without a workload. |
+> | [spec/evaluations/F012-cpu-control-intrinsics.md](/work/spec/evaluations/F012-cpu-control-intrinsics.md:11) — rationale | The five named controls have exact machine effects and source-relative status-stack ownership. | Other `asm_*` names are not a full opcode API; no arbitrary register/status transfer or generic BRK debugger is established. | **Sem, I, S; CPU/lowering.** One code byte each, 2/2/3/4/2 cycles; PHP holds one stack byte until its own PLP. RAM/ZP allocation for the control instruction itself is inapplicable. |
+> | [spec/evaluations/F013-control-flow.md](/work/spec/evaluations/F013-control-flow.md:123) — rationale | Boolean-only conditions, mandatory blocks, normal shadowing, and complete returns require CFG/reachability analysis. | Its blanket “no implicit conversions” explanation contradicts TS-4/TS-14; Boolean-only conditions remain valid. | **Sem, I, S.** Branch/jump examples are partial forms; exact costs require condition/body/path/page context. No dynamic frame follows from block nesting. |
+> | [spec/evaluations/F014-arrays.md](/work/spec/evaluations/F014-arrays.md:123) — rationale | Fixed and zero extents, ordinal promotion, const parameters, strings, and unsized count-carrying parameters retain shape/encoding facts. | Explicit narrowing barriers differ from direct subscript promotion; nonzero uninitialized arrays have their own warning scope. | **Sem, I, S; C64 memory/artifacts where relevant.** Two/four-byte parameter homes per activation; selected indexing/addressing costs are additional. Stored dynamic arrays/slices are inapplicable. |
+> | [spec/evaluations/F015-data-inclusion.md](/work/spec/evaluations/F015-data-inclusion.md:250) — rationale | Handler outputs, exact format generations, native alignment, derived selectors, and placement-derived values remain separate. | Its sample total is wrong and placements overlap; its RAM-zero table omits physical C64 residency. | **Sem, A; C64 assets/game, memory, artifacts; S/I for generated loader work.** Count selected bytes, requested derived data, padding, resident state, and loading. Import-time zero work does not make residency zero. |
+> | [spec/evaluations/F016-type-system.md](/work/spec/evaluations/F016-type-system.md:156) — rationale | TS-4 promotion and true-constant full-precision evaluation differ from typed runtime-expression wrapping. | W10160 possible overflow and W10161 known wrap are distinct; neither follows merely from destination width. | **Sem, I.** Constant folding removes runtime arithmetic when applicable; retained data/transfer still counts. Optional optimization must not redefine constant semantics. |
+> | [spec/evaluations/F017-operators.md](/work/spec/evaluations/F017-operators.md:622) — rationale | Short circuit, fixed-width operations, direct-index promotion, expensive arithmetic warnings, and selected forms preserve observable effects. | A helper estimate is not a measured universal operation cost; helper calls and state must close through SFA. | **Sem, I, S; CPU/lowering.** Displayed mixed add is 19–24 cycles/13–18 bytes. Operand preparation, helper bodies, scratch, and result consumption must be included where used. |
+> | [spec/evaluations/F018-functions.md](/work/spec/evaluations/F018-functions.md:599) — rationale | Calls, staging, aggregate ABI, per-instance frame accounting, and source-relative stack effects are explicit. | Its overflow prose incorrectly compares against raw capacity and omits the qualified NMI exception. No-recursion alone does not prove one home. | **Sem, S, I.** Displayed calls cost 12/30/24 cycles under their respective examples; body, deeper calls, frames, and variants remain additional. FUT-016 is not current ordinary-call behavior. |
+> | [spec/evaluations/F019-variables.md](/work/spec/evaluations/F019-variables.md:180) — rationale | Module initialization is scheduled once; locals use ordinary expressions; package-only constants have lexical scope without residency. | The marked-valid word-to-byte initializer is invalid; “any read” warning prose omits W10190’s function-local scope. | **Sem, S, I, A.** Displayed startup example totals 17 code bytes/21 cycles for that sequence only. Omitted initialization adds zero clearing work; storage remains. |
+> | [spec/evaluations/F020-memory-intrinsics.md](/work/spec/evaluations/F020-memory-intrinsics.md:35) — rationale | Volatile access count/order and variable addresses survive optimization; static queries differ from runtime carried counts. | Volatility does not prohibit all address optimization. A blanket “calls never optimize” claim needs the IL’s effect/equivalence qualifications. | **Sem, I, S; CPU/lowering, C64 hardware for MMIO.** Displayed dynamic poke costs 23–26 cycles/14–17 bytes and a two-byte ZP pair. Fixed-address or query cores cannot stand in for that total. |
+> | [spec/evaluations/F021-lexical-structure.md](/work/spec/evaluations/F021-lexical-structure.md:594) — rationale | Maximal munch, exact spans, Unicode scalar content, and symbolic escape identity belong to lexing. | Its import-path-string sentence contradicts qualified-module import syntax. Mapping availability is semantic, not lexical. | **Sem, A.** Lexing introduces no target instruction/frame. Target byte maps and literal residency are downstream facets. |
+> | [spec/evaluations/F022-enums.md](/work/spec/evaluations/F022-enums.md:133) — rationale | Nominal byte representation, enum-to-byte conversion, and explicit unchecked reverse conversion retain type identity. | “Zero conversion” excludes ordinary materialization/use; no member check or implicit enum-to-word follows. | **Sem, I.** One byte per materialized value; zero declaration bytes and reinterpretation instructions. Additional enum runtime metadata is inapplicable. |
+> | [spec/evaluations/F024-conditional-operator.md](/work/spec/evaluations/F024-conditional-operator.md:65) — rationale | Evaluate only the selected arm; merge compatible types and finite function targets without evaluating the other arm. | Mixed-signed arm diagnostic is copied as E10081, while the governing conditional rule uses E10162. Aggregate arms remain excluded. | **Sem, I, S.** The displayed immediate-arm form costs 11–15 cycles under its stated homes; arbitrary arm computation/materialization is additional. Eager evaluation is inapplicable. |
+> | [spec/evaluations/F025-comptime-functions.md](/work/spec/evaluations/F025-comptime-functions.md:115) — rationale | Typed deterministic evaluation charges exact shared step/live-value/call-depth budgets and publishes no partial artifact on failure. | Caching and host copy elision cannot discount logical accounting. Runtime/MMIO/host-observation dependencies are prohibited. | **Sem, A, I.** No target body, SFA, ZP, or stack; retained result data still costs bytes. Host budgets apply instead of target execution timing. |
+> | [spec/future-considerations.md](/work/spec/future-considerations.md:15) — non-normative future/rejection register | Records every resolution, deferral, owner, and reconsideration reason; future machines require independent contracts/evidence. | Resolved intent does not prove compiler support; open/rejected syntax cannot become current behavior. FUT-016’s displayed cost accounting disagrees with its table. | **Sem, A, S/I as proposed; portability/C64 branches as relevant.** Current runtime cost of an unaccepted proposal is inapplicable. Explicit hypothetical costs must retain their assumptions. |
+> | [spec/grammar.ebnf.md](/work/spec/grammar.ebnf.md:33) — normative master syntax | Module/import structure, declarations, typed functions, comptime, loops, assignments, and expression forms constrain parser acceptance jointly with chapters. | Its draft/provisional labels do not revoke inventory-marked authority or prove activation. Genuine chapter/grammar conflicts require resolution, not parser convenience. | **Sem, A, I for expression/CFG preservation.** Grammar itself emits no target work. Allocation/device/cycle choices are inapplicable until semantic constructs are lowered. |
+>
+> **Contradictions, shallow summaries, and smallest remedies**
+>
+> Unless explicitly identified as an inference, the contradictions below are documentary **`Fact`** findings with **Status: `Incorrect`**. Remedies are **`Recommendation`**; no frozen files were edited.
+>
+> | Finding | Decisive evidence and consequence | Smallest remedy |
+> |---|---|---|
+> | Normative binary-`&` precedence label conflicts | [Chapter 04 table](/work/spec/04-expressions-operators.md:29) says level **7**; its [note](/work/spec/04-expressions-operators.md:40) says level **6**, which the table assigns to XOR. The numeric label is a genuine conflicting field. | Obtain an explicit correction/ruling and align the note. Treat that field as `blocked-conflict`; its settled interpretation is `Unknown`. It does not affect TS-4/TS-14. |
+> | F013 overstates A4/F010 | [Rationale](/work/spec/evaluations/F013-control-flow.md:155), [ambiguity resolution](/work/spec/evaluations/F013-control-flow.md:586), and [guard summary](/work/spec/evaluations/F013-control-flow.md:813) say “no implicit conversions,” contrary to TS-4/TS-14. | State “Boolean-only conditions/no numeric truthiness” and preserve enumerated conversions. |
+> | F024 copies the wrong diagnostic | [F024](/work/spec/evaluations/F024-conditional-operator.md:96) uses E10081 for mixed-signed arms; [governing conditional rule](/work/spec/04-expressions-operators.md:293) and [registry](/work/spec/14-diagnostics.md:169) use E10162. | Correct the rationale/examples/summary to E10162. This is a subordinate mismatch, not an unresolved conversion rule. |
+> | F004 command uses an invalid profile shorthand | [Example](/work/spec/evaluations/F004-entry-point.md:53) uses `--platform c64`; [profile selection](/work/spec/15-platform-profile.md:40) requires one complete listed ID. | Replace shorthand with an exact qualified ID. Compiler CLI execution remains unverified. |
+> | F021 describes nonexistent path-string imports | [Sentence](/work/spec/evaluations/F021-lexical-structure.md:928) conflicts with [qualified-name import grammar](/work/spec/grammar.ebnf.md:61). | Describe module-name tokens; retain path strings for actual string-taking operations such as `embed`. |
+> | F019 marks an invalid initializer valid | `score` is `word`, but [the example](/work/spec/evaluations/F019-variables.md:196) assigns `score + 1` to `byte` without narrowing. The expression remains word-width; E10082 applies. | Use a word destination or an intentional explicit byte cast. Scheduling does not cure a type error. |
+> | F018 uses raw stack capacity | [Its prose](/work/spec/evaluations/F018-functions.md:664) says finite overflow beyond raw capacity; [governing rule](/work/spec/06-functions.md:523) uses capacity minus reserve. It also omits the selected-profile NMI exception. | Compare bounded peak with usable capacity and preserve the exact NMI exception/external uncertainty. A hypothetical peak of 237 exceeds cooperative usable capacity 236 even though it fits raw 256. |
+> | F015 total and placement are incorrect | [Listed sizes](/work/spec/evaluations/F015-data-inclusion.md:279) sum to **8,952**, not 8,384 bytes. The map occupies `[$4200,$45E8)`; the table at `$43E8` lies inside it. This arithmetic is an **`Inference`** from the displayed example. | Correct the total and give the table a nonoverlapping placement, subject to final layout. Padding/gaps remain separate from listed asset bytes. |
+> | FUT-016 mixes addressing assumptions | [Displayed stores](/work/spec/future-considerations.md:335) are four-cycle absolute stores: call site **13 bytes**, round trip **20 cycles**. [Table](/work/spec/future-considerations.md:354) says approximately 11 call-site bytes. ZP stores would produce 11 bytes but an **18-cycle** round trip. **Claim kind: `Inference`.** | State one addressing assumption per comparison; include the callee’s three-byte indirect return and every two-byte activation return home. |
+> | Enum-to-word “zero cycles” is an incomplete cost claim | [Enum table](/work/spec/09-enums.md:242) says zero cycles; [TS-4](/work/spec/02-type-system.md:180) explicitly charges consumer-dependent extension, demonstrated by F010. | Separate zero type bookkeeping from extension, transfer, and use. Literal folding or absorbed extension is conditional, not universal. |
+> | Raw-vector error examples omit a required cast | [Intrinsics](/work/spec/12-intrinsics.md:83) and [appendix](/work/spec/appendix-c64.md:793) use `pokew(...,&handler)`. The [canonical example](/work/spec/06-functions.md:831) uses `word(&handler)`. | Include the word cast to isolate E10252’s ABI failure. Do not invent diagnostic precedence for an expression with another type violation. |
+> | F015’s RAM-zero table omits physical residency | [Table](/work/spec/evaluations/F015-data-inclusion.md:906) gives raw/array embed and padding zero RAM. C64 code/data occupy the [shared loaded-RAM budget](/work/spec/appendix-c64.md:158). | Label zero import/runtime-transform/SFA cost separately from resident bytes, writable player state, padding, and load units. |
+> | F019 broadens W10190 | [“Any read” explanation](/work/spec/evaluations/F019-variables.md:640) lacks the [function-local restriction](/work/spec/03-variables.md:539). | Preserve the exact warning predicate and independent W10141 scope. |
+> | F008 omits package-only loop declarations | [Storage sentence](/work/spec/evaluations/F008-for-loop.md:105) treats header bindings as ordinary function storage; [summary](/work/spec/evaluations/F008-for-loop.md:345) lists only `let`/`const`. Governing loop rules include `loadable const`. | Add it to the summary and exempt package-only values from resident/SFA/init costs. **Status: `Verified partial`** for the overall loop summary, with these omissions identified. |
+> | Intro document map omits F025 | [Related-document map](/work/spec/00-introduction.md:219) ends at F024, while F025 is a live inventoried evaluation. | Update navigation during authorized maintenance. This is shallow navigation, not a missing crosswalk path. |
+> | SFA provenance wording is underqualified | [SFA prose](/work/references/sfa-and-abi.md:203) broadly mentions scalar declaration/copy preservation near interrupt sinks. [Handler rules](/work/spec/06-functions.md:912) prohibit first-class stored interrupt handlers. | Explicitly distinguish ordinary typed function values, permitted handler expressions, and word-erased provenance. **Status: `Verified partial`.** |
+> | IL status vocabulary drifts from the router | [IL list](/work/references/il-and-optimization.md:475) uses `Verified`, `Inferred`, and `blocked-conflict` as statuses; SKILL mandates its five exact statuses plus separate claim kinds. | Use `Verified complete`/`Verified partial`, claim kind `Inference`, and a separately identified conflicting field. |
+>
+> The packet also does **not** support adopting these empirical claims as measurements:
+>
+> - [“Typically 30–60%” frame reduction](/work/spec/11-memory-model.md:199).
+> - [Typical 10–30-byte game stack use](/work/spec/future-considerations.md:366).
+> - [Approximate switch fallthrough usage](/work/spec/evaluations/F009-switch-statement.md:83).
+>
+> Their observed generality is **Status: `Unknown`; Claim kind: `Unknown`**. Retain them only as clearly labeled illustrative expectations until measurements exist.
+>
+> The [four optimization modes](/work/references/il-and-optimization.md:22) are supplied architectural doctrine. They do not prove an implementation exposes those modes, searches the prescribed frontier, or satisfies its cost gates. Those implementation boundaries are also `Unknown`.
+>
+> **Required closure: all future entries**
+>
+> The register contains **11 resolved and eight open FUT entries**, plus two rejected entries. These are register facts, not implementation statuses.
+>
+> | Entry and raw source | Resolution or reason for deferral; consequence and reconsideration boundary |
+> |---|---|
+> | [FUT-001](/work/spec/future-considerations.md:36) — resolved | Field/element addressability is current normative behavior. Preserve one-time place evaluation, provenance, constness, and object lifetime; do not revive manual offset restrictions. |
+> | [FUT-002](/work/spec/future-considerations.md:47) — resolved | Parameter addresses are supported without forced copies. Scalar parameters use activation lifetime; aggregate parameters/subobjects retain caller-object lifetime. |
+> | [FUT-003](/work/spec/future-considerations.md:58) — resolved | Typed ordinary function values have finite target sets. Opaque target sets fail E10277; interrupt handlers remain non-callable and non-storable as ordinary values. |
+> | [FUT-004](/work/spec/future-considerations.md:70) — resolved | Reusable interrupt/mainline helpers require transitive, domain-aware private-home separation. Shared-state warnings remain; no hidden selector or synchronization runtime is introduced. |
+> | [FUT-005](/work/spec/future-considerations.md:91) — resolved | Recognized sinks choose raw/firmware entry ABI from retained handler identity. This does not create first-class interrupt-handler pointers. |
+> | [FUT-006](/work/spec/future-considerations.md:111) — open | Labeled break is deferred because existing control/flags suffice and syntax/scope complexity needs justification. Reconsider frequent deep multi-loop exits with a clean label design. |
+> | [FUT-007](/work/spec/future-considerations.md:140) — open | Range cases add grammar/expansion complexity; current comparisons or comma cases suffice. Reconsider demonstrated usage with clear fallthrough/overlap rules and efficient lowering. Proposed range costs are not measurements. |
+> | [FUT-008](/work/spec/future-considerations.md:173) — resolved | Const aggregate parameters are read-only without extra qualifier storage or ABI bytes. Constness must survive all subobject accesses. |
+> | [FUT-009](/work/spec/future-considerations.md:185) — resolved | Historical duplicate of parameter/field addressability resolution. It records history, not a second semantic authority. |
+> | [FUT-010](/work/spec/future-considerations.md:196) — resolved | Fixed aggregate returns use caller-owned destinations with exact shape/value semantics and overlap handling. No heap lifetime is introduced. |
+> | [FUT-011](/work/spec/future-considerations.md:208) — open | External assembly requires qualified ABI, symbols, placement, effects, and linking. Reconsider concrete demand with a minimal object/ABI contract; a full raw opcode API does not follow. |
+> | [FUT-012](/work/spec/future-considerations.md:235) — open | A copy intrinsic duplicates aggregate assignment. Reconsider frequent bulk-copy needs that existing lowering cannot satisfy with clean overlap semantics. |
+> | [FUT-013](/work/spec/future-considerations.md:258) — resolved | Typed comptime generation now uses ordinary semantics, deterministic roots, exact budgets, and retained-data-only target output. |
+> | [FUT-014](/work/spec/future-considerations.md:270) — resolved | Placement is the closed four-key `place` form, not a general attributes system. Preserve platform-owned alignment/region validation. |
+> | [FUT-015](/work/spec/future-considerations.md:281) — open | PNG/BMP conversion and quantization introduce substantial policy/quality work; native qualified assets suffice today. Reconsider demand with deterministic, tested conversion rules. |
+> | [FUT-016](/work/spec/future-considerations.md:311) — open | Standard JSR/RTS is smaller/faster in the displayed comparison. Reconsider measured stack pressure or advantageous patterns plus reliable page-safe activation selection and a clean flag. Return pairs cost two bytes **per allocated activation variant**. |
+> | [FUT-017](/work/spec/future-considerations.md:378) — open | A barrier is redundant with current volatile and CPU-effect rules. Reconsider demonstrated cross-statement scheduling/correctness needs that existing effects cannot express. |
+> | [FUT-018](/work/spec/future-considerations.md:403) — open | Separate volatile APIs duplicate current volatile memory intrinsics. Reconsider a proven pure-RAM distinction with meaningful measured optimization benefit and a clean API. |
+> | [FUT-019](/work/spec/future-considerations.md:422) — resolved | Ordinary three-clause loops and Boolean conditions express descending/exclusive ranges; no second range syntax is current. |
+> | [REJ-001](/work/spec/future-considerations.md:468) — rejected | Transparent aliases add redundancy without nominal safety. `type` remains reserved; F023 remains retired. Reconsider a demonstrated composite-type need, with nominal design evaluated explicitly. |
+> | [REJ-002](/work/spec/future-considerations.md:504) — rejected | Inline assembly/full opcode APIs create ownership, register, label, and parsing problems. Reconsider only demonstrated unmet cycle-level needs with those problems solved; the five current controls and typed BCD remain the accepted surface. |
+>
+> Open/rejected proposals have no current runtime implementation cost to certify. FUT-016’s hypothetical cost is addressed separately above.
+>
+> **Required closure: warnings, addresses, frames, inputs, and profile identities**
+>
+> - **Warning scope:** [W10190](/work/spec/03-variables.md:539) concerns a control-flow path reading a **function-local mutable variable** before assignment. Module storage is exempt from that warning. [W10141](/work/spec/08-arrays-strings.md:842) independently concerns **every nonzero mutable array declared without an initializer**, including module arrays. A local array can receive both for different predicates; zero-length arrays do not receive W10141. Neither rule inserts clearing code. Loader publication’s E10276 proof is a separate, stricter boundary.
+>
+> - **Addresses:** [Address rules](/work/spec/04-expressions-operators.md:360) include locals, parameters, fields, and indexed elements. A field/element reached through an aggregate parameter is directly addressable and retains **caller-object lifetime** and read-only restrictions. Scalar-parameter storage has invocation lifetime. Local-origin provenance survives copies/casts/arithmetic and must be rejected at its first escaping use with E10260; no heap promotion or forced manual addressing follows.
+>
+> - **Frames:** [Domain-aware allocation](/work/spec/06-functions.md:757) charges every simultaneously allocated activation’s parameters, results, locals, staging, temporaries, spills, ZP pairs, and helper scratch. Overlay only proven nonoverlap. The same source function can require multiple homes and address-specific variants. Globals/assets/layout remain outside general function-frame ownership. FUT-016’s proposed two-byte return pair follows the same per-activation accounting.
+>
+> - **F001’s exact scope:** [Its four rules](/work/spec/evaluations/F001-multi-file.md:13) concern supplied files, one output binary, path-name irrelevance, and module-based references. Discovery, module-to-file mapping, duplicate-module policy, and diagnostic stability are unspecified there. Same-name merging is supplied separately by F002/Chapter 10.
+>
+> - **All nine complete IDs:** [The normative table](/work/spec/15-platform-profile.md:28) contains:
+>   `c64-pal-prg-kernal-6581`,
+>   `c64-pal-prg-kernal-8580`,
+>   `c64-pal-prg-takeover-6581`,
+>   `c64-pal-prg-takeover-8580`,
+>   `c64-ntsc-prg-kernal-6581`,
+>   `c64-ntsc-prg-kernal-8580`,
+>   `c64-ntsc-prg-takeover-6581`,
+>   `c64-ntsc-prg-takeover-8580`,
+>   `c64-pal-d64-kernal-6581`.
+>   Shorthand, partial IDs, and unqualified combinations are E10279 before lowering with no artifact. These are indivisible identities, not independent video/SID/ownership switches. Their prescribed qualification does not prove supplied compiler readiness.
+>
+> **Required closure: every hardware-limitation disclosure**
+>
+> The HLE labels come from the [supplied register](/work/references/blend65-semantics.md:590); governing raw contracts are linked below.
+>
+> | HLE | Exact semantic/effect boundary and cost |
+> |---|---|
+> | HLE-001 | [Recursion](/work/spec/06-functions.md:217): direct/indirect cycles fail at compile time; no dynamic-frame runtime. Nested argument evaluation is not itself recursion. Rejection adds no target execution cost; legal staging still needs storage. |
+> | HLE-002 | [Division by zero](/work/spec/04-expressions-operators.md:133): constant zero is E10160; default runtime zero yields a terminating unspecified valid-width result with bounded declared effects. No mandatory check/scratch. Optional default-off checking must charge successful-path tests, staging, branches, and stop bytes. |
+> | HLE-003 | [Unchecked indexing](/work/spec/08-arrays-strings.md:224): no default bounds code; effective address is modulo 65,536. [C64 manifestation](/work/spec/appendix-c64.md:809) continues multibyte accesses byte-by-byte from `$FFFF` to `$0000`, observing active banking/MMIO. Constant OOB remains an error. |
+> | HLE-004 | [Interrupt domains](/work/spec/06-functions.md:757): callback-only handlers, sink-selected entry ABI, disjoint bounded private homes, full status/D restoration, page-safe links, and source-owned acknowledgement. No dispatcher/dynamic selector; all variants and route costs count. |
+> | HLE-005 | [Uninitialized variables](/work/spec/03-variables.md:123): existing bits remain valid-width values, not optimizer undefined behavior. Exact W10190/W10141 scopes apply; zero initialization bytes/cycles does not mean zero allocated storage. |
+> | HLE-006 | [BCD](/work/spec/12-intrinsics.md:97): constant invalid nibbles fail E10254; runtime-invalid digits use the selected CPU’s exact decimal ADC/SBC behavior. No hidden validation/helper. Owned carry, low/high order, SED/CLD, asynchronous restoration, and selected instructions remain chargeable. |
+> | HLE-007 | [Local-origin borrows](/work/spec/04-expressions-operators.md:378): local lifetime/provenance survives derivation; legal non-retaining use extends liveness, while escape fails E10260. No heap, persistent hidden local, or runtime lifetime check. Concurrent homes and code variants still count. |
+> | HLE-008 | [Array parameter forms](/work/spec/08-arrays-strings.md:563): stored arrays are fixed; `T[]` is an initialized extent placeholder or address-plus-word-count parameter, not a stored/returned slice. Exact/unsized parameter homes cost two/four bytes per activation; no allocation/copy is implicit. |
+> | HLE-009 | [Object/query limits](/work/spec/02-type-system.md:543): extents and complete object sizes lie within 0–65,535; size/offset queries have word type. E10264/E10265/E10266 reject violations without wider hidden arithmetic, metadata, or runtime checks. |
+> | HLE-010 | [Trusted KERNAL loading](/work/spec/appendix-c64.md:703): carry/end checks occur **after direct writes**. An oversized readable replacement can overwrite beyond the expected range before `false`. Exact compiler-produced media is trusted; no staging, containment, checksum, relocation copy, or hostile-media transport is supplied. Loading time and wrapper implementation cost remain unknown. |
+>
+> The C64 [optional safety-stop body](/work/spec/04-expressions-operators.md:146) is exactly four code bytes: `SEI` costs two cycles, then the self-loop costs three cycles per iteration. It requires no RAM/ZP/stack or reporter. This does not account for the preceding check/branch and does not suppress NMI or external hardware.
+>
+> **Interrupt completion and complete cost boundary**
+>
+> The following are source-prescribed route costs, with summed totals classified **`Inference`**. They exclude handler body, acknowledgement, helper calls, installation/removal, and any variable predecessor-handler work. They are not measured whole-program totals.
+>
+> Sources: [C64 route contracts](/work/spec/appendix-c64.md:748), [entry costs](/work/spec/appendix-c64.md:776), and [SFA completion gate](/work/references/sfa-and-abi.md:330).
+>
+> | Route | Emitted wrapper/tail bytes | Existing ROM separately | Known cycles excluding body/ack/helpers | Live entry/body stack |
+> |---|---:|---|---:|---:|
+> | KERNAL IRQ chain | **6**: status/D wrapper 3 + indirect tail 3 | **16 bytes**, 29 cycles before CINV; prior path additional/variable | **50 + prior path** = hardware 7 + entry 29 + wrapper 9 + jump 5 | **7 bytes** |
+> | KERNAL IRQ exclusive | **4**: CLD 1 + absolute tail 3 | Entry **16 bytes/29 cycles**; `$EA81` restore tail **6 bytes/22 cycles** | **63** = 7 + 29 + 2 + 3 + 22 | **6 bytes** |
+> | Raw IRQ | **12** | No KERNAL entry/tail | **44** = hardware 7 + wrapper 37 | **6 bytes** |
+> | KERNAL NMI chain | **16** | Stub **4 bytes/7 cycles**; prior path additional/variable | **57 + prior path** = 7 + 7 + 43 | **7 bytes** |
+> | KERNAL NMI exclusive | **12** | Stub **4 bytes/7 cycles** | **51** = 7 + 7 + 37 | **6 bytes** |
+> | Raw NMI | **12** | No KERNAL stub/tail | **44** = 7 + 37 | **6 bytes** |
+>
+> Existing ROM contributes **zero emitted output bytes**. Hardware acceptance contributes seven cycles and three stack bytes to every route.
+>
+> Completion also requires all these boundaries:
+>
+> - Source handlers are callback-only. Recognized sinks select exact reachable variants; ordinary helpers retain JSR/RTS.
+> - KERNAL CINV already saved A/X/Y: no second save and no direct RTI from that body.
+> - Chained variants restore entry flags before the prior-handler jump. Raw/exclusive paths establish binary mode and eventually restore the **complete interrupted status, including D**, through RTI.
+> - An indirect link beginning at `$xxFE` is valid; `$xxFF` must relocate or reject.
+> - [Install ownership](/work/spec/06-functions.md:842) is interprocedural, finite, balanced LIFO. One two-byte predecessor word is charged per simultaneously live install requiring later restore or chain. An exclusive entry’s zero chain-link requirement does not erase a required restore predecessor. Shared chain/restore storage must not be double-counted.
+> - Only required body/entry variants are emitted. All private homes, duplicated bodies, links, installer/restore instructions, helper calls, scratch, and stack nesting remain chargeable.
+> - Source owns acknowledgement. Raw vectors must be writable and active under the selected bank state; IRQ masking does not mask NMI.
+> - The [private-home-free cooperative NMI exception](/work/spec/15-platform-profile.md:267) applies only to the four cooperative PRG profiles. It requires the **complete transitive generated path**, including selected helpers/spills, to qualify. It excludes D64/raw takeover.
+> - That exception proves neither unrestricted external aggregate stack use nor retained-firmware completion/reentrancy. Even with no generated NMI handler, full-program peak/headroom and finite deadline remain `Unknown` without arrival/completion evidence.
+>
+> For bounded generated components, raw stack capacity is 256 bytes; cooperative reserve 20 yields **236 usable bytes**, not a pre-subtracted physical capacity. Reserve reduces available capacity rather than being another measured program push.
+>
+> The [final exclusive CIA1 handback](/work/spec/appendix-c64.md:241) is also distinct from ordinary vector restore. It clears all five masks, stops timers under the pinned rules, reads ICR exactly once, writes Timer A reload low/high—PAL **16,421 (`$4025`)**, NTSC **17,045 (`$4295`)**—restores both predecessor CINV bytes before enabling Timer A, starts stock service, and restores caller I/D. It cannot reconstruct arbitrary prior write-only device state. Dirty inner/nonstock/raw ownership fails E10278. Exact emitted handback bytes/cycles are `Unknown`; no instruction sequence is supplied to total.
+>
+> **C64 storage, assets, startup, and loading costs**
+>
+> The [common memory contract](/work/spec/appendix-c64.md:55) supplies a shared `$0801..$CFFF` region of **51,199 bytes**, including code, resident data, BSS/SFA and required startup content. ZP `$02..$8F` supplies **142 bytes**. Separate maxima are not independent extra arenas.
+>
+> A [PRG](/work/spec/appendix-c64.md:192) has a two-byte load header outside its payload and a **12-byte BASIC stub** at `$0801..$080C`; startup begins at `$080D`. Final-place loading avoids a hidden recopy. Runtime initializers still execute once in their dependency/effect schedule. Their complete cost requires actual lowered callees and layout.
+>
+> Native handlers remain compile-time operations, with selected-object cost separately charged:
+>
+> | Form | Required representation and cost boundary |
+> |---|---|
+> | [Raw](/work/spec/appendix-c64.md:379) | Unregistered bytes have no handler selector/schema. Selected bytes and residency still count. Registered extensions do not universally take this raw path. |
+> | [SpritePad](/work/spec/appendix-c64.md:389) | Pro 3.80/SPD v5 only. Native sprite records cost **64 bytes each**, with 64-byte alignment/VIC visibility. Requested attribute tables add one byte per sprite; word-index/animation tables add their actual element bytes. No file-wide multicolor, hidden base-block/offset table, or emitted name strings. The complete selector set is at lines 394–420. |
+> | [CharPad](/work/spec/appendix-c64.md:432) | Pro 3.88/CTM v9; full schema/EOF validation, no default selector. Charset uses **8 bytes per character**, aligned 2,048. Canonical indices use one byte when max ≤255, otherwise two; forced words use **2N**; packed-12 uses **N + ceil(N/2)**; each split plane uses **N**. Only requested representations are emitted. Full selectors are at lines 442–461. |
+> | [PSID](/work/spec/appendix-c64.md:492) | Accepted self-contained PSID v1–v4 subset. Emit payload after defined address stripping, at fixed writable placement; no automatic relocation/cadence/model conversion. Unknown metadata differs from Both; current profiles have one `$D400` SID. Known incompatibility is E10261. |
+> | [Koala](/work/spec/appendix-c64.md:628) | Native file is **10,003 bytes**: metadata header 2, bitmap 8,000, screen 1,000, color bytes 1,000, background 1. Select only requested components. Bitmap/screen alignments are 8,192/1,024; color transfer to `$D800` is explicit runtime work. |
+>
+> Placement-derived VIC operations are zero-runtime computations, but their alignment, bank visibility, selected data, padding, and eventual register stores are real obligations. Actual asset counts, padding, artifact bytes, residency, and runtime transfer costs are `Unknown` because no asset files/final artifact are supplied.
+>
+> [Audio baseline maps are empty](/work/spec/appendix-c64.md:621). PSID inclusion does not establish callable player-neutral audio, SFX, arbitration, writable state, or a scheduler. A hash-bound contract must enumerate those effects and costs. This is a known baseline contract; implementation availability remains `Unknown`, not `Scaffold/stub`.
+>
+> The [D64 contract](/work/spec/appendix-c64.md:663) supplies one headerless **174,848-byte** image: 683 sectors ×256 bytes, 664 allowed data blocks, and at most 144 closed files. Container bytes differ from compiler loadable program/data bytes. The loader uses stock KERNAL services and directly loads to the once-evaluated final destination; carry and returned one-past-end establish success. An exact conceptual end `$10000` compares as `$0000`; extending beyond is invalid. Actual I/O timing, wrapper bytes, staging homes, and artifact construction remain `Unknown`.
+>
+> PAL/NTSC [timing records](/work/spec/appendix-c64.md:735) prescribe 985,248/1,022,730 cycles per second and 19,656/17,095 cycles per frame. They are selected baselines, not observations across every VIC revision. No VICE or physical-silicon result is present.
+>
+> **Authority duplication and project policy**
+>
+> There are no duplicate crosswalk paths. Repetition does not automatically create duplicate authority:
+>
+> - Chapter 02’s enum conversion rules and Chapter 09’s enum-specific explanation agree on the questioned conversion.
+> - Semantic chapters own diagnostic predicates; Chapter 14 alone owns public diagnostic fields.
+> - Generic profile contracts and concrete C64 records have complementary roles.
+> - FUT-001/FUT-009’s historical overlap is explicitly a register duplication, not an independent language rule.
+>
+> The actual risk is stale copied prose being promoted to authority—for example F024’s diagnostic or F013’s coercion explanation. Fix those copies rather than creating another canonical registry or overriding normative behavior.
+>
+> [ACME 0.97](/work/spec/appendix-c64.md:31) is the prescribed C64 terminal toolchain choice. The [exact policy excerpt](/work/policy-excerpts.md:26) corroborates it as repository policy; neither establishes source-language or CPU semantics.
+>
+> The [parity policy](/work/policy-excerpts.md:6) requires beat-first work and a durably authorized GitHub debt issue when measured generated output can only meet expert output, with the measured delta and missing route to a win. This packet contains no such measured comparison, so that issue trigger is unestablished. The [workflow excerpt](/work/policy-excerpts.md:18) also preserves frozen `spec/`, green commits, branching first, and no automatic push. The roadmap excerpt is truncated; its missing continuation cannot be inferred.
+>
+> The smallest next evidence for implementation claims would be a supplied source case, exact complete profile and safety/optimization settings, emitted assembly, map/resource summary, artifact identity, and bounded runtime observation. Release lineage requires the missing authorized binding record. Neither was read or invented here.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-control-refined: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-control-refined`. Raw run-log SHA-256: `028440340fe6352e1971427c56aee2e0ca3a8d7e214f7c68eb9319fa8f22f08a`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `bf565914e6ef19bb621e820dec1fd92c01d29741211fb15bc39cd81c15bd6887`; packet-record SHA-256: `36b2849ff7077c899fbbaeb0268bc78d7a1ece12a2d934a5dfcc6ccaa9cc96c3`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+5cec29cba2ba8ceaffc1878ee01db9dfacf4640e9d7efb8c9b937d8e1f6ab7ed  evaluated-answer.md
+10a978b90142a0ebe74904843127c5fd0600065ff9d36591d85c647e486ba829  evaluator-request.md
+4d6b824e3f6610e2839abbb1435a6db222b33dc657b45a4f5c70f522ccb47365  grade-request.md
+1251245201468b220686e59dd89e5c52b22159311a8c56026ecb3dac2d7b8c77  oracle.md
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+c966648ea7a58952561909b9a127f1617b50ee583f2845bcd07fb43602b2e51b  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+8a9442f517478c54b07aeb2acc4c801f6f1d154b9cc72f28f6a64351ed7ffd7a  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+10a978b90142a0ebe74904843127c5fd0600065ff9d36591d85c647e486ba829  request.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+```
+
+> **Q-C07: PASS for the hypothetical contract assessment.** The answer satisfies the frozen invariant and avoids its disqualifier. Implementation and runtime qualification remain **Unknown**.
+>
+> | Case | Grade | Exact decisive output evidence | Findings |
+> |---|---|---|---|
+> | Q-C07 — `CPU-C07`, `LOWER-C07` | **PASS** | “NMOS 6510 interrupt entry leaves D unchanged” and “establish D=0 before the first Blend65 statement or ordinary helper call” ([answer, line 1](/work/evaluated-answer.md:1)); W65C02S clears live D, while `RTI` restores interrupted status ([line 11](/work/evaluated-answer.md:11)). | No material evaluator defect. One minor source-summary defect, described below. |
+>
+> The governing packet evidence supports this decision: [raw function-entry rules](/work/spec/06-functions.md:735), [profile decimal-state policy](/work/spec/15-platform-profile.md:260), and the [processor facts](/work/references/mos-6502-family.md:221). The recorded primary pinpoints are `MOS-PGM-1976`, Chapter 3 §3.3 and Chapter 9 §§9.5–9.9; `WDC-65C02S-2022`, Table 7-1; and `CBM-C64-KERNAL-03`, commit `01bd60f162ef92212ef0cb67546ae8f42be34168`, with the named IRQ/NMI entry and restoration routines. These are packet source pins, not new external verification.
+>
+> The ordinary byte-add result is `(left + right) mod 256`. No fixture operands are supplied, so a particular numerical result correctly remains **Unknown**. The answer’s explicitly proposed `$09 + $01` example correctly distinguishes `$0A/$0B` in binary mode from `$10/$11` in decimal mode as incoming carry changes. It correctly separates D normalization from carry ownership: `CLD` cannot replace `CLC`.
+>
+> Every numbered compiler boundary is addressed:
+>
+> | Number | Assessment and decisive evidence |
+> |---|---|
+> | **1. Source semantics and identity** | Binary ordinary operators, callback-only `(): void` handlers, E10050/E10051, ordinary helper `JSR`/`RTS`, and emission of only reachable variants are covered ([answer, line 33](/work/evaluated-answer.md:33); [raw rules](/work/spec/06-functions.md:696)). |
+> | **2. Profile and terminal selection** | CINV chain versus exclusive restoration, E10244/E10247/E10252, and unavailable raw installation under the cooperative profile are distinguished ([line 35](/work/evaluated-answer.md:35)). The supplied profile explicitly has [`raw_interrupt_paths: {}`](/work/spec/15-platform-profile.md:424). Raw costs are conditional comparisons. |
+> | **3. IL and effects** | Separate flag/register/stack/call/MMIO effects, ordered CPU controls, and proof obligations for normalization removal are stated ([line 37](/work/evaluated-answer.md:37); [raw intrinsic effects](/work/spec/12-intrinsics.md:41)). No source-visible decimal-control escape is invented. |
+> | **4. BCD regions** | Operand order, owned carry, low-to-high propagation, inline lowering, clear D on exit, diagnostics, and interrupted decimal-state restoration are covered ([line 39](/work/evaluated-answer.md:39); [raw BCD contract](/work/spec/12-intrinsics.md:88)). |
+> | **5. Observer preservation** | Hook-entry P/A/X/Y are distinguished from interrupted-register values. Registers restore before status, preserving the observer’s flags ([line 41](/work/evaluated-answer.md:41)). The six-byte chain is explicitly rejected as sufficient for an A-changing ADC body ([line 95](/work/evaluated-answer.md:95)). |
+> | **6. Helpers and SFA closure** | All invocation-private homes, overlapping domains, necessary specialization, shared globals/assets/MMIO, and closure before emission are covered ([line 43](/work/evaluated-answer.md:43); [raw execution-domain rules](/work/spec/06-functions.md:757)). Frame separation is correctly denied an atomicity guarantee. |
+> | **7. Installation, ownership and layout** | Per-sink LIFO ownership, two-byte predecessor lifetimes, `$xxFE` versus `$xxFF`, publication/banking safety, acknowledgement ownership and terminals are covered ([line 45](/work/evaluated-answer.md:45); [raw installation rules](/work/spec/06-functions.md:842)). |
+>
+> I independently recalculated the route table from the packet’s NMOS instruction timings. **All eight rows match.** Entry includes CPU acceptance and applicable firmware through binary body entry; exit starts after the body.
+>
+> | Route | Output bytes | Existing ROM bytes | Entry cycles | Exit cycles | Fixed sum | Component stack bytes |
+> |---|---:|---:|---:|---:|---:|---:|
+> | CINV status-only chain | 6 | 16 | 41 | 9 | 50 | 7 |
+> | CINV A-preserving chain | 8 | 16 | 44 | 13 | 57 | 8 |
+> | CINV P/A/X/Y-preserving chain | 16 | 16 | 54 | 25 | 79 | 10 |
+> | Exclusive CINV | 4 | 22 | 38 | 25 | 63 | 6 |
+> | Raw IRQ | 12 | 0 | 22 | 22 | 44 | 6 |
+> | NMINV chain | 16 | 4 | 32 | 25 | 57 | 7 |
+> | Exclusive NMINV | 12 | 4 | 29 | 22 | 51 | 6 |
+> | Raw NMI | 12 | 0 | 22 | 22 | 44 | 6 |
+>
+> The supporting arithmetic also checks:
+>
+> - `SAVE`: **5 bytes/13 cycles**, three stack writes; `RESTORE`: **5 bytes/16 cycles**, three stack pulls. `PHP; CLD; PLP`: **3 bytes/9 cycles**, one temporary stack byte.
+> - CPU acceptance: **7 cycles**, three pushed bytes, zero emitted bytes. `RTI` restores status and PC, including interrupted D/I.
+> - The shown binary body has **two operand reads and one result write**, costs **`7+k` bytes/`11+k` cycles**, and changes A/N/Z/C/V. Its nonindexed forms require no hidden scratch.
+> - `JSR`/`RTS`: **4 bytes/12 cycles**, two live return-address bytes. The raw specification’s complete byte-add example is **25 bytes/40 cycles**, with two private parameter bytes per materialized concurrent instance.
+> - Each live installation requiring restoration or chaining retains **two predecessor bytes**. Existing ROM instructions and machine vector storage are correctly separated from emitted bytes.
+> - Stack capacity is **256 − 20 = 236 usable bytes**; threshold **188** agrees with the supplied record. These are capacities, not observed usage.
+>
+> Body/acknowledgement, predecessor execution, stalls, preemption, final homes, padding, initialization, installation/startup and complete artifact costs correctly remain individually **Unknown**. The listed stack terms are components, not whole-program peaks. The narrow cooperative NMI exception is correctly denied any unrestricted external stack, firmware-completion or deadline guarantee.
+>
+> The independent proof requirement is adequate: first establish concrete source/compiler/profile/ROM identities, inspect emitted assembly and assembled bytes/maps, then check an independent behavior oracle and separate resource oracle. The proposed observations cover D/C combinations, observer state, interrupted status/registers/PC/stack, acknowledgement order/count and BCD resumption. No supplied execution result is claimed.
+>
+> **Second-guessing the grade:** the extra CINV register saves are justified by the supplied hook observer; firmware’s interrupted-register frame alone cannot preserve that observer’s entry values. Conversely, absent artifacts and measurements cannot justify a failure when the answer explicitly leaves those boundaries Unknown.
+>
+> **S1 — Minor knowledge/source wording defect:** the [memory reference, line 351](/work/references/c64-memory-and-runtime.md:351) calls **36 cycles** “entry-to-body.” That reaches CINV dispatch; binary body entry additionally requires the selected compiler prologue. The evaluated answer explicitly corrects this at [line 96](/work/evaluated-answer.md:96). The source’s boundary label needs correction; its segment arithmetic remains consistent.
+>
+> Lineage remains the supplied skill **2.0.2** and declared `BLEND65-SPEC-4-566da991` identity. Candidate content commit, activation and historical capture qualification remain Unknown; no historical evaluated capture was supplied. No unavailable qualification files were read.
+>
+> **Final counts:** **1 PASS, 0 FAIL**. Unresolved evaluator defects: **0**. Unresolved knowledge/source defects: **1 minor, 0 major, 0 critical**. Packet defects: **0**. Missing implementation/runtime evidence remains Unknown and is not counted as a defect.
+
+</details>
+
+<details>
+<summary>2.0.2 final-corrections: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/final-corrections`. Raw run-log SHA-256: `f35d572943f4ab29bc61de58657182416b49ca4caebcc0570859489df599348d`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `d61e3fd4f4f885b1838370a9bb5e1190a1ddc2ae1abaf4b60609977317e0f9fd`; packet-record SHA-256: `d8bc674e96a87706449c7a3ec09ae8b6045064f6119df01a481dcb419fd44d81`.
+
+```text
+0152f760035a8b5d1c89e3e6d2dc02062857f2860c79e9622f00433dc40f223a  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+c966648ea7a58952561909b9a127f1617b50ee583f2845bcd07fb43602b2e51b  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+6624bf4a0f59ac3a56f331f1a056a1e5b907f80555c3969c058551f6af97b189  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+f85326f5443e1d3db4ef92224ac51cd39287bd5257919e43a9a890dde062c9ed  request.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+```
+
+> Use the existing typed rewrite seam, require an exact callable player contract for audio, and retain the scroller’s ordinary lowering until an alternative’s equivalence and complete cost are proved. IRQ safety, callable audio, and a rendering speedup are all **`Unknown`** from this packet.
+>
+> This assessment uses only the supplied files. The skill declares `skillVersion=2.0.2` and knowledge identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. **`contentCommit=Unknown` and activation status=`Unknown`**: the unavailable qualification files were not read, and the complete normative corpus needed to reproduce that identity is absent. External source pins below are the local manifest’s provenance records; their external files were not fetched. Instruction-derived figures are calculations, not compiler or runtime measurements.
+>
+> The raw [platform contract](/work/spec/15-platform-profile.md:22) and [C64 appendix](/work/spec/appendix-c64.md:10) govern their supplied fields. Other language rules are available through the packet’s distilled references, without independent access to their cited governing chapters.
+>
+> **Shared C64 context and costs**
+>
+> The four permitted profiles are:
+>
+> | Exact profile | Video | SID endpoint |
+> |---|---|---|
+> | `c64-pal-prg-kernal-6581` | PAL | `$D400`, MOS6581 |
+> | `c64-pal-prg-kernal-8580` | PAL | `$D400`, MOS8580 |
+> | `c64-ntsc-prg-kernal-6581` | NTSC | `$D400`, MOS6581 |
+> | `c64-ntsc-prg-kernal-8580` | NTSC | `$D400`, MOS8580 |
+>
+> All use documented NMOS6510 instructions, cooperative KERNAL 901227-03, and no expansion. The profile owns processor-port mask `$07`: its DDR bits are outputs and its latch mapping is `$06`, with BASIC out and KERNAL/I/O visible. `$36` is merely one possible whole-byte value; unrelated bits must be preserved. Actual processor-port state, CIA2 port/DDR values, board/PLA revision, CIA revision, and SID mask revisions are not supplied.
+>
+> PAL’s nominal record is 985,248 cycles/s, 312×63 raster cycles, and 19,656 cycles/frame. NTSC’s is 1,022,730 cycles/s, 263×65, and 17,095 cycles/frame. These are raster periods, **not available CPU budgets**. Badline and sprite DMA denial must be accounted for using the selected VIC model and actual display state.
+>
+> The profiles provide one shared `$0801–$CFFF` allocation span of 51,199 bytes, compiler ZP `$02–$8F` totaling 142 bytes, and 236 usable hardware-stack bytes from capacity 256 minus reserve 20. Code, data, mutable storage and SFA must fit collectively. The reserve reduces capacity; it is neither measured usage nor protection against unrestricted NMI reentry.
+>
+> The prescribed PRG has a two-byte container header and a 12-byte BASIC startup stub. Those format facts do not verify an actual artifact. Actual startup/exit code bytes and cycles, loader/decompressor code and data, load time, initialization work, RAM/ZP/scratch/stack, destination windows and interference are individually **`Unknown`**. No additional loader or runtime is justified by this assessment.
+>
+> Sources: [C64 appendix §§2–5](/work/spec/appendix-c64.md:53), [platform timing and SID identity](/work/spec/15-platform-profile.md:56), and manifest keys `BLEND65-SPEC-4-566da991`, `MOS-6510-1982`, `CBM-C64-PRG-1982`, `MOS-6526-1981`, `CBM-C64-KERNAL-03`, and `VIC-BAUER-2024`.
+>
+> **Q-R04 — Raster IRQ using SFA scratch**
+>
+> **Applicability: yes.** Scratch concurrency, firmware entry, machine preservation, banking and raster timing are directly within the skill.
+>
+> The smallest sufficient domain reference set is:
+>
+> - [SFA and ABI](/work/references/sfa-and-abi.md:166): interference, ABI, interrupt-route gate and final storage closure.
+> - [CPU model](/work/references/mos-6502-family.md:221): interrupt, stack, status and addressing behavior.
+> - [C64 hardware](/work/references/c64-hardware.md:41): VIC acknowledgement and bus arbitration.
+> - [C64 memory/runtime](/work/references/c64-memory-and-runtime.md:321): CINV entry, terminal ownership, vectors and banking.
+> - [Lowering casebook](/work/references/6502-lowering-casebook.md:10): machine-state, effect and cost obligations.
+>
+> The raw profile chapters and source manifest establish the authority and provenance for those references. No general game-system survey is needed.
+>
+> The fixture supplies PAL6569R3, NMOS6510, KERNAL901227-03, a CINV raster handler, ordinary helper `H`, and 8 RAM/2 ZP bytes of invocation-private scratch per `H` activation. Mainline also reaches `H` and may write `$01`. It supplies no allocation certificate, selected installer, entry implementation, bank proof, emitted bytes or VICE observation.
+>
+> | Assessed boundary | Status | Claim kind |
+> |---|---|---|
+> | Actual source-kind/sink and entry implementation | `Unknown` | `Unknown` |
+> | SFA allocation and final storage closure | `Unknown` | `Unknown` |
+> | Banking, vector and scratch visibility | `Unknown` | `Unknown` |
+> | Emitted assembly and assembled PRG | `Unknown` | `Unknown` |
+> | Runtime preservation, timing and physical behavior | `Unknown` | `Unknown` |
+>
+> **Finding.** Mainline and IRQ can overlap inside `H`. Unless a checked exclusion contract proves otherwise, their private scratch must be disjoint. Under the additional assumption of at most one active IRQ invocation, the scratch component alone requires **16 RAM and 4 ZP bytes**, an increase of **8 RAM/2 ZP** over one instance. This is an inference about required storage, not an observed allocation. Parameters, return staging, locals, spills and transitive helper scratch remain additional unknown terms.
+>
+> Absolute references to those homes may require domain-specific `H` code variants. Their bytes are unknown; identical storage-free portions may remain shared. SFA specialization must preserve globals and device identity, and cannot serialize shared state.
+>
+> The IRQ source handler is callback-only. `H` remains an ordinary `JSR`/`RTS` helper. A recognized sink selects the appropriate handler variant; only reachable variants are emitted.
+>
+> The permitted cooperative routes have these instruction-derived fixed components:
+>
+> | Route | Generated wrapper, excluding body/ack | Fixed route cycles | Stack component during body | Existing ROM |
+> |---|---:|---:|---:|---|
+> | CINV chain | 6 bytes | 50 to previous handler, plus body/ack | 7 bytes | 16 entry bytes |
+> | CINV exclusive | 4 bytes | 63 through `RTI`, plus body/ack | 6 bytes | 16 entry + 6 restore-tail bytes |
+> | NMINV chain | 16 bytes | 57 to previous handler, plus body/source action | 7 bytes | 4 entry-stub bytes |
+> | NMINV exclusive | 12 bytes | 51 through `RTI`, plus body/source action | 6 bytes | 4 entry-stub bytes |
+>
+> These figures exclude interrupted-instruction completion, DMA stalls, body execution, acknowledgement, nested calls and variable predecessor-handler paths. Existing ROM contributes **zero output bytes**.
+>
+> For CINV, hardware acceptance costs 7 cycles/3 stack bytes; the KERNAL adds 29 cycles and saves A/X/Y, producing six live stack bytes. Thus **36 cycles reaches the CINV wrapper**. With the prescribed normalization, the first Blend65 body statement is reached after **41 cycles for chaining** (`PHP; CLD`) or **38 cycles for exclusive entry** (`CLD`). Treating the guide’s 36-cycle arrival figure as normalized body entry would omit generated work.
+>
+> The chain preserves CINV-entry status with `PHP; CLD … PLP` before its saved-vector jump. Exclusive entry uses `CLD` and ends at `$EA81`; the eventual `RTI` restores the complete interrupted status, including D and I. Neither CINV form saves A/X/Y a second time.
+>
+> A saved indirect chain link requires two writable bytes. Its start may be `$xxFE`; `$xxFF` must be relocated or rejected because of NMOS indirect-jump wrap. Exclusive terminal metadata needs no chain link, but installation/restoration still needs the exact predecessor CINV saved for its ownership lifetime. Installer/removal instructions, cycles and additional storage are unknown.
+>
+> The named raster acknowledgement must preserve its device contract: write `$01` once to `$D019`. A canonical `LDA #$01; STA $D019` costs **5 bytes/6 cycles**, clobbers A/N/Z, and introduces no scratch. An already-proved A value can remove the load. A generic NMOS RMW is not interchangeable: it reads and writes the device multiple times.
+>
+> A direct `JSR H` costs **3 bytes/6 cycles and two live stack bytes**; its `RTS` adds **1 byte/6 cycles**, charged to each retained helper variant. Argument setup, saves and `H`’s body remain unknown. One chain entry with one active helper return has a nine-byte component; exclusive has eight. An interrupted mainline `H` adds its own live return address, and further calls/saves add more. None is a full-program peak.
+>
+> Required ownership branches are explicit:
+>
+> - A default chain acknowledges owned raster events and reaches the exact predecessor once; retained CIA1 service and its variable costs remain accounted for.
+> - An exclusive IRQ route must handle or disable every enabled IRQ source. Its final stock CIA1 handback clears masks, stops timers, consumes ICR once, restores PAL `$4025` or NTSC `$4295`, restores the exact predecessor vector, and enables/starts stock Timer A while restoring caller status. Its emitted costs are unknown. Arbitrary prior write-only masks/latches cannot be recovered by reading counters or ICR.
+> - NMINV chaining saves status before A/X/Y, establishes D clear, restores A/X/Y before status, and leaves CIA2’s consuming ICR read to its declared owner. Exclusive NMI must own or replace all retained NMI behavior.
+> - Raw IRQ/NMI installers are unavailable in these cooperative profiles. A raw ABI would own register saves and direct `RTI`; it cannot be substituted into CINV.
+>
+> RESTORE remains enabled and externally unbounded. `SEI` does not mask it. The four-profile exception permits only a completely proved, reentrant generated NMI path without invocation-private RAM/ZP. It does not establish unrestricted aggregate stack use, retained-ROM reentrancy/completion, or a finite deadline—even without an application NMI hook. Reaching scratch-bearing `H` from an unbounded generated NMI path would require eliminating its private-home requirement or a genuine finite bound; otherwise E10245 applies.
+>
+> **Smallest remedy.** Keep ordinary helper source, allocate proven domain homes, select the actual CINV sink, and prove every reachable banking state. A `$01` write is not automatically defective, but a transition that hides required ROM, I/O, vectors, code or scratch cannot be certified from this fixture.
+>
+> **Independent proof needed.** First obtain source/sink identity, the closed call/preemption graph, final SFA map and bank-state contract. Then inspect assembly and assembled bytes separately against the expected wrappers, links, acknowledgement and resource totals. Finally use configured VICE with adversarial interruption inside `H`, decimal-state interruption and bank transitions; observe values, access counts, restored status/registers, terminal destinations and bounded stack use. Raster/RESTORE/CIA revision claims need targeted physical evidence. No such observation is supplied.
+>
+> Lineage: the five references above, particularly `sfa-and-abi.md#interrupt-route-completion-gate` and `#final-storage-closure`; source keys `MOS-PGM-1976` Chapters 8–9/Appendices B–C, `MOS-HW-1976`, `CBM-C64-KERNAL-03` `PULS/PULS1` and `KPREND`, `CBM-C64-PRG-1982` pp.151/308/311, `CSG-6567-318014`, and `VIC-BAUER-2024` §§3.5–3.8/3.12.
+>
+> **Q-R08 — Generalized registry for one local rewrite**
+>
+> **Applicability: yes.** This is a compiler representation and optimization decision, despite the proposed machinery resembling generic tooling.
+>
+> The smallest sufficient set for this architectural decision is [compiler architecture](/work/references/compiler-architecture.md:110) and [IL/optimization](/work/references/il-and-optimization.md:353), especially the existing-interface rule, semantic canonicalization, pass-rule packet and two-oracle proof. CPU, C64, assembler and SFA modules are unnecessary unless the change crosses those boundaries.
+>
+> **Finding:** the registry/plugins/rule DSL proposal is **`Incorrect` for the present justification gate**; claim kind **`Inference`**. The fixture identifies one consumer, a typed rewrite seam, and no demonstrated inability to carry the required facts. It provides no independently inspected implementation or output, so actual rewrite correctness and savings are separately **`Unknown` / `Unknown`**.
+>
+> The material assumptions for `x + 0 → x` are that the type/effect proof establishes:
+>
+> - The zero is a side-effect-free constant in the relevant arithmetic context.
+> - Replacement preserves the original result type, conversions, width, signedness and wrapping behavior.
+> - `x` is evaluated exactly once, with every call, read and other effect preserved in order.
+> - No required diagnostic, machine effect or local timing obligation is discarded.
+>
+> The replacement may require a preserved conversion rather than the original operand node. Removing an addition that widened its operand while dropping that widening is a counterexample to an unqualified identity rewrite. Deleting an effectful producer because its result is zero would also change behavior.
+>
+> The semantic rewrite owner should apply the rule after typing/effect analysis and before those distinctions are discharged. Removing an addition gives a simple termination measure: fewer applicable operation nodes. It creates no new calls, ABI, dispatcher, runtime state or function storage.
+>
+> The skill’s five overengineering questions resolve as follows:
+>
+> | Gate question | Packet answer |
+> |---|---|
+> | Demonstrated failure requiring a registry now? | None supplied. |
+> | Why can the existing seam not solve/prove it? | No inability demonstrated. |
+> | Current consumers? | One rewrite consumer. |
+> | Complexity replaced or unavoidable failure prevented? | None demonstrated. |
+> | How can the machinery be declined/removed? | Retain the direct rewrite and reconsider only after a concrete unmet need appears. |
+>
+> **Smallest remedy:** implement or retain the focused rule in the existing typed semantic rewrite function. Add no generalized registry.
+>
+> The architectural choice adds **zero shipped registry/runtime code, data, RAM, ZP or stack**. Host-side implementation cost and actual target byte/cycle/storage savings are unknown. One fewer semantic operation does not determine machine savings: the original lowering may already remove it.
+>
+> **Independent proof needed.** Derive expected values, types and effect traces independently for supported widths/contexts, including effectful `x` and conversion-sensitive cases. Separately check that the public compilation path performs the intended rewrite and inspect resulting assembly/resources. Differential optimized/unoptimized execution alone is insufficient. The fixture’s assertion that proof exists is context, not a supplied proof artifact.
+>
+> Lineage: `compiler-architecture.md#required-pipeline-invariants`, `#architecture-evaluation-packet`, `il-and-optimization.md#pass-rule-packet`, `#fixed-points-and-pass-order`, and `#two-oracle-proof`; source keys `BLEND65-SPEC-4-566da991` and `BLEND65-PROJECT-POLICY-P3-28627e0c`. The cited raw type/operator chapters are absent, so their complete reconciliation is not claimed.
+>
+> **Q-P11 — Player-neutral C64 audio**
+>
+> **Applicability: yes.** The required references are the [raw audio contract](/work/spec/appendix-c64.md:553), [profile contract fields](/work/spec/15-platform-profile.md:196), [game-audio reference](/work/references/c64-game-engineering.md:442), SID hardware, C64 memory/runtime, SFA/ABI, CPU/call lowering, and artifact/evidence references.
+>
+> **Finding:** the packet supports a player-neutral design, but every actual callable path is **`Unknown` / `Unknown`**:
+>
+> | Boundary | Status |
+> |---|---|
+> | Music-only implementation | `Unknown` |
+> | Integrated music/SFX implementation | `Unknown` |
+> | Minimal SFX-only implementation | `Unknown` |
+> | Exact custom-player implementation | `Unknown` |
+> | Supplied PSID byte/header validation | `Unknown` |
+> | Export identity, ABI, state and concurrency proof | `Unknown` |
+> | Assembly, artifact, runtime, timing and analogue behavior | `Unknown` |
+>
+> The raw appendix requires hash-bound `audio_player_contracts`; its baseline maps remain empty until the first exact adapter passes its gate. Consequently, a valid embedded PSID without a matching contract is data. Using it through the audio surface produces **E10256**. This is a normative disposition, not an observed diagnostic run.
+>
+> All four paths remain valid design choices:
+>
+> | Path | Required contract |
+> |---|---|
+> | Music-only | Init/tick/song forms, cadence, writable state, ABI, ownership, compatibility and costs |
+> | Integrated music/SFX | Music contract plus effects, voice mapping, priority/replacement/resume and same-frame arbitration |
+> | Minimal SFX-only | Exact small player; supported effects/voices, immediate or tick-driven behavior, and its own complete costs |
+> | Custom exact player | Hash-bound developer-supplied export with the same ABI, state, placement, ownership and proof obligations |
+>
+> A music-only contract need not expose SFX. A minimal SFX player need not retain tracker music. Custom code receives no weaker proof standard. Combining independent music and SFX players requires an explicit shared-SID ownership contract; separate entry points do not establish compatibility.
+>
+> The normative source operations are:
+>
+> ```blend65
+> import {
+>     audioInitDefault,
+>     audioInit,
+>     audioInitNamed,
+>     audioTick,
+>     audioTriggerSfx,
+>     audioTriggerSfxOn,
+> } from c64.audio;
+>
+> // These forms require AUDIO to have a matching qualified contract.
+> audioInitDefault(&AUDIO);
+> audioInit(&AUDIO, 0);
+> audioInitNamed(&AUDIO, "victory");
+> audioTick(&AUDIO);
+> audioTriggerSfx(&AUDIO, "explosion");
+> audioTriggerSfxOn(&AUDIO, "explosion", 2);
+> ```
+>
+> These illustrate the defined surface; the packet does not establish that `AUDIO` or either named cue exists. Names resolve at compile time and emit no runtime name table. Dynamic numeric IDs require contract-declared types/ranges. Unsupported operations, cues, dynamic forms or voices are E10257.
+>
+> **Container versus callable contract.** The PSID handler accepts the specified self-contained PSID v1–v4 subset and validates signature, version, header fields, payload, reserved bits, relocation ranges, songs, addresses and target compatibility. It rejects RSID, MUS/PlaySID-dependent payloads and zero play addresses.
+>
+> Header fields are big-endian. A zero header load address takes the effective little-endian address from the payload’s first two bytes, which are stripped; zero init resolves to effective load. The emitted payload is placed at that address without runtime relocation/copy. Init/play and the non-wrapping payload interval must satisfy the selected profile.
+>
+> Malformed format is E10204; a valid specific target mismatch is E10261. The load/init/play fields do **not** establish SFX entries, clobbers, private state, self-modification, ownership, reentrancy or arbitration.
+>
+> For v2NG–v4, video bits 2–3 mean Unknown/PAL/NTSC/Both; primary model bits 4–5 mean Unknown/6581/8580/Both. Secondary/tertiary model zero means inherit primary. PSID v1 makes no clock/model claim. Unknown is not Both. A callable contract can close unknown fields but cannot override specific restrictions. Every current profile has exactly one `$D400` SID: any second/third-SID requirement is incompatible. Metadata does not activate hardware or authorize retiming, retuning or filter conversion.
+>
+> **Exact identity.** GoatTracker 2.77 is the first adapter family, not an identified project export. Its recorded archive SHA-256 is:
+>
+> `96c2bd6a6ab3aca2f5bb18b1c764ac6ea69ac245cae14002a72cd87c554561ef`
+>
+> The [manifest](/work/references/source-manifest.md:1379) also pins its readme, player source and integration example. **The actual exported player/payload hash, exporter options, tune/effect data, feature set, addresses and accepted contract key are all unknown.** Archive identity cannot fill those fields. `GOATTRACKER-R172` identifies a 2.73 source and supplies comparative corroboration, not an interchangeable 2.77 export identity. SID Factory II remains a candidate; no callable SFX capability is established for it here.
+>
+> The locally documented GoatTracker convention is:
+>
+> - Init: subtune in A, `JSR start`.
+> - Tick: `JSR start+3`.
+> - Optional `-Dx` SFX: effect address in A/Y, native channel offset in X, `JSR start+6`.
+> - Logical voices `0,1,2` map to native X offsets `0,7,14`.
+>
+> The packet’s extraction does not state the precise low/high-byte assignment to A versus Y. That field remains unknown until the exact export contract supplies it; it must not be silently guessed.
+>
+> Canonical constant setup costs can nevertheless be calculated independently:
+>
+> | Call shape | Setup + absolute `JSR` | Cost including one terminal `RTS`, excluding player body |
+> |---|---:|---:|
+> | Init with one immediate register load | 5 bytes / 8 cycles | 6 bytes / 14 cycles |
+> | Tick with no setup | 3 bytes / 6 cycles | 4 bytes / 12 cycles |
+> | SFX with three immediate register loads | 9 bytes / 12 cycles | 10 bytes / 18 cycles |
+>
+> Each `JSR` contributes two live stack bytes. `RTS` belongs to the retained player code and is not serialized anew at each call site. Player entry jumps, body work, register preservation, banking, critical sections and transitive calls are additional costs. Immediate loads alter their target register and N/Z; complete player clobbers are unknown. A constant wrapper needs no dispatch table, pointer scratch or name lookup under these assumptions.
+>
+> **The matching contract must close all of these fields:**
+>
+> - Exact export hashes/configuration, entry addresses, fixed/relocatable placement and supported operations.
+> - Arguments/results and effects on A/X/Y, flags, D/I, `$01`, hardware stack, RAM, ZP, MMIO and self-modifying code.
+> - Every writable interval, lifetime and initialization requirement. Source `const` does not make player-modified bytes ROM-safe.
+> - Legal call domains and overlap relationships for init, song changes, tick and SFX.
+> - Cadence per supported video configuration, including tick count and event source.
+> - Logical voice mapping and voice/global SID ownership.
+> - Priority, equal-priority behavior, replacement, queue capacity if any, same-frame requests and music resume.
+> - Every supported endpoint/model combination and all feature-dependent resources.
+>
+> Source owns cadence. `audioTick` performs exactly one update and installs no interrupt. A CINV path may receive CIA1 and raster IRQs, so “tick on every CINV entry” is not automatically “tick once per frame.” The source must identify the intended event and count updates accordingly.
+>
+> The design requires one declared owner for SID writes. SID voice blocks have offsets `$00/$07/$0E`; their frequency, pulse-width, control and envelope writes must preserve the player’s declared order. Global filter/volume state also needs one ownership/arbitration contract. Writes belong to `$D400–$D418`; defined ordinary reads are `$D419–$D41C`. Partial updates cannot read back write-only controls. Gate transitions and retrigger behavior are observable.
+>
+> Stock CIA1 service, any selected raster/timer route, CIA2’s consuming ICR owner and RESTORE must all remain in the interrupt inventory. Every introduced route uses the distinct entry/link/acknowledgement/terminal accounting described in Q-R04. Exclusive CIA ownership cannot silently discard retained firmware service. Actual installed routes, masks, handler bodies and source-dependent costs are unknown.
+>
+> The enabled-feature ledger remains:
+>
+> | Cost | Music-only | Integrated music/SFX | Minimal SFX-only | Custom player |
+> |---|---|---|---|---|
+> | Player code and entry-table bytes | `Unknown` | `Unknown` | `Unknown` | `Unknown` |
+> | Music/effect/table/queue data and padding | `Unknown` | `Unknown` | `Unknown` | `Unknown` |
+> | Init, song, tick and supported SFX path/worst cycles | `Unknown` | `Unknown` | `Unknown` | `Unknown` |
+> | Resident RAM and writable/self-modifying intervals | `Unknown` | `Unknown` | `Unknown` | `Unknown` |
+> | ZP and any compiler-owned staging/spills | `Unknown` | `Unknown` | `Unknown` | `Unknown` |
+> | Transitive stack and bounded simultaneous peak | `Unknown` | `Unknown` | `Unknown` | `Unknown` |
+> | Critical-section, banking, IRQ, startup/exit and loading costs | `Unknown` | `Unknown` | `Unknown` | `Unknown` |
+>
+> Unsupported or stripped features are charged zero only after the selected export proves their absence. Combined player/music payload must not be counted twice as both an embedded object and a separately linked player. The prescribed generic scheduler, mixer, dispatcher and runtime name-table costs are zero because those components are excluded from the design.
+>
+> **Unsafe-overlap counterexample.** Mainline SFX writes a shared two-byte effect pointer. IRQ tick arrives after the low-byte write and reads the new low byte with the old high byte. It can consume unrelated data despite both entry routines working separately. Distinct source calls and disjoint compiler frames do not protect the imported player’s shared state.
+>
+> **Smallest remedy and independent proof.** Bind the actual export contract, then serialize all non-reentrant player operations in a source-owned domain or use a proved bounded critical section. E10258 rejects unsafe overlap. `SEI` is sufficient only if every racing source is maskable IRQ; it cannot protect against RESTORE or another NMI caller.
+>
+> Proof begins with actual export bytes/configuration and state maps. Independently derive expected cue selection, request ordering, arbitration/resume and cadence; separately establish direct-call bytes and complete feature costs. Exercise adversarial interleavings and trace SID writes under each claimed profile in configured VICE. A bounded trace cannot prove unrestricted stack/completion or identical analogue sound. Named 6581/8580 hardware is needed for the latter. No VICE or physical result is supplied.
+>
+> Lineage: `c64-game-engineering.md#music-and-sound-effects`, `#machine-bound-workload-completion-gate`, `c64-hardware.md#sid-register-and-revision-model`, plus ABI/lowering/artifact references. Source keys: `HVSC-SID-FORMAT-20260906`, `MOS-6581-SID`, `GOATTRACKER-2.77`, `GOATTRACKER-R172`, `SIDFACTORYII-0254B04`, `LIBSIDPLAYFP-3.1.1`, and the shared C64 sources. `C64-GAMEFRAME-C634F6F` and `OSCAR64-1.32.273` demonstrate integration approaches without supplying this program’s ABI or measurements.
+>
+> **Q-P20 — Scrolling/rendering hot path**
+>
+> **Applicability: yes.** The sufficient cross-domain set is [scrolling/rendering and the workload gate](/work/references/c64-game-engineering.md:356), C64 memory/visibility and hardware timing, CPU/copy/layout lowering, IL/equivalence, SFA/ABI for call/interrupt scratch, and artifact/evidence references.
+>
+> **Disposition: diagnostic/no transform for an unproved specialized replacement; preserve ordinary source lowering.** This is a **`Recommendation`**. Actual ordinary lowering, alternative equivalence, placement, frame fit, cost improvement, artifact execution and physical timing are each **`Unknown` / `Unknown`**. A missing optimization proof does not justify rejecting a legal ordinary scroller.
+>
+> The fixture establishes a 1,000-byte screen update per frame and names flips, 1,024 extra pre-shifted bytes, a 40-byte dirty update and a full copy. It supplies no complete representation, layout, scheduling or measurements.
+>
+> The four exact profiles above are separate assessment cases. Q-P20 does not supply an exact VIC revision: PAL6569R3 is stated for Q-R04 and cannot be silently inherited. PAL/NTSC VIC revision, CIA revision, board/PLA context, display mode, fine-scroll state, active sprites, enabled interrupt sources, raster slots and banking transitions remain unknown. SID model is fixed only by the chosen complete profile, with any audio workload/cost also unknown.
+>
+> The compiler’s deterministic decision should be:
+>
+> 1. Preserve the user’s ordinary evaluation, accesses and update policy.
+> 2. Generate correct general code through the existing lowering seam.
+> 3. Select a specialized form only after proving equivalent work, visibility, ownership and complete budget fit.
+> 4. Decline an unsupported transformation or requested timing guarantee at its precise boundary.
+>
+> Ownership is divided as follows:
+>
+> | Owner | Responsibility |
+> |---|---|
+> | User source | Scrolling policy, next-frame construction, dirty-set meaning, buffer lifetime and publication |
+> | Compiler | Types/effects, alias/range proof, legal loops/copies, SFA closure and proved candidate selection |
+> | Platform API | Direct VIC fields, CIA2 bank ownership and exact volatile register effects |
+> | Local contract | Uninferable raster window, publication atomicity and interrupt/loader coexistence |
+> | Layout/packager/startup | Placement, alignment, shared-range fit, serialization and initialization |
+>
+> No renderer or buffer manager is introduced.
+>
+> For these alternatives, complete accounting starts here:
+>
+> | Candidate | Known conditional cost | Costs/proofs still required |
+> |---|---|---|
+> | Full 1,000-byte copy | A direct copy reads/writes 1,000 bytes. Fully unrolled absolute `LDA; STA` pairs cost **6,000 code bytes/8,000 nominal cycles**. | Source/destination availability, overlap/order, generation work, loop alternatives, calls/saves, DMA/IRQ interruption and actual bytes |
+> | 40-byte dirty update | With 40 fixed addresses and already-available values, the same unrolled model costs **240 bytes/320 nominal cycles**. | Proof that the other 960 cells remain correct, tracking/list/addressing costs, dense changes, Color RAM and preparation |
+> | Screen/base or bank flip | A known full-byte `$D018` store via immediate load costs **5 bytes/6 cycles**. | Preparing the inactive frame, publication, screen tails/sprite pointers, other display layers and bank ownership |
+> | Pre-shifted charset | **1,024 extra representation bytes** when that representation is enabled and emitted, before padding. | Coverage, indexing/draw costs, charset placement/visibility, displaced memory, load/setup cost and amortized benefit |
+> | Partial/full unroll | Can remove loop overhead while expanding code. | Actual trip count, register pressure, branch/page changes, layout, retained helpers and whole-program benefit |
+>
+> The unrolled numbers are analytical reference candidates, not selected output or measured timing. They assume ordinary visible memory, valid access order, suitable overlap semantics and available A. Both paths need the same input generation and visible-result obligations before their costs can be compared.
+>
+> A screen matrix occupies an aligned **1,024-byte interval**, although 1,000 bytes are visible cells. Its last eight bytes contain sprite pointers. Two evolving screen matrices occupy **2,048 bytes** of distinct state, adding one 1,024-byte matrix to a one-screen design. They are not replicated identical data. Their initialization, serialized/BSS split and update work remain unknown.
+>
+> Screen bases require 1-KiB alignment; text charset bases require 2-KiB alignment. A screen flip cannot flip Color RAM. CPU logical addresses, physical RAM and VIC-visible storage must be proved separately; character-ROM windows in VIC banks 0 and 2 can hide CPU-written glyph RAM. The extra pre-shifted 1,024 bytes cannot be presumed to fit a usable charset window merely because the byte count is known.
+>
+> A CIA2 bank change requires `$DD02` output direction, exact preservation of unrelated `$DD00` fields, and coordinated screen/charset/bitmap/sprite placement. A known full-port store may use the same 5-byte/6-cycle load/store shape, but that excludes direction setup, shadow maintenance and any coordination. Unknown ownership cannot be replaced by a guessed read/modify/write.
+>
+> Fine-scroll/mode updates have their own `$D011/$D016` effects and timing. A generic optimizer cannot infer a safe display trick from arbitrary register stores. No VSP/AGSP or other silicon-sensitive shortcut is justified.
+>
+> The frame account must include preparation, simulation/input, full renderer paths, Color RAM, sprite work, audio, IRQs and loading. Actual CPU-denied slots are unioned across badlines and sprite DMA; normal VIC first-half activity is not automatically another stolen CPU slot, and BA warning is not a separate unconditional penalty. Path, page-cross and instruction-stall behavior remain necessary.
+>
+> For any introduced raster IRQ, separately charge its vector and saved link, handler/wrapper bytes, source acknowledgement, terminal restoration, full cycles and IRQ stack component. The Q-R04 fixed CINV figures apply only with their stated ROM and route conditions. Handler bodies, installer/release costs, stock CIA paths and stalls remain unknown. RESTORE prevents deriving an unrestricted stack peak or deadline from those bounded figures.
+>
+> Loader accounting must separately establish code/data, transfer time, initialization/decompression cycles, RAM/ZP/stack, destination and consumer visibility. No loader may overwrite executing code, live return targets, vectors, player state, SFA homes or published assets. Continuing versus quiescent IRQ/audio/render behavior must be explicit. Every actual figure and coexistence proof is unknown here.
+>
+> **Counterexample.** An ordinary coarse scroll changes all 1,000 cells. Replacing it with a 40-byte update leaves 960 stale cells. The lower write count represents different work. Likewise, a base flip saves a copy only when the complete next display state has already been prepared; that preparation cannot disappear from the ledger.
+>
+> **Smallest remedy and independent proof.** Obtain the actual source representation and final layout, then compare the existing full-update path against alternatives under one complete profile at a time. Use an independent frame/state oracle over multiple sparse and dense frames, fine/coarse transitions, colors and sprite-pointer state. Separately inspect assembled bytes, interval layout, access order, nominal paths and DMA-adjusted schedule. Record load/startup costs and IRQ/NMI boundaries before any configured VICE observation. Physical revision-sensitive display timing still requires targeted QA.
+>
+> The packet establishes no winning strategy. It establishes the deterministic proof gate and which costs each candidate must carry.
+>
+> Lineage: `c64-game-engineering.md#scrolling-and-rendering`, `#machine-bound-workload-completion-gate`, `c64-memory-and-runtime.md#vic-view-and-placement`, `#placement-and-replication-doctrine`, `6502-lowering-casebook.md#aggregates-copies-and-layout`, `#tables-and-pre-shifted-data`, and `evidence-parity-and-recovery.md#equivalent-work-accounting`. Source keys: `CBM-C64-PRG-1982` pp.101–104/311, `MOS-PGM-1976` Appendices B–C, `VIC-BAUER-2024` §§2.4/3.5–3.8/3.12, `HESSIAN-1.2`, and `C64-GAMEFRAME-C634F6F`. The game implementations are comparative workload evidence, not measurements for this scroller.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-corpus-refined: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-corpus-refined`. Raw run-log SHA-256: `cd298ff5b4a25ced7fa4fa5dad7774c951096095e86e0224db85e7fefafc5e57`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `27d9df07e4f5ea277213f4ea77960bf5abbe252f7e725db66382d425e9d45c15`; packet-record SHA-256: `aaf1109c5aab0a5bb45e25a9ac2da06dd63b7b7e562a069b73e9518d3f8b9e01`.
+
+```text
+1bb1772791487d8b49ec5339f86feb276b62f073b239d4e8066c575c65bf257c  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+416aa3060c01d9bc38eafd7f5998587697d5b38afc624049185e0189bfdab237  evaluated-answer.md
+6f337f0daab46ecbe9b49f210aefaa62a52b00b8b11d24f842f814369d96399e  evaluator-request.md
+ca5ff59895c776e1d02199b39a2585b928fef7a19f9ed23a047ad0cf009914c2  grade-request.md
+2cc0704696b4d784e93471da081814cefe8eac1f8df5b3917e43902e296fdaac  oracle.md
+006e5003573d85d7da96c8bebf69c730434829cacff3402eabd7ec32dd9f56bc  policy-excerpts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c966648ea7a58952561909b9a127f1617b50ee583f2845bcd07fb43602b2e51b  references/il-and-optimization.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+6f337f0daab46ecbe9b49f210aefaa62a52b00b8b11d24f842f814369d96399e  request.md
+ab393b09a630b8b8db90c7fb5e273ff0bbef1e5299c2902affbf4a33d43a6b0a  spec/00-feature-index.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1a1bc184c81b036c7e5cdcc4785a8d591795ac35552f727b4a299d1597d713bb  spec/00-normative-inventory.md
+4312fb663eeb3f26137aadcc8acbfa6ba586ef19996f54254409f8ead7982d1c  spec/01-lexical-structure.md
+73f7deb046abcc2caa6bcced73bd62c741bb2c0e954b16cfb1633e3cbdab8651  spec/02-type-system.md
+e8c017b9671b9cf1c8ac633cf4aee59fd1591df13ea94ddab323b7c42a11807d  spec/03-variables.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+187ea573d6ddaf6a033321f9118835c2b3442118e1e363dcd68bc634f59b0ab2  spec/05-statements-control-flow.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+a3afc05f37ab7118ed365ae570ff98ca05ac2ca73120b5b48280b58b98f8cd45  spec/07-structs.md
+500a6c18f84dc54a41fd7fe82b0fb5e0029bc1e050615ec9c929e148f76be515  spec/08-arrays-strings.md
+e0772e924b761ed16e58b14f72906d4fa3014ed3bf2e9886fd01759a127192d6  spec/09-enums.md
+a5ad0cc83e34867de7b1e1ada3d94efb1a136230cf199578c7a0d7a283a57383  spec/10-modules.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+29a16540be2a29cc4d4e5ba3bed0e407b9644dd25d4acc803666cf3df71079e7  spec/13-data-inclusion.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+cd79fa582b71c3126916f455f6d623c3c1a8fd35b064cae22ee4a311261a19df  spec/evaluations/F001-multi-file.md
+d522d443a3f946ac6d0201ada84d45e321c35094e951bd3ecb1d616bd9f1d98a  spec/evaluations/F002-modules.md
+9673502debd656fe4733a160454d1d86ed6adcbf70fb7bc68325f67d49385920  spec/evaluations/F003-module-contents.md
+dd7ef96a96873a1ff1ff1a9c3bf97ea07ece0717051ff485432b6a951abb8162  spec/evaluations/F004-entry-point.md
+add33b6dd89783250bd495247264966aadee57d4dec3dc44a1698fdbe1442aa3  spec/evaluations/F005-memory-placement.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+bb503f0aa1aff317c71cb8a61c5e071b9f3c8bbeea1476438306f3b82c60dc04  spec/evaluations/F008-for-loop.md
+2d5116b586c2abe6bb4ee43a2372f974dc90e719177443bfe714c53c542d72ce  spec/evaluations/F009-switch-statement.md
+9013ae2793ba44f96c13e9fdb567b324e6bd5a8f331af9083605eff12fe2f359  spec/evaluations/F010-signed-types.md
+4118af9de2c2b34022a883cddc5762e87bd164cda03ed38f47fe4f77577db026  spec/evaluations/F011-structs.md
+c06a710a4dca63f35d91af4850f2ba1aa6e94c06e1bd89bc81b0d5720c96fc5c  spec/evaluations/F012-cpu-control-intrinsics.md
+1a36d5db689bb97d84b93318e604a7da31a36c38dc057993c3192c0907731faa  spec/evaluations/F013-control-flow.md
+938d3adb011bb60eac49dcfe160c65c48b2279aa610a1bb2c82cb3171c53ba2f  spec/evaluations/F014-arrays.md
+cc383e7d7258c1cb7eecd8a51bffa360098fda5ddfbb2a8752061a5e647a942f  spec/evaluations/F015-data-inclusion.md
+0ccfec6274dadc849eb93a3440bb090f9b24f77119f7b297fa5217f827608f4e  spec/evaluations/F016-type-system.md
+ecf5e10be85f9610c20d400aac6dbda2cc8dea0a1edbbccfce2b87a32e7ff44d  spec/evaluations/F017-operators.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+15628edf3f35fb2252f20ad938b16b8b6006f32d196ffe0d8ffa8e496f3fa017  spec/evaluations/F019-variables.md
+3a6d7e2e07dedfed392dc407e1cb598042f5aad270152740f99ae056e492b945  spec/evaluations/F020-memory-intrinsics.md
+a77babccebc4b20ee55f062ace152674a46860ebb53fdec9fd2408b85eea441a  spec/evaluations/F021-lexical-structure.md
+0d12f268294ce67560417599b4e2a88b69f743f7d4f00aaed9e412f4c5719e6f  spec/evaluations/F022-enums.md
+66dc1c0ad8222f09871b3550ae032a0d0cfcecb7cf338174e85af29bdbd2d303  spec/evaluations/F024-conditional-operator.md
+f14a19ee370fbfe6de5c3a4b0c599d1a5cf4359863a2110efe2c1d3b303e2f4d  spec/evaluations/F025-comptime-functions.md
+e38910dbf5e9a710b8171081c1698730bfd835df058b6267d5b2edf54d0dbcea  spec/future-considerations.md
+8d4533443a31067627f790540c5e1c3900a57cff52ea2b751908b4917e3fed94  spec/grammar.ebnf.md
+```
+
+> **Q-L01: PASS.** Both numbered requests satisfy the [frozen oracle](/work/oracle.md:1). This grades the documentary answer; compiler, artifact, runtime, and release qualification remain `Unknown`.
+>
+> | Case | Request | Grade | Decisive submitted evidence |
+> |---|---|---|---|
+> | Q-L01 | 1. Resolve A4 versus TS-4/TS-14 | **PASS** | “`byte + word` uses TS-4”; “Enum-to-`byte` use is explicitly permitted by TS-14.” The answer preserves signedness, narrowing, and intermediate-width boundaries. [Output](/work/evaluated-answer.md:3) |
+> | Q-L01 | 2. Audit the complete crosswalk | **PASS** | “45 rows; no missing, extra, or duplicate paths,” followed by substantive per-path rows and separate future, warning, address, SFA, hardware, and policy closures. [Output](/work/evaluated-answer.md:33) |
+> | Q-L01 | Complete case | **PASS** | Source contradictions receive findings and separate remedies; absent implementation evidence remains `Unknown`. No disqualifying outcome is established. |
+>
+> 1. **The conversion conclusion and its cost boundaries are correct.** [A4](/work/spec/00-introduction.md:100) requires explicit narrowing and cross-signedness conversion. [TS-4](/work/spec/02-type-system.md:161) expressly permits same-signedness widening, and [TS-14](/work/spec/02-type-system.md:413) permits enum-to-byte use. The answer correctly avoids inferring implicit enum-to-word conversion or destination-driven widening of earlier byte arithmetic.
+>
+>    Its instruction accounting matches the supplied forms:
+>
+>    | Displayed operation | Cost reasoning |
+>    |---|---|
+>    | Stored byte-to-word extension | Three memory instructions plus `LDA #0`: **8–11 bytes, 11–14 cycles**, depending on ZP/absolute homes. [Source](/work/spec/evaluations/F010-signed-types.md:389) |
+>    | Mixed-width addition | `CLC`, five memory instructions, and `ADC #0`: **13–18 bytes, 19–24 cycles**. The immediate high-byte addition absorbs extension; adding another conversion sequence would double-count it. [Source](/work/spec/evaluations/F017-operators.md:628) |
+>    | Enum-to-byte conversion | No added conversion instructions; a materialized value still occupies one byte and incurs ordinary transfer/use costs. [Source](/work/spec/09-enums.md:247) |
+>
+>    These are instruction-derived costs, **Inference**, rather than compiler or hardware measurements.
+>
+> 2. **The inventory, authority distinctions, and required closures pass.** Independent recomputation confirms:
+>
+>    - Exact equality among the inventory, live files, candidate crosswalk, and answer: **45 paths**, comprising **18 normative and 27 non-normative files**.
+>    - Normative digest: `566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`, using the [specified algorithm](/work/spec/00-normative-inventory.md:74).
+>    - **184 unique active diagnostics: 155 errors and 29 warnings**; normative references resolve to active entries or retained migration history.
+>    - The live future register contains **11 resolved, eight open, and two rejected entries**, all individually addressed.
+>
+>    The answer preserves caller-owned aggregate returns without claiming implementation support; exact [W10190](/work/spec/03-variables.md:539) and [W10141](/work/spec/08-arrays-strings.md:842) scopes; caller-object lifetime for aggregate-parameter subobjects; provenance-bounded local borrowing; and per-activation SFA closure. Invocation-private homes remain separate from shared globals, assets, and MMIO. F001 gains no invented discovery or duplicate-module contract.
+>
+>    Interrupt accounting also matches the [raw route contracts](/work/spec/appendix-c64.md:748):
+>
+>    | Route | Emitted bytes | Known cycles, excluding expressly identified additional work | Entry/body stack |
+>    |---|---:|---:|---:|
+>    | KERNAL IRQ chain | 6 | 50 + predecessor path | 7 bytes |
+>    | KERNAL IRQ exclusive | 4 | 63 | 6 bytes |
+>    | Raw IRQ | 12 | 44 | 6 bytes |
+>    | KERNAL NMI chain | 16 | 57 + predecessor path | 7 bytes |
+>    | KERNAL NMI exclusive | 12 | 51 | 6 bytes |
+>    | Raw NMI | 12 | 44 | 6 bytes |
+>
+>    Existing ROM contributes cycles but **zero emitted bytes**. Handler bodies, acknowledgement, helpers, installation/removal, duplicated variants, and live predecessor storage remain separately chargeable. The answer correctly retains complete status/D restoration, `$xxFE`/`$xxFF` link boundaries, and external NMI uncertainty.
+>
+>    Other checked arithmetic agrees: F015’s listed assets total **8,952 bytes**, with its table overlapping the map; FUT-016’s absolute-store call site costs **13 bytes/20 round-trip cycles**, versus **11 bytes/18 cycles** with ZP stores. Shared RAM is **51,199 bytes**, ZP **142 bytes**, and cooperative usable stack **256 − 20 = 236 bytes**. Final layout, loading time, handback instructions, and whole-program peaks remain `Unknown`.
+>
+> | Finding category | Severity | Grading consequence |
+> |---|---|---|
+> | Semantic, warning, storage, and ABI inconsistencies in supplied sources | **Major** | Correctly identified; they invalidate blanket source-consistency claims, not this evaluator answer. |
+> | Incorrect or incomplete copied cost claims | **Major** | Correctly distinguished from measurements and accompanied by focused remedies. |
+> | Stale example/navigation and reference terminology | **Minor**, except materially misleading provenance wording | Reported with bounded conclusions and separate remedies. |
+> | Evaluator omission or invented guarantee | **None established** | No case failure. |
+> | Missing qualification/runtime evidence | **No grading defect** | Deliberately unavailable; appropriate conclusions remain `Unknown`. |
+>
+> I reconsidered whether source inconsistencies should force FAIL. The oracle requires exposing them, and the answer does so. Conversely, inventory completeness alone would be insufficient; the substantive rows and explicit closures supply the additional evidence.
+>
+> ACME and parity-debt policy use the supplied [hash-pinned excerpts](/work/policy-excerpts.md:3). No measured parity comparison establishes an issue trigger. Historical identities are not relabelled or granted current authority.
+>
+> **Final unresolved counts:** **0 failing cases; 0 material evaluator defects established; 17 reported source/reference correction items remain open (15 specification, two candidate-reference items); three empirical generalizations remain unmeasured; 0 task-blocking packet defects.** Content commit, activation, implementation conformance, measured parity, and unrestricted external NMI guarantees remain `Unknown`.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-final-corrections: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-final-corrections`. Raw run-log SHA-256: `74d7cd15ae1574c6b0eb456fd40549f31b92437809ab2b532ec96fd3e849420d`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `15780a7bf7626b0516db708afda8273a60f08fd937f7858526e385c4b5793b95`; packet-record SHA-256: `62c1c3e2cd0899156a0a1f1f1ff88b2497f8428ab501d147e82addb08d0052f7`.
+
+```text
+0152f760035a8b5d1c89e3e6d2dc02062857f2860c79e9622f00433dc40f223a  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+d61e3fd4f4f885b1838370a9bb5e1190a1ddc2ae1abaf4b60609977317e0f9fd  evaluated-answer.md
+f85326f5443e1d3db4ef92224ac51cd39287bd5257919e43a9a890dde062c9ed  evaluator-request.md
+c6c24497d0315233bf3aff1ebc42dbec8ec97fd76aa26d7c9f1bcc2b6fcedb30  grade-request.md
+94890d1203bfa7265679949ac225b8e76ba03e10663ba449d6c83ef440855595  oracle.md
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+0d4cc902530f35f6ee824318ebbcb00fea755774ab3ec53f642cea51d0447649  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+c966648ea7a58952561909b9a127f1617b50ee583f2845bcd07fb43602b2e51b  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+6624bf4a0f59ac3a56f331f1a056a1e5b907f80555c3969c058551f6af97b189  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+f85326f5443e1d3db4ef92224ac51cd39287bd5257919e43a9a890dde062c9ed  request.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+```
+
+> All four cases **PASS independently** against the frozen oracle. These grades assess the captured response; implementation and runtime qualification remain **Unknown**.
+>
+> | Case | Grade | Decisive output evidence and rationale |
+> |---|---|---|
+> | **Q-R04** | **PASS** | [Selected references](/work/evaluated-answer.md:34) include SFA, CPU, C64 hardware, memory/runtime and lowering. The response requires disjoint private scratch, preserves shared-state identity, checks banking and distinguishes callback, helper and firmware ABIs. [Its closure and proof requirements](/work/evaluated-answer.md:86) expressly leave unrestricted NMI stack/completion and actual allocation Unknown. |
+> | **Q-R08** | **PASS** | [All five overengineering questions](/work/evaluated-answer.md:113) are answered. The remedy is explicit: “implement or retain the focused rule in the existing typed semantic rewrite function. Add no generalized registry.” Type conversions, single evaluation and effects are preserved; actual correctness and savings remain Unknown. |
+> | **Q-P11** | **PASS** | [The response](/work/evaluated-answer.md:147) treats PSID without a matching callable contract as data and gives the normative E10256 disposition. It preserves all four integration paths, supplies the player-neutral operations, separates archive identity from export identity, assigns cadence to source, and reports each feature-cost category as Unknown. [The overlap counterexample](/work/evaluated-answer.md:247) correctly shows that separate calls and compiler frames cannot protect shared player state. |
+> | **Q-P20** | **PASS** | [The disposition](/work/evaluated-answer.md:259) preserves ordinary lowering while declining an unproved specialized replacement. [The comparison](/work/evaluated-answer.md:286) covers copying, dirty updates, flips, pre-shifted data and unrolling, with placement and visibility obligations. Evolving buffers remain distinct state. IRQ, loader and frame-fit costs remain explicit unknowns; the 960-stale-cell counterexample exposes unequal work. |
+>
+> The independent source and cost checks support those grades:
+>
+> - **Q-R04:** The [raw IRQ contract](/work/spec/appendix-c64.md:753) and [CPU instruction grid](/work/references/mos-6502-family.md:118) support the reported CINV components: chain **6 output bytes/50 fixed cycles/7 stack bytes**; exclusive **4/63/6**. Existing ROM contributes **16 entry bytes**, plus the exclusive **6-byte restore tail**, and zero output bytes. NMINV components **16/57/7** and **12/51/6** also agree. Raster acknowledgement is **5 bytes/6 cycles**; `JSR` is **3 bytes/6 cycles/two live stack bytes**, with `RTS` separately charged **1 byte/6 cycles**. A saved indirect link needs two bytes; `$xxFE` is valid and `$xxFF` is unsafe. The conditional scratch inference, **16 RAM/4 ZP**, correctly excludes other frame contents and does not claim final SFA closure.
+>
+> - **Q-R08:** [Architecture](/work/references/compiler-architecture.md:124) and [optimization doctrine](/work/references/il-and-optimization.md:370) support the existing typed seam. Zero additional shipped registry/runtime resources describe the recommended design, rather than measured compiler savings. The response correctly demands separate behavior and assembly/resource proof.
+>
+> - **Q-P11:** The [raw audio contract](/work/spec/appendix-c64.md:553) supports direct constant register setup and absolute calls, source-owned ticks, player-declared arbitration and bounded, fully costed exclusion. Setup-plus-call calculations are correct: init **5 bytes/8 cycles**, tick **3/6**, SFX **9/12**; a terminal `RTS` adds **1/6** within retained player code. The [GoatTracker extraction](/work/references/source-manifest.md:1394) specifies A/Y holding the effect address but supplies **no low/high-byte assignment**. Leaving that field Unknown is correct. Exact export identity, player bodies, writable intervals, ZP, transitive stack and physical sound are likewise unavailable. The response preserves the 2.77/R172 distinction and SID Factory II’s candidate identity; current single-SID profiles cannot authorize multi-SID use.
+>
+> - **Q-P20:** Absolute `LDA; STA` pairs cost **6 bytes/8 nominal cycles** each, confirming **6,000/8,000** for 1,000 bytes and **240/320** for 40 fixed destinations. A known immediate register store costs **5/6**. Two screen matrices require **2,048 bytes**; the supplied pre-shifted representation adds **1,024 bytes before padding**. [Profile budgets](/work/spec/appendix-c64.md:149) confirm the shared **51,199-byte** allocation range, **142 ZP bytes**, and **236 usable stack bytes**. PAL/NTSC raster periods **19,656/17,095 cycles** do not establish available CPU time. Preparation, DMA, Color RAM, alignment, IRQs and loading prevent a proved strategy win.
+>
+> There is **one Major knowledge/source finding**, separate from evaluator correctness. [The memory/runtime guide](/work/references/c64-memory-and-runtime.md:351) calls **36 cycles** “entry-to-body.” Its own sequences and the raw contract require **41 cycles** for normalized chained body entry and **38** for exclusive body entry. The [response explicitly catches this](/work/evaluated-answer.md:69). The guide’s cost-boundary wording needs correction through the skill’s errata process.
+>
+> I rechecked possible failure grounds: absent measurements are permitted Unknowns here; conditional calculations are not presented as observations; no full-program stack guarantee or universal analogue claim is invented. Content commit and activation remain Unknown. No separate historical capture is supplied, so none is relabeled or graded.
+>
+> **Final unresolved findings:** evaluator **0**; knowledge/source **1 Major**; packet defects **0**. All four cases retain unproved implementation/runtime boundaries.
+
+</details>
+
+<details>
+<summary>2.0.2 input-boundary-final: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/input-boundary-final`. Raw run-log SHA-256: `ff1d1cc46bca272678eed850a74aca398d5656ca09270a9d68e596b32ee16b52`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `46fef4915ca736955a48024fa73e1837ef03c5e743469813245da8b5ebc3fb87`; packet-record SHA-256: `a508e48f0e3e1ed07f97faef1371d03ea6fe6bbc718833739383b6ce55c5f9ed`.
+
+```text
+74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+9057014eb6394b92a6159230313f56349957c91b68fe12b39020b3ab376d4f2f  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+c966648ea7a58952561909b9a127f1617b50ee583f2845bcd07fb43602b2e51b  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+6624bf4a0f59ac3a56f331f1a056a1e5b907f80555c3969c058551f6af97b189  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+362a585478a1f514f0508c64a524adebbce5895e1ec326bf6f761aabdddea220  request.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+```
+
+> **Choose default KERNAL chaining for the supplied ingress.** The four cooperative PRG profiles expressly admit a fully proved generated NMI path with no invocation-private RAM/ZP homes. This admission does **not** establish unrestricted stack safety, stock-firmware reentrancy/completion, or a finite deadline.
+>
+> This is a packet-only assessment; nothing was implemented or executed. The common lineage is `skillVersion=2.0.2`, declared specification identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`, and **content commit Unknown**. The packet does not independently establish that specification digest or actual qualification. Governing chapters outrank retained evaluation summaries, as the [source manifest states](/work/references/source-manifest.md:33).
+>
+> Status labels below apply to the stated boundary. Contract decisions are **Verified complete / Fact** where directly specified; hypothetical instruction analysis is **Verified partial / Inference**; contradicted proposals are **Incorrect / Inference**. Actual compiler acceptance and diagnostics, assembled bytes, packaging, VICE behavior, and physical qualification are each **Unknown / Unknown** throughout.
+>
+> **Q-P07 — route selection, ownership, ABI and costs**
+>
+> Select `setNMI`’s default NMINV chain for case 1. For `onRasterIRQ`, select `setIRQ` while retaining normal KERNAL service. Exclusive and raw installation require the broader ownership described below; acknowledging VIC alone does not justify either.
+>
+> The applicable context is:
+>
+> | Dimension | Packet-supported state |
+> |---|---|
+> | Machine/CPU | Stock, unexpanded C64; NMOS MOS 6510; documented NMOS instructions |
+> | Profiles | `c64-pal-prg-kernal-6581`, `c64-pal-prg-kernal-8580`, `c64-ntsc-prg-kernal-6581`, `c64-ntsc-prg-kernal-8580` |
+> | PAL | 985,248 nominal CPU cycles/s; 312 × 63 raster geometry; 6569 family |
+> | NTSC | 1,022,730 nominal CPU cycles/s; 263 × 65 geometry; later 6567R8 family |
+> | SID | Exactly one selected 6581 or 8580 endpoint at `$D400`; ingress costs are identical |
+> | Revisions | KERNAL 901227-03; exact VIC/CIA silicon revisions, board/PLA identity and deployed ROM hash **Unknown** |
+> | Cooperative banking | `$0000 & $07 = $07`; `$0001` latch low bits `$06`: BASIC out, KERNAL and I/O visible; unrelated upper bits preserved |
+> | NMI routing | Hardware `$FFFA/$FFFB → $FE43`; ROM dispatch through NMINV `$0318/$0319`; predecessor `$FE47`; installed ingress `$2147` |
+> | IRQ routing | Hardware `$FFFE/$FFFF → PULS/PULS1`; CINV `$0314/$0315`; saved actual predecessor required. Its numerical address is not supplied |
+> | Nesting | One non-self-nesting IRQ as stipulated; NMI can preempt mainline, IRQ and itself; no finite external NMI arrival bound |
+>
+> These are profile facts and supplied assumptions, not observed configuration. Sources: [profile identities and timing](/work/spec/15-platform-profile.md:22), [machine contract](/work/spec/appendix-c64.md:31), [banking](/work/spec/appendix-c64.md:217), and [revision-pinned entry contracts](/work/references/c64-memory-and-runtime.md:321).
+>
+> The complete source inventory must include the following. The packet does not provide enough mask/pending-state information to certify **every actually enabled source**:
+>
+> | Sources | Ownership or missing fact |
+> |---|---|
+> | VIC raster IRQ | Explicitly acknowledged by `onRasterIRQ` |
+> | VIC sprite-background, sprite-sprite and light-pen IRQ | Other `$D01A` enable bits are **Unknown**; each enabled source needs an owner |
+> | CIA1 Timer A, Timer B, TOD alarm, serial completion and FLAG | Retained stock Timer A service belongs to firmware under default chaining. The fixture’s complete mask/pending state is **Unknown** |
+> | CIA2 Timer A, Timer B, TOD alarm, serial completion and FLAG | Firmware-owned in the NMI fixture; exact enabled subset and external pin activity are **Unknown** |
+> | Physical RESTORE | Remains possible, independently of CIA2 masks and CPU `I` |
+> | Cartridge/expansion interrupt inputs | Excluded by the stock unexpanded profile; no claim covers an attached device |
+> | Keyboard and both joystick ports | Physical CIA1 port inputs remain relevant; they are not substitutes for an interrupt-source inventory |
+>
+> VIC and CIA source/effect authorities are [VIC registers](/work/references/c64-hardware.md:43) and [CIA ICR](/work/references/c64-hardware.md:279). Unknown enables cannot silently be treated as disabled.
+>
+> The route comparison is:
+>
+> | Route | Required ABI and terminal owner | Generated wrapper, excluding body/acknowledgement | Fixed cycles from CPU acceptance |
+> |---|---|---:|---:|
+> | Default CINV chain | Firmware already saved A/X/Y. `PHP; CLD`, body, `PLP`, page-safe predecessor jump; prior handler owns final service/restore | 6 bytes, 14 cycles; 7 stack bytes including CPU/firmware frame | 50 to predecessor, then its variable path |
+> | Exclusive CINV | Same firmware saves; `CLD`, body, jump `$EA81`; pinned ROM restore-only tail owns final `RTI` | 4 output bytes; 27 cycles including ROM tail; 6 stack bytes | 63 through completion |
+> | Raw IRQ | Compiler saves/restores required registers, establishes binary mode, ends with `RTI` | Generic A/X/Y template: 12 bytes, 37 cycles; 6 stack bytes | 44 through completion |
+> | Default NMINV chain | ROM saved no registers. `PHP` before register saves, `CLD`, body, register restoration before `PLP`, predecessor jump | Generic A/X/Y template: 16 bytes, 43 cycles; 7 stack bytes | 57 to predecessor, then its variable path |
+> | Exclusive NMINV | Compiler saves/restores registers; `CLD`; final `RTI` | Generic template: 12 bytes, 37 cycles; 6 stack bytes | 51 through completion |
+> | Raw NMI | Same generated template, with direct hardware entry and compiler-owned `RTI` | Generic template: 12 bytes, 37 cycles; 6 stack bytes | 44 through completion |
+>
+> Every total additionally requires body/acknowledgement cycles, interrupted-instruction completion where relevant, nested work and bus stalls. The existing IRQ entry contributes **16 ROM bytes and 29 cycles**, with zero output bytes. `$EA81` contributes **6 existing ROM bytes and 22 cycles**, also zero output bytes. The NMI stub contributes **4 existing ROM bytes and 7 cycles**. CPU acceptance contributes **7 cycles and 3 stack bytes**.
+>
+> Default chains need a **two-byte predecessor link**. Exclusive/raw wrappers have no chaining link, but an installation that must later restore still needs its lifecycle-owned saved predecessor storage. Charge one word for each simultaneously live installation requiring chain or restoration; do not equate “no indirect chain” with “no saved vector.”
+>
+> Sources: [IRQ cost baselines](/work/references/c64-memory-and-runtime.md:336), [NMI cost baselines](/work/references/c64-memory-and-runtime.md:367), and [install/restore storage](/work/spec/06-functions.md:842). These are documented/derived costs, not measurements.
+>
+> The ownership split is:
+>
+> - **Compiler:** callback-only identity, sink-selected ABI, reachable variants, full transitive SFA closure, register/status/D preservation, effects and volatility, stack/resource analysis, diagnostics, and complete cost reporting.
+> - **Platform/profile:** exact vectors, ROM revision/tails, banking and visibility, source/preemption contracts, reservations, installation/restoration contracts, and device-specific operations.
+> - **Developer:** selected source behavior, actual acknowledgement and enable policy, deliberate shared state, input scheduling, debounce/repeat and gameplay policy.
+>
+> An interrupt source handler cannot be called normally: **E10051**; an invalid signature is **E10050**. Its ordinary helper remains a `JSR`/`RTS` function. Recognized sinks select variants from retained handler identity; only reachable variants are emitted. An ordinary function at an interrupt sink is **E10244**; erased/unknown handler provenance is **E10247**.
+>
+> The governing source contract permits handler values directly or through same-kind conditionals and provides no user-spellable handler-storage type. Ordinary typed function values have broader storage-flow rules. Therefore “identity flows through values” must be checked against the particular value kind, rather than using the skill’s broader summary to authorize arbitrary handler storage. See [Chapter 06 §8](/work/spec/06-functions.md:895).
+>
+> `pokew($0314, &onRasterIRQ)` exposes a raw entry to the post-save CINV vector: **E10252**. Making the address genuinely opaque removes certification, not the hardware mismatch. A raw installer is unavailable for an inactive/read-only hardware-vector path. Under cooperative banking, writes beneath KERNAL ROM do not make the underlying RAM vector active.
+>
+> A link at `$30FE` is valid: its high byte is fetched from `$30FF`. A link at `$30FF` is invalid for ordinary NMOS `JMP (link)`: the high byte comes from `$3000`, not `$3100`. Relocate it or use a separately proved alternative and charge its costs. Sources: [sink/vector rules](/work/spec/15-platform-profile.md:243) and [NMOS indirect-jump wrap](/work/references/mos-6502-family.md:285).
+>
+> Default chaining preserves the **live firmware-entry status** before reaching the predecessor; the CPU’s original interrupted status remains in its hardware frame. Raw/exclusive final `RTI` restores that original status, including D and I. NMOS entry does not clear D; generated ordinary code must begin in binary mode. CINV already has firmware register saves and must not repeat them without a specific additional obligation.
+>
+> Exclusive IRQ takeover owns every enabled IRQ source and skips normal KERNAL service. Its final release on the four cooperative PRG profiles must perform the specified stock CIA1 handback: stop/mask, consume ICR once, restore PAL `$4025` or NTSC `$4295` Timer A reload, restore the exact saved CINV, enable/start stock Timer A, and restore caller status. Arbitrary old masks/reload latches cannot be recovered by reads. The emitted handback cost is **Unknown** without output. See [the governing handback contract](/work/spec/appendix-c64.md:241).
+>
+> Exclusive NMI must own or explicitly replace all CIA2, RESTORE and other admitted NMI behavior. Raw takeover additionally owns both hardware-vector routes and all reachable banking states. Neither alternative preserves stock behavior merely by omitting its service.
+>
+> A decisive counterexample is a raw handler installed into CINV: its direct `RTI` encounters firmware register-save bytes above the CPU frame and restores the wrong status/PC. Independent proof must derive expected A/X/Y/P/D/S/PC and device effects from the governing ABI, separately check selected instructions and costs, then establish actual emitted/assembled bytes before execution. The current candidate route assessment is **Verified partial / Inference**; full route qualification remains **Unknown**.
+>
+> Lineage: `sfa-and-abi.md#interrupt-route-completion-gate`, `c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts`; source keys `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6510-1982`, `CBM-C64-KERNAL-03`, `CBM-C64-PRG-1982`, `MOS-6526-1981`.
+>
+> **Q-P24 — all seven numbered fixtures**
+>
+> The controlling admission rule is [Chapter 06 §7.5](/work/spec/06-functions.md:757), with its exact four-profile scope in [Chapter 15](/work/spec/15-platform-profile.md:267). It examines the complete selected generated path, including parameters/results, staging, locals, temporaries, spills and helper scratch. Source-local names are not machine homes. Immutable installation-owned links have separate lifetimes.
+>
+> **1. Private-home-free ingress — admissible; static audit Verified partial / Inference.**
+>
+> The supplied instructions preserve the generated chain ABI:
+>
+> - `PHP` precedes `PHA`; `CLD` establishes binary body state.
+> - A is restored by `PLA`; X/Y are never changed.
+> - `PLP` follows `PLA`, restoring flags changed by loads and the pull before the predecessor jump.
+> - The predecessor sees the entry register values and live flags, including D. `PHP`’s represented B bit is not a persistent CPU mode; the original hardware-stacked status remains intact.
+> - There are no helper calls, invocation-private RAM/ZP homes or ICR reads.
+> - Each active entry stores `INTERFERED=1` before writing CIA1 PA `$7F`. These deliberate shared/device effects retain their access count and order.
+> - Exactly one generated predecessor jump occurs per completed ingress. It transfers terminal ownership to `$FE47`; it does not itself execute `RTI`.
+>
+> The link at `$3002` occupies `$3002–$3003`, safely contains `$47,$FE`, and remains valid for every interrupted route. `$2147–$215D`, the shared bytes and link are visible RAM; `$DC00` is visible I/O; `$FE43/$FE47` are visible ROM.
+>
+> Publication/removal can change only `$0319`: low byte `$47` is unchanged. At an instruction-boundary NMI, NMINV therefore selects either complete address `$FE47` or `$2147`. Code/data already exist, and removal does not reclaim the ingress or overwrite its link. This is the supplied safe update scheme, not protection supplied by `SEI`.
+>
+> The exact selected instruction cost is:
+>
+> | Instructions | Code bytes | Inactive cycles | Active cycles |
+> |---|---:|---:|---:|
+> | `PHP; PHA; CLD` | 3 | 8 | 8 |
+> | `LDA $3000` | 3 | 4 | 4 |
+> | `BEQ chain` | 2 | 3, taken | 2, not taken |
+> | `LDA #$01; STA $3001` | 5 | 0 | 6 |
+> | `LDA #$7F; STA $DC00` | 5 | 0 | 6 |
+> | `PLA; PLP` | 2 | 8 | 8 |
+> | `JMP ($3002)` | 3 | 5 | 5 |
+> | **Selected ingress total** | **23** | **28** | **39** |
+> | CPU NMI acceptance | 0 | 7 | 7 |
+> | Existing `$FE43` ROM stub | 0 output; 4 ROM | 7 | 7 |
+> | **Acceptance to `$FE47`** | **23 output code** | **42** | **53** |
+>
+> The branch is at `$214D`, targets `$2159`, and stays within page `$21`; no branch-page penalty applies. Instruction forms and timings follow the [NMOS grid](/work/references/mos-6502-family.md:97).
+>
+> Its other component costs are:
+>
+> | Resource | Exact supplied/derived component |
+> |---|---|
+> | Activation-private RAM/ZP | **0 / 0** |
+> | Shared RAM | ACTIVE **1 byte**, INTERFERED **1 byte** |
+> | Installation link | **2 bytes**, lifetime-owned, not activation-private |
+> | Generated explicit stack | **2 bytes** at peak: status and A |
+> | CPU frame plus ingress | **5 live bytes** for this one executing ingress |
+> | Calls/dispatch runtime | No generated helper calls or runtime dispatcher |
+> | Active effects | One ACTIVE read, one INTERFERED store, one CIA1 PA write; zero generated CIA ICR reads |
+> | Inactive effects | One ACTIVE read; no shared/MMIO stores |
+>
+> The selected executable component is 23 bytes. A serialized predecessor word adds two data bytes. Shared-byte initialization, link initialization/serialization choice, whole PRG padding, startup, caller-preservation and complete installer/remover costs are **Unknown**. The standard PRG contract separately requires a two-byte load header and 12-byte BASIC stub; those do not determine the whole image size.
+>
+> A single absolute high-byte store has a **3-byte/4-cycle instruction core**; immediate constant materialization adds **2 bytes/2 cycles**. These are component expectations, not a measured full installation sequence.
+>
+> The raw stock source supplies additional bounded components:
+>
+> - `$FE47` saves A/X/Y: **5 existing ROM bytes, 13 cycles**, adding three stack bytes.
+> - `LDA #$7F; STA D2ICR; LDY D2ICR`: **8 existing ROM bytes, 10 cycles**, disables CIA2 masks and consumes ICR once.
+> - Returning through `PREND` restores registers and executes `RTI`: **6 existing ROM bytes, 22 cycles**.
+>
+> Sources: [stock ingress and ICR operations](/work/primary/kernal-rs232nmi:2) and [restore tail](/work/primary/kernal-rs232nmi:87). They contribute zero output bytes. After generated saves have been popped, the CPU frame plus stock register saves occupies six bytes, before stock calls and nested entries. Neither five nor six is a full-program peak.
+>
+> The ingress’s repeated constant writes are compatible with its stated shared effects. Its empty private inventory alone would not prove the remaining ABI/device/lifecycle conditions; here those conditions are separately supplied or derived. Full scan/restoration correctness and stock-firmware guarantees remain **Unknown**.
+>
+> **2. Helper with scratch — Incorrect / Inference; required rejection E10245.**
+>
+> The helper introduces **2 ZP bytes plus 2 RAM scratch bytes per overlapping activation**, regardless of the source body’s appearance. At nesting depth \(n\), those live private requirements become \(2n\) ZP bytes and \(2n\) RAM bytes. No finite number of static instances covers the stipulated unbounded overlap.
+>
+> It therefore fails the cooperative exception. A lock, nesting guard, event suppression, shared scratch or dynamic frame selector is not an authorized remedy. A legal selected alternative could remove the private homes while preserving all semantics, or a real finite bound could permit static separation.
+>
+> An ordinary direct helper call also contributes a **3-byte/6-cycle `JSR`**, a **1-byte/6-cycle `RTS`**, and two live return-address bytes, excluding marshalling and helper work. The helper body size, arithmetic cycles and complete entry costs are **Unknown**. A/X/Y/P/D, volatile effects, source ownership and lifecycle still require proof; scratch rejection does not discharge them. Authority: [complete closure](/work/spec/06-functions.md:804).
+>
+> **3. Register-only local and storage-free helper — expressible; rejection by spelling would be Incorrect / Fact.**
+>
+> Neither an ordinary local declaration nor a helper call is a rejection predicate. The supplied complete selected-instruction proofs and zero RAM/ZP inventory satisfy that portion of the admission test.
+>
+> A register value must survive nested entry/return through the proved save/restore contract. A helper remains ordinary `JSR`/`RTS` code and must meet binary-body, clobber, return-state and transitive-call obligations. A direct call has the 4-byte/12-cycle combined call/return core and two live stack bytes described above; register preservation and helper work are additional.
+>
+> Exact local/helper code, path cycles and stack-save amounts are **Unknown** because their instructions are not given. Source admission is **Verified complete / Fact**; actual lowering and complete route qualification are **Unknown**. See [the explicit no-local/no-helper-ban rule](/work/spec/06-functions.md:777).
+>
+> **4. Shared counter versus set-only flag — absence of private homes proves neither atomicity nor effect correctness.**
+>
+> For the stipulated counter sequence:
+>
+> 1. Outer entry loads \(k\).
+> 2. Nested entry loads \(k\), stores \(k+1\).
+> 3. Outer entry stores its already computed \(k+1\).
+>
+> Two increments produce one observed increment. A lost-update-free claim is **Incorrect / Inference**. The source remains expressible with **W10211**, preserving its actual interleavings. The warning does not become an E10245 prohibition solely because shared state is non-atomic. A statically visible multi-byte tearing hazard separately receives **W10212**.
+>
+> Repeatedly storing one to a flag is idempotent with respect to other identical stores. That property says nothing about clearing it, a read-clear protocol, associated state publication or MMIO side effects. Preserve required store count/order even when values repeat.
+>
+> Each shared byte occupies one common home; SFA does not duplicate it. Exact selected counter/flag instruction costs are **Unknown**. Empty private storage is one necessary predicate, while effects, A/X/Y/P/D, terminal, banking and lifecycle require their own proof. Sources: [shared-state semantics](/work/spec/06-functions.md:799) and [canonical warning registry](/work/spec/14-diagnostics.md:300).
+>
+> **5. Growing stack, recursion and finite overflow — three distinct rejection grounds.**
+>
+> | Candidate | Assessment |
+> |---|---|
+> | Unmatched **generated** status push on a compiler-controlled cycle | **Incorrect / Inference**; **E10245** for unbounded generated stack growth. Each `PHP` adds one live byte, costs one code byte and three cycles per execution; matching pulls must actually occur |
+> | Invalid **source** `asm_php()`/`asm_plp()` state | **E10248** for underflow, unequal join/backedge depths or nonempty exit |
+> | Direct recursive call cycle | **E10180**, independently of the NMI exception |
+> | Indirect recursive call cycle | **E10181**; finite indirect target sets participate in cycle detection |
+> | Bounded generated peak 237; capacity 256; reserve 20 | **E10238**: usable capacity is \(256-20=236\); unchanged use \(237>236\), a one-byte deficit |
+>
+> Do not subtract reserve from measured use or count reserve as usage. The finite component also exceeds the supplied profile warning threshold **188**, so W10180’s predicate holds; it does not replace the hard error. If no explicit threshold existed, the default would be \(\lfloor0.8\times236\rfloor=188\).
+>
+> The cooperative exception covers externally unbounded NMI reentry of an otherwise proved path. It does not admit compiler-controlled growing-stack cycles or source recursion. Sources: [stack rules](/work/spec/06-functions.md:523), [recursion diagnostics](/work/spec/06-functions.md:970), and [capacity/warning rules](/work/spec/15-platform-profile.md:227). Actual diagnostic emission remains **Unknown**.
+>
+> **6. No generated handler — the reporter’s three guarantees are Incorrect / Inference.**
+>
+> A finite mainline/IRQ component can be reported as that component’s demand. It cannot establish full-program stack safety while retained external NMI activity is unbounded. Installing no generated NMI handler contributes **zero generated NMI-hook bytes, links, scratch and wrapper cost**, but it leaves physical NMI and firmware work present.
+>
+> The raw source supplies direct reasons completion cannot be assumed:
+>
+> - Stock `NNMI` calls `UD60` and `STOP`: [raw NMI source](/work/primary/kernal-rs232nmi:20).
+> - `UD60` repeatedly reads/compares ROWS until equal; `UD70` has another polling loop: [raw time source](/work/primary/kernal-time:49).
+> - The STOP path reaches `TIMB`, restores system state and jumps through BASIC’s warm-start vector rather than returning to the interrupted call site: [raw terminal path](/work/primary/kernal-rs232nmi:25).
+> - RS-232 paths modify shared firmware state and re-enable CIA2 sources; generated storage freedom does not prove their reentrancy.
+>
+> Thus unrestricted aggregate stack, retained-firmware reentrancy, completion and a finite raster deadline are each **Unknown**. A firmware reserve is neither an arrival bound nor a completion proof.
+>
+> Finite timing needs a real bound on accepted arrivals/nesting during the interval, a bound on every reachable firmware/source path—including polling and terminal behavior—and the generated/IRQ workload, acknowledgement costs, entry latency and VIC bus stalls. One-entry cost cannot certify that interval. The governing rule explicitly covers the no-installed-handler case: [Chapter 15](/work/spec/15-platform-profile.md:273).
+>
+> **7. Consuming ICR, torn publication and overwritten links — each proposed violation is Incorrect / Inference.**
+>
+> A simple chain that reads CIA2 ICR before jumping to stock `$FE47` steals pending state from its declared owner. An ICR read clears all returned pending bits; selecting one bit afterward does not undo consumption. Stock `$FE47` then performs its own read and may follow a different source path, including interpreting the entry as RESTORE/other input.
+>
+> Exactly one consuming owner must capture the bitset and handle all admitted returned bits. A complete explicitly selected replacement could do that; the supplied simple chain cannot. An absolute load’s ICR-read core is three bytes/four cycles, but the offending candidate’s full instructions, state preservation and replacement costs are **Unknown**. See [CIA ownership](/work/references/c64-memory-and-runtime.md:396) and [the raw stock read](/work/primary/kernal-rs232nmi:9).
+>
+> Changing both NMINV bytes under `SEI` is not an NMI-safe transaction. For a general old/new pair, an intervening NMI can fetch a mixed address. Even with case 1’s equal low bytes, additional writes need examination of their intermediate values; `SEI` supplies no protection. The supplied single high-byte update has a direct old-or-new proof and avoids that uncertainty.
+>
+> Likewise, restoring the vector does not make an interrupted old ingress dead. Overwriting its predecessor link can redirect its later jump. Preserve every link until all possible observers are gone; case 1’s whole-lifetime immutability satisfies this. A visible unsafe route fails its proof; incomplete generated reentrancy invokes **E10245**. Invalid helper ownership/restoration is **E10278**. An opaque mutation remains uncertifiable.
+>
+> Each simultaneously live install needing restoration/chaining costs two predecessor bytes. Finite balanced LIFO nesting is legal; unmatched/out-of-order restores, unequal joins or function-exit ownership transformations are E10278, and unbounded installation nesting is E10245. These are compile-time effects with no runtime ownership registry. Sources: [publication/removal requirements](/work/references/c64-memory-and-runtime.md:424) and [ownership rules](/work/spec/06-functions.md:842).
+>
+> **The additional storage, source-stack and borrow fixtures**
+>
+> The provisional allocator sharing H’s homes across mainline and IRQ is **Incorrect / Inference**. Both H invocations can be live simultaneously. Allocate:
+>
+> | H private storage | Mainline instance | IRQ instance | Required total |
+> |---|---:|---:|---:|
+> | RAM | 8 | 8 | **16 bytes** |
+> | ZP pointer | 2 | 2 | **4 bytes** |
+>
+> This adds **8 RAM and 2 ZP bytes** relative to the unsound single instance. Source globals remain shared. Fixed absolute references or differing specialized callees require corresponding code variants; storage-free identical paths can share code. H’s body size, variant growth and instruction cycles are **Unknown**.
+>
+> Each active H call adds two hardware-stack return bytes. Two simultaneous calls therefore contribute four bytes, in addition to the selected IRQ frame, other calls and NMI entries. H’s RAM/ZP bytes are not hardware-stack demand. The private-free NMI ingress adds no H instance; an unbounded NMI path that also calls storage-bearing H would fail E10245. Authority: [execution-domain separation](/work/spec/06-functions.md:765).
+>
+> Putting all locals on the hardware stack is **Incorrect / Fact** under the sole general SFA model. `asm_pha`, `asm_pla` and `asm_brk` are not public intrinsics. The public CPU-control surface is exactly `asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, `asm_nop`; there are no inline assembly blocks or source-visible registers. Internal backend PHA/PLA register preservation does not authorize general stack locals. See [the source intrinsic contract](/work/spec/12-intrinsics.md:10).
+>
+> The late **two-byte legalization spill** must re-enter SFA inventory, interference, placement and budgets before closure. If it belongs to H and is live in both instances, it adds four RAM bytes, producing **20 H RAM bytes plus 4 H ZP bytes**. Its domain/liveness may permit another overlay, but that needs proof. If introduced into the previously private-free unbounded NMI path, it invalidates that exception unless selection removes the need. Actual accesses/cycles are **Unknown**. Emission cannot invent anonymous storage after closure. Lineage: [sfa-and-abi.md#final-storage-closure](/work/references/sfa-and-abi.md:409).
+>
+> For the borrow fixture, the source-level rules are **Verified complete / Fact**; actual allocation/output is **Unknown**:
+>
+> | Use | Required conclusion |
+> |---|---|
+> | `p=&L` | Legal borrow while L’s lexical/invocation lifetime remains active |
+> | `q=p+1` | Retains L provenance; ordinary modulo-65536 address arithmetic does not prove a valid dereference beyond L |
+> | `low=lo(q)` | Retains the local-address dependency despite becoming a byte |
+> | Local aggregate stores `p` | Legal only when the aggregate’s containing lifetime is proved within L’s lifetime |
+> | U forwards `p` to V; all reachable V paths only read/use it within lifetime | Legal after transitive non-retaining proof for the relevant U/V parameter positions |
+> | V retains it globally | Retaining; **E10260** at the first escaping/retaining use, with origin and escape-path evidence |
+> | Caller returns `low` | **E10260**; byte extraction cannot launder provenance |
+> | Stores to module/ZP state, raw memory or MMIO; publishes to IRQ | **E10260** |
+> | Address escapes its loop incarnation | **E10260**, even if the next iteration reuses the same bytes |
+> | Unknown/external/opaque consumer | **E10260** absent a sufficient non-retaining contract |
+> | Ordinary data loaded through `p` | Does not inherit address provenance merely because of that load |
+>
+> “Synchronous” alone is insufficient: a synchronous callee can retain an address. User-function summaries are inferred transitively; library/platform parameter positions require explicit non-retaining contracts.
+>
+> Sequential calls/iterations may reuse a home after every legal borrow ends. Concurrent mainline/one bounded IRQ require disjoint live homes, including L and transitive private storage; address materialization may require domain-specific code. L’s size and selected closure are unspecified, so total RAM/ZP/code and cycles remain **Unknown**.
+>
+> Borrow tracking adds **zero runtime metadata/checking cost**. A fixed address materialized into absolute word storage has the documented **10-byte/12-cycle** candidate; a ZP destination has **8 bytes/10 cycles**. Folding and register placement can change whether that materialization is needed. These are candidate costs, not the fixture’s emitted result. Authorities: [address provenance](/work/spec/04-expressions-operators.md:378), [non-retaining calls](/work/spec/06-functions.md:395), and [address materialization costs](/work/spec/04-expressions-operators.md:476).
+>
+> **Input preservation, takeover/D64 scope and the smallest boundary**
+>
+> Keep named-key interpretation and both joystick observations in ordinary Blend65 C64 library code. The compiler owns entry/storage/volatile lowering and proof boundaries; the developer owns debounce, repeat, scheduling and gameplay. No new runtime, manager, event queue or compiler-special keyboard decoder is needed. This is the supplied [library ownership boundary](/work/references/c64-memory-and-runtime.md:417).
+>
+> Normal input additionally requires a proved CIA1 sampling/restoration contract:
+>
+> - Joystick port 2 uses PA0–PA4; port 1 uses PB0–PB4; active-low bits are up/down/left/right/fire.
+> - Keyboard selection uses PA columns and PB rows; normal RESTORE is a separate physical NMI input.
+> - Preserve both DDRs, both known/shadowed output latches and other owners; PBON is disabled here.
+> - Account for keyboard ghosting and joystick-induced matrix ambiguity.
+>
+> The ingress takes no keyboard/joystick samples. ACTIVE covering restoration and INTERFERED reporting disturbance support a protocol, but do not prove the complete sampling, retry, restoration or publication algorithm. No scan bytes/cycles or certainty guarantee can be inferred. See [the exact matrix and joystick wiring](/work/references/c64-hardware.md:201).
+>
+> The exception belongs only to the four cooperative PRG profiles. Raw takeover and `c64-pal-d64-kernal-6581` receive **no extension**:
+>
+> - Raw profiles use mapping low bits `$05`, expose active RAM hardware vectors, have reserve zero, and own complete IRQ/NMI behavior. Populate underlying vectors before exposing RAM and prove both sides of the banking transition. CINV/NMINV helpers and ordinary KERNAL execution are unavailable during takeover.
+> - D64 retains cooperative banking but adds its loader/artifact contract; application IRQ/NMI/audio observers and writers must meet its quiescence requirements during loading. A generated unbounded NMI route cannot borrow the PRG exception.
+>
+> Sources: [raw takeover](/work/spec/appendix-c64.md:263), [D64](/work/spec/appendix-c64.md:275), and [explicit exception exclusion](/work/spec/06-functions.md:789). No product change or additional approval is implied.
+>
+> The smallest remaining proof proceeds from the evidence actually present: obtain focused source and compiler/profile identities; inspect selected variants and final storage closure; assemble with the pinned ACME baseline and inspect bytes, symbols, layout and container; then run independent ABI/device/lifecycle cases on each exact VICE profile. Expected behavior must come from governing semantics and raw firmware, with a separate instruction/resource expectation. Physical RESTORE/CIA-edge, banking and revision-sensitive claims then require targeted hardware evidence.
+>
+> This assessment establishes contract decisions and conditional instruction costs. It cannot establish actual compiler support, encoded output, complete program layout/cost, full input preservation, unrestricted stack safety, retained-firmware completion, finite timing or silicon qualification.
+>
+> Q-P24 lineage: `sfa-and-abi.md#hardware-stack-duties`, `#final-storage-closure`, `#local-address-borrow-completion-gate`; `c64-memory-and-runtime.md#revision-pinned-nmi-contracts-and-costs`; source keys `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6526-1981`, `CBM-C64-KERNAL-03`, `CBM-C64-PRG-1982`.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-input-boundary-final: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-input-boundary-final`. Raw run-log SHA-256: `c058b2d6ed74af090d402527606ddab2a318867bc49235f90e94c8b170ecbec4`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `80072e48355b472212dca09aaee7ea69971b672d3760e5702bc5bdeec47335bf`; packet-record SHA-256: `2755058a9638904486a719d3c93d6115b81716da18dc91571eeb5b449d45e3a3`.
+
+```text
+74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+46fef4915ca736955a48024fa73e1837ef03c5e743469813245da8b5ebc3fb87  evaluated-answer.md
+362a585478a1f514f0508c64a524adebbce5895e1ec326bf6f761aabdddea220  evaluator-request.md
+96c2fc6a06e70f653f19ddbc324af5dba246b2315f2d1d61c887c1e8d6d0cef8  grade-request.md
+b850a67df04fde610a21f78eaca5a22f77b48e4ae80a887f568c804bfd658873  oracle.md
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+9057014eb6394b92a6159230313f56349957c91b68fe12b39020b3ab376d4f2f  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+c966648ea7a58952561909b9a127f1617b50ee583f2845bcd07fb43602b2e51b  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+6624bf4a0f59ac3a56f331f1a056a1e5b907f80555c3969c058551f6af97b189  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+362a585478a1f514f0508c64a524adebbce5895e1ec326bf6f761aabdddea220  request.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+```
+
+> **Q-P07: PASS. Q-P24: PASS.** These are independent grades of [evaluated-answer.md](/work/evaluated-answer.md) against the frozen oracle. They establish the quality of this packet-only assessment; compiler, runtime and physical qualification remain **Unknown**. No separate historical capture was supplied.
+>
+> | Case | Grade | Decisive output evidence | Findings / severity |
+> |---|---|---|---|
+> | **Q-P07** | **PASS** | The answer distinguishes all six IRQ/NMI routes, including “Firmware already saved A/X/Y” for CINV and “ROM saved no registers” for NMINV ([route table](/work/evaluated-answer.md:44)). It requires callback-only identity, reachable variants, ordinary `JSR`/`RTS` helpers, binary body entry, complete status restoration, page-safe links and active/writable raw vectors. It rejects raw entry at CINV and explains the incompatible stack frame ([counterexample](/work/evaluated-answer.md:79)). | No failing finding. Source ownership, banking, link storage and ROM/output costs are explicit. Unspecified masks, revisions and predecessor address remain unknown. |
+> | **Q-P24** | **PASS** | The answer admits the supplied private-home-free ingress, rejects hidden scratch, permits register-only locals/helpers, preserves warning severity for shared hazards, and separates generated reentrancy from external stack/firmware guarantees. Crucially, it states that those guarantees remain “Unknown” without an installed generated handler ([fixture 6](/work/evaluated-answer.md:192)). | No failing finding. All seven numbered fixtures and the additional storage, stack, borrow and input obligations are addressed. No nesting bound, deadline or qualification result is invented. |
+>
+> Every numbered fixture passes its individual check:
+>
+> | Fixture | Decisive answer evidence and independent check |
+> |---|---|
+> | **1. Private-home-free ingress** | [ABI analysis](/work/evaluated-answer.md:89) correctly places `PHP` before `PHA`, establishes D clear, restores A before P, leaves X/Y unchanged, preserves shared/device access order and transfers terminal ownership to `$FE47`. The immutable `$3002` link is page-safe. Updating only `$0319` selects either `$FE47` or `$2147`; this follows the supplied equal-low-byte scheme, rather than NMI exclusion by `SEI`. Admission matches [Chapter 06 §7.5](/work/spec/06-functions.md:777). |
+> | **2. Helper scratch** | [Required E10245 rejection](/work/evaluated-answer.md:148) correctly accounts for two ZP and two RAM bytes per overlapping invocation. Unbounded overlap cannot be covered by finitely many static homes. The call/return core is correctly charged as four code bytes, 12 cycles and two live stack bytes; unspecified helper work remains unknown. |
+> | **3. Register-only local/helper** | [Expressibility conclusion](/work/evaluated-answer.md:156) correctly rejects a ban based on source spelling. Selected storage and complete ABI/effect proofs govern admission. Exact instructions and additional costs remain unknown because the fixture does not supply them. |
+> | **4. Shared counter/flag** | [Lost-update example](/work/evaluated-answer.md:166) demonstrates two increments yielding one observed increment. W10211 remains a warning; multi-byte tearing separately invokes W10212. Identical set-to-one stores establish only that narrow idempotence property, while store count/order and other effects still require proof. This matches the [canonical diagnostics](/work/spec/14-diagnostics.md:300). |
+> | **5. Stack growth/recursion/overflow** | [Diagnostic table](/work/evaluated-answer.md:180) correctly distinguishes generated growing-stack cycles (E10245), invalid source status-stack state (E10248), direct/indirect recursion (E10180/E10181), and ordinary finite overflow (E10238). Usable capacity is `256 − 20 = 236`; demand 237 exceeds it by one byte. The warning threshold is correctly 188. |
+> | **6. No installed handler** | [Rejection of the reporter’s guarantees](/work/evaluated-answer.md:192) is justified by raw firmware: `NNMI` calls `UD60` and `STOP`; [UD60/UD70 contain polling loops](/work/primary/kernal-time:49); [TIMB reaches BASIC warm start](/work/primary/kernal-rs232nmi:27). Zero generated-hook cost does not eliminate physical NMI or retained firmware. Aggregate stack, reentrancy, completion and deadline guarantees correctly remain unproved. |
+> | **7. ICR/vector/link ownership** | [Violation analysis](/work/evaluated-answer.md:207) correctly rejects consuming firmware-owned CIA2 ICR, treating `SEI` as an NMI transaction guard, and overwriting a link still observable by an interrupted ingress. [Stock NNMI performs its own ICR read](/work/primary/kernal-rs232nmi:9). The fixed one-byte publication and whole-lifetime immutable link receive distinct, valid proofs. |
+>
+> The cost claims also survive independent recomputation. The selected ingress occupies **23 bytes**, with **28 inactive / 39 active cycles**. Adding seven CPU-entry cycles and seven existing-ROM-stub cycles gives **42 / 53 cycles to `$FE47`**. The branch at `$214D` targets `$2159`, so there is no page-cross penalty. Storage is **zero private RAM/ZP**, two shared RAM bytes and a two-byte installation link; generated saves add two stack bytes to the CPU’s three-byte frame. These agree with the [answer’s ledger](/work/evaluated-answer.md:103) and the [NMOS instruction grid](/work/references/mos-6502-family.md:97).
+>
+> The stock components are also correct: A/X/Y saves cost **5 ROM bytes / 13 cycles**, the CIA2 mask-write/read sequence **8 ROM bytes / 10 cycles**, and `PREND` **6 ROM bytes / 22 cycles**. They contribute zero output bytes. The answer correctly avoids turning these components into a complete firmware cost or program peak.
+>
+> For Q-P07, the six route totals agree with the [pinned IRQ](/work/references/c64-memory-and-runtime.md:336) and [NMI baselines](/work/references/c64-memory-and-runtime.md:367): CINV chain 6 output bytes/14 wrapper cycles; exclusive CINV 4 output bytes/27 cycles including its ROM tail; raw IRQ 12/37; NMINV chain 16/43; exclusive/raw NMI 12/37. Hardware acceptance, firmware entry, body, acknowledgement and variable predecessor paths are accounted for separately.
+>
+> The additional fixtures are complete: overlapping H invocations require **16 RAM and 4 ZP bytes**, plus four return-address stack bytes; a live two-byte spill in each H instance conditionally raises RAM to **20 bytes**. General hardware-stack locals and the proposed extra source intrinsics are correctly rejected. Borrow provenance survives arithmetic and `lo`; retaining/escaping uses receive E10260, while lifetime-contained uses and transitively non-retaining calls remain legal. Borrow analysis adds zero runtime metadata; address-materialization candidates correctly cost **10 bytes/12 cycles absolute** or **8 bytes/10 cycles ZP**.
+>
+> Second-guessing the passes does not reveal a disqualifier. The answer follows [governing handler-value rules](/work/spec/06-functions.md:912) despite broader derivative-summary wording. It preserves normal RESTORE, keeps saved-input interpretation in ordinary Blend65 libraries, and does not certify keyboard ambiguity or port restoration. Raw takeover and D64 receive no extension. Missing emitted artifacts, complete installer costs, source masks, deployed ROM hash and measurements are packet limitations explicitly retained as unknowns—not evaluator omissions.
+>
+> Lineage: `skillVersion=2.0.2`; declared source identity `BLEND65-SPEC-4-566da991`; immutable content commit **Unknown**. Relevant gates are `sfa-and-abi.md#interrupt-route-completion-gate` and `#final-storage-closure`, with hardware keys `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6510-1982`, `MOS-6526-1981` and `CBM-C64-KERNAL-03`. No unavailable qualification files were read.
+>
+> **Final unresolved grading findings: Critical 0, Major 0, Minor 0. Cases: 2 PASS, 0 FAIL.**
+
+</details>
+
+<details>
+<summary>2.0.2 workload-completion: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/workload-completion`. Raw run-log SHA-256: `bded206202a260245f7a422a3271be1c619fab7d26baf51c8edc573b215a12bc`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `d86abf5f0e471b27880459933f70653dc4287fa17017685b31715be3afedc106`; packet-record SHA-256: `d7fa1a4fb2f8d6b34c1dfc969ed93ca60d455377c7a9e804bf73633e84a143b8`.
+
+```text
+74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+d60f720d3976bf4c9c048eb4715d674cd1e59f97941715c1fdd2cad73992fbe4  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+c966648ea7a58952561909b9a127f1617b50ee583f2845bcd07fb43602b2e51b  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+6624bf4a0f59ac3a56f331f1a056a1e5b907f80555c3969c058551f6af97b189  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+b172e865946de77f4ae125ad035e917664cdc4557c29b1239a9b6d574cd5e5f9  request.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+```
+
+> Both designs are expressible, but this packet cannot establish a qualified audio export, a safe charset-replication optimization, or complete runtime costs. The missing evidence must remain `Unknown`.
+>
+> This assessment uses only the supplied packet. Its lineage is `skillVersion=2.0.2`, declared knowledge identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. The skill content commit and activation are **Unknown**; no qualification files were read. The complete specification digest was not reproduced because only two specification files are supplied.
+>
+> The governing specification takes precedence over reference summaries. In particular, its closed profile set does not authorize a C64U profile, extra SID hardware, or runtime activation.
+>
+> **Shared machine and evidence boundary**
+>
+> The assessment covers these four complete identities independently:
+>
+> | Profile | Video record | SID |
+> |---|---|---|
+> | `c64-pal-prg-kernal-6581` | PAL, 985,248 cycles/s; 312 × 63 = 19,656 cycles/frame | MOS6581 at `$D400` |
+> | `c64-pal-prg-kernal-8580` | Same PAL record | MOS8580 at `$D400` |
+> | `c64-ntsc-prg-kernal-6581` | Later NTSC, 1,022,730 cycles/s; 263 × 65 = 17,095 cycles/frame | MOS6581 at `$D400` |
+> | `c64-ntsc-prg-kernal-8580` | Same NTSC record | MOS8580 at `$D400` |
+>
+> All use documented NMOS6510 instructions, cooperative KERNAL 901227-03, PRG output, and no expansion. PAL corresponds to the 6569 family; the NTSC record corresponds to the later 6567R8 family. Exact VIC mask revision, CIA revision, SID mask revision, board/PLA revision, and actual ROM hashes are **Unknown**. Consequently, cycle-exact and revision-sensitive results remain unproved.
+>
+> The profile drives processor-port low bits as outputs: `$0000 & $07 = $07`, owned `$0001` latch bits = `$06`. BASIC is banked out; KERNAL and I/O remain visible. Unrelated bits are preserved. CIA2 `$DD00/$DD02` ownership is separate from CPU banking.
+>
+> The combined code, assets, globals, and SFA allocation must fit `$0801–$CFFF`: **51,199 bytes**, one shared pool. Compiler ZP is `$02–$8F`: **142 bytes**. Hardware-stack capacity is 256 bytes with a 20-byte firmware reserve, leaving **236 bytes for a proved bounded program component**. That capacity does not prove safety against unrestricted RESTORE reentry.
+>
+> Documentary profile constraints are **Verified complete / Fact** within the supplied specification. Compiler implementation, emitted artifacts, execution, physical behavior, and whole-program cost totals are each **Unknown / Unknown**.
+>
+> Authority: [C64 appendix §§1–5](/work/spec/appendix-c64.md:10), [Chapter 15 profile and interrupt contracts](/work/spec/15-platform-profile.md:72). Hardware lineage: `MOS-6510-1982`, `CBM-C64-PRG-1982`, `CBM-C64-KERNAL-03`, `MOS-6526-1981`, `CSG-6567-318014`, `VIC-BAUER-2024`; local references `c64-memory-and-runtime.md#cpu-address-view` and `c64-hardware.md#models-revisions-and-qa-bounds`.
+>
+> **Q-P11 — Player-neutral game audio**
+>
+> **Finding.** Use the specified player-neutral operations with an exact, hash-bound adapter contract. Keep scheduling in source. The packet establishes this interface design, but supplies no callable export identity or writable-state map. Every actual integration path therefore has capability status **Unknown**, rather than `Scaffold/stub` or a runtime pass.
+>
+> | Path | Required capability and effect | Actual callable capability |
+> |---|---|---|
+> | Music-only | Init, default/subtune selection, one tick, cadence, state and SID ownership | **Unknown / Unknown** |
+> | Integrated music/SFX | Music contract plus effect inventory, voice mapping, arbitration, replacement, same-frame requests and resume | **Unknown / Unknown** |
+> | Minimal SFX-only | Exact small player; immediate trigger or explicitly scheduled tick; effects, voices and complete costs | **Unknown / Unknown** |
+> | Exact custom player | Developer-provided code/data with the same identity, ABI, ownership, state and cost proof | **Unknown / Unknown** |
+>
+> A small SFX-only player is a reasonable candidate when music is absent. Its smaller total cost is not established here.
+>
+> Authority: [audio operations and qualification](/work/spec/appendix-c64.md:553); reference lineage `c64-game-engineering.md#four-valid-integration-paths`, source key `BLEND65-SPEC-4-566da991`.
+>
+> **Container identity is separate from callable identity.**
+>
+> The supplied `.sid` contract accepts only the self-contained, directly callable, C64-compatible PSID v1–v4 subset. It rejects RSID, MUS, PlaySID-specific payloads and zero play addresses.
+>
+> Header fields determine container parsing and fixed placement:
+>
+> - Header words/longwords are big-endian.
+> - Data offset is `$0076` for v1 and `$007C` for v2–v4.
+> - A zero header load address uses the payload’s first two little-endian bytes as the effective load address; those bytes are stripped.
+> - A zero init address resolves to the effective load address.
+> - Init and nonzero play entries must lie inside the non-wrapping emitted payload.
+> - The linker places that payload directly at its effective load address.
+>
+> Those fields do **not** establish SFX ABI, clobbers, writable state, arbitration or interrupt ownership. PSID clock/model `Unknown` means no asserted restriction; it does not mean universal support. A callable contract must close unknown fields and cannot override a specific incompatible declaration.
+>
+> Malformed input is E10204. Valid but incompatible video/model/topology is E10261. An otherwise valid embedded payload without a matching callable contract cannot use `c64.audio`: E10256.
+>
+> The actual file, parsed values, payload interval and validity are **Unknown** because no PSID artifact is supplied.
+>
+> Authority: [PSID handler](/work/spec/appendix-c64.md:492), [profile asset contracts](/work/spec/15-platform-profile.md:196); source key `HVSC-SID-FORMAT-20260906`, document hash `b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0`.
+>
+> **Source operations and direct lowering.**
+>
+> The complete public operation surface supplied by the governing appendix is:
+>
+> ```blend65
+> import {
+>     audioInitDefault,
+>     audioInit,
+>     audioInitNamed,
+>     audioTick,
+>     audioTriggerSfx,
+>     audioTriggerSfxOn,
+> } from c64.audio;
+>
+> audioInitDefault(&AUDIO);
+> audioInit(&AUDIO, 0);
+> audioInitNamed(&AUDIO, "victory");
+> audioTick(&AUDIO);
+> audioTriggerSfx(&AUDIO, "explosion");
+> audioTriggerSfxOn(&AUDIO, "explosion", 2);
+> ```
+>
+> These are interface examples, not runnable source established by this packet. `AUDIO` must be a module-scope embedded asset whose handler preserves provenance to an exact qualified contract; that asset and contract are absent.
+>
+> Named cues are compile-time literals. Their mapping emits **zero runtime string/name-table bytes and zero lookup instructions**. Dynamic numeric IDs are legal only if the contract declares their exact type and range. Missing operations, cues, dynamic forms or voices are E10257.
+>
+> Constant calls lower to contract-specific register setup and an absolute `JSR`. `audioTick` performs exactly one update. It installs no IRQ and introduces no scheduler, mixer, dispatcher, queue or payload copy. Source chooses cadence and call domain.
+>
+> For a tick in an existing raster handler, source must distinguish raster events from retained CIA1 IRQ events; calling on every CINV entry would change cadence. Mainline ticking is also legal if source establishes its timing and exclusion contract. Neither source placement proves a finite deadline under unbounded external RESTORE activity.
+>
+> **Exact adapter identities.**
+>
+> GoatTracker **2.77 is the first adapter family**, not an already-qualified export in this packet. The manifest pins:
+>
+> - Release ZIP: `96c2bd6a6ab3aca2f5bb18b1c764ac6ea69ac245cae14002a72cd87c554561ef`
+> - `readme.txt`: `6c9d029c21cd74334ccce5f0ea58852a8fd4fad0072bdd849d9c585d59043a75`
+> - `src/player.s`: `ee9ddbe99f6d4dca8029bc5ff74f8b9c1ddff68986cf99cfd07ff3af5fad609a`
+> - `examples/src/example2.s`: `f480035987d218fcc42ab1062e7bc6f8ed36b5197ed1c7e5e7760774741e225e`
+>
+> These identify release provenance. They are **not the hash of the game’s export**. Exact exported bytes/hash, exporter options, song/effect data, load address and enabled features are all **Unknown**.
+>
+> The documented family entry pattern is:
+>
+> | Operation | Family ABI | Caller sequence cost |
+> |---|---|---|
+> | Init | Subtune in A; `JSR start` | One immediate load plus call: **5 bytes, 8 cycles** |
+> | Tick | `JSR start+3` | **3 bytes, 6 cycles** |
+> | SFX, when `-Dx` is enabled | Effect address in A/Y, channel offset in X; `JSR start+6` | Three immediate loads plus call: **9 bytes, 12 cycles** |
+>
+> Logical source voices `0, 1, 2` map to GoatTracker channel offsets **0, 7, 14**. They are three alternatives, not one bitwise-OR expression.
+>
+> Exact song-index translation and A/Y address-byte order must be confirmed against the accepted export. The packet documents A/Y as the address-bearing registers but does not supply that export verification.
+>
+> The family documents start-address-based effect priority and optional SFX buffering. The exact comparison, replacement, buffer capacity, same-frame ordering and music-resume behavior must be recorded from the selected export; they remain **Unknown** here. Feature pruning means a family-wide size or cycle estimate would be unsound.
+>
+> SID Factory II remains an **unqualified candidate**. The supplied provenance is commit `0254b04260a1a5e0e55646af8619c2e289b80527`; it does not supply a qualified callable SFX ABI, selected driver/export, state map or costs.
+>
+> For **GTUltra**, the name supplies no exact stock-C64 export contract: compatibility is **Unknown**. Any export requiring C64U behavior, turbo execution or additional SID endpoints is incompatible with these selected profiles. A separately proved stock, single-SID export would need the exact-custom-player contract; a brand name creates no exception.
+>
+> A declared **two/three-SID export is incompatible**: all selected profiles contain exactly one endpoint, `$D400`, and no expansion. A valid PSID declaring additional SIDs receives E10261. Supporting it would require a separately authorized, qualified profile with exact address decoding, chip/model topology, timing, banking, device/interrupt ownership, loader and resource contracts. The reference’s “later C64U profile” statement is future guidance, not an available profile or activation.
+>
+> Authority: [GoatTracker provenance](/work/references/source-manifest.md:1379), [SID Factory II provenance](/work/references/source-manifest.md:1410), [closed profile set](/work/spec/15-platform-profile.md:22). Reference lineage `c64-game-engineering.md#goattracker-277-adapter`; keys `GOATTRACKER-2.77`, `GOATTRACKER-R172`, `SIDFACTORYII-0254B04`.
+>
+> **ABI, effects and state ownership.**
+>
+> Before any path becomes callable, its exact contract must close every item below. All export-specific values are **Unknown** in this packet.
+>
+> | Boundary | Required exact contract and owner |
+> |---|---|
+> | Calls | Init/tick/SFX entries, argument encoding, legal call domains, normal return mechanism |
+> | Registers/status | A/X/Y and flag clobbers; D/I requirements and restoration; live-caller preservation |
+> | Hardware stack | Entry return address, internal calls, explicit pushes, deepest simultaneous path |
+> | Writable storage | Every mutable table, pointer, scratch byte, ZP range and self-modifying instruction/operand |
+> | Placement/banking | Fixed or proved relocatable layout; executable and writable CPU-visible ranges; `$01` effects |
+> | SID voices | Which voices each operation owns and how voice stealing/resumption works |
+> | Shared SID state | Filter routing/cutoff/resonance, volume, voice-3 disable and cross-voice modulation ownership |
+> | Cadence | Required updates per declared time unit; PAL/NTSC support; any source-authored cadence conversion |
+> | Devices | Every SID/CIA/vector/mask access, consuming acknowledgement and interrupt-state change |
+> | Concurrency | Reentrancy or bounded exclusion across init, song change, tick and SFX |
+>
+> The player owns its declared mutable physical state even if Blend65 exposes the embedded asset as `const`. Source constness does not make self-modifying bytes ROM-safe.
+>
+> SFA owns generated parameters, locals, staging, spills and helper scratch. It does not own or clone player globals/assets. Separate mainline/IRQ SFA homes cannot make one shared player state reentrant.
+>
+> The player normally owns all writes to its assigned SID voices and shared filter/volume state. Direct game SID writes require a compatible explicit arbitration contract. Most SID registers are write-only; preservation cannot be reconstructed by reading them. The ordinary selected-profile read sources are `$D419–$D41C`, and writes are `$D400–$D418`.
+>
+> PAL/NTSC support must be export-proved; there is no automatic cadence conversion or oscillator retuning. 6581/8580 compatibility must also be explicit. Equal register traces do not prove equal filter response, envelopes, combined waveforms or audible output.
+>
+> Authority: [contract fields](/work/spec/appendix-c64.md:601), [SID map and effects](/work/references/c64-hardware.md:313), [SFA interference](/work/references/sfa-and-abi.md:166). Lineage `sfa-and-abi.md#final-storage-closure`, `c64-hardware.md#scheduling-and-ownership`; keys `MOS-6581-SID`, `MOS-6526-1981`, `BLEND65-SPEC-4-566da991`.
+>
+> **IRQ, CIA and NMI routes — applicable to both questions.**
+>
+> A reasonable proposed audio route retains stock services through `c64.system.setIRQ(&handler)`. Actual installation and enabled-source state are **Unknown**.
+>
+> | Route component | Nominal cycles | Output / existing-ROM bytes | Live stack |
+> |---|---:|---:|---:|
+> | CPU IRQ acceptance | 7 | 0 / 0 | 3 |
+> | 901227-03 `PULS` through CINV | 29 | 0 / 16 | 6 including CPU frame |
+> | Default-chain wrapper | 14 plus body | 6 plus body / 0 | 7 before helper calls |
+> | Exclusive CINV wrapper and restore tail | 27 plus body | 4 plus body / 6 | 6 before helper calls |
+> | Stock NMI acceptance and `$FE43` stub | 14 before NMINV target | 0 / 4 | 3 before target saves/calls |
+>
+> These are documented route components, **not measured whole routes**. They exclude interrupted-instruction completion, DMA stalls, application work and variable firmware paths.
+>
+> The default chain is:
+>
+> ```asm
+> PHP
+> CLD
+> ; source-owned body and acknowledgement
+> PLP
+> JMP (saved_previous_cinv)
+> ```
+>
+> Its saved link is two lifetime-owned RAM bytes, page-safe for NMOS indirect `JMP`: `$xxFE` is valid; `$xxFF` must be relocated or rejected. It uses KERNAL’s A/X/Y saves without saving them again. The prior handler owns its service and eventual restore/`RTI`.
+>
+> An exclusive CINV route executes `CLD`, owns or disables every enabled IRQ source, and jumps to the pinned `$EA81` restore-only tail. Its acceptance-to-completion fixed component is **63 cycles plus body/acknowledgement**. It cannot leave CIA1 enabled while skipping its required service. Final exclusive release incurs the specified stock CIA1 handback, including reload **16421 PAL / 17045 NTSC**; actual inline bytes/cycles are **Unknown** without emitted code. A normal chain incurs no exclusive-handback obligation.
+>
+> Raw IRQ/NMI installers are unavailable in these cooperative profiles. Their different save/`RTI` ABI cannot be substituted into CINV.
+>
+> An `interrupt function` is callback-only. Reusable audio/render logic remains an ordinary `JSR`/`RTS` helper. Only sink-reachable variants are emitted. Every generated ordinary handler body enters with D clear; the chain restores entry flags before chaining, and a valid terminal `RTI` restores the complete interrupted status, including D and I.
+>
+> Acknowledgement owners must be explicit:
+>
+> - Raster owner writes the selected one bits to `$D019`; no generic NMOS RMW substitution.
+> - Retained KERNAL owns stock CIA1 service and its consuming ICR read.
+> - A simple retained NMI route leaves CIA2 ICR consumption to stock firmware.
+> - An owning CIA handler reads ICR exactly once and handles every returned source bit. ICR reads consume latches; they do not recover write-only masks.
+>
+> For example, a source-selected raster test/ack/tick body could lower, conditionally, to:
+>
+> ```asm
+> LDA $D019
+> AND #$01
+> BEQ .not_raster
+> STA $D019
+> JSR player_tick
+> .not_raster:
+> ```
+>
+> Assuming a same-page branch and the stated raster-ownership contract, this body is **13 output bytes**, including the call site. Its raster path is **24 cycles plus player work excluding its final `RTS`**; the non-raster path is **9 cycles**. A returning tick adds two live stack bytes, making the bounded chain entry-plus-call component **9 bytes before player-internal pushes/calls and interrupted mainline depth**. The chain wrapper adds six output bytes, fourteen cycles and its two-byte link. The prior-handler and DMA terms remain separate and unknown.
+>
+> This is an analytical candidate, not supplied compiler output.
+>
+> External RESTORE reentry remains unbounded. Stock NMI path cycles, deeper stack and firmware completion/reentrancy are **Unknown**. `SEI` does not block NMI. Even without a generated NMI hook, there is no proved aggregate stack peak, headroom or finite completion deadline. The narrow cooperative exception requires complete transitive generated reentrancy with no invocation-private RAM/ZP homes; it does not bound external arrival or retained firmware.
+>
+> NMINV changes, if introduced, additionally require an NMI-quiescent publication window or a proved scheme valid at every intermediate address; `SEI` alone cannot protect the two-byte update.
+>
+> Authority: [normative IRQ/NMI contracts](/work/spec/appendix-c64.md:746), [route costs and ownership](/work/references/c64-memory-and-runtime.md:321), [completion gate](/work/references/sfa-and-abi.md:330). Keys `CBM-C64-KERNAL-03`, `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6526-1981`.
+>
+> **Complete attributable audio-cost ledger.**
+>
+> The caller-sequence costs above exclude player execution. A final `RTS` adds six cycles; its one output byte belongs to the player and is charged once in player code. Each live `JSR` adds two stack bytes.
+>
+> | Enabled feature/path | Known attributable cost | Individually unknown costs |
+> |---|---|---|
+> | Compile-time named cue | No runtime strings, name table or lookup | Selected cue data and reachable player code |
+> | Music-only | Init/tick setup and call sites | Player code; music bytes; state RAM; ZP; SFA/spills; internal stack; init/tick path cycles |
+> | Integrated music/SFX | Init/tick/SFX setup and call sites | Additional SFX code/data; buffers/arbitration state; RAM/ZP; stack; trigger, replacement, resume and tick cycles |
+> | Minimal SFX-only | Direct calls once its ABI is supplied | Entire player/effect byte totals, RAM/ZP/SFA/stack, immediate/tick cycles and initialization |
+> | Exact custom player | Direct calls once its ABI is supplied | Every code/data/state/placement and path-cost term |
+> | Explicit IRQ-only exclusion, if sufficient | `PHP; SEI; …; PLP`: **3 bytes, 9 cycles, one extra live stack byte** | Operation duration, maximum masked latency, saves/spills and other-source exclusion |
+> | IRQ integration | Selected wrapper, link and body components above | Installer/restore bytes and cycles; source setup; predecessor paths; complete bounded stack and DMA timing |
+> | Asset import | No runtime parsing/import instructions or SFA homes | Actual payload size, fixed-address gaps and writable residency |
+> | Resident PRG packaging | Two-byte file header; 12-byte BASIC stub common to the program | Remaining startup/exit code, saved state, initialization cycles, transport time and loader/service stack |
+>
+> A critical section is legal only if it masks every declared racing source and restores prior state. The three-instruction example excludes an IRQ race only; it does not solve an NMI race. Unknown player execution time cannot become a claimed bounded latency.
+>
+> For each of the four paths, total cost must include its selected player code/data, alignment/gaps, state RAM, player ZP, generated SFA/spills, caller setup, internal calls/pushes, initialization, IRQ installation/service, loading and exit. Every missing term is **Unknown**, not zero. Shared linked components are charged once to the whole program; call-site costs are marginal.
+>
+> No custom loader, decompressor or audio scheduler is proposed. Their added code/data cost is zero **for that proposed design**, while existing KERNAL loading time and startup/service costs remain unknown.
+>
+> **Unsafe-overlap counterexample.**
+>
+> Suppose a mainline SFX trigger writes the low byte of a shared effect pointer, then an IRQ tick runs before the high byte is written. The tick can consume a mixed pointer and read unrelated data or mutate the wrong state. Duplicating Blend65 SFA homes leaves that player-owned pointer shared.
+>
+> A reachable overlap with a non-reentrant contract must produce E10258 unless a complete bounded exclusion contract is proved.
+>
+> **Independent proof needed.**
+>
+> Start by obtaining the exact export bytes/hash, exporter options, cue inventory, entry ABI and complete writable/MMIO map. Then independently establish:
+>
+> 1. **Behavior oracle:** expected song/effect selection, logical voice mapping, priority/replacement/resume and same-frame semantics; legal interleavings at each state-update boundary; register/status/banking restoration; SID write order and cadence.
+> 2. **Assembly/cost oracle:** direct register setup and absolute calls; actual reachable player/features, state/ZP/SFA/stack, padding, initialization and complete path costs; absence of unrequested runtime machinery.
+> 3. **Artifact/runtime boundary:** ACME 0.97 bytes/map, then separately configured VICE 3.10 observations for all four complete profiles.
+> 4. **Physical boundary:** named-chip audio/filter/ADSR and timing-sensitive CIA/RESTORE checks.
+>
+> No step has been observed here. The smallest remedy is to qualify one exact GoatTracker 2.77 export and requested feature set, rather than add scheduling or mixing infrastructure.
+>
+> ---
+>
+> **Q-P20 — Scrolling/rendering hot path**
+>
+> **Finding and disposition.** For the proposed identical immutable charset in another VIC bank, choose **diagnostic/no transform**: retain a single placed object until necessity, visibility, budget, equivalence and complete benefit are proved. The proposal is not inherently invalid, but its justification and performance are **Unknown / Unknown**.
+>
+> The packet supplies a **1,000-byte screen update per frame**. It does not establish whether this is copying, generating cells, coarse scrolling, or a smaller change set producing an equivalent frame. A flip, dirty update or copy cannot substitute for those semantics without proof.
+>
+> Source owns scrolling/rendering policy, preparation and publication. The compiler owns ordinary lowering, range/alias/effect analysis and qualified cost-guided machine choices. The platform API owns VIC register semantics. Layout/packaging owns physical placement, replicas and serialization. SFA owns function-execution storage only.
+>
+> Authority: [scrolling alternatives](/work/references/c64-game-engineering.md:356), [replication doctrine](/work/references/c64-memory-and-runtime.md:488), [machine-bound completion gate](/work/references/c64-game-engineering.md:638).
+>
+> **Visibility, banking and publication contract.**
+>
+> Apply each of the four exact machine profiles stated above. Exact display mode, VIC/CIA revisions, DEN/YSCROLL state, sprite enable/position/expansion state, active bank, IRQ schedule and publication window are all **Unknown**.
+>
+> Relevant placement rules are:
+>
+> | Object | Required VIC placement |
+> |---|---|
+> | Screen matrix | 1 KiB boundary inside the selected 16 KiB bank |
+> | Charset base | 2 KiB boundary |
+> | Bitmap | 8 KiB boundary |
+> | Sprite image block | 64-byte boundary |
+> | Sprite pointers | Final eight bytes of the active 1 KiB screen matrix |
+>
+> A screen’s 1,000 cells leave 24 bytes in its 1,024-byte matrix region, including the eight sprite pointers. Those bytes need separate ownership; they are not automatically expendable padding.
+>
+> CIA2 low output values `3, 2, 1, 0` select VIC banks `$0000`, `$4000`, `$8000`, `$C000`. `$DD02` must establish output direction, and a bank change must preserve unrelated CIA2 port owners.
+>
+> CPU visibility does not establish VIC visibility. In banks 0 and 2, VIC bank-relative `$1000–$1FFF` selects character ROM. `$0001` cannot remove that VIC window.
+>
+> Color RAM is a separate device: neither `$D018` nor a CIA2 bank flip switches its contents. Any required color update, sprite-pointer change, fine/coarse scroll update and object-coordinate transformation must be included separately.
+>
+> Authority: [VIC placement](/work/references/c64-memory-and-runtime.md:114), [VIC registers/Color RAM](/work/references/c64-hardware.md:41), [normative bank requirements](/work/spec/appendix-c64.md:798). Keys `CBM-C64-PRG-1982`, `CSG-6567-318014`, `VIC-BAUER-2024`, `MOS-6526-1981`.
+>
+> **Comparison and ownership.**
+>
+> | Candidate | Deterministic disposition | Required benefit/equivalence proof and full costs |
+> |---|---|---|
+> | Bank/pointer flip | Explicit source publication contract; direct platform lowering | Next complete state already exists; bank/base/pointers become visible safely. Charge preparation, second state, register preservation, sprite/color work and IRQ timing. |
+> | Final placement | Compiler/linker placement and validation | One object is visible to its actual consumers. Charge alignment/gaps and startup selection; eliminate a copy only if behavior/lifetime permits. |
+> | Immutable static replica | **No transform for this packet** | Show why one placement, bank/pointer change or loader window cannot serve the consumers; prove immutable equality, fit and total timing benefit. |
+> | Pre-shifted charset, +1,024 bytes | Explicit derived-asset choice; no inferred transformation here | Exact representation/indexing and avoided runtime work must match. Charge the extra bytes, alignment, load time and changed access/code. |
+> | Dirty region, 40 bytes | Developer algorithm with ordinary compiler lowering | Prove only those cells need changes. Charge discovery/tracking, source generation, publication and any color updates. |
+> | Unrolling | Cost-guided compiler choice once complete costs close | Preserve values, order where observable, induction state, ABI and visibility. Charge expanded code, downstream layout and loading. |
+> | Full 1,000-byte copy | Correct general lowering when copying is the actual source operation | Prove range, direction/overlap semantics and CPU mapping. Charge source/destination storage, addressing, calls and timing. |
+>
+> None is a measured winner. The optimization mode is not supplied. Under the reference’s modes, `speed` prefers timing, `size` prefers bytes, and `balanced` requires dominance across complete B/R/T components. Missing hard budget or visibility facts must be settled before mode preference.
+>
+> Lineage: `il-and-optimization.md#optimization-modes-and-finite-frontier`, `6502-lowering-casebook.md#aggregates-copies-and-layout`, `c64-game-engineering.md#disposition-policy`.
+>
+> **Analytical copy costs.**
+>
+> To make the CPU comparison concrete, consider only this conditional source operation:
+>
+> ```blend65
+> for (let i: word = 0; i < 1000; i += 1) {
+>     dst[i] = src[i];
+> }
+> ```
+>
+> Assume ordinary, non-overlapping RAM; fixed addresses; stable banking; no observer of intermediate order; source data remains unchanged; addresses and dummy accesses remain safe. These assumptions are **not established for the actual workload**.
+>
+> A compact candidate uses three 256-byte chunks in one loop and a 232-byte tail:
+>
+> ```asm
+> LDX #$00
+> .pages:
+> LDA src+$000,X
+> STA dst+$000,X
+> LDA src+$100,X
+> STA dst+$100,X
+> LDA src+$200,X
+> STA dst+$200,X
+> INX
+> BNE .pages
+>
+> LDX #$00
+> .tail:
+> LDA src+$300,X
+> STA dst+$300,X
+> INX
+> CPX #$E8
+> BNE .tail
+> ```
+>
+> With page-aligned source reads and both taken branches remaining within a page:
+>
+> | Candidate | Inline code | Nominal cycles | Additional ZP/SFA scratch / stack |
+> |---|---:|---:|---|
+> | Compact 1,000-byte kernel above | **36 bytes** | **11,906** | 0 / 0 |
+> | Fully unrolled 1,000 absolute load/store pairs | **6,000 bytes** | **8,000** | 0 / 0 |
+> | Forty-byte indexed loop with `CPX #40` | **13 bytes** | **641** | 0 / 0 |
+> | Forty unrolled absolute load/store pairs | **240 bytes** | **320** | 0 / 0 |
+>
+> The compact total is:
+>
+> ```text
+> Three pages:
+> 2 + 256×(3×9 + 2) + 255×3 + 2 = 8,193 cycles
+>
+> Tail:
+> 2 + 232×(9 + 2 + 2) + 231×3 + 2 = 3,713 cycles
+>
+> Total = 11,906 cycles
+> ```
+>
+> These are **Verified complete / Inference only for the displayed arithmetic and preconditions**. Actual lowering, placement and runtime cost remain **Unknown**.
+>
+> For source low byte `b`, this compact kernel adds `3b + max(0, b + 232 − 256)` indexed-read page-cross cycles. A page-crossing taken back branch adds 255 cycles for the full-page loop or 231 for the tail. DMA and interrupts are additional terms.
+>
+> A callable form adds the caller `JSR` and callee `RTS`: **four code bytes, twelve cycles and two live stack bytes**, before any ABI saves/spills. The compact form clobbers A/X/N/Z/C; the straight-line absolute form clobbers A/N/Z and preserves X/Y/C/V/D/I. Caller requirements can therefore change the comparison.
+>
+> The compact kernel interleaves chunks. That is legal only when intermediate order is unobservable. Overlap, volatile accesses or an asynchronous consumer can invalidate it.
+>
+> Full unrolling saves **3,906 nominal cycles** in this example while adding **5,964 code bytes**. The forty-byte alternatives save work only when the required change set is truly forty bytes. Discovery/tracking cost is not included in their kernel totals.
+>
+> Source/destination objects are separate from code: a copy requires valid input and output storage, but does not necessarily introduce a new 1,000-byte object. If it uses a new VIC screen region, that region normally reserves **1,024 bytes**, with initialization/serialization determined by its actual storage class.
+>
+> Authority: [NMOS opcode timings](/work/references/mos-6502-family.md:97), [loop and copy reasoning](/work/references/6502-lowering-casebook.md:775); key `MOS-PGM-1976`, Appendix B/C.
+>
+> **Flip, replication and pre-shift costs.**
+>
+> A complete known `$D018` value can be selected with:
+>
+> ```asm
+> LDA #screen_charset_field
+> STA $D018
+> ```
+>
+> That is **five bytes, six nominal cycles**, zero additional RAM/ZP/stack, and an A/N/Z clobber. It excludes preparation, synchronization and restoration.
+>
+> A bank change also requires the CIA2 port update. If the complete port value is already safely known, another immediate load/absolute store costs five bytes/six cycles. Otherwise preservation/shadow work, DDR setup and synchronization must be charged from the chosen implementation. Their costs are **Unknown** here. The two writes do not form an atomic display transition.
+>
+> For the proposed immutable charset replica, let its payload length be `C`; **C is not supplied**. Then:
+>
+> - Duplicate payload cost is **C additional serialized and resident bytes**, when directly resident in the PRG.
+> - Both bases require 2 KiB alignment. Alignment padding is placement-dependent; total PRG span can also include larger inter-bank gaps.
+> - If a complete 256-glyph charset is intended, `C = 2,048` bytes. That is a conditional example, not a supplied asset size.
+> - Direct loading to final addresses adds no startup replication loop.
+> - PRG serialization/loading must include every emitted replica and internal gap.
+> - Transport time and loader/service CPU/stack use are **Unknown**.
+> - Steady-state saving is **Unknown**: neither consumers nor the avoided work are specified.
+> - Immutable copies require no runtime coherence updates, but their byte equality, immutability and selected-bank visibility still need proof.
+> - If later mutation is permitted, synchronization/publication costs become explicit obligations; “immutable replica” no longer describes the object.
+>
+> The pre-shifted representation adds exactly the supplied **1,024 payload bytes** before padding. Its residency, serialization, generated access code, loading time and saved shift/draw cycles are separately **Unknown**. Charset-base alignment does not imply every internal representation requires an extra 2 KiB region; the actual format must decide that.
+>
+> Two evolving screen buffers are different state. A second aligned matrix generally adds a **1,024-byte reservation**, including its pointer tail, plus preparation and publication work. It is not the proposed duplicate immutable charset, and it does not eliminate the work of producing the next frame.
+>
+> **IRQ, loader, startup and source-generation costs.**
+>
+> The shared IRQ/NMI route accounting above applies to this renderer. No introduced renderer IRQ is established by the packet. If source introduces one, charge its wrapper/link, source test, acknowledgement, body, installation/removal, predecessor service and simultaneous stack paths explicitly.
+>
+> Actual enabled VIC raster/collision/light-pen sources, CIA1 timer/TOD/serial/FLAG masks, CIA2 sources, and rendering/audio interaction are **Unknown**. Stock service ownership remains applicable; external RESTORE is still unbounded. Neither a nominal 8,000-cycle nor 11,906-cycle kernel proves per-frame completion.
+>
+> Timing proof must fit the instruction stream to model-specific BA/RDY/AEC behavior and the union of badline/sprite CPU-denial intervals. Refresh or ordinary first-half VIC accesses are not independent CPU penalties. The source must define publication timing and late-frame behavior; the compiler cannot invent dropped updates or hidden scheduling.
+>
+> The proposed baseline is a resident PRG loaded directly into final placement. No custom loader or decompressor is added. Nevertheless, these costs remain individually **Unknown**:
+>
+> - Stock transfer time and ROM/service cycles and stack.
+> - Generated startup/exit bytes and cycles, saved machine-state storage.
+> - Screen/charset initialization and any required BSS clearing.
+> - Replicas, pre-shifted bytes, expanded copy code and final-map gaps.
+> - Any explicitly selected later transport, staging/decompression code, scratch/ZP/stack, quiescence and publication policy.
+>
+> Loading must not overwrite executing code, return targets, vectors, player state, SFA homes or live/published assets. Loader visibility must remain valid. A runtime loading design requires its own closed contract; the D64 loader cannot be silently imported into these PRG profiles.
+>
+> Compile-time replication/pre-shifting/unrolling also has source-generation costs: host transformation time, generated source volume and provenance are **Unknown**. They are build costs, not target CPU cycles. The generated target bytes remain charged to artifact and residency budgets. No runtime source generator is proposed.
+>
+> **Counterexample.**
+>
+> Put a custom charset at `$5000` in VIC bank 1, then propose an identical RAM replica at `$9000` in bank 2. Both addresses are 2 KiB aligned and CPU-visible under the selected mapping.
+>
+> However, `$9000` is bank-2 offset `$1000`, inside the VIC character-ROM window. After the flip, the VIC fetches character ROM rather than the identical RAM bytes. CPU byte equality and alignment do not prove display equivalence.
+>
+> An invisible layout must be rejected. The smallest remedy is a consumer-visible placement or a separately justified bank/layout plan.
+>
+> **Independent proof needed.**
+>
+> Begin with the actual renderer source, charset bytes, consumer list, placement constraints and remaining memory budget. Then establish:
+>
+> 1. **Behavior oracle:** independently compute the required 1,000 cells, colors, glyphs and sprite pointers for each frame; include fine/coarse transitions, boundaries, overlap cases and publication order. Prove a forty-byte update or flip produces that same required frame.
+> 2. **Replica necessity:** demonstrate why one placement, bank/base selection or permitted loading window cannot meet the actual consumers’ visibility/timing constraints.
+> 3. **Assembly/resource oracle:** final instructions, branch/read crossings, replica equality, pre-shift transformation, alignment/gaps, resident/BSS/SFA/ZP/stack totals, IRQ and loader terms.
+> 4. **Timing oracle:** exact VIC/CIA model and display/sprite state; final device-write events, DMA-adjusted instruction paths, entry latency and bounded interference. Keep unbounded RESTORE guarantees separate.
+> 5. **Runtime and physical evidence:** first establish ACME 0.97 bytes/map, then VICE 3.10 traces and frame results for each selected profile; use targeted physical checks for timing/revision-sensitive claims.
+>
+> No optimization can presently be declared faster, frame-safe or memory-fitting. The smallest viable remedy is to close those facts for the existing source and compare placement, flips and copy forms before authorizing duplicate static data.
+>
+> Proof lineage: [two independent oracles](/work/references/il-and-optimization.md:408), `c64-game-engineering.md#machine-bound-workload-completion-gate`, `c64-memory-and-runtime.md#placement-and-replication-doctrine`, `acme-and-artifacts.md#reports-labels-and-actual-bytes`. Source keys include `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976`, `CBM-C64-PRG-1982`, `VIC-BAUER-2024`, `ACME-097-R266`, `VICE-310-SOURCE` and `VICE-310-MANUAL`.
+>
+> No compiler, assembler, emulator, exported-player or physical observation is claimed.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-workload-completion: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-workload-completion`. Raw run-log SHA-256: `edb6767a761ccc27d3ca9fc5a9090159f748a1fabb268b7de7427f4cb90e09c2`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `9c0ad433e968e23ea0072f997d69c148c514dfbb439e431e830ea80ad17af26d`; packet-record SHA-256: `f4d240fa689e4fd16605d907dac7ba97a9deb0ccb7b891bea8559565b9ffb976`.
+
+```text
+74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+d86abf5f0e471b27880459933f70653dc4287fa17017685b31715be3afedc106  evaluated-answer.md
+b172e865946de77f4ae125ad035e917664cdc4557c29b1239a9b6d574cd5e5f9  evaluator-request.md
+217d3e761dd4a8219606db8deae7fb5b68a721e74bd3af604d49f201b2ec5746  grade-request.md
+0082c0212c4d3c2f3b65f07773fab56ab01f8d41d79b9c6deaa8408197026aff  oracle.md
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+d60f720d3976bf4c9c048eb4715d674cd1e59f97941715c1fdd2cad73992fbe4  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+c966648ea7a58952561909b9a127f1617b50ee583f2845bcd07fb43602b2e51b  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+34b0fff2af292831fd4d3658373579dca5d00c71865069974023957d79184543  references/sfa-and-abi.md
+6624bf4a0f59ac3a56f331f1a056a1e5b907f80555c3969c058551f6af97b189  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+b172e865946de77f4ae125ad035e917664cdc4557c29b1239a9b6d574cd5e5f9  request.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+```
+
+> **Q-P11: PASS. Q-P20: PASS.** Each case meets its frozen expectations independently. This grades the written assessment; implementation, exported-player, runtime and physical qualification remain **Unknown**.
+>
+> | Case | Grade | Exact decisive output evidence | Finding / severity |
+> |---|---|---|---|
+> | Q-P11 | **PASS** | “Exact exported bytes/hash … are all **Unknown**” ([line 103](/work/evaluated-answer.md:103)); “Source chooses cadence and call domain” ([line 90](/work/evaluated-answer.md:90)); “Separate mainline/IRQ SFA homes cannot make one shared player state reentrant” ([line 146](/work/evaluated-answer.md:146)). | Covers all four integration paths, direct lowering, effects, ownership, costs and independent proof. No material defect. |
+> | Q-P20 | **PASS** | Chooses “**diagnostic/no transform**” for unproved replication ([line 257](/work/evaluated-answer.md:257)); explicitly says the copy assumptions “are **not established for the actual workload**” ([line 315](/work/evaluated-answer.md:315)); concludes no optimization is established as “faster, frame-safe or memory-fitting” ([line 442](/work/evaluated-answer.md:442)). | Compares every requested strategy without assuming equivalent work, visibility, fit or timing benefit. No material defect. |
+>
+> **Q-P11 source and cost reasoning.** The six operations, compile-time cue resolution, logical voices `0..2`, source-owned cadence, hash-bound contracts and E10256/E10257/E10258 dispositions agree with the governing [audio contract](/work/spec/appendix-c64.md:553). PSID parsing and compatibility remain separate from callable behavior, as required by the [container contract](/work/spec/appendix-c64.md:492).
+>
+> GoatTracker release/member hashes match the supplied [manifest entry](/work/references/source-manifest.md:1379). They are correctly distinguished from an absent game export. The supplied text specifies an effect address in A/Y, but **does not specify which register carries each address byte**; leaving that mapping unverified is correct. Export-specific cadence, clobbers, writable ranges, arbitration and internal costs likewise remain unknown. SID Factory II retains its candidate identity. The answer correctly applies the closed stock profiles to GTUltra and additional SID requirements without inventing an available C64U profile.
+>
+> Independent arithmetic confirms:
+>
+> - Init setup/call: **5 bytes, 8 cycles**; tick call: **3 bytes, 6 cycles**; SFX setup/call: **9 bytes, 12 cycles**.
+> - A returning call adds **6 RTS cycles** and **2 live return-address stack bytes**; the player owns the RTS byte.
+> - `PHP; SEI; …; PLP`: **3 bytes, 9 cycles, 1 stack byte**, excluding the operation and protecting only against the declared IRQ race.
+> - Chain wrapper: **6 output bytes, 14 cycles**, plus body and a **2-byte lifetime-owned link**. Exclusive fixed route: **63 cycles**, excluding body/acknowledgement.
+> - Raster test/ack/call: **13 bytes**, **24 cycles including tick RTS but excluding other player work**, or **9 cycles** without raster work.
+>
+> These agree with the supplied [instruction timings](/work/references/mos-6502-family.md:97) and [route baselines](/work/references/c64-memory-and-runtime.md:336). Existing-ROM bytes remain separate from generated output; saved-link boundaries, callback identity, reachable variants, D/status restoration and terminal ownership are explicit. The torn-pointer counterexample correctly distinguishes invocation-private SFA storage from shared player state. Unbounded RESTORE is never converted into a finite stack peak or deadline.
+>
+> **Q-P20 source and cost reasoning.** The strategy comparison follows the [scrolling alternatives](/work/references/c64-game-engineering.md:356) and [replication conditions](/work/references/c64-memory-and-runtime.md:488). Placement, publication, rendering policy, compiler lowering and SFA responsibilities are assigned separately.
+>
+> Under the displayed copy preconditions, the arithmetic is correct:
+>
+> | Conditional kernel | Code bytes | Nominal cycles |
+> |---|---:|---:|
+> | Compact 1,000-byte copy | 36 | 11,906 |
+> | Fully unrolled 1,000-byte copy | 6,000 | 8,000 |
+> | Indexed 40-byte copy | 13 | 641 |
+> | Unrolled 40-byte copy | 240 | 320 |
+>
+> Thus full unrolling adds **5,964 bytes** and saves **3,906 nominal cycles** for this example. The answer also charges page crossings, call/return overhead, ABI preservation, preparation and downstream layout separately. It never treats forty changed bytes as equivalent to the actual workload without proof.
+>
+> The replica length **C is absent**; the answer correctly charges C additional payload/resident bytes conditionally, with alignment, gaps, serialization/loading and benefit unresolved. The supplied pre-shift addition is exactly **1,024 payload bytes** before padding. Distinct evolving screen buffers are handled separately. The `$5000`/`$9000` counterexample correctly exposes the VIC character-ROM window despite CPU-visible equal RAM ([placement authority](/work/references/c64-memory-and-runtime.md:114)). IRQ, DMA, loader, startup and host source-generation costs remain explicit rather than disappearing into kernel totals.
+>
+> I reconsidered possible failures: absent measurements are expressly permitted by this packet; analytical examples are clearly conditional; and the subordinate GTUltra/C64U guidance does not override the governing profile set. Neither case triggers a frozen disqualifier.
+>
+> Lineage: supplied skill **2.0.2**, declared `BLEND65-SPEC-4-566da991` identity. Content commit and activation remain **Unknown**; unavailable qualification files were not read.
+>
+> **Final unresolved defect counts:** Critical **0**, Major **0**, Minor **0**; evaluator omissions **0**; packet defects **0**. The acknowledged evidence gaps remain open qualification obligations.
+
+</details>
+
+<details>
+<summary>2.0.2 final-precision: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/final-precision`. Raw run-log SHA-256: `c07f9d738874fb7864cb159e6fd4fb9325bab9d8dc1dc0c82828ea3926903a07`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `764f7285d69f27794e76ff8e3428e36816938b2177aa5d36873b7314d6a15e53`; packet-record SHA-256: `bccb5a2925192a635f07ce4ba902d3d061cd5fb19d4a788f0f4e73500a5e4b8d`.
+
+```text
+74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+d60f720d3976bf4c9c048eb4715d674cd1e59f97941715c1fdd2cad73992fbe4  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+1fddd4e6d8d3fbe5b11c8f48e1274ccc0874b6ec757fcbc15034105fee897414  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+31d83c09f0cbc0f472e2dffb245a9feee106475f1ad0141f00d1bf335c8e9d16  references/sfa-and-abi.md
+6624bf4a0f59ac3a56f331f1a056a1e5b907f80555c3969c058551f6af97b189  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+29d15aed8e7ec02baf83bb127cadb0037600b1b9fc3caf665c07132af329bd9c  request.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+```
+
+> I applied the supplied [Blend65 skill](/work/SKILL.md), using only this packet.
+>
+> Common lineage: `skillVersion=2.0.2`; `contentCommit=Unknown`; activation/qualification status `Unknown`. The supplied specification identity is `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`; this partial packet cannot independently reproduce its complete-corpus digest. Qualification files were not read. All instruction costs below are **derived**, not measured.
+>
+> **1. Q-L29 — interrupt identity, routes, storage, ABI and costs**
+>
+> The skill applies because this case crosses language semantics, interrupt ABI, SFA, NMOS lowering and C64 hardware ownership.
+>
+> The governing source contract is **Verified complete / Fact**, limited to determining the documented requirements. Actual compiler diagnostics, emitted variants, assembled bytes, runtime behavior and full-program costs are each **Unknown / Unknown**.
+>
+> The supplied context is NMOS 6510, KERNAL 901227-03, visible I/O/ROM, and the four cooperative PAL/NTSC PRG profiles with 6581/8580. Raw takeover is a separate profile comparison: its routing maps **replace** the cooperative maps. No qualified profile exposes all three IRQ installers together. Exact board/CIA/VIC revisions, compiler/options, predecessor code and executed tool configurations are not supplied.
+>
+> **Source forms and required decisions**
+>
+> | Form | Governing decision |
+> |---|---|
+> | `setIRQ(&onRasterIRQ)` | Accepted handler kind in a cooperative profile; selects the CINV chain variant. |
+> | `setIRQExclusive(&onRasterIRQ)` | Accepted handler kind in a cooperative profile; selects the CINV exclusive variant, subject to complete IRQ-source ownership. |
+> | Same-kind conditional, such as `setIRQ(flag ? &firstIRQ : &secondIRQ)` | Preserves handler provenance. Only the selected arm executes; every possible reachable target receives the sink-selected variant. |
+> | Attempted stored handler | Invalid: handler values have no user-spellable storage type. They are not ordinary `word` or `fn(): void` values. |
+> | `onRasterIRQ()` | Rejected with E10051: an interrupt function is callback-only. |
+> | `word(&onRasterIRQ)` | Legal one-way numeric exposure of the raw-entry address. Handler proof is erased; visible source dependency remains for reachability and unsafe-use diagnostics. A materialized `word` occupies two bytes in its owning storage. |
+> | `setIRQ(word(&onRasterIRQ))`, or another recognized sink receiving erased/unknown provenance | Rejected with E10247. Numeric exposure cannot reconstruct handler identity. |
+> | Ordinary typed `fn` storage, arrays/structs, parameters and returns | Legal with exact signatures and finite source-target proof. This permission does not extend to interrupt-handler storage. |
+> | Ordinary `fn` passed to an interrupt-handler sink | Rejected with E10244. |
+> | `pokew($0314, &onRasterIRQ)` in the default build | Rejected with E10252: the raw entry has the wrong stack/terminal ABI for post-save CINV. Explicit `word(...)` does not evade this diagnostic. |
+> | `setRawIRQ(&onRasterIRQ)` | Available only under a takeover profile proving `$FFFE/$FFFF` writable **and active**. Unavailable in the cooperative profiles. |
+>
+> These decisions follow [Chapter 06, FN-12 and finite target proof](/work/spec/06-functions.md:303), [interrupt installation and address-of](/work/spec/06-functions.md:810), and the explicit `pokew` rejection in [Appendix A §9.2](/work/spec/appendix-c64.md:791). Diagnostic presentation is governed by [Chapter 14](/work/spec/14-diagnostics.md:217).
+>
+> Ordinary function values use a two-byte representation; materialized parameters/locals enter SFA, and function-value results use A/X. Ordinary calls retain `JSR`/`RTS`. An opaque call without a finite source-target set is E10277; recursive call-graph cycles retain E10180/E10181. See [Chapter 06 §4–5](/work/spec/06-functions.md:378).
+>
+> Because the default build contains the E10252 write, it must produce **no final artifact**. The following describes required lowering for legal comparison cases, not output observed from that invalid build.
+>
+> **Required entry and terminal paths**
+>
+> Let `B` denote the complete application body/acknowledgement cost, including executed helper calls, marshalling and preservation. Let `P` denote the complete prior-handler path after chaining. Neither is supplied numerically.
+>
+> | Route | Generated sequence around body | Register/status and terminal owner | Derived cost |
+> |---|---|---|---|
+> | CINV chain | `PHP; CLD; body/ack; PLP; JMP (savedCINV)` | CPU owns interrupted PC/status; KERNAL owns saved A/X/Y. Generated code preserves CINV-entry status around the binary body. The predecessor owns subsequent service and final compatible restore/`RTI`. | Generated wrapper **6 bytes, 14 cycles**. IRQ acceptance through prior-handler transfer: **50 + B cycles**, followed by `P`. |
+> | CINV exclusive | `CLD; body/ack; JMP $EA81` | KERNAL owns saved A/X/Y. The pinned `$EA81` tail restores Y/X/A and executes `RTI`. Generated code must neither save A/X/Y again nor execute direct `RTI` on that firmware frame. | Generated wrapper **4 bytes, 5 cycles**; existing tail **6 ROM bytes, 22 cycles**. Complete fixed route: **63 + B cycles**. |
+> | Raw IRQ | `PHA; TXA; PHA; TYA; PHA; CLD; body/ack; PLA; TAY; PLA; TAX; PLA; RTI` | CPU owns PC/status; generated code owns A/X/Y saves and final `RTI`. | Generated wrapper **12 bytes, 37 cycles**. Including CPU acceptance: **44 + B cycles**. |
+>
+> The common hardware acceptance contributes **7 cycles, three stack bytes, zero output bytes**. KERNAL `PULS`→CINV contributes **29 cycles, 16 existing-ROM bytes, zero output bytes**, bringing the live CPU/register frame to six bytes. Thus:
+>
+> - Chain: `7 + 29 + 14 = 50`, before `B` and `P`.
+> - Exclusive: `7 + 29 + 2 + 3 + 22 = 63`, before `B`.
+> - Raw: `7 + 37 = 44`, before `B`.
+>
+> The exclusive fixed firmware segments account for **22 existing-ROM bytes**: 16 entry bytes plus six restore-tail bytes. They contribute no generated output bytes. The chain’s predecessor service code remains separately unknown.
+>
+> These are the packet’s revision-pinned [IRQ baselines](/work/references/c64-memory-and-runtime.md:336), consistent with the raw [C64 profile contracts](/work/spec/appendix-c64.md:746).
+>
+> NMOS interrupt entry does not clear D. Every generated Blend65 body and initially called ordinary helper must therefore enter in binary mode. Chain `PLP` restores **CINV-entry flags** before the predecessor jump; eventual `RTI` restores the CPU-stacked **interrupted status**. Exclusive/raw `RTI` restores the complete interrupted status, including original D and I; they need no redundant wrapper `PHP`/`PLP`.
+>
+> Only reachable entry variants are emitted. A valid cooperative build reaching both CINV sinks requires both variants; the corresponding raw-profile build requires its reachable raw variant. Materialized numeric raw addresses additionally require a stable raw entry. Body sharing or specialization must satisfy the ABI and fixed-home bindings, and all duplication must be charged.
+>
+> **Acknowledgement and helper costs**
+>
+> The source owns VIC raster acknowledgement. Writing `$01` to `$D019` acknowledges bit 0; the reference sequence `LDA #$01; STA $D019` is **five code bytes, six cycles**. If A is already provably `$01`, only the store is needed: **three bytes, four cycles**. The packet supplies no instruction stream establishing either actual choice.
+>
+> An NMOS RMW is not an interchangeable acknowledgement: its extra device-visible writes require independent equivalence proof. The compiler must preserve access identity, count and order, and must not guess or insert VIC/CIA acknowledgement. See [VIC register semantics](/work/references/c64-hardware.md:43).
+>
+> The ordinary helper remains `JSR`/`RTS`: **12 cycles**, **two live stack bytes**, and **four attributable code bytes** for one call instruction plus one emitted return instruction. Each call site contributes three bytes; a shared helper’s return/body is counted once per emitted variant. Argument/result moves, helper body, spills and preservation are additional and unknown. See [lowering casebook: calls](/work/references/6502-lowering-casebook.md:802).
+>
+> Acknowledging VIC alone does not establish exclusive-route completeness. An exclusive/raw route must handle or disable **every enabled IRQ source**. The exclusive `$EA81` tail skips the preceding CIA1 ICR read. The supplied handler description does not prove that CIA1 or other enabled sources have been handled or disabled.
+>
+> **Storage, saved links and installation**
+>
+> SFA must close over the handler/helper parameters, results, locals, staging, temporaries, spills, pointer pairs and helper scratch after selection. If a storage-bearing helper can overlap between mainline/IRQ/NMI or nested domains, those invocations require disjoint homes. Code specializes only where home addresses or callees require it; storage-free reentrant code may remain shared. Globals/MMIO retain shared identity and possible lost-update/tearing hazards.
+>
+> No helper signature, private-home inventory or transitive call graph is supplied, so actual RAM/ZP totals and duplication costs are unknown.
+>
+> For saved predecessor links:
+>
+> - A chain needs **two writable static bytes**, retained for every route that may observe them.
+> - `$30FE` is a valid start: the bytes are `$30FE/$30FF`.
+> - `$30FF` is invalid for the NMOS indirect-jump form: its high byte is fetched from `$3000`, **not `$3100`**. Relocate the link or reject that placement.
+> - Valid page positioning does not prove availability: overlap and lifetime still require allocation proof.
+> - Exclusive/raw entry variants declare zero **chain-link** bytes. Separately, every live installation needing later restore requires a two-byte predecessor word. Count a chain’s shared predecessor word once, not twice.
+>
+> Finite balanced installs/restores use compile-time LIFO ownership; inconsistent joins/restores or invalidated ownership are E10278, and unbounded installation nesting is E10245. A returning cooperative program must restore its entry ownership state. See [installation ownership](/work/spec/06-functions.md:842), [profile link fields](/work/spec/appendix-c64.md:888), and [NMOS page wrap](/work/references/mos-6502-family.md:285).
+>
+> Installer vector writes occur in a caller-status-preserving IRQ-disabled transaction. Actual installer/restore instructions, bytes, cycles and transient stack usage are unknown. `SEI` does not protect against NMI.
+>
+> Final cooperative exclusive release also owes the stock CIA1 handback: clear masks, stop timers, consume ICR exactly once, write Timer A reload low/high, restore the exact predecessor CINV, enable/start stock Timer A, then restore caller status. Reload values are PAL **16421 / `$4025`**, NTSC **17045 / `$4295`**. This preserves the specified TOD selection; it does not recover arbitrary write-only old masks/latches. Its inline output cost remains unknown, and it introduces no new ownership flag or private scratch. See [stock final-release contract](/work/references/c64-memory-and-runtime.md:218).
+>
+> **Stack bounds and missing raw-vector proof**
+>
+> At body entry, chain has **seven live stack bytes**; exclusive/raw have **six**. During one direct helper call, absent further calls or explicit pushes, those per-entry components become **nine** and **eight**, respectively. Additional active calls add two bytes each; explicit status saves add their path-sensitive live depth.
+>
+> The chain’s temporary status byte is popped before predecessor transfer, so predecessor stack use belongs to the subsequent path. It must not be blindly summed with a no-longer-live body save. Interrupted mainline returns and every feasible overlapping entry must still be included.
+>
+> Cooperative capacity is `256 − 20 = 236` bytes; takeover capacity is `256 − 0 = 256`. The profile warning threshold is **188**. For a proved finite component, compare its unchanged peak against usable capacity; do not subtract the reserve from measured usage. E10238 applies above capacity.
+>
+> No finite full-program peak, headroom or deadline follows here. External NMI remains unbounded and non-self-masking. Even without a generated NMI hook, unrestricted aggregate stack use and retained-firmware reentrancy/completion remain unproved. The cooperative exception permits only a completely proved private-home-free generated NMI path; it supplies neither an arrival bound nor a finite deadline and does not extend to takeover. [Chapter 15 states this boundary explicitly](/work/spec/15-platform-profile.md:267).
+>
+> If the raw vector is read-only, inactive or simply unproved, **the raw installer is unavailable**. Writing underlying RAM while ROM remains selected does not establish active dispatch. Takeover must populate complete IRQ/NMI RAM vectors before exposing them and keep both sides of the banking transition valid. A genuinely opaque raw boundary cannot be certified; a visible incompatible CINV write remains E10252.
+>
+> **Finding:** the legal forms require sink-specific entries, complete storage closure and explicit source ownership. The default direct CINV write is source-invalid; exclusive-source completeness and all implementation/runtime outcomes remain unknown.
+>
+> **Smallest remedy/probe:** use the applicable typed installer, retain legal handler provenance, prove enabled-source ownership and allocate page-safe links. To assess implementation, first obtain focused compiler diagnostics/output, final bytes/symbols and the closed resource report; only then execute the identified artifacts under recorded configurations.
+>
+> Lineage references: `sfa-and-abi.md#interrupt-route-completion-gate`, `#final-storage-closure`; `c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts`, `#revision-pinned-irq-cost-baselines`, `#stock-cia1-service-on-final-exclusive-release`; `c64-hardware.md#control-bases-raster-and-interrupts`; `mos-6502-family.md#reset-interrupt-and-stack-behavior`, `#indirect-jump-page-wrap`; `6502-lowering-casebook.md#calls-returns-abi-and-helpers`. Governing manifest keys: the supplied specification identity, `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6510-1982`, `ZAKS-6502-1980`, `CBM-C64-PRG-1982`, `CBM-C64-KERNAL-03`, `MOS-6526-1981`.
+>
+> **2. Q-R11 — material finding with mixed evidence**
+>
+> The skill applies: this is a compiler storage-closure and dynamic-memory-lowering audit.
+>
+> The smallest sufficient module set for the requested source/effect/storage/lowering/cost analysis is:
+>
+> - `blend65-semantics.md`
+> - `sfa-and-abi.md`
+> - `il-and-optimization.md`
+> - `6502-lowering-casebook.md`
+> - `mos-6502-family.md`
+> - `evidence-parity-and-recovery.md`
+>
+> The governing raw sections are [memory intrinsics](/work/spec/12-intrinsics.md:174), [SFA ownership](/work/spec/11-memory-model.md:108), and [final allocation after helper discovery](/work/spec/11-memory-model.md:157).
+>
+> Material assumptions are that `addr` is a legal runtime `word`, `v` is byte-compatible, the write violates no known read-only/lifetime restriction, and the alleged two bytes are **new invocation-private storage absent from the closed inventory**, rather than correctly reserved homes. Q-L29’s machine/profile is not silently imported. CPU, platform, address mapping, interrupts, ABI details, options and actual placement remain unknown.
+>
+> | Assessed boundary | Status | Claim kind | Conclusion |
+> |---|---|---|---|
+> | Documented source/effect/storage obligations | Verified complete | Fact | Dynamic `poke(addr,v)` is legal; evaluate address then value exactly once, preserve the ordered volatile write, and account for pointer scratch through SFA. |
+> | Hypothetical allocation after final closure | Incorrect | Inference | If the described allocation occurs, it violates the no-new-function-storage contract. |
+> | Actual compiler implementation/output | Unknown | Unknown | No real implementation evidence or emitted artifact establishes that the hypothetical defect occurred. |
+> | Runtime correctness and complete cost/parity | Unknown | Unknown | No trace or equivalent full-cost comparison is supplied. |
+>
+> The established storage obligation is not optional: the runtime indirect-address pair is **two invocation-private ZP bytes**, with lifetime, interference and placement accounted before emission. Concurrent domains may require disjoint instances; non-interfering lifetimes may overlay. Thus two logical bytes do not determine the whole-program allocation or peak.
+>
+> The supplied **six-byte/eleven-cycle fragment** is a hypothetical static component. It establishes neither actual emitted bytes nor executed timing, and excludes unmeasured address setup, caller/helper traffic and surrounding effects. Complete attribution also needs code/data/padding, register and flag effects, SFA/ZP interference, stack, helper retention, banking and startup/artifact obligations. Pointer-pair placement must avoid unintended high-byte wrap. No full-program total or parity ratio can be calculated.
+>
+> **Finding:** conditionally, emission is introducing unplanned private pointer storage after closure. The fragment’s apparent local cost does not excuse that allocation or prove equivalent behavior.
+>
+> **Smallest remedy:** discover/request the pointer home during legalization or binding, merge it into SFA, and recompute interference, placement and budgets before emission. A post-closure transformation must use already-covered scratch or return to closure. Preserve ordinary dynamic-address source; requiring a literal address or manual temporary would conceal missing compiler work. See [legalization](/work/references/il-and-optimization.md:337) and [closure rules](/work/references/sfa-and-abi.md:413).
+>
+> **Smallest probe:** first obtain the focused source, compiler/options, closure inventory and actual output. Check ordered address/value effects and exact write count independently; separately check pointer allocation, relevant overlapping domains, final instructions, bytes and complete costs. Runtime testing follows identified/configured artifacts.
+>
+> **Conflict field:** no governing-authority conflict is established. A hypothetical implementation violating an authoritative rule is an implementation discrepancy. If actual governing sources disagree on the same field, isolate that field as `blocked-conflict`, with status and claim kind `Unknown`, citing both sides.
+>
+> Lineage: `blend65-semantics.md#authority-and-use`; `sfa-and-abi.md#final-storage-closure`; `il-and-optimization.md#memory-effects-and-volatility`, `#legalization`; `6502-lowering-casebook.md#pointers-and-addresses`; `mos-6502-family.md#bus-visible-accesses`; `evidence-parity-and-recovery.md#finding-and-recommendation-shape`. Source keys: supplied specification identity and `MOS-PGM-1976` for conditional NMOS instruction accounting. No measured parity “meet” is established, so the skill’s measured-debt issue policy is not triggered.
+>
+> **3. Q-R08 — registry proposal for one local rewrite**
+>
+> The skill applies because this is compiler architecture and typed semantic optimization. The smallest sufficient set is `compiler-architecture.md`, `il-and-optimization.md`, and `blend65-semantics.md`, backed by [raw expression order and arithmetic semantics](/work/spec/04-expressions-operators.md:42). CPU/lowering references are unnecessary until a concrete machine sequence or flag-dependent transformation is assessed.
+>
+> **Recommendation:** implement the proved identity in the existing typed semantic rewrite function. Decline the generalized registry/plugins/rule DSL on this evidence.
+>
+> Material assumptions:
+>
+> - The operation is legal integer addition after type resolution.
+> - Zero is a pure constant in the applicable arithmetic context.
+> - Replacement preserves the exact result type and required conversions.
+> - `x` is evaluated exactly once, retaining any call, volatile access or other effect.
+> - The supplied existing seam can express this local rewrite; no contrary evidence is given.
+> - No machine-flag obligation or timing guarantee is assumed from the semantic expression.
+>
+> The local rule is `Add_T(x, Zero_T) → x` **only when** replacement preserves the resolved type/conversions. For example, if the addition widens `x`, returning the original narrow node is invalid; retain the required conversion or decline the rewrite. Effects in `x` remain. A rewrite such as dropping an effectful expression merely because its resulting value is zero requires a different proof.
+>
+> The skill’s five-question gate gives:
+>
+> | Gate question | Packet result |
+> |---|---|
+> | What failure/high-risk obligation requires generalized machinery now? | None demonstrated. |
+> | Why cannot the existing seam or a focused proof solve it? | No inability demonstrated; the seam is supplied as available. |
+> | Who consumes the distinction now? | One local rewrite consumer. |
+> | What complexity is replaced, or failure unavoidable without it? | None identified. |
+> | How can it be declined/removed? | Keep the direct rule; reconsider only after evidence demonstrates a concrete unmet need. |
+>
+> The proposal fails the gate’s requirement to justify new machinery. This is supported by [the supplied gate](/work/SKILL.md:153), [architecture’s direct-interface rule](/work/references/compiler-architecture.md:124), and [IL’s explicit registry/DSL restriction](/work/references/il-and-optimization.md:370).
+>
+> **Finding and status:** the hypothetical registry proposal is **Incorrect / Inference** against this design gate. Actual rewrite implementation and emitted/runtime improvement remain **Unknown / Unknown**; neither a stub nor working implementation is supplied. There is no established authority conflict.
+>
+> The direct semantic rewrite requires **zero additional** generated code/data, ZP, SFA homes, hardware-stack bytes, helper scratch, copies or runtime dispatch. That is a design obligation, not an output measurement. Exact eliminated bytes/cycles remain unknown: lowering may already eliminate the addition or still need result/flag materialization. Host-side framework cost is also unmeasured, with no demonstrated benefit.
+>
+> **Smallest implementation/proof:** add the local rule to the existing function after its type/effect proof. Each application removes an addition node, providing a termination measure. Use an independent value/effect oracle covering integer boundaries, one effectful evaluation and required widening; separately verify the typed rewrite and final absence of redundant arithmetic while preserving necessary value/flag work. Obtain actual output before claiming byte/cycle savings.
+>
+> Lineage: `compiler-architecture.md#design-objective`, `#each-transition-is-accountable`; `il-and-optimization.md#representation-policy`, `#pass-rule-packet`, `#fixed-points-and-pass-order`, `#two-oracle-proof`; `blend65-semantics.md#semantic-preservation-checklist`; `SKILL.md#anti-overengineering-gate`. Source keys: supplied specification identity; `BLEND65-PROJECT-POLICY-P3-28627e0c` for the scoped product/process architecture doctrine, not language semantics.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-final-precision: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-final-precision`. Raw run-log SHA-256: `8f762b58429788ace6f76de4299199c50cc4b6989b1a214cdb13152024b2b838`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `49dd3816219fa1e2b87dc78e9bc2bb3a5daa2b9a426a9dce225f2b3b1175811e`; packet-record SHA-256: `d5b8848b6e55a38535f483c81e6d9bb499f03e59a08167c589dfe0abd882bd7a`.
+
+```text
+74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+764f7285d69f27794e76ff8e3428e36816938b2177aa5d36873b7314d6a15e53  evaluated-answer.md
+29d15aed8e7ec02baf83bb127cadb0037600b1b9fc3caf665c07132af329bd9c  evaluator-request.md
+7bb8e00769b874c1fb7cc1e330aaab3962638c8c336cd9dadf32586f3cace753  grade-request.md
+1e538a16e02675230a5eb9fe46f16288cb82398f4e6a27c01a8c473bb5df1113  oracle.md
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+d60f720d3976bf4c9c048eb4715d674cd1e59f97941715c1fdd2cad73992fbe4  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+1fddd4e6d8d3fbe5b11c8f48e1274ccc0874b6ec757fcbc15034105fee897414  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+31d83c09f0cbc0f472e2dffb245a9feee106475f1ad0141f00d1bf335c8e9d16  references/sfa-and-abi.md
+6624bf4a0f59ac3a56f331f1a056a1e5b907f80555c3969c058551f6af97b189  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+29d15aed8e7ec02baf83bb127cadb0037600b1b9fc3caf665c07132af329bd9c  request.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+```
+
+> | Case | Grade | Decisive output evidence | Finding |
+> |---|---|---|---|
+> | **Q-L29** | **FAIL** | [Line 9](/work/evaluated-answer.md:9) declares the documented contract “Verified complete / Fact.” [Line 55](/work/evaluated-answer.md:55) correctly explains binary body entry and status restoration, but the response never states that Specification 4 exposes no raw decimal-mode intrinsic. | **Major evaluator omission.** A required frozen invariant is missing. |
+> | **Q-R11** | **PASS** | [Line 127](/work/evaluated-answer.md:127): “If the described allocation occurs, it violates the no-new-function-storage contract.” The next row keeps actual implementation/output “Unknown / Unknown.” | Facts, conditional inference, finding, remedy and missing evidence remain distinct. |
+> | **Q-R08** | **PASS** | [Line 149](/work/evaluated-answer.md:149): “implement the proved identity in the existing typed semantic rewrite function. Decline the generalized registry/plugins/rule DSL on this evidence.” | Applies all five gate questions and recommends the supplied smaller seam. |
+>
+> 1. **Q-L29 — the failure is a completeness omission; the reported ABI and costs otherwise agree with the packet.**
+>
+>    The [frozen oracle](/work/oracle.md:28) expressly requires the absent decimal-control statement. [Chapter 12](/work/spec/12-intrinsics.md:31) supplies the closed five-name CPU-control surface; [CC-6](/work/spec/12-intrinsics.md:70) excludes other `asm_*` spellings. The supplied [route-report rule](/work/references/c64-memory-and-runtime.md:362) also explicitly makes this statement part of completeness.
+>
+>    The answer correctly preserves callback-only handler identity, permits direct/same-kind conditional flow, rejects handler storage, distinguishes ordinary typed function values, and treats numeric conversion as irreversible proof erasure. It assigns E10252 to the exact CINV write and requires writable **and active** raw vectors. Cooperative and takeover routing maps are correctly treated as separate profile contracts.
+>
+>    Its derived costs match [Appendix A §9.2](/work/spec/appendix-c64.md:746):
+>
+>    | Route | Generated wrapper | Fixed CPU-cycle terms, including acceptance | Body-entry stack |
+>    |---|---:|---:|---:|
+>    | CINV chain | 6 bytes, 14 cycles | `7 + 29 + 14 = 50`, plus body and predecessor | 7 bytes |
+>    | CINV exclusive | 4 bytes, 5 cycles | `7 + 29 + 5 + 22 = 63`, plus body | 6 bytes |
+>    | Raw IRQ | 12 bytes, 37 cycles | `7 + 37 = 44`, plus body | 6 bytes |
+>
+>    KERNAL contributes **16 existing-ROM entry bytes**, with another **6 existing-ROM tail bytes** for exclusive completion; both contribute zero output bytes. These are instruction-component costs under the baseline’s page/stall assumptions, not measured elapsed timing.
+>
+>    The acknowledgement examples—5 bytes/6 cycles, or 3 bytes/4 cycles with A already `$01`—and helper overhead—4 attributable bytes, 12 cycles, two live stack bytes—are correctly scoped. The helper raises the stated per-entry stack components to nine/eight bytes. `$30FE` is valid; `$30FF` fetches its high byte from `$3000`. Two-byte predecessor storage, overlapping private SFA homes, shared globals/MMIO, and unknown installer/body/duplication costs are accounted separately.
+>
+>    The answer also correctly leaves unrestricted NMI stack/completion guarantees unproved. Capacity figures **236 cooperative / 256 takeover**, warning threshold **188**, and final-release reload values **PAL 16421/$4025; NTSC 17045/$4295** match the packet.
+>
+>    **Reconsideration:** correct D restoration does not establish the source intrinsic surface, and a reference citation does not supply the missing answer statement. Conversely, no illegal intrinsic is actually recommended, and missing runtime measurements are not grounds for failure.
+>
+>    **Remedy:** add the missing closed-surface statement, citing Chapter 12. This does not change the captured answer’s grade.
+>
+> 2. **Q-R11 — evidence-shaped conclusion and closure reasoning pass.**
+>
+>    The selected semantics, SFA, IL, lowering, CPU and evidence references cover the requested boundaries. Assumptions about address/value types, lifetime/read-only restrictions and genuinely new scratch are explicit; Q-L29’s machine context is not imported.
+>
+>    [Chapter 12](/work/spec/12-intrinsics.md:174) establishes legal dynamic addresses, exactly-once left-to-right argument evaluation, ordered volatile access and one invocation-private **two-byte ZP pair**. [Final Storage Closure](/work/references/sfa-and-abi.md:413) prohibits discovering those bytes during emission. The answer correctly separates private-home interference from shared-state effects.
+>
+>    The **six-byte/eleven-cycle** fragment remains a supplied hypothetical component. It establishes no actual encoding, complete cost, helper ABI, runtime equivalence or parity ratio. Allocation totals require interference/placement proof; caller/helper traffic and runtime effects remain unknown. The proposed remedy returns storage discovery to legalization/binding and closure, while the probe first obtains actual source, configuration, inventory and output.
+>
+>    **Reconsideration:** “Incorrect / Inference” applies conditionally to the hypothetical allocation, not to an observed compiler defect. That distinction supports PASS.
+>
+> 3. **Q-R08 — the smaller design recommendation passes.**
+>
+>    Architecture, IL and semantics are sufficient for this typed local rewrite. The answer identifies one consumer, no demonstrated existing-seam failure, and no justified replacement complexity. This agrees with the [direct-interface rule](/work/references/compiler-architecture.md:124) and supplied anti-overengineering gate.
+>
+>    `Add_T(x, Zero_T) → x` preserves one evaluation of `x`, its effects, resolved type and necessary conversions. No machine-flag guarantee is invented. Private/shared storage and ABI obligations remain unaffected by the proposed semantic identity.
+>
+>    **Zero additional** generated code/data, ZP, SFA, stack, scratch or dispatch is explicitly a design obligation. Exact eliminated bytes/cycles and host framework costs remain unknown; existing lowering might already remove the addition. Separate behavior and output-cost probes are appropriately proposed.
+>
+>    **Reconsideration:** declining the requested framework is required by the oracle; it is not an omission. The zero-resource statement is not presented as an output measurement.
+>
+> Applied lineage: `skillVersion=2.0.2`; supplied specification identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. Content commit and activation remain **Unknown**. No unavailable qualification files or external evidence were read.
+>
+> **Final unresolved grading counts:** **1 Major evaluator omission; 0 Critical; 0 Minor; 0 established source/knowledge defects; 0 established packet defects.** Compiler/output/runtime qualification remains **Unknown** for all three cases.
+
+</details>
+
+### Frozen permitted evaluator requests
+
+These exact UTF-8 request strings preserve the raw hypothetical inputs as well as frozen prompts.
+JSON decoding retains final newlines and hard-break spaces. They are evidence, not execution
+instructions. Governing specification/primary files are independently hash-pinned above; no
+credential, automatic cache or conversation history is included.
+
+<details>
+<summary>language permitted request; SHA-256 a8491691a68583e228f100d5c138ad5031445b2a763e3010259b76169f85995b</summary>
+
+```json
+"# Independent contract review\n\nUse the supplied evaluated skill and only this packet. The requests below are distinct; answer every label. Read only the relevant references. Governing raw specification/primary facts outrank skill summaries. Do not invent execution evidence or an immutable candidate content commit. This is a contract assessment, not compiler implementation.\n\n## Q-L03\n\nOptimize two volatile reads into one. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.\n\n## Q-L04\n\nPut C64 addresses into semantic analyzer nodes. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.\n\n## Q-L07\n\nRecursive call-graph SCC. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.\n\n## Q-L09\n\nAddress-taken/exported function has unknown caller. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.\n\n## Q-L24\n\nInvalid source has one root error and no compilation artifact. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.\n\n## Raw fixture inventory\n\nRaw hypothetical proposals, not compiler results:\nQ-L03: before a=peek($DC0D); b=peek($DC0D); after a=peek($DC0D); b=a. Initially source bits 0 and 1 pending, a new bit may arrive between accesses. No access-elision device contract is declared.\nQ-L04: semantic-node proposal embeds CIA1 address $DC00 and VIC address $D020 in generic typed AST, instead of selected target facts. Target-profile interface declares named volatile registers and widths; the language also targets 6502 systems without C64 maps.\nQ-L07: f calls g and g calls f; compare f calling f directly. No recursion product exception, depth bound, heap or stack-frame model. Reachability includes external function-value targets.\nQ-L09: exported H may be called from an external mainline or interrupt domain; H address passed to an opaque retaining consumer. Proposed direct-only closed graph overlays H's 8-byte scratch with a caller's live local.\nQ-L24: a cooperative NMI helper consumes 2 private ZP bytes without bounded overlap. Hypothetical diagnostic stream emits the owning error plus five allocation failures, then assembly and PRG in artifact output. Determine proper owning behavior and recovery; do not claim to have tested compiler code.\n\n"
+```
+
+</details>
+
+<details>
+<summary>cpu permitted request; SHA-256 1444eea47a2a382b982cd6777871c736353fbf4c0b3ed7162718b7201422cc4f</summary>
+
+```json
+"# Independent contract review\n\nUse the supplied evaluated skill and only this packet. The requests below are distinct; answer every label. Read only the relevant references. Governing raw specification/primary facts outrank skill summaries. Do not invent execution evidence or an immutable candidate content commit. This is a contract assessment, not compiler implementation.\n\n## Q-C07\n\nIRQ arrives while decimal mode may be set on NMOS C64. For the declared CPU, determine the correct behavior and expert lowering decision. State preconditions and clobbers, show the decisive state/path reasoning, and compare complete bytes, cycles, flags, memory traffic, ZP/frame/stack/data/padding costs where applicable.\n\n## Q-C18\n\nInline versus helper with two call sites and IRQ reachability. For the declared CPU, determine the correct behavior and expert lowering decision. State preconditions and clobbers, show the decisive state/path reasoning, and compare complete bytes, cycles, flags, memory traffic, ZP/frame/stack/data/padding costs where applicable.\n\n## Q-C23\n\nSpecialize an indirect access by modifying an absolute operand. For the declared CPU, determine the correct behavior and expert lowering decision. State preconditions and clobbers, show the decisive state/path reasoning, and compare complete bytes, cycles, flags, memory traffic, ZP/frame/stack/data/padding costs where applicable.\n\n## Q-C25\n\nGiven the same finite feasible candidates, one is larger/faster, one is\n  smaller/slower, one is Pareto-dominant, and one exceeds a hard ZP or timing capacity. Select the\n  result for `none`, `balanced`, `speed`, and `size`. Include a D64 build whose container overhead\n  differs but whose logical target payload does not. Explain exact ties and every rejection.\n\n## Q-C26\n\nA local rewrite saves instructions but makes a helper/table reachable,\n  increases SFA/ZP interference, changes branch range and padding, or adds a bank/load dependency.\n  Determine when the choice may be committed, which alternatives remain live, and the selected\n  result after whole-program closure in each optimized mode.\n\n## Q-C27\n\nA fixed iteration budget finds one good rewrite, a structured peephole\n  exposes another candidate, and a tiny straight-line region could be enumerated exactly. Decide\n  what proves completion for `balanced`, `speed`, and `size`, what `none` does, when exact search is\n  legal, and what optimality may honestly be claimed.\n\n## Raw fixture inventory\n\nAll CPU fixtures use NMOS 6510, visible cooperative C64 IO/ROM, stock KERNAL 901227-03; no physical execution observation.\nQ-C07: D may be one on IRQ/NMI entry. Compare CINV chain, CINV exclusive and raw variants and a binary ADC body. Prior chain observer reads inherited P/A/X/Y. An NMINV hook is also possible; do not assume CPU entry clears D.\nQ-C18: two mainline call sites plus a bounded IRQ call use byte multiply. Inline body is 24 code bytes, 38 cycles per call, no private homes. Shared helper body 16 bytes/30 cycles, each JSR 3 bytes/6 cycles, RTS 1 byte/6 cycles; complete reachable helper total 17 bytes. It needs 2-byte ZP and 4-byte private RAM per overlapping domain, ABI saves add 4 bytes/12 cycles per site. No other calls retain the helper, no padding. Both alternatives preserve specified values/effects. NMI unbounded scratch-using contrast is separately assessed.\nQ-C23: absolute LDA operand $2501/$2502 is patched from a runtime address, then $2500 executes. Code RAM writable, IRQ can invoke same function after low-byte patch and before high-byte patch. Safe alternative LDA (zp),Y uses domain-owned pointer. No masking/protocol or measured throughput benefit supplied.\nQ-C25 complete closed candidates; R order=[ZP,RAM/SFA,hardware-stack,scratch], T=[worst,best] for identical semantic paths, B is target-loadable bytes:\nBASE B100 R[8,32,20,0] T[100,60]; FAST B120 R[8,32,18,0] T[80,50]; SMALL B80 R[8,32,20,0] T[130,70]; DOM B80 R[8,32,18,0] T[80,50]; BADZP B70 R[17,32,20,0] T[70,40]; BADTIME B60 R[8,32,20,0] T[150,80]. ZP limit16, deadline140 worst cycles, all other hard requirements equal/proved. Select with DOM and then without DOM. Add an exact duplicate of DOM with ID ZDOM. D64 container adds one different allocation block for SMALL and DOM while their logical payload stays B80. None starts with BASE direct lowering. External NMI stack/firmware guarantee is unproved for every candidate; these R/T numbers cover identical complete bounded compiler-controlled scope, not external peak/deadline.\nQ-C26: local rewrite W saves 8 bytes/10 cycles, but after reachability/helper/table/SFA/layout/bank/load closure: BASE B100 R[8,32,20,0] T[100,60]; W B130 R[12,40,20,0] T[90,55]; C B90 R[8,32,20,0] T[110,65]. All hard limits satisfied. No unknown downstream storage/cost. Show modes with all candidates and W removed only if semantically infeasible, not because locally inconvenient.\nQ-C27: qualified rules r1 and r2 both applicable; r1 opens r2 after structured facts update. Iteration cap1 found r1; old greedy peephole applies first match. Tiny exact region maximum3 instructions over a specified finite opcode/operand set, fixed live-ins A,C, live-out A,Z, fixed ordinary RAM/no interrupts, independent exhaustive 8-bit-state oracle. Contrast missing memory-effects proof, absent sequence bound and newly discovered winning expert candidate.\n\n"
+```
+
+</details>
+
+<details>
+<summary>timing permitted request; SHA-256 e7612fe242f15559b14e3239a44851bc7d10af04bcc5d4ade4519a0a3d80d1ad</summary>
+
+```json
+"# Independent contract review\n\nUse the supplied evaluated skill and only this packet. The requests below are distinct; answer every label. Read only the relevant references. Governing raw specification/primary facts outrank skill summaries. Do not invent execution evidence or an immutable candidate content commit. This is a contract assessment, not compiler implementation.\n\n## Q-P02\n\nMainline changes `$01` while IRQ may run. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Q-P04\n\nRaster workload budgeted for both PAL and NTSC. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Q-P05\n\nWork scheduled on a badline. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Q-P06\n\nEight sprites active during raster work. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Q-P13\n\nSprite multiplexer with IRQ-only sorter/update helpers. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Q-P17\n\nStable raster region calls variable-path logic or a helper. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Q-P19\n\nUse FLI/FLD/line-crunch/border/sprite-crunch technique. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Raw fixture inventory\n\nSynthetic timing/design inputs, not measured execution:\nAll use NMOS 6510, stock KERNAL901227-03; compare VIC6569R3 PAL63 cycles/line and VIC6567R8 NTSC65 cycles/line, SID6581/8580 unchanged digital accesses, no expansion/cartridge. State what cannot be concluded from these assumptions alone.\nQ-P02: mainline writes $01=$34 while CINV IRQ and NMINV prior paths require visible IO/KERNAL; IRQ may arrive immediately after write; SEI is proposed around it, RESTORE still possible. No saved banking contract in handler.\nQ-P04: candidate work64 CPU cycles on an ordinary no-DMA line; then 50 cycles on a badline. Include raw/firmware entry latency, IRQ/loader costs when attributable and unknowns otherwise. No declared complete schedule proof.\nQ-P05: line $33, DEN on, YSCROLL=3, within display window; work30 nominal CPU cycles may use memory in stolen VIC cycles. No bus trace supplied.\nQ-P06: eight sprites enabled with Y triggering DMA on current line; work50 nominal CPU cycles. No complete sprite-slot schedule supplied.\nQ-P13: user-authored object sorter lives only under a non-self-nesting IRQ;8-byte private scratch,24-byte shared object list; mainline publishes list updates. IRQ update writes Y/X/pointers to eight VIC channels. No measured complete raster schedule. Compare helper also called mainline.\nQ-P17: declared local stable region budget40 cycles; branch helper has20/35 cycles excluding JSR/RTS; paths have distinct memory/device effects. Region must be stable on each claimed path; no padding/scheduling proof given.\nQ-P19: user intent is FLI on PAL6569R3, repeated D011/D018 writes with exact frame buffer/bank layout. Ordinary source stores must retain observable order; no arbitrary loop-to-FLI recognition or renderer policy is authorized. Needed exact timing/bus trace currently absent.\n\n"
+```
+
+</details>
+
+<details>
+<summary>platform permitted request; SHA-256 e2513945ef493f76c12dd433aa36a77f06a141187b5fcd35a8710efe195fbdd3</summary>
+
+```json
+"# Independent contract review\n\nUse the supplied evaluated skill and only this packet. The requests below are distinct; answer every label. Read only the relevant references. Governing raw specification/primary facts outrank skill summaries. Do not invent execution evidence or an immutable candidate content commit. This is a contract assessment, not compiler implementation.\n\n## Q-P08\n\nAcknowledge VIC raster IRQ. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Q-P09\n\nCIA interrupt-control register read/write. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Q-P10\n\nScan joystick/keyboard while CIA2 selects VIC bank. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Q-P11\n\nDesign player-neutral C64 game audio that supports music-only, integrated music/SFX, minimal SFX-only, and exact custom-player paths. Separate PSID container metadata from a callable player contract. State the exact player/export identity, source operations, direct-call lowering, cadence, call domains, ABI/clobbers, writable state, voice mapping, arbitration, IRQ/CIA/SID ownership, banking, PAL/NTSC and 6581/8580 assumptions, and every enabled-feature byte/cycle/RAM/ZP/stack cost. Reject hidden runtime scheduling or mixing. Give one unsafe-overlap counterexample and the independent proof needed.\n\n## Q-P20\n\nOptimize a scrolling/rendering hot path. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Q-P21\n\nA developer writes a sprite multiplexer in ordinary Blend65. State exact machine/video/chip and banking/interrupt assumptions. Separate user-authored scheduling/drop policy from compiler lowering, optimization, typed VIC operations, and local timing/ownership contracts; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Q-P23\n\nA Blend65 game starts from stock BASIC on each cooperative PAL/NTSC, 6581/8580 PRG profile pinned to KERNAL 901227-03. It installs an exclusive IRQ handler, performs a valid CIA1 mask/pending-source handoff, and uses typed CIA1 timers. The product owner approved normal Quit-to-BASIC by restoring stock CIA1 Timer A service when the final exclusive handler is released. Explain the implementable contract, exact PAL/NTSC reloads, device-access and saved-vector order, CPU-status and storage obligations, and independent proof. Contrast an inner route that changed CIA1, counter reads with and without an exclusive route, known raw writes, and a custom pre-entry resident handler. Can reads recover arbitrary old CIA1 mask/latch state? Can whole IOINIT or a main-return-only repair satisfy this release? Use only supplied local authority; keep unmeasured output/runtime/silicon claims explicit.\n\n## Raw fixture inventory\n\nSynthetic platform/API/workload inputs, no compiler/emulator measurements:\nNMOS6510, four cooperative PAL/NTSC PRG profiles with SID6581/8580, KERNAL901227-03, visible IO/ROM, no expansion. RESTORE remains enabled and external reentry unbounded.\nQ-P08: VIC D019 has raster and sprite collision pending, D01A enables only raster. Compare LDA#1/STA D019 with ASL D019 and its NMOS RMW bus writes. Trace all accesses.\nQ-P09: CIA1 ICR prior mask timerA+timerB; pending timerA+FLAG. Compare writes $81 and $01 and two successive reads. CIA2 pending sources remain KERNAL-owned; a chain proposes to read CIA2 ICR before prior handler.\nQ-P10: CIA1 PRA/DC00 PRB/DC01 DDRA/DC02 DDRB/DC03 latches/directions owned by scan; joystick2 on PA and joystick1 PB; CIA2 PRA/DD00 low bits select VIC bank. IRQ and returning stock RESTORE may alter CIA1 port scan. PBON disabled. No proof of key-matrix ambiguity or latch restoration supplied.\nQ-P11: music-only/integrated/minimalSFX/custom-player intent. PSID contains load/init/play fields but no SFX ABI. No hash-pinned callable export contract is supplied; GoatTracker2.77 is first adapter family, SIDFactoryII candidate only. Distinct player calls may share IRQ/mainline writable ZP/RAM, physical SID analog revisions unmeasured. User source owns cadence; no generic mixer/runtime support authorized.\nQ-P20: user scroller1000-byte screen update each frame; alternatives bank/pointer flips, pre-shifted charset1024 extra bytes, dirty region40 bytes, full copy1000 bytes. Different evolving buffers are not replicated identical data. Complete layout/visibility/timing costs not supplied; no measured strategy win.\nQ-P21: user multiplexer sorts12objects onto8sprites; assigns channels/late-drop policy. Compiler supports modern calls/loops/arrays, typed zero-cost VIC writes and local cycle ownership contracts only; no built-in multiplexer/render scheduler desired.\nQ-P23: approved stock-compatible final-exclusive restoreIRQ handback after CIA1 ownership, four profiles above. Typed counter reads/no writes inside lease contrast no exclusive lease; inner route mutates CIA1; known raw CIA1 mutation; custom pre-entry resident handler. Contract restores stock CIA1 TimerA service, not arbitrary prior state or lost ticks. Exact public operations are setIRQExclusive(handler), restoreIRQ(), readTimerACounter(), readTimerBCounter(), writeTimerALatch(word), writeTimerAControl(byte), enableInterruptSources(mask), disableInterruptSources(mask), readAndClearPendingSources(). No generated output supplied.\n\n"
+```
+
+</details>
+
+<details>
+<summary>routing permitted request; SHA-256 5a61b5753f2aac43d1a4e2f2f39ffde2802d2c5039d8e769e7955178b2834937</summary>
+
+```json
+"# Independent contract review\n\nUse the supplied evaluated skill and only this packet. The requests below are distinct; answer every label. Read only the relevant references. Governing raw specification/primary facts outrank skill summaries. Do not invent execution evidence or an immutable candidate content commit. This is a contract assessment, not compiler implementation.\n\n## Q-R04\n\nAssess a raster IRQ function using SFA scratch. Decide whether the Blend65 domain-expert skill applies, identify the smallest sufficient reference set, state all material assumptions, and give the evidence-shaped conclusion. Do not infer authority from existing compiler behavior or from the prompt itself.\n\n## Q-R08\n\nPropose a generalized pass registry to support one local rewrite. Decide whether the Blend65 domain-expert skill applies, identify the smallest sufficient reference set, state all material assumptions, and give the evidence-shaped conclusion. Do not infer authority from existing compiler behavior or from the prompt itself.\n\n## Q-R10\n\nRequest a useful skill enhancement during recovery. Decide whether the Blend65 domain-expert skill applies, identify the smallest sufficient reference set, state all material assumptions, and give the evidence-shaped conclusion. Do not infer authority from existing compiler behavior or from the prompt itself.\n\n## Q-R11\n\nReport a material finding with mixed evidence. Decide whether the Blend65 domain-expert skill applies, identify the smallest sufficient reference set, state all material assumptions, and give the evidence-shaped conclusion. Do not infer authority from existing compiler behavior or from the prompt itself.\n\n## Q-A15\n\nDiscover critical false CPU fact after recovery decisions. Classify what is verified, partial, scaffolded, incorrect, or unknown; separate facts from inference and recommendation; compare only equivalent work with all attributable costs; and state the smallest evidence-backed next action.\n\n## Raw fixture inventory\n\nRaw hypothetical maintenance/review packets:\nQ-R04: CINV raster IRQ on PAL6569R3 NMOS6510/KERNAL901227-03 calls H with8 RAM/2ZP private scratch; mainline also calls H and may write $01; no allocation/entry/bank proof or VICE capture supplied. Source acknowledges raster through named VIC operation.\nQ-R08: one consumer simplifies typed x+0 after effect/type proof. Existing semantic rewrite function accepts typed operands; proposal adds generalized pass registry/plugins/ruleDSL. No additional consumers or inability of existing seam demonstrated.\nQ-R10: active qualified baseline2.0.1 with immutable content commit1ce4852016e2a883cf1f733c6014c45e176bfc69, candidate2.0.2 router/runtime staged but no final qualification/binding. Proposed ordinary useful addition extends support lore during paused recovery. No proven critical fact defect.\nQ-R11: fixture source fragment takes dynamic addr then poke(addr,v); hypothetical generated output adds2 private ZP bytes after SFA closure. Static cost fragment6 bytes/11cycles; caller/helper code and runtime effects unmeasured. Live code evidence is limited to explicitly hypothetical snippet, no artifact bytes or executed trace supplied. Separate established source obligations, inference, unknowns, finding and remedy.\nQ-A15: current baseline2.0.1 immutable commit above, paused dependent IRQ/BCD decisions. False claim: NMOS interrupt clears D. Stronger primary MOS1976 interrupt status description shows D unchanged and CMOS differs. Affected CPU/NMI guides and dependent cases listed in raw question; unrelated asset grammar is not changed. Candidate useful addition is separate from this proven critical false fact.\n\n"
+```
+
+</details>
+
+<details>
+<summary>nmi-final permitted request; SHA-256 03ecf37e0da86fa26e88d2fc5295a3f6363b6c12a6f4e1e0fb2ffa81414ee76c</summary>
+
+```json
+"# Independent contract review\n\nUse the supplied evaluated skill and only this packet. The requests below are distinct; answer every label. Read only the relevant references. Governing raw specification/primary facts outrank skill summaries. Do not invent execution evidence or an immutable candidate content commit. This is a contract assessment, not compiler implementation.\n\n## Q-L08\n\nIRQ can preempt mainline and both reach helper/scratch. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.\n\n## Q-L11\n\nA proposal uses the hardware stack for all locals and reintroduces `asm_pha`, `asm_pla`, or `asm_brk` because the 6502 has those instructions. Determine the required Specification 4 source behavior and responsible compiler boundary. Trace hardware-stack ownership, call/interrupt obligations, and storage lifetimes far enough to justify the decision, then state the smallest viable remedy.\n\n## Q-L25\n\nLegalization creates a spill/helper scratch slot after provisional allocation. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.\n\n## Q-L29\n\nOne `interrupt function onRasterIRQ(): void` is passed through\n  provenance-preserving values to `c64.system.setIRQ`, `c64.system.setIRQExclusive`, and\n  `c64.system.setRawIRQ` under their applicable profiles. The handler calls an ordinary helper and\n  explicitly acknowledges VIC raster IRQ. The default C64 build also contains\n  `pokew($0314, &onRasterIRQ)`. Determine every emitted/rejected entry path, stack and terminal\n  owner, static storage/cost obligation, and compiler boundary. State what changes when the raw\n  vector is not proven writable and active.\n\n## Q-L32\n\nAnalyze a function that takes `&local`, copies it through a `word`, a\n  conditional, arithmetic, and `lo`/`hi`; stores one copy in a contained local aggregate; passes\n  another through two user functions; returns one derived fragment; writes another to module state\n  and raw memory; and publishes another to an IRQ/hardware consumer. Repeat the call sequentially,\n  take the address of a loop local across iterations, and allow mainline plus IRQ to invoke the\n  owner concurrently. Determine every legal use, diagnostic, provenance/lifetime fact, SFA\n  interference edge, required code variant, and runtime/resource cost. Compare a proposal that\n  pins the local for program lifetime.\n\n## Q-P07\n\nSelect among default KERNAL chaining, explicit KERNAL takeover, and raw installation for one IRQ or NMI source handler. State exact machine/video/chip, KERNAL revision, CINV/NMINV/hardware-vector and banking state, every enabled/physical source, and nesting assumptions. Assign compiler/platform/developer ownership; account for bytes, cycles, static link storage, stack and visibility; give one counterexample and the independent proof needed.\n\n## Q-P24\n\nAssess cooperative NMI support on PAL/NTSC PRG profiles\n  with either SID model and stock KERNAL 901227-03. Compare a private-home-free\n  generated ingress, a helper that introduces scratch, a register-only local,\n  shared state, a growing stack cycle and a no-installed-handler program. Decide\n  what is expressible, rejected, proved or unproved. Audit status/D, source and\n  vector/link ownership; distinguish one-entry cost from program peak and finite\n  timing. Keep normal keyboard/joystick and RESTORE behavior. Give the smallest\n  compiler/library boundary without a new runtime.\n\n## Raw fixture inventory\n\n# Cooperative NMI route assessment\n\nUse the supplied Blend65 domain-expert skill and only local packet evidence.\nReview the following hypothetical final generated paths on all four cooperative\nPAL/NTSC PRG profiles with SID 6581/8580, NMOS 6510 and KERNAL 901227-03.\nNMI has no finite external arrival bound. Source-local names are not machine homes.\n\n1. A chain ingress at $2147 uses `PHP; PHA; CLD`, tests an ordinary shared byte\n   ACTIVE, and when active stores the constant one into shared INTERFERED and\n   drives CIA1 PA to $7F, then uses `PLA; PLP; JMP (PRIOR)`. No other register\n   changes, private homes, helper calls or ICR reads. PRIOR at $3002 is immutable\n   $FE47 for the whole program lifetime. All code/data exists before publication;\n   fixed old/new addresses share low byte $47, so publication/removal each writes\n   only the high byte of NMINV. The CIA1 latches/directions are known and PBON is\n   disabled. ACTIVE brackets restoration; interpreting saved rows is separate.\n2. A similar empty-looking source body calls a helper. Its final inventory has a\n   mutable ZP pointer pair and two RAM multiplication scratch bytes for each\n   invocation. No finite nested-NMI bound is available.\n3. An ordinary source local remains entirely in registers; a helper has no RAM/ZP\n   homes. Entry save/restore and shared effects have complete selected-instruction\n   proofs. Is source spelling alone grounds for rejecting either?\n4. A shared `counter += 1` read/modify/write can be interrupted between load and\n   store. A different shared flag is only set to one on every nested entry. Does\n   an empty private-storage inventory prove these effects reentrant?\n5. A compiler-controlled cycle keeps an unmatched generated status push each\n   iteration. Separate candidates have direct and indirect recursive call cycles,\n   or a bounded 237-byte generated peak with 256-byte capacity and 20-byte reserve.\n6. A program installs no generated NMI handler but retains stock RESTORE/RS-232\n   paths. Its mainline/IRQ stack demand is finite. A reporter calls that bound\n   full-program stack safety, assumes firmware always completes, and certifies a\n   raster deadline from one NMI entry cost.\n7. A chain reads CIA2 ICR then jumps to stock FE47. Another installation changes\n   both NMINV bytes under `SEI`, or overwrites a predecessor link while an old\n   interrupted ingress can still use it. Contrast with the fixed one-byte update.\n\nFor each, identify expressibility, rejection/diagnostic, and proved/unproved\nboundaries. Audit callback identity, all transitive storage, A/X/Y/P/D and\nterminal state, source/ICR ownership, bank visibility and vector/link lifetime.\nGive exact component costs for case 1, distinguish them from external/ROM peak\nand completion, and explain what finite timing requires. Do not implement.\nCompare takeover and D64 scope. Keep named keyboard interpretation, both joystick\nports and normal RESTORE behavior; state what this assessment cannot establish.\nDo not infer compiler, VICE or silicon results from hypothetical assembly.\n\nExact selected ingress at $2147; ACTIVE=$3000, INTERFERED=$3001, PRIOR=$3002 (immutable word $FE47):\nPHP / PHA / CLD / LDA $3000 / BEQ chain / LDA #$01 / STA $3001 / LDA #$7F / STA $DC00 / chain: PLA / PLP / JMP ($3002).\nAll selected instruction paths are above. No X/Y modifications, helper calls, private homes or ICR reads. All branches remain in page $21. Use exact NMOS forms and exclude existing ROM bytes from output bytes. Profile: each cooperative PAL/NTSC PRG 6581/8580 profile, stock KERNAL 901227-03, visible IO/ROM, PBON off; CIA2 sources remain firmware-owned; physical RESTORE remains possible. Saved predecessor immutable for route lifetime. Raw/D64 contrast has no extra product approval.\nMainline and one non-self-nesting IRQ both call H with 8 RAM bytes and a 2-byte ZP pointer; source globals remain shared. NMI can preempt either and itself. A provisional allocator shares H's homes. Compare raw versus CINV entry ABI and the private-free ingress above.\nProposed source stack design puts all locals in hardware stack and exposes asm_pha/asm_pla/asm_brk. Another design requests a 2-byte legalization spill after provisional SFA. Closure inventory includes staging, parameters/results, locals, helper scratch and spills.\nIRQ source onRasterIRQ calls an ordinary helper and acknowledges VIC. Its identity flows through values to setIRQ, setIRQExclusive and setRawIRQ; direct pokew($0314,&onRasterIRQ) also exists. Compare page-safe prior-vector links at $30FE and $30FF and an inactive/read-only hardware vector.\nBorrow fixture: function local L; p=&L; q=p+1; low=lo(q); local aggregate stores p. User function U passes p to V; V either only reads synchronously or retains globally. Caller returns low, stores p into module state/raw memory/MMIO and publishes to IRQ; loop local address escapes an iteration. Repeat sequentially and concurrently in mainline/one bounded IRQ. No emitted artifact is supplied for these hypothetical source designs.\n\n"
+```
+
+</details>
+
+<details>
+<summary>nmi-boundary permitted request; SHA-256 100293d6f9cfb77032a7346af6db9617ea4055371c91581da8e935bc1f2a8234</summary>
+
+```json
+"# Focused independent contract assessment\n\nApply the supplied evaluated skill to both requests. Keep source authority, generated proof and external unknowns distinct. This is not an implementation qualification.\n\n## Q-P07\n\n“Select among default KERNAL chaining, explicit KERNAL takeover, and raw installation for one IRQ or NMI source handler. State exact machine/video/chip, KERNAL revision, CINV/NMINV/hardware-vector and banking state, every enabled/physical source, and nesting assumptions. Assign compiler/platform/developer ownership; account for bytes, cycles, static link storage, stack and visibility; give one counterexample and the independent proof needed.”\n\n## Q-P24\n\n“Assess cooperative NMI support on PAL/NTSC PRG profiles\n  with either SID model and stock KERNAL 901227-03. Compare a private-home-free\n  generated ingress, a helper that introduces scratch, a register-only local,\n  shared state, a growing stack cycle and a no-installed-handler program. Decide\n  what is expressible, rejected, proved or unproved. Audit status/D, source and\n  vector/link ownership; distinguish one-entry cost from program peak and finite\n  timing. Keep normal keyboard/joystick and RESTORE behavior. Give the smallest\n  compiler/library boundary without a new runtime.”\n\nPlease explicitly identify who implements ordinary interpretation of captured keyboard rows and saved joystick bytes. Also explain what a chain must do if its body modifies A/X/Y or P that a predecessor can observe, versus an untouched register. Do not infer a public input API, manager or runtime from this question.\n\n## Synthetic raw cases\n\n# Cooperative NMI route assessment\n\nUse the supplied Blend65 domain-expert skill and only local packet evidence.\nReview the following hypothetical final generated paths on all four cooperative\nPAL/NTSC PRG profiles with SID 6581/8580, NMOS 6510 and KERNAL 901227-03.\nNMI has no finite external arrival bound. Source-local names are not machine homes.\n\n1. A chain ingress at $2147 uses `PHP; PHA; CLD`, tests an ordinary shared byte\n   ACTIVE, and when active stores the constant one into shared INTERFERED and\n   drives CIA1 PA to $7F, then uses `PLA; PLP; JMP (PRIOR)`. No other register\n   changes, private homes, helper calls or ICR reads. PRIOR at $3002 is immutable\n   $FE47 for the whole program lifetime. All code/data exists before publication;\n   fixed old/new addresses share low byte $47, so publication/removal each writes\n   only the high byte of NMINV. The CIA1 latches/directions are known and PBON is\n   disabled. ACTIVE brackets restoration; interpreting saved rows is separate.\n2. A similar empty-looking source body calls a helper. Its final inventory has a\n   mutable ZP pointer pair and two RAM multiplication scratch bytes for each\n   invocation. No finite nested-NMI bound is available.\n3. An ordinary source local remains entirely in registers; a helper has no RAM/ZP\n   homes. Entry save/restore and shared effects have complete selected-instruction\n   proofs. Is source spelling alone grounds for rejecting either?\n4. A shared `counter += 1` read/modify/write can be interrupted between load and\n   store. A different shared flag is only set to one on every nested entry. Does\n   an empty private-storage inventory prove these effects reentrant?\n5. A compiler-controlled cycle keeps an unmatched generated status push each\n   iteration. Separate candidates have direct and indirect recursive call cycles,\n   or a bounded 237-byte generated peak with 256-byte capacity and 20-byte reserve.\n6. A program installs no generated NMI handler but retains stock RESTORE/RS-232\n   paths. Its mainline/IRQ stack demand is finite. A reporter calls that bound\n   full-program stack safety, assumes firmware always completes, and certifies a\n   raster deadline from one NMI entry cost.\n7. A chain reads CIA2 ICR then jumps to stock FE47. Another installation changes\n   both NMINV bytes under `SEI`, or overwrites a predecessor link while an old\n   interrupted ingress can still use it. Contrast with the fixed one-byte update.\n\nFor each, identify expressibility, rejection/diagnostic, and proved/unproved\nboundaries. Audit callback identity, all transitive storage, A/X/Y/P/D and\nterminal state, source/ICR ownership, bank visibility and vector/link lifetime.\nGive exact component costs for case 1, distinguish them from external/ROM peak\nand completion, and explain what finite timing requires. Do not implement.\nCompare takeover and D64 scope. Keep named keyboard interpretation, both joystick\nports and normal RESTORE behavior; state what this assessment cannot establish.\nDo not infer compiler, VICE or silicon results from hypothetical assembly.\n\n\nFully selected case1 at $2147: PHP / PHA / CLD / LDA $3000 / BEQ chain / LDA #$01 / STA $3001 / LDA #$7F / STA $DC00 / chain: PLA / PLP / JMP ($3002). ACTIVE=$3000, INTERFERED=$3001, PRIOR=$3002 immutable word $FE47. All branches in page$21; no X/Y changes, private homes, helpers, or CIA2 ICR reads. Known CIA1 latch/DDR ownership and PBON off as fixture. One-byte NMINV high-byte publication/removal with unchanged low$47; old code/data/link remain live. IRQ handler contrast uses recognized CINV-chain/exclusive/raw sinks, ordinary helper JSR/RTS, explicit VIC raster acknowledge and proved writable/active raw vector only when selected. ABI clobbers beyond selected case1 and complete IRQ body/output costs are unspecified.\n"
+```
+
+</details>
+
+<details>
+<summary>nmi-refined permitted request; SHA-256 8a0f6a8343a5d5bd6a7428b8f580e9d0cd97d06805fa1759d0ddf59d4853091b</summary>
+
+```json
+"# Independent contract review\n\nUse the supplied evaluated skill and only this packet. The requests below are distinct; answer every label. Read only the relevant references. Governing raw specification/primary facts outrank skill summaries. Do not invent execution evidence or an immutable candidate content commit. This is a contract assessment, not compiler implementation.\n\n## Q-L08\n\nIRQ can preempt mainline and both reach helper/scratch. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.\n\n## Q-L11\n\nA proposal uses the hardware stack for all locals and reintroduces `asm_pha`, `asm_pla`, or `asm_brk` because the 6502 has those instructions. Determine the required Specification 4 source behavior and responsible compiler boundary. Trace hardware-stack ownership, call/interrupt obligations, and storage lifetimes far enough to justify the decision, then state the smallest viable remedy.\n\n## Q-L25\n\nLegalization creates a spill/helper scratch slot after provisional allocation. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.\n\n## Q-L29\n\nOne `interrupt function onRasterIRQ(): void` is passed through\n  provenance-preserving values to `c64.system.setIRQ`, `c64.system.setIRQExclusive`, and\n  `c64.system.setRawIRQ` under their applicable profiles. The handler calls an ordinary helper and\n  explicitly acknowledges VIC raster IRQ. The default C64 build also contains\n  `pokew($0314, &onRasterIRQ)`. Determine every emitted/rejected entry path, stack and terminal\n  owner, static storage/cost obligation, and compiler boundary. State what changes when the raw\n  vector is not proven writable and active.\n\n## Q-L32\n\nAnalyze a function that takes `&local`, copies it through a `word`, a\n  conditional, arithmetic, and `lo`/`hi`; stores one copy in a contained local aggregate; passes\n  another through two user functions; returns one derived fragment; writes another to module state\n  and raw memory; and publishes another to an IRQ/hardware consumer. Repeat the call sequentially,\n  take the address of a loop local across iterations, and allow mainline plus IRQ to invoke the\n  owner concurrently. Determine every legal use, diagnostic, provenance/lifetime fact, SFA\n  interference edge, required code variant, and runtime/resource cost. Compare a proposal that\n  pins the local for program lifetime.\n\n## Q-P07\n\nSelect among default KERNAL chaining, explicit KERNAL takeover, and raw installation for one IRQ or NMI source handler. State exact machine/video/chip, KERNAL revision, CINV/NMINV/hardware-vector and banking state, every enabled/physical source, and nesting assumptions. Assign compiler/platform/developer ownership; account for bytes, cycles, static link storage, stack and visibility; give one counterexample and the independent proof needed.\n\n## Q-P24\n\nAssess cooperative NMI support on PAL/NTSC PRG profiles\n  with either SID model and stock KERNAL 901227-03. Compare a private-home-free\n  generated ingress, a helper that introduces scratch, a register-only local,\n  shared state, a growing stack cycle and a no-installed-handler program. Decide\n  what is expressible, rejected, proved or unproved. Audit status/D, source and\n  vector/link ownership; distinguish one-entry cost from program peak and finite\n  timing. Keep normal keyboard/joystick and RESTORE behavior. Give the smallest\n  compiler/library boundary without a new runtime.\n\n## Raw fixture inventory\n\n# Cooperative NMI route assessment\n\nUse the supplied Blend65 domain-expert skill and only local packet evidence.\nReview the following hypothetical final generated paths on all four cooperative\nPAL/NTSC PRG profiles with SID 6581/8580, NMOS 6510 and KERNAL 901227-03.\nNMI has no finite external arrival bound. Source-local names are not machine homes.\n\n1. A chain ingress at $2147 uses `PHP; PHA; CLD`, tests an ordinary shared byte\n   ACTIVE, and when active stores the constant one into shared INTERFERED and\n   drives CIA1 PA to $7F, then uses `PLA; PLP; JMP (PRIOR)`. No other register\n   changes, private homes, helper calls or ICR reads. PRIOR at $3002 is immutable\n   $FE47 for the whole program lifetime. All code/data exists before publication;\n   fixed old/new addresses share low byte $47, so publication/removal each writes\n   only the high byte of NMINV. The CIA1 latches/directions are known and PBON is\n   disabled. ACTIVE brackets restoration; interpreting saved rows is separate.\n2. A similar empty-looking source body calls a helper. Its final inventory has a\n   mutable ZP pointer pair and two RAM multiplication scratch bytes for each\n   invocation. No finite nested-NMI bound is available.\n3. An ordinary source local remains entirely in registers; a helper has no RAM/ZP\n   homes. Entry save/restore and shared effects have complete selected-instruction\n   proofs. Is source spelling alone grounds for rejecting either?\n4. A shared `counter += 1` read/modify/write can be interrupted between load and\n   store. A different shared flag is only set to one on every nested entry. Does\n   an empty private-storage inventory prove these effects reentrant?\n5. A compiler-controlled cycle keeps an unmatched generated status push each\n   iteration. Separate candidates have direct and indirect recursive call cycles,\n   or a bounded 237-byte generated peak with 256-byte capacity and 20-byte reserve.\n6. A program installs no generated NMI handler but retains stock RESTORE/RS-232\n   paths. Its mainline/IRQ stack demand is finite. A reporter calls that bound\n   full-program stack safety, assumes firmware always completes, and certifies a\n   raster deadline from one NMI entry cost.\n7. A chain reads CIA2 ICR then jumps to stock FE47. Another installation changes\n   both NMINV bytes under `SEI`, or overwrites a predecessor link while an old\n   interrupted ingress can still use it. Contrast with the fixed one-byte update.\n\nFor each, identify expressibility, rejection/diagnostic, and proved/unproved\nboundaries. Audit callback identity, all transitive storage, A/X/Y/P/D and\nterminal state, source/ICR ownership, bank visibility and vector/link lifetime.\nGive exact component costs for case 1, distinguish them from external/ROM peak\nand completion, and explain what finite timing requires. Do not implement.\nCompare takeover and D64 scope. Keep named keyboard interpretation, both joystick\nports and normal RESTORE behavior; state what this assessment cannot establish.\nDo not infer compiler, VICE or silicon results from hypothetical assembly.\nIdentify who owns ordinary interpretation of saved keyboard/joystick samples, separately from\ncompiler-owned entry/storage/volatile lowering. Give the legal source form for numeric raw handler\nexposure and distinguish ordinary `fn` storage from handler-value flow.\n\nExact selected ingress at $2147; ACTIVE=$3000, INTERFERED=$3001, PRIOR=$3002 (immutable word $FE47):\nPHP / PHA / CLD / LDA $3000 / BEQ chain / LDA #$01 / STA $3001 / LDA #$7F / STA $DC00 / chain: PLA / PLP / JMP ($3002).\nAll selected instruction paths are above. No X/Y modifications, helper calls, private homes or ICR reads. All branches remain in page $21. Use exact NMOS forms and exclude existing ROM bytes from output bytes. Profile: each cooperative PAL/NTSC PRG 6581/8580 profile, stock KERNAL 901227-03, visible IO/ROM, PBON off; CIA2 sources remain firmware-owned; physical RESTORE remains possible. Saved predecessor immutable for route lifetime. Raw/D64 contrast has no extra product approval.\nMainline and one non-self-nesting IRQ both call H with 8 RAM bytes and a 2-byte ZP pointer; source globals remain shared. NMI can preempt either and itself. A provisional allocator shares H's homes. Compare raw versus CINV entry ABI and the private-free ingress above.\nProposed source stack design puts all locals in hardware stack and exposes asm_pha/asm_pla/asm_brk. Another design requests a 2-byte legalization spill after provisional SFA. Closure inventory includes staging, parameters/results, locals, helper scratch and spills.\nIRQ source onRasterIRQ calls an ordinary helper and acknowledges VIC. Its identity flows through values to setIRQ, setIRQExclusive and setRawIRQ; direct pokew($0314,&onRasterIRQ) also exists. Compare page-safe prior-vector links at $30FE and $30FF and an inactive/read-only hardware vector.\nBorrow fixture: function local L; p=&L; q=p+1; low=lo(q); local aggregate stores p. User function U passes p to V; V either only reads synchronously or retains globally. Caller returns low, stores p into module state/raw memory/MMIO and publishes to IRQ; loop local address escapes an iteration. Repeat sequentially and concurrently in mainline/one bounded IRQ. No emitted artifact is supplied for these hypothetical source designs.\n"
+```
+
+</details>
+
+<details>
+<summary>control-refined permitted request; SHA-256 10a978b90142a0ebe74904843127c5fd0600065ff9d36591d85c647e486ba829</summary>
+
+```json
+"# Independent control review\n\nUse the supplied skill and only this packet. Governing raw specification and primary facts outrank\nskill summaries. This is a hypothetical contract assessment, not compiler/runtime qualification.\nDo not invent measurements, a candidate content commit or activation. Answer the numbered request\nwith complete source, effect, ABI, storage and cost reasoning.\n\n## Q-C07\n\nAn IRQ enters while decimal mode may be set. Compare NMOS 6510 and the selected CMOS delta,\nidentify the ordinary-arithmetic result, every required compiler boundary, and exact\nentry/restore/helper cost for the supplied configuration. Explain the independent proof needed.\n\n## Raw fixture\n\nNMOS 6510, visible cooperative C64 IO/ROM, stock KERNAL 901227-03; no physical execution\nobservation. D may be one on IRQ/NMI entry. Compare CINV chain, CINV exclusive and raw variants\nand a binary ADC body. Prior chain observer reads inherited P/A/X/Y. An NMINV hook is also\npossible; do not assume CPU entry clears D. All four cooperative PAL/NTSC PRG 6581/8580 profiles\nshare these CPU/status obligations. No emitted assembly, private-home inventory or complete route\ntiming is supplied.\n"
+```
+
+</details>
+
+<details>
+<summary>corpus-refined permitted request; SHA-256 6f337f0daab46ecbe9b49f210aefaa62a52b00b8b11d24f842f814369d96399e</summary>
+
+```json
+"# Specification crosswalk audit\n\nUse only supplied SKILL.md for routing, the semantic crosswalk and its three architecture/SFA/IL branch references, all 45 spec files, and the exact policy excerpts. Release history is intentionally absent; do not infer content commit or activation.\n\nFirst resolve this supplied language question from governing documents:\n  Axiom A4 forbids unenumerated coercions, while TS-4 defines same-signedness mixed-width widening\n  and TS-14 defines enum-to-byte conversion. Are `byte + word` and enum-to-byte use therefore\n  invalid, or are those two explicitly enumerated implicit conversions valid?\n  Then audit every path in the exact `spec/**/*.md` inventory against the candidate semantic\n  crosswalk. For each path, identify its authority role, one substantive semantic payload, one\n  compiler/storage/effect consequence, one important interaction or failure boundary, the correct\n  skill branch, and any genuinely inapplicable depth facet with a reason. Report contradictions,\n  missing paths, shallow summaries, unsupported coverage, and duplicated authority.\n\n"
+```
+
+</details>
+
+<details>
+<summary>final-corrections permitted request; SHA-256 f85326f5443e1d3db4ef92224ac51cd39287bd5257919e43a9a890dde062c9ed</summary>
+
+```json
+"# Independent focused contract assessment\n\nUse the supplied skill and only this packet. Answer every request with complete source, effect, ABI, storage and cost reasoning. Governing raw authority outranks guide summaries; do not invent compiler/runtime measurements, content identity or activation. Assess every permitted boundary needed by each question, including unknowns.\n\n## Q-R04\n\nAssess a raster IRQ function using SFA scratch. Decide whether the Blend65 domain-expert skill applies, identify the smallest sufficient reference set, state all material assumptions, and give the evidence-shaped conclusion. Do not infer authority from existing compiler behavior or from the prompt itself.\n\n## Q-R08\n\nPropose a generalized pass registry to support one local rewrite. Decide whether the Blend65 domain-expert skill applies, identify the smallest sufficient reference set, state all material assumptions, and give the evidence-shaped conclusion. Do not infer authority from existing compiler behavior or from the prompt itself.\n\n## Q-P11\n\nDesign player-neutral C64 game audio that supports music-only, integrated music/SFX, minimal SFX-only, and exact custom-player paths. Separate PSID container metadata from a callable player contract. State the exact player/export identity, source operations, direct-call lowering, cadence, call domains, ABI/clobbers, writable state, voice mapping, arbitration, IRQ/CIA/SID ownership, banking, PAL/NTSC and 6581/8580 assumptions, and every enabled-feature byte/cycle/RAM/ZP/stack cost. Reject hidden runtime scheduling or mixing. Give one unsafe-overlap counterexample and the independent proof needed.\n\n## Q-P20\n\nOptimize a scrolling/rendering hot path. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Raw fixture inventory\n\nQ-R04: CINV raster IRQ on PAL6569R3 NMOS6510/KERNAL901227-03 calls H with8 RAM/2ZP private scratch; mainline also calls H and may write $01; no allocation/entry/bank proof or VICE capture supplied. Source acknowledges raster through named VIC operation.\nQ-R08: one consumer simplifies typed x+0 after effect/type proof. Existing semantic rewrite function accepts typed operands; proposal adds generalized pass registry/plugins/ruleDSL. No additional consumers or inability of existing seam demonstrated.\nNMOS6510, four cooperative PAL/NTSC PRG profiles with SID6581/8580, KERNAL901227-03, visible IO/ROM, no expansion. RESTORE remains enabled and external reentry unbounded.\nQ-P11: music-only/integrated/minimalSFX/custom-player intent. PSID contains load/init/play fields but no SFX ABI. No hash-pinned callable export contract is supplied; GoatTracker2.77 is first adapter family, SIDFactoryII candidate only. Distinct player calls may share IRQ/mainline writable ZP/RAM, physical SID analog revisions unmeasured. User source owns cadence; no generic mixer/runtime support authorized.\nQ-P20: user scroller1000-byte screen update each frame; alternatives bank/pointer flips, pre-shifted charset1024 extra bytes, dirty region40 bytes, full copy1000 bytes. Different evolving buffers are not replicated identical data. Complete layout/visibility/timing costs not supplied; no measured strategy win.\n\n"
+```
+
+</details>
+
+<details>
+<summary>input-boundary-final permitted request; SHA-256 362a585478a1f514f0508c64a524adebbce5895e1ec326bf6f761aabdddea220</summary>
+
+```json
+"# Independent focused contract assessment\n\nUse the supplied skill and only this packet. Answer both requests completely with source, effects, ABI, storage and cost reasoning. Raw governing authority outranks summaries; actual compiler/runtime/physical qualification and immutable content commit remain Unknown unless supplied. Do not read unavailable history/oracles or invent measurements.\n\n## Q-P07\n\nSelect among default KERNAL chaining, explicit KERNAL takeover, and raw installation for one IRQ or NMI source handler. State exact machine/video/chip, KERNAL revision, CINV/NMINV/hardware-vector and banking state, every enabled/physical source, and nesting assumptions. Assign compiler/platform/developer ownership; account for bytes, cycles, static link storage, stack and visibility; give one counterexample and the independent proof needed.\n\n## Q-P24\n\nAssess cooperative NMI support on PAL/NTSC PRG profiles\n  with either SID model and stock KERNAL 901227-03. Compare a private-home-free\n  generated ingress, a helper that introduces scratch, a register-only local,\n  shared state, a growing stack cycle and a no-installed-handler program. Decide\n  what is expressible, rejected, proved or unproved. Audit status/D, source and\n  vector/link ownership; distinguish one-entry cost from program peak and finite\n  timing. Keep normal keyboard/joystick and RESTORE behavior. Give the smallest\n  compiler/library boundary without a new runtime.\n\n## Raw fixture inventory\n\n\n\n# Cooperative NMI route assessment\n\nUse the supplied Blend65 domain-expert skill and only local packet evidence.\nReview the following hypothetical final generated paths on all four cooperative\nPAL/NTSC PRG profiles with SID 6581/8580, NMOS 6510 and KERNAL 901227-03.\nNMI has no finite external arrival bound. Source-local names are not machine homes.\n\n1. A chain ingress at $2147 uses `PHP; PHA; CLD`, tests an ordinary shared byte\n   ACTIVE, and when active stores the constant one into shared INTERFERED and\n   drives CIA1 PA to $7F, then uses `PLA; PLP; JMP (PRIOR)`. No other register\n   changes, private homes, helper calls or ICR reads. PRIOR at $3002 is immutable\n   $FE47 for the whole program lifetime. All code/data exists before publication;\n   fixed old/new addresses share low byte $47, so publication/removal each writes\n   only the high byte of NMINV. The CIA1 latches/directions are known and PBON is\n   disabled. ACTIVE brackets restoration; interpreting saved rows is separate.\n2. A similar empty-looking source body calls a helper. Its final inventory has a\n   mutable ZP pointer pair and two RAM multiplication scratch bytes for each\n   invocation. No finite nested-NMI bound is available.\n3. An ordinary source local remains entirely in registers; a helper has no RAM/ZP\n   homes. Entry save/restore and shared effects have complete selected-instruction\n   proofs. Is source spelling alone grounds for rejecting either?\n4. A shared `counter += 1` read/modify/write can be interrupted between load and\n   store. A different shared flag is only set to one on every nested entry. Does\n   an empty private-storage inventory prove these effects reentrant?\n5. A compiler-controlled cycle keeps an unmatched generated status push each\n   iteration. Separate candidates have direct and indirect recursive call cycles,\n   or a bounded 237-byte generated peak with 256-byte capacity and 20-byte reserve.\n6. A program installs no generated NMI handler but retains stock RESTORE/RS-232\n   paths. Its mainline/IRQ stack demand is finite. A reporter calls that bound\n   full-program stack safety, assumes firmware always completes, and certifies a\n   raster deadline from one NMI entry cost.\n7. A chain reads CIA2 ICR then jumps to stock FE47. Another installation changes\n   both NMINV bytes under `SEI`, or overwrites a predecessor link while an old\n   interrupted ingress can still use it. Contrast with the fixed one-byte update.\n\nFor each, identify expressibility, rejection/diagnostic, and proved/unproved\nboundaries. Audit callback identity, all transitive storage, A/X/Y/P/D and\nterminal state, source/ICR ownership, bank visibility and vector/link lifetime.\nGive exact component costs for case 1, distinguish them from external/ROM peak\nand completion, and explain what finite timing requires. Do not implement.\nCompare takeover and D64 scope. Keep named keyboard interpretation, both joystick\nports and normal RESTORE behavior; state what this assessment cannot establish.\nDo not infer compiler, VICE or silicon results from hypothetical assembly.\n\nExact selected ingress at $2147; ACTIVE=$3000, INTERFERED=$3001, PRIOR=$3002 (immutable word $FE47):\nPHP / PHA / CLD / LDA $3000 / BEQ chain / LDA #$01 / STA $3001 / LDA #$7F / STA $DC00 / chain: PLA / PLP / JMP ($3002).\nAll selected instruction paths are above. No X/Y modifications, helper calls, private homes or ICR reads. All branches remain in page $21. Use exact NMOS forms and exclude existing ROM bytes from output bytes. Profile: each cooperative PAL/NTSC PRG 6581/8580 profile, stock KERNAL 901227-03, visible IO/ROM, PBON off; CIA2 sources remain firmware-owned; physical RESTORE remains possible. Saved predecessor immutable for route lifetime. Raw/D64 contrast has no extra product approval.\nMainline and one non-self-nesting IRQ both call H with 8 RAM bytes and a 2-byte ZP pointer; source globals remain shared. NMI can preempt either and itself. A provisional allocator shares H's homes. Compare raw versus CINV entry ABI and the private-free ingress above.\nProposed source stack design puts all locals in hardware stack and exposes asm_pha/asm_pla/asm_brk. Another design requests a 2-byte legalization spill after provisional SFA. Closure inventory includes staging, parameters/results, locals, helper scratch and spills.\nIRQ source onRasterIRQ calls an ordinary helper and acknowledges VIC. Its identity flows through values to setIRQ, setIRQExclusive and setRawIRQ; direct pokew($0314,&onRasterIRQ) also exists. Compare page-safe prior-vector links at $30FE and $30FF and an inactive/read-only hardware vector.\nBorrow fixture: function local L; p=&L; q=p+1; low=lo(q); local aggregate stores p. User function U passes p to V; V either only reads synchronously or retains globally. Caller returns low, stores p into module state/raw memory/MMIO and publishes to IRQ; loop local address escapes an iteration. Repeat sequentially and concurrently in mainline/one bounded IRQ. No emitted artifact is supplied for these hypothetical source designs.\n\n\n\n"
+```
+
+</details>
+
+<details>
+<summary>workload-completion permitted request; SHA-256 b172e865946de77f4ae125ad035e917664cdc4557c29b1239a9b6d574cd5e5f9</summary>
+
+```json
+"# Independent focused workload assessment\n\nUse the supplied skill and only this packet. Give complete source, effect, ABI, ownership and attributable cost reasoning for both questions. Governing raw authority outranks summaries. No compiler, emulator, physical or exported-player observations are supplied; do not invent measurements, content commit or activation.\n\n## Q-P11\n\nDesign player-neutral C64 game audio that supports music-only, integrated music/SFX, minimal SFX-only, and exact custom-player paths. Separate PSID container metadata from a callable player contract. State the exact player/export identity, source operations, direct-call lowering, cadence, call domains, ABI/clobbers, writable state, voice mapping, arbitration, IRQ/CIA/SID ownership, banking, PAL/NTSC and 6581/8580 assumptions, and every enabled-feature byte/cycle/RAM/ZP/stack cost. Reject hidden runtime scheduling or mixing. Give one unsafe-overlap counterexample and the independent proof needed.\n\n## Q-P20\n\nOptimize a scrolling/rendering hot path. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.\n\n## Raw workload variants\n\nNMOS6510; four cooperative PAL/NTSC PRG 6581/8580 profiles; stock KERNAL901227-03; visible IO/ROM; no expansion. External RESTORE reentry remains unbounded.\n\nAudio: compare music-only, integrated music/SFX, minimalSFX-only and exactcustomplayer. PSID supplies load/init/play fields, not an SFX ABI. No exact export bytes/hash or writable-state map is supplied. GoatTracker2.77 is the first adapterfamily, SIDFactoryII is a candidate; also assess GTUltra and a two/three-SID export against these selected profiles and state what ownership would be needed. Source owns cadence; compare IRQ/mainline overlap of writable player state.\n\nScrolling: a1000-byte screen update per frame. Compare bank/pointer flips, placement, immutable static replication, pre-shiftedcharset1024additionalbytes, dirtyregion40bytes, unrolling and fullcopy1000bytes. A proposed replica is identical immutable charset data in another VICbank, not another evolving screenbuffer. Actual consumer visibility/placement constraints, memorybudget, copy-equivalence and complete timing benefit are not supplied. Decide whether that proposal can be justified and account for duplicate bytes, alignment, serialization/loading, timing and coherence, separately from distinct evolving buffers. Include IRQ/loader/source-generation costs and Unknowns.\n\n"
+```
+
+</details>
+
+<details>
+<summary>final-precision permitted request; SHA-256 29d15aed8e7ec02baf83bb127cadb0037600b1b9fc3caf665c07132af329bd9c</summary>
+
+```json
+"# Independent focused precision qualification\n\nUse only the supplied skill and permitted packet. Raw governing facts outrank summaries. Answer every case with source, effect, storage, ABI and relevant cost reasoning. Content commit, activation, compiler output and runtime remain Unknown unless supplied.\n\n## Q-L29\n\nOne `interrupt function onRasterIRQ(): void` is passed through\n  provenance-preserving values to `c64.system.setIRQ`, `c64.system.setIRQExclusive`, and\n  `c64.system.setRawIRQ` under their applicable profiles. The handler calls an ordinary helper and\n  explicitly acknowledges VIC raster IRQ. The default C64 build also contains\n  `pokew($0314, &onRasterIRQ)`. Determine every emitted/rejected entry path, stack and terminal\n  owner, static storage/cost obligation, and compiler boundary. State what changes when the raw\n  vector is not proven writable and active.\n\n## Q-R11\n\nReport a material finding with mixed evidence. Decide whether the Blend65 domain-expert skill applies, identify the smallest sufficient reference set, state all material assumptions, and give the evidence-shaped conclusion. Do not infer authority from existing compiler behavior or from the prompt itself.\n\n## Q-R08\n\nPropose a generalized pass registry to support one local rewrite. Decide whether the Blend65 domain-expert skill applies, identify the smallest sufficient reference set, state all material assumptions, and give the evidence-shaped conclusion. Do not infer authority from existing compiler behavior or from the prompt itself.\n\n## Raw inputs\n\nRaw hypothetical inputs, no emitted artifact or executed trace:\nQ-L29: NMOS6510, cooperative PAL/NTSC PRG6581/8580, KERNAL901227-03, visible IO/ROM. onRasterIRQ calls an ordinary helper and acknowledges VIC. Compare direct/same-kind conditional handler expressions, an attempted stored handler, explicit word(&onRasterIRQ), and ordinary typed fn storage/parameters/return. Compare setIRQ/setIRQExclusive/setRawIRQ routes, pokew($0314,&onRasterIRQ), saved links at $30FE and $30FF, and an inactive/read-only raw vector. No output supplied; component costs are derived, not measured.\nQ-R11: dynamic addr then poke(addr,v); hypothetical generated output adds two private ZP bytes after SFA closure. Static fragment six bytes/eleven cycles; caller/helper and runtime effects unmeasured. No real artifact, full-program cost or executed trace. Separate established source obligations, conditional reasoning, missing evidence, finding and remedy. If authority genuinely conflicts, identify the field separately.\nQ-R08: one consumer simplifies typed x+0 after effect/type proof; existing typed semantic rewrite function is available. Proposal adds generalized registry/plugins/ruleDSL. No other consumer or inability of the existing seam is demonstrated.\n"
+```
+
+</details>
+
+<details>
+<summary>baseline-narrow permitted request; SHA-256 0e5df5834fdd111d9ca7d923e710703b443feddae7b1c20b978b2d39bc769f9d</summary>
+
+```json
+"# Cooperative NMI route assessment\n\nUse the supplied Blend65 domain-expert skill and only local packet evidence.\nReview the following hypothetical final generated paths on all four cooperative\nPAL/NTSC PRG profiles with SID 6581/8580, NMOS 6510 and KERNAL 901227-03.\nNMI has no finite external arrival bound. Source-local names are not machine homes.\n\n1. A chain ingress at $2147 uses `PHP; PHA; CLD`, tests an ordinary shared byte\n   ACTIVE, and when active stores the constant one into shared INTERFERED and\n   drives CIA1 PA to $7F, then uses `PLA; PLP; JMP (PRIOR)`. No other register\n   changes, private homes, helper calls or ICR reads. PRIOR at $3002 is immutable\n   $FE47 for the whole program lifetime. All code/data exists before publication;\n   fixed old/new addresses share low byte $47, so publication/removal each writes\n   only the high byte of NMINV. The CIA1 latches/directions are known and PBON is\n   disabled. ACTIVE brackets restoration; interpreting saved rows is separate.\n2. A similar empty-looking source body calls a helper. Its final inventory has a\n   mutable ZP pointer pair and two RAM multiplication scratch bytes for each\n   invocation. No finite nested-NMI bound is available.\n3. An ordinary source local remains entirely in registers; a helper has no RAM/ZP\n   homes. Entry save/restore and shared effects have complete selected-instruction\n   proofs. Is source spelling alone grounds for rejecting either?\n4. A shared `counter += 1` read/modify/write can be interrupted between load and\n   store. A different shared flag is only set to one on every nested entry. Does\n   an empty private-storage inventory prove these effects reentrant?\n5. A compiler-controlled cycle keeps an unmatched generated status push each\n   iteration. Separate candidates have direct and indirect recursive call cycles,\n   or a bounded 237-byte generated peak with 256-byte capacity and 20-byte reserve.\n6. A program installs no generated NMI handler but retains stock RESTORE/RS-232\n   paths. Its mainline/IRQ stack demand is finite. A reporter calls that bound\n   full-program stack safety, assumes firmware always completes, and certifies a\n   raster deadline from one NMI entry cost.\n7. A chain reads CIA2 ICR then jumps to stock FE47. Another installation changes\n   both NMINV bytes under `SEI`, or overwrites a predecessor link while an old\n   interrupted ingress can still use it. Contrast with the fixed one-byte update.\n\nFor each, identify expressibility, rejection/diagnostic, and proved/unproved\nboundaries. Audit callback identity, all transitive storage, A/X/Y/P/D and\nterminal state, source/ICR ownership, bank visibility and vector/link lifetime.\nGive exact component costs for case 1, distinguish them from external/ROM peak\nand completion, and explain what finite timing requires. Do not implement.\nCompare takeover and D64 scope. Keep named keyboard interpretation, both joystick\nports and normal RESTORE behavior; state what this assessment cannot establish.\nDo not infer compiler, VICE or silicon results from hypothetical assembly.\n"
+```
+
+</details>
+
+<details>
+<summary>corpus-first permitted request; SHA-256 6f337f0daab46ecbe9b49f210aefaa62a52b00b8b11d24f842f814369d96399e</summary>
+
+```json
+"# Specification crosswalk audit\n\nUse only supplied SKILL.md for routing, the semantic crosswalk and its three architecture/SFA/IL branch references, all 45 spec files, and the exact policy excerpts. Release history is intentionally absent; do not infer content commit or activation.\n\nFirst resolve this supplied language question from governing documents:\n  Axiom A4 forbids unenumerated coercions, while TS-4 defines same-signedness mixed-width widening\n  and TS-14 defines enum-to-byte conversion. Are `byte + word` and enum-to-byte use therefore\n  invalid, or are those two explicitly enumerated implicit conversions valid?\n  Then audit every path in the exact `spec/**/*.md` inventory against the candidate semantic\n  crosswalk. For each path, identify its authority role, one substantive semantic payload, one\n  compiler/storage/effect consequence, one important interaction or failure boundary, the correct\n  skill branch, and any genuinely inapplicable depth facet with a reason. Report contradictions,\n  missing paths, shallow summaries, unsupported coverage, and duplicated authority.\n\n"
+```
+
+</details>
+
+### Exact launch-command record
+
+Commands below are captured argument arrays, not commands to execute. They contain only the credential mount path, never credential content. Per-packet file hashes, actual isolation-control results, output and raw-log hashes remain in each capture above. The image is bound to its complete immutable identity in the isolation section.
+
+| Launcher manifest | SHA-256 |
+|---|---|
+| control-refined-manifest.jsonl | 4889bdbe82c53cfff0265d40e9ad665d2b5cb5055297b931ef275fef6dc48ae8 |
+| final-corrections-manifest.jsonl | 9dae75c208b8ab5237e04c8d953c0ae252f952fe3ce5bf326605270240650679 |
+| final-precision-manifest.jsonl | 1938e6d9928b8bff4ba2b24626ff6200c67a91ee21589e437f4e9d6067697c45 |
+| grade-baseline-manifest.jsonl | 00a803039f876332a2c6273426ad58ef5a7fe5242ad41026e4525b4911b260fd |
+| grade-control-refined-manifest.jsonl | c499be4e071eebd4c4c2e9e094c8b36a4dc715b42abb812f5d32e2fec72fe7b6 |
+| grade-corpus-manifest.jsonl | 7b99f99b518dcb54c77b6e79495c3f57038cfbd9c0dd602c6a0dce323704b3cd |
+| grade-corpus-refined-manifest.jsonl | f5723f70e0058649735b837a76655a9f4a168f4aacba47ecde480218f3662c6a |
+| grade-cpu-manifest.jsonl | df1a1e600905f2b25da4d2befdc542438a4a485b46cc841e1ace8c05eff52d3d |
+| grade-final-corrections-manifest.jsonl | 9e56cc3aeff9bdd17852f1f3e1d57387758f2da46e4b45ba764b4f7f386641b8 |
+| grade-final-precision-manifest.jsonl | dea015bf81af35e03967defb6d25ba4c9f4626fa9fe5a3cfdce26d870073023f |
+| grade-input-boundary-final-manifest.jsonl | 8392ec96da121c8932b43c8dc8417da6a0a75059d30a43a69378481e75dc204c |
+| grade-language-manifest.jsonl | ef7eadbc2d07e7657bbe2a6ae20fffc6f4cef66c79155a9f72ae05ad67eb3089 |
+| grade-nmi-final-manifest.jsonl | 6ab69e238e240ced1b982f0827d24d66b15d060ca46e2892381c35091015236a |
+| grade-nmi-refined-manifest.jsonl | 3cf3b3a75eae33ff8e12ff8fec438eb335b4bcffbf060382d2400ada3b05f6a8 |
+| grade-timing-manifest.jsonl | 32ca64995a0edbaa881e589ffb25d752e6845cbf1a7b6eb7dfa699160487233a |
+| grade-workload-completion-manifest.jsonl | 8f724ddde8120a50d04091206e9bfaf0e9183e1756f7aef8836443ef0544a7b6 |
+| input-boundary-final-manifest.jsonl | 5ceb6716af648498950e4a3dd5adac027984b31532bd19f899ced8c2670a0194 |
+| nmi-boundary-manifest.jsonl | f0ae31e6988673cca337bc5e05943a7ae68e47b66553525867211d41e71473d0 |
+| nmi-final-manifest.jsonl | 5bfbebfb95b7e8b3439ddd0d25a51745d1304e33f0b73f75866018311493ea5c |
+| refined-manifest.jsonl | 4c773c24e546139b1910673151f618012be71417b57e0312843d4224170788cb |
+| remaining-grades-manifest.jsonl | 3804611fac3668a69c58d06fecfcd51542cd53873cebcb2061ffb2b643937ab7 |
+| suite-manifest.jsonl | e20e5a64a5315d8f97e5a709bf620b3f3a6c16a74d9f18a0436900961b3d2eec |
+| workload-completion-manifest.jsonl | b18f681a2e1ba62e30f7a52464a76eb13ecf6de46e96480ead1cf36d9aed9e0c |
+
+```json
+{"name":"control-refined","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/control-refined/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/control-refined/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"final-corrections","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/final-corrections/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/final-corrections/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"final-precision","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/final-precision/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/final-precision/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-baseline","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-baseline/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-baseline/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-control-refined","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-control-refined/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-control-refined/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read grade-request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-corpus","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-corpus/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-corpus/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-corpus-refined","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-corpus-refined/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-corpus-refined/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read grade-request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-cpu","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-cpu/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-cpu/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-final-corrections","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-final-corrections/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-final-corrections/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read grade-request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-final-precision","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-final-precision/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-final-precision/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read grade-request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-input-boundary-final","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-input-boundary-final/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-input-boundary-final/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read grade-request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-language","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-language/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-language/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-nmi-final","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-nmi-final/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-nmi-final/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-nmi-refined","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-nmi-refined/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-nmi-refined/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read grade-request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-timing","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-timing/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-timing/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-workload-completion","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-workload-completion/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-workload-completion/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read grade-request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"input-boundary-final","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/input-boundary-final/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/input-boundary-final/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"nmi-boundary","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/nmi-boundary/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/nmi-boundary/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"nmi-final","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/nmi-final/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/nmi-final/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"nmi-refined","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/nmi-refined/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/nmi-refined/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"corpus-refined","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/corpus-refined/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/corpus-refined/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-platform","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-platform/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-platform/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read grade-request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-routing","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-routing/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-routing/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read grade-request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-nmi-boundary","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-nmi-boundary/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-nmi-boundary/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read grade-request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"language","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/language/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/language/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"cpu","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/cpu/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/cpu/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"timing","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/timing/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/timing/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"platform","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/platform/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/platform/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"routing","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/routing/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/routing/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"workload-completion","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/workload-completion/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/workload-completion/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+```
+
+Earlier standalone captures without this suite manifest format: `baseline-narrow`, `corpus-first`. Their original packet/output hashes and isolation records remain above.
+
+<details>
+<summary>2.0.2 decimal-surface-completion: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/decimal-surface-completion`. Raw run-log SHA-256: `623fb0553a5120540e270f915a00bc2ed8bcd66483cc1cb8733004d3ca598358`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `4305eb312f23172235239f6b41ce71d271310a0ea3801fc428c3bae26a848f8f`; packet-record SHA-256: `ba83e06f48ef0e4776496b3f0d9e1bdecc4742652b76f7cd0566642af325f895`.
+
+```text
+74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+d60f720d3976bf4c9c048eb4715d674cd1e59f97941715c1fdd2cad73992fbe4  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+1fddd4e6d8d3fbe5b11c8f48e1274ccc0874b6ec757fcbc15034105fee897414  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+31d83c09f0cbc0f472e2dffb245a9feee106475f1ad0141f00d1bf335c8e9d16  references/sfa-and-abi.md
+6624bf4a0f59ac3a56f331f1a056a1e5b907f80555c3969c058551f6af97b189  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+2ff32314e60f17b9166b0330a4d70e8cff3b8ba67742bd726e659ffb56dc68d3  request.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+```
+
+> **Q-L29:** The proposed programmer-managed D replacement is **Incorrect**: `asm_sed()`, `asm_cld()`, and `asm_brk()` are outside the current public source surface. Retain compiler-owned decimal handling and the existing profile-selected interrupt installers.
+>
+> The source contract is **Verified complete / Fact** within this packet. The instruction costs below are **Verified complete / Inference** as calculations under the stated CPU and ROM contracts. Actual compiler acceptance, issued diagnostics, emitted variants, allocation, artifacts, runtime behavior, and measured timing are each **Unknown / Unknown**.
+>
+> **1. Exact public CPU-control surface**
+>
+> There are exactly five parameterless, `void`, statement-only controls:
+>
+> | Source operation | Required instruction | Code bytes | CPU cycles | Effect |
+> |---|---|---:|---:|---|
+> | `asm_sei()` | `SEI`, `$78` | 1 | 2 | Sets I; preserves D and other live flags/registers. Does not mask NMI. |
+> | `asm_cli()` | `CLI`, `$58` | 1 | 2 | Clears I; IRQ recognition follows selected-core rules. Does not mask NMI. |
+> | `asm_php()` | `PHP`, `$08` | 1 | 3 | Pushes represented status; adds one live stack byte. |
+> | `asm_plp()` | `PLP`, `$28` | 1 | 4 | Consumes that activation’s top source status-save byte; restores N/V/D/I/Z/C. |
+> | `asm_nop()` | `NOP`, `$EA` | 1 | 2 | Preserves registers, flags, stack and data memory; exact timing effect. |
+>
+> Each operation must occur exactly once in source order, without removal, duplication, combination or reordering. Their exact effects permit retaining unaffected register/flag facts; they do not imply a clobber-all boundary.
+>
+> Balanced `asm_php()`/`asm_plp()` is legal inside a handler. Source status-stack analysis starts empty relative to each function entry. Underflow, unequal join/backedge depths, or a nonempty exit is E10248. Source pulls cannot consume caller saves, return addresses, hardware interrupt frames or compiler ABI saves. This analysis adds no instructions, SFA storage or runtime.
+>
+> The proposed calls have these results:
+>
+> | Proposal | Required source result | Separate CPU fact |
+> |---|---|---|
+> | `asm_sed()` before interruption | Unresolved name; no such intrinsic. With no declaration supplied, E10239 applies. | `SED` `$F8` is legal NMOS6510: 1 byte, 2 cycles; sets D. |
+> | `asm_cld()` in the handler | Unresolved name; no such intrinsic. Same undeclared-name rule. | `CLD` `$D8` is legal: 1 byte, 2 cycles; clears D. |
+> | Expose `asm_brk()` | Rejected as a proposed public API extension; no such intrinsic. An undeclared call is unresolved. | `BRK` `$00` is legal: 7 cycles, three stack bytes; consumes a signature byte and stacks `PC+2`, status with B represented as one. |
+>
+> Opcode legality does not establish source expressibility or authorize an observable compiler-inserted BRK. Inline assembly, external assembly functions, parameterized opcode calls and source-visible compiler registers are also absent.
+>
+> E10255 and W10120 were retired with raw decimal controls; E10259 and W10121 were retired with `asm_brk()`. There is no replacement debug/release semantic mode or warning-only BRK permission.
+>
+> Existing `bcd_add`/`bcd_sub` operations own their internal `SED`, carry initialization, decimal arithmetic and `CLD`; they leave D clear. Ordinary arithmetic remains binary. These operations explain how a legal generated decimal region can be interrupted with D set, without introducing a raw decimal-control API.
+>
+> Sources: [Chapter 12 §§1–2.5](/work/spec/12-intrinsics.md:10), [undeclared-name and ABI diagnostics](/work/spec/14-diagnostics.md:211), [retirement registry](/work/spec/14-diagnostics.md:366).
+>
+> **2. Handler identity, eligible variants and rejected paths**
+>
+> `onRasterIRQ(): void` has the correct interrupt signature. It is callback-only: calling it as an ordinary function is E10051. Its ordinary helper is legal and retains its ordinary `JSR`/`RTS` ABI.
+>
+> “Provenance-preserving values” has a precise limit here. An interrupt-handler value can flow directly or through a same-kind conditional to a compatible recognized sink. It has no user-spellable storage type. Ordinary function-value storage, parameters and returns do not establish corresponding handler-value permissions.
+>
+> A recognized sink selects the required entry variant:
+>
+> | Source path | Applicable profile and required selection |
+> |---|---|
+> | `c64.system.setIRQ(&onRasterIRQ)` | Cooperative profile: CINV chain variant, using KERNAL’s existing A/X/Y saves. |
+> | `c64.system.setIRQExclusive(&onRasterIRQ)` | Cooperative profile: exclusive CINV variant, ending through pinned `$EA81`. |
+> | `c64.system.setRawIRQ(&onRasterIRQ)` | Takeover profile with an active, writable raw IRQ vector: compiler save/restore and direct `RTI`. |
+> | `pokew($0314, &onRasterIRQ)` in the default build | E10252: visible raw-entry address written into an incompatible post-save firmware vector. |
+>
+> The packet explicitly assigns E10252 to the displayed `pokew` form. Adding `word(&onRasterIRQ)` does not repair the ABI: numeric conversion erases handler proof while retaining visible source dependency for reachability and unsafe-use diagnostics.
+>
+> An ordinary function supplied to an interrupt-handler sink is E10244. An erased or unknown handler value supplied to a recognized sink is E10247. A genuinely opaque raw boundary is uncertifiable; it is not a proven installation.
+>
+> Consequently, the default build **as written requires rejection**. The tables below describe required templates for otherwise legal cases, not output observed from that rejected build.
+>
+> Only reachable variants are emitted. If both cooperative IRQ sinks remain reachable, both ABI variants are required. A takeover build selects its raw variant; cooperative CINV helpers are unavailable there. The requested NMINV comparison does not create an emitted NMI variant from the three stated IRQ sinks. Duplicate bodies, helper variants and storage must be charged if actually materialized; no generic runtime selector is authorized.
+>
+> Sources: [Chapter 06 §§7–8](/work/spec/06-functions.md:669), [profile sink contract](/work/spec/15-platform-profile.md:243), [C64 IRQ tiers and direct-write rejection](/work/spec/appendix-c64.md:746).
+>
+> **3. Four cooperative profiles and raw-vector visibility**
+>
+> | Cooperative profile | Video baseline | SID at `$D400` |
+> |---|---|---|
+> | `c64-pal-prg-kernal-6581` | 0.985248 MHz; 312 × 63 cycles | MOS 6581 |
+> | `c64-pal-prg-kernal-8580` | Same PAL record | MOS 8580 |
+> | `c64-ntsc-prg-kernal-6581` | 1.022730 MHz; 263 × 65 cycles | MOS 6581 |
+> | `c64-ntsc-prg-kernal-8580` | Same NTSC record | MOS 8580 |
+>
+> All four use NMOS6510, pinned KERNAL901227-03, visible I/O/KERNAL ROM, and the same IRQ wrapper instruction counts. SID selection does not change these wrapper costs. PAL/NTSC changes nominal elapsed time and raster budgets; bus stalls and exact revisions still affect observed timing.
+>
+> The cooperative processor-port contract drives owned low bits as outputs and selects mapping `$06`. CPU vector reads at `$FFFE/$FFFF` therefore see KERNAL ROM. That active ROM vector is read-only. Writes at those addresses reach underlying RAM, but that RAM vector is **inactive** while ROM remains selected. Writable underlying storage alone does not make `setRawIRQ` available.
+>
+> Takeover selects mapping `$05`, preserving I/O visibility while exposing RAM for CPU vector reads. It owns both raw IRQ and NMI vectors, enabled sources and reachable bank states. Complete underlying vectors must exist before the mapping transition; both the ROM route before it and the RAM route after it must be valid. `SEI` cannot protect against NMI.
+>
+> Sources: [profile identities](/work/spec/appendix-c64.md:15), [cooperative/takeover mapping and startup](/work/spec/appendix-c64.md:217), [timing records](/work/spec/appendix-c64.md:735), [RAM-under-ROM read/write distinction](/work/references/c64-memory-and-runtime.md:66).
+>
+> **4. Wrapper, body and terminal D/status obligations**
+>
+> Distinguish two status values:
+>
+> - **P₀:** interrupted status saved by hardware, before interrupt entry sets I.
+> - **Pₑ:** live status at the selected firmware hook’s entry.
+>
+> CINV firmware instructions may change flags before the hook. Chaining must restore **Pₑ** for the predecessor; eventual `RTI` restores **P₀** for the interrupted program. D survives NMOS entry and the stated ROM entry paths, so either can still have D set.
+>
+> The following are contract templates, not supplied emitted assembly.
+>
+> ```asm
+> ; CINV chain: hardware + KERNAL have already saved PC/P and A/X/Y
+> PHP
+> CLD
+> ; generated body, ordinary helper call, owned source acknowledgement
+> PLP
+> JMP (savedCINV)
+>
+> ; Exclusive CINV: use the existing KERNAL register frame
+> CLD
+> ; generated body, helper, all required source handling
+> JMP $EA81
+> ; pinned ROM tail: PLA; TAY; PLA; TAX; PLA; RTI
+> ```
+>
+> For CINV chaining, `PHP` captures Pₑ before normalization or body work. `CLD` establishes binary mode before the first Blend65 statement or ordinary helper. `PLP` restores all live status flags immediately before the predecessor jump. Clearing D alone would not preserve the other entry flags.
+>
+> For exclusive CINV, `CLD` establishes binary body entry. The `$EA81` tail restores KERNAL-saved Y/X/A, then `RTI` restores complete P₀, including interrupted D and I. There is no redundant `PHP`/`PLP` pair. `$EA81` deliberately skips the normal preceding CIA1 ICR read: acknowledging only VIC raster is sufficient only if every other enabled IRQ source has been handled or disabled.
+>
+> ```asm
+> ; Raw IRQ: hardware has saved only PC/P
+> PHA
+> TXA
+> PHA
+> TYA
+> PHA
+> CLD
+> ; generated body, helper, all required source handling
+> PLA
+> TAY
+> PLA
+> TAX
+> PLA
+> RTI
+> ```
+>
+> Raw entry owns its register preservation. Body entry is binary; final `RTI` restores P₀ after all additional saves are balanced. No KERNAL tail is valid here. Register-save elision needs final liveness proof across every possible interrupted point; none is supplied.
+>
+> ```asm
+> ; NMINV chain: hardware frame + ROM SEI/JMP stub, no ROM register saves
+> PHP
+> PHA
+> TXA
+> PHA
+> TYA
+> PHA
+> CLD
+> ; generated NMI body and its owned source action
+> PLA
+> TAY
+> PLA
+> TAX
+> PLA
+> PLP
+> JMP (savedNMIV)
+> ```
+>
+> NMINV chaining saves status **before** A/X/Y. It restores Y/X/A **before** `PLP`, because pulls/transfers change N/Z. The predecessor then sees entry A/X/Y and Pₑ, including D. Its eventual compatible `RTI` owns restoration of P₀.
+>
+> A simple chain leaves CIA2 ICR consumption to its predecessor: the generated chain must not read `$DD0D` when stock firmware owns that acknowledgement. Reading CIA2 ICR consumes all returned pending bits, not merely a subsequently selected bit. VIC raster acknowledgement does not acknowledge CIA2 or RESTORE NMI.
+>
+> Preserving entry D for the predecessor is an ABI obligation, not proof that retained firmware behaves correctly with D set. The supplied stock fragments contain arithmetic and source-dependent paths; they do not close firmware correctness, reentrancy or completion.
+>
+> Sources: [IRQ contracts and costs](/work/references/c64-memory-and-runtime.md:321), [NMI contracts](/work/references/c64-memory-and-runtime.md:368), [raw register/decimal template](/work/spec/06-functions.md:708), [raw NMI stub and stock saves](/work/primary/kernal-rs232nmi:2), [stock decimal-sensitive arithmetic](/work/primary/kernal-time:32).
+>
+> **5. Derived instruction, route and stack costs**
+>
+> Let `Bᵢ` be emitted code bytes inside a selected handler body, excluding separately emitted helper bodies. Let `Cᵢ` include the body’s complete execution cost, including helper execution, call/return, acknowledgement and ABI traffic.
+>
+> These calculations exclude interrupted-instruction completion, VIC/CIA stalls and unspecified body work. The pinned IRQ ROM baseline assumes no relevant branch page crossing.
+>
+> | Route | Generated wrapper, excluding body | Existing ROM on the fixed path | Acceptance-to-endpoint cycles | Entry stack bytes during body |
+> |---|---:|---:|---:|---:|
+> | CINV chain | 6 bytes; 14 cycles | 16 bytes; 29 cycles | `50 + Cᵢ` to predecessor | 7 |
+> | Exclusive CINV | 4 bytes; 5 cycles | Entry: 16 bytes/29 cycles; tail: 6 bytes/22 cycles | `63 + Cᵢ` through `RTI` | 6 |
+> | Raw IRQ | 12 bytes; 37 cycles | None | `44 + Cᵢ` through `RTI` | 6 |
+> | NMINV chain | 16 bytes; 43 cycles | Stub: 4 bytes; 7 cycles | `57 + Cᵢ` to predecessor | 7 |
+>
+> Hardware acceptance contributes 7 cycles and three stack bytes to every row. Existing ROM contributes **zero output-file bytes**. IRQ ROM numbers are taken from this packet’s revision-pinned extraction; no ROM image was independently byte-verified here.
+>
+> The arithmetic is:
+>
+> - CINV chain: `7 + 29 + (PHP 3 + CLD 2 + PLP 4 + JMP-indirect 5) = 50`.
+> - Exclusive CINV: `7 + 29 + CLD 2 + JMP-absolute 3 + restore/RTI 22 = 63`.
+> - Raw IRQ: `7 + saves 13 + CLD 2 + restores 16 + RTI 6 = 44`.
+> - NMINV chain: `7 + stub 7 + PHP 3 + saves 13 + CLD 2 + restores 16 + PLP 4 + JMP-indirect 5 = 57`.
+>
+> Thus CINV status preservation/normalization is **3 bytes, 9 cycles, one temporary stack byte**; its indirect terminal adds **3 bytes, 5 cycles**. Exclusive/raw normalization alone is **1 byte, 2 cycles, no extra status-save byte**. A standalone balanced source `PHP`/`PLP` pair costs **2 bytes, 7 cycles, one live stack byte**, independently of ABI saves.
+>
+> Two body components have bounded reference costs:
+>
+> | Component | Code bytes | CPU cycles | Additional stack |
+> |---|---:|---:|---:|
+> | Direct `JSR` plus helper `RTS` | 4 across call site and helper terminal | 12 | 2 bytes while call is active |
+> | Raster acknowledgement `LDA #$01; STA $D019` | 5 | 6 | 0 |
+>
+> Helper internal work, arguments, results, spills and nested calls remain additional. If A is already proved `$01`, the acknowledgement can be only `STA $D019`: **3 bytes, 4 cycles**. Neither lowering is an observed result.
+>
+> The acknowledgement is one selected write-one-to-clear operation. NMOS memory RMW introduces an old-value write followed by a modified-value write and requires separate device proof.
+>
+> With one active direct helper call, the known entry-plus-return-address contribution is **9 bytes for either chain**, and **8 bytes for exclusive CINV/raw IRQ**. This is not a complete peak. For a bounded path, add existing mainline stack usage, two bytes per simultaneously active call, explicit pushes and every feasible overlapping entry.
+>
+> Cooperative capacity is `256 − 20 = 236` bytes; takeover capacity is `256 − 0 = 256`. The explicit inherited warning threshold is 188 bytes. Compare the unchanged proved peak against usable capacity; do not add reserve to usage or subtract it from the measured peak. E10238 applies above usable capacity.
+>
+> Full chained completion is `50 + Cᵢ + predecessorIRQ` or `57 + Cᵢ + predecessorNMI`. Those predecessor terms are **Unknown**, so neither chain has a fixed complete total or established deadline.
+>
+> Sources: [pinned route accounting](/work/references/c64-memory-and-runtime.md:336), [CPU timing/effects](/work/references/mos-6502-family.md:97), [helper accounting](/work/references/6502-lowering-casebook.md:802), [raster acknowledgement](/work/references/c64-hardware.md:62), [stack accounting](/work/spec/06-functions.md:874), [capacities](/work/spec/appendix-c64.md:158).
+>
+> **6. Saved links, SFA and remaining costs**
+>
+> For NMOS indirect chaining:
+>
+> | Link start | Pointer bytes actually read | Result |
+> |---|---|---|
+> | `$30FE` | `$30FE`, `$30FF` | Valid two-byte placement, subject to ordinary allocation/lifetime proof. |
+> | `$30FF` | `$30FF`, `$3000` | Page-wrap hazard: high byte is not read from `$3100`. Relocate or reject for this lowering. |
+>
+> Each chain uses a two-byte installation-owned predecessor link, immutable while a live route can observe it. There is no inherent ZP requirement. Actual placement, relocation padding and serialized data bytes remain unknown.
+>
+> The exclusive/raw **entry wrapper** has no chain link. That does not eliminate restoration storage: a live installation requiring later restoration needs its two-byte predecessor word. Recognized installs/restores have compile-time LIFO ownership; invalid joins, restores or ownership-invalidating raw mutations produce E10278. This adds no runtime ownership token or dispatcher.
+>
+> All invocation-private helper storage—parameters, results, locals, staging, temporaries, spills, pointer pairs and helper scratch—must close through SFA after selection. Overlapping domains require disjoint homes and any necessary code specialization. The absent helper inventory prevents calculating these RAM/ZP/code costs or certifying reentrancy. Shared globals remain shared; frame separation neither serializes updates nor prevents tearing.
+>
+> Installer bytes/cycles, startup, removal, body duplication, helper variants and final layout are **Unknown**. IRQ publication must preserve caller status and update the vector while IRQ is masked. NMINV publication additionally needs a proved NMI-quiescent window or a separately proved update scheme whose torn addresses are valid.
+>
+> If a final cooperative exclusive release occurs, it must perform the specified stock CIA1 handback: clear masks, stop timers, consume ICR once, restore Timer A reload low/high—PAL `$4025`, NTSC `$4295`—restore the exact saved CINV, enable only Timer A, restart in pinned mode, then restore caller status. Its emitted cost is unknown here; arbitrary old write-only CIA state cannot be reconstructed.
+>
+> Unrestricted external NMI aggregate stack and retained-firmware reentrancy/completion remain **Unknown**, including without a generated NMI hook. The cooperative exception requires a complete transitive generated path proved reentrant without private RAM/ZP homes; source helper/local spelling is not proof. It does not extend to takeover, establish a full-program peak/headroom, or supply an arrival/completion bound.
+>
+> Sources: [link and terminal obligations](/work/references/c64-memory-and-runtime.md:441), [installation ownership](/work/spec/06-functions.md:842), [SFA and NMI exception](/work/spec/06-functions.md:757), [stack proof scope](/work/references/sfa-and-abi.md:367), [final exclusive handback](/work/references/c64-memory-and-runtime.md:218).
+>
+> **7. Independent proof needed**
+>
+> These are proposed probes, not completed tests:
+>
+> 1. **Source-surface proof:** Exercise all five controls in legal statement positions; reject arguments/expression use and all three undeclared proposed names. Check balanced and invalid status-stack paths. Check direct/same-kind-conditional handler flow, E10051/E10244/E10247/E10252 boundaries, profile availability and reachable-variant selection. Assert exact control-effect ordering.
+>
+> 2. **Behavior proof:** Test D=0 and D=1 entries with varied status/register values. Induce D=1 through configured machine state or interruption inside an existing legal BCD region. Independently check binary helper arithmetic, Pₑ at predecessor entry, complete P₀/PC/register restoration at eventual `RTI`, balanced stack, source acknowledgement count/order and shared-state interleavings. For NMINV chaining, check restored A/X/Y and zero generated CIA2 ICR reads when the predecessor owns CIA2.
+>
+> 3. **Output/cost proof:** First obtain identified compiler output and final SFA inventory. Inspect reachable variants, exact save/normalize/restore/tail sequences, absence of CINV double saves, link locations/lifetimes, helper costs and publication/removal code. Then assemble with identified ACME 0.97, inspect reports/symbols/bytes, and verify PRG load header, startup and complete footprint.
+>
+> 4. **Runtime proof:** Only after artifact/configuration verification, run each of the four cooperative profile identities separately in configured VICE 3.10 `x64sc`, plus the takeover case. Observe relevant bank transitions and paths; include instruction completion, page effects and DMA in timing claims. Targeted hardware QA remains necessary for revision-sensitive raster/CIA/NMI behavior and nesting claims. A finite deadline additionally requires a real arrival/completion bound.
+>
+> Optimized-versus-unoptimized comparison alone is insufficient: both can share a defect. Source conformance, behavior expectations and output/resource expectations must be independent.
+>
+> Sources: [two-oracle rule](/work/references/evidence-parity-and-recovery.md:104), [artifact boundaries](/work/references/acme-and-artifacts.md:29), [per-profile evidence contract](/work/spec/appendix-c64.md:829).
+>
+> Knowledge lineage is `skillVersion=2.0.2`; `contentCommit=Unknown`; activation/qualification status `Unknown`. The packet declares specification identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`; it was not independently reconstructed. No qualification file was read.
+>
+> The governing reference headings cited above are `sfa-and-abi.md#interrupt-route-completion-gate`, `c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts`, `#revision-pinned-irq-cost-baselines`, `#revision-pinned-nmi-contracts-and-costs`, `mos-6502-family.md#official-nmos-instruction-and-addressing-grid`, `c64-hardware.md#control-bases-raster-and-interrupts`, and `evidence-parity-and-recovery.md#transformation-proof`. Governing manifest keys are `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6510-1982`, `CBM-C64-KERNAL-03`, `CBM-C64-PRG-1982`, `MOS-6526-1981`, `CSG-6567-318014`, `VIC-BAUER-2024`, `ACME-097-R266`, `VICE-310-SOURCE` and `VICE-310-MANUAL`.
+
+</details>
+
+<details>
+<summary>2.0.2 grade-decimal-surface-completion-recovered: original packet manifest and exact captured text</summary>
+
+Original evidence directory: `/tmp/blend65-nmi-authority.hjsqOB/suite/grade-decimal-surface-completion-recovered`. Raw run-log SHA-256: `1caa27a27683fc6e30d575e0ece5eb14ca2d92340f92ef52293aff4b53b84cc4`.
+Actual positive/negative isolation controls passed before the model turn.
+Captured text SHA-256: `8bd89f72689b0de600ffa998c45bf10507a67a993c759615adbfe1292a6321fd`; packet-record SHA-256: `891665ebd94d0c22c0d72c45357d66ad59ba59af4b3ff947a69e4bdc64b17d17`.
+
+```text
+74b1c0b90aac9999f556e7dd4530c035c8c4456de1f0a57f660c3dc4ab00d43f  SKILL.md
+e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38  agents/openai.yaml
+a354fd84238112a114c7aecd5ead086da3520aebb1ef8d93a9351a205998d1a9  control.py
+4305eb312f23172235239f6b41ce71d271310a0ea3801fc428c3bae26a848f8f  evaluated-answer.md
+2ff32314e60f17b9166b0330a4d70e8cff3b8ba67742bd726e659ffb56dc68d3  evaluator-request.md
+82f112b2b3fa4fdb27f7d8e9e881454125886af118ab811ca487ae450dd1a1e5  grade-request.md
+83dcf60ef668a0f95d9aa10ea292e0a2782e6e04598bf7996180793faf586fb7  oracle.md
+764f7285d69f27794e76ff8e3428e36816938b2177aa5d36873b7314d6a15e53  original-full-answer.md
+29d15aed8e7ec02baf83bb127cadb0037600b1b9fc3caf665c07132af329bd9c  original-full-request.md
+48b51552deca6f181cd1257aa71041deb5781fd69fb8c9fcb6e44f88dbd8cd03  primary/kernal-rs232nmi
+f62d5bff4bdac9934c91d709ad0050ce3ba6b19b4bc755e5fd5005272fa2fbaf  primary/kernal-time
+93f1b4cc999bf0b4c961819697a1934dbf7e795899bebec0f348784891716a5b  references/6502-lowering-casebook.md
+2750be903770cd2c978491656d4bb33c7ac6ebfcd514952ba4cb3645c312b65f  references/acme-and-artifacts.md
+60183c3a5d5099bc1ea7fb30aa3a970ad4572f632ac23de87b46f24f4f97ffe1  references/blend65-semantics.md
+ac0ee729e9c7e80a2aa0d711c3119b54998081d4b5a8bae3bad5dea42c7c8779  references/c64-game-engineering.md
+ab551b788474a4459a72a1ba8775436c6d75aeb86830162cf136097fc1dfa186  references/c64-hardware.md
+d60f720d3976bf4c9c048eb4715d674cd1e59f97941715c1fdd2cad73992fbe4  references/c64-memory-and-runtime.md
+0aa9f368dd5f36ba862c3ad698cd1c6cf4417613629884162d26049e053a53ad  references/compiler-architecture.md
+c46c1662b333884cb52d5ea251824f977a6c36448031b3c9acb5d3bccaacde6e  references/evidence-parity-and-recovery.md
+1fddd4e6d8d3fbe5b11c8f48e1274ccc0874b6ec757fcbc15034105fee897414  references/il-and-optimization.md
+9a9803661d58a1cbe648a6cddc2e16e45474cf22f750c55f61c90d2587339936  references/mos-6502-family.md
+31d83c09f0cbc0f472e2dffb245a9feee106475f1ad0141f00d1bf335c8e9d16  references/sfa-and-abi.md
+6624bf4a0f59ac3a56f331f1a056a1e5b907f80555c3969c058551f6af97b189  references/source-manifest.md
+8d74c0c58c7b0df291deeacf96d2ce3602f2ef1a9b064490422e1b6de1e21b80  references/target-portability.md
+2ff32314e60f17b9166b0330a4d70e8cff3b8ba67742bd726e659ffb56dc68d3  request.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  spec/00-introduction.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  spec/04-expressions-operators.md
+fd9cb7bb6a8608d94881c7dd40403bc83ac31327d8d0e3aaf4065056b5d239c1  spec/06-functions.md
+b84e4e5b3d644e50a567b456aee6370e53124947f79e2f8df78bfc5adbb347c1  spec/11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  spec/12-intrinsics.md
+5ff6cea5b59fdba50f3451464eb2bdfc5cf5b071779aa30e87ca71949afde5b7  spec/14-diagnostics.md
+5d988f4abdb2c1630518ce3960e98b9d63ae9a4a445045da33cd4ea44d527f0c  spec/15-platform-profile.md
+70e822e3ec88506fd694303d98f37b8eacc0bf6cb4febb5fe7fea5d4f0fe25f2  spec/appendix-c64.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  spec/evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  spec/evaluations/F007-interrupt-functions.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  spec/evaluations/F018-functions.md
+```
+
+> **Combined Q-L29 evidence: PASS.** The fresh response supplies the missing source-surface statement and preserves the original correct route, ABI, storage and cost facts. The historical capture remains **FAIL**.
+>
+> Both captures use actual runtime packet **`5a422482`**, with identical source owners, as stated in [grade-request.md](/work/grade-request.md:9). Their capture identities remain distinct.
+>
+> | Capture | Grade | Decisive evidence |
+> |---|---|---|
+> | `original-full-answer.md` / `original-full-request.md` | **FAIL — historical** | Correct emitted D/status handling appears at [original answer, line 55](/work/original-full-answer.md:55), but its Q-L29 response never explicitly states the required absence of raw decimal-control source intrinsics. |
+> | `evaluated-answer.md` / `evaluator-request.md` | **PASS — focused scope** | “`asm_sed()`, `asm_cld()`, and `asm_brk()` are outside the current public source surface,” followed by the exact five controls, rejection rules and separate opcode facts: [fresh answer, line 1](/work/evaluated-answer.md:1). This capture alone is not labelled a complete original run. |
+> | Original plus fresh Q-L29 evidence | **PASS** | The missing field is supplied, every frozen invariant remains covered, and no contradictory guarantee or invented measurement was found. |
+>
+> The historical finding is a **Critical completeness omission in evaluator output**, matching this case’s Critical coverage risk. It is not a knowledge/source defect: [Chapter 12](/work/spec/12-intrinsics.md:14) already supplies the correct closed source surface.
+>
+> | Frozen invariant or requested boundary | Independent finding and decisive evidence |
+> |---|---|
+> | Callback-only identity and provenance | **PASS.** The original distinguishes direct/same-kind conditional handler flow, invalid handler storage, ordinary typed `fn` permissions, numeric proof erasure, E10051/E10244/E10247 and retained reachability: [original, line 15](/work/original-full-answer.md:15). These agree with [Chapter 06 §8](/work/spec/06-functions.md:895). |
+> | Exact public CPU-control surface | **PASS; missing field repaired.** Exactly `asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, `asm_nop`: parameterless, `void`, statement-only and ordered exactly once. Undeclared proposed names use E10239; opcode availability does not authorize source APIs. Retired decimal/BRK diagnostics remain retired: [fresh, line 7](/work/evaluated-answer.md:7), [raw source rules](/work/spec/12-intrinsics.md:29), [retirement registry](/work/spec/14-diagnostics.md:366). |
+> | CINV chain | **PASS.** `PHP; CLD; body; PLP; JMP (savedCINV)` uses KERNAL’s existing A/X/Y saves. `PLP` restores hook-entry status before predecessor transfer; eventual compatible `RTI` restores interrupted status: [fresh, line 90](/work/evaluated-answer.md:90), [raw IRQ contract](/work/spec/appendix-c64.md:748). |
+> | Exclusive CINV and raw IRQ | **PASS.** Exclusive uses `CLD` and `JMP $EA81`, without chaining or duplicate saves. Raw owns A/X/Y saves/restoration and direct `RTI`. Both restore interrupted D/status through `RTI`; exclusive/raw source ownership includes every enabled IRQ source: [fresh, line 98](/work/evaluated-answer.md:98), [original, line 67](/work/original-full-answer.md:67). |
+> | Profile, vector and rejection boundaries | **PASS.** The displayed `pokew($0314, &onRasterIRQ)` requires E10252 and rejection, rather than a final artifact. Cooperative `$06` mapping exposes the read-only ROM vector; writable underlying RAM is inactive. Takeover `$05` requires complete active RAM vectors and valid transitions. Unproved/read-only/inactive raw vectors make the raw installer unavailable: [fresh, line 45](/work/evaluated-answer.md:45), [line 73](/work/evaluated-answer.md:73), [raw takeover contract](/work/spec/appendix-c64.md:263). |
+> | Acknowledgement, effects and helper ABI | **PASS.** VIC acknowledgement remains source-owned, with exact MMIO count/order; NMOS RMW needs separate equivalence proof. The helper remains `JSR`/`RTS`, never `RTI`: [original, line 61](/work/original-full-answer.md:61), [raw device contract](/work/references/c64-hardware.md:62). |
+> | SFA, private/shared storage and reachability | **PASS.** All overlapping invocation-private parameters/results/locals/staging/temporaries/spills/pointer pairs/helper scratch require disjoint closed homes. Globals/MMIO remain shared, with tearing/lost-update hazards. Only reachable variants are emitted; materialized copies and specializations must be charged. No dispatcher, registry or dynamic selector is introduced: [original, line 57](/work/original-full-answer.md:57), [fresh, line 211](/work/evaluated-answer.md:211), [raw closure rules](/work/spec/06-functions.md:765). |
+> | Saved-link boundary and lifetime | **PASS.** Each chain requires two writable, retained predecessor bytes. `$30FE/$30FF` is valid; a link starting at `$30FF` reads its high byte from `$3000`, requiring relocation or rejection. Restoration words are separately accounted without double-counting: [fresh, line 202](/work/evaluated-answer.md:202), [raw NMOS rule](/work/references/mos-6502-family.md:285). |
+> | NMINV comparison | **PASS.** Status is saved before A/X/Y and restored after them; binary body entry precedes chaining. Generated code leaves predecessor-owned CIA2 ICR consumption untouched. This comparison does not invent an emitted NMI variant from the IRQ sinks: [fresh, line 58](/work/evaluated-answer.md:58), [line 128](/work/evaluated-answer.md:128), [raw NMI source](/work/primary/kernal-rs232nmi:2). |
+> | Evidence limits, finding and remedy | **PASS.** Actual output, storage totals and observations remain Unknown. Per-entry costs are not promoted to aggregate stack bounds or deadlines. Finding and remedy are separate; source, behavior and output/resource proofs are independent: [original, line 97](/work/original-full-answer.md:97), [fresh, line 221](/work/evaluated-answer.md:221). |
+>
+> The cost calculations independently agree with the [pinned route baselines](/work/references/c64-memory-and-runtime.md:336) and [NMOS instruction grid](/work/references/mos-6502-family.md:97). Here `C` includes executed body, helper, acknowledgement and ABI traffic; its numerical value is unknown.
+>
+> | Route | Generated wrapper | Existing ROM, contributing zero output bytes | Acceptance-to-endpoint cycles | Body-entry stack |
+> |---|---:|---:|---:|---:|
+> | CINV chain | 6 bytes / 14 cycles | 16 bytes / 29 cycles | `7 + 29 + 14 + C = 50 + C`, to predecessor | 7 bytes |
+> | Exclusive CINV | 4 bytes / 5 cycles | 22 bytes / 51 cycles, entry plus tail | `7 + 29 + 5 + 22 + C = 63 + C`, through `RTI` | 6 bytes |
+> | Raw IRQ | 12 bytes / 37 cycles | None | `7 + 37 + C = 44 + C`, through `RTI` | 6 bytes |
+> | NMINV chain | 16 bytes / 43 cycles | 4 bytes / 7 cycles | `7 + 7 + 43 + C = 57 + C`, to predecessor | 7 bytes |
+>
+> The chain’s `PHP/CLD/PLP` costs **3 bytes, 9 cycles and one temporary stack byte**; indirect `JMP` adds **3 bytes/5 cycles**. Exclusive/raw `CLD` costs **1 byte/2 cycles**, without another status save. Source `PHP/PLP` costs **2 bytes/7 cycles/one live byte**; its analysis adds no SFA storage or runtime.
+>
+> One helper call/return contributes **4 attributable code bytes, 12 cycles and two live return-address bytes**. Raster acknowledgement contributes **5 bytes/6 cycles**, or **3 bytes/4 cycles** if A is proved `$01`. These are conditional reference costs, not observed lowering. With that helper active, entry contributions become **9 bytes for chains**, **8 for exclusive/raw**.
+>
+> Usable stack capacity is **236 cooperative / 256 takeover**, with the inherited **188-byte warning threshold**. Complete predecessor costs, unrestricted external NMI stack, headroom and deadlines remain Unknown. Installer/startup/removal/handback costs, body/helper duplication, RAM/ZP allocation, padding and artifact footprint also remain Unknown. Final exclusive handback retains the required PAL **`$4025`** / NTSC **`$4295`** stock Timer A reloads; it does not claim recoverable arbitrary write-only CIA state.
+>
+> Second-checking both outcomes: correct original assembly reasoning cannot replace its missing source statement; conversely, absent hypothetical measurements do not justify failing the combined response. The independent proof plan correctly starts with identified compiler output, allocation and artifact evidence, then configured per-profile execution. No simultaneous full-batch success is required.
+>
+> **Final counts:** combined cases **1 PASS / 0 FAIL**; unresolved invariant omissions **0**; contradictions **0**; knowledge/source defects **0**; evaluator omissions **0**; packet defects **0**. Unresolved Critical/Major/Minor grading findings: **0/0/0**. Historical FAIL captures retained: **1**.
+>
+> Assessment status: **Verified complete / Inference** for combined response compliance. Implementation/runtime qualification remains **Unknown / Unknown**. Lineage: `skillVersion=2.0.2`; `contentCommit=Unknown`; activation/qualification `Unknown`; declared specification identity `BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7`. Governing headings include `sfa-and-abi.md#interrupt-route-completion-gate` and `c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts`; source keys include `BLEND65-SPEC-4-566da991`, `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6510-1982`, `CBM-C64-KERNAL-03`, `CBM-C64-PRG-1982`, and `MOS-6526-1981`. No qualification files were read. Q-R11 and Q-R08 are excluded as instructed.
+
+</details>
+
+### Final focused completion and interrupted grader disposition
+
+The final isolated precision response omitted Q-L29's explicit no-raw-decimal-source statement. Its frozen-oracle grade remains FAIL. A fresh focused response supplies that already-governed field, and the final separate grader checks it jointly with every original invariant: combined Q-L29 PASS, zero unresolved invariant/knowledge/packet findings. Both evaluator packets have actual runtime `5a422482`; neither a new guide nor oracle change was made. The focused answer alone is not a complete original run.
+
+The first joint-grader process ended with status 143. Its raw log lacks turn.completed even though a complete last-answer file exists; it is not accepted as the final qualification capture. Original raw-log SHA-256: `15c5d97be6a0bd3915baf8ab9b07e72d606d0e5e47938dcc7ac67821e52036e7`; last-answer SHA-256: `63c4e581a79d6baab680c1057e4a70aa0aa7104883fbe76e7b6d8750b6982b75`. The unchanged packet was retried once in a new isolated output directory because the transport/process capture was incomplete, not to obtain a different grade. Both reports say combined PASS, but only the recovered capture has isolation controls, completed-turn output and exit status 0. The incomplete report is retained losslessly below.
+
+```json
+"**Q-L29 combined evidence: PASS.** The fresh focused capture supplies the missing source-surface statement and preserves the original correct route, ABI, storage and cost facts. The original capture remains a historical **FAIL**.\n\n| Capture identity | Grade | Decisive evidence |\n|---|---|---|\n| `original-full-request.md` → `original-full-answer.md`; packet `5a422482` | **FAIL — historical** | Its Q-L29 section correctly describes compiler decimal handling but omits the explicit public source-surface restriction required by [oracle.md](/work/oracle.md:28). |\n| `evaluator-request.md` → `evaluated-answer.md`; packet `5a422482` | **PASS — focused request** | “There are exactly five parameterless, `void`, statement-only controls,” followed by the complete list; `asm_sed`, `asm_cld` and `asm_brk` are explicitly excluded ([answer](/work/evaluated-answer.md:7)). This is a distinct focused capture. |\n| Original and focused Q-L29 evidence jointly | **PASS** | The added field agrees with Chapter 12, while every original correct route/storage/cost obligation remains covered. The identical packet identity and source owners are supplied by [grade-request.md](/work/grade-request.md:8). |\n\nThe combined answer-coverage boundary is **Verified complete / Inference**. Compiler implementation, artifacts, runtime behavior and measured timing remain **Unknown / Unknown**.\n\n| Numbered focused boundary | Grade | Exact output evidence and governing-source reasoning |\n|---|---|---|\n| **1. Public CPU-control surface** | **PASS** | [Answer lines 7 onward](/work/evaluated-answer.md:7) lists `asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, `asm_nop`: each one byte; respectively **2, 2, 3, 4, 2 cycles**. Exact effects and ordered execution agree with [Chapter 12 §2](/work/spec/12-intrinsics.md:25). Balanced source status saves are legal; E10248 rejects underflow, unequal join/backedge depths and nonempty exits. The analysis adds no instructions, SFA storage or runtime. The proposed undeclared names are unresolved under CC-6 and E10239; legal CPU opcodes do not add source APIs. Diagnostic retirements agree with [Chapter 14](/work/spec/14-diagnostics.md:366). |\n| **2. Identity, variants and rejection** | **PASS** | [Answer](/work/evaluated-answer.md:39) preserves one callback-only handler: ordinary calling is E10051; direct/same-kind conditional flow retains provenance; handler values have no user-spellable storage type. The original separately preserves legal ordinary typed function storage/parameters/returns and one-way numeric exposure ([original](/work/original-full-answer.md:15)). E10244/E10247 distinguish incompatible and erased provenance. The exact `pokew($0314, &onRasterIRQ)` is E10252, so the default build as written requires rejection. This matches [Chapter 06 §§7–8](/work/spec/06-functions.md:810) and the [explicit appendix example](/work/spec/appendix-c64.md:791). Only reachable variants are required; duplication is charged. |\n| **3. Profiles and raw-vector proof** | **PASS** | [Answer](/work/evaluated-answer.md:64) identifies all four cooperative PAL/NTSC, 6581/8580 profiles. Mapping `$06` keeps KERNAL ROM active: vector reads see read-only ROM, while writes reach inactive underlying RAM. Takeover mapping `$05` exposes RAM while retaining I/O; complete IRQ/NMI vectors must precede the transition, with valid routes on both sides. Read-only, inactive or unproved raw vectors make the raw installer unavailable. These distinctions match [appendix startup contracts](/work/spec/appendix-c64.md:217) and [Chapter 15](/work/spec/15-platform-profile.md:280). `SEI` provides no NMI exclusion. |\n| **4. Wrapper/body/terminal status obligations** | **PASS** | [Answer templates](/work/evaluated-answer.md:90) use existing KERNAL A/X/Y saves for CINV, compiler saves for raw IRQ, and the correct terminals. `PHP; CLD` captures chain-entry status before body work; `PLP` restores it before chaining. Exclusive/raw `RTI` restores complete interrupted status, including D and I. NMINV saves status before A/X/Y and restores registers before `PLP`. These match [Chapter 06 §7.4](/work/spec/06-functions.md:708) and [pinned IRQ/NMI contracts](/work/references/c64-memory-and-runtime.md:321). |\n| **5. Instruction, route and stack costs** | **PASS** | [Answer cost table and arithmetic](/work/evaluated-answer.md:161) reproduce the costs below. Existing ROM bytes are separated from output bytes. Helper call/return is **4 attributable code bytes, 12 cycles, 2 live stack bytes**. Reference raster acknowledgement is **5 bytes/6 cycles**, or **3 bytes/4 cycles** with A proved `$01`. These match the [call casebook](/work/references/6502-lowering-casebook.md:802), [CPU grid](/work/references/mos-6502-family.md:97) and [VIC acknowledgement contract](/work/references/c64-hardware.md:62). None is presented as measured output. |\n| **6. Links, private/shared storage and remaining costs** | **PASS** | [Answer](/work/evaluated-answer.md:202) correctly distinguishes `$30FE/$30FF` from the invalid `$30FF/$3000` indirect fetch. Each chain needs a lifetime-owned **two-byte predecessor link**, with no inherent ZP requirement. Exclusive/raw wrappers have zero chain-link bytes; installations needing restoration still require predecessor storage. Full private-home closure includes parameters, results, locals, staging, temporaries, spills, pointer pairs and helper scratch. Overlapping private homes separate; globals remain shared with tearing/lost-update risks. This agrees with [Chapter 06](/work/spec/06-functions.md:757) and [SFA closure](/work/references/sfa-and-abi.md:413). Installer, startup, restoration, duplication and final-layout costs remain individually Unknown. |\n| **7. Independent proof and evidence limits** | **PASS** | [Answer](/work/evaluated-answer.md:223) separately proposes source-conformance, behavior, output/resource and runtime proofs. It first requires identified compiler output, closure inventory and verified artifacts. D=0/D=1, predecessor-entry status, interrupted-status restoration, acknowledgement count/order and shared interleavings are independent behavior expectations. ACME/VICE checks and targeted hardware QA are future probes. This respects the [two-oracle rule](/work/references/evidence-parity-and-recovery.md:104) and [artifact boundaries](/work/references/acme-and-artifacts.md:29). |\n\nThe route arithmetic independently checks as follows. `C` includes complete body execution, helper calls, acknowledgement and ABI traffic; predecessor terms remain Unknown.\n\n| Route and terminal owner | Required generated wrapper | Generated bytes / cycles | Existing ROM bytes / cycles | Acceptance-to-endpoint cycles | Body-entry stack |\n|---|---|---:|---:|---:|---:|\n| CINV chain; predecessor owns eventual compatible restoration/`RTI` | `PHP; CLD; body; PLP; JMP (savedCINV)` | **6 / 14** | **16 / 29** | **`50 + C`** to predecessor; add its complete path | **7 bytes** |\n| Exclusive CINV; pinned `$EA81` ROM tail owns restoration/`RTI` | `CLD; body; JMP $EA81` | **4 / 5** | Entry **16 / 29**, tail **6 / 22** | **`63 + C`** through `RTI` | **6 bytes** |\n| Raw IRQ; compiler owns A/X/Y restoration and direct `RTI` | Save A/X/Y; `CLD`; body; restore Y/X/A; `RTI` | **12 / 37** | **0 / 0** | **`44 + C`** through `RTI` | **6 bytes** |\n| NMINV chain; predecessor owns subsequent service/terminal behavior | `PHP`; save A/X/Y; `CLD`; body; restore Y/X/A; `PLP`; indirect jump | **16 / 43** | Stub **4 / 7** | **`57 + C`** to predecessor; add its complete path | **7 bytes** |\n\nHardware acceptance contributes **7 cycles and three stack bytes**, with zero output bytes. Existing ROM also contributes zero output-file bytes. CINV preservation/normalization alone costs **3 bytes, 9 cycles, one live status byte**; exclusive/raw normalization costs **1 byte, 2 cycles**. One active helper return address raises the known entry contribution to **9 bytes for chains**, **8 for exclusive/raw**.\n\nThese are derived instruction costs under the [packet’s pinned baselines](/work/references/c64-memory-and-runtime.md:336), excluding interrupted-instruction completion, DMA/stalls and unspecified work. Cooperative usable stack is **236 bytes**; takeover usable stack is **256**; the inherited warning threshold is **188**. No full-program peak, headroom or deadline is established.\n\nAll frozen disqualifiers were checked: no CINV double save or direct `RTI`, exclusive chaining, guessed acknowledgement, helper conversion to `RTI`, unsafe link placement, unproved raw installation, accepted mismatched `pokew`, or added dispatcher/frame selector appears. Exclusive/raw source completeness remains conditional on handling or disabling **every enabled source**. The `$EA81` tail skips CIA1 acknowledgement. NMINV chaining leaves stock-owned CIA2 ICR consumption to its predecessor; the supplied [NMI source](/work/primary/kernal-rs232nmi:2) corroborates its distinct entry. Preserving incoming D does not prove retained firmware correctness or completion; [supplied firmware arithmetic](/work/primary/kernal-time:32) supports keeping that boundary unproved.\n\nThe historical finding is an **evaluator completeness omission in a Critical-risk case**, rather than an established false hardware fact. Its smallest remedy was the focused explicit source-surface statement, which is now supplied. Requiring absent measurements would incorrectly fail this hypothetical packet; treating correct compiler `CLD` instructions as an explicit source restriction would incorrectly pass the historical omission.\n\n**Final counts:** **1 combined case PASS, 0 combined cases FAIL; 0 unresolved grading findings, 0 established knowledge/source conflicts, 0 established packet defects. One historical FAIL remains recorded.** Implementation/runtime qualification remains unperformed; body/helper costs, installers/restorers, final storage/layout, artifacts, predecessor completion and unrestricted external-NMI guarantees remain Unknown.\n\nLineage: supplied skill **2.0.2**; content commit and activation **Unknown**. Governing keys include the declared `BLEND65-SPEC-4-566da991…` identity, `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6510-1982`, `CBM-C64-KERNAL-03`, `CBM-C64-PRG-1982`, `MOS-6526-1981`, and `ZAKS-6502-1980`, as pinned in the [source manifest](/work/references/source-manifest.md:33). No unavailable qualification files were read."
+```
+
+The exact permitted focused request (SHA-256 `2ff32314e60f17b9166b0330a4d70e8cff3b8ba67742bd726e659ffb56dc68d3`) is retained as a lossless JSON string. Governing raw source and runtime file hashes are in the capture manifest; no author history, qualification expectation, credential content or automatic cache entered the evaluator packet.
+
+```json
+"# Independent interrupt source-surface assessment\n\nUse only this packet and supplied skill. Distinguish source operations from emitted CPU instructions.\nDo not invent compiler acceptance, artifact measurements, content commit or activation.\n\n## Q-L29 — focused source-surface variant\n\nOne `interrupt function onRasterIRQ(): void` is passed through provenance-preserving values\nto `c64.system.setIRQ`, `c64.system.setIRQExclusive`, and `c64.system.setRawIRQ` under\ntheir applicable profiles. The handler calls an ordinary helper and acknowledges VIC raster.\nThe default build also contains `pokew($0314, &onRasterIRQ)`. Determine emitted/rejected\nentry paths, stack and terminal owners and costs. Distinguish inactive/read-only raw vectors.\n\nFor this focused variant, assess this proposed source-level replacement for compiler D handling:\nthe programmer writes `asm_sed()` before interruption and `asm_cld()` in the handler, while\nanother caller asks to expose `asm_brk()`. State the exact current public CPU-control surface,\nwhich proposed calls are legal or rejected and why, separately from CPU opcode availability.\nDerive the actual wrapper/body/terminal D and status obligations for CINV chain, exclusive CINV,\nraw IRQ and NMINV chain. Give costs for selected normalization/preservation instructions and\nthe independent source-surface, behavior and output proof needed. No new source API is authorized.\n\n## Raw inputs\n\nNMOS6510; KERNAL901227-03; visible IO/ROM; compare the four cooperative PAL/NTSC\nPRG6581/8580 profiles and a separately active/writable takeover raw vector. D may be one on\nCPU entry, and the prior chain observes entry status. Shared globals remain shared; no helper\nstorage inventory, emitted artifact, installer bytes, predecessor body or runtime observation is\nsupplied. Compare saved indirect links $30FE/$30FF. Unrestricted external NMI stack and retained\nfirmware completion remain unproved. Explicit source statements above are hypothetical proposals.\n"
+```
+
+Exact emitted launcher arguments for the focused evaluator and recovered grader are below. The recovered arguments are the unchanged recorded grader command with only the new suite/output directory, matching this turn's start event. No absent completion event is invented for the first process.
+
+```json
+{"name":"decimal-surface-completion","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/decimal-surface-completion/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/decimal-surface-completion/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""]}
+{"name":"grade-decimal-surface-completion-recovered","command":["docker","run","--rm","--read-only","--cap-drop","ALL","--security-opt","no-new-privileges","--pids-limit","128","--memory","2g","--cpus","1","--user","1000:1000","--tmpfs","/tmp:rw,nosuid,nodev","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-decimal-surface-completion-recovered/packet,dst=/work,readonly","--mount","type=bind,src=/tmp/blend65-nmi-authority.hjsqOB/suite/grade-decimal-surface-completion-recovered/output,dst=/home/node/.codex","--mount","type=bind,src=/home/gevik/.codex/auth.json,dst=/home/node/.codex/auth.json,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex,dst=/usr/local/bin/codex,readonly","--mount","type=bind,src=/home/gevik/.codex/packages/standalone/releases/0.159.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host,dst=/usr/local/bin/codex-code-mode-host,readonly","--workdir","/work","--entrypoint","/bin/bash","6622b5ce1342","-c","python3 /work/control.py && exec codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --cd /work -m gpt-6.1-sol -c model_reasoning_effort=xhigh -c analytics.enabled=false -c feedback.enabled=false -c web_search=disabled --dangerously-bypass-approvals-and-sandbox --output-last-message /home/node/.codex/answer.md --json \"Read grade-request.md and apply the supplied skill. Answer every numbered request with complete source and cost reasoning, only within this packet. Do not read unavailable qualification files or invent measurements.\""],"exitCode":0}
+```

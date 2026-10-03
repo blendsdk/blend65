@@ -19,8 +19,9 @@ Key design principles:
   scratch have compile-time-known homes
 - **No recursion** — the compiler detects and rejects call cycles; no dynamic activation stack exists
 - **No stack for data** — parameters, locals, and return values never touch the hardware stack
-- **Hardware stack is accounted completely** — `JSR` return addresses, interrupt entries/register
-  saves, and explicit stack intrinsics all contribute to the proven peak
+- **Hardware stack costs are explicit** — `JSR` returns, interrupt entries/register saves and
+  explicit stack intrinsics contribute to bounded peaks; unrestricted external-NMI stack/firmware
+  guarantees stay unproved under the selected-profile exception (§5.5/§7.5)
 - **Caller-owned returns** — scalars/enums use registers; fixed aggregates are constructed in
   caller-owned storage selected before the call
 - **Declaration order independent** — functions can call other functions regardless of source order
@@ -519,13 +520,19 @@ invent storage.
 198 bytes free (77%)
 ```
 
-The compiler proves the peak over every feasible mainline/IRQ/NMI/callback overlap, not each root in
-isolation. It sums active `JSR` return addresses, every simultaneous interrupt CPU entry and
+For bounded execution, the compiler proves the peak over every feasible mainline/IRQ/NMI/callback
+overlap, not each root in isolation. It sums active `JSR` return addresses, every simultaneous interrupt CPU entry and
 selected entry-variant stack effect,
 and the path-sensitive peak of explicit stack intrinsics, then compares that program peak with raw
 capacity minus the selected profile's reserved bytes.
 Interrupt-mask effects such as `asm_cli()` participate in the preemption graph. A cycle that permits
-unbounded interrupt re-entry is E10245; a finite peak that exceeds the derived usable capacity
+unbounded invocation-private overlap or compiler-controlled stack growth is E10245. Unbounded
+hardware-stack re-entry outside the selected-profile exception is also E10245. The narrow
+cooperative NMI exception in §7.5 permits proved reentrant generated code, not a finite external
+stack guarantee. Unrestricted external aggregate hardware-stack use and retained-firmware
+reentrancy/completion remain explicitly unproved, including when no generated NMI handler is
+installed. Report bounded component/per-entry costs separately; never label them the whole-program
+peak or headroom. A finite peak that exceeds the derived usable capacity
 (`stack_capacity - stack_reserve`) is the ordinary resource error E10238. W10180 reports a finite
 peak that reaches the profile's `warn_stack_peak` value, or 80% of derived usable capacity rounded
 down when that optional field is absent.
@@ -763,9 +770,31 @@ specialized code variants are emitted only when fixed addresses or specialized c
 them. Storage-free reentrant code may be shared unchanged.
 
 The analysis closes after instruction selection and helper discovery. If the compiler cannot bound
-the entry/nesting set or allocate non-overlapping invocation-private storage, compilation fails. It
+storage-bearing overlap or allocate non-overlapping invocation-private storage, compilation fails. It
 must never accept silent frame or scratch corruption and must never introduce a dynamic stack or
 runtime selector to hide an incomplete proof.
+
+Only under the cooperative NMI exception defined in Chapter 15, an externally unbounded NMI
+route may remain expressible when its complete transitive generated path is proved reentrant
+without invocation-private RAM/zero-page homes. This proof includes parameters, results, locals,
+argument staging, temporaries, spills and helper scratch after instruction selection and final
+storage closure. No source-local or helper prohibition substitutes for that proof: a local may
+remain in registers, and a helper may qualify without private homes. Absence of private homes alone
+does not prove entry/exit state, source ownership or vector/link lifetimes. Preserve source-defined
+shared effects and their access order/count; existing shared-state hazard warnings remain warnings,
+not new source prohibitions, and frame separation does not promise atomicity.
+Installation-owned immutable predecessor links are not activation-private homes, but must remain
+valid for every live route. No retained link may be overwritten while an interrupted route uses it.
+
+NMI remains non-self-masking and externally unbounded. Unproved generated reentrancy, unbounded
+private-home overlap and compiler-controlled growing-stack cycles still fail with E10245;
+recursion retains E10180/E10181. This exception adds no dynamic frames, heap, nesting guard,
+dispatcher, source exclusion, event dropping/coalescing or RESTORE suppression. Callback-only
+identity, exact register/status/decimal restoration, banking, acknowledgement ownership/count,
+accepted-edge terminal behavior and safe publication/removal remain mandatory. It grants no
+unrestricted external aggregate-stack or retained-firmware reentrancy/completion guarantee (§5.5).
+A finite deadline still needs a real arrival/completion proof. Raw takeover and D64 are outside
+this selected-profile exception.
 
 Globals, assets, and MMIO are deliberate shared program state and are not cloned. A byte access is
 indivisible with respect to CPU interrupt entry, but cross-domain read-modify-write may lose an
@@ -857,6 +886,10 @@ When entries can overlap, their live totals accumulate. The platform profile sup
 capacity/reserve plus interrupt-source masking and nesting constraints; it never pre-subtracts one
 assumed entry.
 
+These are exact per-entry terms. Under the §7.5 external-NMI exception, their unbounded external
+sum is not a proved finite program peak. A bounded generated component cannot certify retained
+firmware or unrestricted external arrivals.
+
 ---
 
 ## 8. Address-of for Functions
@@ -940,7 +973,7 @@ public presentation.
 | E10050 | An interrupt function differs from `(): void`. | The entry declaration is rejected. |
 | E10051 | Source code directly calls an interrupt-entry function. | The call is rejected; ordinary helpers remain callable. |
 | E10244 | A known ordinary `RTS` function reaches a compiler-recognized interrupt-handler sink. | The ABI mismatch is rejected. |
-| E10245 | A mainline/IRQ/NMI/callback path may re-enter without a static bound while consuming invocation-private storage or hardware stack. | Finite SFA homes or stack peak cannot be proven, so compilation fails. |
+| E10245 | A path has unbounded invocation-private overlap, compiler-controlled growing-stack cycles, incomplete generated reentrancy proof, or unbounded hardware-stack re-entry outside the §7.5 selected-profile exception. | Compilation fails; the private-home-free cooperative NMI exception reports external aggregate stack/firmware guarantees as unproved rather than inventing a finite bound. |
 | E10246 | A `const` parameter resolves to a non-aggregate type rather than an array or struct. | The redundant/ineligible qualifier is rejected. |
 | E10247 | A compiler-recognized function-address sink receives a value whose function/ABI provenance is erased or unknown. | The sink call is rejected; use a provenance-preserving value or an explicit raw hardware boundary. |
 | E10248 | Source status-save operations underflow function entry, join unequal depths, or leave a nonempty relative state on exit. | The function is rejected because deterministic `RTS`/`RTI` state cannot be preserved. |

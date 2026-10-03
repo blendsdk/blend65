@@ -136,7 +136,8 @@ part of `max_binary_size`; trailing BSS bytes are part of `max_ram` and the comb
 but are not serialized. Cartridge or segmented formats define their own ROM/RAM serialization split.
 
 Usable stack capacity is derived as `stack_capacity - stack_reserve`. Interrupt entries are not
-pre-subtracted: every entry that can be live simultaneously is charged to the proven program peak.
+pre-subtracted: every entry that can be live simultaneously contributes to its bounded component
+peak. The cooperative NMI exception below leaves unrestricted external aggregate stack unproved.
 `stack_capacity` must be an integer in `1..256`, `stack_reserve` must be an integer in
 `0..stack_capacity-1`, and the selected capacity must correspond to writable page-one addresses in
 the target memory map rather than assuming that every 6502-family system exposes all 256 bytes.
@@ -265,8 +266,18 @@ contracts hold. Every emitted normalization byte, cycle, and live stack byte is 
 
 The source ID resolves through `interrupt_sources`, whose entry declares which domains it may
 preempt, whether hardware masks that same source on entry, and any externally guaranteed finite
-re-entry bound. Without a finite external bound, a reachable preemption cycle is unbounded and
-rejected with E10245. `raw_interrupt_paths` is optional and names a hardware vector only when the
+re-entry bound. Without a finite external bound, a reachable preemption cycle remains unbounded.
+Unbounded invocation-private overlap, compiler-controlled growing-stack cycles and incomplete
+generated reentrancy proof are E10245. Unbounded hardware-stack re-entry outside the following
+exception also remains E10245. Chapter 06 §7.5 permits only a complete, proved reentrant
+private-home-free generated NMI path only on `c64-pal-prg-kernal-6581`,
+`c64-pal-prg-kernal-8580`, `c64-ntsc-prg-kernal-6581` and `c64-ntsc-prg-kernal-8580`. It does not
+change `masks_self_on_entry: false` or `external_reentry_bound: unbounded`, qualify a finite arrival
+bound, extend raw takeover/D64, or authorize source exclusion or suppression. Unrestricted
+external aggregate hardware-stack use and retained-firmware reentrancy/completion remain
+explicitly unproved, even when the application installs no NMI handler. Per-entry/bounded costs
+remain exact and cannot be presented as full-program peak/headroom; finite deadlines still need
+real arrival/completion proof. `raw_interrupt_paths` is optional and names a hardware vector only when the
 selected profile guarantees that the vector is both writable and active under that profile's
 fixed memory/banking contract. A raw installer is unavailable when no such path exists.
 
@@ -282,7 +293,8 @@ stack-analysis root. The sink consumes retained function identity and may instal
 variant address rather than the raw numeric `word` value. Every variant, saved-vector word, and
 installation sequence is included in ROM/RAM/ZP/stack/cycle reports. Platform/firmware interrupt
 activity wholly outside generated code remains in `stack_reserve`, not duplicated as a compiler
-root.
+root. That reserve is not a proof against unrestricted repeated external NMI entries or a proof of
+retained-firmware reentrancy/completion.
 
 | Field | Type | Description |
 |------|------|-------------|

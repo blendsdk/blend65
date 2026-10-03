@@ -1,6 +1,6 @@
 # Static Frame Allocation and ABI Doctrine
 
-> **Baseline version**: `2.0.1`
+> **Baseline version**: `2.0.2`
 >
 > **Binding specification rule**: Static Frame Allocation (SFA) is the sole general function-frame
 > model. The 6502 hardware stack is not a general local-variable stack.
@@ -189,19 +189,26 @@ The reconciled interrupt-domain rule is:
 3. allocate disjoint homes for every invocation-private storage set that can be simultaneously live;
 4. create a domain-specific machine-code variant only when absolute home references or specialized
    callees require it; storage-free code with identical call targets remains shared; and
-5. diagnose an unbounded entry/nesting set or resource failure rather than accept corruption or add
-   runtime dispatch.
+5. diagnose unbounded invocation-private overlap, incomplete generated reentrancy or resource
+   failure rather than accept corruption or add runtime dispatch. Only the selected-profile
+   cooperative NMI exception in Chapter 15 admits a complete private-home-free reentrant path
+   without a finite external-arrival bound; it leaves external aggregate stack and unproved
+   retained-firmware guarantees explicit.
 
 Interrupt handlers, their materialized entry variants, and ordinary interrupt-context callbacks
 are distinct ABI facts. A raw CPU entry owns its save/restore and terminates with `RTI`; a
 firmware-mediated entry must use the firmware's existing stack frame and declared chain/restore
 tail; a callback invoked through `JSR` terminates with `RTS`. The selected profile names recognized
 function-address sinks, accepted source kind, exact entry variant, execution domain, and interrupt
-source; never infer a sink from its spelling. Provenance survives direct scalar declaration,
-assignment, copy, identity cast, and conditional merging while all source functions remain known
-and storage has not escaped. Reject a known source-kind mismatch and erased/unknown provenance at a
-recognized sink. A visible raw interrupt address written to an exactly known incompatible firmware
-vector is also rejected. Only a genuinely opaque address is an uncertifiable hardware boundary.
+source; never infer a sink from its spelling. Ordinary typed `fn` values may use their specified
+storage, parameter, return and finite-target flow. Interrupt-handler values are not first-class
+storable values: only direct expressions and same-kind conditional selection preserve handler
+identity for a compatible recognized sink. Explicit `word(&interruptFunction)` is one-way numeric
+exposure; it erases handler proof but retains visible source dependency for reachability and unsafe
+use diagnostics. Do not infer legal handler storage from ordinary scalar/copy provenance rules.
+Reject a known source-kind mismatch and erased/unknown provenance at a recognized sink. A visible
+raw interrupt address written to an exactly known incompatible firmware vector is also rejected.
+Only a genuinely opaque address is an uncertifiable hardware boundary.
 
 Disjoint frames do not duplicate or serialize module/global state. Shared byte accesses remain
 ordered by actual interrupt timing; a cross-domain read-modify-write sequence can lose an update,
@@ -338,8 +345,11 @@ State all of these linked invariants explicitly:
   `RTI` restores the complete interrupted processor status, including the interrupted D value;
 - `$xxFE` is a valid start for the two-byte saved indirect link, while `$xxFF` is relocated or
   rejected for the NMOS form; and
-- source acknowledgement, helper `JSR`/`RTS`, SFA interference, stack peak, static link storage,
-  full path costs, banking/vector visibility, and the final terminal owner are all assigned.
+- source acknowledgement, helper `JSR`/`RTS`, SFA interference, exact per-entry/bounded stack,
+  static link storage, full path costs, banking/vector visibility and final terminal owner are
+  assigned. Under the approved cooperative NMI exception, unrestricted external aggregate stack
+  and unproved retained-firmware reentrancy/completion are explicitly separate; no bounded
+  component certifies a full-program peak/headroom or finite deadline.
 
 For the pinned C64 901227-03 routes, “full path costs” includes existing machine ROM separately
 from emitted output: 16 existing-ROM bytes from `PULS` to CINV and the 6-byte `$EA81` restore-only
@@ -360,8 +370,21 @@ The hardware stack remains valid for `JSR`/`RTS` return addresses, CPU interrupt
 register preservation, and explicit stack intrinsics with defined effects. Profiles supply raw
 capacity/reserve and interrupt masking/nesting facts; they never pre-subtract one assumed entry.
 Stack analysis computes the peak across every simultaneously feasible mainline/IRQ/NMI/callback
-path, including all live calls, entries, saved state, and explicit pushes. A reachable unbounded
-preemption cycle is rejected; a finite peak must fit raw capacity minus the platform reserve. It
+bounded path, including all live calls, entries, saved state, and explicit pushes. Unbounded
+invocation-private overlap, compiler-controlled growing-stack cycles and incomplete generated
+reentrancy remain errors. The narrow cooperative NMI exception allows only a complete transitive
+generated path with no private RAM/ZP homes after selection and closure. It adds no source-local
+or helper ban, general hardware-stack frames, dynamic selector, event guard or source suppression.
+Shared state remains shared with its existing non-atomic effects and warning severity; preserve
+volatile order/count and the exact ABI/device/vector/link contracts. Lifetime-owned immutable
+installation links are not private activation homes and cannot be reused while a live route may
+observe them.
+
+NMI stays externally unbounded. Exact generated per-entry/finite-component costs do not prove
+unrestricted aggregate hardware-stack use, retained-ROM reentrancy or completion. Report those
+guarantees as unproved even when no generated NMI handler is installed; a firmware reserve is not
+an arrival or completion proof. Finite timing still requires a real source/completion bound.
+Raw takeover and D64 receive no new exception. A finite peak must fit raw capacity minus the platform reserve. It
 does not count general locals because those belong to SFA. W10180 fires at the profile's explicit
 `warn_stack_peak`, or at 80% of derived usable capacity rounded down when that optional field is
 absent; E10238 remains the hard error above derived usable capacity.
@@ -373,7 +396,8 @@ exactly:
 measuredPeak <= rawCapacity - reserve
 ```
 
-`measuredPeak` is the unchanged maximum live-byte sum from the feasible paths. Never subtract the
+For a bounded component, `measuredPeak` is the unchanged maximum live-byte sum from its feasible
+paths; label that scope and never substitute it for an unproved external aggregate peak. Never subtract the
 reserve from that peak, add the reserve to it, or count the reserve as usage. The reserve reduces
 only the capacity available to the program. E10238 is decided by comparing the unchanged measured
 peak with that reduced capacity; reports show all three values so the decision can be reproduced.
@@ -470,9 +494,9 @@ convenience or familiarity with modern ABIs is not evidence of necessity.
 
 ## Sources
 
-- `[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/00-introduction.md §A2, §A3]`
-- `[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/06-functions.md §FN-4, §FN-6, §FN-10, §SFA Calling Convention, §Interrupt Functions]`
-- `[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/11-memory-model.md §Static Frame Allocation, §Aggregate Return Destinations and Copies, §Zero-Page Allocation, §Hardware Stack Usage]`
-- `[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/03-variables.md §Memory Placement]`
-- `[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/13-data-inclusion.md §Code Generation]`
-- `[BLEND65-SPEC-4-1c2a2d7544e263020c6b7c5b40dc15aa23178d15e6b12b4e0224b18667e48dcf, spec/15-platform-profile.md §Platform Profile Contract]`
+- `[BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7, spec/00-introduction.md §A2, §A3]`
+- `[BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7, spec/06-functions.md §FN-4, §FN-6, §FN-10, §SFA Calling Convention, §Interrupt Functions]`
+- `[BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7, spec/11-memory-model.md §Static Frame Allocation, §Aggregate Return Destinations and Copies, §Zero-Page Allocation, §Hardware Stack Usage]`
+- `[BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7, spec/03-variables.md §Memory Placement]`
+- `[BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7, spec/13-data-inclusion.md §Code Generation]`
+- `[BLEND65-SPEC-4-566da991146be7ef6a09efa63449421e27c4873cde9788c84220d187460586f7, spec/15-platform-profile.md §Platform Profile Contract]`

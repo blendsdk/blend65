@@ -174,9 +174,21 @@ programs and qualification evidence. They do not create supported game APIs. (AR
 - [ ] **R5.17 — Close every interrupt route before emission.** For each enabled source, enumerate
   source and entry kind, vector/link storage, acknowledgement owner, terminal owner, enabled peer
   sources, nesting/re-entry, bank visibility, SFA interference, shared state, handler/wrapper bytes,
-  existing-ROM bytes, hardware-stack peak, and entry/body/acknowledgement/restore/exit cycles. An
-  unknown source, unbounded nesting cycle, unsafe home overlap, or missing exit blocks the build.
-  (AR-008, AR-013, AR-018)
+  existing-ROM bytes, hardware-stack costs, and entry/body/acknowledgement/restore/exit cycles.
+  An unknown source, unbounded invocation-private overlap, compiler-controlled growing-stack
+  cycle, incomplete generated reentrancy, unsafe home overlap, or missing generated exit blocks
+  the build. Only the four cooperative PRG profiles' Chapter 15 exception admits a complete
+  generated NMI path proved reentrant without invocation-private RAM/ZP homes. Locals/helpers
+  are not syntactically banned; selection and final SFA closure cover all parameters, returns,
+  staging, temporaries, spills and helper scratch. Existing shared-effect warnings, device/ABI,
+  callback identity, vector publication/removal, link lifetime and banking obligations remain.
+  For that exception, including programs with no generated NMI hook, unrestricted external
+  aggregate stack and unproved retained-firmware reentrancy/completion are reported explicitly
+  as unproved. R5.9's finite peak/capacity checks apply to complete proved bounded components;
+  exact per-entry costs are not a full-program peak/headroom. Finite timing claims still require
+  actual source/completion proof. Raw takeover and D64 gain no exception. No source exclusion,
+  dropped/coalesced event, dynamic frame, heap, depth guard or runtime manager is introduced.
+  (AR-008, AR-013, AR-018; approved NMI-plan AR-P7)
 - [ ] **R5.18 — Preserve shared-state reality.** Mainline, IRQ, and NMI private invocation storage
   receives disjoint SFA homes when overlap is possible, but globals, assets, device state, and
   deliberately shared game variables remain shared. Warn on statically visible lost-update RMW or
@@ -709,8 +721,11 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
     each fail at compile time without emitting a runtime ownership flag or manager.
 14. [ ] **AC-14 — Complete route ledger:** For every installed route, the report includes every
     enabled source, entry kind, vector/link, acknowledgement and terminal owner, nesting,
-    visibility, SFA interference, generated/existing-ROM bytes, stack peak, and complete path
-    cycles; removing any field fails the evidence check.
+    visibility, SFA interference, generated/existing-ROM bytes, complete proved bounded stack
+    components, exact per-entry stack, and complete path cycles; removing a required field fails
+    the evidence check. The four cooperative PRG profiles apply R5.17's explicit external
+    stack/retained-firmware unproved boundary, including no-installed-hook programs. A bounded
+    component is never labelled full-program peak/headroom; finite deadlines need separate proof.
 15. [ ] **AC-15 — Shared-state diagnostics:** Single-byte shared state remains shared; known
     cross-domain RMW loss and multi-byte tearing each warn with the shortest preemption path.
     Private mainline/IRQ/NMI homes are disjoint, and no warning is “fixed” by hidden masking or

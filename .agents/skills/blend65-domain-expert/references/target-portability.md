@@ -1,6 +1,6 @@
 # Target Portability Doctrine
 
-> **Baseline version**: `2.0.1`
+> **Baseline version**: `2.0.2`
 > **Status**: The nine Specification 4 C64 profiles are the only active targets. Every other machine below is
 > constraint-only until its own extension is independently sourced and qualified.
 

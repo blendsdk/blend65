@@ -1,6 +1,6 @@
 # Intermediate Representation and Optimization Doctrine
 
-> **Baseline version**: `2.0.1`. This module specifies semantic payload and proof duties, not a
+> **Baseline version**: `2.0.2`. This module specifies semantic payload and proof duties, not a
 > mandatory IR count or pass framework.
 
 ## Optimization Contract
@@ -42,6 +42,17 @@ resident RAM/SFA peak, hardware-stack peak, compiler/helper scratch, then named 
 correctness, timing, ABI, target, placement, loading, and capacity constraints are filtered before
 these preferences. Exact complete-cost ties use stable candidate identity. No mode uses weights,
 hotness annotations, guessed frequency, PGO, autotuning, a policy DSL, or a `max` mode.
+
+The cooperative NMI proof-scope exception changes no mode ordering or optimization frontier.
+At the smallest complete owning scope, name the same comparable bounded generated component
+for every candidate's `R` stack term; close its downstream saves/calls/explicit pushes and
+retain its hard finite-capacity checks. Carry unrestricted external aggregate stack and unproved
+retained-firmware reentrancy/completion separately, not as numeric zero, an equal cost, or a
+finite whole-program peak. The exception does not justify ignoring a candidate's generated
+per-entry cost or changing source effects, and does not turn a component cycle bound into an
+unproved full deadline. A comparison without a common complete bounded scope remains incomplete;
+do not invent an unknown-value ordering or silently drop a decisive downstream term. Existing
+mode selection applies unchanged after that scoped proof closes.
 
 The frontier combines modern semantic/whole-program techniques with exact NMOS 6510 work. Each
 concrete rule is admitted only with a current Blend65 consumer, exact applicability, preserved
@@ -140,9 +151,11 @@ For a function address, preserve source function identity separately from its nu
 recognized platform sink can then select a raw or firmware-mediated interrupt entry without asking
 a late peephole to infer stack ownership from an address. If one logical handler needs several
 entry variants, each is a distinct root with its own save/tail/cost facts and SFA reachability.
-Outside a recognized sink, `&interruptFunction` denotes the raw-entry address. A visible store of
-that address to an exactly known incompatible firmware vector is a compile-time ABI error, not an
-optimization opportunity.
+Explicit `word(&interruptFunction)` conversion exposes the raw-entry numeric address outside a
+recognized sink and erases handler proof; the unconverted handler value is not an ordinary storable
+`word` or callable `fn`. Retain a visible source dependency for reachability and unsafe-use diagnostics.
+A visible store of that raw address to an exactly known incompatible firmware vector is E10252, a
+compile-time ABI error, not an optimization opportunity [BLEND65-SPEC-4-566da991, Chapter 06 §8].
 
 For `&local`, preserve the local identity and dynamic source-lifetime dependency separately from
 the numeric `word`. Propagate the dependency through identity copies, casts, conditional selection,
@@ -461,14 +474,16 @@ This mutation rule is explicit project/process policy, not a language or optimiz
 
 ## Verification Status Language
 
-Use only evidence-supported status:
+Use the router's separate, evidence-supported fields:
 
-- **Verified** — the complete stated claim passed its declared behavior and assembly/cost oracles;
-- **Verified partial** — a precisely bounded portion passed, with excluded dimensions named;
-- **Inferred** — strong evidence supports the claim but decisive execution/measurement is absent;
-- **Unknown** — evidence is insufficient or a required external/hardware observation is missing;
-- **Incorrect** — a counterexample, semantic mismatch, or cost failure disproves the claim; or
-- **blocked-conflict** — frozen authority disagrees on the field.
+- **Status:** `Verified complete`, `Verified partial`, `Scaffold/stub`, `Incorrect`, or `Unknown`.
+  Name the exact verified boundary and any excluded dimensions; a scaffold is not implemented
+  behavior, and missing decisive execution or measurement cannot become a verified runtime claim.
+- **Claim kind:** `Fact`, `Inference`, `Unknown`, or `Recommendation`. Instruction-derived costs
+  and conditional reasoning are not measurements merely because the arithmetic is reproducible.
+- **Conflict:** identify any genuinely conflicting governing field separately. `blocked-conflict`
+  is a conflict disposition, not an additional Status or Claim kind. Until the field is resolved,
+  its required semantic value remains `Unknown`.
 
 Never turn one passing fixture into optimizer-wide correctness, one emulator run into universal
 hardware proof, or one instruction-count decrease into a whole-program win.
@@ -489,10 +504,10 @@ hardware proof, or one instruction-count decrease into a whole-program win.
 ## Sources
 
 - `[BLEND65-PROJECT-POLICY-P3-28627e0c, PRIME DIRECTIVE — expert assembly game developer]` — product/process authority for expert parity and tracked meet-level debt
-- `[BLEND65-SPEC-4-1c2a2d75, spec/02-type-system.md §Intermediate Overflow, §Constant Expression Evaluation, §Right Shift Semantics, §Overflow Behavior]`
-- `[BLEND65-SPEC-4-1c2a2d75, spec/04-expressions-operators.md §Arithmetic Operators, §Logical Operators, §Conditional Operator, §Memory Intrinsics]`
-- `[BLEND65-SPEC-4-1c2a2d75, spec/06-functions.md §Parameter Evaluation Order, §SFA Calling Convention]`
-- `[BLEND65-SPEC-4-1c2a2d75, spec/07-structs.md §Aliasing]`
-- `[BLEND65-SPEC-4-1c2a2d75, spec/12-intrinsics.md §CPU Control Intrinsics, §Memory Intrinsics]`
+- `[BLEND65-SPEC-4-566da991, spec/02-type-system.md §Intermediate Overflow, §Constant Expression Evaluation, §Right Shift Semantics, §Overflow Behavior]`
+- `[BLEND65-SPEC-4-566da991, spec/04-expressions-operators.md §Arithmetic Operators, §Logical Operators, §Conditional Operator, §Memory Intrinsics]`
+- `[BLEND65-SPEC-4-566da991, spec/06-functions.md §Parameter Evaluation Order, §SFA Calling Convention]`
+- `[BLEND65-SPEC-4-566da991, spec/07-structs.md §Aliasing]`
+- `[BLEND65-SPEC-4-566da991, spec/12-intrinsics.md §CPU Control Intrinsics, §Memory Intrinsics]`
 - `[LLVM-CODEGEN-22, Code Generator chapter]` — comparative pass-responsibility evidence only
 - `[LLVM-MOS-275C7FC, target implementation]` — comparative 6502 evidence only

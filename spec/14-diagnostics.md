@@ -215,7 +215,7 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10242 | Ch 07 | `Struct '<type>' has no field '<name>'` |
 | E10243 | Ch 07 | `Struct initializer for '<type>' contains unknown field '<name>'` |
 | E10244 | Ch 06 | `Ordinary function value '<name>' cannot be installed in interrupt-handler sink '<sink>' — use an interrupt function` |
-| E10245 | Ch 06 / Ch 11 | `Execution path '<path>' can overlap or consume hardware stack without a static bound — use a bounded interrupt/callback design` |
+| E10245 | Ch 06 / Ch 11 | `Execution path '<path>' has unbounded private-storage overlap, disallowed unbounded stack use, or unproved generated reentrancy` |
 | E10246 | Ch 06 | `Parameter '<name>' uses 'const' with non-aggregate type '<type>' — const parameters require an array or struct` |
 | E10247 | Ch 06 | `Cannot prove the entry ABI of the value passed to function-address sink '<sink>' — pass a provenance-preserving function address or use an explicit raw hardware boundary` |
 | E10248 | Ch 06 / Ch 11 / Ch 12 | `Status-save operations in '<name>' do not preserve the function-entry stack state on every path — <detail>` |
