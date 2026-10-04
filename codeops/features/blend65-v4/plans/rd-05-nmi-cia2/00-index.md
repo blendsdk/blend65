@@ -1,7 +1,7 @@
 # Cooperative NMI publication and generated-route qualification
 
 > **Implements**: blend65-v4/RD-05
-> **Status**: Plan Preflighted — all eight findings resolved; no implementation qualification
+> **Status**: Executing — Phase 1 complete; Phase 2 not started
 > **Created**: 2026-10-03
 > **CodeOps Artifact Schema**: 1
 
@@ -24,16 +24,17 @@ ordinary lowering through existing machine/layout patterns, not a dispatcher.
 
 ## Documents
 
-| Document                                      | Owns                                                             |
-| --------------------------------------------- | ---------------------------------------------------------------- |
-| [Decision register](00-ambiguity-register.md) | Approved scope, oracle exceptions and bounded analytical result  |
-| [Requirements delta](01-requirements.md)      | RD mapping and delivery boundary                                 |
-| [Current state](02-current-state.md)          | Actual implementation gaps and integration seams                 |
-| [Stack evidence](03-stack-evidence.md)        | Honest bounded-resource and external-uncertainty reporting       |
-| [NMI route](03-nmi-route.md)                  | Publication, lifetime, selected-route storage, placement and ABI |
-| [Testing strategy](07-testing-strategy.md)    | Independent input → output cases                                 |
-| [Execution plan](99-execution-plan.md)        | Sole task-progress authority                                     |
-| [Preflight report](00-preflight-report.md)    | Exact payload, grounded findings and verified corrections        |
+| Document                                      | Owns                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------- |
+| [Decision register](00-ambiguity-register.md) | Approved scope, oracle exceptions and bounded analytical result           |
+| [Requirements delta](01-requirements.md)      | RD mapping and delivery boundary                                          |
+| [Current state](02-current-state.md)          | Actual implementation gaps and integration seams                          |
+| [Stack evidence](03-stack-evidence.md)        | Honest bounded-resource and external-uncertainty reporting                |
+| [NMI route](03-nmi-route.md)                  | Publication, lifetime, selected-route storage, placement and ABI          |
+| [Testing strategy](07-testing-strategy.md)    | Independent input → output cases                                          |
+| [Execution plan](99-execution-plan.md)        | Sole task-progress authority                                              |
+| [Preflight report](00-preflight-report.md)    | Exact payload, grounded findings and verified corrections                 |
+| [Execution evidence](09-phase-review.md)      | Specification-first results, complete checkpoints and independent reviews |
 
 ## Remaining owners
 

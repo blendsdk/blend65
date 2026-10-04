@@ -97,10 +97,14 @@ describe("compiler service hardening", () => {
       ["sfa", "zeroPage", "scratch"].includes(String(interval.kind)),
     );
     expect(memory.stackDomains).toEqual([
+      expect.objectContaining({
+        id: "bounded-component-capacity",
+        capacityBytes: 236,
+        peakBytes: 6,
+        headroomBytes: 230,
+      }),
       expect.objectContaining({ id: "interrupt-entry-save", peakBytes: 0, headroomBytes: 256 }),
-      expect.objectContaining({ id: "platform-reserve", peakBytes: 20, headroomBytes: 236 }),
       expect.objectContaining({ id: "program", peakBytes: 6, headroomBytes: 250 }),
-      expect.objectContaining({ id: "qualified-capacity", peakBytes: 26, headroomBytes: 230 }),
     ]);
     expect(sfaIntervals.length).toBeGreaterThan(0);
     expect(memory.sfaClosureSha256).not.toBe(createHash("sha256").update("[]").digest("hex"));

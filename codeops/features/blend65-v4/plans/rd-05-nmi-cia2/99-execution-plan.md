@@ -1,8 +1,8 @@
 # Execution plan: cooperative NMI qualification
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-10-04
-> **Progress**: 0/28 tasks (0%)
+> **Last Updated**: 2026-10-04 02:06
+> **Progress**: 7/28 tasks (25%)
 > **CodeOps Artifact Schema**: 1
 
 ## Baseline and execution rules
@@ -37,13 +37,16 @@ the old guard until the complete candidate path qualifies.
 ## Phase 1: finite-component evidence
 
 > **Lenses**: compiler/language, concurrency, artifact compatibility, simplicity
+> **Phase baseline tree**: `b198a184fb38209f3519989a9d3f4ea15c842d52`
+> **Scope mode**: strict
+> **Expected modification set**: new `test/rd05/nmi-stack-evidence.spec.test.ts`, `packages/compiler/src/services/evidence.ts`, new `packages/compiler/src/services/nmi-stack-evidence.impl.test.ts`, only obsolete reserve/capacity assertions in `packages/compiler/src/services/services.impl.test.ts`; plan evidence-interface clarification, execution/index/review records and derived feature roadmap.
 
 ### Step 1.1: Specification tests
 
 Reference: [ST-1–ST-4](07-testing-strategy.md), AR-P3/AR-P7/AR-P12.
 
-- [ ] 1.1.1 [spec-author] Write independent evidence specification cases — `test/rd05/nmi-stack-evidence.spec.test.ts`; ST-1–ST-4.
-- [ ] 1.1.2 Capture directed RED and already-passing boundary justifications — phase review record `09-phase-review.md`; ST-1–ST-4.
+- [x] 1.1.1 [spec-author] Write independent evidence specification cases — `test/rd05/nmi-stack-evidence.spec.test.ts`; ST-1–ST-4. ⏳ (implemented: 2026-10-04 01:02) ✅ (completed: 2026-10-04 01:05)
+- [x] 1.1.2 Capture directed RED and already-passing boundary justifications — phase review record `09-phase-review.md`; ST-1–ST-4. ⏳ (implemented: 2026-10-04 01:06) ✅ (completed: 2026-10-04 01:07)
 
 Verify: `yarn vitest run test/rd05/nmi-stack-evidence.spec.test.ts --maxWorkers=1 --minWorkers=1` (expected RED; no implementation or broken commit).
 
@@ -51,16 +54,16 @@ Verify: `yarn vitest run test/rd05/nmi-stack-evidence.spec.test.ts --maxWorkers=
 
 Reference: [stack evidence](03-stack-evidence.md), AR-P7/AR-P12.
 
-- [ ] 1.2.1 Correct existing status/effects/reserve/component accounting — `packages/compiler/src/services/evidence.ts`; 03-stack-evidence.
-- [ ] 1.2.2 Verify immutable evidence cases GREEN and retained warning/validator cases — `test/rd05/nmi-stack-evidence.spec.test.ts`; ST-1–ST-4.
+- [x] 1.2.1 Correct existing status/effects/reserve/component accounting — `packages/compiler/src/services/evidence.ts`; 03-stack-evidence. ⏳ (implemented: 2026-10-04 01:07) ✅ (completed: 2026-10-04 01:08)
+- [x] 1.2.2 Verify immutable evidence cases GREEN and retained warning/validator cases — `test/rd05/nmi-stack-evidence.spec.test.ts`; ST-1–ST-4. ⏳ (implemented: 2026-10-04 01:08) ✅ (completed: 2026-10-04 01:11)
 
 Verify: directed evidence cases plus existing `test/rd04/selected-resource-evidence.spec.test.ts`, `test/rd04/diagnostics-resource-boundaries.spec.test.ts` and package evidence-validator tests; one worker.
 
 ### Step 1.3: Implementation tests and hardening
 
-- [ ] 1.3.1 Add internal single-record/source/order/reserve arithmetic regressions and correct only obsolete reserve/capacity assertions in `packages/compiler/src/services/services.impl.test.ts` — `packages/compiler/src/services/nmi-stack-evidence.impl.test.ts`; 03-stack-evidence. Retain unrelated implementation assertions.
-- [ ] 1.3.2 Run full checkpoint and independent read-only review; record exact evidence — `09-phase-review.md`; AR-P3 and quality profile.
-- [ ] 1.3.3 Reconcile phase status/links/formatting, preserve frozen/oracle paths and create a green local checkpoint — `99-execution-plan.md`, `../../00-roadmap.md`; git-commit skill, no push.
+- [x] 1.3.1 Add internal single-record/source/order/reserve arithmetic regressions and correct only obsolete reserve/capacity assertions in `packages/compiler/src/services/services.impl.test.ts` — `packages/compiler/src/services/nmi-stack-evidence.impl.test.ts`; 03-stack-evidence. Retain unrelated implementation assertions. ⏳ (implemented: 2026-10-04 01:11) ✅ (completed: 2026-10-04 01:13)
+- [x] 1.3.2 Run full checkpoint and independent read-only review; record exact evidence — `09-phase-review.md`; AR-P3 and quality profile. ⏳ (implemented: 2026-10-04 01:13) ✅ (completed: 2026-10-04 02:03)
+- [x] 1.3.3 Reconcile phase status/links/formatting, preserve frozen/oracle paths and create a green local checkpoint — `99-execution-plan.md`, `../../00-roadmap.md`; git-commit skill, no push. ⏳ (implemented: 2026-10-04 02:04) ✅ (completed: 2026-10-04 02:06)
 
 Verify: frozen-lockfile install, build, typecheck, complete `yarn test`, touched-file formatting and independent correctness review. Fix only implementation defects; old specification oracles remain untouched.
 

@@ -28,6 +28,13 @@ source-site projection already used for build/debug evidence. Existing uniquenes
 is source site plus kind; merge obligations into the one machine-state record
 at that site rather than emitting duplicate keys.
 
+The existing record projection is `{ kind: "machineState", site: { path,
+startByte, endByte }, effectClass }`. The site is the complete selected main
+declaration, including any export/placement modifiers through the closing brace,
+measured in UTF-8 bytes with its real project-relative source path. It is not just
+the `function` or name token or a synthetic empty site. This pins the public test interface without
+requiring a specification author to inspect implementation logic.
+
 ## Numeric accounting
 
 `usable = capacity - reserve`. Reserve is withheld capacity, never executed use.
@@ -44,6 +51,12 @@ The numeric `hardwareStack` cost is the maximum proved finite component value
 in `stackDomains`, excluding reserve. This preserves the old numeric relation
 without claiming that number bounds external stack use. Exact resources stay
 numeric; the existing unbounded-effects/status fields carry uncertainty.
+
+Existing stack rows have `{ id, route, capacityBytes, peakBytes, headroomBytes }`.
+The combined row's route starts with `bounded-component:generated-program-and-irq`
+and retains its exact proved source-route tail; no reserve is a route use.
+Existing cost resources have `{ kind: "standard", id: "hardwareStack", value }`.
+These are schema-1 record projections, not a new interface or discriminator.
 
 Finite capacity checks still reject an actual bounded-component overflow with
 E10238. Keep W10180's exact canonical message and decomposition; the accompanying

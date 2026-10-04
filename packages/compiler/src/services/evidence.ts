@@ -23,6 +23,10 @@ import type { ServiceMeasurements } from "./types.js";
 import { assetSymbolName, deriveDebugRecords } from "./evidence-records.js";
 import { deriveMemoryIntervals, sfaClosureHash } from "./memory-evidence-records.js";
 
+/** External NMI obligations not established by a finite generated-program/IRQ proof. */
+const EXTERNAL_NMI_EFFECT_CLASS =
+  "external-nmi-aggregate-stack+retained-nmi-firmware-completion+external-nmi-finite-deadline";
+
 /** Complete sidecar preparation result used by one publication attempt. */
 export type EvidencePreparationResult =
   | {
@@ -224,16 +228,30 @@ export async function prepareEvidence(
   const view = memoryView(intervals);
   const stackCapacity = input.profile.storage.hardwareStackCapacity ?? 0x100;
   const platformStackReserve = input.profile.storage.hardwareStackReserve ?? 0;
-  const qualifiedStackBytes = input.certificate.hardwareStackPeak + platformStackReserve;
+  const usableStackCapacity = stackCapacity - platformStackReserve;
+  const boundedStackBytes = input.certificate.hardwareStackPeak;
+  const main = input.program.semantic.main;
   const memoryEvidence = Object.freeze({
     kind: "blend65.memory",
     schemaVersion: 1,
     profileId: input.profile.id,
     sfaClosureSha256: sfaClosureHash(intervals),
     acmeReconciled: true,
-    runtimeMemorySafety: "proved",
+    // The retained stock NMI route has no external arrival/completion bound, even
+    // when no generated handler is installed. This does not weaken static closure.
+    runtimeMemorySafety: "unproven",
     residencies: Object.freeze([Object.freeze({ kind: "always", id: "resident" })]),
-    unboundedEffects: Object.freeze([]),
+    unboundedEffects: Object.freeze([
+      Object.freeze({
+        kind: "machineState",
+        site: Object.freeze({
+          path: main.sourceId,
+          startByte: main.span.start,
+          endByte: main.span.end,
+        }),
+        effectClass: EXTERNAL_NMI_EFFECT_CLASS,
+      }),
+    ]),
     intervals,
     views: Object.freeze([view]),
     stackDomains: Object.freeze(
@@ -246,13 +264,6 @@ export async function prepareEvidence(
           headroomBytes: stackCapacity - input.certificate.hardwareStackSystemPeak,
         }),
         Object.freeze({
-          id: "platform-reserve",
-          route: Object.freeze(["c64.platform-reserve"]),
-          capacityBytes: stackCapacity,
-          peakBytes: platformStackReserve,
-          headroomBytes: stackCapacity - platformStackReserve,
-        }),
-        Object.freeze({
           id: "program",
           route: input.certificate.hardwareStackRoute,
           capacityBytes: stackCapacity,
@@ -260,15 +271,15 @@ export async function prepareEvidence(
           headroomBytes: stackCapacity - input.certificate.hardwareStackProgramPeak,
         }),
         Object.freeze({
-          id: "qualified-capacity",
+          id: "bounded-component-capacity",
           route: Object.freeze([
+            "bounded-component:generated-program-and-irq",
             ...input.certificate.hardwareStackRoute,
-            "interrupt:c64.entry-save",
-            "reserve:c64.platform",
           ]),
-          capacityBytes: stackCapacity,
-          peakBytes: qualifiedStackBytes,
-          headroomBytes: stackCapacity - qualifiedStackBytes,
+          // Reserve is withheld capacity, not a live stack frame or a route use.
+          capacityBytes: usableStackCapacity,
+          peakBytes: boundedStackBytes,
+          headroomBytes: usableStackCapacity - boundedStackBytes,
         }),
       ].sort((left, right) => Buffer.compare(Buffer.from(left.id), Buffer.from(right.id))),
     ),
@@ -334,7 +345,7 @@ export async function prepareEvidence(
         Object.freeze({
           kind: "standard",
           id: "hardwareStack",
-          value: qualifiedStackBytes,
+          value: boundedStackBytes,
         }),
         Object.freeze({ kind: "standard", id: "scratch", value: scratch }),
       ]),
