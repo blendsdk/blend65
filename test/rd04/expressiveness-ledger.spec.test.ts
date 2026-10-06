@@ -107,7 +107,16 @@ function main(): void { asm_cli(); asm_nop(); setIRQ(&handler); asm_nop(); resto
 const probes = [
   {
     id: "v4-nmi-installation",
-    sources: ["setNMI", "setNMIExclusive"].map(
+    sources: ["setNMIExclusive"].map(
+      (installer) => `module Game;
+import { ${installer}, restoreNMI } from c64.system;
+interrupt function handler(): void {}
+function main(): void { ${installer}(&handler); restoreNMI(); }`,
+    ),
+  },
+  {
+    id: "v4-nmi-chained-installation",
+    sources: ["setNMI"].map(
       (installer) => `module Game;
 import { ${installer}, restoreNMI } from c64.system;
 interrupt function handler(): void {}

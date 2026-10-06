@@ -322,7 +322,30 @@ export function lowerOperation(
     let selectedHelper: "multiply" | "division" | null = null;
     let selectedConstantMultiply: number | null = null;
     if (comparison) {
-      lowered = lowerComparison(operation, left, right, state);
+      // An adjacent forwarded byte read already owns Z for its closed terminal
+      // choice. Reuse only that proved flag; ordinary call results and stored
+      // Boolean values still need the normal comparison machinery.
+      const readOwnsZero =
+        (operation.operator === "==" || operation.operator === "!=") &&
+        left.kind === "register" &&
+        left.registers === "a" &&
+        left.bytes === 1 &&
+        right.kind === "constant" &&
+        right.bytes === 1 &&
+        right.value === 0 &&
+        state.forwardedRegisterValues.has(operation.left) &&
+        state.branchConditions.has(operation.result) &&
+        !state.materializedValues.has(operation.result);
+      lowered = readOwnsZero
+        ? Object.freeze({
+            instructions: Object.freeze([]),
+            result: Object.freeze({
+              kind: "condition" as const,
+              whenTrue: operation.operator === "==" ? ("beq" as const) : ("bne" as const),
+              usesFlag: "z" as const,
+            }),
+          })
+        : lowerComparison(operation, left, right, state);
     } else if (operation.operator === "+" || operation.operator === "-") {
       lowered = lowerArithmetic(operation, left, right, state);
     } else if (["&", "|", "^"].includes(operation.operator)) {

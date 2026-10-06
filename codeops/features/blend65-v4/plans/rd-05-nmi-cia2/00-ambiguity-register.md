@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 NMI and CIA2
 
-> **Status**: ✅ GATE PASSED — all 12 items resolved for the bounded stock-chained slice; generated qualification still pending
-> **Last Updated**: 2026-10-03
+> **Status**: ✅ SCOPE GATE PASSED — AR-P1–AR-P31 approved; necessary AR-P32–AR-P36 corrections verified
+> **Last Updated**: 2026-10-06
 > **CodeOps Artifact Schema**: 1
 
 | Planning boundary | Scope                                                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -10,25 +10,926 @@
 | Context artifacts | Frozen Specification 4; RD-05 R5.15–R5.18/R5.20; the RD-04 DEF-7 decision; completed IRQ, CIA and CIA1-return plans; qualified expert 2.0.3; primary CPU/CIA/KERNAL evidence; current profile, semantic, storage and machine code.                                                                                                                                                                                                |
 | Modification set  | This plan folder and the feature roadmap. AR-P11 approves only its named three existing specification-test files and ledger JSON during later specification-first execution. New tests prove the existing qualified contract. T-06/T-08 separately completed frozen-authority maintenance. No new API, profile, specification edit, runtime manager or whole-RD closeout is authorized. Earlier discovery is retained as history. |
 
-| #      | Category                                             | Ambiguity / Gap                                                                                                                                                                                       | Options Presented                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | User Decision                                                                                                                                                                                                                                                                                     | Status                                                        |
-| ------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| AR-P1  | Planning target / effort                             | Which next work item is authorized?                                                                                                                                                                   | The named RD-05 NMI/CIA2 planning task, with xhigh effort.                                                                                                                                                                                                                                                                                                                                                                                                                                                  | User: “xhigh effor is confirmed, proceed further” on 2026-09-30, replying to the explicitly named planning task.                                                                                                                                                                                  | ✅ Resolved                                                   |
-| AR-P2  | Scope / source safety (complex)                      | What is the smallest scope that can progress DEF-7 without inventing hardware guarantees or a runtime manager?                                                                                        | **Recommended:** a bounded proof-first slice on the four existing cooperative PRG profiles, using existing NMI/CIA2 APIs. Close permitted-source and live-handler re-entry facts first, then safe vector replacement and exact CIA2 handoff. If a permitted source remains unbounded or unknown, stop with the exact missing fact and retain the existing guard; do not invent a profile, promise a positive implementation, or silently defer the obligation. Raw takeover remains a separate RD-05 slice. | User: “Make sure we are not overcomplicating or overengineering. proceed further.” on 2026-10-01, accepting the sole scope recommendation presented immediately before the reply.                                                                                                                 | ✅ Resolved                                                   |
-| AR-P3  | Verification / inherited project rule                | Which existing verification policy applies if this plan becomes executable?                                                                                                                           | Directed specification, assembly/cost and implementation tests; frozen-lockfile install, build, typecheck and complete tests at phase checkpoints; sequential four-profile VICE cases; revision-sensitive physical QA at RD-10. Planning-only documents use link, authority and consistency checks.                                                                                                                                                                                                         | Import the unchanged approved CIA1-return AR-P4 verification policy and current AGENTS.md impact-based rules; no new verification surface.                                                                                                                                                        | ✅ Resolved                                                   |
-| AR-P4  | Upstream profile qualification                       | The unchanged profile admits unbounded NMI nesting, which cannot fit a finite hardware stack. What qualified source contract could justify a finite bound?                                            | Reopen positive planning only with a qualified all-source nesting bound, or complete edge-spacing and worst-case route-time proof. Any correction to the frozen profile needs separate authority. Retain the existing DEF-7 guards meanwhile.                                                                                                                                                                                                                                                               | The original no-bound result remains true. Qualified AR-P7/AR-P9 maintenance now supersedes blanket rejection only for the approved reentrant, private-home-free generated route. Positive implementation proofs remain; DEF-7 stays RD-05-owned.                                                 | ✅ Resolved — blanket gate superseded; no bound proved        |
-| AR-P5  | Scope / bounded source investigation                 | May the keyboard prerequisite return to its existing DEF-7 owner for one new evidence check?                                                                                                          | Inspect missing RESTORE/all-source guarantees, not another T-04 replay or repetition of the completed unbounded-profile check. Exit with new qualifying evidence or the specific user-owned source-contract fork. No compiler/spec edits or new subsystem.                                                                                                                                                                                                                                                  | User: “proceed” on 2026-10-03, replying to the named high-effort, docs/evidence-only RESTORE investigation and its exact modification set.                                                                                                                                                        | ✅ Resolved — investigation only; original result retained    |
-| AR-P6  | Product / source-contract reconciliation (sensitive) | Should positive NMI planning retain the unrestricted arrival guarantee, or seek explicit supported-machine/source conditions while preserving ordinary RESTORE behavior?                              | **Best option:** authorize one separate, bounded source-contract reconciliation task under DEF-7. Produce a concrete candidate and its remaining proof obligations for user decision; do not invent a finite number, assert that the frozen hardware fact is false, disable RESTORE, or add a hook/framework. The immediate safe alternative is to retain the unchanged contract and keep positive NMI/keyboard planning blocked.                                                                           | User: “I approve, proceed until all RD-05 is done, do not stop or pause, unless absolut;y neccssary. The effort level is set and confirmed.” on 2026-10-03. This approves the named reconciliation deliverable, not a yet-unpresented frozen-contract correction or source restriction.           | ✅ Resolved — reconciliation only; AR-P7 now active           |
-| AR-P7  | Product / frozen proof-scope correction (sensitive)  | May a proved reentrant, invocation-private-storage-free generated NMI route remain expressible when the external aggregate stack and retained-firmware completion guarantees are explicitly unproved? | **Best option:** the narrow proof-scope candidate below. Retain real unbounded NMI facts, strict private-storage safety and all ABI/device/vector obligations; stop claiming universal external stack/completion safety. No assumed nesting number, event suppression, new profile or runtime guard. Keeping the unchanged blanket rejection is the safe alternative, but cannot complete this positive slice.                                                                                              | User explicitly approved the correction on 2026-10-03 and requested saving/pushing first. T-06 owns the separate frozen-authority maintenance and expert requalification; compiler/API/spec-test changes remain separate gates.                                                                   | ✅ Resolved — authority maintenance complete                  |
-| AR-P8  | Scope / developer experience / bounded proof         | May the approved ordinary-input direction be tested through one minimal internal scan-aware ingress?                                                                                                  | One temporary assembly proof under DEF-7, with explicit stock behavior, transition, state and cost expectations. Keep ordinary saved-data interpretation in Blend65 libraries. No production subsystem or frozen-authority change.                                                                                                                                                                                                                                                                          | User: “I approve” on 2026-10-03, replying to the deeper assessment's focused contract-and-proof recommendation. [T-05](../keyboard-ingress-proof/99-execution-plan.md) owns the diagnostic proof; AR-P7 was open at that decision; T-06 authority maintenance and AR-P9 binding are now complete. | ✅ Resolved — proof only                                      |
-| AR-P9  | Runtime / active identity synchronization            | May T-06 update the three public identity fields and corresponding foundation guards before binding the approved authority?                                                                           | **Best option:** the exact two-file extension below, retaining historical negatives and byte-exact candidate/active checks in two green checkpoints. No generated-code or NMI-acceptance change.                                                                                                                                                                                                                                                                                                            | User explicitly approved the bounded identity synchronization on 2026-10-03.                                                                                                                                                                                                                      | ✅ Resolved — exact two-file extension                        |
-| AR-P10 | Product / machine-entry proof (sensitive)            | May NMI-using programs on the four cooperative PRG profiles require the stock NMINV predecessor at entry, without an independent resident vector owner?                                               | **Best option:** qualify the exact stock-entry condition below, then prove matching-low placement and one-byte publication through the existing compiler owners. No new API, runtime guard, source-form ban or finite NMI bound. Broader arbitrary-predecessor support needs a separately costed direct publication scheme.                                                                                                                                                                                 | User: “go with the best possible option, and proceed further” on 2026-10-03, accepting the exact entry condition and bounded authority-maintenance scope presented.                                                                                                                               | ✅ Resolved — authority qualified and bound                   |
-| AR-P11 | Specification-test authority (planning)              | Old empty chained-NMI fixtures require blanket rejection despite the qualified reentrant-route exception. Which exact oracle updates may enter the next plan?                                         | **Best option:** convert only the balanced empty chained fixture to success; split its ledger probe from the still-deferred exclusive fixture; retarget the old canonical E10245 diagnostic to a balanced, genuinely storage-bearing handler. Preserve every other fixture, negative assertion and artifact-schema guard. No implementation is authorized before its plan/proof gates.                                                                                                                      | User: “I approve, proceed” on 2026-10-03, accepting the exact three specification-test files and ledger JSON described below.                                                                                                                                                                     | ✅ Resolved — exact fixture exception                         |
-| AR-P12 | Technical / bounded publication and lifetime proof   | Which direct compiler design satisfies AR-P2/AR-P7/AR-P10 without assuming a nesting limit or introducing support machinery?                                                                          | Reuse existing ownership/context, selected storage, wrapper and layout owners; require the observer-lifetime invariant below. Direct low-$47 entry where possible; an ordinary three-byte JMP entry only when source placement needs it. Preserve canonical diagnostics and use existing unproven evidence fields.                                                                                                                                                                                          | Internal compiler decision under the user's AGENTS.md workflow prime directive §4, within AR-P2/AR-P7/AR-P10; independently challenged. No new product condition or complexity surface.                                                                                                           | ✅ Resolved — analytical direction, not runtime qualification |
+| #      | Category                                                            | Ambiguity / Gap                                                                                                                                                                                                                                                                                                     | Options Presented                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | User Decision                                                                                                                                                                                                                                                                                                            | Status                                                                       |
+| ------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| AR-P1  | Planning target / effort                                            | Which next work item is authorized?                                                                                                                                                                                                                                                                                 | The named RD-05 NMI/CIA2 planning task, with xhigh effort.                                                                                                                                                                                                                                                                                                                                                                                                                                                  | User: “xhigh effor is confirmed, proceed further” on 2026-09-30, replying to the explicitly named planning task.                                                                                                                                                                                                         | ✅ Resolved                                                                  |
+| AR-P2  | Scope / source safety (complex)                                     | What is the smallest scope that can progress DEF-7 without inventing hardware guarantees or a runtime manager?                                                                                                                                                                                                      | **Recommended:** a bounded proof-first slice on the four existing cooperative PRG profiles, using existing NMI/CIA2 APIs. Close permitted-source and live-handler re-entry facts first, then safe vector replacement and exact CIA2 handoff. If a permitted source remains unbounded or unknown, stop with the exact missing fact and retain the existing guard; do not invent a profile, promise a positive implementation, or silently defer the obligation. Raw takeover remains a separate RD-05 slice. | User: “Make sure we are not overcomplicating or overengineering. proceed further.” on 2026-10-01, accepting the sole scope recommendation presented immediately before the reply.                                                                                                                                        | ✅ Resolved                                                                  |
+| AR-P3  | Verification / inherited project rule                               | Which existing verification policy applies if this plan becomes executable?                                                                                                                                                                                                                                         | Directed specification, assembly/cost and implementation tests; frozen-lockfile install, build, typecheck and complete tests at phase checkpoints; sequential four-profile VICE cases; revision-sensitive physical QA at RD-10. Planning-only documents use link, authority and consistency checks.                                                                                                                                                                                                         | Import the unchanged approved CIA1-return AR-P4 verification policy and current AGENTS.md impact-based rules; no new verification surface.                                                                                                                                                                               | ✅ Resolved                                                                  |
+| AR-P4  | Upstream profile qualification                                      | The unchanged profile admits unbounded NMI nesting, which cannot fit a finite hardware stack. What qualified source contract could justify a finite bound?                                                                                                                                                          | Reopen positive planning only with a qualified all-source nesting bound, or complete edge-spacing and worst-case route-time proof. Any correction to the frozen profile needs separate authority. Retain the existing DEF-7 guards meanwhile.                                                                                                                                                                                                                                                               | The original no-bound result remains true. Qualified AR-P7/AR-P9 maintenance now supersedes blanket rejection only for the approved reentrant, private-home-free generated route. Positive implementation proofs remain; DEF-7 stays RD-05-owned.                                                                        | ✅ Resolved — blanket gate superseded; no bound proved                       |
+| AR-P5  | Scope / bounded source investigation                                | May the keyboard prerequisite return to its existing DEF-7 owner for one new evidence check?                                                                                                                                                                                                                        | Inspect missing RESTORE/all-source guarantees, not another T-04 replay or repetition of the completed unbounded-profile check. Exit with new qualifying evidence or the specific user-owned source-contract fork. No compiler/spec edits or new subsystem.                                                                                                                                                                                                                                                  | User: “proceed” on 2026-10-03, replying to the named high-effort, docs/evidence-only RESTORE investigation and its exact modification set.                                                                                                                                                                               | ✅ Resolved — investigation only; original result retained                   |
+| AR-P6  | Product / source-contract reconciliation (sensitive)                | Should positive NMI planning retain the unrestricted arrival guarantee, or seek explicit supported-machine/source conditions while preserving ordinary RESTORE behavior?                                                                                                                                            | **Best option:** authorize one separate, bounded source-contract reconciliation task under DEF-7. Produce a concrete candidate and its remaining proof obligations for user decision; do not invent a finite number, assert that the frozen hardware fact is false, disable RESTORE, or add a hook/framework. The immediate safe alternative is to retain the unchanged contract and keep positive NMI/keyboard planning blocked.                                                                           | User: “I approve, proceed until all RD-05 is done, do not stop or pause, unless absolut;y neccssary. The effort level is set and confirmed.” on 2026-10-03. This approves the named reconciliation deliverable, not a yet-unpresented frozen-contract correction or source restriction.                                  | ✅ Resolved — reconciliation only; AR-P7 now active                          |
+| AR-P7  | Product / frozen proof-scope correction (sensitive)                 | May a proved reentrant, invocation-private-storage-free generated NMI route remain expressible when the external aggregate stack and retained-firmware completion guarantees are explicitly unproved?                                                                                                               | **Best option:** the narrow proof-scope candidate below. Retain real unbounded NMI facts, strict private-storage safety and all ABI/device/vector obligations; stop claiming universal external stack/completion safety. No assumed nesting number, event suppression, new profile or runtime guard. Keeping the unchanged blanket rejection is the safe alternative, but cannot complete this positive slice.                                                                                              | User explicitly approved the correction on 2026-10-03 and requested saving/pushing first. T-06 owns the separate frozen-authority maintenance and expert requalification; compiler/API/spec-test changes remain separate gates.                                                                                          | ✅ Resolved — authority maintenance complete                                 |
+| AR-P8  | Scope / developer experience / bounded proof                        | May the approved ordinary-input direction be tested through one minimal internal scan-aware ingress?                                                                                                                                                                                                                | One temporary assembly proof under DEF-7, with explicit stock behavior, transition, state and cost expectations. Keep ordinary saved-data interpretation in Blend65 libraries. No production subsystem or frozen-authority change.                                                                                                                                                                                                                                                                          | User: “I approve” on 2026-10-03, replying to the deeper assessment's focused contract-and-proof recommendation. [T-05](../keyboard-ingress-proof/99-execution-plan.md) owns the diagnostic proof; AR-P7 was open at that decision; T-06 authority maintenance and AR-P9 binding are now complete.                        | ✅ Resolved — proof only                                                     |
+| AR-P9  | Runtime / active identity synchronization                           | May T-06 update the three public identity fields and corresponding foundation guards before binding the approved authority?                                                                                                                                                                                         | **Best option:** the exact two-file extension below, retaining historical negatives and byte-exact candidate/active checks in two green checkpoints. No generated-code or NMI-acceptance change.                                                                                                                                                                                                                                                                                                            | User explicitly approved the bounded identity synchronization on 2026-10-03.                                                                                                                                                                                                                                             | ✅ Resolved — exact two-file extension                                       |
+| AR-P10 | Product / machine-entry proof (sensitive)                           | May NMI-using programs on the four cooperative PRG profiles require the stock NMINV predecessor at entry, without an independent resident vector owner?                                                                                                                                                             | **Best option:** qualify the exact stock-entry condition below, then prove matching-low placement and one-byte publication through the existing compiler owners. No new API, runtime guard, source-form ban or finite NMI bound. Broader arbitrary-predecessor support needs a separately costed direct publication scheme.                                                                                                                                                                                 | User: “go with the best possible option, and proceed further” on 2026-10-03, accepting the exact entry condition and bounded authority-maintenance scope presented.                                                                                                                                                      | ✅ Resolved — authority qualified and bound                                  |
+| AR-P11 | Specification-test authority (planning)                             | Old empty chained-NMI fixtures require blanket rejection despite the qualified reentrant-route exception. Which exact oracle updates may enter the next plan?                                                                                                                                                       | **Best option:** convert only the balanced empty chained fixture to success; split its ledger probe from the still-deferred exclusive fixture; retarget the old canonical E10245 diagnostic to a balanced, genuinely storage-bearing handler. Preserve every other fixture, negative assertion and artifact-schema guard. No implementation is authorized before its plan/proof gates.                                                                                                                      | User: “I approve, proceed” on 2026-10-03, accepting the exact three specification-test files and ledger JSON described below.                                                                                                                                                                                            | ✅ Resolved — exact fixture exception                                        |
+| AR-P12 | Technical / bounded publication and lifetime proof                  | Which direct compiler design satisfies AR-P2/AR-P7/AR-P10 without assuming a nesting limit or introducing support machinery?                                                                                                                                                                                        | Reuse existing ownership/context, selected storage, wrapper and layout owners; require the observer-lifetime invariant below. Direct low-$47 entry where possible; an ordinary three-byte JMP entry only when source placement needs it. Preserve canonical diagnostics and use existing unproven evidence fields.                                                                                                                                                                                          | Internal compiler decision under the user's AGENTS.md workflow prime directive §4, within AR-P2/AR-P7/AR-P10; independently challenged. No new product condition or complexity surface.                                                                                                                                  | ✅ Resolved — analytical direction, not runtime qualification                |
+| AR-P13 | Technical / runtime test endpoints                                  | Which existing endpoints cover helper/link output, changed-capture diagnostic provenance and word wrap without inventing public projections?                                                                                                                                                                        | Keep admission assertions in 2.1.1; assign actual bytes/calls/links to 2.1.2. Use Chapter 14's existing primary/related spans for the concrete changed-capture route. Public writer cases cover second-byte overlap and computed unsigned wrap into NMINV; physical second-byte wrap belongs to 2.3.1.                                                                                                                                                                                                      | Primary technical ruling under AGENTS.md workflow Prime Directive §4. No user acceptance is inferred; no API, source rule, public schema or support surface changes.                                                                                                                                                     | ✅ Resolved — bounded endpoint clarification                                 |
+| AR-P14 | Specification-test authority (runtime)                              | AR-P11 preserves an E10245 message assertion that predates the current frozen registry.                                                                                                                                                                                                                             | **Best option:** update only that one regex in `test/rd04/diagnostics-alternate-placement.spec.test.ts` to Chapter 14's current template. Preserve every other field/assertion and the approved fixture correction.                                                                                                                                                                                                                                                                                         | User explicitly approved this exact additional message assertion correction on 2026-10-04.                                                                                                                                                                                                                               | ✅ Resolved — one-assertion exception                                        |
+| AR-P15 | Technical / execution-to-emission preservation (runtime)            | A selected but never-entered IRQ entry has no wrapper label; emission also resurrects unreachable vector effects after a proved nonreturning call.                                                                                                                                                                  | **Best option:** qualify a bounded correction using the existing proof's reached-path facts for inventory/lowering and the ordinary entry ABI for reference-only selected labels. Preserve source identity/placement, real execution contexts and frozen oracles. No fabricated arrival, source ban, placeholder alias, new evaluator, runtime or general optimizer.                                                                                                                                        | User: “I do” on 2026-10-04, replying to the explicit bounded test-first correction recommendation. Existing proof, inventory and lowering owners only; new independent cases, no old-oracle changes.                                                                                                                     | ✅ Resolved — bounded correction approved                                    |
+| AR-P16 | Technical / raw-only typed installer binding (runtime)              | A retained raw handler's never-observed helper contains a typed NMI installation. Source code must remain materialized, but no actual capture/context exists to satisfy its current machine binding consumer.                                                                                                       | **Best option:** qualify a bounded noncertifying entry/link retention contract in the existing owners, separate from actual execution/capture proof. No fabricated stock capture, external guarantee, source ban, new API or runtime manager.                                                                                                                                                                                                                                                               | User: “proceed” on 2026-10-04, approving qualification first and implementation only after the narrow contract passes. Independent SFA/semantics assessment below qualifies retention only; test-first correction may proceed.                                                                                           | ✅ Resolved — conditional retention only; no admission claim                 |
+| AR-P17 | Technical / retained-call ABI and continuation correction (runtime) | Independent review reproduces three MAJOR consumer defects in the AR-P16 implementation: callee code/data context mismatch, a source-address indirect thunk bypassing the selected retained variant, and emission after a proved nonreturning call.                                                                 | **Best option:** correct these three existing call/context consumers test-first, using the existing emission catalogue, finite-target dispatch and return summaries. New independent regressions precede correction. No existing oracle change, API, runtime, source ban, new evaluator or second registry.                                                                                                                                                                                                 | User: “I approve” on 2026-10-04, accepting the sole AR-P17 bounded correction and new regression recommendation. No existing-oracle size/split exception or new support machinery is approved.                                                                                                                           | ✅ Resolved — bounded correction approved; verification pending              |
+| AR-P18 | Technical / selected-call lifetime interference (runtime)           | Reused canonical callee homes can overlay a retained caller value live across that call because existing call-overlap requires equal activation roots. Final native witness confirms both homes at $0bbd.                                                                                                           | **Best option:** extend only the existing interference owner, share the existing pure descriptor selector and resolve transitive calls from the selected context; new independent caller-lifetime regressions first. No blanket variant separation, runtime, source rule or new analysis framework.                                                                                                                                                                                                         | User: “I approve” on 2026-10-04, accepting this exact interference-owner extension, shared selector and one new independent regression file.                                                                                                                                                                             | ✅ Resolved — bounded correction approved; verification pending              |
+| AR-P19 | Technical / IRQ applicability and exact oracle mechanics (runtime)  | The new selected-callee walk consumes an empty NMI reached map in IRQ-only programs, dropping transitive call conflicts. Two frozen test files also assume lexical debug names; the new lifetime test conflates code-entry count with canonical storage reuse.                                                      | **Best option:** correct only the NMI-proof applicability condition in the existing interference owner; independently author one focused IRQ regression; approve only the two named declaration-lookup corrections and the new lifetime test's selected-entry/home checks. Preserve source fixtures, behavior, widths, native ABI and allocation expectations. No new API, fact model, runtime or source restriction.                                                                                       | User: “I approve” on 2026-10-04, accepting the sole exact AR-P19 recommendation and its four named code/test paths.                                                                                                                                                                                                      | ✅ Resolved — exact bounded correction approved; verification pending        |
+| AR-P20 | Technical / existing scalar-constant contract repair (runtime)      | The final-inventory check correctly exposes an unnecessary private local home/store for an unplaced scalar constant. Frozen §3/§4.2 already requires compile-time initialization and zero declaration storage; the existing NMI constant/helper oracle cannot pass while the generic CFG producer emits this store. | **Best option:** pass the existing authoritative binding table into CFG construction and omit runtime initialization only for unplaced, non-loadable scalar/enum constants; new focused public ordinary-program RED first. Preserve mutable, materialized, aggregate and loadable behavior. No NMI exemption or optimizer.                                                                                                                                                                                  | Compiler/plan ruling under the user's standing AGENTS PRIME workflow rule 4: deterministic implementation of an already approved frozen contract, not a new product/scope fork. The independent simplicity challenger concurs; no new user approval is claimed. Exact owner/proof bookkeeping below precedes correction. | ✅ Resolved — existing-contract technical correction; implementation pending |
+| AR-P21 | Frozen specification-test lookup mechanics (runtime)                | The AR-P20 author packet gives `Game.main` as the code-owner ID, but public evidence uses the source-qualified `src/game.blend::Game.main`. The immutable new oracle consequently cannot inspect the mutable control's code.                                                                                        | **Best option:** change only the four `functionBytes` call arguments in `test/rd05/local-scalar-constants.spec.test.ts` from `Game.main` to `src/game.blend::Game.main`, then re-freeze and rerun RED. Preserve all sources, storage, byte, ordering, cardinality and cost expectations; no compiler or fixture change.                                                                                                                                                                                     | User: “approve, proceed” on 2026-10-05, replying to the exact four-argument exception and continuation recommendation. No wider test exception is authorized.                                                                                                                                                            | ✅ Resolved — exact lookup correction approved                               |
+| AR-P22 | Frozen specification-test entry fixture and value oracle (runtime)  | All four new fixtures measure `main` but require an ordinary `RTS`, contrary to frozen startup/cleanup rules. The mutable control also checks instruction presence without proving the assigned values reach its addressable storage and outputs.                                                                   | **Best option:** in only `test/rd05/local-scalar-constants.spec.test.ts`, move each unchanged measured body to ordinary `sample`, add `main` calling it, and update the four owner arguments. Preserve all existing native, storage and effect checks. Strengthen only the mutable control with distinct input/output value checks through the existing profile-project and sequential VICE fixtures. No new harness, decoder, dependency or compiler change.                                               | User: “I approve” on 2026-10-05, replying to this exact one-file repair and continuation recommendation. Only necessary imports, profile typing, local fixture wiring and timeout are included.                                                                                                                          | ✅ Resolved — exact fixture/value correction approved                        |
+| AR-P23 | Technical / zero-byte private-storage marker (runtime)              | The selected final inventory contains a valid zero-length local array marker with zero bytes, but the new check rejects it as private storage.                                                                                                                                                                      | **Best option:** ignore only exact zero-byte requests for this rejection; preserve normal marker identity and all positive-width storage checks.                                                                                                                                                                                                                                                                                                                                                            | Compiler/plan ruling under PRIME workflow rule 4 and frozen Chapter 08 AR-2; no new user product approval or test exception claimed.                                                                                                                                                                                     | ✅ Resolved — deterministic existing-contract correction                     |
+| AR-P24 | Technical / zero-byte debug correlation (runtime)                   | Actual native assembly of a legal zero-length local reaches debug generation, which wrongly requires an emitted instruction range for the erased zero-byte declaration.                                                                                                                                             | **Best option:** after an independent NMI regression/debug RED, require a nonempty live machine range only for positive-width homes and retain the existing zero-width optimized-away context marker. Preserve the independently prepassing ordinary controls and every positive-width check.                                                                                                                                                                                                               | Compiler/plan ruling under PRIME workflow rule 4 and frozen Chapter 08 AR-2. No user product choice, old oracle exception or new debug schema is claimed.                                                                                                                                                                | ✅ Resolved — deterministic existing-contract correction                     |
+| AR-P25 | Technical / reference-only debug ownership (runtime)                | Public candidate builds of masked installed IRQ entries fail with `Final machine block has no semantic CFG owner`; their generated tail block lacks the existing semantic-entry label correlation.                                                                                                                  | **Best option:** give the existing generated reference tail its source-entry-qualified block label, preserving stable function/export identity and all bytes. Reuse existing final-machine/context facts for any separately demonstrated selected debug mismatch; no new debug schema or proof stage.                                                                                                                                                                                                       | Compiler/plan ruling under PRIME workflow rule 4. No old oracle edit, generated arrival or source restriction is authorized.                                                                                                                                                                                             | ✅ Resolved — necessary existing artifact-contract correction                |
+| AR-P26 | Technical / canonical debug symbol labels (runtime)                 | The actual public raw-handler artifact fails the existing debug validator because its symbol labels follow internal machine-ID order rather than canonical emitted-label order.                                                                                                                                     | **Best option:** sort only each function symbol's existing emitted label list using the existing UTF-8 comparator. Preserve entry variant IDs/indexes and every validation check.                                                                                                                                                                                                                                                                                                                           | Compiler/plan ruling under PRIME workflow rule 4. No schema, code, proof or frozen-test edit.                                                                                                                                                                                                                            | ✅ Resolved — deterministic existing-contract correction                     |
+| AR-P27 | Technical / selected-code debug correlation (runtime)               | Real public producer/native runs fail on masked-helper and nonreturning-path cases because the debug owner expects entries for every old source-call reachable declaration, including bodies that the shared proof correctly omits. It also attaches every original source call to every emitted variant.           | **Best option:** reuse actual reached-body, retained-emission and captured-selection facts to choose debug function owners; correlate call contexts only with source calls present in each final machine variant. Preserve missing-body errors for required emission. Mechanically move the unchanged range mapper before expanding its over-limit owner.                                                                                                                                                   | Compiler/plan ruling under PRIME workflow rule 4. Existing frozen independent cases are RED; no new analysis, proof context, schema, API, test edit or source restriction.                                                                                                                                               | ✅ Resolved — necessary existing artifact-contract correction                |
+| AR-P28 | Frozen specification-test identity and proof mechanics (runtime)    | The current public set is 336 PASS / 112 FAIL. One hundred cases stop at bare owner-name lookups; twelve stop at over-specific aggregate-pointer, single-instruction address or declaration-overlap checks. Independent SFA review also exposes a latent reference-shell/body conflation.                           | **Best option:** approve only the 19 source-qualified name corrections in ten files and the four exact proof repairs in the two files enumerated below. Preserve all source fixtures, behavior, ownership, cost and negative requirements. No compiler, API, authority, source restriction or support machinery change.                                                                                                                                                                                     | User: “I approve - proceed” on 2026-10-05, accepting the exact twelve-file AR-P28 repair. No wider exception.                                                                                                                                                                                                            | ✅ Resolved — exact repair cleared; broader public gate remains              |
+| AR-P29 | Frozen specification-test startup decode and main exit (runtime)    | Approved AR-P28 repairs expose 28 failures in three files: a whole startup block is mistaken for one instruction, and two source walkers follow main's normal exit into platform restoration.                                                                                                                       | **Best option:** only the three local helper repairs below, preserving actual bytes, ownership, all fixtures and every contract/cost assertion. Keep the patch local with the explicit at-most-400-line owner exception; no new harness or compiler changes.                                                                                                                                                                                                                                                | User: “I approve” on 2026-10-06, accepting the exact three-file AR-P29 correction and its bounded local-owner size exception.                                                                                                                                                                                            | ✅ Resolved — exact repair independently cleared; public GREEN               |
+| AR-P30 | Technical / bounded output repair (runtime; complexity escalation)  | Complete expert comparison exposes callback-selection staging, redundant empty-loop jumps and duplicate equivalent terminal bodies. The new continuation oracle also needs a distinct-effect returning control.                                                                                                     | Bounded correction using existing owners; no expert-floor waiver, optimizer framework or source workaround.                                                                                                                                                                                                                                                                                                                                                                                                 | User approved scope and subsequently confirmed repair/verify before commit/push on 2026-10-06.                                                                                                                                                                                                                           | ✅ Resolved — bounded repair verified                                        |
+| AR-P31 | Frozen new-oracle interface clarification (runtime)                 | Two new assertions mistake resident bytes for loaded bytes and source-role kind for interrupt ABI kind.                                                                                                                                                                                                             | Correct only those assertions against the existing public artifact contract; retain all fixtures, behavior, identity and cost requirements.                                                                                                                                                                                                                                                                                                                                                                 | User: “I approve” on 2026-10-06, accepting the exact two-file assertion correction and 350-line local-helper ceiling.                                                                                                                                                                                                    | ✅ Resolved                                                                  |
+
+## AR-P31 — Correct two new artifact assumptions, not the compiler
+
+The primary author used an incorrect interface packet from the main agent:
+the sum of every resident interval's payload/padding is not the PRG size.
+Frozen Chapter 15 requires trailing BSS to occupy RAM without being serialized.
+The sixteen primary cases now pass their preceding continuation, callback,
+volatile effect and ABI checks after MC-001, then fail only on this assertion:
+50 resident-state bytes are incorrectly counted as loaded. Build and touched
+production formatting pass. Capture:
+`/tmp/blend65-nmi-ar21.0c36Fe/ar30-mc001-primary.log`.
+
+The new selector-cost author separately assumed `entryVariants.kind` distinguishes
+raw from firmware entry. It identifies the source role: both are `interrupt`.
+Actual distinct labels, addresses and byte obligations prove ABI distinction;
+a kind-string difference does not. The author reports this assumption explicitly,
+without reading implementation. Its four loaded-prefix controls pass; twelve
+selector/loop/home checks are genuinely RED; four kind checks need correction.
+
+**Best option:** approve only these local corrections in the two new files:
+
+- `nmi-route-nonreturning-arm-output.spec.test.ts`: change only
+  `requireLoadedAccounting` to count the complete physical interval union inside
+  `[PRG load address, load address + PRG payload length)`, compare it to the actual
+  payload and `costs.totals.programBytes`, and preserve zero-fill assertions.
+  Trailing resident state contributes no loaded bytes. Keep every fixture,
+  callback/thunk/continuation/source-effect assertion unchanged.
+- `nmi-route-nonreturning-selector-cost.spec.test.ts`: correct only the last
+  case's erroneous different-kind assertion. Require the source role `interrupt`,
+  retain distinct entry labels/addresses and at least two entries, and prove
+  the retained raw register-save/binary-entry prefix separately from the masked
+  firmware reference's indirect saved-vector tail. Use actual entry bytes and
+  labels, not fixed output addresses. Keep all other cases and exact 11-byte,
+  3-byte/3-cycle, zero-private-home and loaded-accounting expectations unchanged.
+
+Keep the primary local helper in its existing file with a bounded 350-line
+ceiling (currently 325), rather than introduce a shared harness or weaken proof.
+The second file is 198 lines. No old oracle, compiler producer, public schema,
+specification, expert skill, API or source restriction changes. This is a local
+test-contract clarification; no extra implementation plan or framework is needed.
+
+Frozen candidates: primary SHA256
+`a90667b30d4ec24b1deaaa9e0c5a805bb69623d7fdca1e06ad207377517bbc6a`;
+selector SHA256
+`731b0d908d48ad7a09dff074f16c32bdabcc5ac5b158ef46f5926f39cdf4eae2`.
+Neither is edited after the author reports the faulty assertion. MC-002–MC-004
+remain unimplemented; their independent cost RED is retained. Task 2.3.3 pauses
+for this exact exception; no ledger retirement, green commit or push is claimed.
+
+User decision on 2026-10-06: “I approve”. The exact two-file correction and
+350-line local-helper ceiling above are approved. The implementation-blind author
+applies only those changes, records fresh results/hashes and freezes both files
+again. Task 2.3.3 resumes; the remaining output repairs and full qualification
+still precede the explicitly authorized commit/push.
+
+## AR-P30 — Complete retained callback output must meet the expert floor
+
+The task-2.3.3 independent full-routine comparison exposes a necessary output
+gap that the local NMI-wrapper account did not cover. Actual H and four retained
+terminal bodies total 110 code bytes; equivalent ordinary-call expert work uses 17. H takes 71/62 cycles to its callee and owns five SFA bytes; the expert selection
+takes 12/13 cycles with no such homes. Empty terminal loops use nine code bytes and
+six recurring cycles instead of three bytes/three cycles. Canonical raw identity,
+selected ABI and call frames must remain correct; retention is not invocation.
+
+With the existing immutable low-$47 boundary unchanged, removing those 93 code
+bytes increases loaded fill by 93. The payload remains 872 bytes; resident RAM
+would decrease from 931 to 926. This is a cycle/RAM/code floor failure, not a
+claimed PRG win. Mandatory local-meet [issue #96](https://github.com/blendsdk/blend65/issues/96)
+tracks the separate wrapper/padding path to a win; it does not waive this gap.
+
+Original goal: qualify the already-approved cooperative NMI route with complete
+equivalent expert costs. Extra system or support code: a bounded extension to
+ordinary finite-call/empty-block/equivalent-body lowering before this slice may
+qualify; no new optimizer pass, mode, framework, schema or dependency is proposed.
+Why it may be needed: the current plan excludes an optimizer, but these concrete
+generated paths are worse than equivalent expert work. Existing-owner corrections
+must be explicitly bounded, not silently expanded into RD-08 implementation.
+Evidence: `machine/lower-indirect.ts:202`, `machine/lower-function.ts:423`,
+`semantic/lower-control.ts:93`, the existing direct interrupt-choice pattern at
+`semantic/lower-calls.ts:204`, `machine/block-layout.ts:43`, and context variant
+selection at `machine/interrupt-specialize.ts:89` / `machine/lower.ts:254`.
+Smallest solution that still works: repair only witnessed single-consumer closed
+callback choices, ordinary terminal-arm edges, empty-loop jump chains and exactly
+equivalent storage-free terminal variants in existing owners, with independent
+behavior/cost expectations before code. Keep returning, unknown, effectful,
+identity-observed and context-dependent controls conservative. A separately owned
+prerequisite repair is the viable alternative; qualification stays blocked then.
+Extra cost: the necessary existing semantic/lowering/storage/debug owners plus
+direct specification/implementation regressions; no new permanent subsystem.
+Independent verdict: Justified — extend this plan narrowly rather than fragment
+the same prerequisite work across plans. Sharing must be within one source
+function and prove identical ABI, storage, links, context and identity obligations.
+If that requires a new representation or cross-cutting redesign, stop and move
+that prerequisite to a separately bounded plan. Confidence: Medium; exact
+equivalence/applicability must pass independent specification and specialist
+review. Challenger: converged. Direct user decision: approved on 2026-10-06,
+with the order subsequently corrected by the user confirmation below.
+
+**Best option:** approve only MC-001–MC-004's witnessed existing-owner repairs:
+nonreturning continuation removal, single-consumer closed zero-argument/void
+conditional-call lowering, effect-free empty-loop jump collapse, and same-source
+storage-free leaf variant sharing. No source ban, cross-source function merging,
+general optimizer, new pass/mode/schema/harness/API or dependency. Keep the
+separate restoration-layout size/cold-cycle tradeoff with issue #96/RD-08.
+Execution resumes only after this exact scope and the new oracle clarification
+are approved. Independent behavior/bytes/cost RED cases precede production, and
+fresh SFA/semantics/platform/output verification precedes native qualification.
+
+User approval on 2026-10-06: “commit and push first the do the AR-P30”. This
+accepts the exact bounded repair and new-oracle clarification, but requires the
+checkpoint first. The guarded commit check runs both the new oracle and existing
+ledger: 17 FAIL / 10 PASS in 5.32 seconds, exit 1. Twelve terminal-arm failures,
+four over-specific returning controls and the one still-deferred chained row
+remain expected unfinished work, not seventeen newly diagnosed compiler defects.
+Capture: /tmp/blend65-nmi-ar21.0c36Fe/pre-ar30-commit-verification.log.
+No staging, commit, push or implementation follows a failing checkpoint.
+The user subsequently replied “i confirm” on 2026-10-06 to the recommended
+order correction: repair AR-P30, verify the full phase, then commit and push.
+The exact AR-P30 scope and oracle clarification remain approved. No failing
+checkpoint is staged or committed. The four repairs are bounded substeps of
+task 2.3.3; the existing 64/68 task count remains unchanged until qualification.
+
+The new MC-001 continuation oracle is 238 lines at SHA-256
+`014c724207481fc1e71005eb29e7518bf1c953c8634216e60b9ace38aa16efea`.
+Its initial independent RED has twelve terminal-arm failures and four returning
+controls with an over-specific direct-call predicate. An already-approved
+canonical no-argument thunk may preserve ordinary-call ABI correctly; missing
+direct JSRs are not themselves an implementation defect. The proposed exact
+clarification gives potentially returning targets distinct volatile writes and
+proves direct calls or that legal canonical thunk, preserving terminal-arm,
+effect-order, dead-suffix and complete-loaded-accounting expectations. No existing
+frozen oracle changes are proposed. No fixture change is used to outlaw thunks.
+Do not change even this new frozen fixture before the bounded ruling is approved.
+No production repair, ledger retirement, green commit or push while blocked.
+
+## AR-P29 — Decode complete startup ranges and recognize the proved main exit
+
+**Decision:** the user replies “I approve” on 2026-10-06, accepting the exact
+three-file repair and bounded local-owner size exception below. AR-P28 remains
+independently cleared; task 2.2.10 resumes within this additional exact permission.
+
+**Best option:** one exact exception for the three existing frozen files below.
+The baseline is tree `c91d637f0ec141784fad8605cbd015169c6ff19d`. Keep their
+approved source-qualified identities. No file changes occur before approval.
+All paths are under `test/rd05/`.
+
+| File / bounded owner                                                                                 | Exact permitted correction                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nmi-route-links.spec.test.ts`, `instructions()` and its owned-range selection                       | Decode every documented CPU instruction inside each selected debug range, rather than treating the entire range as one instruction. Preserve the existing source-span filter, PRG bounds, address-space and owner/context association, deduplication and address order. Each instruction must fit its range and PRG. Never discard startup ranges or loosen `operand()` to accept a block as an instruction. If an existing function filter selects only range starts, let it select instructions contained in that same function's ranges; it must not admit another owner. |
+| `nmi-route-raw-installer-output.spec.test.ts`, `entries()` / `instructions()` and their local wiring | Only for the source `main` entry, recognize its final absolute JMP to the exact assembled `startup.restore` entry. Independently corroborate that target with the native labels, actual generated/platform-owned startup range and its complete decoded restore path ending in PLP/RTS. Keep the JMP in main's decoded code. Do not attribute restore bytes to main. Preserve same-owner placement-adapter following and every raw/helper terminal requirement.                                                                                                              |
+| `nmi-route-raw-owner-continuation.spec.test.ts`, `publicEntries()` and its local wiring              | Apply the same exact main-only platform-exit recognition. Require actual target identity, generated/platform ownership, complete range/PRG bounds and the PLP/RTS endpoint. Preserve every source-call association, variant owner, same-owner adapter, raw/helper terminal and interprocedural ownership assertion.                                                                                                                                                                                                                                                          |
+
+Reject all other outside-owner jumps or fallthroughs. Decoding may add only the
+documented opcode widths needed by these actual startup/restore witnesses; an
+unknown or truncated instruction remains an error. The independently corroborated
+restore bytes are separate platform evidence, not extra source-owned effects.
+
+All fixtures, four profiles, check/build success requirements, exact values,
+MMIO order/count, immutable capture/publication/removal, no `$0318` writes,
+function-owned no-CIA2-ICR reads, closed homes, stack/resource and output-cost
+assertions remain unchanged. No product behavior, compiler/API, public shape,
+frozen authority, source restriction, dependency or general decoder/harness is
+authorized. Retention remains distinct from invocation/reentrancy proof.
+
+**Bounded size exception:** the existing owners are 292/313/333 lines after
+AR-P28's required formatting. Keep this repair local and each file at most 400
+lines, rather than adding a shared test-support abstraction or splitting fixtures
+solely to meet the usual 200–300-line test target. This exact exception waives no
+assertion, documentation, independence, verification or review requirement.
+
+Independent SFA review SF-005/SF-006 corroborates the five exact source fixtures
+across all four profiles: twenty actual native artifacts pass all five validators
+and unchanged cross-sidecar checks. The startup block is 345 bytes, not one
+instruction. Returning main's generated exit follows the existing frozen
+return-to-BASIC contract, not an SFA ownership escape. Exact artifacts, hashes and
+endpoints are recorded in [the phase review](09-phase-review.md#ar-p28-clearance-and-the-next-exact-oracle-gate--2026-10-05).
+The comparable public set is now 420 PASS / 28 FAIL across 24 files/448 cases;
+all 28 failures are in these three owners. This does not predict GREEN after
+repair or authorize any later newly exposed expectation change.
+
+After approval, freeze the bounded diff and new hashes, run the three affected
+files plus the complete 24-file public set, and obtain independent exact-exception
+review. A real implementation failure is repaired in production, not covered by
+this exception. Whole-phase, runtime/VICE, hardware and expert-cost gates remain.
+No successor, green commit or push while this coupled endpoint is RED.
+
+## AR-P28 — Correct test identity and proof mechanics without changing the contract
+
+**Decision:** the user replies “I approve - proceed” on 2026-10-05. This authorizes
+only the enumerated twelve-file repair. Implementation and exact exception review
+must preserve the fixtures and all contract requirements below.
+
+**Best option:** one exact exception for the following twelve frozen test files.
+This is not permission to make a failing behavior or cost expectation easier.
+The baseline is tree `bc8212a13cebc1006c8af8798511ef08c5b4959c`; every listed
+file remains byte-identical to that baseline until approval. All paths below
+are under `test/rd05/`.
+
+### Source-qualified identity — nineteen replacements, ten files
+
+Replace only the listed bare `Game.*` lookup/expected-owner strings with their
+existing `src/game.blend::Game.*` identities. The negative unused-function check
+also needs the real identity so it remains a meaningful absence assertion.
+Keep all surrounding source fixtures and assertions unchanged.
+
+| File                                                | Exact occurrences at the untouched baseline                         |
+| --------------------------------------------------- | ------------------------------------------------------------------- |
+| `nmi-route-raw-owner-continuation.spec.test.ts`     | Line 53: `Game.${name}`                                             |
+| `nmi-route-raw-installer-output.spec.test.ts`       | Line 55: `Game.${name}`                                             |
+| `nmi-route-raw-helper-context.spec.test.ts`         | Line 66: `Game.${name}`                                             |
+| `nmi-route-raw-dependencies-output.spec.test.ts`    | Line 79: `Game.${name}`                                             |
+| `nmi-route-exclusive-reference-output.spec.test.ts` | Lines 71, 89, 96: `Game.Q`                                          |
+| `nmi-route-placement.spec.test.ts`                  | Lines 44, 53: `Game.handler`                                        |
+| `nmi-route-output.spec.test.ts`                     | Lines 128, 150, 171: `Game.handler`; line 172: `Game.writeConstant` |
+| `nmi-route-reference-entry-output.spec.test.ts`     | Lines 104, 183, 190: `Game.Q`                                       |
+| `nmi-route-links.spec.test.ts`                      | Line 66: `Game.${name}`; line 236: `Game.unused`                    |
+| `nmi-route-execution-selection.spec.test.ts`        | Line 100: `Game.${name}`                                            |
+
+### Actual ABI and instruction-range proofs — two files
+
+| File / bounded owner                                                                         | Exact permitted correction and requirements retained                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nmi-route-retained-call-abi.spec.test.ts`, aggregate destination proof around lines 203–233 | Retain existing direct-result and copied-pointer forms. Additionally accept the caller populating the same closed two-byte pointer home used by the callee's sole indirect element store. Prove both exact destination bytes before the selected JSR, no intervening pointer overwrite through that store, correct element offset and caller consumption of the destination. Keep values 7/9, selected parameter-home and callee checks, caller-owned destination, source fixture and all four profiles. Do not accept an arbitrary indirect store. |
+| `nmi-route-retained-nonreturning.spec.test.ts`, `sourceRanges`                               | Require the correct `src/game.blend` source index and positive-width operation ranges contained within the requested expression, allowing its trailing semicolon. A whole-function declaration which merely overlaps the expression is not an emitted operation. Keep zero dead-effect assertions; corroborate them using actual H instruction ranges, including absence of dead vector/publication/removal and `$c014` writes. Keep returning and mixed-target controls.                                                                           |
+| Same file, raw-address assertion around lines 109–120                                        | Decode the ordered, deduplicated union of the same operation's ranges, preserving source/context ownership. Prove the same actual raw entry's low and high bytes reach `$c010` and `$c011` in order. Keep separate raw/firmware entry identities and uniqueness. Do not concatenate unrelated contexts or accept only the presence of two immediates.                                                                                                                                                                                               |
+| Same file, `noSuccessor`                                                                     | Keep the call-at-end requirement for every executing raw/body variant. Separately prove the masked selected reference-only entry is exactly the permitted jump-only shell with the correct captured predecessor and no body effects. Select it from the independently proved entry/address distinction; never skip a variant only because its expected call is absent. Keep H's and raw Q's nonreturning-call checks.                                                                                                                               |
+
+The independent SFA auditor reports SF-001–SF-004 after inspecting exact native
+artifacts for all four profiles. No ABI/storage or dead-source-effect defect was
+found at these bounded endpoints. The aggregate caller already populates its
+closed ZP destination pair; forcing a callee copy would add needless storage and
+instructions. Debug ranges are per instruction, not per source expression.
+Declaration provenance is broader than an operation. The masked CINV shell is
+an address/capture obligation, not an executed Q body.
+
+The all-finite artifact still contains one unreachable generic dispatch JMP:
+three emitted bytes and zero executed cycles on its proved nonreturning paths.
+That is real output, not a dead source effect. Task 2.3.3 must judge its expert
+cost; this exception provides no output-parity waiver or optimization deferral.
+
+Evidence and exact artifact identities are recorded in
+[the phase review](09-phase-review.md#exact-frozen-oracle-approval-gate--2026-10-05).
+After approval, capture the exact inverse diff against the baseline, freeze new
+hashes, rerun the twelve affected files and then the complete 24-file public
+candidate set. Any newly exposed implementation defect is fixed in production;
+it does not grant another oracle exception. Required independent exception
+review and the full phase checkpoint remain binding.
+
+No fixtures, product behavior, diagnostics, public artifact shape, frozen
+specification/expert authority, runtime or compiler code are authorized to change
+by this request. General public GREEN, runtime, physical hardware and complete
+expert parity remain unqualified. No commit or push occurs while the coupled
+checkpoint is RED.
+
+## AR-P27 — Debug follows selected and retained code, not old source reachability
+
+The untouched execution-selection oracle already covers the masked helper,
+terminal call and returning-alternative boundaries. Public-producer native
+probes reproduce `Reachable function has no final machine entry` after genuine
+assembly. The old call-graph reachability catalogue retains declarations whose
+bodies have no reached or retained materialization; it is not final code demand.
+
+Consume the existing actual reached blocks, separate retained ABI descriptors
+and captured selected entries. These facts select source owners only; required
+owners still fail when no machine entry exists. Do not manufacture contexts or
+treat retained code as invocation proof. Source-call contexts must belong to the
+particular final variant which emits their source operation, not a reference-only
+shell or a dead suffix. Keep raw code and real returning alternatives.
+
+The broader run exposes an applicability error in the first consumer correction:
+legacy IRQ-only context catalogues contain no reached-point proof. Match lowering's
+NMI-route condition; leave ordinary and IRQ-only owner selection unchanged.
+Retained mainline variants also use `.main.root` as well as `.main.depth`.
+Recognise both existing canonical mainline forms in debug function/block ownership
+and the matching memory owner. Actual individually valid sidecars otherwise fail
+their existing cross-sidecar consistency gate. Do not weaken that gate.
+
+Before adding this bounded consumer correction, move the unchanged machine-range
+mapper into `services/debug-machine-ranges.ts`. This is a mechanical size-boundary
+extraction, not a new layer, pass, schema or pipeline stage. The existing public
+oracles stay frozen; their separate source-qualified lookup mistakes require an
+exact approval before edits. Whole public qualification remains pending.
+
+## AR-P26 — Canonical symbol-label ordering
+
+The public raw-body fixture in the frozen execution-selection oracle reaches
+native ACME successfully but fails debug encoding. Direct inspection of the
+actual derived records locates the unsorted label list: internal `fn` IDs precede
+`interrupt` IDs, but their source-related emitted label spellings sort in the
+opposite order. The validator already requires canonical UTF-8 label order.
+Sort that list using `compareText`; do not reorder the indexed entry variants,
+weaken the validator or change bytes. The diagnostic probe's borrowed header is
+shape-location support only; qualification must use the real public producer.
+
+## AR-P25 — Reference-only tails retain their source/debug owner
+
+The 448-case public candidate run has 272 passes and 176 failures. Some failures
+are lookup-only oracle mistakes; those must be separately approved before any
+frozen edit. Actual artifact failures are compiler defects, not test exceptions.
+The genuine public producer/ACME diagnostic reproduces
+`Final machine block has no semantic CFG owner` on a masked installed IRQ shell.
+Its function/export identity and three-byte terminal are correct, but the block
+uses only the generated function ID rather than the existing semantic-entry
+prefix consumed by debug correlation. Retain the source-entry prefix on that
+one tail block. No instruction, arrival, source-body execution or schema changes.
+Further mismatches require their own decisive source/consumer evidence; do not
+hide missing machine bodies or invent reached contexts to make validation pass.
+
+## AR-P24 — Zero-byte debug markers need no emitted instruction
+
+Native source seam `nmi-layout-native-third.log` assembles the legal zero-length
+local but fails in `deriveDebugRecords` with
+“Storage request lifetime has no final machine range”. Frozen Chapter 08 AR-2
+requires zero data bytes. The existing debug owner already represents such a
+home as an optimized-away zero-byte position marker; the unconditional live-range
+requirement contradicts that existing representation.
+
+The smallest correction is to retain the nonempty-range requirement for every
+positive-width home and allow the existing zero-byte marker its empty range.
+The existing location validator must agree: only a zero-width optimized-away
+symbol may keep its valid execution context without a live instruction range.
+No positive-width or context/index check is relaxed.
+
+Both independent ordinary-program probes prepass all eight cases, including a
+declaration-only routine. Their frozen files remain unchanged as safety controls;
+neither is falsely reported as RED. The public NMI-only zero-byte oracle must
+freeze before any correction, first recording the existing admission guard and
+then the actual debug boundary during candidate admission qualification. The
+native empty-NMI failure remains direct supporting evidence. No existing oracle,
+schema, storage identity, emitted code, language rule or runtime changes. This is
+a deterministic compiler ruling under PRIME workflow rule 4, not fabricated
+user approval or a new product choice.
+
+## AR-P23 — Zero-byte array markers are not private storage
+
+Independent storage review and a genuine-source final-inventory RED expose an
+overbroad rejection: `let empty: byte[0] = [];` retains a local position marker
+with `bytes === 0`, emits no private-home work, but the new NMI check rejects it.
+Frozen Chapter 08 AR-2 explicitly makes this source valid and gives it zero data
+bytes. Positive-width addresses/temporaries remain subject to the complete
+selected private-storage proof.
+
+**Best option:** skip only exact zero-byte requests in the existing pure check;
+retain their identities and markers through normal closure. This is a
+deterministic compiler correction under PRIME workflow rule 4, not an
+undetermined product decision or a fabricated new user approval. No source ban,
+test exception, new storage representation, pass or runtime is introduced.
+The independent auditor supplies the counterexample; the parent reproduces it
+through actual frontend/ownership/context/machine closure before correction.
+One bounded fix-only storage review follows the rerun. Planned internal
+private-storage hardening retains this zero-byte boundary regression.
+
+Capture: `/tmp/blend65-nmi-ar21.0c36Fe/ar20-zero-length-private-red.log`.
+First profile fails the exact expected non-rejection assertion; the existing
+24-case PASS capture remains unchanged. Public admission is still guarded.
+
+## AR-P22 — Ordinary routine fixture and independent mutable values
+
+After only AR-P21's four authorized arguments change, the 195-line file freezes
+at `86ed5f63e5aaaa5d196047ad13664280452641dc83233edd31438a8f0b3ca333`.
+Fresh build and formatting pass. The corrected RED still has 12 genuine constant-
+storage failures; four mutable controls now reach their terminal assertion and
+fail because the valid main exit is `JMP startup.restore`, not `RTS`.
+All three constant cases contain the same latent main/ordinary-ABI mismatch.
+Frozen Chapter 10 §5.3 explicitly requires startup entry without `JSR main` /
+ordinary `RTS`; Appendix C64 §5.1 requires restoration before the epilogue's
+`RTS` to BASIC. No compiler return-policy correction is warranted.
+
+One bounded independent correctness audit clears AR-P21's exact edit and reports
+RV-009/RV-010 (reviewer-local RV-001/RV-002). The second finding's counterexample
+redirects assignments away from `value`'s addressable home while leaving every
+currently checked external access and storage interval present. It is an oracle
+coverage defect, not evidence of a current compiler miscompile.
+
+The proposed modification set is one existing oracle. Rename its four measured
+functions `sample`, append `function main(): void { sample(); }` to each source,
+and change the four owner arguments to `src/game.blend::Game.sample`. Keep every
+measured statement, constant value, native byte/cost, storage and ordering check.
+Use the existing VICE monitor for the mutable control: supply distinct bytes
+`$13` and `$e3` at `$c010/$c011` before entering the measured body, then require
+`$c020/$c021` to contain exactly those bytes after the body. This checks values
+without prescribing home addresses or store/reload instructions and preserves
+future legal optimization. Reuse current runtime/project fixtures unchanged;
+no interpreter, instruction-dataflow validator or new runtime harness is proposed.
+Keep all four selected profiles and sequential emulator execution.
+Only the imports, literal profile typing, local fixture wiring and test timeout
+needed for those checks are included. Existing project/runtime helpers remain
+unchanged; the corrected file must stay below 300 lines.
+
+Supporting actual native probes verify the main cleanup transfer, a 41-byte
+ordinary immediate reference, and 12 four-profile ordinary reference/control
+cases. These are not scalar feature GREEN, VICE execution, hardware proof or
+whole-program parity. The ordinary test wrapper adds a normal call in test input;
+its caller/startup costs remain separate from measured routine costs. The three
+ordinary expectations stay 41 bytes/54 cycles, 1 byte/6 cycles and 26 bytes/36
+cycles. No fixture/assertion or scalar production edit occurs before approval.
+The user approves this exact repair on 2026-10-05. Independent specification
+authoring and a fresh RED precede scalar lowering; RV-009/RV-010 fix verification
+is bounded to this exact exception, not another full earlier-phase review.
+
+## AR-P21 — Exact public code-owner lookup correction
+
+The independent author's first RED run fails all 16 cases. Twelve constant cases
+fail the zero-storage assertion on all four profiles: used constants have eight
+intervals, unused declarations ten, and lexical shadowing three. These are genuine
+implementation failures. Four mutable controls pass build and nonempty-storage
+checks but stop at the mistaken owner lookup; their behavior endpoint is not
+qualified. The log is `ar20-scalar-spec-red.log`; the 195-line oracle remains
+unchanged at `1bd90ebe497870f95e349e7b936fe2b6c9fd74b14ea434515d19662da44a7cf8`.
+
+Main verifies the common fixture source ID `src/game.blend`, the retained public
+function identity in `services/evidence-records.ts:37–38`, and code ownership in
+`services/memory-evidence-records.ts:206–223`. The proposed exception changes only
+four lookup arguments, not the public API or any expected compiler behavior.
+No scalar production correction precedes a qualified, mechanics-correct RED.
+
+The user approves this exact exception on 2026-10-05. The previous temporary
+evidence directory is absent on resume; its recorded results remain historical,
+not fresh accessible captures. Fresh logs use `/tmp/blend65-nmi-ar21.0c36Fe`.
+No other `/tmp` entry is removed, and no lost probe result is fabricated.
+
+Process disclosure: after freezing, the author inspects agent statuses and the
+status response unexpectedly includes a completed challenger's implementation
+discussion. No forbidden file is opened, and all authored expectations predate
+that exposure. The original hash is preserved; no new blind-baseline qualification
+is claimed. The first failed run is retained, not relabeled as a passing control.
 
 The same instruction explicitly covers the effort-confirmation handoffs for the
 named remaining RD-05 batch. Recommendations still precede distinct tasks;
 another effort pause is not required unless the scope or risk materially changes.
 Verified local commits remain automatic. This continuation is not push authority.
+
+## AR-P19 — Small IRQ applicability fix and exact fixture corrections
+
+Independent bounded review of `da051a2b` → `9a6e3f38` finds three MAJOR
+issues, recorded as RV-006–RV-008 in the phase evidence. The NMI direct,
+transitive, finite-target and inactive-root native witnesses pass. However,
+`storage/interference.ts:120` unconditionally consumes context analysis whose
+IRQ-only producer returns an empty reached map (`interrupt-context-proof.ts:66–72`).
+The new transitive walk therefore drops G from H → G. Main's public IRQ-only
+build confirms `main.saved` and `G.inside` both at `$0b4f`; native execution and
+hardware endpoints are not claimed. Existing inventory/lowering correctly
+condition reached projection on an actual NMI route (`inventory.ts:335–336`,
+`lower.ts:200–201`). Reuse that applicability condition, not map nonemptiness.
+
+The new lifetime test's `byteHome` at line 172 and the earlier call-ABI test's
+`memoryHomes` at lines 80–95 assume `symbol.name` is a lexical variable name.
+The public contract promises text, not that spelling. Successful public builds
+publish declaration identities through names and source origins. Match the
+expected declaration by its public source span, scope and kind; fail clearly
+on absent or ambiguous identity. Do not change the public debug API to fit
+an accidental fixture assumption.
+
+The lifetime test's line 244 also requires exactly one code entry. Its finite
+target fixture legitimately retains a canonical address entry and an observed
+depth entry using the same canonical private home. Replace only this code-entry
+assumption and related entry-index call lookup with checks of actual selected
+targets and their required shared homes. Every selected finite alternative must
+remain covered. Preserve expected widths, caller/transitive live separation,
+canonical private-home reuse, native call/argument accesses and source order.
+Allowing arbitrary emitted targets is not an independent oracle.
+
+**Best option — exact proposed modification set:**
+
+| Path                                                       | Permitted correction, only after approval                                                                                                                                                                       |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/compiler/src/storage/interference.ts`            | Consume executed-block proof only at its existing NMI applicability boundary; otherwise traverse the full callee body with the same selected descriptors.                                                       |
+| New `test/rd05/irq-call-lifetimes.spec.test.ts`            | One independently authored IRQ-only main → H → G caller-live regression across the four existing profiles; use existing public project/artifact fixtures, below 300 lines, RED before the production fix.       |
+| `test/rd05/nmi-route-retained-call-lifetimes.spec.test.ts` | Correct declaration lookup and code-entry/home mechanics described above, including necessary helper arguments and call-target lookups. Keep all source fixtures and behavior/storage/native-access assertions. |
+| `test/rd05/nmi-route-retained-call-abi.spec.test.ts`       | Correct only declaration lookup and necessary helper arguments. Keep all marshalling, hidden-return-pointer, caller-owned destination and native instruction assertions.                                        |
+| Active plan and feature roadmap                            | Record exact ruling, old/new oracle hashes, RED/GREEN, bounded review and task disposition.                                                                                                                     |
+
+No other frozen test, specification, expert authority, API, code-selection rule,
+runtime, generalized helper or analysis model is included. The current hashes
+remain `4f1759ab` and `b8fd9750` until an exact exception is approved. The
+independent author is not a reviewer of its own regression. Required base/SFA,
+semantics, platform, emitted-output and host-performance lenses remain; one
+fix-only rereview cycle does not reduce reviewer count or omit pending lenses.
+
+## AR-P20 — Restore the existing zero-storage scalar-constant contract
+
+The genuine-source final-inventory probe exposes a one-byte NMI-local home for
+`const V: byte = 7`. Its selected wrapper emits `LDA #7 / STA private-V`, then
+another `LDA #7 / STA $0411`. Name uses already become immediates in
+`semantic/lower-expressions.ts:172–180`; `semantic/cfg.ts:178–204` nevertheless
+initializes every typed variable statement with a runtime store. Frozen
+Chapter 03 §4.2 requires unplaced scalar/enum constants to allocate no storage,
+and §3 requires compile-time-only initializers. The existing frozen NMI
+constant/helper source and native no-extra-home expectations remain unchanged.
+
+This is not an undetermined language rule or new product capability. The user's
+PRIME workflow rule 4 directs compiler/plan implementation decisions to proceed
+without a prompt. It takes precedence over CodeOps' default technical-decision
+pause. No user choice or direct approval of this correction is fabricated;
+source-contract authority is the already approved frozen specification.
+
+One fresh native design challenger independently recommends correction at CFG
+declaration emission using the existing binding table. Its facts are relayed,
+not independently inspected; it has no permitted filesystem reader and makes
+no qualification verdict. A later store-elimination/inventory reconciliation
+would touch more stages; a second declaration classification would duplicate
+existing truth. Existing binding identity preserves shadowing. Required map
+plumbing must fail closed on missing facts; no silent empty-map fallback.
+
+| Exact owner                                         | Bounded change                                                                                                                                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| New `test/rd05/local-scalar-constants.spec.test.ts` | Independent ordinary-program four-profile no-home/native-byte RED, all scalar/enum categories and a mutable-initialization control; reuse existing public fixtures, below 300 lines. |
+| `packages/compiler/src/semantic/cfg.ts`             | Use the existing read-only semantic binding map to omit only unplaced, non-loadable scalar/enum constant declaration initialization, before lowering its initializer.                |
+| `packages/compiler/src/semantic/lower.ts`           | Supply the same authoritative map to both existing builder constructions; no copy, evaluator or new stage.                                                                           |
+| `packages/compiler/src/semantic/cfg.impl.test.ts`   | Give the sole direct synthetic builder construction an explicit empty map; no expectation changes.                                                                                   |
+| Active plan/feature roadmap/evidence                | Two prerequisites before resuming final-inventory verification; record authority, RED/GREEN, exact scope and evidence limits.                                                        |
+
+Materialized/placed scalars, aggregates, loadable constants and mutable bindings
+retain their existing paths. No source restriction, admission exemption, public
+API, certificate field, runtime or general optimization pass is introduced.
+No existing specification test changes. Independent review and full public NMI
+qualification remain mandatory. The source correction is not implemented until
+the new independent oracle exists and its before-fix RED is captured.
+
+Confidence: High in the bounded direction, conditional on preserving exact
+selected-target/home expectations. A governing lexical-name/single-entry
+contract or a mixed-route counterexample would change it. Hardening: public
+artifact counterexamples plus a fresh native independent design challenger;
+the challenger converges on the narrow correction and warns against circular
+target checks and weakening canonical reuse. It has no permitted filesystem
+reader, so its code facts are relayed, not independently inspected; main reads
+the governing routing/quality policy separately. The strongest objection is
+changing production and test mechanics together; independent IRQ RED and
+unchanged behavior/ABI/storage expectations address that risk. Proven code
+sharing can be a separate optimization, not a reason to collapse link variants
+here. No broader support surface is justified. Until approval the safe state
+is blocked. No further production/oracle edit, RED commit, push or admission
+promotion follows reviewed tree `9a6e3f38`.
+
+The user replies “I approve” on 2026-10-04 to the sole exact AR-P19
+recommendation. Its four named production/test paths and plan/roadmap evidence
+are approved, including only the described fixture mechanics in the two frozen
+oracles. All preserved source/behavior/native/storage assertions stay binding.
+Baseline `6104639332aeadbe86cdfecc25da0c00e85bd7ba` retains the reviewed
+candidate and validated stop record. One separately named independent IRQ
+spec/RED task precedes the same-owner applicability fix, bringing the total
+to 61 by test granularity only; current verified count remains 44. The named
+effort waiver continues, with no push authority or public-admission promotion.
+
+## AR-P18 — Selected callee reuse must preserve caller lifetimes
+
+Fresh SFA review of correction tree
+`bb11b0e6dc09b6c41e3e10ee73e8a9e91a9e0fe3` finds a necessary downstream
+allocation defect. `machine/interrupt-specialize.ts:93` correctly selects an
+observed canonical callee for a compatible retained caller, but
+`storage/interference.ts:150–153` adds live-through-call conflicts only when
+their activation roots match. Different roots do not prove different lifetimes.
+
+Main confirms the final artifact counterexample: raw Q saves `peek($c020)`,
+calls observed balanced H(9), then writes the saved byte to `$c022`. H also
+keeps `inside = peek($c024)` live alongside its parameter. The final PAL/6581
+certificate overlays Q.saved and H.inside at `$0bbd`, with H.x at `$0bbe`.
+Native instructions write Q.saved, call H, overwrite that address in H, then
+read the overwritten byte in Q. This fails one ordinary call without requiring
+external preemption. `ar17-live-local-witness.log` records the failure after
+native ACME; it stops at the first profile, not four-profile failure or runtime
+proof. The narrower parameter-only control passes all four profiles because
+consumed caller argument staging can legitimately be reused.
+
+**Best option:** extend the bounded correction to the existing call-interference
+owner, following the same selected callee descriptor for live-through-call
+conflicts, including transitive calls and finite indirect alternatives. Share
+the existing pure descriptor selector with its storage consumer rather than
+copying selection rules or conservatively separating every same-domain variant.
+Each transitive call must resolve from its selected caller context using the
+existing call-site facts, not from the original request root. Reclose storage.
+No new evaluator, graph registry, pass, runtime, API, source restriction or
+blanket frame separation is proposed.
+
+The exact proposed implementation set is
+`packages/compiler/src/storage/interference.ts`, plus a mechanical extraction
+of the existing selector between
+`packages/compiler/src/machine/interrupt-specialize.ts` and
+`packages/compiler/src/semantic/interrupt-context-facts.ts` for direct reuse.
+One new independent
+`test/rd05/nmi-route-retained-call-lifetimes.spec.test.ts` freezes focused
+caller-live/direct/transitive/finite-target behavior and allocation expectations
+before correction; it remains below 300 lines. No old oracle edit is requested.
+The existing return-path and canonical-thunk controls must remain intact.
+If the direct consumer instead needs a new fact model or support surface, stop
+and reassess rather than implementing that machinery under this proposal.
+
+The viable conservative alternative adds conflicts against all reachable
+same-domain callee instances across roots. It prevents corruption but may
+increase static bytes for variants the actual call never enters. It is not the
+recommended final allocation model. The narrower canonical-main exception
+duplicates selection once transitive calls are made sound, so it is not smaller.
+
+Confidence: High in the reproduced defect and direction; implementation and
+final costs remain unverified. Hardening: independent SFA finding, main-owned
+positive/negative native witnesses and one fresh native design challenger.
+Challenger: converged. The strongest risk is selecting from guessed context or
+duplicating rules; reuse the existing selector and propagate the selected
+context. Substantial new analysis being necessary would change the recommendation.
+The selected byte-home model needs a distinct live home in the witness; no
+runtime instruction or dynamic storage mechanism is inherently required. Exact
+final RAM/ZP/code/cycle changes must be measured after correction, not assumed.
+
+The user replies “I approve” on 2026-10-04 to this sole pending recommendation.
+This authorizes exactly the owner set above, not a new fact model or oracle edit.
+Baseline tree `da051a2bc2fce5c7b9f4aeef22316a41034bfb3f` preserves the reviewed
+correction and stop record. Three small prerequisites precede the existing
+wrapper/retention verification unit: independent regressions/RED, mechanical
+selector sharing, then selected-call interference. Progress becomes 43/60 by
+subdivision only; 13 later tasks remain not started. The existing effort waiver
+applies. Public admission stays guarded; no RED commit or push is made.
+RD-05 and DEF-7 remain open.
+
+## AR-P17 — Retained calls must select one coherent ABI
+
+Independent implementation review compares baseline tree
+`85c7b561ecb7b1bce9471d780343fd780088ffff` with candidate
+`d9d7a76a6ac03f63631bc325fecfa5bc9f1e857f`. SFA and semantics reviewers
+identify three distinct MAJOR defects; the duplicated argument-storage finding
+is counted once. Main confirms each using actual source, inventory, allocation,
+lowering and storage consumers, without fabricated execution/capture facts or
+removing the public guard. Each probe stops on its first PAL/6581 failure;
+these are not four-profile failure claims.
+
+| Finding                  | Grounded failure                                                                                                                                                                                                                                                          | Smallest proposed correction                                                                                                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RV-002 (SF-003 / SM-001) | `machine/interrupt-specialize.ts:195` rewrites storage with the caller context while its JSR chooses a reusable observed callee context. A raw Q calling balanced H(byte) fails final storage binding; a separately supplied wrong home could silently lose the argument. | Use the selected callee ABI for its parameter/hidden-return homes and corresponding memory effects. Keep caller-owned staging in the caller context. No additional clone or source restriction.                                                         |
+| RV-003 (SF-004)          | `semantic/interrupt-context-walk.ts:121` and `machine/lower.ts:258` retain the complete suffix after a call proved never to return. An unreachable install/restore then fails with “Interrupt restore has no active static link”.                                         | Reuse existing return summaries to omit only proved nonexecuting suffixes/successors consistently in retained demands and lowering. Returning, mixed and unknown target alternatives remain conservative; independent raw dependencies remain retained. |
+| RV-004 (SM-002)          | `machine/lower-indirect.ts:71` tests actual execution variants only. A retained function-pointer H/K call can therefore JMP through a canonical source address even though that call requires a different retained installer-word variant.                                | Check the existing emission ABI catalogue/selected target before using the source-address thunk. Use the existing finite-target dispatch when the chosen variant differs. No new runtime selector.                                                      |
+
+**Best option:** approve those three bounded necessary corrections and fresh
+independent behavior/byte regressions, with RED recorded before implementation.
+The exact owner set is the existing `machine/interrupt-specialize.ts`,
+`machine/lower-indirect.ts`, `machine/lower.ts`, `storage/inventory.ts` and
+`semantic/interrupt-context-walk.ts` / `interrupt-context-facts.ts`, using
+existing ownership return summaries. Touch only consumers needed to make code,
+data and executable-path selection agree. Keep the AR-P16 actual-proof versus
+noncertifying-retention distinction and every frozen oracle/authority unchanged.
+Re-review the correction before clearing this unit; later route/storage/output/
+runtime tasks remain mandatory. No green commit or push at this RED checkpoint.
+
+Confidence: High in the reproduced defects; Medium in the proposed corrections
+until independent regressions and fix review pass. Hardening: two independent
+domain reviews, duplicate merging, real producer/consumer witnesses and explicit
+counter-checks. A superficially easy fallback (always add a new home/clone,
+always disable indirect thunks, or invent depth zero for a dead operation) would
+hide the mismatch or harm output. The correction must instead reuse the selected
+ABI and return facts. This is necessary completion of the approved contract,
+not optional functionality or an approved complexity escalation.
+
+Review/probe details and the separate report-only test-size finding are in
+[execution evidence](09-phase-review.md#ar-p16-implementation-review--ar-p17-stop-2026-10-04-1336).
+The user explicitly replies “I approve” on 2026-10-04 to the sole bounded
+AR-P17 recommendation. This authorizes the three corrections and fresh independent
+regressions, not a change to any frozen oracle or authority. The former wrapper
+unit is divided into four small sequential units: new independent cases/RED,
+coherent direct/indirect call consumers, retained no-return projection, then
+wrapper/retention verification and fix-only review. This is task granularity,
+not new product scope or support machinery. The remaining named RD-05 effort
+waiver applies to this corrective subdivision. Progress is 40/57 before execution;
+no implementation is promoted by approval.
+
+## AR-P16 — Retained raw code containing a typed installer
+
+The corrected transitive raw dependency walk exposes one additional binding
+boundary. Main installs empty NMI B, masks IRQ, installs Q and independently
+materializes `word(&Q)`, then restores IRQ and B. Q is never observably entered;
+its retained raw body calls ordinary H, whose body temporarily installs empty
+NMI C. Frozen Chapter 06 §8 requires retaining Q/H source code without certifying
+the external caller. The actual worklist correctly creates no H/C invocation or
+capture. Its real mainline B capture cannot stand in for H's unobserved installer.
+
+The real producer/consumer witness fails at the machine capture-identity check
+(`raw-unobserved-install-probe.log`). This is behind the existing public E10245
+guard; no unsafe program has been admitted. Keeping H's _actually observed_
+context fixes the separately reviewed RV-002 case, but cannot solve this one.
+
+The existing generated-route obligations still require coherent capture,
+publication/removal, private-storage closure and live-link safety. A blanket new
+source prohibition, imaginary arrival or arbitrary raw0/stock capture is not a
+valid resolution. Assess the smallest physical entry/link materialization
+contract separately from actual capture proof, in the existing facts, inventory
+and lowering owners. No second registry, general evaluator or runtime manager.
+Do not implement or infer acceptance until the contract/authority boundary is
+resolved. Independent challenger assessment supports the bounded conditional
+contract below; the entry unit pauses
+under the repository's runtime-ambiguity rule. No new support surface or source
+restriction is authorized by earlier generic continuation.
+
+**Best option:** authorize qualification of a conditional materialization
+contract through the current facts, inventory and lowering owners. A retained
+installer needs its exact source/site, selected ABI, physical predecessor word
+and local install/restore ownership effect. Its incoming predecessor remains
+explicitly unknown, not a stock/null capture. Actual contexts, reached points
+and captures remain execution evidence only. Prove the common word for
+install/restore/chain, complete selected NMI ABI and placement, coherent vector
+publication, immutable live-link behavior and complete pre-emission storage
+closure. State every relied-on incoming condition and the uncertified external
+boundary; do not weaken generated-route safety or introduce a new user restriction.
+Freeze independent behavior/byte cases after that proof and before correction.
+Implement only if this bounded proof succeeds; otherwise return the exact missing
+obligation, retaining the existing guard. No parallel registry or general evaluator.
+
+Confidence: Medium — the producer/consumer coupling is demonstrated; the
+conditional live-link/publication proof remains to be established. Hardening:
+independent semantics/SFA review and a separate design challenger agree that
+materialization is not an arrival or capture. The strongest counter-argument is
+that an unknown raw caller may violate the required incoming vector/link state.
+Simply removing the binding checks is therefore not a fix. This is a bounded
+contract/proof approval, not an external safety promise or a frozen-authority waiver.
+
+### Approved qualification result — 2026-10-04 12:40
+
+The user approved the proof-first direction. Independent SFA and semantics
+reviewers qualify a **noncertifying retention contract**, not an immutable-link
+certificate for an external caller. Frozen §6.8 permits retaining Q, ordinary H
+and H's selected C entry with complete ABI/body/storage demands. H's exact
+installer/restore site owns a distinct two-byte physical word L. Capture, restore
+and C's chain use that same identity. L enters existing inventory and closure
+before emission, with NMOS indirect-JMP page safety. C needs its full NMINV
+wrapper, not a reference-only CINV shell. Actual observed H contexts still win.
+
+The incoming predecessor remains symbolic/unknown. It is never `null` (stock),
+B's capture, an invented invocation, or an entry in actual contexts, reached
+points or `LinkCapture`. The exact fixture's valid hardware Q entry sets I;
+Q/H contain no CLI and B/C do not call H. Those facts support a local balanced
+install/restore theorem under the selected vector-ownership contract. They do
+not prove arbitrary external ingress or a foreign predecessor's behavior.
+Foreign re-entry can overwrite L with C's own address; incoming low != $47 can
+break matching-low publication. These remain explicit uncertified raw-boundary
+counterexamples, never a new serial-caller rule or an excuse for unsafe proved
+generated execution.
+
+Assessment lineage: expert 2.0.3/content `22cc5f00`, frozen Chapter 06 §§7.5–8,
+Chapter 15 generated interrupt contracts, SFA final-storage closure and C64 entry
+ABI; source keys `MOS-PGM-1976`, `MOS-HW-1976`, `MOS-6526-1981`,
+`CBM-C64-KERNAL-03`. Both independent assessments report no findings against
+this precisely separated contract, with status Verified partial. Final physical
+binding/closure, complete bytes/layout/cost and runtime remain Unknown. Freeze
+independent cases and RED before correcting the existing owners. Public
+admission remains guarded until the later generated-route gates pass.
+
+## AR-P15 — Preserve execution paths and selected entry materialization
+
+The guarded wrapper unit exposes two independent MAJOR findings, SM-008/SM-009.
+A real-source masked installation captures a canonical CINV entry but never
+enters its source handler; `lower.ts` then emits no corresponding wrapper label.
+Separately, the immutable nonreturning-path oracle requires successful publication
+after a terminal call, but lowering still emits the unreachable later helper's
+vector operations despite the absence of their proved execution bindings.
+Normal source forms must remain expressible; these are compiler gaps, not reasons
+to forbid masked installs or unreachable source declarations.
+
+The existing proof worklist already knows selected entries and reached
+operation/terminator points. Reusing those facts avoids a second evaluator.
+However, merely inserting a never-entered handler into observable contexts would
+invent arrivals and private-storage demand; merely deleting the machine fallback
+would leave dead caller references. A reference-only selected entry needs an
+explicit ABI/identity/placement policy and independent output expectation before
+materialization. An arbitrary empty function or alias is not an established fix.
+
+**Best option:** authorize a bounded specification-first correction in the
+existing proof, inventory and lowering owners. Retain ordinary entry ABI and
+canonical source identity/placement while omitting only code proved unreachable.
+Record the exact reference-only construction, then freeze independent cases
+before the producer and CFG-consumer fixes. Do not change any existing oracle,
+qualified profile, language rule, runtime API or generalized optimization surface.
+Split the necessary small units before execution; keep positive admission guarded
+through storage/output/runtime qualification and create no RED commit.
+
+Confidence: Medium — the execution-path defect and facts are established, but
+the exact reference-only construction still needs its explicit bounded proof.
+Hardening: independent semantics review rejected fabricated execution contexts
+and unqualified placeholder labels. Strongest counter-argument: careless body
+elimination could lose an observable address/placement obligation or a real
+incoming edge; the independent identity, control-flow and output cases must
+exclude that possibility before activation. No approval is inferred from the
+cleanup request or this diagnostic probe. The current unit remains incomplete.
+
+The user subsequently approved the bounded correction on 2026-10-04 by replying
+“I do” to the sole explicit recommendation. This resolves the correction boundary,
+not its evidence endpoint. Preserve the existing ordinary entry ABI and canonical
+identity/placement; omit only proved-dead source body work and do not create a new
+observable invocation. Retain any independently materialized raw/callable source
+dependency through its existing entry path. Reference-only labels may not be
+arbitrary aliases or fake runtime guards. The exact direct construction and its
+behavior/byte expectations are qualified inside the approved correction before
+activation. Five small units replace the former wrapper unit: independent cases,
+proof payload, CFG projection, storage/lowering consumers and entry materialization.
+No additional framework, public behavior or general optimizer is authorized.
+
+Correction baseline tree: `e6a9ac81891b1a92005bf5d221c79268f976bdd2`.
+This separates the approved fix from the earlier guarded Phase 2 work and supports
+its independent review. The original Phase 2 baseline and all frozen oracle hashes
+remain unchanged; local green checkpoint and no-push rules still apply.
+
+## AR-P14 — Obsolete diagnostic-message expectation
+
+The retained test at `test/rd04/diagnostics-alternate-placement.spec.test.ts:178`
+requires “can overlap or consume hardware stack without a static bound — use a
+bounded interrupt/callback design”. Frozen Chapter 14's E10245 registry instead
+requires “has unbounded private-storage overlap, disallowed unbounded stack use,
+or unproved generated reentrancy”. These assertions cannot both hold for ST-7.
+AR-P11 explicitly preserved the old message, so the additional oracle edit was
+requested directly rather than inferred from general continuation.
+
+The user approved the exact correction: update only that regex to the frozen
+canonical template while applying the already-approved balanced, genuinely
+private-storage-bearing fixture. Keep code, severity, pointer, owning-install
+span, empty related array and no-generation assertions unchanged. No frozen
+language/specification change or wider oracle migration is authorized. The
+canonical message is not weakened to accommodate compiler behavior.
+
+The alternative of source-specific old/new templates violates the single registry;
+broad migration is outside this slice. Confidence: High, grounded in the exact
+registry and assertion. This standard one-assertion correction introduces no
+complexity or new product choice beyond the explicitly granted oracle exception.
+
+## AR-P13 — Runtime oracle endpoint clarification
+
+The independent author stopped before writing because admission contracts also
+name output facts, and ST-13's concrete witness did not specify its existing
+source projection. This is a necessary clarification within the approved cases,
+not permission to add evidence fields or inspect implementation for expectations.
+
+Task 2.1.1 owns public admission, canonical failures, external uncertainty and
+publication preservation. Task 2.1.2 additionally owns ST-8/ST-10/ST-13(a)/ST-15
+output: ordinary helper calls and effects, exact finite costs, predecessor/link
+bytes and preserved volatile writes. It uses the existing actual artifacts,
+not invented link projections. Internal selected-save endpoints stay in 2.3.2.
+
+ST-13(a)'s exact masked-main fixture retains one source PHP while its IRQ is
+eligible. The cooperative IRQ entry is 7 bytes (CPU 3, firmware 3, wrapper P 1),
+and its NMI install/restore transaction retains two PHP/PHA bytes until PLA/PLP.
+The independent bounded peak is 10 = program 1 + system 9. Startup's separate
+one-byte peak and the empty B/C entries' separate three-byte NMI peaks are not
+added. This preserves the existing transaction ABI, rather than guessing a
+status lifetime or a new save-elision contract.
+
+ST-15's output endpoint counts/orders source-correlated actual store
+instructions, allowing legal indirect stores in unoptimized output. The existing
+native VICE owner in 2.3.3 proves actual targets/count/order: one write of 7 to
+`$0400` for the constant-copy fixture, and one write of 9 to `$0401` for the
+known-global-plus-one fixture; the combined straight-line fixture preserves
+that order. Static indirect operands alone do not prove their effective target.
+No early direct-store optimization, symbolic executor or new harness is needed.
+
+For ST-13(b), E10245's primary span covers the changed-capture `setIRQ` call,
+direct or in its helper. Related locations retain the main initial IRQ install,
+the owning NMI install and the NMI-to-helper edge when present. The complete
+ordered recurrence path must make the A-to-B capture witness understandable,
+as frozen Chapter 14 §2 requires. Tests need not freeze internal identity strings,
+separator wording or a new serialization. ST-7 retains its specified owning
+`setNMI` primary location.
+The changed-capture call appears twice in the ordered related path, once for
+the first activation and once for its recurrence. Intermediate locations remain
+allowed; this does not prescribe an exact array length or identity wording.
+
+ST-14 public cases include a word beginning at `$0317` whose second byte touches
+NMINV and a fixed-width unsigned computation that wraps into `$0318`. A literal
+word store at `$ffff` also touches the processor port at `$0000`; this plan does
+not invent its separate banking outcome. Task 2.3.1 covers actual second-byte
+address wrap in the existing internal write-effect proof. No source restriction
+or blanket computed-address ban follows from this split.
+
+Output endpoint clarification: the stable debug entry label names the published
+low-$47 entry; its range indexes cover the complete wrapper and any entry JMP.
+Range function indexes and memory code owners correlate with the existing debug
+function records. Actual chain-JMP operands identify the proved link homes;
+the private-free fixtures permit no other unexplained function storage.
+
+Each selected NMI variant has one existing-schema stack record with ID
+`nmi-entry:<entry-variant-id>` and route prefix
+`["per-entry:generated-nmi", "<entry-variant-id>"]`. Capacity is 236 and peak is
+the CPU-inclusive selected entry/body/helper cost; headroom is capacity minus
+peak. These are per-entry components, never aggregate external guarantees.
+Keep exact main/IRQ rows separately; numeric cost is the maximum scoped finite
+row peak. Task 2.2.5 includes the existing `services/evidence.ts` consumer because
+it alone publishes these records. This completes the already-required reporting
+endpoint, not a new reporter, public field or support surface.
+
+ST-17's independent collision uses an empty complete handler fixed at `$2047`
+and reachable three-byte constant data fixed at the same address. E10273 and no
+partial publication are required; neither an entry JMP nor silent relocation can
+cure two complete fixed objects claiming the same bytes. Default empty placement
+separately requires a direct three-byte low-$47 wrapper; ST-16 owns successful
+fixed-$2000/align-256 entry adaptation. No test accepts a menu of outcomes.
 
 ## AR-P10 — Initial NMINV predecessor contract
 
@@ -184,6 +1085,8 @@ all current negative mutations/IRQ/stack probes. `test/rd04/diagnostics-alternat
 retains its E10245 code, shape, message and installation span, but its source becomes
 balanced and retains five private byte samples across later stores, instead of an
 empty handler with an unmatched main install. Every other expectation and fixture is unchanged.
+AR-P14 separately approves updating its one obsolete E10245 message regex to
+the current frozen Chapter 14 template; every other diagnostic assertion stays.
 New specification cases must independently prove the qualified positive route and
 reject unproved private storage, link lifetime (including B/C) or vector transitions.
 No acceptance test or compiler file has changed. AR-P11 is approved; the bounded
@@ -601,6 +1504,162 @@ distinguishes consuming interrupt-data reads from write-only mask state and
 timer counters from write-only reload latches. Both primary sources were
 inspected during this planning task; neither supplies a universal RESTORE
 re-entry bound or an arbitrary prior-device snapshot.
+
+## AR-P32 — initializer execution-domain correction (runtime)
+
+The whole-phase SFA audit finds an actual initializer/IRQ storage collision.
+Initializer call staging and saved word-low bytes omit the known mainline domain;
+machine-created initializer pointers and helper requests omit the same metadata.
+The existing asynchronous interference rule therefore cannot separate these
+requests from concurrently live IRQ storage. The retained dynamic-word witness
+closes both the initializer low byte and an IRQ retained value at `$0BA4`.
+
+**Best option:** carry the existing main execution descriptor through initializer
+inventory and normalize initializer-discovered storage/helper requests exactly as
+ordinary function requests are normalized. This is a necessary correction of
+the frozen storage contract, decided under PRIME workflow rule 4, not a new
+product or complexity choice. The modification set is `storage/inventory.ts`,
+`machine/lower.ts`, two bounded independent existing-tier initializer specification
+files, and this plan's evidence/progress documents. Independent RED precedes the
+production correction. All existing oracles remain unchanged.
+
+No startup masking, source restriction, storage model, runtime, dependency or
+harness is introduced. Directed allocation/behavior checks, full verification,
+and one fix-only independent SFA/correctness clearance are required. The phase
+remains unverified and cannot be committed or pushed before GREEN.
+
+Fix-only completion discovers the same missing-domain seam for initializer-only
+ordinary callees without any NMI hook (SF-002). Preserve the union of existing
+source-domain facts and the already computed initializer-inclusive execution
+contexts when building every callee request. A focused blind regression must
+retain the actual staged global load across a nested call. This is completion
+of AR-P32, not new analysis, a source restriction or a new allocation model.
+
+The same final ABI check exposes SF-003: a nested initializer call's returned
+register value is lost while an earlier argument is loaded. The existing machine
+lifetime owner must consult the already retained initializer lifetimes, not just
+ordinary function lifetimes. Four blind actual-value VICE cases provide RED
+(17 instead of 7), then unchanged GREEN. Add only that existing-owner lookup and
+the focused native specification file; discovered storage still closes through
+main-domain SFA. No new frame, runtime, masking or source restriction. The final
+retention endpoint has its own measured cost, not the earlier domain-only cost.
+
+## AR-P33 — selected-profile route identity (runtime)
+
+The complete checkpoint retry passes every package suite but fails the retained
+platform-ownership oracle: `interrupt-routes.ts` repeats a C64 vector address in
+shared semantic code. The route is already identified by the selected sink's
+qualified capability, variant and domain. Remove only the redundant address
+literal; the selected-profile owner remains the authority for vector bytes.
+This necessary boundary correction is decided under PRIME workflow rule 4.
+The existing portability oracle supplies RED and is not changed. No new API,
+profile fact, route or source acceptance rule is added. Directed route and
+portability tests precede the required complete GREEN checkpoint.
+
+## AR-P34 — direct owned-place write proof (runtime)
+
+The independent whole-phase semantics review finds MAJOR SM-001: both local
+and global `poke(word(&x), 1)` are rejected as raw vector writes during balanced
+generated NMI ownership. Their direct owned-place origin is already present in
+semantic operations, and the selected storage windows exclude the NMI vector.
+The scoped publication contract already requires typed-place disjointness.
+
+**Best option:** extend the existing focused address-fact owner to retain direct
+owned-place addresses through bit-preserving word conversions, ordinary copies
+and agreeing joins. Use existing selected storage windows or exact fixed global
+placement to prove the complete byte/word write disjoint. Both current ownership
+consumers use this same proof. Exact integer arithmetic and wrapping stay intact;
+opaque/borrowed addresses, narrowing and unproved arithmetic stay unknown.
+Placed `$0317` word writes must still hit the selected vector's low byte.
+
+This necessary correction is decided under PRIME workflow rule 4. The independent
+semantics reviewer confirms the remedy reuses existing `SemanticPlace` and
+placement facts and needs no new IR, schema, alias framework or range-analysis
+subsystem. The modification set is `semantic/interrupt-address-facts.ts`,
+`interrupt-ownership.ts`, `interrupt-context-proof.ts`, one new independent
+existing-tier specification file, and this plan's evidence documents. No public
+API, profile, runtime, source workaround, dependency or harness is introduced.
+Blind RED must precede production; all existing oracles and vector/wrap negatives
+remain unchanged. Directed/full verification and one fix-only semantics and
+correctness clearance remain required before the GREEN commit/push checkpoint.
+
+Fix-only completion also witnesses false E10278 for an agreeing conditional
+expression, not just agreeing mutable-place assignments. Populate an existing
+merge result from each predecessor's selected value before the existing join;
+only agreement across reachable edges survives. Eight blind positive cases
+provide RED and four mixed-owned/vector controls already pass. This completes
+AR-P34's agreeing-join contract without a new representation or analysis pass.
+
+## AR-P35 — selected IRQ storage debug projection (runtime)
+
+The independent AR-P32 oracle reaches actual available initializer storage but
+finds no source-correlated IRQ local homes. Public memory intervals prove those
+homes are emitted. `services/evidence-records.ts` compares a selected entry's
+activation identity with a source binding identity, dropping its debug storage
+records. The oracle is correct and remains frozen unchanged at `0458459c`.
+
+**Best option:** match the existing captured selected-entry identity to its
+canonical machine-entry label in that same debug producer. Keep separate source
+and entry identities; do not broaden a private home to every handler variant.
+This necessary metadata correction is decided under PRIME workflow rule 4 and
+adds no public field, generated instruction, runtime or schema. The modification
+set adds only `services/evidence-records.ts` to the existing correction unit.
+The eight current RED cases supply the missing-projection regression. After
+this correction, capture genuine allocator RED before AR-P32's storage repair.
+Full verification and the single combined fix-only review remain required.
+
+### Initializer oracle boundary
+
+The first eight cases prove declared IRQ-local projection and helper-argument
+separation. After AR-P35 they pass unchanged, before the domain correction; their
+original hash remains frozen. A separate four-profile compiler-temporary case
+must witness the saved IRQ sample as well as the initializer low byte and fail
+their actual physical separation. Do not edit the passing cases to force RED or
+claim declared-local-only coverage proves all compiler-created storage safety.
+
+## AR-P36 — observer-scoped proof equality (runtime)
+
+Independent host review finds MAJOR PE-001: sequential distinct IRQ scopes leave
+inactive NMI captures in every equality key. Arrival/absence histories multiply
+despite identical live routes. Actual in-memory closure probes complete K=4/6/8
+with 14,493 / 62,789 / 274,525 map writes and 221 / 917 / 3,701 largest maps.
+These are instrumented host measurements, not machine/runtime or deadline proof.
+
+**Best option:** let the existing state-key function accept the existing reader
+closure as a membership filter. Apply it at invocation, exit and CFG-point keys.
+Retain the actual word values for observed slots, all other key fields, complete
+operational states and the separate physical binding/capture catalogue. Close
+protected captures' transitive tails in the existing observer function. Never
+discard a word merely because its logical owner popped.
+
+This necessary existing-owner correction is decided under PRIME workflow rule 4.
+The modification set is `semantic/interrupt-context-facts.ts`,
+`interrupt-context-proof.ts`, the existing implementation-tier lifetime file,
+one new blind public sequential-scope specification file, and plan evidence.
+No pass, runtime, schema, source limit, harness or dependency is introduced.
+Independent behavior controls and before/after host-work measurements precede
+full verification and one fix-only SFA/host-performance clearance.
+
+Confidence: High conditional on complete reader closure. Hardening: key-only
+projection avoids changing operational word facts. Challenger: converged,
+packet-grounded only because its read-only role had no permitted filesystem
+tool; it is not counted as independent code review. Ordinary install overwrites
+before publishing a new reader; existing vectors, owners, active entries and
+suspended readers retain every future typed read. Actual-source SFA review must
+verify that non-revival invariant and all three key consumers.
+
+PE-002/PE-003 are MINOR host-cost observations, not additional executable scope.
+Record their existing-owner optimization directions in bounded closeout; no
+unapproved call index or general SSA lifetime pass is added here.
+
+### Necessary corrections — final disposition
+
+AR-P32–AR-P36 now pass the complete GREEN checkpoint and their independent
+bounded review gates. All seven corrective oracle hashes remain frozen; earlier
+exact exceptions retain independent integrity clearance. No material ambiguity
+remains in this bounded slice. The [closeout](08-closeout.md) records the
+unclosed RD-05 obligations and measured RD-08 output debts separately; their
+existence is not an expert-floor waiver or a claim this plan implements all RD-05.
 
 ## Authority and scope guard
 

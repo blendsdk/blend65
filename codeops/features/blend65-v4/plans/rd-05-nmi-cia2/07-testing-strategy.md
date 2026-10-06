@@ -1,13 +1,31 @@
 # Testing strategy: cooperative NMI qualification
 
+## Existing scalar-constant prerequisite (AR-P20)
+
+The independent ordinary-program `local-scalar-constants.spec.test.ts` must prove
+the already frozen Chapter 03 §4.2 zero-storage contract before the CFG producer
+correction. Cover byte, sbyte, word, sword, boolean and enum constants on the four existing profiles,
+native constant values/output, lexical identity and mutable-initialization
+preservation. Reuse the public fixture; no NMI admission bypass, new harness or
+old oracle change. Native byte/cost expectations derive from useful immediate
+loads, absolute stores and ordinary return semantics. Public NMI constant/helper
+expectations remain unchanged and must become GREEN at the later complete gate.
+
+AR-P21 approves only four owner-ID lookup arguments. AR-P22 separately requests
+ordinary measured helpers called by `main` and focused mutable value observations
+with the existing sequential VICE fixture. The user approves that exact exception
+on 2026-10-05; independent corrected RED precedes lowering. Every original measured
+statement, native/cost and storage/order assertion stays binding. Value checks
+must not mandate a particular home address or store/reload form.
+
 > **Parent**: [Index](00-index.md)
 > **Authority**: AR-P3/AR-P11/AR-P12
 
 ## Independent oracles
 
 Write new specification tests from these cases and frozen/public contracts only,
-without reading implementation. AR-P11 is the sole exception for the named old
-fixtures. Behavior and assembly/cost expectations are separate. Differential
+without reading implementation. AR-P11/AR-P14 are the exact exceptions for the
+named old fixtures and one message assertion. Behavior and assembly/cost expectations are separate. Differential
 execution is supporting evidence, never the sole oracle. Real compiler services,
 ACME bytes and native VICE are used; no mocks or new runtime/test framework.
 
@@ -43,6 +61,111 @@ All profile cases use the four existing cooperative PAL/NTSC × 6581/8580 profil
 | ST-23 | Retained expressiveness ledger with split balanced chained/exclusive probes                                                                                                            | Author probes first and keep chained JSON deferred until ST-19–ST-22 qualify. Then retire only chained and verify the ledger GREEN; exclusive remains deferred with RD-05 reason/owner. Preserve all unrelated rows/negatives. | AR-P11; deferral-expiry rule                                           |
 | ST-24 | Failed route/layout proof after an earlier valid generation, plus invalid handler provenance and source calls to a handler                                                             | No partial/new generation is published; existing generation and all callback/provenance guard behavior remain unchanged.                                                                                                       | R5.15–R5.17; existing service publication contract; AR-P3              |
 
+### ST-25 — Masked selected entry and independent source identity
+
+Within a balanced generated NMI lifetime, save source P, mask IRQ with SEI/NOP,
+install/restore a chained IRQ handler, then restore P and NMI. IRQ never becomes
+eligible while that selected handler is installed. Cover both an empty handler
+and a handler calling an ordinary helper whose body performs a balanced NMI
+install/restore and a constant screen write. Both public check and real build
+succeed on all four profiles; the installed canonical IRQ label resolves in the
+actual artifact. No unreachable helper call, screen write or handler-local NMI
+transaction is emitted as executable work, and no corresponding private homes
+are invented. Source identity and placement remain owned by the real handler.
+
+Also keep a separately materialized raw address of a simple constant-writing IRQ
+handler live while its selected CINV variant stays masked. The real raw ABI/body
+must not be replaced by the inactive selected variant or deleted. Use actual
+assembled bytes and existing debug/function source correlation; do not infer raw
+external ABI certification. No raw vector is installed and no raw takeover is
+added. Source dependency follows Ch 06 §§7.4–7.5/§8 and approved AR-P15.
+
+The reference-only label's exact normal-ABI construction is recorded and qualified
+before a byte expectation is authored. Existing observed IRQ wrappers and all
+immutable oracles retain their own expectations. Native execution later verifies
+that genuine IRQ eligibility still invokes a real body, never a reference-only
+entry, and that the masked fixture's source body does not execute.
+
+### ST-26 — Reached operation and successor projection
+
+Retain the existing direct and all-nonreturning finite-target success fixtures in
+`nmi-route-nonreturning-paths.spec.test.ts`. Publication must succeed, not merely
+check. Add an ordinary conditional returning path control where a terminal arm
+cannot erase the other arm's reachable side effects or ownership transitions.
+Inspect actual public debug/byte evidence: unreachable later calls/writes have no
+executable instruction range; a reachable returning alternative retains its
+source effects, count and order. Keep the existing opaque reachable-writer
+negatives and no-generation guarantees. Tests derive from Ch 06 §4.3/§7.8,
+ordinary conditional execution and approved AR-P15, not internal map spelling.
+
+### AR-P17 approved regression endpoints
+
+Before correcting the three retained consumer defects, independent new cases
+must cover a raw-only Q calling an actually observed balanced H with a byte
+parameter, plus an aggregate-return companion whose hidden destination follows
+the selected callee ABI. Derive behavior from ordinary call/return semantics;
+inspect actual output code and source-owned data homes, not internal identity
+spelling. Caller staging remains caller-owned.
+
+Also cover retained Q choosing H/K through an ordinary finite-target function
+value, where H/K install C and Q's later helper restores it. The emitted call
+must select the same variant/word as the continuation. Retain a compatible
+canonical no-variant control so the correction cannot become a blanket thunk ban.
+
+A retained helper which calls a proved nonreturning function before an install/
+restore must preserve its real preceding code and independent raw addresses but
+emit no executable suffix or successor. Returning, mixed-target and unknown
+alternatives must retain reachable work. These are existing call/path/ownership
+contracts, not a new source rule or evaluator. Use the current four profiles and
+public artifacts; freeze fresh behavior/byte oracles and record RED first.
+The user approves this bounded ruling on 2026-10-04. New files are
+`nmi-route-retained-call-abi.spec.test.ts`,
+`nmi-route-retained-indirect.spec.test.ts` and
+`nmi-route-retained-nonreturning.spec.test.ts`, below 300 lines each.
+Existing frozen oracle files remain unchanged. Guarded producer/consumer probes
+supplement these public RED cases until the later public-admission GREEN gate.
+
+### AR-P18 approved caller-lifetime regressions
+
+The confirmed overlap needs one new independent concern,
+`nmi-route-retained-call-lifetimes.spec.test.ts`, before any interference fix.
+Prove that a caller byte live across a reused helper remains intact when the
+helper has its own simultaneously live parameter/local bytes. Add a transitive
+helper and finite-target companion to prevent selecting every call from the
+original request root. Use existing public source/debug/byte endpoints and the
+current four profiles, not hard-coded allocator addresses or private map names.
+Keep compatible canonical-call and reachable/dead-path controls unchanged.
+Independent behavior and allocation expectations must distinguish necessary
+live-home separation from unnecessary separation of variants not selected by
+that call. No new runtime, emulator harness, evaluator or blanket frame rule.
+The single new file remains below 300 lines; no existing oracle is edited.
+The user approves this exact bounded scope on 2026-10-04. Authoring and RED
+precede selector extraction and interference correction; later public GREEN
+and final storage/output/runtime gates remain mandatory.
+
+### AR-P19 approved exact fixture exception and IRQ regression
+
+Bounded review finds that the AR-P18 test assumes lexical debug names and
+equates code-entry count with canonical home reuse; the earlier retained
+call-ABI oracle has the same name lookup assumption. These are not approved
+contract expectations. The [exact approved ruling](00-ambiguity-register.md#ar-p19--small-irq-applicability-fix-and-exact-fixture-corrections)
+names the two files and permitted mechanics only. The user approves on 2026-10-04.
+Retain all existing program fixtures, behavior, widths, native accesses,
+marshalling, caller-owned returns, live separation and canonical home reuse.
+Corrected lookups must identify source declarations unambiguously. Selected
+direct and finite targets must still prove their expected homes; arbitrary
+compiler-produced targets are not an independent expectation.
+
+Under that exact approval, one new independent
+`test/rd05/irq-call-lifetimes.spec.test.ts` proves the legal IRQ-only main → H → G
+case with a caller byte live across G's local write. Author from frozen
+call/lifetime contracts and public origin/scope/kind/artifact interfaces only;
+implementation and supporting probes remain forbidden. Keep the file below
+300 lines and reuse current four-profile fixtures. Expected RED is successful
+public compilation followed by failed live-home separation, not the NMI guard.
+Record before-fix RED, then correct only NMI proof applicability in the existing
+interference owner. Do not invent a new debug API, harness or analysis layer.
+
 ## File and phase ownership
 
 | New specification file                       | Cases                                                            |
@@ -51,10 +174,75 @@ All profile cases use the four existing cooperative PAL/NTSC × 6581/8580 profil
 | `test/rd05/nmi-route-admission.spec.test.ts` | ST-5–ST-15, ST-24                                                |
 | `test/rd05/nmi-route-output.spec.test.ts`    | ST-16–ST-19; assembled bytes/resources, not text-only assertions |
 
+Admission files assert public success/failure and publication safety. The output
+author also covers ST-8/ST-10/ST-13(a)/ST-15's helper calls, finite costs, actual
+predecessor/link bytes and volatile order. Use existing artifact records and
+assembled bytes, not a new public projection. AR-P13 specifies the minimal
+existing diagnostic spans for ST-13(b). Public word cases cover second-byte
+NMINV overlap and computed fixed-width wrap into NMINV; actual second-byte
+address wrap has its internal endpoint in 2.3.1.
+
+ST-13(a)'s exact source keeps one mainline `asm_php()` live, masks IRQ before
+installing empty B and the cooperative IRQ handler, enables IRQ with
+`asm_cli(); asm_nop();`, masks it with `asm_sei(); asm_nop();`, then restores IRQ
+and B before `asm_plp()`. The IRQ handler performs `setNMI(&C); restoreNMI();`
+with empty C. Each vector transaction retains two temporary PHP/PHA bytes until
+PLA/PLP. The independent simultaneous peak is 10 = program 1 + system 9
+(CPU 3 + firmware 3 + chained IRQ status 1 + transaction 2). Separate startup
+and NMI per-entry maxima are not added to that proof.
+
+ST-15's constant-copy and known-global-plus-one sources have independent runtime
+expectations of one write of 7 to `$0400` and one write of 9 to `$0401`.
+Task 2.1.2 asserts the actual source-correlated store count/order without requiring
+an early direct-store optimization. Task 2.3.3 uses the existing native VICE
+memory checkpoints to prove target/count/order, including the combined source's
+`$0400`-before-`$0401` order. An indirect operand alone does not prove its target;
+no symbolic executor or new harness is introduced.
+
+ST-17's exact collision countercase fixes an empty complete handler at `$2047`
+and reachable three-byte constant data at `$2047`; it requires E10273 and no
+partial publication. A pad cannot cure that collision or silently move either
+complete object. The default empty fixture independently requires a direct
+three-byte low-$47 wrapper; ST-16 owns successful source-constrained adaptation.
+
 AR-P11's old three files plus ledger JSON carry ST-5–ST-7/ST-23 as the register
 specifies; no other old spec-test file may change. Test files stay under 300 lines
 by concern, split a new file when needed without weakening cases. Direct internal
 tests use `*.impl.test.ts` and are authored only after implementation.
+
+The new `nmi-route-boundaries.spec.test.ts` concern covers necessary review
+counterexamples before their implementation: interrupt-modified global addresses
+versus unaffected globals/evaluated values, a genuinely nonreturning self-install,
+and NMI exposure/capture during IRQ low/high publication or removal. Require
+source-attributed canonical failures for unproved intermediate IRQ transitions,
+and success for masked/nonobserving NMI, vector changes outside its lifetime and
+exactly equal exclusive-entry reinstallation. These refine existing writer,
+return and publication obligations, not new source restrictions or APIs.
+An external process timeout may capture synchronous compiler nontermination in
+RED; no execution budget is added to production analysis or the test harness.
+
+`nmi-route-helper-writers.spec.test.ts` independently verifies ST-14's actual
+raw-writer attribution through direct, transitive and parameterized ordinary
+helpers. Both services retain canonical E10278 at the writer expression, with
+error severity, a related-location array and no output. Paired programs without
+high-level NMI ownership retain ordinary raw-helper check/build support. Existing
+oracle files remain frozen; author RED precedes span-preservation implementation.
+
+`nmi-route-helper-lifetimes.spec.test.ts` independently compares inline, direct
+helper and transitive helper final pops followed by a fresh proved-disjoint
+address assignment/write and later balanced NMI installation. These sources
+remain legal under interprocedural ownership. A partial nested pop still leaves
+NMI live and must retain E10278 at an interrupt-mutable raw address writer.
+This is lifetime precision within the same proof, not a new address evaluator.
+
+`nmi-route-nonreturning-paths.spec.test.ts` independently requires ownership
+checking to end after a closed call whose targets are all nonreturning, including
+later CFG blocks. Paired returning and mixed-target controls retain the reachable
+opaque-writer failure at its actual source span. These refine execution-path
+ownership only; existing oracles and declaration/type checks remain unchanged.
+
+AR-P14 adds only the obsolete E10245 message regex correction in the named
+diagnostic file; all other fields, assertions and negative cases stay unchanged.
 
 ST-18's full A/X/Y selected-save construction can use the existing internal
 selected-instruction fixture seam in task 2.3.2. Public output cases require real

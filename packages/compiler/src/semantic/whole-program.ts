@@ -5,6 +5,7 @@ import type {
   InterruptProfileFacts,
   InterruptSinkFacts,
   InterruptVariantFacts,
+  TargetProfile,
 } from "../target/profile.js";
 import { semanticTypeName } from "../frontend/semantic-type-relations.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
@@ -17,11 +18,10 @@ import type {
   SemanticProgram,
   ValueId,
 } from "./operations.js";
-import {
-  resolveTargetSets,
-  type HandlerTargetSets,
-  type IndirectTargetSets,
-} from "./function-targets.js";
+import { resolveTargetSets, type IndirectTargetSets } from "./function-targets.js";
+import { reachableInterruptRoutes } from "./interrupt-routes.js";
+import { analyzeInterruptContexts } from "./interrupt-contexts.js";
+import type { InterruptContextAnalysis } from "./interrupt-contexts.js";
 import { checkInterruptOwnership, type InterruptOwnershipAnalysis } from "./interrupt-ownership.js";
 import { analyzeInterruptDomains, type FunctionDomains } from "./interrupt-domains.js";
 
@@ -107,6 +107,8 @@ export interface WholeProgram {
   readonly interruptRoutes?: readonly InterruptRoute[];
   /** Maximum live predecessor words proved by the install/restore analysis. */
   readonly interruptOwnership?: InterruptOwnershipAnalysis;
+  /** Shared finite entry/installer contexts closed once for storage and lowering. */
+  readonly interruptContextAnalysis?: InterruptContextAnalysis;
   /** Entry domains that can overlap while entering each source function. */
   readonly executionDomains?: readonly FunctionDomains[];
   /** Non-fatal shared-state warnings found during whole-program closure. */
@@ -310,93 +312,6 @@ function closeReachableFunctions(
   return Object.freeze({ functions: reached, diagnostics: Object.freeze(diagnostics) });
 }
 
-/** Select only handlers installed by reachable source paths. */
-function reachableInterruptRoutes(
-  semantic: SemanticProgram,
-  reached: ReadonlySet<string>,
-  targets: HandlerTargetSets,
-  profile: InterruptProfileFacts | undefined,
-): {
-  readonly routes: readonly InterruptRoute[];
-  readonly diagnostics: readonly ProjectDiagnostic[];
-} {
-  if (profile === undefined) return { routes: [], diagnostics: [] };
-  const sinks = new Map(profile.sinks.map((sink) => [sink.capability, sink] as const));
-  const variants = new Map(profile.variants.map((variant) => [variant.id, variant] as const));
-  const functions = new Map(
-    semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
-  );
-  const globals = new Map(
-    semantic.globals.map((global) => [bindingIdentityKey(global.id), global] as const),
-  );
-  const owners = [
-    ...semantic.functions.filter((fn) => reached.has(bindingIdentityKey(fn.id))),
-    ...semantic.initializerOrder.flatMap((id) => {
-      const global = globals.get(bindingIdentityKey(id));
-      return global === undefined ? [] : [global];
-    }),
-  ];
-  const routes = new Map<string, InterruptRoute>();
-  const diagnostics: ProjectDiagnostic[] = [];
-  for (const owner of owners) {
-    if (owner.entry === null) continue;
-    for (const block of reachableBlocks(owner.entry, owner.blocks)) {
-      for (const operation of block.operations) {
-        if (operation.kind !== "platform") continue;
-        const sink = sinks.get(operation.capability);
-        if (sink === undefined) continue;
-        if (!sink.masksSelfOnEntry && sink.externalReentryBound === "unbounded") {
-          diagnostics.push(
-            projectDiagnostic(
-              "E10245",
-              `Execution path '${sink.source}' can overlap or consume hardware stack without a static bound — use a bounded interrupt/callback design`,
-              operation.span,
-            ),
-          );
-          continue;
-        }
-        const handlers = targets.get(operation) ?? [];
-        if (handlers.length === 0) {
-          diagnostics.push(
-            projectDiagnostic(
-              "E10247",
-              `Cannot prove the entry ABI of the value passed to function-address sink '${sink.capability}' — pass a provenance-preserving handler address`,
-              operation.span,
-            ),
-          );
-          continue;
-        }
-        for (const handler of handlers) {
-          const fn = functions.get(bindingIdentityKey(handler));
-          if (fn?.entryKind !== "interrupt") {
-            diagnostics.push(
-              projectDiagnostic(
-                "E10244",
-                `Ordinary function cannot be installed in interrupt-handler sink '${sink.capability}' — use an interrupt function`,
-                operation.span,
-              ),
-            );
-            continue;
-          }
-          routes.set(
-            `${bindingIdentityKey(handler)}\0${sink.variant}\0${operation.span.sourceId}:${operation.span.start}`,
-            Object.freeze({
-              handler,
-              sink,
-              variant: variants.get(sink.variant)!,
-              installation: operation,
-            }),
-          );
-        }
-      }
-    }
-  }
-  return Object.freeze({
-    routes: Object.freeze([...routes.values()]),
-    diagnostics: Object.freeze(diagnostics),
-  });
-}
-
 /** Find the first direct or indirect recursion cycle in stable semantic order. */
 function recursionDiagnostic(
   functions: readonly SemanticFunction[],
@@ -565,10 +480,15 @@ function reachableAssetIds(
   return assets;
 }
 
-/** Close all roots, calls, effects, assets, and value lifetimes before storage allocation. */
+/**
+ * Close roots, calls, effects, assets and value lifetimes before storage allocation.
+ * Optional selected address windows prove that known raw writes cannot alter
+ * retained global values; callers without these facts stay conservative.
+ */
 export function closeWholeProgram(
   semantic: SemanticProgram,
   interrupts?: InterruptProfileFacts,
+  addressSpace?: Pick<TargetProfile["storage"], "ram" | "zeroPage">,
 ): WholeProgramResult {
   const functions = [...semantic.functions].sort((left, right) =>
     compareBindings(left.id, right.id),
@@ -621,7 +541,13 @@ export function closeWholeProgram(
   const ownership =
     interrupts === undefined
       ? undefined
-      : checkInterruptOwnership(semantic, reachable, indirectTargets, selected.routes);
+      : checkInterruptOwnership(
+          semantic,
+          reachable,
+          indirectTargets,
+          selected.routes,
+          addressSpace,
+        );
   if (ownership !== undefined && ownership.diagnostics.length > 0) {
     return Object.freeze({ kind: "error", diagnostics: ownership.diagnostics });
   }
@@ -670,28 +596,33 @@ export function closeWholeProgram(
   const callGraph = closeCallGraph(functions, calls, reachable);
   const domainAnalysis = analyzeInterruptDomains(semantic, roots, callGraph);
 
+  const program: WholeProgram = Object.freeze({
+    semantic,
+    roots: Object.freeze(roots),
+    callGraph,
+    indirectTargets,
+    interruptRoutes: selected.routes,
+    ...(ownership === undefined ? {} : { interruptOwnership: ownership }),
+    executionDomains: domainAnalysis.functions,
+    diagnostics: domainAnalysis.diagnostics,
+    initializers,
+    effects: closeEffects(functions, semantic.effects ?? [], reachable),
+    lifetimes: Object.freeze(
+      functions
+        .filter((fn) => reachable.has(bindingIdentityKey(fn.id)))
+        .flatMap((fn) => valueLifetimes(fn)),
+    ),
+    reachableFunctions,
+    reachableAssets: Object.freeze(
+      semantic.assets.filter(({ id }) => reachableAssets.has(id)).map(({ id }) => id),
+    ),
+  });
+  const contextAnalysis = analyzeInterruptContexts(program, addressSpace);
+  if (contextAnalysis.diagnostics.length > 0) {
+    return Object.freeze({ kind: "error", diagnostics: contextAnalysis.diagnostics });
+  }
   return Object.freeze({
     kind: "complete",
-    program: Object.freeze({
-      semantic,
-      roots: Object.freeze(roots),
-      callGraph,
-      indirectTargets,
-      interruptRoutes: selected.routes,
-      ...(ownership === undefined ? {} : { interruptOwnership: ownership }),
-      executionDomains: domainAnalysis.functions,
-      diagnostics: domainAnalysis.diagnostics,
-      initializers,
-      effects: closeEffects(functions, semantic.effects ?? [], reachable),
-      lifetimes: Object.freeze(
-        functions
-          .filter((fn) => reachable.has(bindingIdentityKey(fn.id)))
-          .flatMap((fn) => valueLifetimes(fn)),
-      ),
-      reachableFunctions,
-      reachableAssets: Object.freeze(
-        semantic.assets.filter(({ id }) => reachableAssets.has(id)).map(({ id }) => id),
-      ),
-    }),
+    program: Object.freeze({ ...program, interruptContextAnalysis: contextAnalysis }),
   });
 }

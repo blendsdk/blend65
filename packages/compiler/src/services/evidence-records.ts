@@ -1,4 +1,6 @@
 import type { CompleteC64Layout } from "../artifacts/acme-validate.js";
+import { machineFunctionSegments, sameSpan } from "./debug-machine-ranges.js";
+import { c64InterruptEntryLabel } from "../machine/lower-c64-interrupt.js";
 import { acmeLabelName, acmeLabelNames } from "../artifacts/acme-labels.js";
 import type { EvidenceRecord } from "../artifacts/evidence-types.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
@@ -7,6 +9,10 @@ import type { ProjectSnapshot, SourceSpan } from "../project/types.js";
 import type { SemanticFunction } from "../semantic/operations.js";
 import type { IndirectTargetSets } from "../semantic/function-targets.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
+import {
+  interruptExecutedBlocks,
+  interruptMaterializations,
+} from "../semantic/interrupt-context-facts.js";
 import type { StorageClosureCertificate, StorageInventory } from "../storage/storage-types.js";
 
 /** Records derived from final compiler state for the indexed debug sidecar. */
@@ -132,98 +138,6 @@ export function machineBlockRange(
   return Object.freeze({ start: block.origin, end: block.origin + bytes });
 }
 
-/** Return whether two retained source spans identify the same source bytes. */
-function sameSpan(left: SourceSpan | null, right: SourceSpan): boolean {
-  return (
-    left !== null &&
-    left.sourceId === right.sourceId &&
-    left.start === right.start &&
-    left.end === right.end
-  );
-}
-
-/** Return the exact emitted byte count of one final machine terminator. */
-function terminatorBytes(
-  terminator: CompleteC64Layout["program"]["functions"][number]["blocks"][number]["terminator"],
-): number {
-  if (terminator.kind === "branch") return 2;
-  if (terminator.kind === "long-branch") return 5;
-  if (terminator.kind === "jump") return 3;
-  if (terminator.kind === "return") return terminator.cost?.bytes ?? 1;
-  return 0;
-}
-
-/** Map final instruction bytes back to their retained semantic CFG positions. */
-function machineFunctionSegments(
-  machine: CompleteC64Layout["program"]["functions"][number],
-  semantic: Pick<SemanticFunction, "blocks" | "source">,
-): readonly {
-  readonly start: number;
-  readonly end: number;
-  readonly block: string;
-  readonly operation: number | null;
-  readonly source: SourceSpan;
-}[] {
-  const segments: {
-    readonly start: number;
-    readonly end: number;
-    readonly block: string;
-    readonly operation: number | null;
-    readonly source: SourceSpan;
-  }[] = [];
-  for (const block of machine.blocks) {
-    if (block.origin === undefined) throw new Error("Final machine block has no origin");
-    const sourceBlock = semantic.blocks.find(
-      ({ id }) =>
-        block.label === id ||
-        block.label.startsWith(`${id}.main.depth`) ||
-        block.label.startsWith(`${id}.irq`) ||
-        block.label.startsWith(`${id}.nmi`) ||
-        block.label.startsWith(`${id}.interrupt.`) ||
-        block.label.startsWith(`${id}.fn.`) ||
-        block.label.startsWith(`${id}.wait.`) ||
-        block.label.startsWith(`${id}.shift.`) ||
-        block.label.startsWith(`${id}.multiply.`) ||
-        block.label.startsWith(`${id}.divide.`) ||
-        block.label.startsWith(`${id}.copy.`) ||
-        block.label.startsWith(`${id}.move.`) ||
-        block.label.startsWith(`${id}.fill.`) ||
-        block.label.startsWith(`${id}.indirect.`) ||
-        block.label.startsWith(`${id}.bounds.`),
-    );
-    if (sourceBlock === undefined) throw new Error("Final machine block has no semantic CFG owner");
-    let address = block.origin;
-    for (const instruction of block.instructions) {
-      const operation = sourceBlock.operations.findIndex((candidate) =>
-        sameSpan(instruction.source, candidate.span),
-      );
-      segments.push(
-        Object.freeze({
-          start: address,
-          end: address + instruction.cost.bytes,
-          block: sourceBlock.id,
-          operation: operation < 0 ? null : operation,
-          source: instruction.source ?? semantic.source,
-        }),
-      );
-      address += instruction.cost.bytes;
-    }
-    const bytes = terminatorBytes(block.terminator);
-    if (bytes > 0) {
-      segments.push(
-        Object.freeze({
-          start: address,
-          end: address + bytes,
-          block: sourceBlock.id,
-          operation: sourceBlock.operations.length,
-          source: semantic.source,
-        }),
-      );
-    }
-  }
-  return Object.freeze(segments);
-}
-
 /** Return every source call edge, including each finite indirect candidate. */
 function callsIn(
   fn: Pick<SemanticFunction, "blocks">,
@@ -251,9 +165,50 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     input.snapshot.sources.map((source, index) => [source.sourceId, index] as const),
   );
   const reachable = new Set(input.program.reachableFunctions.map(bindingIdentityKey));
-  const semanticFunctions = input.program.semantic.functions.filter((fn) =>
-    reachable.has(bindingIdentityKey(fn.id)),
+  const proof = input.program.interruptRoutes?.some(({ sink }) => sink.domain === "nmi")
+    ? input.program.interruptContextAnalysis
+    : undefined;
+  const retained = proof === undefined ? undefined : interruptMaterializations(input.program);
+  const capturedHandlers = new Set(
+    [...(proof?.bindings.values() ?? [])].flatMap((binding) =>
+      binding.captures.map(({ entry }) => bindingIdentityKey(entry.route.handler)),
+    ),
   );
+  // A selected entry's activation identity includes its continuation. Match
+  // its exact machine label rather than treating it as the source declaration.
+  const selectedEntryLabels = new Map(
+    [...(proof?.bindings.values() ?? [])].flatMap((binding) =>
+      binding.captures.flatMap(({ entry }) =>
+        entry === null
+          ? []
+          : [
+              [
+                entry.id,
+                c64InterruptEntryLabel(
+                  entry.route.handler,
+                  entry.route.variant,
+                  0,
+                  entry.tail,
+                  true,
+                ),
+              ] as const,
+            ],
+      ),
+    ),
+  );
+  // Source-call reachability precedes the selected execution proof. A masked
+  // entry may need only a published shell, while a terminal call removes its
+  // suffix. Keep separate retained-code demands without inventing executions.
+  const semanticFunctions = input.program.semantic.functions.filter((fn) => {
+    const key = bindingIdentityKey(fn.id);
+    if (!reachable.has(key)) return false;
+    return (
+      proof === undefined ||
+      capturedHandlers.has(key) ||
+      (retained?.contexts.get(key)?.length ?? 0) > 0 ||
+      interruptExecutedBlocks(fn, proof.contexts.get(key) ?? [], proof).length > 0
+    );
+  });
   const globalsByKey = new Map(
     input.program.semantic.globals.map(
       (global) => [bindingIdentityKey(global.id), global] as const,
@@ -275,7 +230,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
                 ? id.startsWith(`interrupt.${bindingIdentityKey(fn.id)}.`) ||
                   id === `fn.${bindingIdentityKey(fn.id)}`
                 : id === `fn.${bindingIdentityKey(fn.id)}` ||
-                  id.startsWith(`fn.${bindingIdentityKey(fn.id)}.main.depth`) ||
+                  id.startsWith(`fn.${bindingIdentityKey(fn.id)}.main.`) ||
                   id.startsWith(`fn.${bindingIdentityKey(fn.id)}.irq`) ||
                   id.startsWith(`fn.${bindingIdentityKey(fn.id)}.nmi`),
             )
@@ -406,18 +361,26 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     ),
   );
   const callContexts = executionFunctions.flatMap((fn, callerIndex) =>
-    callsIn(fn.body, input.program.indirectTargets).flatMap((call) => {
-      const functionIndex = functionIndexes.get(bindingIdentityKey(call.callee));
-      return functionIndex === undefined
-        ? []
-        : fn.machineIds.map((_, variantIndex) =>
-            Object.freeze({
-              kind: "call",
-              functionIndex,
-              parentContextIndex: contextOffsets[callerIndex]! + variantIndex,
-              callSite: indexedSpan(call.span, sourceIndexes),
-            }),
-          );
+    fn.machineIds.flatMap((machineId, variantIndex) => {
+      const instructions = machineFunctions
+        .get(machineId)!
+        .blocks.flatMap((block) => block.instructions);
+      return callsIn(fn.body, input.program.indirectTargets).flatMap((call) => {
+        const functionIndex = functionIndexes.get(bindingIdentityKey(call.callee));
+        // A source call belongs only to variants which emit that operation.
+        // Reference-only tails and dead suffixes cannot acquire phantom calls.
+        return functionIndex === undefined ||
+          !instructions.some((instruction) => sameSpan(instruction.source, call.span))
+          ? []
+          : [
+              Object.freeze({
+                kind: "call",
+                functionIndex,
+                parentContextIndex: contextOffsets[callerIndex]! + variantIndex,
+                callSite: indexedSpan(call.span, sourceIndexes),
+              }),
+            ];
+      });
     }),
   );
   callContexts.sort((left, right) => {
@@ -466,7 +429,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       scope: fn.id.sourceId,
       origin: Object.freeze({ kind: "source", span: indexedSpan(fn.source, sourceIndexes) }),
       linkage: "internal",
-      labels: Object.freeze(sourceFunction.machineIds.map(labelName)),
+      labels: Object.freeze(sourceFunction.machineIds.map(labelName).sort(compareText)),
       liveRangeIndexes: Object.freeze([]),
       availability:
         sourceFunction.machineIds.length === 1
@@ -572,6 +535,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       request.domain === "irq"
         ? rootSuffix !== null
           ? machineId.includes(rootSuffix) ||
+            selectedEntryLabels.get(request.activationRoot!) === machineId ||
             (request.activationRoot === bindingIdentityKey(request.owner) &&
               machineId.startsWith(`interrupt.${request.activationRoot}.`))
             ? [index]
@@ -615,7 +579,9 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
         if (range.semanticBlock === undefined || range.semanticOperation === null) return false;
         return livePositions.has(`${range.semanticBlock}\0${range.semanticOperation}`);
       });
-      if (liveRangeIndexes.length === 0) {
+      // A zero-byte declaration emits no instruction and owns no live bytes.
+      // Keep its source/context marker without inventing a machine range.
+      if (home.bytes > 0 && liveRangeIndexes.length === 0) {
         throw new Error("Storage request lifetime has no final machine range");
       }
       symbolDrafts.push({

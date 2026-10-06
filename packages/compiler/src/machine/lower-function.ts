@@ -1,6 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
+import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.js";
 import type {
   SemanticBlock,
   SemanticOperation,
@@ -64,7 +65,7 @@ export function lowerFunction(
   }[],
   warnings: ProjectDiagnostic[],
   returnsToStartup: boolean,
-  interruptDepth: Readonly<{ irq: number; nmi: number }> = { irq: 0, nmi: 0 },
+  interruptDepth: InterruptExecutionContext = { domain: "main", irq: 0, nmi: 0 },
   instructionSites?: Set<SemanticOperation | SemanticTerminator>,
 ): MachineFunction {
   const blockIndexes = new Map(blocks.map((block, index) => [block.id, index] as const));

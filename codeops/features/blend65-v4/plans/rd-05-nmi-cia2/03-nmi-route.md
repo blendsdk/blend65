@@ -68,6 +68,43 @@ proves disjointness; do not add a syntax ban or general range-analysis subsystem
 Raw writes after the final observer/high-level operation remain deliberate raw
 management, not an extension of this qualified scheme.
 
+The necessary address-fact extension lives in the focused semantic
+`interrupt-address-facts.ts` module. It replaces the literal-only helper rather
+than growing the ownership module past its file-size boundary. Exact integer
+facts follow ordinary value/load/store flow, intersect at joins and discard
+mutable binding knowledge across potentially aliasing effects. No general range
+analysis, new pass or runtime structure is introduced. The original context task
+is split into address, shared-binding and observer-closure units before execution.
+The selected platform's existing RAM/ZP windows supply alias bounds through a
+small internal argument; no address is inferred from C64 magic numbers. This is
+needed to preserve known globals across a proved-disjoint screen write. Route
+selection moves unchanged into `interrupt-routes.ts` before adding whole-program
+facts, keeping the current large owner below the mandatory file-size ceiling.
+These producer/consumer and file-size corrections add no support layer or API.
+
+Selected interrupt writes also invalidate affected mutable global-place facts
+after a later source store, not only startup facts. Follow ordinary closed helper
+targets and retain genuinely disjoint globals and already-evaluated values. A
+helper's proved returning ownership effect also updates this existing lifetime
+fact; a final helper pop is source-equivalent to an inline pop. Reuse the existing
+symbolic ownership summaries rather than interpreting helper bodies again or
+discarding a proved zero depth merely because a platform effect is opaque.
+A closed call with only proved nonreturning targets ends its address-proof path,
+including CFG successors. A returning or unknown alternative still keeps that
+path live. Unreachable later callees must not create execution-path ownership
+diagnostics; ordinary declaration and type checks remain unchanged.
+A proved nonreturning entry has no observable incoming chain tail; that unused tail
+must not cause ever-growing entry identities or invented return edges.
+
+The existing IRQ vector transaction still writes CINV low then high. Include that
+bounded publication/removal gap in the shared observer relation: an NMI can enable
+IRQ or capture/change CINV while the intermediate word exists. A transition between
+different published identities needs proof that neither occurs. Equal exclusive
+entry identities preserve both bytes; downstream lowering must publish one actual
+label for that identity, not depth-specific copies. Include the existing instruction
+prelude and return/epilogue boundaries when source I changes become IRQ-eligible.
+No general instruction interpreter, layout-alignment mandate or new syntax ban.
+
 ## Existing compiler seams and internal facts
 
 Keep `interruptExecutionContexts` as the context owner. Extend its result-bearing
@@ -97,6 +134,77 @@ fallback as a simultaneous proof. A closed chain uses one CPU frame; each wrappe
 removes its own saves before jumping to the next entry. Source calls/explicit
 pushes and compiler-controlled growing-stack cycles remain charged and checked.
 The external total remains unproved under the existing qualified exception.
+
+### Execution selection and reference-only entries (AR-P15)
+
+Retain selected entries independently of observable invocations. An installation
+must resolve its canonical label even if source I-state prevents that handler
+from entering during its entire lifetime. Do not fabricate an arrival or private
+frame merely to make the label exist. A reference-only entry preserves the
+ordinary selected ABI, source identity and source placement, while its proved-dead
+body/helper work contributes no executed effects or private homes. Independently
+materialized raw/callable source dependencies retain their existing real bodies
+and entry paths; a dead selected variant cannot erase those dependencies.
+
+The existing ordered proof already visits operation and terminator points.
+Retain those reached points per source/context, unioning real state alternatives.
+Inventory and lowering consume one projected CFG from those facts: omit dead
+suffixes and successors, remove only absent merge edges, and terminate a proved
+nonreturning call with the existing unreachable terminator. A returning or unknown
+alternative stays live. Do not fall back to a fresh main context for a source
+function that the closed execution never reaches. This is a direct consumption
+of the current proof result, not a new evaluator or generalized optimizer.
+
+Qualify the exact reference-only entry construction with independent behavior and
+byte expectations before activation. An arbitrary label alias, fake return/body,
+runtime check, new source ban or silent placement exemption is not acceptable.
+Private-storage, final publication, exact bounded costs and native execution keep
+their existing later owners and cannot be inferred from this correction.
+
+The independent bounded semantics assessment derives the reference-only CINV
+construction as a directly materialized `JMP (proved captured CINV)` shell:
+exactly three output bytes (`6C lo hi`), nominal five cycles if hypothetically
+entered, no private home or additional stack byte, and zero executed entry work
+in the proved traces. No body observes entry D; JMP leaves A/X/Y/P unchanged.
+Keep source placement and debug association on the real selected entry. Do not
+create a semantic return, invocation or link observer. Any actually observed
+context for the same canonical identity takes precedence and retains its real
+body. A nonreturning source keeps its tail-free canonical identity; an unexecuted
+shell may use one real representative capture without asserting a feasible
+source return. This is an analytical construction contract, not actual byte or
+runtime qualification. Raw source bodies and transitive ordinary dependencies
+remain separate materialization/storage requirements with uncertified external
+entry/ownership guarantees. Independent bytes and final artifact checks are still
+required before admission.
+
+### Noncertifying raw installer retention (AR-P16)
+
+The existing structural context walk may be seeded only with retained raw ABI
+roots to collect code/storage demands. This invocation replaces its normal
+main/callable/initializer seeds and never adds an actual arrival, reached point,
+capture or stock predecessor. Source/ABI namespaces remain finite; installed
+entry identities still retain their exact physical tail word. Do not recursively
+grow a new activation namespace for every hypothetical selected installation.
+This matters even for an acyclic ordinary call graph when C calls the helper
+which installs C.
+
+Existing relative ownership effects carry a word through calls, including a
+caller installation restored by a callee. Reuse an observed ordinary base body
+only when its complete ownership summary exports no caller-prefix transformation;
+equal net depth alone is insufficient. Otherwise specialize the coupled retained
+call path consistently. Balanced observed H stays unchanged. All retained words
+and complete handler/helper demands enter the existing inventory/closure before
+emission. Their predecessor/lifetime is uncertified at the erased external
+boundary. Retention is not a generated-execution safety certificate; public
+admission remains guarded until the later storage/publication/runtime gates.
+
+The same unentered-label rule applies to the existing exclusive CINV ABI.
+Its declared terminal is a direct `JMP $EA81`: three bytes (`4C 81 EA`),
+three hypothetical nominal cycles, no private home or additional stack byte.
+The pinned firmware tail restores Y/X/A and the CPU's complete status frame.
+This does not invent a returning source path or weaken final exclusive CIA1
+handback. Any observed context still takes precedence. The independent byte
+oracle qualifies the exact selected object, not external invocation safety.
 
 ## ABI and placement
 
@@ -142,6 +250,31 @@ complete variants claiming one explicit `at`; retain the exact placement proof
 and report a real collision without claiming broad multi-entry support or banning
 source placement. No second emitted object is secretly exempted from constraints.
 
+The stable debug entry-variant label resolves the published low-$47 entry.
+Its range indexes cover the complete wrapper and any immutable entry JMP;
+existing function-index range owners and qualified-name memory owners retain
+source correlation. Decoded indirect-JMP operands identify physical link homes.
+Private-home-free fixtures permit no other unexplained function storage. The
+existing stack-record projection separately identifies per-entry NMI costs as
+[the evidence contract](03-stack-evidence.md) specifies.
+
+ST-13(a) retains one mainline source `PHP` while its cooperative IRQ is eligible.
+The IRQ entry contributes CPU frame 3, firmware saves 3 and wrapper status 1.
+Its NMI install/restore transactions each retain `PHP`/`PHA` until `PLA`/`PLP`,
+adding two temporary bytes, not invocation-long storage. The simultaneous bounded
+peak is therefore 10: program 1 plus system 9. Startup's separate one-byte peak
+is not added. The empty B/C NMI entries each have separately scoped peak 3;
+unrestricted external arrivals remain unproved.
+
+ST-15 preserves ordinary known-flow variable-address stores without requiring
+direct-address optimization. The assembled-output endpoint proves the number
+and order of source-correlated store instructions. For an indirect operand,
+actual target/count/order are independently checked by the existing native VICE
+qualification owner: the constant-copy fixture writes 7 to `$0400`, and the
+known-global-plus-one fixture writes 9 to `$0401`. The combined straight-line
+fixture orders those writes accordingly. No symbolic executor or new harness is
+required, and static operands alone are not claimed as complete behavior proof.
+
 ## Errors and exact costs
 
 | Failure                                                          | Existing response                                                  |
@@ -155,6 +288,15 @@ source placement. No second emitted object is secretly exempted from constraints
 
 No new diagnostic codes or canonical-message changes (AR-P11).
 Keep full source/error attribution in both public services.
+Raw writer effects retain the originating write span through ordinary helper
+composition; an early ownership failure must not replace it with a helper call.
+For ST-13's changed IRQ capture, the primary span is the responsible `setIRQ`
+call, including when reached through a helper. Related locations retain the
+initial IRQ installation, owning NMI installation and relevant helper edge;
+the ordered recurrence path exposes the A-to-B witness under Chapter 14 §2.
+It includes the changed-capture call for both first and recurrent activation,
+without prescribing an exact array length or intermediate identity spelling.
+No new public witness field or frozen internal identity spelling is required.
 
 With absolute link homes, the full A/X/Y/P chained wrapper costs 16 bytes and
 43 nominal cycles including its final indirect jump, excluding the body, CPU

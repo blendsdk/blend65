@@ -163,8 +163,21 @@ describe("canonical diagnostics from alternate placement producers", () => {
   });
 
   it("reports the unbounded cooperative NMI entry through its canonical execution-path record", async () => {
-    const source =
-      "module Game; import { setNMI } from c64.system; interrupt function handler(): void {} function main(): void { setNMI(&handler); }";
+    const source = `module Game;
+import { setNMI, restoreNMI } from c64.system;
+interrupt function handler(): void {
+  let a: byte = peek($0400);
+  let b: byte = peek($0401);
+  let c: byte = peek($0402);
+  let d: byte = peek($0403);
+  let e: byte = peek($0404);
+  poke($0410, a);
+  poke($0411, b);
+  poke($0412, c);
+  poke($0413, d);
+  poke($0414, e);
+}
+function main(): void { setNMI(&handler); restoreNMI(); }`;
     const result = await build(source);
     const errors = result.diagnostics.filter(({ severity }) => severity === "error");
     expect(result.kind).toBe("failure");
@@ -174,7 +187,7 @@ describe("canonical diagnostics from alternate placement producers", () => {
       severity: "error",
       pointer: null,
       message: expect.stringMatching(
-        /^Execution path '[^']+' can overlap or consume hardware stack without a static bound — use a bounded interrupt\/callback design$/u,
+        /^Execution path '[^']+' has unbounded private-storage overlap, disallowed unbounded stack use, or unproved generated reentrancy$/u,
       ),
       primarySpan: diagnosticSpan(source, "setNMI(&handler)"),
       related: [],

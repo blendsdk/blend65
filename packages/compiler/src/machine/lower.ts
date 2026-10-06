@@ -8,6 +8,14 @@ import {
   irqPredecessorSlot,
 } from "../semantic/interrupt-contexts.js";
 import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.js";
+import {
+  interruptEntrySelection,
+  interruptExecutedBlocks,
+  interruptRetainedBlocks,
+  interruptMaterializations,
+  interruptCodeContexts,
+  interruptExecutionKey,
+} from "../semantic/interrupt-context-facts.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
 import type { SemanticOperation, SemanticTerminator } from "../semantic/operations.js";
 import type { HelperCallDemand, StorageRequest } from "../storage/storage-types.js";
@@ -20,8 +28,10 @@ import {
 } from "../layout/startup.js";
 import { machineInstruction } from "./lower-control.js";
 import { c64InterruptEntryLabel, createC64InterruptEntry, RAW_HANDLER_ENTRY } from "./lower-c64.js";
+import { createC64ReferenceInterruptEntry } from "./lower-c64-interrupt.js";
 import {
   domainMachineFunction,
+  contextFunctionLabel,
   domainRequestId,
   domainStorageRequest,
   provisionalDomainAliases,
@@ -36,6 +46,8 @@ import type {
 } from "./machine-types.js";
 import { loweringFailure, isLoweringFailure, typeBytes, bindingLabel } from "./lower-state.js";
 import { lowerFunction } from "./lower-function.js";
+import { createC64NmiEntries } from "./nmi-entry.js";
+import type { PendingC64NmiEntry } from "./nmi-entry.js";
 export * from "./lower-state.js";
 
 /** Return the machine data objects owned by globals and reachable assets. */
@@ -184,15 +196,23 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
     const functionsByKey = new Map(
       input.program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
     );
-    const contexts = interruptExecutionContexts(input.program);
-    const rootAware = hasHandlerSideIrqInstall(input.program, contexts);
+    const executedContexts = interruptExecutionContexts(input.program);
+    const retained = interruptMaterializations(input.program);
+    const contexts = interruptCodeContexts(executedContexts, retained.contexts);
+    const hasNmiRoutes = input.program.interruptRoutes?.some(({ sink }) => sink.domain === "nmi");
+    const sharedProof = hasNmiRoutes ? input.program.interruptContextAnalysis : undefined;
+    if (hasNmiRoutes && (sharedProof === undefined || sharedProof.diagnostics.length > 0))
+      throw loweringFailure("Interrupt wrappers require complete installation-link proof", null);
+    const rootAware = hasNmiRoutes || hasHandlerSideIrqInstall(input.program, contexts);
+    const rawDependencies = retained.raw;
     const loweringInput = Object.freeze({
       ...input,
+      retainedInterrupts: retained,
       placement: provisionalDomainAliases(input.placement, input.program),
     });
     const routeDepths = interruptRouteDepths(input.program, contexts);
     const routeSlots = new Map<SemanticOperation, Set<string>>();
-    if (rootAware) {
+    if (rootAware && sharedProof === undefined) {
       for (const route of input.program.interruptRoutes ?? []) {
         if (route.sink.domain !== "irq") continue;
         const owner = input.program.semantic.functions.find((fn) =>
@@ -217,6 +237,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
       }
     }
     const machineFunctions: MachineFunction[] = [];
+    const pendingNmiEntries: PendingC64NmiEntry[] = [];
     const rawHandlerBodies = new Map<string, MachineFunction>();
     for (const functionId of input.program.reachableFunctions) {
       const semantic = functionsByKey.get(bindingIdentityKey(functionId));
@@ -224,14 +245,44 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
         throw loweringFailure("Reachable semantic function is absent", functionId.span);
       }
       const id = bindingLabel("fn", semantic.id);
-      const variants: readonly InterruptExecutionContext[] = contexts.get(
-        bindingIdentityKey(semantic.id),
-      ) ?? [Object.freeze({ domain: "main" as const, irq: 0, nmi: 0 })];
+      const key = bindingIdentityKey(semantic.id);
+      const executed: readonly InterruptExecutionContext[] =
+        executedContexts.get(key) ??
+        (sharedProof === undefined
+          ? [Object.freeze({ domain: "main" as const, irq: 0, nmi: 0 })]
+          : []);
+      // Raw emission is a retained dependency, not a fabricated invocation.
+      // It owns the ordinary source identity and ABI homes. An observed
+      // mainline context for that identity must keep its real link choices.
+      const raw = rawDependencies.has(key);
+      const retainedKeys = new Set(
+        (retained.contexts.get(key) ?? []).map((context) => interruptExecutionKey(key, context)),
+      );
+      const variants = contexts.get(key) ?? executed;
       for (const context of variants) {
+        const retainedBody = retainedKeys.has(interruptExecutionKey(key, context));
+        const rawBody = raw && retainedBody && context.domain === "main";
+        const blocks =
+          sharedProof === undefined
+            ? semantic.blocks
+            : retainedBody
+              ? interruptRetainedBlocks(semantic, input.program)
+              : interruptExecutedBlocks(
+                  semantic,
+                  executed.filter((entry) =>
+                    semantic.entryKind === "interrupt"
+                      ? entry.activationRoot === context.activationRoot
+                      : contextFunctionLabel(id, entry, contexts, input.program, rootAware) ===
+                        contextFunctionLabel(id, context, contexts, input.program, rootAware),
+                  ),
+                  sharedProof,
+                );
+        if (blocks.length === 0) continue;
         const contextInput =
           rootAware && context.activationRoot !== undefined
             ? Object.freeze({
                 ...input,
+                retainedInterrupts: retained,
                 placement: provisionalDomainAliases(
                   input.placement,
                   input.program,
@@ -241,10 +292,10 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
             : loweringInput;
         const discovered: StorageRequest[] = [];
         const selectedHelpers: typeof helperUses = [];
-        const lowered = lowerFunction(
+        const body = lowerFunction(
           id,
           semantic.id,
-          semantic.blocks,
+          blocks,
           contextInput,
           discovered,
           generatedData,
@@ -254,6 +305,9 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
           context,
           instructionSites,
         );
+        const lowered = semantic.placement
+          ? Object.freeze({ ...body, placement: semantic.placement })
+          : body;
         requests.push(
           ...discovered.map((request) =>
             domainStorageRequest(
@@ -270,7 +324,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
               ...use,
               id:
                 rootAware && context.activationRoot !== undefined
-                  ? `${use.id}.irq.root${Buffer.from(context.activationRoot).toString("hex")}.depth${context.localIrqDepth ?? 0}`
+                  ? `${use.id}.${context.domain}.root${Buffer.from(context.activationRoot).toString("hex")}.depth${context.localIrqDepth ?? 0}${context.localNmiDepth === undefined ? "" : `.${context.localNmiDepth}`}`
                   : `${use.id}.${context.domain}.depth${context.irq}.${context.nmi}`,
               ...(rootAware && context.activationRoot !== undefined
                 ? { activationRoot: context.activationRoot }
@@ -290,7 +344,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
         );
         if (semantic.entryKind === "interrupt") {
           const rawId = bindingLabel("fn", semantic.id);
-          if (!rawHandlerBodies.has(rawId)) {
+          if ((sharedProof === undefined || rawBody) && !rawHandlerBodies.has(rawId)) {
             rawHandlerBodies.set(
               rawId,
               domainMachineFunction(lowered, context, contexts, input.program, rootAware),
@@ -301,6 +355,77 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
             if (route.sink.domain !== context.domain) continue;
             const depth = context[route.sink.domain] - 1;
             if (depth < 0) continue;
+            if (sharedProof !== undefined) {
+              const slot = context.entrySlot;
+              if (slot === undefined)
+                throw loweringFailure(
+                  "Selected interrupt entry has no captured word",
+                  semantic.id.span,
+                );
+              const selection = interruptEntrySelection(route, slot, input.program);
+              const retainedEntry = retained.links
+                .get(slot)
+                ?.entries.some(
+                  (entry) =>
+                    entry.id === selection.id &&
+                    interruptExecutionKey(key, entry.context) ===
+                      interruptExecutionKey(key, context),
+                );
+              if (selection.id !== context.activationRoot && !retainedEntry) continue;
+              if (
+                !sharedProof.bindings
+                  .get(slot)
+                  ?.captures.some(({ entryIdentity }) => entryIdentity === selection.id) &&
+                !retainedEntry
+              )
+                throw loweringFailure(
+                  "Selected interrupt entry has no proved capture",
+                  semantic.id.span,
+                );
+              const entryId = c64InterruptEntryLabel(
+                semantic.id,
+                route.variant,
+                depth,
+                selection.tail,
+                true,
+              );
+              if (
+                machineFunctions.some(({ id }) => id === entryId) ||
+                pendingNmiEntries.some(({ id }) => id === entryId)
+              )
+                continue;
+              const body = domainMachineFunction(
+                lowered,
+                context,
+                contexts,
+                input.program,
+                rootAware,
+              );
+              const linkRequestId = selection.tail ?? slot;
+              if (route.sink.domain === "nmi") {
+                pendingNmiEntries.push({
+                  body,
+                  id: entryId,
+                  variant: route.variant,
+                  linkRequestId,
+                  handler: semantic.id,
+                  contexts: executed.filter(
+                    (entry) => entry.activationRoot === context.activationRoot,
+                  ),
+                });
+              } else {
+                machineFunctions.push(
+                  createC64InterruptEntry(
+                    body,
+                    entryId,
+                    route.variant,
+                    route.variant.staticLinkBytes === 0 ? null : linkRequestId,
+                    input.profile,
+                  ),
+                );
+              }
+              continue;
+            }
             const slot =
               route.sink.domain === "irq" &&
               rootAware &&
@@ -333,12 +458,57 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
             input.program,
             rootAware,
           );
+          if (machineFunctions.some((fn) => fn.id === selected.id)) continue;
           machineFunctions.push(
             semantic.placement
               ? Object.freeze({ ...selected, placement: semantic.placement })
               : selected,
           );
         }
+      }
+    }
+
+    // Captured selections outlive the question of whether an IRQ could enter.
+    // Observed identities already have their real body; only absent entries
+    // receive the reference shell, without adding an execution context.
+    for (const binding of sharedProof?.bindings.values() ?? []) {
+      for (const { entry } of binding.captures) {
+        const source = functionsByKey.get(bindingIdentityKey(entry.route.handler));
+        if (source === undefined)
+          throw loweringFailure("Selected interrupt source is absent", null);
+        const entryId = c64InterruptEntryLabel(
+          source.id,
+          entry.route.variant,
+          entry.context[entry.route.sink.domain] - 1,
+          entry.tail,
+          true,
+        );
+        if (
+          machineFunctions.some((fn) => fn.id === entryId) ||
+          pendingNmiEntries.some((fn) => fn.id === entryId)
+        )
+          continue;
+        if (
+          contexts
+            .get(bindingIdentityKey(source.id))
+            ?.some((context) => context.activationRoot === entry.id)
+        )
+          throw loweringFailure("Observed interrupt entry was not emitted", source.source);
+        if (
+          entry.route.sink.domain !== "irq" ||
+          (entry.route.variant.terminal !== "jump-saved-vector" &&
+            entry.route.variant.terminal !== "jump-firmware-tail")
+        )
+          throw loweringFailure("Reference-only entry lacks its proved CINV ABI", source.source);
+        machineFunctions.push(
+          createC64ReferenceInterruptEntry(
+            source,
+            entryId,
+            entry.route.variant,
+            binding.requestId,
+            input.profile,
+          ),
+        );
       }
     }
 
@@ -355,36 +525,60 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
         throw loweringFailure("Initializer root is absent", initializer.span);
       }
       const label = bindingLabel("init", initializer);
+      const executions = contexts.get(bindingIdentityKey(initializer)) ?? [];
+      const blocks =
+        sharedProof === undefined
+          ? global.blocks
+          : interruptExecutedBlocks(global, executions, sharedProof);
+      if (blocks.length === 0) continue;
       if (global.runtimeInitialBytes === null) {
         const entry = input.program.interruptOwnership?.initializerEntryDepths.get(
           bindingIdentityKey(initializer),
         );
-        const context = Object.freeze({
-          domain: "main" as const,
-          irq: entry?.irq ?? 0,
-          nmi: entry?.nmi ?? 0,
-        });
-        startupInitializers.push(Object.freeze({ kind: "call", label }));
-        machineFunctions.push(
-          domainMachineFunction(
-            lowerFunction(
-              label,
-              initializer,
-              global.blocks,
-              loweringInput,
-              requests,
-              generatedData,
-              helperUses,
-              warnings,
-              false,
-              context,
-              instructionSites,
-            ),
-            context,
-            contexts,
-            input.program,
+        const context =
+          executions[0] ??
+          Object.freeze({
+            domain: "main" as const,
+            irq: entry?.irq ?? 0,
+            nmi: entry?.nmi ?? 0,
+          });
+        const discovered: StorageRequest[] = [];
+        const selectedHelpers: typeof helperUses = [];
+        const body = lowerFunction(
+          label,
+          initializer,
+          blocks,
+          loweringInput,
+          discovered,
+          generatedData,
+          selectedHelpers,
+          warnings,
+          false,
+          context,
+          instructionSites,
+        );
+        // Startup calls execute in mainline too. Close late pointers and helper
+        // scratch with the same domain facts as ordinary function lowering.
+        requests.push(
+          ...discovered.map((request) =>
+            domainStorageRequest(request, context.domain, input.program),
           ),
         );
+        helperUses.push(
+          ...selectedHelpers.map((use) =>
+            Object.freeze({
+              ...use,
+              id: `${use.id}.${context.domain}.depth${context.irq}.${context.nmi}`,
+              requestIds: Object.freeze(
+                use.requestIds.map((requestId) =>
+                  domainRequestId(requestId, context.domain, input.program),
+                ),
+              ),
+            }),
+          ),
+        );
+        startupInitializers.push(Object.freeze({ kind: "call", label }));
+        machineFunctions.push(domainMachineFunction(body, context, contexts, input.program));
         initializerAccumulator = null;
       } else {
         const lowered = lowerConstantInitializer(global, input, initializerAccumulator);
@@ -405,11 +599,15 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
       ),
     );
     for (const [id, body] of rawHandlerBodies) {
-      if (!materializedHandlerLabels.has(id)) continue;
+      // Shared proof already closes transitive raw references. Inspecting only
+      // the bodies emitted before this loop would miss Q's address of raw R.
+      if (sharedProof === undefined && !materializedHandlerLabels.has(id)) continue;
       machineFunctions.push(
         createC64InterruptEntry(body, id, RAW_HANDLER_ENTRY, null, input.profile),
       );
     }
+    const nmiEntries = createC64NmiEntries(pendingNmiEntries, machineFunctions, input.profile);
+    machineFunctions.push(...nmiEntries.functions);
 
     const mainFunction = functionsByKey.get(bindingIdentityKey(input.program.semantic.main));
     if (mainFunction === undefined) {
@@ -483,6 +681,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
     const binder = Object.freeze({
       candidateRequestIds: Object.freeze(requests.map(({ id }) => id)),
       helperCalls: Object.freeze(helperCalls),
+      nmiEntries: nmiEntries.stackDemands,
       instructionSites,
       discover: () => Object.freeze([...requests]),
     });

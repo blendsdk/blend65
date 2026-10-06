@@ -10,8 +10,14 @@ import type {
   SemanticGlobal,
   SemanticProgram,
   SemanticOperation,
-  ValueId,
 } from "./operations.js";
+import {
+  interruptClobberedGlobals,
+  interruptWriteAddresses,
+  interruptWriteTouches,
+} from "./interrupt-address-facts.js";
+import type { InterruptDepthChange } from "./interrupt-address-facts.js";
+import type { TargetProfile } from "../target/profile.js";
 
 /** The two independently owned firmware vector stacks. */
 type InterruptSink = "irq" | "nmi";
@@ -20,7 +26,7 @@ type InterruptSink = "irq" | "nmi";
 type OwnershipEvent =
   | { readonly kind: "push"; readonly sites: readonly string[] }
   | { readonly kind: "pop"; readonly span: SourceSpan }
-  | { readonly kind: "raw" };
+  | { readonly kind: "raw"; readonly span: SourceSpan };
 
 /** Each sink has an independent symbolic effect, with no runtime ownership bytes. */
 interface OwnershipState {
@@ -50,6 +56,12 @@ export interface InterruptOwnershipAnalysis {
   readonly mainEntryDepth: Readonly<Record<InterruptSink, number>>;
   /** Ownership depth at the start of each ordered initializer. */
   readonly initializerEntryDepths: ReadonlyMap<string, Readonly<Record<InterruptSink, number>>>;
+  /** Actual reachable returning exits; a nonreturning call has no caller successor. */
+  readonly returningBodies?: ReadonlyMap<string, boolean>;
+  /** Returning source-call lifetime effects, reused by exact-address recovery. */
+  readonly returningDepthChanges?: ReadonlyMap<string, InterruptDepthChange>;
+  /** Returning bodies which neither consume nor export any caller-owned vector prefix. */
+  readonly locallyBalancedBodies?: ReadonlySet<string>;
 }
 
 const EMPTY: OwnershipState = { irq: [], nmi: [] };
@@ -119,6 +131,11 @@ function applyEvent(
     return null;
   }
   if (event.kind === "raw") {
+    if (sink === "nmi" && events.some((candidate) => candidate.kind === "push")) {
+      // A possible live-vector overwrite fails at the writer, not at a later
+      // restore which merely reveals the already-invalid predecessor.
+      return invalidOwnership(sink, "raw vector write", event.span);
+    }
     if (!callerMayOwn && !events.some((candidate) => candidate.kind === "push")) return null;
     // Consecutive raw writes have the same ownership effect, even though both
     // volatile writes remain in the semantic program and emitted code.
@@ -197,22 +214,6 @@ function invalidOwnership(
   );
 }
 
-/** Find exact literal addresses without treating computed addresses as constants. */
-function constantAddresses(blocks: readonly SemanticBlock[]): ReadonlyMap<ValueId, bigint> {
-  const values = new Map<ValueId, bigint>();
-  for (const block of blocks) {
-    for (const operation of block.operations) {
-      if (operation.kind === "constant" && typeof operation.value === "bigint") {
-        values.set(operation.result, operation.value);
-      } else if (operation.kind === "convert") {
-        const value = values.get(operation.operand);
-        if (value !== undefined) values.set(operation.result, value & 0xffffn);
-      }
-    }
-  }
-  return values;
-}
-
 /** A growing ownership state on a cycle is unbounded, unlike an unequal branch join. */
 function pathReaches(
   blocks: ReadonlyMap<string, SemanticBlock>,
@@ -239,6 +240,7 @@ export function checkInterruptOwnership(
   reachable: ReadonlySet<string>,
   indirectTargets: IndirectTargetSets,
   routes: readonly InterruptRoute[] = [],
+  addressSpace?: Pick<TargetProfile["storage"], "ram" | "zeroPage">,
 ): InterruptOwnershipAnalysis {
   // Device-state failures must point at the CIA operation or unsafe hand-back
   // before the vector-only proof can report its broader unmatched-install error.
@@ -274,6 +276,29 @@ export function checkInterruptOwnership(
   // vector bytes; the shared ownership proof does not choose a machine memory map.
   const vectorBytes = { irq: new Set<bigint>(), nmi: new Set<bigint>() };
   const irqRoots = new Set<string>();
+  const selectedHandlers = new Set(routes.map((route) => bindingIdentityKey(route.handler)));
+  const clobbers = {
+    irq: interruptClobberedGlobals(
+      program,
+      new Set(
+        routes
+          .filter(({ sink }) => sink.domain === "irq")
+          .map(({ handler }) => bindingIdentityKey(handler)),
+      ),
+      indirectTargets,
+      addressSpace,
+    ),
+    nmi: interruptClobberedGlobals(
+      program,
+      new Set(
+        routes
+          .filter(({ sink }) => sink.domain === "nmi")
+          .map(({ handler }) => bindingIdentityKey(handler)),
+      ),
+      indirectTargets,
+      addressSpace,
+    ),
+  };
   for (const route of routes) {
     const { sink } = route;
     const low = BigInt(sink.vector);
@@ -306,7 +331,23 @@ export function checkInterruptOwnership(
     }
     active.add(key);
     const byId = new Map(blocks.map((block) => [block.id, block] as const));
-    const addresses = constantAddresses(blocks);
+    const addresses = interruptWriteAddresses(
+      program,
+      entry,
+      blocks,
+      key === bindingIdentityKey(program.main),
+      clobbers,
+      addressSpace,
+      indirectTargets,
+      (target) => {
+        const callee = functions.get(bindingIdentityKey(target));
+        if (callee === undefined) return undefined;
+        const effect = summarize(callee);
+        return effect.returns
+          ? { irq: relativeDepth(effect.state.irq), nmi: relativeDepth(effect.state.nmi) }
+          : null;
+      },
+    );
     const atEntry = new Map<string, OwnershipState>([[entry, EMPTY]]);
     const pending = [entry];
     let returned: OwnershipState | null = null;
@@ -316,6 +357,7 @@ export function checkInterruptOwnership(
       const block = byId.get(blockId);
       if (block === undefined) throw new Error(`Missing semantic block '${blockId}'`);
       let state = copyState(atEntry.get(blockId)!);
+      let continues = true;
       for (const operation of block.operations) {
         relativeDepths.set(
           operation,
@@ -346,15 +388,25 @@ export function checkInterruptOwnership(
             }
           }
         } else if (operation.kind === "memory-write") {
-          const address = addresses.get(operation.address);
-          if (address !== undefined) {
-            const written = [address & 0xffffn];
-            if (operation.width === 2) written.push((address + 1n) & 0xffffn);
-            for (const sink of ["irq", "nmi"] as const) {
-              if (written.some((byte) => vectorBytes[sink].has(byte))) {
-                applyEvent(state, sink, { kind: "raw" }, operation.span, callerMayOwn);
-              }
-            }
+          const address = addresses.get(operation);
+          for (const sink of ["irq", "nmi"] as const) {
+            if (
+              !interruptWriteTouches(
+                operation,
+                address,
+                vectorBytes[sink],
+                sink === "nmi" && vectorBytes.nmi.size > 0,
+              )
+            )
+              continue;
+            const diagnostic = applyEvent(
+              state,
+              sink,
+              { kind: "raw", span: operation.span },
+              operation.span,
+              callerMayOwn,
+            );
+            if (diagnostic !== null) diagnostics.push(diagnostic);
           }
         } else if (operation.kind === "call" || operation.kind === "indirect-call") {
           const targets =
@@ -364,10 +416,10 @@ export function checkInterruptOwnership(
             const callee = functions.get(bindingIdentityKey(target));
             if (callee === undefined) continue;
             const effect = summarize(callee);
-            if (!effect.returns) continue;
             for (const sink of ["irq", "nmi"] as const) {
               peak[sink] = Math.max(peak[sink], relativeDepth(state[sink]) + effect.peak[sink]);
             }
+            if (!effect.returns) continue;
             const composed = compose(
               state,
               effect.state,
@@ -387,7 +439,11 @@ export function checkInterruptOwnership(
             }
             next = candidate;
           }
-          if (next !== null) state = next;
+          if (next === null) {
+            continues = false;
+            break;
+          }
+          state = next;
         }
         // A helper may return a caller-owned pop, but an interrupt root has no
         // caller-owned vector frame. Its interrupted predecessor belongs to the
@@ -403,6 +459,7 @@ export function checkInterruptOwnership(
         if (diagnostics.length > 0) break;
       }
       if (diagnostics.length > 0) break;
+      if (!continues) continue;
       const terminal = block.terminator;
       if (terminal.kind === "return") {
         if (returned !== null && !sameState(returned, state)) {
@@ -465,7 +522,7 @@ export function checkInterruptOwnership(
       fn.entry,
       fn.blocks,
       bindingIdentityKey(fn.id) !== bindingIdentityKey(program.main),
-      fn.entryKind === "interrupt" && irqRoots.has(bindingIdentityKey(fn.id)),
+      fn.entryKind === "interrupt" && selectedHandlers.has(bindingIdentityKey(fn.id)),
     );
   }
 
@@ -619,5 +676,19 @@ export function checkInterruptOwnership(
     relativeDepths,
     mainEntryDepth,
     initializerEntryDepths,
+    returningBodies: new Map([...summaries].map(([key, summary]) => [key, summary.returns])),
+    locallyBalancedBodies: new Set(
+      [...summaries]
+        .filter(([, s]) => s.returns && s.state.irq.length === 0 && s.state.nmi.length === 0)
+        .map(([key]) => key),
+    ),
+    returningDepthChanges: new Map(
+      [...summaries]
+        .filter(([, summary]) => summary.returns)
+        .map(([key, summary]) => [
+          key,
+          { irq: relativeDepth(summary.state.irq), nmi: relativeDepth(summary.state.nmi) },
+        ]),
+    ),
   });
 }

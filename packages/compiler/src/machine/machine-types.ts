@@ -3,6 +3,7 @@ import type { StorageBinder, StorageProfile, StorageRequest } from "../storage/s
 import type { TargetProfile } from "../target/profile.js";
 import type { CpuFlag, CpuRegister } from "../target/nmos6510.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
+import type { InterruptMaterializations } from "../semantic/interrupt-context-facts.js";
 import type { PlacementConstraints } from "../frontend/semantic-types.js";
 import type { StoragePlacement } from "../storage/storage-types.js";
 
@@ -197,6 +198,10 @@ export interface MachineFunction {
   readonly blocks: readonly MachineBlock[];
   /** Optional source placement retained until final layout. */
   readonly placement?: PlacementConstraints;
+  /** Qualified cooperative NMI entries must publish at the profile's common low byte. */
+  readonly nmiPublicationEntry?: true;
+  /** CPU frame plus the actual register/status saves of this selected NMI entry. */
+  readonly nmiEntryStackBytes?: number;
 }
 
 /** Immutable, mutable or zero-initialized non-function object. */
@@ -251,6 +256,8 @@ export interface MachineLoweringInput {
   readonly placement: StoragePlacement;
   /** Exact selected target facts. */
   readonly profile: TargetProfile;
+  /** Precomputed raw ABI/storage demands, never execution or capture evidence. */
+  readonly retainedInterrupts?: InterruptMaterializations;
   /** Emit a pre-division zero test and non-returning target stop when selected. */
   readonly divisionZeroCheck?: boolean;
   /** Check dynamic fixed-array ordinals before forming their machine addresses. */

@@ -26,10 +26,14 @@ export function selectRegisterForwarding(
   readonly wordSubtractRightLowStaged: ReadonlySet<string>;
 } {
   const constantValues = new Set<string>();
+  const zeroValues = new Set<string>();
+  const blocksById = new Map(blocks.map((block) => [block.id, block]));
   for (const block of blocks) {
     for (const operation of block.operations) {
-      if (operation.kind === "constant") constantValues.add(operation.result);
-      else if (operation.kind === "convert" && constantValues.has(operation.operand)) {
+      if (operation.kind === "constant") {
+        constantValues.add(operation.result);
+        if (operation.value === 0n) zeroValues.add(operation.result);
+      } else if (operation.kind === "convert" && constantValues.has(operation.operand)) {
         constantValues.add(operation.result);
       }
     }
@@ -91,6 +95,35 @@ export function selectRegisterForwarding(
         precedingIndex -= 1;
       }
       const preceding = block.operations[precedingIndex];
+      if (
+        producer.kind === "memory-read" &&
+        producer.width === 1 &&
+        constantValues.has(producer.address) &&
+        consumer?.kind === "binary" &&
+        ["==", "!="].includes(consumer.operator) &&
+        consumer.left === producer.result &&
+        zeroValues.has(consumer.right) &&
+        following === undefined &&
+        block.terminator.kind === "branch" &&
+        block.terminator.condition === consumer.result &&
+        [block.terminator.whenTrue, block.terminator.whenFalse].every((id) => {
+          const arm = blocksById.get(id);
+          const call = arm?.operations[0];
+          return (
+            arm?.operations.length === 1 &&
+            arm.terminator.kind === "unreachable" &&
+            call?.kind === "call" &&
+            call.arguments.length === 0 &&
+            call.result === null &&
+            call.type.kind === "scalar" &&
+            call.type.name === "void"
+          );
+        })
+      ) {
+        // One adjacent LDA supplies both A and Z for this closed terminal-call
+        // selection. No instruction or effect is allowed between read and test.
+        forwardedRegisterValues.add(producer.result);
+      }
       if (
         ((producer.kind === "load" && typeBytes(producer.type) === 1) ||
           (producer.kind === "memory-read" && producer.width === 1) ||

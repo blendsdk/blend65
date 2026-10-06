@@ -3,6 +3,7 @@ import type { SourceSpan } from "../project/types.js";
 import type { SemanticOperation, SemanticTerminator } from "../semantic/operations.js";
 import type { ValueLifetime, WholeProgram } from "../semantic/whole-program.js";
 import type { ExecutionDomain } from "../semantic/interrupt-domains.js";
+import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.js";
 
 /** Function-execution storage categories owned by static frame allocation. */
 export type StorageClass =
@@ -140,12 +141,38 @@ export type StorageDiscovery = (
   round: number,
 ) => readonly StorageRequest[];
 
+/** Actual selected NMI entry facts supplied before function storage is closed. */
+export interface NmiEntryStackDemand {
+  /** Stable published machine entry identity. */
+  readonly id: string;
+  /** Source handler whose executed body is represented by this entry. */
+  readonly handler: BindingId;
+  /** Only actual reached contexts sharing this selected body, never raw retention. */
+  readonly contexts: readonly InterruptExecutionContext[];
+  /** CPU frame plus the selected wrapper's register/status saves. */
+  readonly entryStackBytes: number;
+}
+
+/** One generated NMI entry's finite use, not unrestricted external aggregate use. */
+export interface NmiEntryStackPeak {
+  /** Published entry identity for debug and existing evidence correlation. */
+  readonly id: string;
+  /** CPU-inclusive selected entry/body/helper peak. */
+  readonly bytes: number;
+  /** Actual body/call/helper path determining this scoped peak. */
+  readonly route: readonly string[];
+  /** Entry CPU/register/status saves, for canonical warning decomposition. */
+  readonly entryStackBytes: number;
+}
+
 /** Finite machine-binding seam used when closure may discover new storage. */
 export interface StorageBinder {
   /** Complete finite set of request identities which binding may introduce. */
   readonly candidateRequestIds: readonly string[];
   /** Selected direct helper calls with explicit storage and stack effects. */
   readonly helperCalls: readonly HelperCallDemand[];
+  /** Selected NMI entry demands known before closure, with real execution contexts. */
+  readonly nmiEntries?: readonly NmiEntryStackDemand[];
   /**
    * Source operations which actually emit instructions. A terminator is included
    * only when its value setup emits work before the final jump, branch or return.
@@ -223,6 +250,8 @@ export interface StorageClosureCertificate {
   readonly hardwareStackSystemPeak: number;
   /** Program and interrupt route which determines the simultaneous total peak. */
   readonly hardwareStackRoute: readonly string[];
+  /** Independently scoped generated NMI entry peaks; never summed over external arrivals. */
+  readonly nmiEntryPeaks?: readonly NmiEntryStackPeak[];
   /** Marker preventing a partial record from masquerading as a certificate. */
   readonly closed: true;
 }

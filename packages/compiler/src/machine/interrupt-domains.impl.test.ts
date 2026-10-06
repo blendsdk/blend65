@@ -142,7 +142,7 @@ describe("interrupt machine domains", () => {
     }
   });
 
-  it("rejects the selected profile's unbounded NMI re-entry before unsafe vector lowering", async () => {
+  it("builds a proved empty chained NMI without claiming bounded external re-entry", async () => {
     const root = await mkdtemp(join(tmpdir(), "blend65-nmi-bound-"));
     try {
       await mkdir(join(root, "src"));
@@ -171,10 +171,13 @@ describe("interrupt machine domains", () => {
         project: join(root, "blend65.json"),
         optimization: "none",
       });
-      expect(result.kind).toBe("failure");
-      if (result.kind === "failure") {
-        expect(result.diagnostics.map(({ code }) => code)).toContain("E10245");
-      }
+      expect(result.kind, result.kind === "failure" ? JSON.stringify(result.diagnostics) : "").toBe(
+        "success",
+      );
+      if (result.kind !== "success") throw new Error("Expected proved chained NMI");
+      const assembly = await readFile(join(result.generation.directory, ".asm"), "utf8");
+      expect(assembly).toMatch(/\bjmp \(/mu);
+      expect(assembly).not.toMatch(/\bsta\+2 \$0318\b/imu);
     } finally {
       await rm(root, { recursive: true });
     }

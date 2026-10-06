@@ -1,13 +1,15 @@
 import { createHash } from "node:crypto";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
-import type { SemanticFunction, SemanticOperation } from "../semantic/operations.js";
+import { interruptExecutionKey } from "../semantic/interrupt-context-facts.js";
 import { allocateStorage } from "./allocate.js";
+import { deeperStackRoute, hardwareCallRoutes } from "./call-stack.js";
 import { buildInterference } from "./interference.js";
 import { simultaneousIRQStackPeak } from "./irq-stack.js";
 import type {
   FunctionResultLocation,
   HelperCallDemand,
   InterferenceEdge,
+  NmiEntryStackPeak,
   ResourceTotals,
   StorageBinder,
   StorageClosureCertificate,
@@ -162,229 +164,6 @@ function peakTotals(
   });
 }
 
-interface HardwareStackRoute {
-  /** Return-address and helper bytes retained on this program route. */
-  readonly bytes: number;
-  /** Stable execution identities from the selected root to its deepest point. */
-  readonly route: readonly string[];
-}
-
-/** Select the larger stack route, using its stable identity to break equal-cost ties. */
-function deeperStackRoute(left: HardwareStackRoute, right: HardwareStackRoute): HardwareStackRoute {
-  if (left.bytes !== right.bytes) return left.bytes > right.bytes ? left : right;
-  return compareText(JSON.stringify(left.route), JSON.stringify(right.route)) <= 0 ? left : right;
-}
-
-/** Retain the live source-save depth at each operation, rather than summing unrelated maxima. */
-function operationStackDepths(fn: SemanticFunction): ReadonlyMap<SemanticOperation, number> {
-  const blocks = new Map(fn.blocks.map((block) => [block.id, block]));
-  const entries = new Map([[fn.entry, 0]]);
-  const pending = [fn.entry];
-  const depths = new Map<SemanticOperation, number>();
-  for (let index = 0; index < pending.length; index += 1) {
-    const id = pending[index]!;
-    const block = blocks.get(id);
-    if (block === undefined) continue;
-    let depth = entries.get(id)!;
-    for (const operation of block.operations) {
-      depths.set(operation, depth);
-      if (operation.kind === "cpu-control") {
-        if (operation.control === "asm_php") depth += 1;
-        else if (operation.control === "asm_plp") depth -= 1;
-      }
-    }
-    const terminator = block.terminator;
-    const successors =
-      terminator.kind === "jump"
-        ? [terminator.target]
-        : terminator.kind === "branch"
-          ? [terminator.whenTrue, terminator.whenFalse]
-          : [];
-    for (const successor of successors) {
-      // Frontend status proof has already required equal depths at joins and
-      // backedges; one traversal therefore fixes every reachable entry depth.
-      if (!entries.has(successor)) {
-        entries.set(successor, depth);
-        pending.push(successor);
-      }
-    }
-  }
-  return depths;
-}
-
-/** Compute the deepest reachable direct-call chain and retain the exact winning route. */
-function hardwareCallRoutes(
-  inventory: StorageInventory,
-  helperCalls: readonly HelperCallDemand[],
-): { readonly program: HardwareStackRoute; readonly interrupt: HardwareStackRoute } {
-  const graph = new Map(
-    inventory.program.callGraph.map(
-      (entry) =>
-        [bindingIdentityKey(entry.function), entry.callees.map(bindingIdentityKey)] as const,
-    ),
-  );
-  const helperStackByCaller = new Map<string, number>();
-  for (const helper of helperCalls) {
-    const caller = bindingIdentityKey(helper.caller);
-    helperStackByCaller.set(
-      caller,
-      Math.max(helperStackByCaller.get(caller) ?? 0, helper.stackBytes),
-    );
-  }
-  const helperByCaller = new Map<string, HelperCallDemand>();
-  for (const helper of helperCalls) {
-    const caller = bindingIdentityKey(helper.caller);
-    const previous = helperByCaller.get(caller);
-    if (
-      previous === undefined ||
-      helper.stackBytes > previous.stackBytes ||
-      (helper.stackBytes === previous.stackBytes && compareText(helper.id, previous.id) < 0)
-    ) {
-      helperByCaller.set(caller, helper);
-    }
-  }
-  const memo = new Map<string, HardwareStackRoute>();
-  const active = new Set<string>();
-  const vectorUpdates = new Set([
-    "c64.system.setIRQ",
-    "c64.system.setIRQExclusive",
-    "c64.system.restoreIRQ",
-    "c64.system.setNMI",
-    "c64.system.setNMIExclusive",
-    "c64.system.restoreNMI",
-  ]);
-  const depth = (functionKey: string): HardwareStackRoute => {
-    const known = memo.get(functionKey);
-    if (known !== undefined) return known;
-    if (active.has(functionKey)) {
-      return Object.freeze({
-        bytes: Number.POSITIVE_INFINITY,
-        route: Object.freeze([functionKey]),
-      });
-    }
-    active.add(functionKey);
-    const fn = inventory.program.semantic.functions.find(
-      ({ id }) => bindingIdentityKey(id) === functionKey,
-    );
-    const statusStackPeak = fn?.statusStackPeak ?? 0;
-    const depths =
-      fn === undefined ? new Map<SemanticOperation, number>() : operationStackDepths(fn);
-    // Index each operation once. A helper source may match several lowered operations;
-    // retain their maximum live depth without rescanning the function for every call.
-    const sourceDepths = new Map<string, number>();
-    const callDepths = new Map<string, number>();
-    for (const [operation, live] of depths) {
-      const key = JSON.stringify([
-        operation.span.sourceId,
-        operation.span.start,
-        operation.span.end,
-      ]);
-      sourceDepths.set(key, Math.max(sourceDepths.get(key) ?? 0, live));
-      const targets =
-        operation.kind === "call"
-          ? [operation.callee]
-          : operation.kind === "indirect-call"
-            ? (inventory.program.indirectTargets?.get(operation) ?? [])
-            : [];
-      for (const target of targets) {
-        const callee = bindingIdentityKey(target);
-        callDepths.set(callee, Math.max(callDepths.get(callee) ?? 0, live));
-      }
-    }
-    let functionDepth: HardwareStackRoute = Object.freeze({
-      bytes: statusStackPeak,
-      route: Object.freeze([functionKey]),
-    });
-    for (const helper of helperCalls) {
-      if (bindingIdentityKey(helper.caller) !== functionKey) continue;
-      const sourceKey =
-        helper.source === undefined
-          ? null
-          : JSON.stringify([helper.source.sourceId, helper.source.start, helper.source.end]);
-      const live =
-        (sourceKey === null ? undefined : sourceDepths.get(sourceKey)) ?? statusStackPeak;
-      functionDepth = deeperStackRoute(functionDepth, {
-        bytes: live + helper.stackBytes,
-        route: Object.freeze([functionKey, `helper:${helper.id}`]),
-      });
-    }
-    for (const [operation, live] of depths) {
-      if (operation.kind === "platform" && vectorUpdates.has(operation.capability)) {
-        functionDepth = deeperStackRoute(functionDepth, {
-          bytes: live + 2,
-          route: Object.freeze([functionKey, "interrupt-vector-update"]),
-        });
-      }
-    }
-    for (const callee of graph.get(functionKey) ?? []) {
-      const calleeDepth = depth(callee);
-      // Graph-only storage clients have no operation positions. Keep their
-      // conservative summary; real calls use the status depth at the call site.
-      const liveSaves = callDepths.get(callee) ?? statusStackPeak;
-      const candidate = Object.freeze({
-        bytes:
-          calleeDepth.bytes === Number.POSITIVE_INFINITY
-            ? calleeDepth.bytes
-            : liveSaves + calleeDepth.bytes + 2,
-        route: Object.freeze([functionKey, ...calleeDepth.route]),
-      });
-      functionDepth = deeperStackRoute(functionDepth, candidate);
-    }
-    active.delete(functionKey);
-    memo.set(functionKey, functionDepth);
-    return functionDepth;
-  };
-
-  let deepest: HardwareStackRoute = Object.freeze({ bytes: 0, route: Object.freeze(["main"]) });
-  for (const root of inventory.program.roots) {
-    if (root.kind === "main" || root.kind === "callable") {
-      deepest = deeperStackRoute(deepest, depth(bindingIdentityKey(root.function)));
-      continue;
-    }
-    if (root.kind === "initializer") {
-      const key = bindingIdentityKey(root.binding);
-      const helper = helperByCaller.get(key);
-      let initializerDepth: HardwareStackRoute = Object.freeze({
-        bytes: 2 + (helperStackByCaller.get(key) ?? 0),
-        route: Object.freeze(
-          helper === undefined
-            ? ["startup", `initializer:${key}`]
-            : ["startup", `initializer:${key}`, `helper:${helper.id}`],
-        ),
-      });
-      const initializer = (inventory.program.initializers ?? []).find(
-        ({ binding }) => bindingIdentityKey(binding) === key,
-      );
-      for (const callee of initializer?.callees ?? []) {
-        const calleeDepth = depth(bindingIdentityKey(callee));
-        initializerDepth = deeperStackRoute(
-          initializerDepth,
-          Object.freeze({
-            bytes:
-              calleeDepth.bytes === Number.POSITIVE_INFINITY
-                ? calleeDepth.bytes
-                : calleeDepth.bytes + 4,
-            route: Object.freeze(["startup", `initializer:${key}`, ...calleeDepth.route]),
-          }),
-        );
-      }
-      deepest = deeperStackRoute(deepest, initializerDepth);
-    }
-  }
-  let interrupt: HardwareStackRoute = Object.freeze({ bytes: 0, route: Object.freeze([]) });
-  for (const route of inventory.program.interruptRoutes ?? []) {
-    const body = depth(bindingIdentityKey(route.handler));
-    interrupt = deeperStackRoute(
-      interrupt,
-      Object.freeze({
-        bytes: route.variant.handlerEntryStackBytes + body.bytes,
-        route: Object.freeze([`interrupt:${route.variant.id}`, ...body.route]),
-      }),
-    );
-  }
-  return Object.freeze({ program: deepest, interrupt });
-}
-
 /** Return the proved hardware-stack split, or null when it exceeds the selected capacity. */
 function hardwareStackPeak(
   inventory: StorageInventory,
@@ -413,8 +192,7 @@ function hardwareStackPeak(
   const startup = profile.startupStackBytes ?? 0;
   if (
     (inventory.program.interruptRoutes?.length ?? 0) > 0 &&
-    profile.interruptStackBytes === undefined &&
-    inventory.program.interruptRoutes!.every(({ sink }) => sink.domain === "irq")
+    profile.interruptStackBytes === undefined
   ) {
     const peak =
       selectedPeak ??
@@ -453,6 +231,7 @@ function certificate(
   profile: StorageProfile,
   stackPeak: NonNullable<ReturnType<typeof hardwareStackPeak>>,
   helperCalls: readonly HelperCallDemand[],
+  nmiEntries: readonly NmiEntryStackPeak[],
 ): StorageClosureCertificate {
   return Object.freeze({
     inventoryHash: storageInventoryHash(inventory),
@@ -470,6 +249,7 @@ function certificate(
     hardwareStackProgramPeak: stackPeak.program,
     hardwareStackSystemPeak: stackPeak.system,
     hardwareStackRoute: stackPeak.route,
+    ...(nmiEntries.length === 0 ? {} : { nmiEntryPeaks: nmiEntries }),
     closed: true,
   });
 }
@@ -485,7 +265,7 @@ function binderFacts(discover: StorageDiscovery | StorageBinder): StorageBinder 
 }
 
 /** Validate the finite binder declaration before executing its callback. */
-function validBinder(binder: StorageBinder): boolean {
+function validBinder(binder: StorageBinder, inventory: StorageInventory): boolean {
   const candidateIds = new Set(binder.candidateRequestIds);
   const helperIds = new Set(binder.helperCalls.map(({ id }) => id));
   if (
@@ -495,15 +275,34 @@ function validBinder(binder: StorageBinder): boolean {
   ) {
     return false;
   }
-  return binder.helperCalls.every(
-    (helper) =>
-      helper.id.length > 0 &&
-      Number.isInteger(helper.stackBytes) &&
-      helper.stackBytes >= 0 &&
-      new Set(helper.liveRequestIds).size === helper.liveRequestIds.length &&
-      new Set(helper.helperRequestIds).size === helper.helperRequestIds.length &&
-      helper.liveRequestIds.every((id) => id.length > 0) &&
-      helper.helperRequestIds.every((id) => id.length > 0),
+  const nmiEntries = binder.nmiEntries ?? [];
+  const proof = inventory.program.interruptContextAnalysis;
+  const validEntries =
+    new Set(nmiEntries.map(({ id }) => id)).size === nmiEntries.length &&
+    nmiEntries.every(
+      (entry) =>
+        entry.id.length > 0 &&
+        Number.isInteger(entry.entryStackBytes) &&
+        entry.entryStackBytes >= 3 &&
+        entry.contexts.length > 0 &&
+        entry.contexts.every(
+          (context) =>
+            context.domain === "nmi" &&
+            proof?.reached.has(interruptExecutionKey(entry.handler, context)) === true,
+        ),
+    );
+  return (
+    validEntries &&
+    binder.helperCalls.every(
+      (helper) =>
+        helper.id.length > 0 &&
+        Number.isInteger(helper.stackBytes) &&
+        helper.stackBytes >= 0 &&
+        new Set(helper.liveRequestIds).size === helper.liveRequestIds.length &&
+        new Set(helper.helperRequestIds).size === helper.helperRequestIds.length &&
+        helper.liveRequestIds.every((id) => id.length > 0) &&
+        helper.helperRequestIds.every((id) => id.length > 0),
+    )
   );
 }
 
@@ -538,7 +337,8 @@ export function closeStorage(
 ): StorageClosureResult {
   let requests = [...initial.requests].sort((left, right) => compareText(left.id, right.id));
   const binder = binderFacts(discover);
-  if (!validBinder(binder)) return Object.freeze({ kind: "error", reason: "nonconvergent" });
+  if (!validBinder(binder, initial))
+    return Object.freeze({ kind: "error", reason: "nonconvergent" });
   const candidateIds = new Set(binder.candidateRequestIds);
   const helperCalls = Object.freeze(
     [...binder.helperCalls].sort((left, right) => compareText(left.id, right.id)),
@@ -552,8 +352,7 @@ export function closeStorage(
     });
     const selectedPeak =
       (inventory.program.interruptRoutes?.length ?? 0) > 0 &&
-      profile.interruptStackBytes === undefined &&
-      inventory.program.interruptRoutes!.every(({ sink }) => sink.domain === "irq")
+      profile.interruptStackBytes === undefined
         ? simultaneousIRQStackPeak(
             inventory.program,
             helperCalls,
@@ -631,6 +430,25 @@ export function closeStorage(
         route: stackPeak.route,
       });
     }
+    const nmiEntries =
+      (binder.nmiEntries?.length ?? 0) === 0
+        ? []
+        : hardwareCallRoutes(inventory, helperCalls, binder.nmiEntries).nmiEntries;
+    for (const entry of nmiEntries) {
+      const available =
+        profile.hardwareStackCapacity === undefined
+          ? undefined
+          : profile.hardwareStackCapacity - (profile.hardwareStackReserve ?? 0);
+      if (!Number.isFinite(entry.bytes) || (available !== undefined && entry.bytes > available)) {
+        return Object.freeze({
+          kind: "error",
+          reason: "stack",
+          measured: entry.bytes,
+          ...(available === undefined ? {} : { available }),
+          route: Object.freeze([`per-entry:generated-nmi`, entry.id, ...entry.route]),
+        });
+      }
+    }
     return Object.freeze({
       kind: "complete",
       inventory,
@@ -643,6 +461,7 @@ export function closeStorage(
         profile,
         stackPeak,
         helperCalls,
+        nmiEntries,
       ),
     });
   }

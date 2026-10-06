@@ -84,7 +84,7 @@ describe("semantic CFG implementation", () => {
   });
 
   it("rejects an internally malformed jump target before publishing the graph", () => {
-    const builder = new ControlFlowBuilder("malformed");
+    const builder = new ControlFlowBuilder("malformed", new Map());
     builder.terminate(Object.freeze({ kind: "jump", target: "malformed:missing" }));
 
     expect(() => builder.finish({ kind: "scalar", name: "void" })).toThrow(

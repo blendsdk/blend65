@@ -1,6 +1,8 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { ExecutionDomain } from "../semantic/interrupt-domains.js";
 import { interruptDepthAt } from "../semantic/interrupt-contexts.js";
+import { functionEntryContext } from "../semantic/interrupt-context-facts.js";
+import { reachableBlocks } from "../semantic/value-lifetimes.js";
 import type {
   InterruptExecutionContext,
   InterruptExecutionContexts,
@@ -29,11 +31,15 @@ export function provisionalDomainAliases(
 ): StoragePlacement {
   const existing = new Set(placement.homes.map(({ requestId }) => requestId));
   const aliases: StorageHome[] = [];
+  const domains: readonly ExecutionDomain[] =
+    activationRoot === undefined ? ["irq", "nmi"] : ["main", "irq", "nmi"];
+  const hasNmiContexts =
+    program.interruptRoutes?.some(({ sink }) => sink.domain === "nmi") === true;
   for (const entry of program.executionDomains ?? []) {
     const key = bindingIdentityKey(entry.function);
     for (const home of placement.homes) {
-      for (const domain of ["irq", "nmi"] as const) {
-        const prefix = `${domainOwner(key, domain, domain === "irq" ? activationRoot : undefined)}:`;
+      for (const domain of domains) {
+        const prefix = `${domainOwner(key, domain, domain === "irq" || hasNmiContexts ? activationRoot : undefined)}:`;
         if (!home.requestId.startsWith(prefix)) continue;
         const alias = `${key}:${home.requestId.slice(prefix.length)}`;
         if (existing.has(alias)) continue;
@@ -53,7 +59,7 @@ export function domainRequestId(
   activationRoot?: string,
 ): string {
   for (const entry of program.executionDomains ?? []) {
-    if (!entry.domains.includes(domain)) continue;
+    if (activationRoot === undefined && !entry.domains.includes(domain)) continue;
     const key = bindingIdentityKey(entry.function);
     for (const prefix of [key, `machine:${key}`]) {
       for (const current of [prefix, `${prefix}@irq`, `${prefix}@nmi`]) {
@@ -93,16 +99,50 @@ export function contextFunctionLabel(
     const key = bindingIdentityKey(fn.id);
     if (label !== `fn.${key}`) continue;
     if (fn.entryKind === "interrupt") return label;
-    if (rootAware && context.domain === "irq" && context.activationRoot !== undefined) {
+    // An ordinary terminal leaf with only constants and unconditional edges
+    // has no fixed homes, calls, links or entry/exit duties to specialize.
+    // Share only that source function's canonical body; different declarations
+    // still have different labels, even when both are identical empty loops.
+    if (
+      fn.parameters.length === 0 &&
+      fn.result.kind === "scalar" &&
+      fn.result.name === "void" &&
+      program.interruptOwnership?.returningBodies?.get(key) === false &&
+      // Finite function-word consumers keep their existing canonical/context
+      // selection. This narrow sharing rule covers closed direct leaf calls,
+      // without also changing the independent indirect-call dispatch strategy.
+      ![...(program.indirectTargets?.values() ?? [])].some((targets) =>
+        targets.some((target) => bindingIdentityKey(target) === key),
+      ) &&
+      reachableBlocks(fn.entry, fn.blocks).every(
+        (block) =>
+          block.terminator.kind === "jump" &&
+          block.operations.every((operation) => operation.kind === "constant"),
+      )
+    )
+      return label;
+    context = functionEntryContext(key, context, contexts, rootAware);
+    if (rootAware && context.activationRoot !== undefined) {
       const root = Buffer.from(context.activationRoot).toString("hex");
-      const selected = (contexts.get(key) ?? []).filter(
-        (entry) => entry.activationRoot === context.activationRoot,
-      );
+      const chosen = context;
+      // One retained mainline ABI owns the ordinary source label. Additional
+      // fixed-word variants still specialize consistently with their callers.
+      const firstMain = (contexts.get(key) ?? []).find((entry) => entry.domain === "main");
+      if (
+        context.domain === "main" &&
+        firstMain !== undefined &&
+        firstMain.activationRoot === chosen.activationRoot &&
+        firstMain.localIrqDepth === chosen.localIrqDepth &&
+        firstMain.localNmiDepth === chosen.localNmiDepth
+      )
+        return label;
+      // The paired local depths distinguish both sinks in a mixed route. Legacy
+      // IRQ-only contexts lack the NMI field and retain their original label.
       const depth =
-        selected.find((entry) => entry.localIrqDepth === context.localIrqDepth)?.localIrqDepth ??
-        (selected.length === 1 ? selected[0]!.localIrqDepth : context.localIrqDepth) ??
-        0;
-      return `${label}.irq.root${root}.depth${depth}`;
+        chosen.localNmiDepth === undefined
+          ? `${chosen.localIrqDepth ?? 0}`
+          : `${chosen.localIrqDepth ?? 0}.${chosen.localNmiDepth}`;
+      return `${label}.${context.domain}.root${root}.depth${depth}`;
     }
     const sameDomain = (contexts.get(key) ?? []).filter((entry) => entry.domain === context.domain);
     if (
@@ -117,14 +157,18 @@ export function contextFunctionLabel(
   return label;
 }
 
-/** Recover the source call behind a selected JSR so its callee gets the right vector depth. */
+/** Recover a call's entry depths for both its JSR and its incoming-home writes. */
 function calleeContext(
   instruction: MachineInstruction,
   label: string,
   context: InterruptExecutionContext,
   program: WholeProgram,
+  callContexts: Map<string, InterruptExecutionContext>,
 ): InterruptExecutionContext {
-  if (instruction.opcode !== "jsr" || instruction.source === null) return context;
+  if (instruction.source === null) return context;
+  const cacheKey = JSON.stringify([label, instruction.source]);
+  const cached = callContexts.get(cacheKey);
+  if (cached !== undefined) return cached;
   for (const owner of [...program.semantic.functions, ...program.semantic.globals]) {
     for (const block of owner.blocks) {
       for (const operation of block.operations) {
@@ -140,10 +184,42 @@ function calleeContext(
             ? [operation.callee]
             : (program.indirectTargets?.get(operation) ?? []);
         if (targets.some((target) => label === `fn.${bindingIdentityKey(target)}`)) {
-          return interruptDepthAt(context, operation, program);
+          const selected = interruptDepthAt(context, operation, program);
+          callContexts.set(cacheKey, selected);
+          return selected;
         }
       }
     }
+  }
+  callContexts.set(cacheKey, context);
+  return context;
+}
+
+/**
+ * Only a target-owned home uses the callee ABI. Caller argument staging and
+ * aggregate result storage keep the caller's descriptor even at the call span.
+ */
+function privateHomeContext(
+  requestId: string,
+  instruction: MachineInstruction,
+  context: InterruptExecutionContext,
+  contexts: InterruptExecutionContexts,
+  program: WholeProgram,
+  rootAware: boolean,
+  callContexts: Map<string, InterruptExecutionContext>,
+): InterruptExecutionContext {
+  for (const fn of program.semantic.functions) {
+    const key = bindingIdentityKey(fn.id);
+    if (
+      ![key, `machine:${key}`].some((prefix) =>
+        [prefix, `${prefix}@irq`, `${prefix}@nmi`].some((owner) =>
+          requestId.startsWith(`${owner}:`),
+        ),
+      )
+    )
+      continue;
+    const at = calleeContext(instruction, `fn.${key}`, context, program, callContexts);
+    return at === context ? context : functionEntryContext(key, at, contexts, rootAware);
   }
   return context;
 }
@@ -156,16 +232,26 @@ function domainOperand(
   contexts: InterruptExecutionContexts,
   program: WholeProgram,
   rootAware: boolean,
+  callContexts: Map<string, InterruptExecutionContext>,
 ): MachineOperand | null {
   if (operand === null) return null;
   if (operand.kind === "storage" || operand.kind === "indirect-y") {
+    const selected = privateHomeContext(
+      operand.requestId,
+      instruction,
+      context,
+      contexts,
+      program,
+      rootAware,
+      callContexts,
+    );
     return Object.freeze({
       ...operand,
       requestId: domainRequestId(
         operand.requestId,
-        context.domain,
+        selected.domain,
         program,
-        rootAware ? context.activationRoot : undefined,
+        rootAware ? selected.activationRoot : undefined,
       ),
     });
   }
@@ -178,7 +264,7 @@ function domainOperand(
       ...operand,
       label: contextFunctionLabel(
         operand.label,
-        calleeContext(instruction, operand.label, context, program),
+        calleeContext(instruction, operand.label, context, program, callContexts),
         contexts,
         program,
         rootAware,
@@ -191,18 +277,30 @@ function domainOperand(
 /** Retain memory-effect identity when a private home changes address. */
 function domainAddress(
   address: MachineMemoryAddress,
+  instruction: MachineInstruction,
   context: InterruptExecutionContext,
+  contexts: InterruptExecutionContexts,
   program: WholeProgram,
   rootAware: boolean,
+  callContexts: Map<string, InterruptExecutionContext>,
 ): MachineMemoryAddress {
   if (address.kind === "storage" || address.kind === "indirect-y") {
+    const selected = privateHomeContext(
+      address.requestId,
+      instruction,
+      context,
+      contexts,
+      program,
+      rootAware,
+      callContexts,
+    );
     return Object.freeze({
       ...address,
       requestId: domainRequestId(
         address.requestId,
-        context.domain,
+        selected.domain,
         program,
-        rootAware ? context.activationRoot : undefined,
+        rootAware ? selected.activationRoot : undefined,
       ),
     });
   }
@@ -216,15 +314,32 @@ function domainInstruction(
   contexts: InterruptExecutionContexts,
   program: WholeProgram,
   rootAware: boolean,
+  callContexts: Map<string, InterruptExecutionContext>,
 ): MachineInstruction {
   return Object.freeze({
     ...instruction,
-    operand: domainOperand(instruction.operand, instruction, context, contexts, program, rootAware),
+    operand: domainOperand(
+      instruction.operand,
+      instruction,
+      context,
+      contexts,
+      program,
+      rootAware,
+      callContexts,
+    ),
     memory: Object.freeze(
       instruction.memory.map((effect) =>
         Object.freeze({
           ...effect,
-          address: domainAddress(effect.address, context, program, rootAware),
+          address: domainAddress(
+            effect.address,
+            instruction,
+            context,
+            contexts,
+            program,
+            rootAware,
+            callContexts,
+          ),
         }),
       ),
     ),
@@ -244,6 +359,9 @@ export function domainMachineFunction(
   const labels = new Map(
     body.blocks.map((block) => [block.label, `${block.label}${suffix}`] as const),
   );
+  // Argument setup repeats one source call span across many instructions and
+  // effects. Recover that call once per target/body, not once per byte access.
+  const callContexts = new Map<string, InterruptExecutionContext>();
   const target = (label: string): string =>
     labels.get(label) ?? contextFunctionLabel(label, context, contexts, program, rootAware);
   const blocks: MachineBlock[] = body.blocks.map((block) => {
@@ -269,7 +387,14 @@ export function domainMachineFunction(
       label: labels.get(block.label)!,
       instructions: Object.freeze(
         block.instructions.map((instruction) => {
-          const selected = domainInstruction(instruction, context, contexts, program, rootAware);
+          const selected = domainInstruction(
+            instruction,
+            context,
+            contexts,
+            program,
+            rootAware,
+            callContexts,
+          );
           return selected.operand?.kind === "label" && labels.has(selected.operand.label)
             ? Object.freeze({
                 ...selected,

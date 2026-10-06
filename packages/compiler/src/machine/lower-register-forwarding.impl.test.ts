@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { SemanticOperation } from "../semantic/operations.js";
 import { selectRegisterForwarding } from "./lower-register-forwarding.js";
-import { BYTE, WORD, semanticBlock, sourceSpan } from "./lowering-test-support.js";
+import {
+  BOOLEAN,
+  BYTE,
+  VOID,
+  WORD,
+  semanticBlock,
+  sourceBinding,
+  sourceSpan,
+} from "./lowering-test-support.js";
 
 const span = sourceSpan(901);
 
@@ -47,7 +55,86 @@ function forwarded(operations: readonly SemanticOperation[], singleUse = true): 
   ).forwardedRegisterValues.has("value");
 }
 
+/** Keep branch and callee edges explicit when testing the adjacent read/Z proof. */
+function terminalChoice(
+  options: {
+    zero?: bigint;
+    barrier?: boolean;
+    returns?: boolean;
+    width?: 1 | 2;
+    fixed?: boolean;
+    singleUse?: boolean;
+  } = {},
+): boolean {
+  const zero: SemanticOperation = {
+    kind: "constant",
+    result: "zero",
+    value: options.zero ?? 0n,
+    type: BYTE,
+    integer: null,
+    span,
+  };
+  const comparison: SemanticOperation = {
+    kind: "binary",
+    result: "selected",
+    operator: "!=",
+    left: "value",
+    right: "zero",
+    type: BOOLEAN,
+    integer: null,
+    span,
+  };
+  const call: SemanticOperation = {
+    kind: "call",
+    result: null,
+    callee: sourceBinding(902),
+    arguments: [],
+    type: VOID,
+    span,
+  };
+  const blocks = [
+    semanticBlock(
+      "entry",
+      [
+        ...(options.fixed === false ? [] : [{ ...destination, result: "source" }]),
+        { ...read, width: options.width ?? 1, type: options.width === 2 ? WORD : BYTE },
+        ...(options.barrier
+          ? [{ kind: "cpu-control" as const, control: "asm_nop" as const, span }]
+          : []),
+        zero,
+        comparison,
+      ],
+      { kind: "branch", condition: "selected", whenTrue: "true", whenFalse: "false" },
+    ),
+    semanticBlock("true", [call], { kind: "unreachable" }),
+    semanticBlock(
+      "false",
+      [call],
+      options.returns ? { kind: "return", value: null } : { kind: "unreachable" },
+    ),
+  ];
+  return selectRegisterForwarding(
+    blocks,
+    new Set(options.singleUse === false ? [] : ["value"]),
+  ).forwardedRegisterValues.has("value");
+}
+
 describe("adjacent register ownership", () => {
+  it("reuses the adjacent byte read for a closed terminal-choice zero test", () => {
+    expect(terminalChoice()).toBe(true);
+  });
+
+  it.each([
+    ["nonzero comparison", { zero: 1n }],
+    ["explicit intervening instruction", { barrier: true }],
+    ["returning arm", { returns: true }],
+    ["word read", { width: 2 as const }],
+    ["dynamic source address", { fixed: false }],
+    ["multiple read consumers", { singleUse: false }],
+  ])("does not reuse the read/Z proof for %s", (_name, options) => {
+    expect(terminalChoice(options)).toBe(false);
+  });
+
   it("forwards a single byte through zero-instruction constant setup", () => {
     expect(forwarded([read, destination, write])).toBe(true);
   });

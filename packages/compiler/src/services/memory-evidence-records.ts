@@ -3,6 +3,7 @@ import type { EvidenceRecord } from "../artifacts/evidence-types.js";
 import { canonicalEvidenceHash } from "../artifacts/evidence-validation.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { StorageClosureCertificate, StorageInventory } from "../storage/storage-types.js";
+import type { MachineFunction } from "../machine/machine-types.js";
 import {
   compareText,
   functionName,
@@ -123,6 +124,30 @@ function physicalInterval(
   });
 }
 
+/**
+ * Keep a publication adapter and its source-constrained wrapper as physical
+ * pieces. A bounding interval would falsely own unrelated code or padding.
+ * Ordinary functions preserve their existing single-range projection.
+ */
+function functionCodeRanges(fn: MachineFunction): readonly { start: number; end: number }[] {
+  if (!fn.nmiPublicationEntry) return [machineFunctionRange(fn)];
+  const ranges = fn.blocks
+    .flatMap((block) =>
+      block.instructions.length === 0 &&
+      (block.terminator.kind === "fallthrough" || block.terminator.kind === "unreachable")
+        ? []
+        : [machineBlockRange(block)],
+    )
+    .sort((left, right) => left.start - right.start);
+  const groups: { start: number; end: number }[] = [];
+  for (const range of ranges) {
+    const last = groups.at(-1);
+    if (last?.end === range.start) last.end = range.end;
+    else groups.push({ ...range });
+  }
+  return groups;
+}
+
 /** Derive the ordered physical memory ledger from final layout and closure records. */
 export function deriveMemoryIntervals(
   layout: CompleteC64Layout,
@@ -165,7 +190,7 @@ export function deriveMemoryIntervals(
       for (const machine of layout.program.functions) {
         if (
           (fn.entryKind === "interrupt" && machine.id.startsWith(`interrupt.${key}.`)) ||
-          machine.id.startsWith(`fn.${key}.main.depth`) ||
+          machine.id.startsWith(`fn.${key}.main.`) ||
           machine.id.startsWith(`fn.${key}.irq`) ||
           machine.id.startsWith(`fn.${key}.nmi`)
         ) {
@@ -201,27 +226,29 @@ export function deriveMemoryIntervals(
       );
     }
     for (const machine of layout.program.functions) {
-      const range = machineFunctionRange(machine);
-      if (range.start < interval.start || range.end - 1 > interval.end) continue;
+      const ranges = functionCodeRanges(machine);
       const ownerName = sourceOwners.get(machine.id);
-      pieces.push(
-        physicalInterval(
-          Object.freeze({
-            id: `code.${machine.id}`,
-            kind: "code",
-            start: range.start,
-            end: range.end - 1,
-            bytes: null,
-          }),
-          inventory,
-          certificate,
-          assetIds,
-          spriteAssetIds,
-          ownerName === undefined
-            ? Object.freeze({ kind: "platform", id: machine.id })
-            : Object.freeze({ kind: "function", id: ownerName }),
-        ),
-      );
+      for (const [rangeIndex, range] of ranges.entries()) {
+        if (range.start < interval.start || range.end - 1 > interval.end) continue;
+        pieces.push(
+          physicalInterval(
+            Object.freeze({
+              id: ranges.length === 1 ? `code.${machine.id}` : `code.${machine.id}.${rangeIndex}`,
+              kind: "code",
+              start: range.start,
+              end: range.end - 1,
+              bytes: null,
+            }),
+            inventory,
+            certificate,
+            assetIds,
+            spriteAssetIds,
+            ownerName === undefined
+              ? Object.freeze({ kind: "platform", id: machine.id })
+              : Object.freeze({ kind: "function", id: ownerName }),
+          ),
+        );
+      }
     }
     pieces.sort((left, right) => (left.start as number) - (right.start as number));
     let cursor = interval.start;

@@ -3,6 +3,7 @@ import type { TargetProfile } from "../target/profile.js";
 import { selectC64KernalFacts } from "../profile/c64-kernal.js";
 import { repairMachineBranches } from "../machine/block-layout.js";
 import { validateMachineProgram } from "../machine/bind.js";
+import { machineInstruction } from "../machine/lower-control.js";
 import type { MachineFunction, MachineProgram } from "../machine/machine-types.js";
 import {
   align,
@@ -178,6 +179,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   ];
   const fixedReservations = [...fixedData, ...fixedCode, ...sfaIntervals];
   const repairedById = new Map<string, MachineFunction>();
+  const nmiAdapters = new Set<string>();
   for (const fn of orderedFunctions) {
     const fixed = fixedFunctions.get(fn.id);
     if (fixed === undefined) continue;
@@ -191,6 +193,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
       return Object.freeze({ kind: "error", reason: "source-placement", objectId: fn.id });
     codePieces.push({ start: origin, end: origin + fixed.byteLength - 1 });
     repairedById.set(fn.id, fixed.function);
+    if (fn.nmiPublicationEntry && (origin & 0xff) !== 0x47) nmiAdapters.add(fn.id);
   }
   for (const fn of orderedFunctions) {
     if (repairedById.has(fn.id)) continue;
@@ -198,14 +201,26 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     if (estimate.kind === "error") {
       return Object.freeze({ kind: "error", reason: "branch-layout", objectId: fn.id });
     }
-    const origin = freeSourceStart(
+    let origin = freeSourceStart(
       input.profile.packager.startupAddress + entryBytes,
       estimate.byteLength,
       1,
       fn.placement,
       [...codePieces, ...fixedReservations],
       input.profile,
+      fn.nmiPublicationEntry === true,
     );
+    if (origin === null && fn.nmiPublicationEntry) {
+      origin = freeSourceStart(
+        input.profile.packager.startupAddress + entryBytes,
+        estimate.byteLength,
+        1,
+        fn.placement,
+        [...codePieces, ...fixedReservations],
+        input.profile,
+      );
+      nmiAdapters.add(fn.id);
+    }
     if (origin === null || (fn.id === mainTarget && !needsMainJump && origin !== entryEnd)) {
       return Object.freeze({ kind: "error", reason: "source-placement", objectId: fn.id });
     }
@@ -214,6 +229,46 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
       return Object.freeze({ kind: "error", reason: "branch-layout", objectId: fn.id });
     codePieces.push({ start: origin, end: origin + repaired.byteLength - 1 });
     repairedById.set(fn.id, repaired.function);
+  }
+  for (const id of nmiAdapters) {
+    const wrapper = repairedById.get(id)!;
+    const origin = freeSourceStart(
+      input.profile.packager.startupAddress + entryBytes,
+      3,
+      1,
+      undefined,
+      [...codePieces, ...fixedReservations],
+      input.profile,
+      true,
+    );
+    if (origin === null)
+      return Object.freeze({ kind: "error", reason: "source-placement", objectId: id });
+    const body = wrapper.blocks[0]!;
+    const entry = Object.freeze({
+      label: `${body.label}.nmi-publication`,
+      origin,
+      instructions: Object.freeze([
+        machineInstruction(
+          input.profile.cpu,
+          "jmp",
+          "absolute",
+          Object.freeze({ kind: "label", label: body.label }),
+          [],
+        ),
+      ]),
+      terminator: Object.freeze({ kind: "unreachable" as const }),
+    });
+    // The body already passed its complete source constraints. This immutable
+    // entry owns no function storage; both pieces retain one source/debug owner.
+    repairedById.set(
+      id,
+      Object.freeze({
+        ...wrapper,
+        origin,
+        blocks: Object.freeze([entry, ...wrapper.blocks]),
+      }),
+    );
+    codePieces.push({ start: origin, end: origin + 2 });
   }
   const restoreOrigin = freeSourceStart(
     input.profile.packager.startupAddress + entryBytes,

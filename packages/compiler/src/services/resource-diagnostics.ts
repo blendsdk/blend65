@@ -144,7 +144,9 @@ export function sharedRamAllocationFailure(
 /** Attribute a certified winning route without adding fields to its frozen evidence schema. */
 function stackParts(
   program: WholeProgram,
-  certificate: StorageClosureCertificate,
+  route: readonly string[],
+  peak: number,
+  nmiEntryBytes = 0,
 ): {
   calls: number;
   entries: number;
@@ -152,9 +154,9 @@ function stackParts(
 } {
   const functions = new Set(program.semantic.functions.map(({ id }) => bindingIdentityKey(id)));
   let calls = 0;
-  let entries = 0;
+  let entries = nmiEntryBytes;
   let caller = false;
-  for (const step of certificate.hardwareStackRoute) {
+  for (const step of route) {
     if (step.startsWith("interrupt:")) {
       const variant = program.interruptRoutes?.find(
         (route) => `interrupt:${route.variant.id}` === step,
@@ -173,7 +175,7 @@ function stackParts(
       calls += 2;
     }
   }
-  return { calls, entries, pushes: certificate.hardwareStackPeak - calls - entries };
+  return { calls, entries, pushes: peak - calls - entries };
 }
 
 /** Report warnings from closed function storage; no warning changes generated instructions. */
@@ -200,13 +202,23 @@ export function storageResourceWarnings(
       ),
     );
   }
-  if (certificate.hardwareStackPeak >= C64_RESOURCE_BUDGETS.stackWarning) {
-    const parts = stackParts(program, certificate);
+  // Compare independently proved components, never sum unbounded NMI arrivals.
+  let stackPeak = certificate.hardwareStackPeak;
+  let stackRoute = certificate.hardwareStackRoute;
+  let nmiEntryBytes = 0;
+  for (const entry of certificate.nmiEntryPeaks ?? []) {
+    if (entry.bytes <= stackPeak) continue;
+    stackPeak = entry.bytes;
+    stackRoute = entry.route;
+    nmiEntryBytes = entry.entryStackBytes;
+  }
+  if (stackPeak >= C64_RESOURCE_BUDGETS.stackWarning) {
+    const parts = stackParts(program, stackRoute, stackPeak, nmiEntryBytes);
     const capacity = profile.storage.hardwareStackCapacity! - profile.storage.hardwareStackReserve!;
     diagnostics.push(
       scalarWarning(
         "W10180",
-        `Maximum simultaneous hardware-stack use is ${certificate.hardwareStackPeak} bytes on '${profile.id}'; usable capacity is ${capacity} (calls ${parts.calls}, interrupt entries ${parts.entries}, explicit pushes ${parts.pushes})`,
+        `Maximum simultaneous hardware-stack use is ${stackPeak} bytes on '${profile.id}'; usable capacity is ${capacity} (calls ${parts.calls}, interrupt entries ${parts.entries}, explicit pushes ${parts.pushes})`,
         main,
       ),
     );

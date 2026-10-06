@@ -1,5 +1,7 @@
 import { SCALAR_TYPES } from "../frontend/constants.js";
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type {
+  SemanticBinding,
   SemanticType,
   TypedBlock,
   TypedExpr,
@@ -55,13 +57,16 @@ function isVoid(type: SemanticType): boolean {
 export class ControlFlowBuilder {
   private readonly blocks: MutableSemanticBlock[] = [];
   private readonly prefix: string;
+  /** Authoritative declaration facts; names alone cannot distinguish shadowed bindings. */
+  private readonly bindingsByKey: ReadonlyMap<string, SemanticBinding>;
   private blockCounter = 0;
   private valueCounter = 0;
   private current: MutableSemanticBlock | null;
 
-  /** Create a builder with one live entry block. */
-  constructor(prefix: string) {
+  /** Create one live entry block using the completed frontend's declaration facts. */
+  constructor(prefix: string, bindingsByKey: ReadonlyMap<string, SemanticBinding>) {
     this.prefix = prefix;
+    this.bindingsByKey = bindingsByKey;
     this.current = this.createBlock("entry");
   }
 
@@ -176,6 +181,17 @@ export class ControlFlowBuilder {
   ): void {
     switch (statement.kind) {
       case "variable": {
+        const binding = this.bindingsByKey.get(bindingIdentityKey(statement.binding));
+        if (binding === undefined) throw new Error("Completed local has no retained binding");
+        // Unplaced scalar constants already substitute at every use. Lowering their
+        // declaration would invent an initialization store and an unnecessary home.
+        if (
+          binding.storage === "constant" &&
+          binding.materialized !== true &&
+          binding.loadable !== true &&
+          (statement.type.kind === "scalar" || statement.type.kind === "enum")
+        )
+          return;
         if (statement.initializer === null) return;
         const destination: AggregateDestination | undefined =
           statement.type.kind === "array" || statement.type.kind === "struct"

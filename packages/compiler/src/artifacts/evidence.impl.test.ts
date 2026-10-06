@@ -8,6 +8,7 @@ import {
   encodeMemoryEvidence,
 } from "./evidence.js";
 import { canonicalEvidenceJson } from "./evidence-validation.js";
+import { locationRecord } from "./debug-evidence-records.js";
 
 const ZERO_HASH = "0".repeat(64);
 
@@ -79,6 +80,38 @@ function emptyDebug() {
 }
 
 describe("version-1 evidence invariants", () => {
+  it("should allow an empty contextual range only for an erased zero-byte symbol", () => {
+    const symbol = { kind: "local", byteWidth: 0 };
+    const contexts = [{ kind: "entry", functionIndex: 0, entryVariantIndex: 0 }];
+    const location = {
+      symbolIndex: 0,
+      contextIndex: 0,
+      liveRangeIndexes: [],
+      availability: { kind: "optimizedAway", rule: "zero-byte position marker" },
+    };
+    expect(locationRecord(location, [symbol], contexts, [], 0, 0)).toBe(true);
+    expect(locationRecord(location, [{ ...symbol, byteWidth: 1 }], contexts, [], 0, 0)).toBe(false);
+    expect(
+      locationRecord(
+        { ...location, availability: { kind: "unavailable", reason: "notLive" } },
+        [symbol],
+        contexts,
+        [],
+        0,
+        0,
+      ),
+    ).toBe(false);
+    expect(locationRecord({ ...location, contextIndex: 1 }, [symbol], contexts, [], 0, 0)).toBe(
+      false,
+    );
+    expect(
+      locationRecord({ ...location, contextIndex: undefined }, [symbol], contexts, [], 0, 0),
+    ).toBe(false);
+    expect(
+      locationRecord({ ...location, liveRangeIndexes: [0] }, [symbol], contexts, [], 0, 0),
+    ).toBe(false);
+  });
+
   it("should reject nested unknown fields and selected-asset identity disagreement", () => {
     const valid = selectedAsset();
     expect(

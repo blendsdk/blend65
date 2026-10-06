@@ -473,7 +473,13 @@ export function locationRecord(
   const kind = String(symbols[value.symbolIndex]!.kind);
   if (CONTEXT_SYMBOLS.has(kind) && value.contextIndex === undefined) return false;
   if (CONTEXT_FREE_SYMBOLS.has(kind) && value.contextIndex !== undefined) return false;
-  return value.liveRangeIndexes.length > 0 || value.contextIndex === undefined;
+  // An erased zero-byte object still belongs to its valid execution context,
+  // but cannot require an instruction or a nonempty physical memory range.
+  const zeroByteMarker =
+    symbols[value.symbolIndex]!.byteWidth === 0 &&
+    isEvidenceRecord(value.availability) &&
+    value.availability.kind === "optimizedAway";
+  return value.liveRangeIndexes.length > 0 || value.contextIndex === undefined || zeroByteMarker;
 }
 
 /** Validate one range owner and its referenced index. */

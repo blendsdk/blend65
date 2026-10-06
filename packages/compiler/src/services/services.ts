@@ -19,6 +19,7 @@ import { overlappingIrqRootWarnings } from "../semantic/interrupt-domains.js";
 import { closeWholeProgram } from "../semantic/whole-program.js";
 import { allocateStorage } from "../storage/allocate.js";
 import { closeStorage } from "../storage/closure.js";
+import { nmiPrivateStorageRoute } from "../storage/nmi-private-storage.js";
 import { buildInterference } from "../storage/interference.js";
 import { inventoryStorage } from "../storage/inventory.js";
 import { selectTargetProfile } from "../target/profile.js";
@@ -195,7 +196,11 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
   if (semantic.kind === "incomplete") {
     return { kind: "failure", failure: incompleteStage("semantic lowering") };
   }
-  const closed = closeWholeProgram(semantic.program, selected.profile.interrupts);
+  const closed = closeWholeProgram(
+    semantic.program,
+    selected.profile.interrupts,
+    selected.profile.storage,
+  );
   if (closed.kind === "error") {
     return { kind: "failure", failure: failure("compiler", closed.diagnostics) };
   }
@@ -304,6 +309,19 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
       };
     }
     return { kind: "failure", failure: incompleteStage("static storage closure") };
+  }
+  const privateNmi = nmiPrivateStorageRoute(certificate.inventory);
+  if (privateNmi !== null) {
+    return {
+      kind: "failure",
+      failure: failure("source", [
+        projectDiagnostic(
+          "E10245",
+          `Execution path '${privateNmi.sink.source}' has unbounded private-storage overlap, disallowed unbounded stack use, or unproved generated reentrancy`,
+          privateNmi.installation.span,
+        ),
+      ]),
+    };
   }
   const machine = bindMachineProgram(lowered.program, certificate.certificate);
   if (machine.kind === "error") {

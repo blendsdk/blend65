@@ -31,6 +31,7 @@ function lower(profileId: string, handback: boolean, capability = "c64.system.re
     interruptBinding: () => ({
       linkRequestId: "saved-link",
       entryLabel: "handler-entry",
+      matchingLowNmi: capability === "c64.system.restoreNMI",
       stockCia1Handback: handback,
     }),
   });

@@ -1,7 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import { selectC64KernalFacts } from "../profile/c64-kernal.js";
-import type { PlatformOperation } from "../semantic/operations.js";
+import type { PlatformOperation, SemanticFunction } from "../semantic/operations.js";
 import type { TargetProfile, InterruptVariantFacts } from "../target/profile.js";
 import { machineInstruction } from "./lower-control.js";
 import type { C64Lowering, C64LoweringSupport } from "./lower-c64.js";
@@ -10,19 +10,26 @@ import type {
   MachineFunction,
   MachineInstruction,
   MachineMemoryEffect,
+  MachineRegister,
 } from "./machine-types.js";
 
 /** Machine entry facts also cover an address-only raw callback outside profile sinks. */
 type MachineEntryFacts = Omit<InterruptVariantFacts, "id"> & { readonly id: string };
 
-/** Stable label for a handler body bound to one entry ABI and predecessor depth. */
+/**
+ * Label one handler ABI and predecessor binding. A proved selection uses its
+ * actual tail word, or one depth-independent entry when that word is unread.
+ * IRQ-only callers retain their existing depth/slot spelling.
+ */
 export function c64InterruptEntryLabel(
   handler: BindingId,
   variant: InterruptVariantFacts,
   depth: number,
   slotId?: string,
+  provedSelection = false,
 ): string {
   const entry = `interrupt.${bindingIdentityKey(handler)}.${variant.id}`;
+  if (provedSelection && slotId === undefined) return `${entry}.entry`;
   return slotId === undefined
     ? `${entry}.depth${depth}`
     : `${entry}.slot${Buffer.from(slotId).toString("hex")}`;
@@ -39,6 +46,54 @@ export const RAW_HANDLER_ENTRY: MachineEntryFacts = Object.freeze({
   staticLinkBytes: 0,
 });
 
+/**
+ * Materialize an installed CINV address with no feasible invocation. The body
+ * cannot observe decimal mode or change registers/status, so its ordinary
+ * chain or firmware-tail jump suffices. This shell creates no source return or arrival;
+ * its real captured word and source placement still belong to the artifact.
+ */
+export function createC64ReferenceInterruptEntry(
+  source: SemanticFunction,
+  id: string,
+  variant: InterruptVariantFacts,
+  linkRequestId: string,
+  profile: TargetProfile,
+): MachineFunction {
+  if (
+    variant.terminal !== "jump-saved-vector" &&
+    (variant.terminal !== "jump-firmware-tail" || variant.terminalAddress === undefined)
+  )
+    throw new Error("Reference-only CINV entry lacks its terminal address");
+  const tail =
+    variant.terminal === "jump-saved-vector"
+      ? machineInstruction(
+          profile.cpu,
+          "jmp",
+          "indirect",
+          Object.freeze({ kind: "storage", requestId: linkRequestId, offset: 0 }),
+          [],
+        )
+      : machineInstruction(
+          profile.cpu,
+          "jmp",
+          "absolute",
+          Object.freeze({ kind: "absolute", value: variant.terminalAddress! }),
+          [],
+        );
+  return Object.freeze({
+    id,
+    ...(source.name === undefined ? {} : { sourceName: source.name }),
+    ...(source.placement ? { placement: source.placement } : {}),
+    blocks: Object.freeze([
+      Object.freeze({
+        label: `${source.entry}.interrupt.${id}.reference`,
+        instructions: Object.freeze([tail]),
+        terminator: Object.freeze({ kind: "unreachable" as const }),
+      }),
+    ]),
+  });
+}
+
 /** Build one fixed, page-safe firmware entry around a callback-only source body. */
 export function createC64InterruptEntry(
   body: MachineFunction,
@@ -46,6 +101,7 @@ export function createC64InterruptEntry(
   variant: MachineEntryFacts,
   linkRequestId: string | null,
   profile: TargetProfile,
+  nmiClobbers?: ReadonlySet<MachineRegister>,
 ): MachineFunction {
   const cpu = profile.cpu;
   const instruction = (
@@ -53,30 +109,35 @@ export function createC64InterruptEntry(
     mode: "implied" | "absolute" | "indirect",
     operand: MachineInstruction["operand"] = null,
   ) => machineInstruction(cpu, opcode, mode, operand, []);
-  const saveRegisters = [
-    instruction("pha", "implied"),
-    instruction("txa", "implied"),
-    instruction("pha", "implied"),
-    instruction("tya", "implied"),
-    instruction("pha", "implied"),
-  ];
-  const restoreRegisters = [
-    instruction("pla", "implied"),
-    instruction("tay", "implied"),
-    instruction("pla", "implied"),
-    instruction("tax", "implied"),
-    instruction("pla", "implied"),
-  ];
   const chain = variant.terminal === "jump-saved-vector";
   const saves = variant.registerSaveOwner === "compiler";
+  const selectedNmi = variant.id === "c64_kernal_nminv_chain" && nmiClobbers !== undefined;
+  const nonempty = body.blocks.some(
+    (block) => block.instructions.length > 0 || block.terminator.kind !== "return",
+  );
+  const saveX = saves && (!selectedNmi || nmiClobbers.has("x"));
+  const saveY = saves && (!selectedNmi || nmiClobbers.has("y"));
+  // X/Y saves and restores pass through A, so either also requires preserving A.
+  const saveA = saves && (!selectedNmi || nmiClobbers.has("a") || saveX || saveY);
+  const preserveP = chain && (!selectedNmi || nonempty);
+  const saveRegisters = [
+    ...(saveA ? [instruction("pha", "implied")] : []),
+    ...(saveX ? [instruction("txa", "implied"), instruction("pha", "implied")] : []),
+    ...(saveY ? [instruction("tya", "implied"), instruction("pha", "implied")] : []),
+  ];
+  const restoreRegisters = [
+    ...(saveY ? [instruction("pla", "implied"), instruction("tay", "implied")] : []),
+    ...(saveX ? [instruction("pla", "implied"), instruction("tax", "implied")] : []),
+    ...(saveA ? [instruction("pla", "implied")] : []),
+  ];
   const prologue = [
-    ...(chain ? [instruction("php", "implied")] : []),
+    ...(preserveP ? [instruction("php", "implied")] : []),
     ...(saves ? saveRegisters : []),
-    instruction("cld", "implied"),
+    ...(!selectedNmi || nonempty ? [instruction("cld", "implied")] : []),
   ];
   const epilogue = [
     ...(saves ? restoreRegisters : []),
-    ...(chain ? [instruction("plp", "implied")] : []),
+    ...(preserveP ? [instruction("plp", "implied")] : []),
   ];
   if (chain) {
     if (linkRequestId === null) throw new Error("Chained interrupt entry has no saved vector");
@@ -141,6 +202,12 @@ export function createC64InterruptEntry(
     id,
     blocks: Object.freeze(blocks),
     ...(body.placement === undefined ? {} : { placement: body.placement }),
+    ...(selectedNmi
+      ? {
+          nmiPublicationEntry: true as const,
+          nmiEntryStackBytes: 3 + Number(preserveP) + Number(saveA) + Number(saveX) + Number(saveY),
+        }
+      : {}),
   });
 }
 
@@ -178,6 +245,10 @@ export function lowerC64InterruptOperation(
   const cpu = profile.cpu;
   const source = operation.span;
   const vector = sink?.vector ?? restoreVector!;
+  const matchingLowNmi =
+    vector === 0x0318 && (sink === undefined || sink.variant === "c64_kernal_nminv_chain");
+  if (matchingLowNmi && binding.matchingLowNmi !== true)
+    throw new Error("NMI vector transaction lacks its proved matching-low contract");
   const handback = binding.stockCia1Handback ? selectC64KernalFacts(profile.id) : null;
   if (
     binding.stockCia1Handback &&
@@ -211,7 +282,9 @@ export function lowerC64InterruptOperation(
   const instructions: MachineInstruction[] = [
     machineInstruction(cpu, "php", "implied", null, [], source),
     machineInstruction(cpu, "pha", "implied", null, [], source),
-    machineInstruction(cpu, "sei", "implied", null, [], source),
+    // IRQ masking cannot protect NMI. Its proved matching-low transaction leaves
+    // IRQ state unchanged and publishes only one complete old-or-new address.
+    ...(matchingLowNmi ? [] : [machineInstruction(cpu, "sei", "implied", null, [], source)]),
   ];
   if (handback !== null) {
     // Stop both timers before acknowledging pending game events. CRA bit 7
@@ -232,7 +305,9 @@ export function lowerC64InterruptOperation(
       deviceAccess("sta", cia1.timerAHigh),
     );
   }
-  for (let offset = 0; offset < 2; offset += 1) {
+  // Capture both predecessor bytes before publication. Removal needs only the
+  // high byte because every proved vector transition keeps its low byte at $47.
+  for (let offset = matchingLowNmi && sink === undefined ? 1 : 0; offset < 2; offset += 1) {
     instructions.push(
       machineInstruction(
         cpu,
@@ -285,7 +360,7 @@ export function lowerC64InterruptOperation(
     );
   }
   if (sink !== undefined) {
-    for (let offset = 0; offset < 2; offset += 1) {
+    for (let offset = matchingLowNmi ? 1 : 0; offset < 2; offset += 1) {
       instructions.push(
         machineInstruction(
           cpu,

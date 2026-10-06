@@ -47,6 +47,11 @@ exact simultaneous-path proof; do not add independent maxima together.
 
 Generated NMI per-entry rows are added only when [the route proof](03-nmi-route.md)
 qualifies them. A per-entry row is not aggregated over unrestricted arrivals.
+For each selected variant the ID is `nmi-entry:<entry-variant-id>` and the route
+starts with `["per-entry:generated-nmi", "<entry-variant-id>"]`, followed by its
+ordinary body/helper route. Capacity is 236, peak is CPU-inclusive selected
+entry/body/helper use, and headroom is capacity minus peak. Existing debug entry
+variant IDs provide the correlation; no new public field is required.
 The numeric `hardwareStack` cost is the maximum proved finite component value
 in `stackDomains`, excluding reserve. This preserves the old numeric relation
 without claiming that number bounds external stack use. Exact resources stay
@@ -61,7 +66,7 @@ These are schema-1 record projections, not a new interface or discriminator.
 Finite capacity checks still reject an actual bounded-component overflow with
 E10238. Keep W10180's exact canonical message and decomposition; the accompanying
 evidence establishes its finite-component scope. No diagnostic identity/message
-change and no specification-test exception beyond AR-P11.
+change and no specification-test exception beyond AR-P11/AR-P14.
 
 ## Integration and verification
 

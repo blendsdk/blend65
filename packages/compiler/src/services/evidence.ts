@@ -101,7 +101,7 @@ function freeIntervals(intervals: readonly EvidenceRecord[]): readonly EvidenceR
   return Object.freeze(free);
 }
 
-/** Create the one complete CPU view used by the single-bank RD-03 profile. */
+/** Create the complete CPU view used by the single-bank C64 PRG profile. */
 function memoryView(intervals: readonly EvidenceRecord[]): EvidenceRecord {
   const free = freeIntervals(intervals);
   const sum = (field: "size" | "payloadBytes" | "paddingBytes" | "reservedBytes"): number =>
@@ -230,6 +230,11 @@ export async function prepareEvidence(
   const platformStackReserve = input.profile.storage.hardwareStackReserve ?? 0;
   const usableStackCapacity = stackCapacity - platformStackReserve;
   const boundedStackBytes = input.certificate.hardwareStackPeak;
+  const nmiEntryPeaks = input.certificate.nmiEntryPeaks ?? [];
+  const componentStackBytes = nmiEntryPeaks.reduce(
+    (peak, entry) => Math.max(peak, entry.bytes),
+    boundedStackBytes,
+  );
   const main = input.program.semantic.main;
   const memoryEvidence = Object.freeze({
     kind: "blend65.memory",
@@ -281,6 +286,15 @@ export async function prepareEvidence(
           peakBytes: boundedStackBytes,
           headroomBytes: usableStackCapacity - boundedStackBytes,
         }),
+        ...nmiEntryPeaks.map((entry) =>
+          Object.freeze({
+            id: `nmi-entry:${entry.id}`,
+            route: Object.freeze(["per-entry:generated-nmi", entry.id, ...entry.route]),
+            capacityBytes: usableStackCapacity,
+            peakBytes: entry.bytes,
+            headroomBytes: usableStackCapacity - entry.bytes,
+          }),
+        ),
       ].sort((left, right) => Buffer.compare(Buffer.from(left.id), Buffer.from(right.id))),
     ),
   });
@@ -345,7 +359,7 @@ export async function prepareEvidence(
         Object.freeze({
           kind: "standard",
           id: "hardwareStack",
-          value: boundedStackBytes,
+          value: componentStackBytes,
         }),
         Object.freeze({ kind: "standard", id: "scratch", value: scratch }),
       ]),

@@ -5,6 +5,7 @@ import type { AnalysisResult } from "../frontend/service.js";
 import { ControlFlowBuilder } from "./cfg.js";
 import { ExpressionLowerer } from "./lower-expressions.js";
 import { initializerBytes } from "./lower-data.js";
+import { sinkTerminalChoice } from "./lower-control.js";
 import type {
   AggregateDestination,
   SemanticFunction,
@@ -53,7 +54,10 @@ function lowerFunction(
   embeddedByBinding: ReadonlyMap<string, EmbeddedValue>,
 ): SemanticFunction {
   if (declaration.body === null) throw new Error("Cannot lower a non-function as a function");
-  const builder = new ControlFlowBuilder(`function:${bindingIdentityKey(declaration.binding)}`);
+  const builder = new ControlFlowBuilder(
+    `function:${bindingIdentityKey(declaration.binding)}`,
+    bindingsByKey,
+  );
   const expressions = new ExpressionLowerer(builder, bindingsByKey, embeddedByBinding);
   builder.lowerBody(declaration.body, expressions.lower);
   const blocks = Object.freeze(
@@ -144,7 +148,10 @@ function lowerGlobal(
       ...(declaration.zeropage ? { zeropage: true } : {}),
     });
   }
-  const builder = new ControlFlowBuilder(`initializer:${bindingIdentityKey(declaration.binding)}`);
+  const builder = new ControlFlowBuilder(
+    `initializer:${bindingIdentityKey(declaration.binding)}`,
+    bindingsByKey,
+  );
   const expressions = new ExpressionLowerer(builder, bindingsByKey, embeddedByBinding);
   const destination: AggregateDestination | undefined =
     declaration.type.kind === "array" || declaration.type.kind === "struct"
@@ -232,7 +239,9 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
     program: Object.freeze({
       main: mainCandidates[0]!.id,
       globals: Object.freeze(globals),
-      functions: Object.freeze(functions),
+      functions: Object.freeze(
+        functions.map((fn) => sinkTerminalChoice(fn, functions, bindingsByKey)),
+      ),
       effects: frontend.effects,
       assets: frontend.assets,
       residentAssetRoots: Object.freeze([

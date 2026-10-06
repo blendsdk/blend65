@@ -1,9 +1,12 @@
-import type { BindingId } from "../frontend/semantic-types.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
-import { interruptExecutionContexts } from "../semantic/interrupt-contexts.js";
+import type { BindingId } from "../frontend/semantic-types.js";
+import { interruptDepthAt, interruptExecutionContexts } from "../semantic/interrupt-contexts.js";
+import { interruptCodeContexts } from "../semantic/interrupt-context-facts.js";
 import type { IndirectCallOperation } from "../semantic/operations.js";
 import type { PlatformOperation } from "../semantic/operations.js";
 import type { InterruptRoute } from "../semantic/whole-program.js";
+import { hasHandlerSideIrqInstall } from "../storage/inventory.js";
+import { contextFunctionLabel } from "./interrupt-specialize.js";
 import { lowerOperation } from "./lower-operation.js";
 import { machineCost, machineInstruction, machineState, operandForValue } from "./lower-control.js";
 import type { MachineBlock, MachineInstruction } from "./machine-types.js";
@@ -68,10 +71,20 @@ export function lowerIndirectCall(
       : undefined;
   const pointer =
     home === undefined ? -1 : home.address + (target.kind === "storage" ? (target.offset ?? 0) : 0);
-  const contexts = interruptExecutionContexts(state.input.program);
-  const hasContextVariant = targets.some(
-    (candidate) => (contexts.get(bindingIdentityKey(candidate))?.length ?? 0) > 1,
+  const contexts = interruptCodeContexts(
+    interruptExecutionContexts(state.input.program),
+    state.input.retainedInterrupts?.contexts ?? new Map(),
   );
+  const rootAware =
+    state.input.program.interruptRoutes?.some(({ sink }) => sink.domain === "nmi") === true ||
+    hasHandlerSideIrqInstall(state.input.program, contexts);
+  const at = interruptDepthAt(state.interruptDepth, operation, state.input.program);
+  // A function value keeps its canonical address. The thunk is valid only
+  // when that address already denotes the ABI selected at this call site.
+  const hasContextVariant = targets.some((candidate) => {
+    const label = bindingLabel("fn", candidate);
+    return contextFunctionLabel(label, at, contexts, state.input.program, rootAware) !== label;
+  });
   if (
     !hasContextVariant &&
     operation.arguments.length === 0 &&
@@ -191,12 +204,20 @@ export function lowerIndirectCall(
       Object.freeze({
         label: arm,
         instructions: directArm(operation, callee, state),
-        terminator: Object.freeze({
-          kind: "jump",
-          opcode: "jmp",
-          target: continuation,
-          cost: machineCost(cpu, "jmp", "absolute"),
-        }),
+        // Keep the ordinary call frame, but do not invent an executable edge
+        // after a callee whose existing whole-program summary proves no return.
+        // Unknown and returning candidates still join the shared continuation.
+        terminator:
+          state.input.program.interruptOwnership?.returningBodies?.get(
+            bindingIdentityKey(callee),
+          ) === false
+            ? Object.freeze({ kind: "unreachable" })
+            : Object.freeze({
+                kind: "jump",
+                opcode: "jmp",
+                target: continuation,
+                cost: machineCost(cpu, "jmp", "absolute"),
+              }),
       }),
     );
     label = next;
@@ -206,7 +227,12 @@ export function lowerIndirectCall(
     Object.freeze({
       label,
       instructions: directArm(operation, targets[targets.length - 1]!, state),
-      terminator: Object.freeze({ kind: "fallthrough", target: continuation }),
+      terminator:
+        state.input.program.interruptOwnership?.returningBodies?.get(
+          bindingIdentityKey(targets[targets.length - 1]!),
+        ) === false
+          ? Object.freeze({ kind: "unreachable" })
+          : Object.freeze({ kind: "fallthrough", target: continuation }),
     }),
   );
   return Object.freeze({

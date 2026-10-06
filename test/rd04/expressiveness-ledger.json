@@ -4,11 +4,20 @@
     {
       "id": "v4-nmi-installation",
       "status": "deferred",
-      "sourceForm": "setNMI or setNMIExclusive in the selected C64 profile",
+      "sourceForm": "setNMIExclusive in the selected C64 profile",
       "diagnostic": "E10245",
-      "reason": "NMI self-reentry and a two-byte vector update do not yet have a finite safety proof",
+      "reason": "Exclusive NMI takeover has not proved ownership and preservation of CIA2, RESTORE, cartridge and other enabled NMI sources",
       "owner": "RD-05 R5.15–R5.17",
-      "decision": "AR-P16"
+      "decision": "Exclusive source ownership remains deferred; no takeover qualification claimed"
+    },
+    {
+      "id": "v4-nmi-chained-installation",
+      "status": "retired",
+      "sourceForm": "balanced setNMI/restoreNMI in the selected C64 profile",
+      "diagnostic": "E10245",
+      "reason": "The approved private-home-free generated stock-chained route passes storage, immutable-link, actual output and four-profile genuine-source VICE qualification. Per-entry storage and stack facts are proved; external aggregate stack, unrestricted nesting and complete retained-firmware completion remain unproved and are not promised.",
+      "owner": "RD-05 R5.15–R5.17",
+      "decision": "RD-05 cooperative NMI plan AR-P11; independent source, storage, output and genuine-source VICE qualification; exclusive takeover and remaining DEF-7 obligations stay RD-05-owned"
     },
     {
       "id": "v4-handler-irq-update",

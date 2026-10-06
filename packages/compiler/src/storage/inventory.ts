@@ -3,6 +3,13 @@ import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { SemanticFunction, SemanticOperation } from "../semantic/operations.js";
 import { interruptDepthAt, interruptExecutionContexts } from "../semantic/interrupt-contexts.js";
 import type { InterruptExecutionContexts } from "../semantic/interrupt-contexts.js";
+import {
+  interruptExecutedBlocks,
+  interruptMaterializations,
+  interruptCodeContexts,
+  interruptRetainedBlocks,
+} from "../semantic/interrupt-context-facts.js";
+import { valueLifetimes } from "../semantic/value-lifetimes.js";
 import type { SemanticPosition, ValueLifetime, WholeProgram } from "../semantic/whole-program.js";
 import type { ExecutionDomain } from "../semantic/interrupt-domains.js";
 import type {
@@ -321,8 +328,14 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
   const functions = new Map(
     program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
   );
-  const contexts = interruptExecutionContexts(program);
+  const executed = interruptExecutionContexts(program);
+  const retained = interruptMaterializations(program);
+  const contexts = interruptCodeContexts(executed, retained.contexts);
   const hasHandlerInstall = hasHandlerSideIrqInstall(program, contexts);
+  const hasNmiRoute = program.interruptRoutes?.some(({ sink }) => sink.domain === "nmi") === true;
+  const proof = hasNmiRoute ? program.interruptContextAnalysis : undefined;
+  if (hasNmiRoute && (proof === undefined || proof.diagnostics.length > 0))
+    throw new Error("NMI storage requires complete installation-link proof");
   const selectedInstalls = new Set<SemanticOperation>(
     (program.interruptRoutes ?? [])
       .filter((route) => route.sink.domain === "irq")
@@ -331,25 +344,54 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
   const globalKeys = new Set(program.semantic.globals.map(({ id }) => bindingIdentityKey(id)));
 
   for (const functionId of program.reachableFunctions) {
-    const fn = functions.get(bindingIdentityKey(functionId));
-    if (fn === undefined)
+    const source = functions.get(bindingIdentityKey(functionId));
+    if (source === undefined)
       throw new Error("Reachable function is absent from semantic storage input");
-    const domains: readonly (ExecutionDomain | undefined)[] = program.executionDomains?.find(
-      (entry) => bindingIdentityKey(entry.function) === bindingIdentityKey(fn.id),
-    )?.domains ?? [undefined];
+    const key = bindingIdentityKey(source.id);
+    const entries = contexts.get(key) ?? [];
+    // Initializer calls also reach ordinary helpers in main execution. Retain
+    // those contexts alongside source roots so their homes agree with callers,
+    // including a helper that is separately reachable from an IRQ.
+    const reachedDomains = new Set([
+      ...(proof === undefined
+        ? (program.executionDomains?.find((entry) => bindingIdentityKey(entry.function) === key)
+            ?.domains ?? [])
+        : []),
+      ...entries.map((entry) => entry.domain),
+    ]);
+    const domains: readonly (ExecutionDomain | undefined)[] =
+      reachedDomains.size === 0 && proof === undefined ? [undefined] : [...reachedDomains];
     for (const domain of domains) {
       const roots =
-        domain === "irq" && hasHandlerInstall
+        (domain === "irq" && hasHandlerInstall) || (domain !== undefined && proof !== undefined)
           ? [
               ...new Set(
-                (contexts.get(bindingIdentityKey(fn.id)) ?? [])
-                  .filter((context) => context.domain === "irq")
-                  .map((context) => context.activationRoot)
-                  .filter((root): root is string => root !== undefined),
+                entries
+                  .filter((context) => context.domain === domain)
+                  .map((context) => context.activationRoot),
               ),
             ].sort()
           : [];
       for (const activationRoot of roots.length === 0 ? [undefined] : roots) {
+        const blocks =
+          proof === undefined
+            ? source.blocks
+            : retained.contexts
+                  .get(key)
+                  ?.some(
+                    (entry) => entry.domain === domain && entry.activationRoot === activationRoot,
+                  )
+              ? interruptRetainedBlocks(source, program)
+              : interruptExecutedBlocks(
+                  source,
+                  (executed.get(key) ?? []).filter(
+                    (entry) => entry.domain === domain && entry.activationRoot === activationRoot,
+                  ),
+                  proof,
+                );
+        if (blocks.length === 0) continue;
+        const fn = Object.freeze({ ...source, blocks });
+        const lifetimes = proof === undefined ? program.lifetimes : valueLifetimes(fn);
         if (fn.result.kind === "array" || fn.result.kind === "struct") {
           const id = valueRequestId(
             fn.id,
@@ -459,8 +501,8 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
           );
         }
 
-        appendCallStaging(fn.id, fn, program.lifetimes, requests, domain, activationRoot);
-        appendWordReadLowBytes(fn.id, fn, program.lifetimes, requests, domain, activationRoot);
+        appendCallStaging(fn.id, fn, lifetimes, requests, domain, activationRoot);
+        appendWordReadLowBytes(fn.id, fn, lifetimes, requests, domain, activationRoot);
       }
     }
   }
@@ -469,21 +511,101 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
     program.semantic.globals.map((global) => [bindingIdentityKey(global.id), global] as const),
   );
   for (const initializer of program.initializers ?? []) {
-    const global = globals.get(bindingIdentityKey(initializer.binding));
-    if (global === undefined || global.entry === null) {
+    const source = globals.get(bindingIdentityKey(initializer.binding));
+    if (source === undefined || source.entry === null) {
       throw new Error("Initializer execution is absent from semantic storage input");
     }
-    appendCallStaging(initializer.binding, global, initializer.lifetimes, requests);
+    const blocks =
+      proof === undefined
+        ? source.blocks
+        : interruptExecutedBlocks(source, contexts.get(bindingIdentityKey(source.id)) ?? [], proof);
+    if (blocks.length === 0) continue;
+    const global = Object.freeze({ ...source, entry: source.entry, blocks });
+    const lifetimes = proof === undefined ? initializer.lifetimes : valueLifetimes(global);
+    // Initializers are mainline executions even when an earlier initializer
+    // has armed a handler. Their saved values must interfere with IRQ homes.
+    appendCallStaging(initializer.binding, global, lifetimes, requests, "main");
     appendWordReadLowBytes(
       initializer.binding,
       { entry: global.entry, blocks: global.blocks },
-      initializer.lifetimes,
+      lifetimes,
       requests,
+      "main",
     );
   }
 
   const main = functions.get(bindingIdentityKey(program.semantic.main));
-  if (main !== undefined) {
+  if (proof !== undefined) {
+    // The proof already separates mainline positions from handler-owned ones.
+    // Every selected physical word remains reserved while an old route can read it.
+    for (const binding of proof.bindings.values()) {
+      const installer = binding.captures[0]?.installer;
+      if (installer === undefined) throw new Error("Proved interrupt link has no capture");
+      const root = installer.activationRoot;
+      const owner =
+        root === undefined
+          ? main
+          : (functions.get(root) ??
+            program.semantic.functions.find(
+              (fn) =>
+                fn.entryKind === "interrupt" &&
+                contexts
+                  .get(bindingIdentityKey(fn.id))
+                  ?.some((context) => context.activationRoot === root),
+            ));
+      if (owner === undefined) throw new Error("Proved interrupt link has no source owner");
+      requests.push(
+        Object.freeze({
+          id: binding.requestId,
+          storageClass: "pointer",
+          owner: owner.id,
+          domain: installer.domain,
+          ...(root === undefined ? {} : { activationRoot: root }),
+          binding: null,
+          value: binding.requestId,
+          type: null,
+          bytes: 2,
+          alignment: 1,
+          region: "ram",
+          pageSafeIndirect: true,
+          persistent: true,
+          lifetime: declaredLifetime(owner, binding.requestId),
+          source: owner.source,
+          reason: "Saved predecessor in a proved installation-owned word",
+        }),
+      );
+    }
+    // Retained code reserves a physical word, but never creates a proved capture
+    // or infers that the erased external caller will preserve its lifetime.
+    for (const link of retained.links.values()) {
+      if (proof.bindings.has(link.requestId)) continue;
+      const owner = functions.get(bindingIdentityKey(link.owner));
+      if (owner === undefined) throw new Error("Retained interrupt link has no source owner");
+      requests.push(
+        Object.freeze({
+          id: link.requestId,
+          storageClass: "pointer",
+          owner: owner.id,
+          domain: link.context.domain,
+          ...(link.context.activationRoot === undefined
+            ? {}
+            : { activationRoot: link.context.activationRoot }),
+          binding: null,
+          value: link.requestId,
+          type: null,
+          bytes: 2,
+          alignment: 1,
+          region: "ram",
+          pageSafeIndirect: true,
+          persistent: true,
+          lifetime: declaredLifetime(owner, link.requestId),
+          source: owner.source,
+          reason: "Saved predecessor word for uncertified retained source code",
+        }),
+      );
+    }
+  }
+  if (main !== undefined && proof === undefined) {
     for (const sink of ["irq", "nmi"] as const) {
       const maximum = program.interruptOwnership?.maxDepth[sink] ?? 0;
       for (let depth = 0; depth < maximum; depth += 1) {
@@ -516,6 +638,7 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
   // this root's local inventory.
   const localSlots = new Map<string, number>();
   for (const [functionKey, entries] of contexts) {
+    if (proof !== undefined) break;
     const fn = functions.get(functionKey);
     if (fn === undefined) continue;
     for (const context of entries) {

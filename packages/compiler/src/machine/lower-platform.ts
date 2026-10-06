@@ -1,5 +1,7 @@
 import type { SemanticOperation } from "../semantic/operations.js";
 import type { InterruptRoute } from "../semantic/whole-program.js";
+import { interruptDepthAt, interruptPredecessorSlot } from "../semantic/interrupt-contexts.js";
+import { interruptEntrySelection } from "../semantic/interrupt-context-facts.js";
 import { lowerC64Operation } from "./lower-c64.js";
 import { c64InterruptEntryLabel } from "./lower-c64.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
@@ -94,23 +96,39 @@ export function lowerPlatformOperation(
         );
         const domain =
           sink?.domain ?? (sourceOperation.capability === "c64.system.restoreIRQ" ? "irq" : "nmi");
-        const relative =
-          state.input.program.interruptOwnership?.relativeDepths.get(sourceOperation);
-        const before = state.interruptDepth[domain] + (relative?.[domain] ?? 0);
+        const program = state.input.program;
+        const atOperation = interruptDepthAt(state.interruptDepth, sourceOperation, program);
+        const before = atOperation[domain];
         const depth = sink === undefined ? before - 1 : before;
         if (depth < 0) throw new Error("Interrupt restore has no active static link");
-        const root = domain === "irq" ? state.interruptDepth.activationRoot : undefined;
+        const needsProof = program.interruptRoutes?.some(({ sink }) => sink.domain === "nmi");
+        const proof = needsProof ? program.interruptContextAnalysis : undefined;
+        if (needsProof && (proof === undefined || proof.diagnostics.length > 0))
+          throw new Error("Interrupt lowering requires complete installation-link proof");
+        const { activationRoot, ...sourceContext } = atOperation;
+        const root = domain === "irq" || proof !== undefined ? activationRoot : undefined;
+        const localField = domain === "irq" ? "localIrqDepth" : "localNmiDepth";
         const localDepth =
           root === undefined
             ? depth
-            : (state.interruptDepth.localIrqDepth ?? 0) +
-              (relative?.irq ?? 0) -
-              (sink === undefined ? 1 : 0);
+            : (atOperation[localField] ?? 0) - (sink === undefined ? 1 : 0);
         if (localDepth < 0) throw new Error("Interrupt restore crosses its handler prefix");
-        const linkRequestId =
-          root === undefined
-            ? `interrupt-link:${domain}:${depth}`
-            : `interrupt-link:irq:${root}:${localDepth}`;
+        const linkRequestId = interruptPredecessorSlot(
+          {
+            ...sourceContext,
+            ...(root === undefined ? {} : { activationRoot: root }),
+            [domain]: depth,
+            [localField]: localDepth,
+          },
+          domain,
+        );
+        const binding = proof?.bindings.get(linkRequestId);
+        const retained =
+          proof === undefined
+            ? undefined
+            : state.input.retainedInterrupts?.links.get(linkRequestId);
+        if (proof !== undefined && binding === undefined && retained === undefined)
+          throw new Error("Interrupt operation has no proved predecessor word");
         const routes = (state.input.program.interruptRoutes ?? []).filter(
           ({ installation }) => installation === sourceOperation,
         );
@@ -118,18 +136,36 @@ export function lowerPlatformOperation(
           throw new Error("Interrupt sink needs one statically selected handler entry");
         }
         const route = selectedInterruptRoute ?? routes[0];
+        if (sink !== undefined && route === undefined)
+          throw new Error("Interrupt installation has no selected entry");
+        const selection =
+          proof === undefined || route === undefined
+            ? undefined
+            : interruptEntrySelection(route, linkRequestId, program);
+        if (
+          selection !== undefined &&
+          !binding?.captures.some(({ entryIdentity }) => entryIdentity === selection.id) &&
+          !retained?.entries.some(({ id }) => id === selection.id)
+        )
+          throw new Error("Interrupt entry is absent from its proved capture choices");
         return Object.freeze({
           linkRequestId,
+          matchingLowNmi: proof !== undefined && domain === "nmi",
           stockCia1Handback:
             state.input.program.interruptOwnership?.cia1Handbacks.has(sourceOperation) ?? false,
           entryLabel:
-            sink === undefined
+            sink === undefined || route === undefined
               ? null
               : c64InterruptEntryLabel(
-                  route!.handler,
-                  route!.variant,
+                  route.handler,
+                  route.variant,
                   depth,
-                  root === undefined ? undefined : linkRequestId,
+                  proof !== undefined
+                    ? selection?.tail
+                    : root === undefined
+                      ? undefined
+                      : linkRequestId,
+                  proof !== undefined,
                 ),
         });
       },

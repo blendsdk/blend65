@@ -212,9 +212,11 @@ export function serializeAcme(input: AcmeSerializationInput): AcmeSerializationR
   const labels = acmeLabelNames(input.layout.program);
   const labelName = (id: string) => labels.get(id) ?? acmeLabelName(id);
   const expectedLabels: AcmeExpectedLabel[] = [];
-  const addLabel = (id: string, address: number) => {
+  const addLabel = (id: string, address: number, currentOrigin = address) => {
     expectedLabels.push(Object.freeze({ id, name: labelName(id), address }));
-    lines.push(`${labelName(id)}:`);
+    lines.push(
+      currentOrigin === address ? `${labelName(id)}:` : `${labelName(id)} = ${hex(address, 4)}`,
+    );
   };
 
   const basic = input.layout.intervals.find(({ id }) => id === "basic.stub");
@@ -246,7 +248,7 @@ export function serializeAcme(input: AcmeSerializationInput): AcmeSerializationR
       lines.push(
         `; routine ${JSON.stringify(fn.sourceName ?? fn.id.replace(/[^A-Za-z0-9_]/g, "_"))}`,
       );
-      addLabel(fn.id, functionLabels.get(fn.id)!);
+      addLabel(fn.id, functionLabels.get(fn.id)!, block.origin!);
       emittedFunctions.add(fn.id);
     }
     addLabel(block.label, block.origin!);

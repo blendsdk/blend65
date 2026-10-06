@@ -3,6 +3,21 @@ import type { BindingId } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import type { SemanticFunction } from "../semantic/operations.js";
 import type { IndirectTargetSets } from "../semantic/function-targets.js";
+import { interruptDepthAt, interruptExecutionContexts } from "../semantic/interrupt-contexts.js";
+import type {
+  InterruptExecutionContext,
+  InterruptExecutionContexts,
+} from "../semantic/interrupt-contexts.js";
+import {
+  functionEntryContext,
+  interruptCodeContexts,
+  interruptExecutedBlocks,
+  interruptExecutionKey,
+  interruptMaterializations,
+  interruptRetainedBlocks,
+} from "../semantic/interrupt-context-facts.js";
+import type { WholeProgram } from "../semantic/whole-program.js";
+import { hasHandlerSideIrqInstall } from "./inventory.js";
 import type {
   HelperCallDemand,
   InterferenceEdge,
@@ -69,6 +84,79 @@ function reachableCallees(
   return found;
 }
 
+/** Identify a source body's storage instance without conflating separate roots. */
+function storageInstanceKey(
+  owner: string,
+  context: Pick<StorageRequest, "domain" | "activationRoot">,
+): string {
+  return JSON.stringify([owner, context.domain ?? null, context.activationRoot ?? null]);
+}
+
+/**
+ * Follow the actual fixed callee ABI, not the original caller's root. A retained
+ * caller may reuse an observed helper; that helper's own descriptor then governs
+ * its nested calls. Emission demands select code, never certify an invocation.
+ */
+function selectedReachableCallees(
+  start: BindingId,
+  context: InterruptExecutionContext,
+  program: WholeProgram,
+  contexts: InterruptExecutionContexts,
+  retained: InterruptExecutionContexts,
+  functions: ReadonlyMap<string, SemanticFunction>,
+): ReadonlySet<string> {
+  // Executed-block facts apply only to NMI programs. IRQ-only analysis has no
+  // reached-block proof, so its ordinary transitive calls must stay visible.
+  const hasNmiRoute = program.interruptRoutes?.some(({ sink }) => sink.domain === "nmi") === true;
+  const proof = hasNmiRoute ? program.interruptContextAnalysis : undefined;
+  const found = new Set<string>();
+  const visited = new Set<string>();
+  const pending = [{ key: bindingIdentityKey(start), context }];
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    const selected = functionEntryContext(current.key, current.context, contexts, true);
+    const execution = interruptExecutionKey(current.key, selected);
+    if (visited.has(execution)) continue;
+    visited.add(execution);
+    found.add(storageInstanceKey(current.key, selected));
+    const body = functions.get(current.key);
+    if (body === undefined) continue;
+    const retainedBody = (retained.get(current.key) ?? []).some(
+      (entry) => interruptExecutionKey(current.key, entry) === execution,
+    );
+    const blocks = retainedBody
+      ? interruptRetainedBlocks(body, program)
+      : proof === undefined
+        ? body.blocks
+        : interruptExecutedBlocks(
+            body,
+            (proof.contexts.get(current.key) ?? []).filter(
+              (entry) =>
+                entry.domain === selected.domain &&
+                entry.activationRoot === selected.activationRoot,
+            ),
+            proof,
+          );
+    for (const block of blocks) {
+      for (const operation of block.operations) {
+        const targets =
+          operation.kind === "call"
+            ? [operation.callee]
+            : operation.kind === "indirect-call"
+              ? (program.indirectTargets?.get(operation) ?? [])
+              : [];
+        for (const target of targets) {
+          pending.push({
+            key: bindingIdentityKey(target),
+            context: interruptDepthAt(selected, operation, program),
+          });
+        }
+      }
+    }
+  }
+  return found;
+}
+
 /** Add one canonical undirected edge unless it already exists. */
 function addEdge(
   edges: Map<string, InterferenceEdge>,
@@ -96,9 +184,18 @@ export function buildInterference(
   irqOverlap?: IrqOverlapFacts,
 ): readonly InterferenceEdge[] {
   const edges = new Map<string, InterferenceEdge>();
-  const executions = new Map<string, Pick<SemanticFunction, "blocks">>(
+  const functions = new Map(
     inventory.program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn]),
   );
+  const executions = new Map<string, Pick<SemanticFunction, "blocks">>(functions);
+  const hasNmiRoutes = inventory.program.interruptRoutes?.some(({ sink }) => sink.domain === "nmi");
+  const executed =
+    (inventory.program.interruptRoutes?.length ?? 0) > 0
+      ? interruptExecutionContexts(inventory.program)
+      : new Map();
+  const retained = hasNmiRoutes ? interruptMaterializations(inventory.program).contexts : new Map();
+  const contexts = interruptCodeContexts(executed, retained);
+  const rootAware = hasNmiRoutes || hasHandlerSideIrqInstall(inventory.program, contexts);
   const globals = new Map(
     inventory.program.semantic.globals.map((global) => [bindingIdentityKey(global.id), global]),
   );
@@ -142,14 +239,49 @@ export function buildInterference(
   for (const callerRequest of inventory.requests) {
     const owner = executions.get(bindingIdentityKey(callerRequest.owner));
     if (owner === undefined) continue;
+    const entries = rootAware
+      ? (contexts.get(bindingIdentityKey(callerRequest.owner)) ?? []).filter(
+          (entry) =>
+            entry.domain === (callerRequest.domain ?? "main") &&
+            entry.activationRoot === callerRequest.activationRoot,
+        )
+      : [];
     for (const callSpan of callerRequest.lifetime.callsCrossed) {
+      const call =
+        entries.length === 0
+          ? undefined
+          : owner.blocks
+              .flatMap((block) => block.operations)
+              .find(
+                (operation) =>
+                  (operation.kind === "call" || operation.kind === "indirect-call") &&
+                  sameSpan(operation.span, callSpan),
+              );
       for (const callee of calleesAtSpan(owner, callSpan, inventory.program.indirectTargets)) {
-        const activeCallees = reachableCallees(callee, callGraph);
+        const activeCallees =
+          entries.length === 0 || call === undefined
+            ? reachableCallees(callee, callGraph)
+            : new Set(
+                entries.flatMap((entry) => [
+                  ...selectedReachableCallees(
+                    callee,
+                    interruptDepthAt(entry, call, inventory.program),
+                    inventory.program,
+                    contexts,
+                    retained,
+                    functions,
+                  ),
+                ]),
+              );
         for (const calleeRequest of inventory.requests) {
           if (
-            activeCallees.has(bindingIdentityKey(calleeRequest.owner)) &&
-            callerRequest.domain === calleeRequest.domain &&
-            callerRequest.activationRoot === calleeRequest.activationRoot
+            entries.length > 0 && call !== undefined
+              ? activeCallees.has(
+                  storageInstanceKey(bindingIdentityKey(calleeRequest.owner), calleeRequest),
+                )
+              : activeCallees.has(bindingIdentityKey(calleeRequest.owner)) &&
+                callerRequest.domain === calleeRequest.domain &&
+                callerRequest.activationRoot === calleeRequest.activationRoot
           ) {
             addEdge(edges, callerRequest.id, calleeRequest.id, "call-overlap");
           }

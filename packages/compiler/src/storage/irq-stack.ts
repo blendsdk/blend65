@@ -161,6 +161,9 @@ export function simultaneousIRQStackPeak(
   );
   const routesBySite = new Map<string, InterruptRoute[]>();
   for (const route of program.interruptRoutes ?? []) {
+    // NMI arrivals are externally unbounded and belong to a separate per-entry
+    // proof. They must not become entries in this finite IRQ ownership stack.
+    if (route.sink.domain !== "irq") continue;
     // A conditional handler argument may lower to two arms of the same
     // source installation. Ownership agrees by source site, not object identity.
     const site = sourceKey(route.installation.span);
@@ -413,6 +416,14 @@ export function simultaneousIRQStackPeak(
             // The final PLP restores the caller's I bit. That instruction still
             // samples the masked state established inside the vector update.
             state.eligible = false;
+          } else if (
+            operation.capability === "c64.system.setNMI" ||
+            operation.capability === "c64.system.restoreNMI"
+          ) {
+            // The NMI transaction preserves A/P without changing IRQ ownership.
+            // Those two temporary saves can overlap an eligible generated IRQ.
+            observe({ ...state, eligible: state.enabled }, 2, ["nmi-vector-update"]);
+            state.eligible = state.enabled;
           } else if (instructionSites === undefined || instructionSites.has(operation)) {
             state.eligible = state.enabled;
           }

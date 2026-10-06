@@ -149,7 +149,33 @@ function orderBlocks(fn: MachineFunction): MachineFunction | null {
     next = follow ?? pending.shift();
   }
 
-  return Object.freeze({ ...fn, blocks: Object.freeze(ordered) });
+  // A body made entirely of empty unconditional blocks has no bus, flag or
+  // explicit timing effects. Preserve all labels and its back edge, but let
+  // adjacent forward edges share an address instead of emitting extra jumps.
+  // Bodies with instructions, branches or exit duties keep their existing order.
+  const emptyLoop = ordered.every(
+    (block) =>
+      block.instructions.length === 0 &&
+      (block.terminator.kind === "jump" || block.terminator.kind === "fallthrough"),
+  );
+  return Object.freeze({
+    ...fn,
+    blocks: Object.freeze(
+      ordered.map((block, index) =>
+        emptyLoop &&
+        block.terminator.kind === "jump" &&
+        block.terminator.target === ordered[index + 1]?.label
+          ? Object.freeze({
+              ...block,
+              terminator: Object.freeze({
+                kind: "fallthrough" as const,
+                target: block.terminator.target,
+              }),
+            })
+          : block,
+      ),
+    ),
+  });
 }
 
 /**

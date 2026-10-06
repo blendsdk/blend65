@@ -73,13 +73,22 @@ function main(): void { asm_cli(); asm_nop(); setIRQ(&handler); asm_nop(); resto
     60_000,
   );
 
-  const unsafe = [
-    [
-      "chained NMI installation",
-      `import { setNMI, restoreNMI } from c64.system;
+  // Private-home-free chaining does not grant unrestricted external stack or firmware safety.
+  it("should accept and emit a balanced chained NMI when the handler has no private homes", async () => {
+    const source = `module Game;
+import { setNMI, restoreNMI } from c64.system;
 interrupt function handler(): void {}
-function main(): void { setNMI(&handler); restoreNMI(); }`,
-    ],
+function main(): void { setNMI(&handler); restoreNMI(); }`;
+    await withProfileProject(source, target, async (project) => {
+      for (const result of [await checkProject({ project }), await buildProject({ project })]) {
+        expect(result.kind, JSON.stringify(result.diagnostics)).toBe("success");
+        expect(result.diagnostics.filter(({ severity }) => severity === "error")).toEqual([]);
+        expect(result.diagnostics.map(({ code }) => code)).not.toContain("E10279");
+      }
+    });
+  }, 60_000);
+
+  const unsafe = [
     [
       "exclusive NMI installation",
       `import { setNMIExclusive, restoreNMI } from c64.system;

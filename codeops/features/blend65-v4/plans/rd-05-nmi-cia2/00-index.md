@@ -1,7 +1,7 @@
 # Cooperative NMI publication and generated-route qualification
 
 > **Implements**: blend65-v4/RD-05
-> **Status**: Executing — Phase 1 complete; Phase 2 not started
+> **Status**: Complete — 68/68 verified; bounded stock-chained route only; RD-05 and DEF-7 remain open
 > **Created**: 2026-10-03
 > **CodeOps Artifact Schema**: 1
 
@@ -36,6 +36,9 @@ ordinary lowering through existing machine/layout patterns, not a dispatcher.
 | [Preflight report](00-preflight-report.md)    | Exact payload, grounded findings and verified corrections                 |
 | [Execution evidence](09-phase-review.md)      | Specification-first results, complete checkpoints and independent reviews |
 
+The [bounded closeout](08-closeout.md) owns the delivered boundary, measured
+optimization debts and reason-based deferral check.
+
 ## Remaining owners
 
 RD-05 and DEF-7 stay open after this slice. Exact exclusive CIA2 handoff, keyboard
@@ -45,4 +48,5 @@ slice of a closed RD. [The roadmap](../../00-roadmap.md) owns overall status.
 
 Expert lineage: 2.0.3/content `22cc5f00f381c82d347cf342be4fcff16bc291c6`;
 the register owns exact specification identity, primary sources and qualifications.
-No `spec/`, expert authority, compiler or test file changes during planning.
+`spec/` and expert authority stay frozen throughout implementation. The closeout
+does not claim full RD-05 support or optimized production-grade output.

@@ -2,6 +2,7 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { MemoryWriteOperation, SemanticPlace } from "../semantic/operations.js";
+import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.js";
 import type { StorageRequest } from "../storage/storage-types.js";
 import {
   machineInstruction,
@@ -86,13 +87,7 @@ export interface FunctionLoweringState {
   /** Source function whose execution storage is being selected. */
   readonly owner: BindingId;
   /** Proven vector nesting at this machine variant's entry. */
-  readonly interruptDepth: Readonly<{
-    irq: number;
-    nmi: number;
-    activationRoot?: string;
-    localIrqDepth?: number;
-    entrySlot?: string;
-  }>;
+  readonly interruptDepth: InterruptExecutionContext;
   /** Machine location of each already selected semantic value. */
   readonly values: Map<string, LoweredValue>;
   /** Source places whose aggregate values are represented by addresses, not packed bytes. */
@@ -174,13 +169,21 @@ export interface FunctionLoweringState {
   aggregateInduction: AggregateInductionRuntime | null;
 }
 
+/** Use the existing source lifetime for functions and executable initializers alike. */
+function selectedValueLifetime(state: FunctionLoweringState, value: string) {
+  const owner = bindingIdentityKey(state.owner);
+  const lifetimes =
+    state.input.program.initializers?.find(
+      (initializer) => bindingIdentityKey(initializer.binding) === owner,
+    )?.lifetimes ?? state.input.program.lifetimes;
+  return lifetimes.find(
+    (lifetime) => bindingIdentityKey(lifetime.function) === owner && lifetime.value === value,
+  );
+}
+
 /** Build a conservative finite lifetime for machine-discovered function storage. */
 function machineLifetime(state: FunctionLoweringState, value: string) {
-  const semantic = state.input.program.lifetimes.find(
-    (lifetime) =>
-      bindingIdentityKey(lifetime.function) === bindingIdentityKey(state.owner) &&
-      lifetime.value === value,
-  );
+  const semantic = selectedValueLifetime(state, value);
   if (semantic !== undefined) return semantic;
   return Object.freeze({
     function: state.owner,
@@ -268,11 +271,7 @@ export function retainMachineValue(
   source: SourceSpan,
   state: FunctionLoweringState,
 ): { readonly instructions: readonly MachineInstruction[]; readonly value: LoweredValue } {
-  const hasSemanticLifetime = state.input.program.lifetimes.some(
-    (lifetime) =>
-      bindingIdentityKey(lifetime.function) === bindingIdentityKey(state.owner) &&
-      lifetime.value === resultId,
-  );
+  const hasSemanticLifetime = selectedValueLifetime(state, resultId) !== undefined;
   if (
     !state.materializedValues.has(resultId) ||
     state.forwardedRegisterValues.has(resultId) ||
