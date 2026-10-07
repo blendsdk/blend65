@@ -1,0 +1,188 @@
+# Task T-09: CIA2 startup-state preservation
+
+> **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
+> **Progress**: 0/4 tasks (0%)
+> **Last Updated**: 2026-10-08
+> **Status**: Assessment complete; authority/test exceptions await user approval
+> **Phase baseline commit**: 7cc315a0e69ea3aa03e6f4bb6d7b6dea2fac8d01
+> **Phase baseline tree**: 5909da41fa90bdafe92f178a6987dd0ff10c1dc7
+> **Scope mode**: strict
+
+## Objective
+
+Repair the existing RD-05 R5.4 startup defect owned by
+[CIA2 AR-P9](../rd-05-cia2-ownership/00-ambiguity-register.md#ar-p9--separate-operation-proof-from-the-real-existing-startup-gap).
+This is mandatory startup preservation, not an additional CIA2 API or an optional
+feature. The confirmed xhigh assessment authorizes this document and the feature
+roadmap only. It does not authorize implementation or frozen-authority changes.
+
+**Smallest viable design — recommended, not yet qualified:** For the current four
+fixed-bank-0 cooperative profiles, save CIA2 DDRA, write `saved_ddra & $FC` to
+DDRA, and restore saved DDRA on normal return. Do not read, save or write PRA.
+Input pull-ups would establish high bank-select pins without changing the hidden
+PRA latch. Remove the unused PRA save byte from existing platform startup state;
+this is not function storage. Reuse the existing straight-line startup emitter,
+qualification tools and authority-maintenance procedure. Add no shadow, runtime
+owner, entry restriction, dependency or general bank-switching framework.
+
+## Assessment and evidence
+
+| Evidence                                                                                                                                                                                                                                                                                                   | Conclusion and limit                                                                                                                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Startup producer](../../../../../packages/compiler/src/layout/startup.ts), preserved devices and entry/return CIA2 operations                                                                                                                                                                             | A physical PRA read is saved and written back; entry also unconditionally writes `readback \| $03`. Reading pins is not reading the hidden output latch. The defect predates the CIA2 ownership slice.                                                     |
+| Retained genuine STOP/RESTORE then SYS replay, `/tmp/blend65-cia2-native.GjRTpE/boundary-pilot-stop.log`, lines 167, 408–409 and 1873–1874                                                                                                                                                                 | Internal PRA changes `$D7 → $97`, with DDRA `$3F`. CPU execution performs both writes. The observer measures internal state without repairing it. CIA2 timer/NMI operations do not write PRA or either DDR.                                                |
+| Original four-profile STOP logs in that directory                                                                                                                                                                                                                                                          | Each records 66 SYS entries. Observed PRA values are `$C7/$D7/$97`, DDRA `$3F`; all happen to select bank 0. This does not prove a universal entry condition. Original failing checks remain unchanged.                                                    |
+| [MOS 6526 data sheet](https://myoldcomputer.nl/Files/mos_6526_cia.pdf), printed pp.3–5                                                                                                                                                                                                                     | DDR zero selects input; port reads reflect pins, including output-configured bits. Inputs have pull-ups. Reset clears latches while input port readback is high. A port read cannot reconstruct a latent latch.                                            |
+| Original Commodore schematic 251138: [CIA2 sheet](https://www.zimmers.net/anonftp/pub/cbm/schematics/computers/c64/251138-2of2-left.gif), [bank routing](https://www.zimmers.net/anonftp/pub/cbm/schematics/computers/c64/251138-1of2-right.gif)                                                           | Visually inspected PA0/PA1-to-VA14/VA15 wiring supports the bank-0 candidate on this board. This is not physical qualification of every C64 revision or proof of transition timing.                                                                        |
+| Pinned VICE 3.10 source: [CIA core](https://github.com/VICE-Team/svn-mirror/blob/4d283a2e7dd59b7e378524878e81ecc7826b700c/vice/src/core/ciacore.c), lines 802–809; [C64 CIA2](https://github.com/VICE-Team/svn-mirror/blob/4d283a2e7dd59b7e378524878e81ecc7826b700c/vice/src/c64/c64cia2.c), lines 137–165 | The effective output is PRA or inverted DDRA. CIA2 bank selection uses the inverted low two effective bits. A DDR change updates bank selection without a PRA write. This source check is not a new native runtime result.                                 |
+| [Frozen Appendix C64](../../../../../spec/appendix-c64.md), §§5.1 and 9.3; [RD-05](../../requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md), R5.4                                                                                                                             | Startup owns the bank and must restore its changes. The specification says direction must be established, not that bank-0 pins must be outputs. The explicit 6510 readback exception is not a CIA2 hidden-latch waiver. No specification edit is proposed. |
+| [Current profile](../../../../../packages/compiler/src/target/c64-kernal.ts), lines 9–12                                                                                                                                                                                                                   | All four implemented profiles select VIC bank 0. Takeover and general bank switching remain separate RD-05 work.                                                                                                                                           |
+
+Primary material downloaded for this assessment is in
+`/tmp/blend65-t09-assessment.fnxWsa`. The production startup blob is
+`bf9ab47c6a4e976e9aa115e51cb5d2d763641a26`. Active authority remains expert
+2.0.3/content `22cc5f00f381c82d347cf342be4fcff16bc291c6`; frozen specification
+identity remains
+`BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b`.
+No candidate startup, native qualification or new hardware result was produced
+during assessment.
+
+### Recommendation hardening
+
+**Confidence: Medium.** Primary CIA semantics, selected board wiring and pinned
+emulator source support the direction; native transition/return proof is pending.
+**Hardening: Changed.** Independent challenge replaced the proposed bank-0 entry
+restriction with this smaller DDRA-only candidate. The configured design
+challenger read primary MOS evidence and supplied exact local excerpts. Its
+read-only role lacked a permitted local-file reader; it did not independently
+inspect repository files, execute VICE or qualify hardware. This is recommendation
+hardening, not completed implementation review.
+
+Conditional PRA writes only avoid corruption when no bank change is needed; they
+do not prove preservation for general admitted entry. A shadow initialized from
+pin readback does not recover hidden latch state. A bank-0-only entry restriction
+would narrow developer freedom and is unnecessary if this candidate qualifies.
+An observable-only preservation waiver would weaken the requirement before
+exhausting a direct repair. Neither fallback is authorized if qualification fails.
+
+The candidate preserves PRA against **startup's** writes by issuing none. Before
+closeout, inventory reachable compiler, source and firmware PRA/DDRA writers and
+their ownership. Deliberate raw writes remain source effects, not evidence that
+startup recovers an unreadable earlier latch. Do not silently ban raw POKE, assume
+firmware cannot run or claim whole-program preservation from an empty program.
+An unresolved ownership conflict requires a separate bounded ruling.
+
+**Strongest objection:** Input mode is observable, not merely an equivalent
+display representation. For example, a raw PRA write with low bits two selects
+bank 1 when those bits are outputs, but leaves bank 0 selected when they are
+inputs. The proposed startup therefore changes an execution-mode assumption of
+raw bank-register code. Approval must explicitly cover that input-mode contract;
+it is not an automatic preservation of every old raw program's behavior. Raw
+register access remains legal and follows CIA semantics. A future typed bank
+operation must establish the required direction itself, not make modern users
+learn the hardware convention. Do not use a comparison mask to conceal this
+distinction or expand this repair into that future banking API.
+
+## Necessary approval before execution
+
+**Best option:** Approve the explicit input-mode startup contract, bounded expert
+correction and matching oracle exceptions below, then qualify the candidate
+before compiler implementation. This changes startup's low-DDRA operating mode,
+not language syntax or raw POKE semantics. No bank-0 entry restriction is proposed.
+
+| Proposed change                                                       | Exact boundary                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Expert VIC-bank guidance                                              | Replace the unconditional output-direction mandate in `references/c64-memory-and-runtime.md`, lines 126–130, with a qualified fixed-bank-0 input/pull-up exception. Explicitly distinguish input-mode startup from output-mode PRA bank writes. Keep general bank-write, latent-latch, shared-device and banking safety rules. Stage and qualify a patch successor through the existing oracle-first process before activation; preserve one active baseline and historical records. |
+| Authority binding                                                     | Synchronize only expert version/content fields in `packages/compiler/src/build-info.ts` and the successor version/content/hash/activation checks in `test/foundation.spec.test.ts`. Preserve specification identity, historical checkpoints, every negative fixture and complete raw-byte guards. No bypass or release framework.                                                                                                                                                    |
+| `packages/compiler/src/layout/c64-layout.spec.test.ts`, lines 107–122 | Replace only `$DD00` with `$DD02` in the positive volatile read/write inventory and add an explicit absence check for startup PRA accesses. Preserve all other addresses and CPU/status/control assertions.                                                                                                                                                                                                                                                                          |
+| `test/rd05/profile-pipeline.spec.test.ts`, lines 233–246              | The same exact address replacement, plus explicit absence of PRA loads/stores in the empty-program startup/return. Preserve all four profiles, PRG stub, CPU/status, SID-absence and equality/cost assertions.                                                                                                                                                                                                                                                                       |
+| `test/m1/vice-driver.ts`, display comparison at lines 692–710         | Permit only the bank-equivalent low-DDRA representation difference: independently require generated low DDRA zero and physical low PRA three, retain exact upper DDR/PRA fields, then compare bank-equivalent display state. Preserve rendered pixels, VIC fields, source behavior, CPU/return proof, ordered game MMIO traffic and the separately frozen expert run/captures. No global masking or stale-golden replacement.                                                        |
+
+The M1 helper currently compares literal CIA2 direction bytes with the expert
+twin, although its game MMIO trace starts after startup and stops before the
+epilogue. Bank-equivalent comparison therefore needs this explicit narrow
+exception; removing the comparison would weaken the oracle. New negative
+qualification must still detect wrong bank pins, wrong upper direction bits,
+wrong generated low direction bits, altered pixels and incorrect return state.
+Any additional old-oracle change needs its own exact exception.
+
+Approved assessment writes are only this mini-plan and the feature roadmap.
+Proposed execution also touches the existing expert qualification/source records,
+binding fields/checks above, startup implementation and its logic-tier tests, new
+independent startup regressions/native fixtures and this task's evidence. These
+are not yet approved. `spec/`, sibling feature semantics, APIs, product scope,
+dependencies, CI and portfolio updates remain excluded. No push is authorized.
+
+## Tasks
+
+- [ ] T-09.1 Qualify and bind the approved expert correction. Freeze discriminating
+      expectations before changing candidate guidance; review sources/oracle
+      independently and evaluate changed/dependent cases. Reuse the existing
+      staged content and binding checkpoints. Inventory all relevant writers and
+      dependent decisions, including source/firmware input-versus-output mode
+      behavior; stop if the proposed narrow contract does not close.
+      **Verify:** Qualified patch identity, inheritance closure, source keys,
+      byte guards and independent authority/binding review; unchanged spec bytes;
+      directed foundation tests and full checkpoint at activation.
+- [ ] T-09.2 Add independent startup behavior and emitted-code/cost regressions;
+      record RED against the unchanged implementation. Cover all four profiles,
+      hidden-latch disagreement, all low-DDR/latch combinations and non-bank-0
+      entry. Keep debugger-initialized state probes separate from genuine
+      STOP/RESTORE/SYS replay. Use semantics-derived bank/return expectations,
+      not generated assembly as the behavior oracle.
+      **Verify:** Expected old-code failures; immutable new oracles, exact approved
+      old-test exceptions and discriminating M1 comparison negatives.
+- [ ] T-09.3 Apply the straight-line DDRA-only change in the existing emitter;
+      delete the unused platform byte and adjust existing offsets. Update only
+      relevant logic-tier ordering tests; preserve 6510 latch-before-DDR order,
+      CPU/status/stack/vector obligations, initializer order and no-copy behavior.
+      **Verify:** Directed GREEN, zero startup PRA accesses, exact DDRA operations,
+      no added function storage, independent assembled costs/resources and all
+      four-profile normal returns.
+- [ ] T-09.4 Complete sequential native replay, M1 and full verification;
+      perform required independent correctness, SFA/ABI, platform, output and
+      semantics/DX review. Resolve findings, bind final artifacts/resources,
+      reconcile deferrals and update T-09 only. RD-05/DEF-7 remain open for their
+      other obligations.
+      **Verify:** Fresh install/build/typecheck/full tests, protected paths,
+      exact approved changes, independent review closure and normal/genuine
+      STOP/SYS restoration. Report VICE-verified/hardware-unverified only.
+
+**Verify:** During assessment use targeted Markdown formatting, local links,
+source/anchor identity, roadmap arithmetic and protected-path checks. During
+execution use directed tests; before each phase/authority checkpoint run
+`yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck`, and `yarn test`.
+Run VICE cases sequentially. Use the git-commit skill for coherent green local
+checkpoints; never push automatically.
+
+The supplied read-only full-plan parser counts this checklist as four unstarted
+tasks, but does not recognize the mini-plan format: it reports missing
+`00-index.md` and a spurious Ready lifecycle. Those outputs are not readiness
+evidence. The lightweight skill requires this single file, so validate its task
+count/status directly; do not add a multi-document set or alter the parser.
+
+## Cost and proof gates
+
+| CIA2-only startup and return portion       |   Current | Candidate projection |
+| ------------------------------------------ | --------: | -------------------: |
+| Code bytes                                 |        40 |                   20 |
+| Nominal instruction cycles                 |        52 |                   26 |
+| Platform saved bytes                       |         2 |                    1 |
+| Added function homes / ZP / hardware stack | 0 / 0 / 0 |            0 / 0 / 0 |
+
+The projection counts two current absolute saves, two setup sequences and two
+restores against one save/setup/restore. It is not assembled or measured output.
+Nominal cycles exclude VIC stalls and interrupt interference. Whole-PRG bytes,
+alignment/padding, resident capacity and expert whole-program parity are Unknown
+until final assembly/layout. Do not claim a production-grade win from this table.
+
+Native proof must show effective bank 0 before any source bank change, exact internal
+PRA and saved-DDRA return, unchanged unrelated pins/directions and relevant CPU,
+MMIO, ABI and interrupt state. Include changed external IEC inputs, reachable
+firmware activity, repeated genuine STOP/SYS and ordinary return. Internal-latch
+observations supplement public pin readback; neither emulator mutation nor
+synthetic PC/stack injection is genuine keyboard/RESTORE evidence. Bank-transition
+timing must be bounded separately. Prove raw bank writes follow the explicitly
+approved direction contract and do not claim unchanged output-mode behavior.
+This task supplies no raster-stability promise
+or general bank-1–3 operation. Physical CIA edge/revision QA remains RD-10.
