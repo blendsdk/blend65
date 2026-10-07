@@ -11,11 +11,40 @@ import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import {
   interruptClobberedGlobals,
-  interruptWriteAddresses,
+  interruptContextWriteAddresses,
   interruptWriteTouches,
+  interruptWriteMayTouchHomes,
 } from "./interrupt-address-facts.js";
 import type { InterruptWriteAddress } from "./interrupt-address-facts.js";
 import type { TargetProfile } from "../target/profile.js";
+import {
+  publishInterruptVector,
+  interruptVariantBindings,
+  independentInterruptCallableBodies,
+  interruptCpuControlState,
+} from "./interrupt-context-walk.js";
+import { INITIAL_CIA2_FACTS } from "./cia2-ownership-facts.js";
+import { literalValues } from "./cia-ownership-facts.js";
+import {
+  requestInterruptContext,
+  enterInterruptContext,
+  requestInterruptCalls,
+} from "./interrupt-context-invocations.js";
+import {
+  interruptArgumentInputs,
+  interruptArgumentFactsKey,
+  interruptArgumentValue,
+  advanceInterruptArgumentFacts,
+  enterInterruptArgumentBlock,
+  forgetInterruptArgumentHomes,
+  combineInterruptHomeWrites,
+} from "./interrupt-argument-facts.js";
+import {
+  installCia2Lease,
+  applyCia2Operation,
+  applyCia2RawWrite,
+  releaseCia2Lease,
+} from "./cia2-ownership.js";
 
 import {
   interruptVectorStateKey,
@@ -24,6 +53,7 @@ import {
   interruptIrqTransitionFailure,
   interruptEntrySelection,
   interruptExecutionKey,
+  closeInterruptCodeVariants,
 } from "./interrupt-context-facts.js";
 import type {
   SelectedEntry,
@@ -31,6 +61,7 @@ import type {
   VectorState,
   InterruptContextAnalysis,
   InterruptLinkBinding,
+  InterruptContextInvocation as ContextInvocation,
 } from "./interrupt-context-facts.js";
 export type { InterruptContextAnalysis } from "./interrupt-context-facts.js";
 export {
@@ -38,26 +69,6 @@ export {
   interruptLinkObservers,
   interruptCaptureFailure,
 } from "./interrupt-context-facts.js";
-
-/** One memoized source invocation; its return alternatives grow monotonically. */
-interface ContextInvocation {
-  /** Existing semantic body, including ordered executable initializers. */
-  readonly body: SemanticFunction | SemanticGlobal;
-  /** Concrete caller/entry vector depths used by the existing fixed-home consumers. */
-  readonly context: InterruptExecutionContext;
-  /** Entry relation, not a general value or CPU snapshot. */
-  readonly input: VectorState;
-  /** Readers belonging to suspended executions; returning cannot discard them. */
-  readonly protectedReaders: ReadonlyMap<string, LinkCapture>;
-  /** Current wrapper's continuation, propagated through ordinary helpers. */
-  readonly activeEntry?: SelectedEntry;
-  /** Active selected handlers used only to identify a growing continuation recurrence. */
-  readonly ancestors: ReadonlyMap<string, SelectedEntry>;
-  /** Complete returning relations, kept separate at CFG joins. */
-  readonly exits: Map<string, VectorState>;
-  /** Callers to revisit when a new returning relation is discovered. */
-  readonly callers: Set<ContextInvocation>;
-}
 
 /**
  * Close ordered vector/link relations using the existing context worklist owner.
@@ -87,6 +98,9 @@ export function analyzeInterruptContexts(
     routes.set(route.installation, [...(routes.get(route.installation) ?? []), route]);
   }
   const contexts = new Map<string, InterruptExecutionContext[]>();
+  const cia2 = program.interruptRoutes.some(
+    ({ sink }) => sink.variant === "c64_kernal_nminv_exclusive",
+  );
   const invocations = new Map<string, ContextInvocation>();
   const pending: ContextInvocation[] = [];
   const dirty = new Set<ContextInvocation>();
@@ -116,6 +130,13 @@ export function analyzeInterruptContexts(
     ),
   };
   const addresses = new Map<string, ReadonlyMap<SemanticOperation, InterruptWriteAddress>>();
+  const literals = new Map([...bodies].map(([key, body]) => [key, literalValues(body.blocks)]));
+  const bodyAddresses = (body: SemanticFunction | SemanticGlobal) => {
+    const key = bindingIdentityKey(body.id);
+    if (!addresses.has(key))
+      addresses.set(key, interruptContextWriteAddresses(program, body, clobbers, addressSpace));
+    return addresses.get(key)!;
+  };
   const vectorBytes = { irq: new Set<bigint>(), nmi: new Set<bigint>() };
   for (const { sink } of program.interruptRoutes ?? []) {
     vectorBytes[sink.domain].add(BigInt(sink.vector));
@@ -134,39 +155,23 @@ export function analyzeInterruptContexts(
     protectedReaders: ReadonlyMap<string, LinkCapture>,
     activeEntry?: SelectedEntry,
     ancestors: ReadonlyMap<string, SelectedEntry> = new Map(),
+    arguments_: readonly (bigint | undefined)[] = [],
   ): ContextInvocation => {
-    const owner = bindingIdentityKey(body.id);
-    const key = JSON.stringify([
-      owner,
-      context,
-      interruptVectorStateKey(
+    return requestInterruptContext(
+      {
+        body,
         input,
-        interruptLinkObservers(input, protectedReaders, activeEntry, program),
-      ),
-      [...protectedReaders].map(([slot, capture]) => [slot, capture.entry?.id ?? null]).sort(),
-      activeEntry?.id ?? null,
-      [...ancestors].map(([handler, entry]) => [handler, entry.id]).sort(),
-    ]);
-    const previous = invocations.get(key);
-    if (previous !== undefined) return previous;
-    const invocation: ContextInvocation = {
-      body,
-      input,
-      context,
-      protectedReaders,
-      ancestors,
-      ...(activeEntry === undefined ? {} : { activeEntry }),
-      exits: new Map(),
-      callers: new Set(),
-    };
-    invocations.set(key, invocation);
-    const selected = contexts.get(owner) ?? [];
-    if (!selected.some((entry) => JSON.stringify(entry) === JSON.stringify(context))) {
-      selected.push(context);
-      contexts.set(owner, selected);
-    }
-    schedule(invocation);
-    return invocation;
+        context,
+        protectedReaders,
+        ancestors,
+        arguments: arguments_,
+        ...(activeEntry === undefined ? {} : { activeEntry }),
+      },
+      program,
+      invocations,
+      contexts,
+      schedule,
+    );
   };
   const initial: VectorState = {
     vectors: { irq: null, nmi: null },
@@ -176,6 +181,7 @@ export function analyzeInterruptContexts(
     eligible: true,
     saved: [],
     path: [],
+    ...(cia2 ? { cia2: INITIAL_CIA2_FACTS } : {}),
   };
   const ordered = [
     ...program.semantic.initializerOrder.map((id) => bodies.get(bindingIdentityKey(id))!),
@@ -203,40 +209,8 @@ export function analyzeInterruptContexts(
     for (const exit of node.exits.values()) seed(index + 1, exit);
   };
   seed(0, initial);
-  for (const root of program.roots) {
-    if (root.kind !== "callable") continue;
-    const body = bodies.get(bindingIdentityKey(root.function));
-    if (body !== undefined) request(body, initial, { domain: "main", irq: 0, nmi: 0 }, new Map());
-  }
-  /** A new continuation is growing only when it contains an active instance of itself. */
-  const extendsActiveChain = (
-    selected: SelectedEntry,
-    state: VectorState,
-    node: ContextInvocation,
-  ): boolean => {
-    if (node.ancestors.has(selected.id)) return false;
-    const handler = bindingIdentityKey(selected.route.handler);
-    const visited = new Set<string>();
-    let current: SelectedEntry | null = selected;
-    while (current !== null && !visited.has(current.id)) {
-      visited.add(current.id);
-      if (
-        current !== selected &&
-        node.ancestors.has(current.id) &&
-        bindingIdentityKey(current.route.handler) === handler
-      )
-        return true;
-      if (
-        current.tail === undefined ||
-        program.interruptOwnership?.returningBodies?.get(
-          bindingIdentityKey(current.route.handler),
-        ) === false
-      )
-        return false;
-      current = state.words.get(current.tail)?.entry ?? null;
-    }
-    return false;
-  };
+  for (const body of independentInterruptCallableBodies(program, bodies, cia2))
+    request(body, initial, { domain: "main", irq: 0, nmi: 0 }, new Map());
   /** Enter one actual installed/chain target, protecting the executions it suspends. */
   const enter = (
     selected: SelectedEntry,
@@ -244,35 +218,16 @@ export function analyzeInterruptContexts(
     node: ContextInvocation,
     chain: boolean,
   ): ContextInvocation | null => {
-    if (extendsActiveChain(selected, state, node)) {
-      diagnostics.push(
-        projectDiagnostic(
-          "E10245",
-          `Execution path '${selected.route.sink.source}' has unbounded private-storage overlap, disallowed unbounded stack use, or unproved generated reentrancy`,
-          selected.route.installation.span,
-          null,
-          state.path.map((span) => ({ span, message: "Generated continuation extends here" })),
-        ),
-      );
-      return null;
-    }
-    const body = bodies.get(bindingIdentityKey(selected.route.handler));
-    if (body === undefined) throw new Error("Selected interrupt body is missing");
-    const called = request(
-      body,
-      { ...state, owners: { irq: [], nmi: [] }, enabled: false, eligible: false, saved: [] },
-      selected.context,
-      interruptLinkObservers(
-        state,
-        node.protectedReaders,
-        chain ? undefined : node.activeEntry,
-        program,
-      ),
+    return enterInterruptContext(
       selected,
-      new Map([...node.ancestors, [selected.id, selected]]),
+      state,
+      node,
+      chain,
+      program,
+      bodies,
+      diagnostics,
+      request,
     );
-    called.callers.add(node);
-    return called;
   };
   /** Absence and every actual returning interrupt are separate feasible transitions. */
   const arrivals = (
@@ -299,18 +254,18 @@ export function analyzeInterruptContexts(
           owners: state.owners,
           saved: state.saved,
           enabled: state.enabled,
-          eligible: state.eligible,
+          // RTI restores I early enough to end any preceding old-I polling delay.
+          // Only an actual return changes eligibility; absence retains that delay.
+          eligible: state.enabled,
+          ...(cia2
+            ? { writesHomes: state.writesHomes === true || returned.writesHomes === true }
+            : {}),
         });
       }
     }
     return states;
   };
-  /**
-   * The saved word is complete before either vector store. Between the IRQ
-   * low/high stores, NMI may run, but must neither expose IRQ nor capture CINV.
-   * Equal selected entries leave both bytes unchanged. The NMI publication
-   * itself changes only one byte and retains any suspended parent IRQ phase.
-   */
+  /** Reuse the existing ordered arrival relation for each vector transaction. */
   const publish = (
     captured: VectorState,
     destination: SelectedEntry | null,
@@ -318,26 +273,10 @@ export function analyzeInterruptContexts(
     source: SourceSpan,
     caller: VectorState,
     node: ContextInvocation,
-  ): VectorState[] => {
-    const completed: VectorState[] = [];
-    for (const before of arrivals(captured, node, true)) {
-      const changed = sink === "irq" && before.vectors.irq?.id !== destination?.id;
-      const between = changed ? { ...before, irqTransition: source } : before;
-      for (const resumed of changed ? arrivals(between, node, true) : [between]) {
-        const { irqTransition: inherited, ...withoutTransition } = resumed;
-        completed.push({
-          ...withoutTransition,
-          ...(captured.irqTransition === undefined
-            ? {}
-            : { irqTransition: captured.irqTransition }),
-          vectors: { ...resumed.vectors, [sink]: destination },
-          enabled: caller.enabled,
-          eligible: false,
-        });
-      }
-    }
-    return completed;
-  };
+  ): VectorState[] =>
+    publishInterruptVector(captured, destination, sink, source, caller, (state) =>
+      arrivals(state, node, true),
+    );
   while (pending.length > 0 && diagnostics.length === 0) {
     const node = pending.shift()!;
     dirty.delete(node);
@@ -345,28 +284,23 @@ export function analyzeInterruptContexts(
     const blocks = new Map(node.body.blocks.map((block) => [block.id, block]));
     const ownerKey = bindingIdentityKey(node.body.id);
     const executionKey = interruptExecutionKey(node.body.id, node.context);
-    const executionPoints = reached.get(executionKey) ?? new Map<string, Set<number>>();
-    reached.set(executionKey, executionPoints);
-    if (!addresses.has(ownerKey))
-      addresses.set(
-        ownerKey,
-        interruptWriteAddresses(
-          program.semantic,
-          node.body.entry,
-          node.body.blocks,
-          ownerKey === bindingIdentityKey(program.semantic.main),
-          clobbers,
-          addressSpace,
-          program.indirectTargets,
-          (target) => {
-            const key = bindingIdentityKey(target);
-            return program.interruptOwnership?.returningBodies?.get(key) === false
-              ? null
-              : program.interruptOwnership?.returningDepthChanges?.get(key);
-          },
-        ),
-      );
-    const points = [{ block: node.body.entry, index: 0, state: node.input }];
+    const executionPoints = cia2
+      ? node.reached
+      : (reached.get(executionKey) ?? new Map<string, Set<number>>());
+    if (!cia2) reached.set(executionKey, executionPoints);
+    bodyAddresses(node.body);
+    const bodyLiterals = literals.get(ownerKey)!;
+    const parameterRoots = new Set(
+      "parameters" in node.body ? node.body.parameters.map(({ id }) => bindingIdentityKey(id)) : [],
+    );
+    const points = [
+      {
+        block: node.body.entry,
+        index: 0,
+        state: node.input,
+        arguments: interruptArgumentInputs(node.body, node.arguments),
+      },
+    ];
     const seen = new Set<string>();
     /** Store complete exits without joining unrelated current-vector choices. */
     const exit = (state: VectorState): void => {
@@ -388,6 +322,7 @@ export function analyzeInterruptContexts(
           point.state,
           interruptLinkObservers(point.state, node.protectedReaders, node.activeEntry, program),
         ),
+        interruptArgumentFactsKey(point.arguments),
       ]);
       if (seen.has(key)) continue;
       seen.add(key);
@@ -403,13 +338,20 @@ export function analyzeInterruptContexts(
           (operation.capability === "c64.system.restoreIRQ" ||
             operation.capability === "c64.system.restoreNMI"));
       const returning = operation === undefined && block.terminator.kind === "return";
-      for (const interrupted of arrivals(point.state, node, false, transaction || returning).slice(
-        1,
-      )) {
-        points.push({ ...point, state: interrupted });
+      // Observe fresh effects even after an earlier write and a new exact assignment.
+      const before = cia2 ? { ...point.state, writesHomes: false } : point.state;
+      for (const interrupted of arrivals(before, node, false, transaction || returning).slice(1)) {
+        points.push({
+          ...point,
+          state: combineInterruptHomeWrites(interrupted, point.state),
+          arguments: interrupted.writesHomes
+            ? forgetInterruptArgumentHomes(point.arguments)
+            : point.arguments,
+        });
       }
       if (diagnostics.length > 0) break;
-      let states = [point.state];
+      let states = [before];
+      const argumentFacts = point.arguments;
       if (operation === undefined) {
         const terminal = block.terminator;
         if (terminal.kind === "return") {
@@ -425,7 +367,8 @@ export function analyzeInterruptContexts(
             if (predecessor === null) exit(point.state);
             else {
               const chained = enter(predecessor, point.state, node, true);
-              for (const returned of chained?.exits.values() ?? []) exit(returned);
+              for (const returned of chained?.exits.values() ?? [])
+                exit(combineInterruptHomeWrites(returned, point.state));
             }
           } else exit(point.state);
         } else
@@ -434,65 +377,42 @@ export function analyzeInterruptContexts(
             : terminal.kind === "branch"
               ? [terminal.whenTrue, terminal.whenFalse]
               : []) {
-            points.push({ block: target, index: 0, state: point.state });
+            points.push({
+              block: target,
+              index: 0,
+              state: point.state,
+              arguments: enterInterruptArgumentBlock(
+                point.arguments,
+                bodyLiterals,
+                blocks.get(target)!,
+                point.block,
+              ),
+            });
           }
         continue;
       }
       if (operation.kind === "call" || operation.kind === "indirect-call") {
-        states = [];
-        const targets =
-          operation.kind === "call"
-            ? [operation.callee]
-            : (program.indirectTargets?.get(operation) ?? []);
-        for (const target of targets) {
-          const body = bodies.get(bindingIdentityKey(target));
-          if (body === undefined) continue;
-          const called = request(
-            body,
-            {
-              ...point.state,
-              eligible: point.state.enabled,
-              path: [...point.state.path, operation.span],
-            },
-            interruptDepthAt(node.context, operation, program),
-            node.protectedReaders,
-            node.activeEntry,
-            node.ancestors,
-          );
-          called.callers.add(node);
-          states.push(...called.exits.values());
-        }
+        const called = requestInterruptCalls(
+          operation,
+          before,
+          node,
+          program,
+          bodies,
+          request,
+          cia2
+            ? operation.arguments.map((id) =>
+                interruptArgumentValue(point.arguments, bodyLiterals, id),
+              )
+            : [],
+        );
+        states = called.flatMap(({ exits }) => [...exits.values()]);
       } else if (operation.kind === "cpu-control") {
-        const state = point.state;
-        states = [
-          {
-            ...state,
-            eligible: state.enabled,
-            enabled:
-              operation.control === "asm_sei"
-                ? false
-                : operation.control === "asm_cli"
-                  ? true
-                  : operation.control === "asm_plp"
-                    ? state.saved.at(-1)!
-                    : state.enabled,
-            saved:
-              operation.control === "asm_php"
-                ? [...state.saved, state.enabled]
-                : operation.control === "asm_plp"
-                  ? state.saved.slice(0, -1)
-                  : state.saved,
-            path:
-              state.irqTransition !== undefined && operation.control === "asm_cli"
-                ? [...state.path, operation.span]
-                : state.path,
-          },
-        ];
+        states = [interruptCpuControlState(before, operation)];
       } else if (operation.kind === "platform") {
         if (selected.length > 0) {
           states = [];
           for (const route of selected) {
-            const state = point.state;
+            const state = before;
             if (route.sink.domain === "irq" && state.irqTransition !== undefined) {
               diagnostics.push(interruptIrqTransitionFailure(state, operation.span));
               break;
@@ -561,8 +481,23 @@ export function analyzeInterruptContexts(
                 captures: [...existing, { ...alternative, entry }],
               });
             }
+            const device =
+              state.cia2 === undefined || route.sink.domain !== "nmi"
+                ? null
+                : installCia2Lease(
+                    state.cia2,
+                    slot,
+                    route.variant.id === "c64_kernal_nminv_exclusive",
+                    capture.entry === null,
+                    operation,
+                  );
+            if (device?.diagnostic !== null && device?.diagnostic !== undefined) {
+              diagnostics.push(device.diagnostic);
+              break;
+            }
             const captured: VectorState = {
               ...state,
+              ...(device === null ? {} : { cia2: device.facts }),
               words: new Map([...state.words, [slot, capture]]),
               owners: {
                 ...state.owners,
@@ -581,34 +516,100 @@ export function analyzeInterruptContexts(
           operation.capability === "c64.system.restoreNMI"
         ) {
           const sink = operation.capability === "c64.system.restoreIRQ" ? "irq" : "nmi";
-          if (sink === "irq" && point.state.irqTransition !== undefined) {
-            diagnostics.push(interruptIrqTransitionFailure(point.state, operation.span));
+          if (sink === "irq" && before.irqTransition !== undefined) {
+            diagnostics.push(interruptIrqTransitionFailure(before, operation.span));
             break;
           }
-          const owner = point.state.owners[sink].at(-1);
+          const owner = before.owners[sink].at(-1);
           if (owner === undefined) throw new Error("Interrupt restore has no proved local owner");
           states = publish(
             {
-              ...point.state,
+              ...before,
               enabled: false,
               eligible: false,
-              path: [...point.state.path, operation.span],
+              path: [...before.path, operation.span],
             },
             owner.capture.entry,
             sink,
             operation.span,
-            point.state,
+            before,
             node,
-          ).map((state) => ({
-            ...state,
-            owners: { ...state.owners, [sink]: state.owners[sink].slice(0, -1) },
-          }));
-        } else states = [{ ...point.state, eligible: point.state.enabled }];
+          ).flatMap((state) => {
+            const device =
+              state.cia2 === undefined || sink !== "nmi"
+                ? null
+                : releaseCia2Lease(
+                    state.cia2,
+                    owner.slot,
+                    owner.capture.entry === null,
+                    operation,
+                    node.protectedReaders.has(owner.slot) ||
+                      state.owners.nmi.slice(0, -1).some(({ slot }) => slot === owner.slot),
+                  );
+            if (device?.diagnostic !== null && device?.diagnostic !== undefined) {
+              diagnostics.push(device.diagnostic);
+              return [];
+            }
+            if (device !== null) {
+              const policies =
+                node.restores.get(operation) ??
+                new Set<"ordinary" | "stock-clean" | "stock-typed">();
+              policies.add(
+                device.stockHandback
+                  ? "stock-typed"
+                  : owner.capture.entry === null && state.cia2?.leases.get(owner.slot)?.exclusive
+                    ? "stock-clean"
+                    : "ordinary",
+              );
+              node.restores.set(operation, policies);
+            }
+            return [
+              {
+                ...state,
+                ...(device === null ? {} : { cia2: device.facts }),
+                owners: { ...state.owners, [sink]: state.owners[sink].slice(0, -1) },
+              },
+            ];
+          });
+        } else {
+          const argument = operation.arguments[0];
+          const exact =
+            argument === undefined
+              ? undefined
+              : interruptArgumentValue(point.arguments, bodyLiterals, argument);
+          const actualCall =
+            exact !== undefined &&
+            argument !== undefined &&
+            !bodyLiterals.has(argument) &&
+            node.arguments.length > 0
+              ? node.input.path.at(-1)
+              : undefined;
+          const device =
+            before.cia2 === undefined
+              ? null
+              : applyCia2Operation(
+                  before.cia2,
+                  before,
+                  node.activeEntry,
+                  operation,
+                  exact,
+                  actualCall,
+                );
+          if (device?.diagnostic !== null && device?.diagnostic !== undefined)
+            diagnostics.push(device.diagnostic);
+          states = [
+            {
+              ...before,
+              ...(device === null ? {} : { cia2: device.facts }),
+              eligible: before.enabled,
+            },
+          ];
+        }
       } else if (operation.kind === "memory-write") {
         const address = addresses.get(ownerKey)!.get(operation);
-        const rawVectors = new Map(point.state.rawVectors);
+        const rawVectors = new Map(before.rawVectors);
         const readers = interruptLinkObservers(
-          point.state,
+          before,
           node.protectedReaders,
           node.activeEntry,
           program,
@@ -617,7 +618,7 @@ export function analyzeInterruptContexts(
           if (!interruptWriteTouches(operation, address, vectorBytes[sink], sink === "nmi"))
             continue;
           if (
-            point.state.vectors[sink] !== null ||
+            before.vectors[sink] !== null ||
             [...readers.keys()].some((slot) => slot.startsWith(`interrupt-link:${sink}:`))
           ) {
             diagnostics.push(
@@ -631,16 +632,59 @@ export function analyzeInterruptContexts(
           }
           rawVectors.set(sink, operation.span);
         }
-        states = [{ ...point.state, rawVectors, eligible: point.state.enabled }];
-      } else states = [{ ...point.state, eligible: point.state.enabled }];
+        states = [
+          {
+            ...before,
+            rawVectors,
+            eligible: before.enabled,
+            ...(before.cia2 === undefined
+              ? {}
+              : {
+                  cia2: applyCia2RawWrite(
+                    before.cia2,
+                    before,
+                    operation,
+                    address,
+                    interruptArgumentValue(point.arguments, bodyLiterals, operation.value),
+                  ),
+                  writesHomes: interruptWriteMayTouchHomes(operation, address, addressSpace),
+                }),
+          },
+        ];
+      } else states = [{ ...before, eligible: before.enabled }];
       for (const state of states)
-        points.push({ block: point.block, index: point.index + 1, state });
+        points.push({
+          block: point.block,
+          index: point.index + 1,
+          state: combineInterruptHomeWrites(state, point.state),
+          arguments: cia2
+            ? advanceInterruptArgumentFacts(
+                state.writesHomes ? forgetInterruptArgumentHomes(argumentFacts) : argumentFacts,
+                bodyLiterals,
+                operation,
+                parameterRoots,
+              )
+            : argumentFacts,
+        });
     }
   }
+  const code =
+    !cia2 || diagnostics.length > 0
+      ? null
+      : closeInterruptCodeVariants([...invocations.values()], program);
+  if (code !== null) diagnostics.push(...code.diagnostics);
   return {
-    contexts,
-    bindings: diagnostics.length === 0 ? bindings : new Map(),
-    reached: diagnostics.length === 0 ? reached : new Map(),
+    contexts: code?.contexts ?? contexts,
+    bindings:
+      diagnostics.length === 0
+        ? code === null
+          ? bindings
+          : interruptVariantBindings(bindings, code.contexts, program)
+        : new Map(),
+    reached: diagnostics.length === 0 ? (code?.reached ?? reached) : new Map(),
     diagnostics,
+    ...(code === null || diagnostics.length > 0
+      ? {}
+      : { cia2Restores: code.cia2Restores, cia2Calls: code.cia2Calls }),
   };
 }

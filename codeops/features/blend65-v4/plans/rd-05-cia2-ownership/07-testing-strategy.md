@@ -70,3 +70,111 @@ Unknown and blocks qualification and ledger retirement.
 
 Count payload, padding, links, code, SFA/ZP and per-entry stack separately. Report
 `VICE-verified / hardware-unverified`; physical edge checks remain RD-10.
+
+## Predeclared bounded native RESTORE and boundary scenarios
+
+This section defines the independent inputs and fail predicates for ST-11/ST-12
+before production. It is not a native result. Task 1.3.3 must retain reproducible
+scripts using the existing GDB/text-monitor protocol; no new driver is added here.
+Run every case serially on each of the four cooperative profiles, with the pinned
+executable, ROMs and selected VIC/SID/CIA models. Fail rather than skip when input,
+boundary fidelity, tooling or observations cannot be proved.
+
+### Exact inputs and bounds
+
+- Entry is stock `$FE47`, CIA2 masks clear, both timers stopped, `$02A1=0`,
+  without an independent vector owner or suspended firmware timer writer.
+  Record those admitted conditions; do not repair a failed entry with monitor writes.
+- Use a sixteen-element `int` closure matrix for
+  `keyboard_event_playback(0, matrix)`: no keys is sixteen zeroes; genuine RUN/STOP
+  is `matrix[7]=128` with every other element zero. Bit one denotes a closed key.
+  Verify the latched logical matrix and physical CIA1 column-7/row-7 result:
+  selecting PA7 low makes PB7 low only in the STOP variant. Neither `$0091` nor
+  any cached KERNAL STOP result may be injected. Joystick inputs are neutral and
+  must not manufacture that physical bit.
+- For each RESTORE pulse, call `machine_set_restore_key(0)`, then `(1)`, then `(0)`
+  through the stopped `mon_keyboard_feed` protocol. The admitted VICE implementation
+  triggers a timed CPU NMI on `(1)` and immediately deasserts; `(0)` is not a CPU
+  write or an independently counted edge. Require one observed hardware acceptance
+  for one pulse. A no-RESTORE control uses the same matrix with no `(1)` call.
+- Source programs all CIA2 latches, controls, masks and consuming reads. Binary
+  timer cases use PHI2 one-shot `$00FF` timers: A yields `$81`, B `$82`; both
+  accumulate with masks clear for 1,024 source iterations, then enabling `$03`
+  yields one captured `$83`. Two ordinary source bit tests produce independent
+  A/B markers. ICR writes never serve as pending-data injection.
+- RESTORE-only writer companions use source latches `$FFFF`, masks clear and an
+  exclusive callback that consumes once, writes a marker, then uses typed
+  `configureTimerA($19)`/B to start/load the timers before returning. This gives
+  a real old application writer without generating an additional CIA2 NMI.
+- Use exactly one pulse in single-entry cases and exactly two pulses in overlap
+  cases, never an unbounded pulse loop. Bound each run to 80,000,000 emulated
+  cycles, each expected stop to 15 seconds, and each complete run to 60 seconds.
+  Record each finite generated/ROM stack component; it proves no external bound.
+
+### Required case matrix
+
+For both no-key and genuine STOP input, require these scenarios on every profile:
+
+| Scenario                                                                               | Required independently expected route and outcome                                                                                                                                                                                                                                                                               |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No RESTORE control during the lease and after release                                  | No hardware NMI acceptance; source reaches normal captured BASIC return. STOP alone does not invoke the RESTORE NMI policy.                                                                                                                                                                                                     |
+| One RESTORE during an already published exclusive lease                                | The selected generated callback owns the input, consumes its defined ICR once and returns through RTI for either matrix. No stock STOP/warm-start path is taken; A/X/Y and stacked status/D are restored.                                                                                                                       |
+| One RESTORE after final stock publication                                              | Stock `$FE47` receives the input. With no STOP, its firmware read/RTI route returns to the stacked continuation. With genuine STOP, the pinned stock `RESTOR`/`IOINIT`/`CINT` and BASIC warm-start-vector route is terminal to that interrupted application continuation.                                                       |
+| One RESTORE at every capture/publication/removal/release instruction boundary          | Classify by the vector actually used at CPU acceptance, not by the host request time. Only the complete old or new entry is selected; apply its exclusive-versus-stock policy above.                                                                                                                                            |
+| Two RESTORE entries overlapping an old generated timer writer before final publication | Stop the first entry before its first typed control write and accept the second there. Both complete their source writes/RTI before the mainline handback resumes. Exactly two generated consuming reads and two ordered copies of the source writer effects occur. Final vector-first shutdown then wins.                      |
+| Two overlapping stock RESTORE entries after publication                                | With no STOP, observe the two finite hardware frames and their actual returning ROM routes. A STOP-bearing accepted stock route follows the terminal warm-start policy rather than requiring an abandoned continuation to return. This bounded observation grants no general retained-firmware reentrancy/completion guarantee. |
+
+The boundary inventory includes the stock-to-exclusive install, exclusive-to-clean
+exclusive successor install, exclusive-to-chained successor install, their clean
+inner removals, and the final typed restore. Resolve every instruction start and
+the operation's ending boundary from source-correlated actual PRG/debug ranges,
+including both predecessor captures, link stores, the high-byte publication,
+register/status saves and restores, mask clear, each control read/mask/write and
+the generated drain. Retain the exact address/opcode list in each run's evidence.
+Do not scan operands as opcodes or infer a boundary from backend label spelling.
+
+For each target boundary, prove that the GDB injection remains a timed input and
+that CPU acceptance has the intended stacked return PC and completed-instruction
+history. Account for the emulator's acceptance latency when choosing the host
+request stop; setting PC, jumping to a handler, losing an instruction, running an
+extra target instruction, or merely stopping at the requested host PC fails the
+case. If this protocol cannot reach a required boundary faithfully, that boundary
+is Unknown and blocks qualification; no substitute PC injection or timing claim
+is authorized.
+
+### Required observations and failing exits
+
+Require hardware `$FFFA/$FFFB -> $FE43`, a CPU-pushed P/PCL/PCH frame with B clear,
+the actual `SEI; JMP ($0318)` ROM entry, and the selected complete `$xx47` vector.
+Capture A/X/Y/SP and stacked status/D before generated entry; establish D clear
+at ordinary handler body entry; verify actual RTI and the restored stacked PC,
+registers/status and stack depth on every returning route. Source helpers remain
+ordinary JSR/RTS. Capture each complete predecessor before publication and compare
+the same immutable link bytes after every nested entry and removal.
+
+Trace every generated vector/device access and separately attribute retained-ROM
+ICR reads. During final handback, require the generated order
+`write $0319 -> write $DD0D($1F) -> read/write $DD0E -> read/write $DD0F -> read $DD0D`;
+the final generated drain occurs once even when a stock arrival also drains the
+ending epoch. No resumed old application timer writer may execute after stock
+publication or undo the resulting stopped/masked state. A purported mainline
+publication while an older NMI writer is still suspended is not manufactured by
+the driver; actual execution/proof must establish that ordering.
+
+On normally returning releases, require exact caller A/P, unchanged X/Y/SP,
+`CRA=(prior & $C6)|$08`, `CRB=(prior & $86)|$08`, cleared masks and pending epoch,
+untouched source latches, `$02A1=0`, stock vector and captured cooperative port,
+interrupt/decimal and stack restoration on BASIC return. A stock STOP warm-start
+is instead identified by the pinned ROM terminal route through `$A002`; do not
+assert RTI, abandoned application markers or normal release completion on that
+terminal path. Any unexpected route, extra generated read/write, lost source bit,
+mixed vector, changed live link, late old writer, incorrect CPU state or bound
+expiry is a failing exit with retained evidence.
+
+Report only `VICE-verified / hardware-unverified` after these predicates pass.
+External aggregate stack, retained-firmware completion/deadline and physical
+CIA/RESTORE/cartridge behavior remain unproved. The primary authorities are
+[MOS 6526 pp.6–8](https://myoldcomputer.nl/Files/mos_6526_cia.pdf),
+[pinned Commodore NMI source](https://github.com/mist64/cbmsrc/blob/01bd60f162ef92212ef0cb67546ae8f42be34168/KERNAL_C64_03/rs232nmi)
+and the supplied VICE 3.10 keyboard/model interface declarations; no old native
+result establishes any case above.

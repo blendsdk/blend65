@@ -111,7 +111,9 @@ export function createC64InterruptEntry(
   ) => machineInstruction(cpu, opcode, mode, operand, []);
   const chain = variant.terminal === "jump-saved-vector";
   const saves = variant.registerSaveOwner === "compiler";
-  const selectedNmi = variant.id === "c64_kernal_nminv_chain" && nmiClobbers !== undefined;
+  const selectedNmi =
+    (variant.id === "c64_kernal_nminv_chain" || variant.id === "c64_kernal_nminv_exclusive") &&
+    nmiClobbers !== undefined;
   const nonempty = body.blocks.some(
     (block) => block.instructions.length > 0 || block.terminator.kind !== "return",
   );
@@ -246,7 +248,10 @@ export function lowerC64InterruptOperation(
   const source = operation.span;
   const vector = sink?.vector ?? restoreVector!;
   const matchingLowNmi =
-    vector === 0x0318 && (sink === undefined || sink.variant === "c64_kernal_nminv_chain");
+    vector === 0x0318 &&
+    (sink === undefined ||
+      sink.variant === "c64_kernal_nminv_chain" ||
+      sink.variant === "c64_kernal_nminv_exclusive");
   if (matchingLowNmi && binding.matchingLowNmi !== true)
     throw new Error("NMI vector transaction lacks its proved matching-low contract");
   const handback = binding.stockCia1Handback ? selectC64KernalFacts(profile.id) : null;
@@ -256,6 +261,10 @@ export function lowerC64InterruptOperation(
   ) {
     throw new Error("CIA1 handback requires a proved cooperative final IRQ restore");
   }
+  const cia2Handback = binding.stockCia2Handback === true;
+  if (cia2Handback && (operation.capability !== "c64.system.restoreNMI" || !matchingLowNmi)) {
+    throw new Error("CIA2 handback requires a proved cooperative final NMI restore");
+  }
   // Named CIA1 register addresses remain tied to the selected machine. Neither
   // device access nor saved-vector access may move across another volatile effect.
   const cia1 = {
@@ -264,6 +273,11 @@ export function lowerC64InterruptOperation(
     interruptControl: profile.machine.cia1Base + 0x0d,
     controlA: profile.machine.cia1Base + 0x0e,
     controlB: profile.machine.cia1Base + 0x0f,
+  };
+  const cia2 = {
+    interruptControl: profile.machine.cia2Base + 0x0d,
+    controlA: profile.machine.cia2Base + 0x0e,
+    controlB: profile.machine.cia2Base + 0x0f,
   };
   let memoryOrder = 0;
   /** Keep every consuming read and register write explicit in the machine effects. */
@@ -282,9 +296,12 @@ export function lowerC64InterruptOperation(
   const instructions: MachineInstruction[] = [
     machineInstruction(cpu, "php", "implied", null, [], source),
     machineInstruction(cpu, "pha", "implied", null, [], source),
-    // IRQ masking cannot protect NMI. Its proved matching-low transaction leaves
-    // IRQ state unchanged and publishes only one complete old-or-new address.
-    ...(matchingLowNmi ? [] : [machineInstruction(cpu, "sei", "implied", null, [], source)]),
+    // A plain matching-low publication leaves IRQ state unchanged. Device
+    // handback masks IRQ temporarily, but NMI still needs the proved old-or-new
+    // vector contract; SEI never protects an NMI transaction.
+    ...(matchingLowNmi && !cia2Handback
+      ? []
+      : [machineInstruction(cpu, "sei", "implied", null, [], source)]),
   ];
   if (handback !== null) {
     // Stop both timers before acknowledging pending game events. CRA bit 7
@@ -305,9 +322,19 @@ export function lowerC64InterruptOperation(
       deviceAccess("sta", cia1.timerAHigh),
     );
   }
-  // Capture both predecessor bytes before publication. Removal needs only the
-  // high byte because every proved vector transition keeps its low byte at $47.
-  for (let offset = matchingLowNmi && sink === undefined ? 1 : 0; offset < 2; offset += 1) {
+  if (cia2Handback) {
+    // Publish the proved idle stock predecessor before stopping the device.
+    // An old application handler can no longer restart a timer after shutdown.
+    // The low byte stays $47, and the exact proved high byte needs no RAM read.
+    instructions.push(immediate("lda", 0xfe), deviceAccess("sta", vector + 1));
+  }
+  // Capture both predecessor bytes before publication. Ordinary removal needs
+  // only the high byte; the exact stock handback was already published above.
+  for (
+    let offset = cia2Handback ? 2 : matchingLowNmi && sink === undefined ? 1 : 0;
+    offset < 2;
+    offset += 1
+  ) {
     instructions.push(
       machineInstruction(
         cpu,
@@ -394,6 +421,24 @@ export function lowerC64InterruptOperation(
       deviceAccess("lda", cia1.controlA),
       immediate("ora", 0x11),
       deviceAccess("sta", cia1.controlA),
+    );
+  }
+  if (cia2Handback) {
+    // Clear every interrupt mask, stop both timers without a LOAD strobe, then
+    // consume the final pending epoch exactly once. Preserve unrelated control
+    // fields and leave source-written latches, ports and DDRs untouched.
+    instructions.push(
+      immediate("lda", 0x1f),
+      deviceAccess("sta", cia2.interruptControl),
+      deviceAccess("lda", cia2.controlA),
+      immediate("and", 0xc6),
+      immediate("ora", 0x08),
+      deviceAccess("sta", cia2.controlA),
+      deviceAccess("lda", cia2.controlB),
+      immediate("and", 0x86),
+      immediate("ora", 0x08),
+      deviceAccess("sta", cia2.controlB),
+      deviceAccess("lda", cia2.interruptControl),
     );
   }
   instructions.push(

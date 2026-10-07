@@ -1,7 +1,10 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { ExecutionDomain } from "../semantic/interrupt-domains.js";
 import { interruptDepthAt } from "../semantic/interrupt-contexts.js";
-import { functionEntryContext } from "../semantic/interrupt-context-facts.js";
+import {
+  functionEntryContext,
+  interruptExecutionKey,
+} from "../semantic/interrupt-context-facts.js";
 import { reachableBlocks } from "../semantic/value-lifetimes.js";
 import type {
   InterruptExecutionContext,
@@ -122,6 +125,9 @@ export function contextFunctionLabel(
     )
       return label;
     context = functionEntryContext(key, context, contexts, rootAware);
+    // A policy suffix selects code only. Domain storage request IDs deliberately
+    // remain unchanged, so variants cannot invent another private frame.
+    const policy = context.releaseVariant === undefined ? "" : `.release${context.releaseVariant}`;
     if (rootAware && context.activationRoot !== undefined) {
       const root = Buffer.from(context.activationRoot).toString("hex");
       const chosen = context;
@@ -133,7 +139,8 @@ export function contextFunctionLabel(
         firstMain !== undefined &&
         firstMain.activationRoot === chosen.activationRoot &&
         firstMain.localIrqDepth === chosen.localIrqDepth &&
-        firstMain.localNmiDepth === chosen.localNmiDepth
+        firstMain.localNmiDepth === chosen.localNmiDepth &&
+        firstMain.releaseVariant === chosen.releaseVariant
       )
         return label;
       // The paired local depths distinguish both sinks in a mixed route. Legacy
@@ -142,17 +149,19 @@ export function contextFunctionLabel(
         chosen.localNmiDepth === undefined
           ? `${chosen.localIrqDepth ?? 0}`
           : `${chosen.localIrqDepth ?? 0}.${chosen.localNmiDepth}`;
-      return `${label}.${context.domain}.root${root}.depth${depth}`;
+      return `${label}.${context.domain}.root${root}.depth${depth}${policy}`;
     }
     const sameDomain = (contexts.get(key) ?? []).filter((entry) => entry.domain === context.domain);
     if (
       context.domain === "main" &&
       (sameDomain.length <= 1 ||
-        (sameDomain[0]?.irq === context.irq && sameDomain[0]?.nmi === context.nmi))
+        (sameDomain[0]?.irq === context.irq &&
+          sameDomain[0]?.nmi === context.nmi &&
+          sameDomain[0]?.releaseVariant === context.releaseVariant))
     )
       return label;
-    if (sameDomain.length <= 1) return `${label}.${context.domain}`;
-    return `${label}.${context.domain}.depth${context.irq}.${context.nmi}`;
+    if (sameDomain.length <= 1) return `${label}.${context.domain}${policy}`;
+    return `${label}.${context.domain}.depth${context.irq}.${context.nmi}${policy}`;
   }
   return label;
 }
@@ -184,7 +193,12 @@ function calleeContext(
             ? [operation.callee]
             : (program.indirectTargets?.get(operation) ?? []);
         if (targets.some((target) => label === `fn.${bindingIdentityKey(target)}`)) {
-          const selected = interruptDepthAt(context, operation, program);
+          const target = targets.find((target) => label === `fn.${bindingIdentityKey(target)}`)!;
+          const selected =
+            program.interruptContextAnalysis?.cia2Calls
+              ?.get(interruptExecutionKey(owner.id, context))
+              ?.get(operation)
+              ?.get(bindingIdentityKey(target)) ?? interruptDepthAt(context, operation, program);
           callContexts.set(cacheKey, selected);
           return selected;
         }

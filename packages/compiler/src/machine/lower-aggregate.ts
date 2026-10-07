@@ -262,7 +262,12 @@ export function lowerAggregateAddress(
   }
   if (retainedId === null) state.aggregateAddressCache = null;
   const root = loweredPlace(place, typeBytes(place.rootType!), false, state);
-  const parameterRoot = root.kind === "storage" && root.requestId.includes(":parameter:");
+  // Aggregate parameters contain a borrowed base address; copied scalar/enum
+  // parameters contain the value itself, so their address names the SFA home.
+  const parameterRoot =
+    (place.rootType?.kind === "array" || place.rootType?.kind === "struct") &&
+    root.kind === "storage" &&
+    root.requestId.includes(":parameter:");
   const addressStaticOffset = cache === null ? plan.staticOffset : 0;
   const instructions: MachineInstruction[] = [];
   if (parameterRoot) {

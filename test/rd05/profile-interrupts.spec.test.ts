@@ -90,9 +90,13 @@ function main(): void { setNMI(&handler); restoreNMI(); }`;
 
   const unsafe = [
     [
-      "exclusive NMI installation",
+      "exclusive NMI handler retaining five volatile samples",
       `import { setNMIExclusive, restoreNMI } from c64.system;
-interrupt function handler(): void {}
+interrupt function handler(): void {
+let a: byte = peek($0400); let b: byte = peek($0401);
+let c: byte = peek($0402); let d: byte = peek($0403); let e: byte = peek($0404);
+poke($0410, a + b + c + d + e);
+}
 function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
     ],
   ] as const;

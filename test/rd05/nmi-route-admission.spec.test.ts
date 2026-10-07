@@ -114,10 +114,10 @@ describe.each(profiles)("cooperative NMI admission on %s", (profile) => {
   // Exclusive ownership and selected private storage remain distinct rejection conditions.
   it.each([
     [
-      "exclusive ownership is unproved",
+      "the exclusive handler retains five samples",
       `module Game;
 import { setNMIExclusive, restoreNMI } from c64.system;
-interrupt function handler(): void {}
+interrupt function handler(): void { ${retainedReads} }
 function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
       undefined,
     ],

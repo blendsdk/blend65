@@ -4,6 +4,7 @@ import type { BindingId, IntegerFacts, SemanticType } from "../frontend/semantic
 import type {
   SemanticBlock,
   SemanticGlobal,
+  SemanticFunction,
   SemanticOperation,
   SemanticProgram,
   PlaceAddressOperation,
@@ -12,6 +13,7 @@ import type {
 import type { TargetProfile } from "../target/profile.js";
 import type { StorageRange } from "../storage/storage-types.js";
 import type { IndirectTargetSets } from "./function-targets.js";
+import type { WholeProgram } from "./whole-program.js";
 import { reachableBlocks } from "./value-lifetimes.js";
 
 /** Exact bits or selected windows containing an owned object's direct address. */
@@ -26,6 +28,54 @@ export type InterruptWriteAddress =
 
 /** Absence means unknown; symbolic facts never become invented numeric addresses. */
 type AddressValues = Map<string, InterruptWriteAddress>;
+
+/** A known hardware/screen write outside every selected SFA window cannot change a parameter home. */
+export function interruptWriteMayTouchHomes(
+  operation: MemoryWriteOperation,
+  address: InterruptWriteAddress | undefined,
+  addressSpace?: Pick<TargetProfile["storage"], "ram" | "zeroPage">,
+): boolean {
+  if (address === undefined || addressSpace === undefined) return true;
+  const windows = [...addressSpace.ram, ...addressSpace.zeroPage];
+  if (typeof address === "bigint")
+    return Array.from({ length: operation.width }, (_, offset) =>
+      Number((address + BigInt(offset)) & 0xffffn),
+    ).some((byte) => windows.some(({ start, end }) => byte >= start && byte <= end));
+  return address.ranges.some((range) =>
+    Array.from({ length: operation.width }, (_, offset) => offset).some((offset) => {
+      const first = (range.start + offset) & 0xffff;
+      const last = (range.end + offset) & 0xffff;
+      return windows.some(({ start, end }) =>
+        first <= last ? first <= end && last >= start : end >= first || start <= last,
+      );
+    }),
+  );
+}
+
+/** Use the existing address proof with this body's already-closed returning ownership edges. */
+export function interruptContextWriteAddresses(
+  program: WholeProgram,
+  body: SemanticFunction | SemanticGlobal,
+  clobbers: InterruptGlobalClobbers,
+  addressSpace?: Pick<TargetProfile["storage"], "ram" | "zeroPage">,
+): ReadonlyMap<SemanticOperation, InterruptWriteAddress> {
+  if (body.entry === null) return new Map();
+  return interruptWriteAddresses(
+    program.semantic,
+    body.entry,
+    body.blocks,
+    bindingIdentityKey(body.id) === bindingIdentityKey(program.semantic.main),
+    clobbers,
+    addressSpace,
+    program.indirectTargets,
+    (target) => {
+      const key = bindingIdentityKey(target);
+      return program.interruptOwnership?.returningBodies?.get(key) === false
+        ? null
+        : program.interruptOwnership?.returningDepthChanges?.get(key);
+    },
+  );
+}
 
 /** Globals which each selected interrupt domain can change, including through helpers. */
 export type InterruptGlobalClobbers = Readonly<Record<"irq" | "nmi", ReadonlySet<string>>>;

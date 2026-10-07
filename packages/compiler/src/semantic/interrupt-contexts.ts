@@ -17,6 +17,8 @@ export interface InterruptExecutionContext {
   readonly localNmiDepth?: number;
   /** Saved predecessor slot permanently bound to this selected entry wrapper. */
   readonly entrySlot?: string;
+  /** Finite proved restore/call policy; changes code selection, never physical homes. */
+  readonly releaseVariant?: string;
   /** Live IRQ predecessor words on entry. */
   readonly irq: number;
   /** Live NMI predecessor words on entry. */
@@ -59,6 +61,7 @@ export function interruptDepthAt(
       ? {}
       : { localNmiDepth: context.localNmiDepth + (relative?.nmi ?? 0) }),
     ...(context.entrySlot === undefined ? {} : { entrySlot: context.entrySlot }),
+    ...(context.releaseVariant === undefined ? {} : { releaseVariant: context.releaseVariant }),
     irq: context.irq + (relative?.irq ?? 0),
     nmi: context.nmi + (relative?.nmi ?? 0),
   });

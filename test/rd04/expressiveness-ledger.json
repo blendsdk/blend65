@@ -3,12 +3,12 @@
   "limitations": [
     {
       "id": "v4-nmi-installation",
-      "status": "deferred",
+      "status": "retired",
       "sourceForm": "setNMIExclusive in the selected C64 profile",
       "diagnostic": "E10245",
-      "reason": "Exclusive NMI takeover has not proved ownership and preservation of CIA2, RESTORE, cartridge and other enabled NMI sources",
+      "reason": "The approved private-home-free exclusive route has proved idle-entry CIA2 source ownership, immutable links, direct output and four-profile timer/RESTORE/boundary VICE behavior with vector-first final handback. External aggregate stack, retained-firmware completion, physical behavior and general startup preservation remain unproved; this bounded qualification does not grant raw takeover or arbitrary prior-source ownership.",
       "owner": "RD-05 R5.15–R5.17",
-      "decision": "Exclusive source ownership remains deferred; no takeover qualification claimed"
+      "decision": "RD-05 CIA2 ownership plan AR-P2/AR-P3; independent source/storage/output qualification and 568 native cases without skips. RD-05/DEF-7, keyboard coexistence and mandatory R5.4 startup-state repair remain open. VICE-verified / hardware-unverified."
     },
     {
       "id": "v4-nmi-chained-installation",

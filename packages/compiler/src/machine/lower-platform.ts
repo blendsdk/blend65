@@ -1,7 +1,10 @@
 import type { SemanticOperation } from "../semantic/operations.js";
 import type { InterruptRoute } from "../semantic/whole-program.js";
 import { interruptDepthAt, interruptPredecessorSlot } from "../semantic/interrupt-contexts.js";
-import { interruptEntrySelection } from "../semantic/interrupt-context-facts.js";
+import {
+  interruptEntrySelection,
+  interruptExecutionKey,
+} from "../semantic/interrupt-context-facts.js";
 import { lowerC64Operation } from "./lower-c64.js";
 import { c64InterruptEntryLabel } from "./lower-c64.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
@@ -153,6 +156,10 @@ export function lowerPlatformOperation(
           matchingLowNmi: proof !== undefined && domain === "nmi",
           stockCia1Handback:
             state.input.program.interruptOwnership?.cia1Handbacks.has(sourceOperation) ?? false,
+          stockCia2Handback:
+            proof?.cia2Restores
+              ?.get(interruptExecutionKey(state.owner, state.interruptDepth))
+              ?.has(sourceOperation) ?? false,
           entryLabel:
             sink === undefined || route === undefined
               ? null

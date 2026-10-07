@@ -249,7 +249,7 @@ function writeInterruptMask(
   return Object.freeze({ instructions: Object.freeze(instructions), result: null, data: [] });
 }
 
-/** Lower only the CIA operations with a proved direct counter or latch sequence. */
+/** Lower direct CIA operations after source ownership proof; scratch joins final storage closure. */
 export function lowerC64CiaOperation(
   operation: PlatformOperation,
   values: ReadonlyMap<string, LoweredValue>,
@@ -268,9 +268,6 @@ export function lowerC64CiaOperation(
   if (method === "readTimerBCounter") {
     return counterRead(profile, addressBase + TIMER_B_LOW, operation.span);
   }
-  // CIA2 programming remains under the KERNAL's NMI ownership. Semantic
-  // checking must reject it before this machine boundary is reached.
-  if (cia2) return null;
   if (method === "writeTimerALatch") {
     return latchWrite(operation, values, profile, addressBase + TIMER_A_LOW);
   }

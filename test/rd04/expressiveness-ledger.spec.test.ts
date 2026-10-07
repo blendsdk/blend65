@@ -234,14 +234,18 @@ describe("expressiveness restriction expiry", () => {
     expect(limitationViolations(row, results, closedOwner)).toEqual([]);
     let changed = row;
     let changedResults = results;
-    if (mutation === "a supported deferred restriction")
+    if (mutation === "a supported deferred restriction") {
+      changed = { ...row, status: "deferred" };
       changedResults = [{ kind: "success", errors: [] }];
+    }
     if (mutation === "a failing retired restriction")
       changedResults = [{ kind: "failure", errors: [row.diagnostic] }];
     if (mutation === "a missing owner") changed = { ...row, owner: "" };
     if (mutation === "a missing reason") changed = { ...row, reason: "" };
-    if (mutation === "active work assigned to the closing owner")
-      changed = { ...row, owner: closedOwner };
+    if (mutation === "active work assigned to the closing owner") {
+      changed = { ...row, status: "deferred", owner: closedOwner };
+      changedResults = [{ kind: "failure", errors: [row.diagnostic] }];
+    }
     expect(limitationViolations(changed, changedResults, closedOwner)).toEqual([violation]);
   });
 });

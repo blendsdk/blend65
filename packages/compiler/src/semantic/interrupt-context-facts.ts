@@ -1,15 +1,33 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
-import type { BlockId, SemanticBlock, SemanticFunction, SemanticGlobal } from "./operations.js";
+import type {
+  BlockId,
+  SemanticBlock,
+  SemanticFunction,
+  SemanticGlobal,
+  SemanticOperation,
+} from "./operations.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { InterruptRoute, WholeProgram } from "./whole-program.js";
 import { interruptDepthAt, interruptPredecessorSlot } from "./interrupt-contexts.js";
-import { walkInterruptExecutionContexts } from "./interrupt-context-walk.js";
+import {
+  walkInterruptExecutionContexts,
+  projectInterruptBlocks,
+  interruptRetainedBlocks,
+  independentInterruptCallableBodies,
+} from "./interrupt-context-walk.js";
+export {
+  interruptRetainedBlocks,
+  functionEntryContext,
+  interruptCodeContexts,
+} from "./interrupt-context-walk.js";
 import type {
   InterruptExecutionContext,
   InterruptExecutionContexts,
 } from "./interrupt-contexts.js";
+import { cia2FactsKey } from "./cia2-ownership-facts.js";
+import type { Cia2Facts } from "./cia2-ownership-facts.js";
 
 /** One entry's body and immutable continuation binding, never a runtime selector. */
 export interface SelectedEntry {
@@ -76,6 +94,10 @@ export interface VectorState {
   readonly rawVectors?: ReadonlyMap<"irq" | "nmi", SourceSpan>;
   /** Suspended low/high IRQ update whose incomplete word must remain unobservable. */
   readonly irqTransition?: SourceSpan;
+  /** Optional device relation exists only when an exclusive CIA2 candidate is present. */
+  readonly cia2?: Cia2Facts;
+  /** Possible home writes since this invocation or local vector transaction began. */
+  readonly writesHomes?: boolean;
 }
 
 /** Context closure either proves finite bindings or retains one canonical failure. */
@@ -88,6 +110,58 @@ export interface InterruptContextAnalysis {
   readonly reached: ReadonlyMap<string, ReadonlyMap<BlockId, ReadonlySet<number>>>;
   /** Terminal failures prohibit consuming any discovered binding. */
   readonly diagnostics: readonly ProjectDiagnostic[];
+  /** Source restores proved to end a typed epoch, separately for each emitted context. */
+  readonly cia2Restores?: ReadonlyMap<string, ReadonlySet<SemanticOperation>>;
+  /** Actual ordinary call selections share the same finite code policy as their caller. */
+  readonly cia2Calls?: ReadonlyMap<
+    string,
+    ReadonlyMap<SemanticOperation, ReadonlyMap<string, InterruptExecutionContext>>
+  >;
+}
+
+/** Closed source invocation facts, projected into code without replaying control flow. */
+export interface InterruptCodeInvocation {
+  /** The source body already traversed by the ordered context worklist. */
+  readonly body: SemanticFunction | SemanticGlobal;
+  /** Existing physical/ABI descriptor, before a finite code-policy suffix. */
+  readonly context: InterruptExecutionContext;
+  /** Source points actually reached by this invocation. */
+  readonly reached: ReadonlyMap<BlockId, ReadonlySet<number>>;
+  /** Already discovered ordinary direct/finite-target edges only. */
+  readonly calls: ReadonlyMap<SemanticOperation, ReadonlySet<InterruptCodeInvocation>>;
+  /** Exact release alternatives; only final stock alternatives can safely share shutdown. */
+  readonly restores: ReadonlyMap<
+    SemanticOperation,
+    ReadonlySet<"ordinary" | "stock-clean" | "stock-typed">
+  >;
+}
+
+/** One memoized source invocation; its return alternatives grow monotonically. */
+export interface InterruptContextInvocation extends InterruptCodeInvocation {
+  /** Existing semantic body, including ordered executable initializers. */
+  readonly body: SemanticFunction | SemanticGlobal;
+  /** Concrete caller/entry vector depths used by the existing fixed-home consumers. */
+  readonly context: InterruptExecutionContext;
+  /** Entry relation, not a general value or CPU snapshot. */
+  readonly input: VectorState;
+  /** Exact actual scalar inputs distinguish ownership proofs, never emitted function homes. */
+  readonly arguments: readonly (bigint | undefined)[];
+  /** Readers belonging to suspended executions; returning cannot discard them. */
+  readonly protectedReaders: ReadonlyMap<string, LinkCapture>;
+  /** Current wrapper's continuation, propagated through ordinary helpers. */
+  readonly activeEntry?: SelectedEntry;
+  /** Active selected handlers used only to identify a growing continuation recurrence. */
+  readonly ancestors: ReadonlyMap<string, SelectedEntry>;
+  /** Complete returning relations, kept separate at CFG joins. */
+  readonly exits: Map<string, VectorState>;
+  /** Callers to revisit when a new returning relation is discovered. */
+  readonly callers: Set<InterruptContextInvocation>;
+  /** Already reached source points used by finite code projection after proof closure. */
+  readonly reached: Map<string, Set<number>>;
+  /** Actual ordinary call edges, never hypothetical interrupt or CFG edges. */
+  readonly calls: Map<SemanticOperation, Set<InterruptContextInvocation>>;
+  /** Complete proved release alternatives at each source operation. */
+  readonly restores: Map<SemanticOperation, Set<"ordinary" | "stock-clean" | "stock-typed">>;
 }
 
 /** Every producer/consumer of one saved word uses this same proved request identity. */
@@ -126,6 +200,7 @@ export function interruptExecutionKey(
     context.entrySlot ?? null,
     context.irq,
     context.nmi,
+    ...(context.releaseVariant === undefined ? [] : [context.releaseVariant]),
   ]);
 }
 
@@ -147,100 +222,6 @@ export function interruptExecutedBlocks(
       for (const index of indexes) union.add(index);
       reached.set(block, union);
     }
-  }
-  return projectInterruptBlocks(body, reached);
-}
-
-/** Keep only recorded operations and real successor/merge edges in one body. */
-function projectInterruptBlocks(
-  body: SemanticFunction | SemanticGlobal,
-  reached: ReadonlyMap<BlockId, ReadonlySet<number>>,
-): readonly SemanticBlock[] {
-  const selected = body.blocks.filter((block) => reached.has(block.id));
-  const predecessors = new Map(selected.map((block) => [block.id, new Set<BlockId>()]));
-  for (const block of selected) {
-    if (!reached.get(block.id)!.has(block.operations.length)) continue;
-    const terminal = block.terminator;
-    const successors =
-      terminal.kind === "jump"
-        ? [terminal.target]
-        : terminal.kind === "branch"
-          ? [terminal.whenTrue, terminal.whenFalse]
-          : [];
-    for (const target of successors) {
-      const incoming = predecessors.get(target);
-      if (incoming === undefined) throw new Error("Reached interrupt edge lacks its successor");
-      incoming.add(block.id);
-    }
-  }
-  return Object.freeze(
-    selected.map((block) => {
-      const indexes = reached.get(block.id)!;
-      const terminator = indexes.has(block.operations.length)
-        ? block.terminator
-        : Object.freeze({ kind: "unreachable" as const });
-      const length = Math.min(block.operations.length, Math.max(...indexes) + 1);
-      const operations = block.operations.slice(0, length).map((operation) => {
-        if (operation.kind !== "merge") return operation;
-        const incoming = operation.incoming.filter((edge) =>
-          predecessors.get(block.id)!.has(edge.block),
-        );
-        if (incoming.length === 0)
-          throw new Error("Reached interrupt merge lacks an incoming edge");
-        return incoming.length === operation.incoming.length
-          ? operation
-          : Object.freeze({ ...operation, incoming: Object.freeze(incoming) });
-      });
-      return Object.freeze({ ...block, operations: Object.freeze(operations), terminator });
-    }),
-  );
-}
-
-/**
- * Retain executable source paths without inventing interrupt arrivals. Only a
- * closed call whose every target is proved nonreturning removes its suffix and
- * successor edges. Returning, mixed and unknown targets remain conservative.
- * Independent raw-address retention is deliberately handled separately.
- */
-export function interruptRetainedBlocks(
-  body: SemanticFunction,
-  program: WholeProgram,
-): readonly SemanticBlock[] {
-  const blocks = new Map(body.blocks.map((block) => [block.id, block]));
-  const reached = new Map<BlockId, Set<number>>();
-  const pending = [body.entry];
-  while (pending.length > 0) {
-    const id = pending.pop()!;
-    if (reached.has(id)) continue;
-    const block = blocks.get(id);
-    if (block === undefined) throw new Error("Retained interrupt edge lacks its successor");
-    const indexes = new Set<number>();
-    reached.set(id, indexes);
-    let returns = true;
-    for (const [index, operation] of block.operations.entries()) {
-      indexes.add(index);
-      const targets =
-        operation.kind === "call"
-          ? [operation.callee]
-          : operation.kind === "indirect-call"
-            ? (program.indirectTargets?.get(operation) ?? [])
-            : [];
-      if (
-        targets.length > 0 &&
-        targets.every(
-          (target) =>
-            program.interruptOwnership?.returningBodies?.get(bindingIdentityKey(target)) === false,
-        )
-      ) {
-        returns = false;
-        break;
-      }
-    }
-    if (!returns) continue;
-    indexes.add(block.operations.length);
-    const terminal = block.terminator;
-    if (terminal.kind === "jump") pending.push(terminal.target);
-    else if (terminal.kind === "branch") pending.push(terminal.whenTrue, terminal.whenFalse);
   }
   return projectInterruptBlocks(body, reached);
 }
@@ -412,64 +393,6 @@ export function interruptMaterializations(program: WholeProgram): InterruptMater
 }
 
 /**
- * Select the emitted callee's ABI descriptor, including compatible reuse of an
- * observed mainline body. Code labels and incoming homes must use this same
- * descriptor; an external retained caller does not own the callee's parameters.
- * @param key Stable source-function identity to select.
- * @param context Caller depth at the call site, before compatible ABI reuse.
- * @param contexts Existing observed and retained emission descriptors.
- * @param rootAware Whether lowering distinguishes activation-root variants.
- * @returns The exact selected descriptor, without changing execution evidence.
- */
-export function functionEntryContext(
-  key: string,
-  context: InterruptExecutionContext,
-  contexts: InterruptExecutionContexts,
-  rootAware: boolean,
-): InterruptExecutionContext {
-  if (!rootAware || context.activationRoot === undefined) return context;
-  const entries = contexts.get(key) ?? [];
-  const selected = entries.filter(
-    (entry) => entry.domain === context.domain && entry.activationRoot === context.activationRoot,
-  );
-  if (context.domain === "main" && selected.length === 0) {
-    const observed = entries.find(
-      (entry) => entry.domain === "main" && entry.activationRoot === undefined,
-    );
-    if (observed !== undefined) return observed;
-  }
-  return (
-    selected.find(
-      (entry) =>
-        (entry.localIrqDepth ?? 0) === (context.localIrqDepth ?? 0) &&
-        (entry.localNmiDepth ?? 0) === (context.localNmiDepth ?? 0),
-    ) ?? (selected.length === 1 ? selected[0]! : context)
-  );
-}
-
-/**
- * Merge ABI demand descriptors for emission only. Never use this catalogue as
- * an execution/reentrancy proof or to project reached source operations.
- */
-export function interruptCodeContexts(
-  executed: InterruptExecutionContexts,
-  retained: InterruptExecutionContexts,
-): InterruptExecutionContexts {
-  const result = new Map(executed);
-  for (const [owner, contexts] of retained) {
-    const entries = new Map(
-      (result.get(owner) ?? []).map((context) => [interruptExecutionKey(owner, context), context]),
-    );
-    for (const context of contexts) {
-      const key = interruptExecutionKey(owner, context);
-      if (!entries.has(key)) entries.set(key, context);
-    }
-    result.set(owner, Object.freeze([...entries.values()]));
-  }
-  return result;
-}
-
-/**
  * Equality ignores trace history. When a complete reader closure is supplied,
  * inactive words cannot distinguish states, but actual observed captures still do.
  * The operational word map and physical binding catalogue remain unchanged.
@@ -495,6 +418,17 @@ export function interruptVectorStateKey(
     state.irqTransition === undefined
       ? null
       : [state.irqTransition.sourceId, state.irqTransition.start, state.irqTransition.end],
+    ...(state.cia2 === undefined
+      ? []
+      : [
+          cia2FactsKey(state.cia2),
+          state.writesHomes ?? false,
+          state.vectors.nmi?.context.entrySlot ?? null,
+          [...state.words]
+            .filter(([slot]) => readers === undefined || readers.has(slot))
+            .map(([slot, capture]) => [slot, capture.entry?.context.entrySlot ?? null])
+            .sort(),
+        ]),
   ]);
 }
 
@@ -575,4 +509,190 @@ export function interruptCaptureFailure(
     null,
     next.path.map((span) => ({ span, message: "Live predecessor capture is reached here" })),
   );
+}
+
+/** Compare emitted ABI contexts without turning an incoming physical word into a new home. */
+function emissionContextKey(node: Pick<InterruptCodeInvocation, "body" | "context">): string {
+  const { context } = node;
+  return JSON.stringify([
+    bindingIdentityKey(node.body.id),
+    context.domain,
+    context.activationRoot ?? null,
+    context.activationRoot === undefined ? context.irq : (context.localIrqDepth ?? 0),
+    context.activationRoot === undefined ? context.nmi : (context.localNmiDepth ?? 0),
+  ]);
+}
+
+/**
+ * Canonicalize the already-closed restore/call policies in the existing emission
+ * descriptors. This visits proved ordinary call edges, not source CFGs or new
+ * incoming states. The closed ordinary call graph is acyclic; external interrupt
+ * recurrence is deliberately absent from these edges. No runtime selector or
+ * storage frame is produced. Only differing machine policies create variants.
+ */
+export function closeInterruptCodeVariants(
+  nodes: readonly InterruptCodeInvocation[],
+  program: WholeProgram,
+): Required<
+  Pick<
+    InterruptContextAnalysis,
+    "contexts" | "reached" | "cia2Restores" | "cia2Calls" | "diagnostics"
+  >
+> {
+  const contexts = new Map<string, InterruptExecutionContext[]>();
+  const reached = new Map<string, Map<BlockId, Set<number>>>();
+  const restores = new Map<string, ReadonlySet<SemanticOperation>>();
+  const calls = new Map<
+    string,
+    ReadonlyMap<SemanticOperation, ReadonlyMap<string, InterruptExecutionContext>>
+  >();
+  const diagnostics: ProjectDiagnostic[] = [];
+  const identities = new Map(nodes.map((node, index) => [node, index]));
+  const memo = new Map<string, InterruptExecutionContext>();
+  const variants = new Map<string, string>();
+
+  /** Group only ABI-compatible already-proved choices; no device facts are joined here. */
+  const groups = (
+    choices: Iterable<InterruptCodeInvocation>,
+  ): Map<string, InterruptCodeInvocation[]> => {
+    const grouped = new Map<string, InterruptCodeInvocation[]>();
+    for (const node of choices) {
+      const key = emissionContextKey(node);
+      const current = grouped.get(key) ?? [];
+      current.push(node);
+      grouped.set(key, current);
+    }
+    return grouped;
+  };
+  /** A body cannot choose between incompatible device releases without source evidence. */
+  const fail = (operation: SemanticOperation): void => {
+    const source =
+      operation.kind === "platform"
+        ? operation.capability
+        : operation.kind === "call" || operation.kind === "indirect-call"
+          ? "ordinary call"
+          : operation.kind;
+    diagnostics.push(
+      projectDiagnostic(
+        "E10278",
+        `Interrupt ownership for sink 'c64.system.setNMIExclusive' is invalid at '${source}' — release policy differs on unresolved paths of one emitted call/body`,
+        operation.span,
+      ),
+    );
+  };
+  /** Project a finite set of observed choices and reuse its identical machine policy. */
+  const project = (choices: readonly InterruptCodeInvocation[]): InterruptExecutionContext => {
+    const key = JSON.stringify(choices.map((node) => identities.get(node)!).sort((a, b) => a - b));
+    const previous = memo.get(key);
+    if (previous !== undefined) return previous;
+    const first = choices[0]!;
+    const owner = bindingIdentityKey(first.body.id);
+    const policies = new Map<SemanticOperation, Set<string>>();
+    const edges = new Map<SemanticOperation, Set<InterruptCodeInvocation>>();
+    for (const node of choices) {
+      for (const [operation, alternatives] of node.restores) {
+        const union = policies.get(operation) ?? new Set<string>();
+        for (const policy of alternatives) union.add(policy);
+        policies.set(operation, union);
+      }
+      for (const [operation, targets] of node.calls) {
+        const union = edges.get(operation) ?? new Set<InterruptCodeInvocation>();
+        for (const target of targets) union.add(target);
+        edges.set(operation, union);
+      }
+    }
+    const handbacks = new Set<SemanticOperation>();
+    for (const [operation, alternatives] of policies) {
+      if (!alternatives.has("stock-typed")) continue;
+      if (alternatives.has("ordinary")) fail(operation);
+      else handbacks.add(operation);
+    }
+    const selectedCalls = new Map<
+      SemanticOperation,
+      ReadonlyMap<string, InterruptExecutionContext>
+    >();
+    const childPolicies: string[] = [];
+    for (const [operation, targets] of edges) {
+      const selected = new Map<string, InterruptExecutionContext>();
+      for (const children of groups(targets).values()) {
+        const childOwner = bindingIdentityKey(children[0]!.body.id);
+        const context = project(children);
+        if (selected.has(childOwner)) fail(operation);
+        selected.set(childOwner, context);
+        if (context.releaseVariant !== undefined)
+          childPolicies.push(
+            JSON.stringify([
+              operation.span,
+              childOwner,
+              emissionContextKey(children[0]!),
+              context.releaseVariant,
+            ]),
+          );
+      }
+      selectedCalls.set(operation, selected);
+    }
+    const signature =
+      handbacks.size === 0 && childPolicies.length === 0
+        ? null
+        : JSON.stringify([
+            [...handbacks].map((operation) => JSON.stringify(operation.span)).sort(),
+            childPolicies.sort(),
+          ]);
+    let variant = signature === null ? undefined : variants.get(signature);
+    if (signature !== null && variant === undefined) {
+      variant = `c${variants.size}`;
+      variants.set(signature, variant);
+    }
+    const context = {
+      ...first.context,
+      ...(variant === undefined ? {} : { releaseVariant: variant }),
+    };
+    memo.set(key, context);
+    const points = new Map<BlockId, Set<number>>();
+    for (const node of choices)
+      for (const [block, indexes] of node.reached) {
+        const union = points.get(block) ?? new Set<number>();
+        for (const index of indexes) union.add(index);
+        points.set(block, union);
+      }
+    for (const node of choices) {
+      const descriptor = {
+        ...node.context,
+        ...(variant === undefined ? {} : { releaseVariant: variant }),
+      };
+      const execution = interruptExecutionKey(owner, descriptor);
+      const entries = contexts.get(owner) ?? [];
+      if (!entries.some((entry) => interruptExecutionKey(owner, entry) === execution))
+        entries.push(descriptor);
+      contexts.set(owner, entries);
+      const union = reached.get(execution) ?? new Map<BlockId, Set<number>>();
+      for (const [block, indexes] of points) {
+        const current = union.get(block) ?? new Set<number>();
+        for (const index of indexes) current.add(index);
+        union.set(block, current);
+      }
+      reached.set(execution, union);
+      restores.set(execution, handbacks);
+      calls.set(execution, selectedCalls);
+    }
+    return context;
+  };
+  const roots = new Set([
+    bindingIdentityKey(program.semantic.main),
+    ...program.semantic.initializerOrder.map(bindingIdentityKey),
+    ...independentInterruptCallableBodies(
+      program,
+      new Map(nodes.map((node) => [bindingIdentityKey(node.body.id), node.body])),
+      true,
+    ).map((body) => bindingIdentityKey(body.id)),
+  ]);
+  for (const choices of groups(
+    nodes.filter(
+      (node) =>
+        roots.has(bindingIdentityKey(node.body.id)) ||
+        ("entryKind" in node.body && node.body.entryKind === "interrupt"),
+    ),
+  ).values())
+    project(choices);
+  return { contexts, reached, cia2Restores: restores, cia2Calls: calls, diagnostics };
 }

@@ -58,6 +58,14 @@ export function checkCiaOwnership(
   stockHandbacks: Set<SemanticOperation> = new Set(),
 ): readonly ProjectDiagnostic[] {
   stockHandbacks.clear();
+  // Exact NMI candidates hand CIA2 decisions to the ordered vector/context
+  // proof. Without one, preserve the existing unowned error and CIA1 analysis.
+  const cia2ContextProof = routes.some(
+    ({ sink }) =>
+      sink.domain === "nmi" &&
+      sink.capability === "c64.system.setNMIExclusive" &&
+      sink.variant === "c64_kernal_nminv_exclusive",
+  );
   const restoreKinds = new Map<SemanticOperation, boolean>();
   const vectorBytes = new Set(
     routes
@@ -315,7 +323,11 @@ export function checkCiaOwnership(
             restoreKinds.set(operation, final);
             if (final) stockHandbacks.add(operation);
             state = restored;
-          } else if (name.startsWith("c64.cia2.") && !name.includes("readTimer")) {
+          } else if (
+            name.startsWith("c64.cia2.") &&
+            !name.includes("readTimer") &&
+            !cia2ContextProof
+          ) {
             diagnostics.push(
               invalid(
                 name,

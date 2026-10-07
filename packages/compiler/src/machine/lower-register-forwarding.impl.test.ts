@@ -120,6 +120,31 @@ function terminalChoice(
 }
 
 describe("adjacent register ownership", () => {
+  it("should forward only an adjacent single-use CIA2 pending byte to a fixed byte store", () => {
+    const pending: SemanticOperation = {
+      kind: "platform",
+      capability: "c64.cia2.readAndClearPendingSources",
+      arguments: [],
+      result: "value",
+      type: BYTE,
+      effect: "volatile-read",
+      span,
+    };
+    expect(forwarded([pending, destination, write])).toBe(true);
+    expect(forwarded([pending, destination, write], false)).toBe(false);
+    expect(forwarded([pending, write])).toBe(false);
+    expect(forwarded([pending, { ...read, result: "other" }, destination, write])).toBe(false);
+    expect(forwarded([pending, destination, { ...write, width: 2 }])).toBe(false);
+    expect(forwarded([pending, destination, { ...write, value: "other" }])).toBe(false);
+    expect(
+      forwarded([
+        { ...pending, capability: "c64.cia2.readTimerACounter", type: WORD },
+        destination,
+        write,
+      ]),
+    ).toBe(false);
+  });
+
   it("reuses the adjacent byte read for a closed terminal-choice zero test", () => {
     expect(terminalChoice()).toBe(true);
   });

@@ -42,14 +42,17 @@ export function reachableInterruptRoutes(
         if (operation.kind !== "platform") continue;
         const sink = sinks.get(operation.capability);
         if (sink === undefined) continue;
-        const stockChainedNmi =
-          sink.capability === "c64.system.setNMI" &&
-          sink.variant === "c64_kernal_nminv_chain" &&
+        // Both cooperative entries receive the same final private-storage and
+        // reentrancy proof. A candidate route is not an ownership certificate.
+        const cooperativeNmi =
+          ((sink.capability === "c64.system.setNMI" && sink.variant === "c64_kernal_nminv_chain") ||
+            (sink.capability === "c64.system.setNMIExclusive" &&
+              sink.variant === "c64_kernal_nminv_exclusive")) &&
           sink.domain === "nmi";
         if (
           !sink.masksSelfOnEntry &&
           sink.externalReentryBound === "unbounded" &&
-          !stockChainedNmi
+          !cooperativeNmi
         ) {
           diagnostics.push(
             projectDiagnostic(

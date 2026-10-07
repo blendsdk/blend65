@@ -38,6 +38,8 @@ export interface C64LoweringSupport {
     readonly matchingLowNmi?: boolean;
     /** Compile-time proof for a final IRQ release; no runtime flag or storage is emitted. */
     readonly stockCia1Handback?: boolean;
+    /** Exact source/emitted-context proof for final CIA2 shutdown; never a runtime token. */
+    readonly stockCia2Handback?: boolean;
   };
 }
 
