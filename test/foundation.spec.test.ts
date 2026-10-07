@@ -28,8 +28,10 @@ const initialHead = "29df75554854dcdc43279308867a8c6725b08180";
 const contentCommit = "13b995d0ddacc304aa066e015c14c63678e99dcc";
 /** Immutable earlier activation checkpoint, retained solely as historical byte proof. */
 const startingHead = "3cc09eee524bcea39d4f68d8d0b28d4b6810ee13";
-/** The sole inactive HEAD exception binds this exact newly qualified content. */
+/** Historical qualified successor content remains pinned after later maintenance. */
 const nextCommit = "22cc5f00f381c82d347cf342be4fcff16bc291c6";
+/** Exact preceding active checkpoint; it is the only pre-migration active HEAD exception. */
+const maintenanceStartingHead = "8afa5d94e79b20c3ee4eab33023c1edfe2fc56ed";
 const skillPath = ".agents/skills/blend65-domain-expert";
 const inactiveStatus =
   "> **Status**: Documentary qualification complete; inactive — whole-task review and content binding pending";
@@ -76,6 +78,14 @@ const activeIdentity = {
   expert: "cf624c04fd9c50f5148e5a3b90bc6bb899db52cab9673913c6f410e1816c5101",
   release: "61d151028f874cda5932b8859d59cf3affbd51e300571b0b3eecc2f47df51627",
   state: "active",
+};
+/** Exact inactive successor bytes, including every qualification and release-record member. */
+const maintenanceIdentity = {
+  ...nextIdentity,
+  expert: "da89eb6d587dee7a3c85dfa97695b029285794688a06962a107b4afc4c384d8a",
+  runtime: "22888f7fbe8cde4c3bb4a18b56ae60c268f6d4e33dde35a55505365be308e648",
+  router: "0760ec9d73fc7ed0e8575eb22d3fa9e5bdd2388d27b3989233239342c0b35ad8",
+  release: "5937b41e913c8642ec57364a25f7e360891df7007c9493397d5444257f40d482",
 };
 const temporaryRoots: string[] = [];
 
@@ -303,7 +313,7 @@ describe("frozen execution authority and salvage ownership", () => {
   });
   // A qualified successor never erases the exact content or rejection fixtures of earlier releases.
   it("should preserve qualified authority history while binding the exact active release", async () => {
-    for (const identity of [candidateIdentity, nextIdentity, activeIdentity]) {
+    for (const identity of [candidateIdentity, nextIdentity, activeIdentity, maintenanceIdentity]) {
       for (const key of Object.keys(identity)) {
         const root = await fixture({
           "identity.json": JSON.stringify({ ...identity, [key]: "mismatch" }),
@@ -329,25 +339,34 @@ describe("frozen execution authority and salvage ownership", () => {
     const nextExpert = committedAuthorityFiles(skillPath, nextCommit);
     const qualified = candidateRecord(nextSpec, nextExpert, "2.0.3", nextCommit);
     expect(candidateViolations(qualified, nextIdentity)).toEqual([]);
+    const maintenanceSpec = committedAuthorityFiles("spec", maintenanceStartingHead);
+    const maintenanceExpert = committedAuthorityFiles(skillPath, maintenanceStartingHead);
+    expect(
+      candidateViolations(
+        candidateRecord(maintenanceSpec, maintenanceExpert, "2.0.3", nextCommit),
+        activeIdentity,
+      ),
+    ).toEqual([]);
     const diskSpec = await authorityFiles(join(repository, "spec"));
     const diskExpert = await authorityFiles(join(repository, skillPath));
     const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repository }).toString().trim();
     const headSpec = committedAuthorityFiles("spec", head);
     const headExpert = committedAuthorityFiles(skillPath, head);
+    const precedingHead = head === nextCommit || head === maintenanceStartingHead;
     expect(
       candidateViolations(
-        candidateRecord(headSpec, headExpert, "2.0.3", nextCommit),
-        head === nextCommit ? nextIdentity : activeIdentity,
+        candidateRecord(headSpec, headExpert, precedingHead ? "2.0.3" : "2.0.4", nextCommit),
+        head === nextCommit ? nextIdentity : precedingHead ? activeIdentity : maintenanceIdentity,
       ),
     ).toEqual([]);
     // Only expert maps contain the release entry; every specification member remains byte-exact.
     for (const { actual, approved } of [
       { actual: previousSpec, approved: contentSpec },
       { actual: previousExpert, approved: contentExpert },
+      { actual: maintenanceSpec, approved: nextSpec },
+      { actual: maintenanceExpert, approved: nextExpert },
       { actual: diskSpec, approved: nextSpec },
       { actual: headSpec, approved: nextSpec },
-      { actual: diskExpert, approved: nextExpert },
-      { actual: headExpert, approved: nextExpert },
     ]) {
       expect([...actual.keys()].sort()).toEqual([...approved.keys()].sort());
       for (const [name, bytes] of approved) {
@@ -357,10 +376,7 @@ describe("frozen execution authority and salvage ownership", () => {
       }
     }
     expect(
-      candidateViolations(
-        candidateRecord(diskSpec, diskExpert, "2.0.3", nextCommit),
-        activeIdentity,
-      ),
+      candidateViolations(candidateRecord(diskSpec, diskExpert, "2.0.4", ""), maintenanceIdentity),
     ).toEqual([]);
   });
 

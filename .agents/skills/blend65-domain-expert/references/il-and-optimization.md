@@ -1,6 +1,6 @@
 # Intermediate Representation and Optimization Doctrine
 
-> **Baseline version**: `2.0.3`. This module specifies semantic payload and proof duties, not a
+> **Baseline version**: `2.0.4`. This module specifies semantic payload and proof duties, not a
 > mandatory IR count or pass framework.
 
 ## Optimization Contract

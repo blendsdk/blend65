@@ -1,6 +1,6 @@
 # Blend65 Semantics Crosswalk
 
-> **Baseline version**: `2.0.3`. This module routes decisions to the reconciled specification;
+> **Baseline version**: `2.0.4`. This module routes decisions to the reconciled specification;
 > it does not replace it.
 >
 > **Current source identity**:

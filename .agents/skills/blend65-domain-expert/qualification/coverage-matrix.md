@@ -1,8 +1,14 @@
 # Qualification Coverage Matrix
 
-> **Candidate version**: `2.0.3`; qualification and activation are governed by `release.md`.
+> **Candidate version**: `2.0.4`; qualification and activation are governed by `release.md`.
 > **Current candidate authority**: `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b`
-> **Current change**: Approved conditional stock NMINV program-entry contract for generated
+> **Current change**: Approved fixed-bank-0 startup input mode and exact source-governed
+> guidance correction. Q-P10 was strengthened before guidance; bank/view/buffer controls
+> and unchanged-field inheritance have independent dependency review. Documentary
+> qualification is complete; immutable binding is pending. Compiler, native and
+> physical qualification remain separate.
+>
+> **Historical 2.0.3 change**: Approved conditional stock NMINV program-entry contract for generated
 > installation users only. No-hook programs acquire no new entry requirement. Matching-low
 > publication remains a proof direction, not compiler qualification. Four traced cases require
 > current qualification; the other 109 may inherit only independently reviewed unchanged decisive
@@ -648,3 +654,29 @@ the other cases' decisive facts. All raw capture identities/receipts remain in `
 | P | `Q-P01`, `Q-P02`, `Q-P03`, `Q-P04`, `Q-P05`, `Q-P06`, `Q-P08`, `Q-P09`, `Q-P10`, `Q-P11`, `Q-P12`, `Q-P13`, `Q-P14`, `Q-P15`, `Q-P16`, `Q-P17`, `Q-P18`, `Q-P19`, `Q-P20`, `Q-P21`, `Q-P22` |
 | A | `Q-A01`, `Q-A02`, `Q-A03`, `Q-A04`, `Q-A05`, `Q-A06`, `Q-A07`, `Q-A08`, `Q-A09`, `Q-A10`, `Q-A11`, `Q-A12`, `Q-A13`, `Q-A14`, `Q-A15`, `Q-A16`, `Q-A17` |
 | R | `Q-R01`, `Q-R02`, `Q-R03`, `Q-R04`, `Q-R05`, `Q-R06`, `Q-R07`, `Q-R08`, `Q-R09`, `Q-R10`, `Q-R11`, `Q-R12` |
+
+## 2.0.4 dependency-closed documentary qualification
+
+This section owns current impact/coverage; earlier matrix rows are historical.
+Qualified2.0.3/content22cc5f00f381c82d347cf342be4fcff16bc291c6 is the prior
+lineage. Only Q-P10's supplemental oracle changes; its old fields and all112
+other cases remain exact. Frozen supplement SHA-256:
+b9b3e411519a217add549bfb7ec7330340d25e831f4eb3f6f8d18b35cd89becf.
+
+| Case | Fresh documentary proof |
+|---|---|
+| Q-P10 | bank-controls-final jointly with writer-locations-final / grade-writer-locations-final: original exact citation FAIL retained, only precise source locations superseded; CIA1 remains independent; CIA2 latent latch/DDRA/input-mode, writer ownership, exact nominal sequences, genuine-vs-synthetic and unmasked display/return obligations. |
+| Q-P01 | Same pair: CPU/PLA and VIC/physical views remain distinct; input-mode bank0 is not universal banking. |
+| Q-P03 | Same pair: aligned resident placement and other-bank output/direction ownership, no convenience copy. |
+| Q-P12 | Same pair: distinct evolving buffers and proved consumer/pointer/bank publication, no universal DDRA flip. |
+
+The independent final content reviewer traced all 113 fields. Exact109 inherited
+IDs: Q-R01–Q-R12, Q-L01–Q-L33, Q-C01–Q-C27, Q-A01–Q-A17, Q-P02, Q-P04–Q-P09,
+Q-P11 and Q-P13–Q-P24. Q-P07's route/status/vector/link/ICR/terminal/stack/firmware
+unknowns are unchanged; shared-file routing alone is neither proof of change nor
+permission to inherit. Future concrete direction/latch claims reopen affected fields.
+
+Full runtime 15 files 22888f7fbe8cde4c3bb4a18b56ae60c268f6d4e33dde35a55505365be308e648; evaluated15 files 99666394f1ca2087ff44375a18480bcf345bfb04800d5641fcc4f1d1204a69fa, with three
+bounded excerpts. Release.md retains exact manifests/controls/requests/answers,
+separate grades, invalid initial run and corrected review receipts. No current
+compiler/artifact/VICE/physical result follows. Binding alone owns activation.

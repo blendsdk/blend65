@@ -29,6 +29,17 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
 
+### 2.0.4 documentary startup-boundary result — Q-P01
+
+**Pass at documentary scope only.** The separate frozen-field grade of bank-controls-final passes this case.
+No compiler/runtime/hardware readiness follows.
+Exact request,27-path evaluator envelope, controls, completed answer, separate
+grade and all raw identities are losslessly retained in ../release.md.
+The full/evaluated runtime boundaries are separately named there. Original
+case fields and earlier grades remain immutable; Q-P10 alone has the pre-guidance
+supplement. Native measurements remain Unknown. The first incomplete packet is
+invalid and retained, never counted as a passing or failing knowledge grade.
+
 ## Q-P02 — Mainline changes `$01` while IRQ may run
 
 - **Risk / coverage cells:** Critical; `C64-P02`, `GAME-P02`.
@@ -62,6 +73,17 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
+
+### 2.0.4 documentary startup-boundary result — Q-P03
+
+**Pass at documentary scope only.** The separate frozen-field grade of bank-controls-final passes this case.
+No compiler/runtime/hardware readiness follows.
+Exact request,27-path evaluator envelope, controls, completed answer, separate
+grade and all raw identities are losslessly retained in ../release.md.
+The full/evaluated runtime boundaries are separately named there. Original
+case fields and earlier grades remain immutable; Q-P10 alone has the pre-guidance
+supplement. Native measurements remain Unknown. The first incomplete packet is
+invalid and retained, never counted as a passing or failing knowledge grade.
 
 ## Q-P04 — Raster workload budgeted for both PAL and NTSC
 
@@ -236,6 +258,27 @@ Unknown; this result is not an activation declaration.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
 - **Expected decision invariants:** Preserves port direction/ownership and does not conflate CIA1/CIA2.
 - **Disqualifying outcomes:** Clobbers video bank bits.
+  **2.0.4 strengthened authority gate:** Frozen on 2026-10-08 before replacement guidance,
+  following independent MOS 6526 pp.3–5 / Commodore 251138 Rev B / pinned KERNAL and
+  VICE source review and explicit input-mode product approval. The original fields above
+  remain unchanged. The supplemental evaluator request must choose a startup contract
+  preserving arbitrary hidden PRA without a shadow or new entry restriction, explain a raw
+  bank-register write under each direction mode, and inventory reachable firmware writers.
+  It must prove fixed-bank-0 input/pull-up selection, preserve six upper directions and PRA
+  against startup writes, restore saved DDRA, and distinguish every later source/imported/
+  firmware writer from that proof. PRA reads observe pins, not hidden latches. Conventional
+  other-bank switching establishes output direction; input-mode PRA writes do not select
+  banks 1–3. Keep CIA1 and CIA2 ownership separate, retain modern typed-operation ergonomics,
+  and reject whole-program latent preservation or unchanged raw-bank-writer behavior claims.
+  Separate absolute capture/setup/return is 20 bytes/26 nominal cycles/one platform byte;
+  adjacent capture/setup is 17 bytes/22 cycles where ordering permits. Neither adds SFA,
+  ZP or hardware-stack bytes. Artifact/layout/DMA/native/silicon results require separate
+  evidence. Synthetic state probes are not genuine SYS/RESTORE. Display equivalence retains
+  independent exact low-direction/bank-pin checks, upper bits, pixels, traffic and return;
+  no mask may conceal the changed raw operation contract. A new shadow manager, generic
+  banking runtime, bank-0/output entry restriction or weakened old assertion disqualifies.
+  Frozen supplemental oracle SHA-256:
+  `b9b3e411519a217add549bfb7ec7330340d25e831f4eb3f6f8d18b35cd89becf`.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
@@ -254,6 +297,17 @@ grades and independent review are retained, including prior failures and bounded
 corrective dispositions. Actual compiler output, runtime and hardware remain
 Unknown; this result is not an activation declaration.
 
+
+### 2.0.4 documentary startup-boundary result — Q-P10
+
+**Joint Pass at documentary scope only.** The original full answer and fresh source-location completion pass every frozen field under grade-writer-locations-final. The original citation FAIL remains; only that field is superseded. This is not a fresh complete run.
+No compiler/runtime/hardware readiness follows.
+Exact request,27-path evaluator envelope, controls, completed answer, separate
+grade and all raw identities are losslessly retained in ../release.md.
+The full/evaluated runtime boundaries are separately named there. Original
+case fields and earlier grades remain immutable; Q-P10 alone has the pre-guidance
+supplement. Native measurements remain Unknown. The first incomplete packet is
+invalid and retained, never counted as a passing or failing knowledge grade.
 
 ## Q-P11 — Design SID-player scheduling and music/SFX sharing across 6581/8580
 
@@ -288,6 +342,17 @@ Unknown; this result is not an activation declaration.
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
+
+### 2.0.4 documentary startup-boundary result — Q-P12
+
+**Pass at documentary scope only.** The separate frozen-field grade of bank-controls-final passes this case.
+No compiler/runtime/hardware readiness follows.
+Exact request,27-path evaluator envelope, controls, completed answer, separate
+grade and all raw identities are losslessly retained in ../release.md.
+The full/evaluated runtime boundaries are separately named there. Original
+case fields and earlier grades remain immutable; Q-P10 alone has the pre-guidance
+supplement. Native measurements remain Unknown. The first incomplete packet is
+invalid and retained, never counted as a passing or failing knowledge grade.
 
 ## Q-P13 — Sprite multiplexer with IRQ-only sorter/update helpers
 

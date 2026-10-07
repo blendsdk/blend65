@@ -1,7 +1,7 @@
 # Source Manifest
 
-> **Baseline version**: `2.0.3`
-> **Retrieved/rechecked**: 2026-10-03 for the approved conditional stock-NMINV entry contract; primary hardware facts and other source pins retain their recorded scope
+> **Baseline version**: `2.0.4`
+> **Retrieved/rechecked**: 2026-10-08 for the approved fixed-bank-0 startup contract; other source pins retain their recorded scope
 > **Purpose**: Pin the evidence that may shape the Blend65 expert baseline. This manifest is
 > provenance, dependency, and conflict control; it is not a substitute for the distilled local
 > knowledge in the other references.
@@ -33,7 +33,7 @@ The following terms are used below:
 ### BLEND65-SPEC-4-038b70e9 — Current frozen Specification 4 identity
 
 - **Authority/status**: sole Blend65 language and C64-profile authority bound by expert baseline
-  2.0.3; activation and qualification status are governed by `qualification/release.md`. Earlier identities
+  2.0.4; activation and qualification status are governed by `qualification/release.md`. Earlier identities
   below are provenance only and cannot override the approved corrected contract.
 - **Version**: exact GNU SHA-256 record digest
   `038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b`.
@@ -56,6 +56,23 @@ The following terms are used below:
   code and tests remain audit subjects; absence of historical evidence in a fresh packet does not
   disprove the recorded historical reviews.
 - **Verification**: reproduce the digest and exact 45-path inventory before qualification.
+
+### BLEND65-STARTUP-BANK0-20261008 — Approved fixed-bank-0 startup mode
+
+- **Authority/status**: explicit Blend65 product ruling, user approval “i approve” on
+  2026-10-08 for the named startup-preservation batch. This is not a hardware source or
+  compiler-readiness claim; specification bytes remain unchanged.
+- **Scope**: the four cooperative fixed-bank-0 PRG profiles may establish bank 0 with
+  low DDRA input mode, preserve PRA against startup writes by issuing none, retain
+  upper directions and restore saved DDRA on normal return. Raw register access stays
+  legal with exact CIA semantics; a typed bank operation must establish its own direction.
+  No new source/entry restriction, latch shadow, runtime owner or general banking API.
+- **Dependent sections**: `c64-memory-and-runtime.md#vic-view-and-placement`, Q-P10
+  and dependency-traced bank/view/buffer controls.
+- **Limits**: startup preservation is not preservation against later source/imported/firmware
+  PRA writers. Compiler output, genuine SYS/RESTORE, transition timing and physical hardware
+  need separate qualification. Existing implementation and old tests are audit subjects,
+  never the basis of these expected decisions.
 
 ### Historical Specification 4 identities
 
@@ -784,7 +801,7 @@ current semantic authority and must not be cited as the active baseline.
   `blend65-semantics.md#interrupt-domain-sfa-and-shared-state`,
   `sfa-and-abi.md#hardware-stack-duties`,
   `c64-memory-and-runtime.md#stock-cia1-service-on-final-exclusive-release`,
-  C64 Appendix §9.3/cooperative return, Q-L11, Q-L29, Q-P07, and Q-P23.
+  C64 Appendix §9.3/cooperative return, Q-L11, Q-L29, Q-P07, Q-P10, and Q-P23.
 - **Precision**: `KERNAL_C64_03/irqfile::PULS/PULS1` pushes A/X/Y, does not clear D, and dispatches through `CINV`;
   `KERNAL_C64_03/editor.2::KPREND` reads CIA1 ICR before restoring Y/X/A and executing `RTI`.
   In the standard 901227-03 image, the restore-only sub-tail begins at `$EA81`; the accepted
@@ -806,6 +823,12 @@ current semantic authority and must not be cited as the active baseline.
   Rechecked raw file SHA-256: `init`
   `a19581404b6a7bddaac322c06f3bc5c7f5b442b81175c50acdfd6c48a0dcd180`;
   `irqfile` `4d181bc5a16bd314210d2a8d53381a6de2826460cbe9e5c05353679cd1cc19e6`.
+  The same pinned source's `declare`, lines 248–252, maps D2PRA/DDRA to `$DD00/$DD02`.
+  `init::IOINIT`, lines 144–147, writes PRA `$07` and DDRA `$3F`;
+  `rs232nmi::NNMI20`, lines 41–47, writes PRA after pin readback for Timer-A transmission;
+  `open::CLN232`, lines 259–261, and `serial4.0` also contain PRA read/modify/write paths.
+  These firmware writers invalidate an unconditional whole-program hidden-latch promise,
+  not the narrower zero-PRA-access startup proof.
 - **Known issues**: this is a revision-specific implementation artifact. A raw vector with KERNAL
   ROM absent has only the selected CPU's hardware interrupt contract. The source proves that the
   stock BRK route is non-returning to its call site, but the default game profile does not claim a
@@ -825,7 +848,13 @@ current semantic authority and must not be cited as the active baseline.
 - **Dependent sections**: `c64-memory-and-runtime.md#cpu-vic-and-physical-memory-views` and
   `c64-hardware.md#model-declaration`.
 - **Precision**: specifications, circuit-theory pages, board-identification sheets, and matching
-  schematic identifier.
+  schematic identifier. Schematic 251138 Rev B connects CIA2 U2 PA0/PA1 to VA14/VA15.
+  Original sheet mirrors:
+  <https://www.zimmers.net/anonftp/pub/cbm/schematics/computers/c64/251138-2of2-left.gif>
+  (SHA-256 `5bac4225744793a7f65f29e8038ce339f1c9ebc272ba73cdcd9ebbad9ee04a23`),
+  <https://www.zimmers.net/anonftp/pub/cbm/schematics/computers/c64/251138-1of2-right.gif>
+  (SHA-256 `f6df3a9faf49cadaf0b20bfbfd88a73530d2508e9d52744a60fa56b322c146d8`).
+  Rechecked 2026-10-08; these wiring facts do not establish every board's electrical timing.
 - **Known issues**: multiple board and chip revisions exist; a schematic for one assembly is not a
   universal C64 claim.
 - **Local extraction**: only software-relevant integration facts and revision bounds.
@@ -842,7 +871,10 @@ current semantic authority and must not be cited as the active baseline.
   flag pin, and register map.
 - **Dependent sections**: `c64-hardware.md#cia-register-effects-and-ownership`, input scanning and
   VIC-bank ownership in `c64-game-engineering.md`.
-- **Precision**: in the exact eight-page scan, printed p.5 is the register map and port/DDR
+- **Precision**: printed p.3 documents passive port pull-ups; p.4 distinguishes reset latch
+  zero from pulled-up input readback high; p.5 defines per-bit input/output direction and
+  actual-pin port reads, including output-configured bits. In the exact eight-page scan,
+  printed p.5 is the register map and port/DDR
   description; p.6 contains interval counters/latches and timer modes; p.7 contains
   “Interrupt Control (ICR)”; p.8 contains CRA/CRB fields. On ICR read, returned interrupt data and
   IRQ are cleared; on ICR write, bit 7
@@ -1025,9 +1057,14 @@ current semantic authority and must not be cited as the active baseline.
 - **Precision**: `vice/doc/vice.texi` command-line initialization, C64 model, monitor, and debug
   settings; `vice/src/c64/c64-cmdline-options.c` model-name table; and
   `vice/src/c64/cart/debugcart.c::debugcart_store`. Never use moving default-branch line numbers.
+  At the exact tag commit, `vice/src/core/ciacore.c`, lines 802–809, stores the PRA/DDRA
+  latch and computes effective output as PRA or inverted DDRA;
+  `vice/src/c64/c64cia2.c`, lines 137–165, maps its inverted low two effective bits to
+  VIC bank and updates selection on DDR changes. Rechecked 2026-10-08. This corroborates
+  the emulator model, not physical silicon or transition-time equivalence.
 - **Known issues**: VICE behavior is not universal physical truth. Model/settings must be recorded.
 - **Local extraction**: exact future `x64sc -default -model c64 -console +sound +warp -debugcart
-  -limitcycles 4000000 -autostart ...` configuration and debug-cart exit observation contract only.
+-limitcycles 4000000 -autostart ...` configuration and debug-cart exit observation contract only.
 - **Verification**: cross-check the release manual and relevant test-program sources; no emulator
   execution occurs in this plan.
 

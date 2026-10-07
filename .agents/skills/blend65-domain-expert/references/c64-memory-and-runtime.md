@@ -1,6 +1,6 @@
 # C64 Memory, Startup, and Runtime Ownership
 
-> **Baseline version**: `2.0.3`
+> **Baseline version**: `2.0.4`
 
 Use this reference when a Blend65 decision depends on the C64 address map, `$0000/$0001`
 banking, VIC-visible placement, startup, KERNAL coexistence, interrupt entry, loading, or resource
@@ -123,11 +123,39 @@ baseline C64 wiring, the low-bit values select:
 | `1` | 2 | `$8000–$BFFF` |
 | `0` | 3 | `$C000–$FFFF` |
 
-`$DD02` must make those bits outputs. A bank update is a port read/modify/write only when the
-profile proves that reading the port and preserving every other bit is correct; otherwise use an
-owned shadow byte. CIA2 also serves serial/user-port/NMI roles, so the video bank is one field in a
-shared device, not a private graphics register. [CBM-C64-PRG-1982, printed pp.101–102 and 320;
-MOS-6526-1981, printed pp.1–2 and 8]
+For conventional PRA-coded bank switching, establish output direction for both bank bits
+in `$DD02` first. Any bank pin intended low must be driven as an output. Bank 0 has a
+different zero-copy option on the proved base-C64 wiring: clear only DDRA bits 0–1. The
+input pull-ups hold both bank pins high, independently of their untouched PRA latch bits.
+For fixed-bank-0 cooperative startup, save DDRA, write `saved_ddra & $FC`, and restore
+saved DDRA on normal return. Issue no PRA read or write: a pin read cannot recover an
+arbitrary hidden latch, even for output-configured bits. Preserve the six upper direction
+bits. This is an explicitly approved startup operating mode, not a general bank-switching
+operation or a bank-0 entry restriction. [MOS-6526-1981, printed pp.3–5;
+CBM-C64-SVC-1985, schematic 251138 Rev B, U2 PA0/PA1; BLEND65-STARTUP-BANK0-20261008]
+
+Raw PRA writes remain legal but do not select another bank while those bits are inputs.
+A typed bank operation must establish the required directions itself and prove shared-device
+preservation; users must not learn this startup convention to use a typed operation.
+A bank update may use port read/modify/write only when the profile proves that every
+preserved bit is correctly reconstructed; otherwise it needs an independently established
+owned latch model, never a shadow initialized from pin readback. CIA2 also serves serial,
+user-port and NMI roles. Audit every reachable source, imported and firmware writer:
+KERNAL IOINIT, serial-bus routines, CLN232 and NNMI20 can write PRA. Zero startup PRA
+accesses do not promise whole-program latent preservation against those writers. Bank-pin
+transition timing and board/revision coverage need separate proof. [CBM-C64-PRG-1982,
+printed pp.101–102 and 320; CBM-C64-KERNAL-03, init::IOINIT, serial4.0, open::CLN232,
+rs232nmi::NNMI20; MOS-6526-1981, printed p.5]
+
+With absolute addressing, separate DDRA capture/setup/return costs 20 bytes and 26 nominal
+cycles plus one platform save byte. Keeping A live from capture into adjacent setup costs
+17 bytes and 22 cycles when observable ordering and interrupt duties permit. Neither adds
+function homes, ZP or hardware-stack bytes. These instruction totals exclude VIC stalls,
+interrupts, loader bytes and final layout; assembly, whole-artifact parity and genuine
+SYS/RESTORE execution remain independent proof duties. A bank-equivalent display comparison
+must still check input-mode direction, bank pins, upper port/direction bits, pixels and return
+state independently; it cannot hide a changed raw bank-write contract. [MOS-PGM-1976,
+Appendix B LDA/STA absolute and AND immediate; BLEND65-STARTUP-BANK0-20261008]
 
 Within the selected bank:
 

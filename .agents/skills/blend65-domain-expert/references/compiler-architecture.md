@@ -1,6 +1,6 @@
 # Compiler Architecture Doctrine
 
-> **Baseline version**: `2.0.3`. This module defines responsibilities and invariants, not a
+> **Baseline version**: `2.0.4`. This module defines responsibilities and invariants, not a
 > mandatory class diagram.
 
 ## Design Objective

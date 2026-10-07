@@ -5,7 +5,7 @@ description: Review, design, diagnose, or implement Blend65 behavior where decis
 
 # Blend65 Domain Expert
 
-> **Version**: `2.0.3` (activation status is governed by `qualification/release.md`)
+> **Version**: `2.0.4` (activation status is governed by `qualification/release.md`)
 > **Knowledge identity**: `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b`
 
 This skill supplies domain judgment on top of CodeOps. It does not replace the frozen Blend65
@@ -135,7 +135,7 @@ For every material audit, design, diagnosis, or parity conclusion, report:
 - `Claim kind`: `Fact`, `Inference`, `Unknown`, or `Recommendation`;
 - context and user-visible capability;
 - exact evidence and the decisive missing probe, if any;
-- knowledge lineage: `skillVersion=2.0.3`, the content commit from
+- knowledge lineage: `skillVersion=2.0.4`, the content commit from
   [qualification/release.md](qualification/release.md), `referencePath#heading`, and governing
   source-manifest keys;
 - complete relevant cost; and

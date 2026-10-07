@@ -3,7 +3,7 @@
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Progress**: 0/4 tasks (0%)
 > **Last Updated**: 2026-10-08
-> **Status**: Executing — approved T-09.1 authority qualification in progress
+> **Status**: Executing — T-09.1 inactive qualified content review and verification
 > **Phase baseline commit**: 24c88f62e646f6661a2d23286ee6b1e1d305c358
 > **Phase baseline tree**: 6ef6cf1f8b62f6faa83af86485df8b3566ba33b4
 > **Scope mode**: strict
@@ -19,7 +19,7 @@ contract, exact expert/binding/test updates below and xhigh for the named batch
 without repeated effort pauses. Scope stays strict; no push or specification
 edit is authorized.
 
-**Smallest viable design — recommended, not yet qualified:** For the current four
+**Approved repair direction — documentary qualification complete; implementation pending:** For the current four
 fixed-bank-0 cooperative profiles, save CIA2 DDRA, write `saved_ddra & $FC` to
 DDRA, and restore saved DDRA on normal return. Do not read, save or write PRA.
 Input pull-ups would establish high bank-select pins without changing the hidden
@@ -124,8 +124,9 @@ The supplemental hardware/product oracle was frozen before replacement guidance:
 SHA-256 `b9b3e411519a217add549bfb7ec7330340d25e831f4eb3f6f8d18b35cd89becf`.
 Independent source review supports the mechanism only at documentary scope.
 Its incorrect `T1NMI` locator was corrected to the actual `NNMI20` Timer-A path.
-Candidate 2.0.4 remains outside the working tree in
-`/tmp/blend65-startup-authority.ZzAkLD/candidate`; active authority is still 2.0.3.
+Candidate 2.0.4 was staged outside the working tree in
+`/tmp/blend65-startup-authority.ZzAkLD/candidate` before qualification. Its exact
+qualified bytes are now migrated inactive; public metadata still selects 2.0.3.
 
 The independent content/dependency review cleared the exact final candidate and
 the new `bank-controls-final` envelope. Two minor lineage/source-location defects
@@ -148,8 +149,31 @@ was strengthened; its original fields and all other 112 oracle hashes are exact.
 
 All 32 files in the pinned recovered KERNAL source directory were inventoried for
 the named port/DDR symbols and direct register addresses. Compiler and firmware
-inventory is audit evidence, not expert authority. Native writer/return observations,
-candidate behavioral grading, immutable binding and compiler repair remain pending.
+inventory is audit evidence, not expert authority. Documentary grading is complete;
+native writer/return observations, immutable binding and compiler repair remain pending.
+
+The final isolated evaluator and separate grade pass Q-P01/Q-P03/Q-P12. Q-P10's
+initial exact source-citation failure remains in the captured evidence; a fresh
+source-only completion and separate joint grade close only precise source locations.
+RV-001, the joint grader's “four” versus five absolute-operation prose typo, is
+retained with an independent primary-grid arithmetic disposition. The original
+independent cost PASS remains decisive: adjacent 17 bytes/22 nominal cycles,
+separated 20/26. No oracle, answer or old failure was rewritten. All actual packet,
+control, completed-turn, exit and final-answer identities pass independent review.
+Full/evaluated runtime identities are separately recorded; 109 unchanged decisive
+case fields inherit only their reviewed prior evidence.
+
+All 22 live expert files match the qualified candidate byte-exact. Inactive full
+tree SHA-256 is `da89eb6d587dee7a3c85dfa97695b029285794688a06962a107b4afc4c384d8a`;
+release record is `5937b41e913c8642ec57364a25f7e360891df7007c9493397d5444257f40d482`.
+The old unchanged foundation guard correctly rejects migration: 11 pass/one exact
+SKILL-byte failure. The authorized successor guard preserves every historical
+checkpoint/negative and pins the entire new raw tree. Independent inactive-content
+review is clear. Fresh install/build/typecheck/full test commands pass: 5,106 tests,
+two existing compiler skips, zero failures; root suite 3,203/3,203. Existing build
+caches are used only by the normal project commands. Coherent local content
+checkpoint is now warranted; immutable binding remains pending. This is not
+activation or a compiler/native repair qualification claim.
 
 The source review also distinguishes an adjacent capture/setup sequence: 17 bytes
 and 22 nominal cycles where observable ordering permits, versus the separated

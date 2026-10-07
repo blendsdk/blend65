@@ -1,6 +1,6 @@
 # Static Frame Allocation and ABI Doctrine
 
-> **Baseline version**: `2.0.3`
+> **Baseline version**: `2.0.4`
 >
 > **Binding specification rule**: Static Frame Allocation (SFA) is the sole general function-frame
 > model. The 6502 hardware stack is not a general local-variable stack.

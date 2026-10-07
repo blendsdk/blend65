@@ -1,6 +1,6 @@
 # C64 Game Engineering and Compiler Realization
 
-> **Baseline version**: `2.0.3`
+> **Baseline version**: `2.0.4`
 
 Use this reference to translate a C64 game requirement or expert technique into modern Blend65
 source, deterministic compiler/platform behavior, expert-quality assembly, explicit resource cost,

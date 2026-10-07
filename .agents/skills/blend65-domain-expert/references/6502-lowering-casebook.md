@@ -1,6 +1,6 @@
 # 6502 Lowering Casebook
 
-> **Baseline version**: `2.0.3`
+> **Baseline version**: `2.0.4`
 
 Use this reference to turn reconciled Blend65 semantics and typed IL into expert NMOS 6502/6510
 code. Read `blend65-semantics.md`, `sfa-and-abi.md`, `il-and-optimization.md`, and
