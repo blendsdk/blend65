@@ -3,9 +3,9 @@
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Progress**: 0/4 tasks (0%)
 > **Last Updated**: 2026-10-08
-> **Status**: Assessment complete; authority/test exceptions await user approval
-> **Phase baseline commit**: 7cc315a0e69ea3aa03e6f4bb6d7b6dea2fac8d01
-> **Phase baseline tree**: 5909da41fa90bdafe92f178a6987dd0ff10c1dc7
+> **Status**: Executing — approved T-09.1 authority qualification in progress
+> **Phase baseline commit**: 24c88f62e646f6661a2d23286ee6b1e1d305c358
+> **Phase baseline tree**: 6ef6cf1f8b62f6faa83af86485df8b3566ba33b4
 > **Scope mode**: strict
 
 ## Objective
@@ -13,8 +13,11 @@
 Repair the existing RD-05 R5.4 startup defect owned by
 [CIA2 AR-P9](../rd-05-cia2-ownership/00-ambiguity-register.md#ar-p9--separate-operation-proof-from-the-real-existing-startup-gap).
 This is mandatory startup preservation, not an additional CIA2 API or an optional
-feature. The confirmed xhigh assessment authorizes this document and the feature
-roadmap only. It does not authorize implementation or frozen-authority changes.
+feature. On 2026-10-08 the user said “i approve”, answering the single bounded
+T-09.1–T-09.4 approval request. This explicitly authorizes the input-mode startup
+contract, exact expert/binding/test updates below and xhigh for the named batch
+without repeated effort pauses. Scope stays strict; no push or specification
+edit is authorized.
 
 **Smallest viable design — recommended, not yet qualified:** For the current four
 fixed-bank-0 cooperative profiles, save CIA2 DDRA, write `saved_ddra & $FC` to
@@ -83,10 +86,10 @@ operation must establish the required direction itself, not make modern users
 learn the hardware convention. Do not use a comparison mask to conceal this
 distinction or expand this repair into that future banking API.
 
-## Necessary approval before execution
+## Approved execution boundary
 
-**Best option:** Approve the explicit input-mode startup contract, bounded expert
-correction and matching oracle exceptions below, then qualify the candidate
+**User-approved option:** Apply the explicit input-mode startup contract, bounded
+expert correction and matching oracle exceptions below, then qualify the candidate
 before compiler implementation. This changes startup's low-DDRA operating mode,
 not language syntax or raw POKE semantics. No bank-0 entry restriction is proposed.
 
@@ -106,14 +109,51 @@ qualification must still detect wrong bank pins, wrong upper direction bits,
 wrong generated low direction bits, altered pixels and incorrect return state.
 Any additional old-oracle change needs its own exact exception.
 
-Approved assessment writes are only this mini-plan and the feature roadmap.
-Proposed execution also touches the existing expert qualification/source records,
+Assessment writes were only this mini-plan and the feature roadmap.
+Approved execution also touches the existing expert qualification/source records,
 binding fields/checks above, startup implementation and its logic-tier tests, new
 independent startup regressions/native fixtures and this task's evidence. These
-are not yet approved. `spec/`, sibling feature semantics, APIs, product scope,
+are authorized by the exact user ruling above. `spec/`, sibling feature semantics, APIs, product scope,
 dependencies, CI and portfolio updates remain excluded. No push is authorized.
 
 ## Tasks
+
+### T-09.1 execution evidence — in progress
+
+The supplemental hardware/product oracle was frozen before replacement guidance:
+SHA-256 `b9b3e411519a217add549bfb7ec7330340d25e831f4eb3f6f8d18b35cd89becf`.
+Independent source review supports the mechanism only at documentary scope.
+Its incorrect `T1NMI` locator was corrected to the actual `NNMI20` Timer-A path.
+Candidate 2.0.4 remains outside the working tree in
+`/tmp/blend65-startup-authority.ZzAkLD/candidate`; active authority is still 2.0.3.
+
+The independent content/dependency review cleared the exact final candidate and
+the new `bank-controls-final` envelope. Two minor lineage/source-location defects
+were corrected before evaluation. One major packet-extraction defect invalidated
+an already-started initial run; that original packet/log is retained and cannot
+count as qualification. The corrected final packet physically excludes historical
+oracle/grading fields and requires all seven permitted source-definition headings.
+The fresh closure is Q-P10 plus Q-P01/Q-P03/Q-P12. The other 109 cases may inherit
+only their independently reviewed unchanged decisive fields. Only Q-P10's oracle
+was strengthened; its original fields and all other 112 oracle hashes are exact.
+
+| Reachable writer family                          | Ownership and preservation boundary                                                                                                                                                 |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Existing startup                                 | Only named production consumer of CIA2 PRA/DDRA; its own writes are the defect being repaired.                                                                                      |
+| Typed CIA2 timer/NMI operations                  | Their owned registers exclude ports and DDRs; they create no PRA/DDRA preservation claim.                                                                                           |
+| Raw POKE / imported assembly                     | Legal source effects; inspect actual addresses, visibility, directions and admitted effects. No new ban or readback shadow.                                                         |
+| Stock IRQ keyboard and no-source RESTORE         | Route-specific firmware effects remain independently bounded; background serial transmission must not be assumed absent from reset history alone.                                   |
+| KERNAL IOINIT                                    | Writes PRA `$07` and DDRA `$3F`; STOP/warm-start is a non-returning firmware boundary, not startup's normal return.                                                                 |
+| KERNAL serial4.0, open::CLN232, rs232nmi::NNMI20 | Actual PRA read/modify/write paths; pin readback can overwrite hidden latch bits. They require their own source/firmware ownership and do not become a whole-program latch promise. |
+
+All 32 files in the pinned recovered KERNAL source directory were inventoried for
+the named port/DDR symbols and direct register addresses. Compiler and firmware
+inventory is audit evidence, not expert authority. Native writer/return observations,
+candidate behavioral grading, immutable binding and compiler repair remain pending.
+
+The source review also distinguishes an adjacent capture/setup sequence: 17 bytes
+and 22 nominal cycles where observable ordering permits, versus the separated
+20-byte/26-cycle projection below. Actual emitter/expert parity remains unproved.
 
 - [ ] T-09.1 Qualify and bind the approved expert correction. Freeze discriminating
       expectations before changing candidate guidance; review sources/oracle
