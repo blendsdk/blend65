@@ -102,7 +102,7 @@ describe("C64 startup", () => {
     expect(opcodes).not.toContain("cli");
 
     const deviceEffects = instructions.flatMap(({ memory }) => memory);
-    for (const address of [0x0000, 0x0001, 0xdd00, 0xd018, 0xd015]) {
+    for (const address of [0x0000, 0x0001, 0xdd02, 0xd018, 0xd015]) {
       expect(deviceEffects).toContainEqual(
         expect.objectContaining({
           kind: "read",
@@ -118,6 +118,9 @@ describe("C64 startup", () => {
         }),
       );
     }
+    expect(
+      deviceEffects.some(({ address }) => address.kind === "absolute" && address.value === 0xdd00),
+    ).toBe(false);
   });
 });
 

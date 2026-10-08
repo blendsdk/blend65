@@ -302,7 +302,7 @@ describe("C64 layout hardening", () => {
     ]);
   });
 
-  it("should write and restore processor and CIA2 latches before their direction registers", () => {
+  it("should preserve processor latch-before-direction order and select CIA2 bank zero without PRA access", () => {
     const startup = createC64Startup({
       initializerLabels: Object.freeze(["init.one"]),
       mainLabel: "main",
@@ -320,7 +320,8 @@ describe("C64 layout hardening", () => {
       );
 
     expect(access("sta", 0x0001)).toBeLessThan(access("sta", 0x0000));
-    expect(access("sta", 0xdd00)).toBeLessThan(access("sta", 0xdd02));
+    expect(access("lda", 0xdd00)).toBe(-1);
+    expect(access("sta", 0xdd00)).toBe(-1);
     const restoreWrite = (address: number) =>
       restore.findIndex(
         (instruction) =>
@@ -329,9 +330,17 @@ describe("C64 layout hardening", () => {
           instruction.operand.value === address,
       );
     expect(restoreWrite(0x0001)).toBeLessThan(restoreWrite(0x0000));
-    expect(restoreWrite(0xdd00)).toBeLessThan(restoreWrite(0xdd02));
+    expect(restoreWrite(0xdd00)).toBe(-1);
+    expect(restoreWrite(0xdd02)).toBeGreaterThanOrEqual(0);
+    expect(restoreWrite(0xdd02)).toBeLessThan(restoreWrite(0x0001));
     expect(access("lda", 0xdd02)).toBeGreaterThanOrEqual(0);
+    expect(access("lda", 0xdd02)).toBeGreaterThan(access("sta", 0x0000));
     expect(access("sta", 0xdd02)).toBeGreaterThanOrEqual(0);
+    expect(entry[access("sta", 0xdd02) - 1]!.operand).toEqual({
+      kind: "immediate",
+      value: 0xfc,
+    });
+    expect(access("sta", 0xdd02)).toBeLessThan(entry.findIndex(({ opcode }) => opcode === "jsr"));
     expect(
       entry
         .filter(

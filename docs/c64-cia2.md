@@ -78,11 +78,33 @@ limitations to remove, not language restrictions or recommended source workaroun
 
 Qualification is **VICE-verified / hardware-unverified**. Unrestricted external
 nesting and aggregate stack capacity, retained-firmware completion, and hard timing
-deadlines are not proved. An existing startup defect can change a hidden CIA2 port
-latch after STOP/RESTORE and SYS re-entry; the new timer operations do not touch
-the ports or their direction registers, but full startup preservation is not yet
-qualified. Keyboard sharing and takeover profiles are separate unfinished work.
+deadlines are not proved. The timer operations do not touch the ports or their
+direction registers. Keyboard sharing and takeover profiles are separate
+unfinished work.
+
+## Startup bank and normal return
+
+The four cooperative profiles select VIC bank 0 by making CIA2's two bank-select
+pins inputs with pull-ups. Startup saves DDRA, clears only its low two bits and
+restores the saved byte on normal return. It never reads or writes PRA, whose
+hidden output latch cannot be recovered from physical pin readback. The former
+STOP/RESTORE then SYS startup-latch defect is repaired in the qualified VICE cases,
+including changed external serial-bus inputs. This is not universal silicon or
+whole-program startup proof.
+
+Raw register writes remain legal and follow those input/output directions. A PRA
+write alone does not select another VIC bank while the bank bits are inputs.
+Deliberate raw bank switching must establish its required output directions;
+a future typed bank operation must own that detail. No general bank-switching API
+is supplied by this repair. Zero startup PRA accesses preserve the latch against
+startup's own operations, not deliberate source or firmware PRA writes.
+
+Stock STOP/RESTORE warm-start is a terminal firmware path, not a normal application
+return. Re-entry through BASIC SYS captures the new machine state; startup does
+not try to restore a program abandoned by that terminal path.
 
 See [platform libraries](platform-libraries.md) for the library boundary and
 [CIA2 qualification](../codeops/features/blend65-v4/plans/rd-05-cia2-ownership/08-closeout.md)
-for the exact models, artifacts, resource costs and remaining obligations.
+for the timer/NMI models, artifacts, resource costs and remaining obligations.
+The [startup repair evidence](../codeops/features/blend65-v4/plans/cia2-startup-preservation/99-execution-plan.md)
+records the separate bank/latch transaction, exact return cases and its limits.

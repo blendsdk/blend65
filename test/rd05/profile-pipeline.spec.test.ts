@@ -231,7 +231,7 @@ describe.each(profiles)("real terminal admission on %s", (target) => {
     for (const opcode of ["php", "cld", "plp", "rts"]) expect(code).toContain(opcode);
     expect(code).not.toContain("sei");
     expect(code).not.toContain("cli");
-    for (const address of [0x0000, 0x0001, 0xdd00, 0xd018, 0xd015]) {
+    for (const address of [0x0000, 0x0001, 0xdd02, 0xd018, 0xd015]) {
       const operand = `(?:\\+[12] )?\\$0*${address.toString(16)}`;
       expect(
         code.some((line) => new RegExp(`^lda ${operand}$`, "u").test(line)),
@@ -242,6 +242,7 @@ describe.each(profiles)("real terminal admission on %s", (target) => {
         `write ${address.toString(16)}`,
       ).toBe(true);
     }
+    expect(code.some((line) => /^(?:lda|sta) (?:\+[12] )?\$0*dd00$/u.test(line))).toBe(false);
     expect(code.some((line) => /\$d4[0-1][0-9a-f]/u.test(line))).toBe(false);
     expect(code).toEqual(executableLines(baseline.assembly));
     expect(actual.prg).toEqual(baseline.prg);

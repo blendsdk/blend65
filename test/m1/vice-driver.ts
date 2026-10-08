@@ -7,6 +7,8 @@ import type { PublishedGeneration } from "@blend65/compiler";
 import type { OracleFrame, OracleRun } from "../../examples/m1/qualification/oracle.js";
 import { qualifyExpertM1WithVice } from "./expert-vice.js";
 import type { ViceMonitor } from "./vice-monitor.js";
+import { displayForExpertComparison } from "./vice-display-comparison.js";
+import type { M1DisplayFields } from "./vice-display-comparison.js";
 import {
   normalizeDisplayBaseline,
   restoreDisplayBaseline,
@@ -50,13 +52,7 @@ export interface M1ViceFrameObservation {
   /** Observed border color. */
   readonly border: number;
   /** Active VIC-II and CIA2 fields which select the displayed memory and mode. */
-  readonly display: {
-    readonly vicControl1: number;
-    readonly vicControl2: number;
-    readonly vicMemory: number;
-    readonly cia2Port: number;
-    readonly cia2Direction: number;
-  };
+  readonly display: M1DisplayFields;
   /** SHA-256 over dimensions, offsets, and indexed VIC-II pixels. */
   readonly displaySha256: string;
 }
@@ -690,7 +686,7 @@ export async function qualifyM1WithVice(
     }
     const generatedDisplays = frames.map(({ displaySha256, display }) => ({
       displaySha256,
-      display,
+      display: displayForExpertComparison(display),
     }));
     const expertDisplays = expert.frames.map(({ displaySha256, display }) => ({
       displaySha256,

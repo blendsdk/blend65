@@ -264,14 +264,14 @@ describe.sequential("CIA1 stock service after normal return in real VICE", () =>
           await remove(afterCheckpoint);
           monitor.takeCheckpointHits();
           expect(await resume()).toBe(callerReturn);
-          // After handback, the ordinary exit restores the captured VIC bank:
-          // port latch before direction. No other CIA2 or SID write is allowed.
+          // After handback, the ordinary exit restores only saved CIA2 direction.
+          // No port-latch or other CIA2/SID write is allowed.
           expect(
             monitor
               .takeCheckpointHits()
               .filter((id) => unrelatedWrites.has(id))
               .map((id) => unrelatedWrites.get(id)),
-          ).toEqual([0xdd00, 0xdd02]);
+          ).toEqual([0xdd02]);
           const returnCpu = await monitor.readCpuRegisters();
           expect(returnCpu.sp).toBe((entryCpu.sp + 2) & 0xff);
           expect(returnCpu.p & 0x0c).toBe(entryCpu.p & 0x0c);

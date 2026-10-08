@@ -19,21 +19,20 @@ const STARTUP_STATE = Object.freeze({
   stack: 4,
   cpuDirection: 5,
   cpuPort: 6,
-  cia2Port: 7,
-  cia2Direction: 8,
-  vicMemory: 9,
-  spriteEnable: 10,
-  spriteXHigh: 11,
-  spriteYExpand: 12,
-  spritePriority: 13,
-  spriteMulticolor: 14,
-  spriteXExpand: 15,
-  border: 16,
-  background: 17,
-  spritePositions: 18,
-  spriteColors: 34,
-  spritePointers: 42,
-  bytes: 50,
+  cia2Direction: 7,
+  vicMemory: 8,
+  spriteEnable: 9,
+  spriteXHigh: 10,
+  spriteYExpand: 11,
+  spritePriority: 12,
+  spriteMulticolor: 13,
+  spriteXExpand: 14,
+  border: 15,
+  background: 16,
+  spritePositions: 17,
+  spriteColors: 33,
+  spritePointers: 41,
+  bytes: 49,
 });
 
 /** Inputs needed to construct the selected cooperative C64 startup. */
@@ -168,8 +167,6 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
   const preservedDevices = Object.freeze([
     Object.freeze({ address: cpu.portDirectionAddress, offset: STARTUP_STATE.cpuDirection }),
     Object.freeze({ address: cpu.portDataAddress, offset: STARTUP_STATE.cpuPort }),
-    Object.freeze({ address: machine.cia2PortA, offset: STARTUP_STATE.cia2Port }),
-    Object.freeze({ address: machine.cia2DataDirection, offset: STARTUP_STATE.cia2Direction }),
     Object.freeze({ address: machine.vicMemoryPointer, offset: STARTUP_STATE.vicMemory }),
     Object.freeze({ address: machine.spriteEnable, offset: STARTUP_STATE.spriteEnable }),
     Object.freeze({ address: machine.spriteXHigh, offset: STARTUP_STATE.spriteXHigh }),
@@ -244,29 +241,10 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       Object.freeze({ kind: "absolute", value: cpu.portDirectionAddress }),
       [deviceEffect("write", cpu.portDirectionAddress)],
     ),
-    machineInstruction(
-      cpu,
-      "lda",
-      "absolute",
-      Object.freeze({ kind: "absolute", value: machine.cia2PortA }),
-      [deviceEffect("read", machine.cia2PortA)],
-    ),
-    machineInstruction(cpu, "ora", "immediate", Object.freeze({ kind: "immediate", value: 0x03 })),
-    machineInstruction(
-      cpu,
-      "sta",
-      "absolute",
-      Object.freeze({ kind: "absolute", value: machine.cia2PortA }),
-      [deviceEffect("write", machine.cia2PortA)],
-    ),
-    machineInstruction(
-      cpu,
-      "lda",
-      "absolute",
-      Object.freeze({ kind: "absolute", value: machine.cia2DataDirection }),
-      [deviceEffect("read", machine.cia2DataDirection)],
-    ),
-    machineInstruction(cpu, "ora", "immediate", Object.freeze({ kind: "immediate", value: 0x03 })),
+    // These fixed-bank profiles use input pull-ups for bank zero. Saving and masking DDRA
+    // leaves the unreadable PRA output latch untouched; pin readback cannot restore that latch.
+    ...saveDevice(cpu, machine.cia2DataDirection, STARTUP_STATE.cia2Direction),
+    machineInstruction(cpu, "and", "immediate", Object.freeze({ kind: "immediate", value: 0xfc })),
     machineInstruction(
       cpu,
       "sta",
@@ -352,11 +330,10 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
   }
 
   const restore: MachineInstruction[] = [];
-  for (const { address, offset } of preservedDevices.slice(4)) {
+  for (const { address, offset } of preservedDevices.slice(2)) {
     restore.push(...restoreDevice(cpu, address, offset));
   }
   restore.push(
-    ...restoreDevice(cpu, machine.cia2PortA, STARTUP_STATE.cia2Port),
     ...restoreDevice(cpu, machine.cia2DataDirection, STARTUP_STATE.cia2Direction),
     ...restoreDevice(cpu, cpu.portDataAddress, STARTUP_STATE.cpuPort),
     ...restoreDevice(cpu, cpu.portDirectionAddress, STARTUP_STATE.cpuDirection),
