@@ -1,26 +1,28 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: ❌ POSITIVE IMPLEMENTATION GATE BLOCKED — AR-P3's saved-observation API needs approval
-> **Last Updated**: 2026-10-08 15:14 CEST
+> **Status**: ❌ POSITIVE IMPLEMENTATION GATE BLOCKED — public contract accepted; technical closure and inventory-test authority pending
+> **Last Updated**: 2026-10-08 17:52 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
 
-| Boundary          | Authority                                                                                                                                                                                                                                                                                                       |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Planning target   | `blend65-v4/RD-05` R5.25/AC-20 and the remaining R5.24/AC-19 keyboard-coexistence obligation. The user confirmed high effort and continuation after the proposed focused keyboard/combined-input planning task.                                                                                                 |
-| Context artifacts | RD-05 and its requirements decisions; the live feature roadmap; the completed joystick/library pilot; current source loading, profile declarations, semantic/lowering/storage and startup seams; frozen Specification 4 and expert baseline; primary CIA/KERNAL evidence. Reading does not authorize edits.     |
+| Boundary          | Authority                                                                                                                                                                                                                                                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Planning target   | `blend65-v4/RD-05` R5.25/AC-20 and the remaining R5.24/AC-19 keyboard-coexistence obligation. The user confirmed high effort and continuation after the proposed focused keyboard/combined-input planning task.                                                                                                                       |
+| Context artifacts | RD-05 and its requirements decisions; the live feature roadmap; the completed joystick/library pilot; current source loading, profile declarations, semantic/lowering/storage and startup seams; frozen Specification 4 and expert baseline; primary CIA/KERNAL evidence. Reading does not authorize edits.                           |
 | Modification set  | This register and the user-approved correction to **only R5.25 and AC-20** in RD-05. AR-P4 approves T-04 and its feature-roadmap update; AR-P5 separately approves T-05, both existing decision registers and the feature roadmap. No compiler, tests, other requirement clauses, frozen spec or expert-skill changes are authorized. |
 
 ## Ambiguity register
 
-| ID    | Category                                             | Decision needed                                                                                                                | Recommendation / authority                                                                                                                                                                                                                                                                | Status                                                                                                                                                                        |
-| ----- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AR-P1 | Scope / product boundary                             | What is the next planning task?                                                                                                | User confirmed the focused RD-05 keyboard/combined-input plan. Preserve both existing raw joystick reads and the approved library-first direction. The existing product boundary excludes an input manager, event queue, scheduler, debounce and repeat policy.                           | ✅ Resolved — existing scope and product authority                                                                                                                            |
-| AR-P2 | Data/state / technical — sensitive                   | What port-state and firmware-ownership contract permits a usable standard scan?                                                | User accepted the narrowly cooperative whole-byte PA handback to `$7F`, exact saved DDR restoration and untouched PB latch, and authorized the exact R5.25/AC-20 amendment. Preserve timer/CIA2/CPU/interrupt/vector/link/RESTORE obligations; other routes need proved prior state and ownership. No state manager or frozen-authority edit. | ✅ Resolved — user: “I approve - proceed further” on 2026-10-08; contract only, not positive implementation qualification |
-| AR-P3 | Behavior / integration / user-facing API — sensitive | What does a combined keyboard/joystick observation promise when shared lines or multiple keys prevent a unique interpretation? | Recommend the ordinary-source saved-observation API below: one 11-byte logical snapshot, acquisition quality and three-result named queries. No atomic or unconditional physical-state certificate. The API and a short clarification confined to R5.25/AC-20 need explicit user approval. | ❌ Open — recommendation only; acquisition, decoder and complete cost remain unqualified |
-| AR-P4 | Scope / delivery                                     | Should the next executable slice be proof-only rather than positive keyboard support?                                          | One bounded proof task using pinned ROM and existing VICE support, before accepting the keyboard API plan. No production changes, new framework, NMI adapter, profile correction or optimizer. Keep AR-P2/AR-P3 open for the positive plan.                                               | ✅ Resolved — user replied “proceed” to the proof-only recommendation; [T-04 mini-plan](../keyboard-scan-proof/99-execution-plan.md) owns execution                           |
-| AR-P5 | Scope / delivery / developer experience              | May one scan-aware ingress candidate test the approved ordinary-input direction?                                               | Reuse DEF-7 and existing diagnostic facilities. Test eight saved rows, both raw port observations and stock NMI coordination, without accepting public certainty semantics or changing frozen authority.                                                                                  | ✅ Resolved — user replied “I approve” on 2026-10-03 to the deeper assessment; [T-05](../keyboard-ingress-proof/99-execution-plan.md) owns the proof; AR-P2/AR-P3 remain open |
+| ID    | Category                                             | Decision needed                                                                                                                | Recommendation / authority                                                                                                                                                                                                                                                                                                                                              | Status                                                                                                                                                                        |
+| ----- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AR-P1 | Scope / product boundary                             | What is the next planning task?                                                                                                | User confirmed the focused RD-05 keyboard/combined-input plan. Preserve both existing raw joystick reads and the approved library-first direction. The existing product boundary excludes an input manager, event queue, scheduler, debounce and repeat policy.                                                                                                         | ✅ Resolved — existing scope and product authority                                                                                                                            |
+| AR-P2 | Data/state / technical — sensitive                   | What port-state and firmware-ownership contract permits a usable standard scan?                                                | User accepted the narrowly cooperative whole-byte PA handback to `$7F`, exact saved DDR restoration and untouched PB latch, and authorized the exact R5.25/AC-20 amendment. Preserve timer/CIA2/CPU/interrupt/vector/link/RESTORE obligations; other routes need proved prior state and ownership. No state manager or frozen-authority edit.                           | ✅ Resolved — user: “I approve - proceed further” on 2026-10-08; contract only, not positive implementation qualification                                                     |
+| AR-P3 | Behavior / integration / user-facing API — sensitive | What does a combined keyboard/joystick observation promise when shared lines or multiple keys prevent a unique interpretation? | User accepted the ordinary-source saved-observation API below: one 11-byte logical snapshot, acquisition quality and three-result named queries, with no atomic or unconditional physical-state certificate. The approved clarification is confined to R5.25/AC-20.                                                                                                     | ✅ Resolved — user: “I approve” on 2026-10-08; public contract, not runtime qualification                                                                                     |
+| AR-P4 | Scope / delivery                                     | Should the next executable slice be proof-only rather than positive keyboard support?                                          | One bounded proof task using pinned ROM and existing VICE support, before accepting the keyboard API plan. No production changes, new framework, NMI adapter, profile correction or optimizer. Keep AR-P2/AR-P3 open for the positive plan.                                                                                                                             | ✅ Resolved — user replied “proceed” to the proof-only recommendation; [T-04 mini-plan](../keyboard-scan-proof/99-execution-plan.md) owns execution                           |
+| AR-P5 | Scope / delivery / developer experience              | May one scan-aware ingress candidate test the approved ordinary-input direction?                                               | Reuse DEF-7 and existing diagnostic facilities. Test eight saved rows, both raw port observations and stock NMI coordination, without accepting public certainty semantics or changing frozen authority.                                                                                                                                                                | ✅ Resolved — user replied “I approve” on 2026-10-03 to the deeper assessment; [T-05](../keyboard-ingress-proof/99-execution-plan.md) owns the proof; AR-P2/AR-P3 remain open |
+| AR-P6 | Test-oracle authority                                | May the old bundled-source export inventory include the accepted API?                                                          | Extend only the exact exported-name expectation in `test/rd05/bundled-input-library.spec.test.ts` with the nine accepted top-level names; preserve all six old masks and every other fixture/assertion. Independent new tests own the new behavior.                                                                                                                     | ❌ Pending — AR-P3 acceptance does not authorize an old specification-test edit                                                                                               |
+| AR-P7 | Technical / library reachability — sensitive         | How can source-library exports remain usable without adding unused acquisition code/state to legacy input programs?            | Correct visibility versus execution-root classification for ordinary closed-program builds in the existing whole-program closure. Retain real callable entries, address dependencies, initializer effects and selected interrupt routes. Omit only proved unused private uninitialized/unplaced/non-escaped storage; no library-name special case or general optimizer. | ❌ Pending — necessary compiler-support scope needs explicit approval; challenger converged on the bounded direction                                                          |
 
 ## Evidence and lineage
 
@@ -261,9 +263,9 @@ Public `buildProject` and real ACME 0.97 constructed two ordinary-source ingress
 on `c64-pal-prg-kernal-6581`, NMOS 6510, optimization `none`, both safety checks off. These are
 diagnostic builds, not new specification tests, a chosen public API or runtime qualification.
 
-| Candidate | Constructed ingress | Other measured resources |
-| --- | --- | --- |
-| Scoped constant PA-idle write and shared interference flag | 18 bytes; 33 nominal cycles to the saved predecessor jump | One shared flag, one 2-byte lifetime-owned link; PRG 883 bytes, resident 933 bytes, padding 205 bytes |
+| Candidate                                                           | Constructed ingress                                                            | Other measured resources                                                                               |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Scoped constant PA-idle write and shared interference flag          | 18 bytes; 33 nominal cycles to the saved predecessor jump                      | One shared flag, one 2-byte lifetime-owned link; PRG 883 bytes, resident 933 bytes, padding 205 bytes  |
 | Persistent shared-active-byte conditional, then the same write/flag | 31 bytes; 32 inactive / 45 active nominal cycles to the saved predecessor jump | Two shared flags, one 2-byte lifetime-owned link; PRG 896 bytes, resident 947 bytes, padding 192 bytes |
 
 Both builds succeed without diagnostics, invocation-private RAM/ZP homes or scratch. Their
@@ -380,11 +382,12 @@ Only this validation footer follows that review. An initial reviewer routing rea
 manifest-heading search exposed historical qualification/setup identifiers; these were unused
 and are not decisive evidence. This discovery is not a blind qualification run.
 
-## AR-P3 — saved-observation API recommendation
+## AR-P3 — accepted saved-observation API
 
-**Best option / Recommendation:** reuse `c64.input` and its installed normal-source module.
+**Accepted option:** reuse `c64.input` and its installed normal-source module.
 Return one caller-owned snapshot and let ordinary Blend65 functions interpret it without fresh
-hardware reads. Proposed public signatures, not yet accepted:
+hardware reads. The user replied “I approve” on 2026-10-08 to this API and the observation-based
+clarification confined to R5.25/AC-20. Accepted public signatures, not yet implemented:
 
 ```blend65
 readInputSnapshot(): InputSnapshot
@@ -399,15 +402,17 @@ the complete storage, code, stack or timing cost. `Key` names the exact 64 matri
 RESTORE is not a member, and Shift Lock operates the existing left-shift coordinate.
 `JoystickPort` selects ports 1/2, and `JoystickControl` names up/down/left/right/fire.
 
-The proposed byte-backed `InputState` members are `OBSERVED_DOWN`, `OBSERVED_UP` and `UNCERTAIN`.
+The accepted byte-backed `InputState` members are `OBSERVED_DOWN`, `OBSERVED_UP` and `UNCERTAIN`.
 They interpret retained samples under an explicitly declared stable-contact electrical model,
 not an atomic instant or an unconditional physical-switch certificate. Undetected contact
 changes can defeat physical attribution even when there is no firmware interference. The
-proposed `SnapshotQuality` members are `COMPLETE`, `INTERRUPTED` and `UNAVAILABLE`: completion
+accepted `SnapshotQuality` members are `COMPLETE`, `INTERRUPTED` and `UNAVAILABLE`: completion
 reports acquisition, not contact stability. Interrupted acquisition yields uncertain named
 results; unavailable means no fresh compatible acquisition, not fabricated fresh observations.
 Its raw fields must not be treated as valid input. Exact initialization and failure paths must
 be closed in the technical design before the positive gate opens.
+The technical design must also cover legal unnamed byte-enum values in query arguments or saved
+quality: no out-of-range row access, extra hardware read or fabricated named result may follow.
 
 Electrical uncertainty is local to affected results where the declared model proves that
 distinction. Preserve useful unaffected observations; do not turn one ambiguous chord into
@@ -435,12 +440,12 @@ a stable Delete+Return chord. A decoder seeing only these bytes cannot distingui
 histories. This is an inference from the governing matrix model, not a new VICE or hardware result.
 No contact-speed bound or physical certificate follows from it.
 
-The existing R5.25/AC-20 wording admits correct coordinate decoding and declared ghosting, but
-does not explicitly define this saved-observation meaning. Prior time-skew acceptance and PA
-handback approval do not decide AR-P3. **Pending modification set:** this register and a short
+The earlier R5.25/AC-20 wording admitted correct coordinate decoding and declared ghosting, but
+did not explicitly define this saved-observation meaning. Prior time-skew acceptance and PA
+handback approval did not decide AR-P3. **Approved modification set:** this register and a short
 clarification to **only R5.25/AC-20** that named results interpret saved observations, with declared
-uncertainty, not instantaneous or unconditionally certified physical switch state. No such
-clarification is applied yet. Frozen spec/expert and existing tests remain outside this authority;
+uncertainty, not instantaneous or unconditionally certified physical switch state. That
+clarification is now applied. Frozen spec/expert and existing tests remain outside this authority;
 no normative conflict is established and no positive implementation is approved.
 
 The viable alternative is observation bitsets plus separate certainty masks. That may amortize
@@ -459,7 +464,7 @@ contact stability. Complete acquisition, decoder soundness, scoped/persistent ro
 restoration, expert parity and runtime qualification remain **Unknown**. Current lineage and
 governing source keys are unchanged from the current reassessment above.
 
-### Approved amendment checkpoint validation — 2026-10-08
+### Historical AR-P2 amendment checkpoint validation — 2026-10-08
 
 Targeted Prettier, 23 local link targets, four governing source keys and whitespace checks pass.
 An exact comparison with baseline `4e6104d26766a09b336d1150aa66bd42ca4acd3f` confirms every
@@ -484,3 +489,141 @@ inventory was inspected; this task created no temporary folder there and did not
 retained evidence. Roadmap lifecycle/counts remain unchanged: RD-05 is Executing, 4/10 RDs Done,
 and AR-P3 still blocks the positive keyboard plan. This is a green local checkpoint, not push
 authority or an accepted API.
+
+## AR-P6 — exact old export-inventory exception requested
+
+The installed-library test's [exact inventory assertion](../../../../../test/rd05/bundled-input-library.spec.test.ts),
+line 135, currently requires exactly the six existing mask constants. AR-P3 adds ordinary source
+declarations to that same module, so this assertion would reject the approved surface even if
+every old mask remained correct. This is a necessary inventory extension, not a behavior waiver.
+
+**Best option:** permit only that exported-name expectation to contain the old six names plus:
+
+```text
+InputSnapshot, InputState, SnapshotQuality, Key, JoystickPort, JoystickControl,
+readInputSnapshot, keyState, joystickState
+```
+
+Preserve the installed-byte/path/hash checks, source identity/order, every old mask's value/type/
+span assertion, fixtures, aliases, overlay protections and negative cases. No other old test is
+included. In particular, ordinary source functions do not enter the compiler-intrinsic profile
+inventories. New independent keyboard/combined-input specification cases must prove the types,
+members, behavior and output; adding names to an inventory is not that proof.
+
+The [module binder](../../../../../packages/compiler/src/frontend/modules.ts), lines 61–62 and
+110–123, creates one top-level binding per exported enum, struct or function. Enum members are
+not separate names in this test's binding inventory. Thus the exact extension is **nine**
+top-level names, not 64 separate key entries or new profile operations.
+
+Confidence: **High** for this bounded exception; a different actual export set would reopen it.
+Hardening: confined the proposal to the single real inventory assertion, not the profile API
+tests or any behavior expectation. The strongest objection is that extra exports could otherwise
+hide unintended additions; the expectation remains an exact list. **User approval is pending.**
+
+## AR-P7 — selected-library reachability discovery
+
+Current source facts, not yet a generated-artifact measurement:
+
+- [Source preparation](../../../../../packages/compiler/src/frontend/bundled-sources.ts), lines
+  93–126, admits installed input bytes into C64 analysis inputs.
+- [Module resolution](../../../../../packages/compiler/src/frontend/modules.ts), lines 296–448,
+  then selects entry-reachable modules. A program that never selects `c64.input` does **not**
+  thereby execute all installed declarations. Preserve this existing boundary.
+- Once `c64.input` is selected, [callable-root closure](../../../../../packages/compiler/src/semantic/whole-program.ts),
+  lines 201–225, treats every exported ordinary function as an independent root. Adding the
+  accepted acquisition export can therefore retain it when an old program uses only a mask.
+- [Semantic global construction](../../../../../packages/compiler/src/semantic/lower.ts), lines
+  230–259, and [machine data construction](../../../../../packages/compiler/src/machine/lower.ts),
+  lines 73–98, retain ordinary module data separately. Function omission alone is not evidence
+  that an unused interference flag also disappears.
+
+Frozen [module export semantics](../../../../../spec/10-modules.md#41-export) define visibility;
+the current root policy is an audit subject, not a new language law. The library must remain
+normal Blend65 source. Do not identify trusted installed declarations by a user-forgeable module
+name or source-ID prefix, alter unrelated user exports just to make the library fit, add hidden
+startup installation, or introduce function-name dispatch/general loader or optimizer machinery.
+Merged contributions and source-ID collisions must retain their real owners.
+
+The decisive future checks are old mask/raw-joystick programs with zero additional keyboard
+code/state/links/startup effect, saved-data-only queries with no acquisition MMIO, and selected
+acquisition with its actual complete resource/output proof. These are required compatibility
+checks, not present passing results. No source library function has been added; the complete
+artifact impact remains **Unknown**.
+
+### Best option — one bounded correction in the existing closure
+
+Correct source visibility versus executable-entry classification for ordinary closed-program
+builds, instead of giving otherwise identical installed source a special meaning. Normal source
+calls keep selected library functions live. Preserve real independently callable ABI entries,
+normative address dependencies, explicit initializer effects/order and selected interrupt routes.
+Do not add or redefine a library-build/ABI mode to solve this keyboard task; frozen Chapter 10
+also mentions `--library`, so any real existing entry contract must be checked before changes.
+An established incompatible ABI contract reopens this decision rather than being silently erased.
+
+Cold storage needs its own proof before zero-page reservation/SFA/layout. Bound the initial
+correction to proved unused private, uninitialized, unplaced and non-escaped storage; keep explicit
+initializers and all observable effects, addresses, externally visible data and fixed placement.
+The acquisition flag must be written before publication/read, not installed or cleared by a hidden
+module initializer. This is not a general dead-global optimizer or a new compiler stage.
+
+**Proposed support-surface packet:** reuse the existing frontend/semantic identities and
+whole-program/storage consumers; add no dependency, resolver, runtime manager, hidden startup,
+function-name dispatch or package-provenance semantics. The exact producer/consumer interface and
+failure behavior must be closed before plan authoring. This cross-stage correction is necessary
+for the accepted source-library contract, but that necessity is **not** edit authority. The
+modification set remains only the two approved documents until the user accepts AR-P7's support
+scope. Existing specification tests stay immutable except AR-P6 if separately approved; any
+additional exact old-oracle exception must be surfaced, not inferred.
+
+Cost contract: unused acquisition adds **zero** code/data/link/ZP/SFA/stack/startup-effect bytes or
+cycles; saved-data-only queries perform **zero** acquisition MMIO. These are future acceptance
+bounds, not measured results. Selected acquisition still owes its complete behavior/resource/
+assembly/artifact/runtime proof and the expert floor, without borrowing a joystick output waiver.
+Host-analysis cost and any changed user-program resource/diagnostic result require directed and
+full-checkpoint verification. No runtime or artifact saving is claimed by this document change.
+
+A second bounded independent challenge inspected the actual module, root, global-data and storage
+paths. It recommended this direction and found that helper-module splitting alone would not
+remove callable roots or cold data. The viable alternative is trusted installed-source liveness,
+if a real independently callable export ABI prevents the normal-source correction; its risk is
+different semantics for identical source and merged-contribution ownership. No fallback is
+silently accepted. The strongest objection to the recommendation is its effect on existing
+entry assumptions and resource/diagnostic results; preserve actual contracts and prove the exact
+delta rather than changing old expectations wholesale.
+
+Confidence: **Medium** — a demonstrated exported-entry ABI would change the chosen remedy.
+Hardening: corrected the initial all-loaded-source concern to selected-module retention, and
+included cold private data before reservation rather than stopping at function emission.
+Challenger: **converged**; complexity verdict **Justified with a narrow scope**. Expert lineage:
+`2.0.4`, content `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15`,
+`compiler-architecture.md#information-that-cannot-be-erased-early` and
+`blend65-semantics.md#authority-and-use`; frozen Chapter 10 is decisive for export meaning.
+**User approval of this support scope is pending.** Remaining acquisition/decoder technical
+closure also stays with this planning owner; approval is not runtime qualification or a gate pass.
+
+## AR-P3 acceptance checkpoint validation — 2026-10-08
+
+Against baseline `962888b1`, an exact comparison confirms every requirement byte outside
+R5.25/AC-20 remains unchanged. Whitespace, 31 local file-link targets and forced register-only
+Prettier checks pass. Requirements keep their authored formatting under the project's Markdown
+exclusion; an intermediate forced-format indentation change was removed before final verification.
+Only the two authorized documents changed. Code/tests/spec/expert remain untouched.
+
+Fresh `yarn vitest run test/foundation.spec.test.ts`: **12/12 PASS**, start 17:40:57 CEST,
+duration 5.78 seconds. Captured logs and the checkpoint message remain outside the source tree at
+`/home/gevik/workdir/github/blend65.ri/blend65/.git/worktrees/v4/keyboard-observation-acceptance.XhatbE/`.
+No full compiler suite, assembly construction or VICE replay was rerun for this docs-only change.
+
+Two fresh native independent reviewers report no surviving findings: base correctness/scope/
+oracle integrity and semantics/modern-source DX with the affected platform-contract interface.
+Reviewed requirement blob `516f623a2dcfb674c91a17ea6c776f9a08a711f1` and substantive register blob
+`e5881a53564fce704539be89a6ef18460f315010`. The semantics reviewer identified one minor source-line
+pointer; the primary independently verified and corrected it to module lines 61–62/110–123.
+Only that citation, this factual validation footer and final timestamp follow substantive review.
+Security/performance auditors skip: no host-input or hot-path code changed. The root/data scope
+has an independent challenger verdict, not implementation qualification.
+
+The `/tmp` inventory was inspected without deleting unknown or still-retained evidence; no new
+task evidence folder was left there. Roadmap lifecycle/counts stay unchanged: RD-05 Executing,
+4/10 RDs Done. AR-P3 is accepted; AR-P6/AR-P7 and remaining technical closure keep the positive
+implementation gate blocked. This is a green local checkpoint only, not push authority.

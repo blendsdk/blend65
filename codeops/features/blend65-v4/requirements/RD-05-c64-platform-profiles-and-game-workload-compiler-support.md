@@ -238,7 +238,11 @@ programs and qualification evidence. They do not create supported game APIs. (AR
   Do not touch CIA2 or hide a keyboard scan in a joystick read. (AR-003, AR-013)
 - [ ] **R5.25 — Implement keyboard and combined-input scanning.** Provide named-key tests and a
   stable keyboard snapshot using the exact 8×8 matrix, declared column-drive sequence, ghosting
-  behavior, and joystick coexistence policy. Save and restore exact CIA1 DDRs; preserve the PB
+  behavior, and joystick coexistence policy. Named-key and combined joystick queries interpret
+  saved observations through the declared stable-contact electrical model, not one instantaneous
+  or unconditionally certified physical switch state. Acquisition quality reports interference
+  or availability, not contact stability; unproved affected results remain explicitly uncertain.
+  Save and restore exact CIA1 DDRs; preserve the PB
   output latch without writing it. On the four stock-cooperative PRG profiles, the declared input
   route temporarily owns the whole CIA1 PA latch, including bits 5–7, and hands it back to `$7F`;
   it does not claim restoration of an arbitrary earlier PA latch. Outside that route, restoration
@@ -766,7 +770,10 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
     whole PA latch and hands it back to `$7F`, not an arbitrary earlier latch; other routes require
     proved prior state and ownership. No automatic D64/raw admission follows. Tests preserve
     timer configuration, CIA2 and applicable CPU/IRQ/NMI/vector/saved-link state, expose declared
-    ghosting/joystick ambiguity, and treat RESTORE only as NMI.
+    ghosting/joystick ambiguity, and treat RESTORE only as NMI. Named results interpret saved
+    observations under the declared stable-contact model; they do not certify one instantaneous
+    physical switch state. Acquisition quality does not certify contact stability, and unproved
+    affected results are explicitly uncertain.
 21. [ ] **AC-21 — Direct sprites:** Each of eight channels proves 9-bit X, Y, enable, expansion,
     mode, priority, colors, and placement-derived pointer behavior. Shared-register updates preserve
     other channels, and collision latches are read exactly once.
