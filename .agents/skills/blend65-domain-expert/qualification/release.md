@@ -1,16 +1,18 @@
 # Blend65 Domain Expert Release Record
 
-## Current 2.0.4 authority-maintenance candidate
+## Current 2.0.4 release
 
-> **Candidate version**: `2.0.4`
-> **Status**: Documentary qualification complete; inactive — whole-task review and content binding pending
+> **Active qualified version**: `2.0.4`
+> **Status**: Active qualified and frozen — exact approval, byte-identical migration and immutable content binding complete
 > **Recorded**: 2026-10-08 · branch `feature/v4-rebuild`
 
-This section alone declares current state. Candidate migration is not activation;
-Public metadata still selects qualified 2.0.3, content `22cc5f00f381c82d347cf342be4fcff16bc291c6`.
-Historical active language below does not activate this candidate. Only one
-installed expert tree exists. Immutable content binding and final verification
-remain pending; no compiler/native/hardware readiness follows.
+This section alone declares current release state. Expert `2.0.4` is the single active
+qualified and frozen baseline, bound to the immutable content commit below.
+Historical active language below is lineage only. All qualified expert content
+remains byte-identical to that green inactive checkpoint; only this release
+bookkeeping differs, with its complete bytes independently pinned. No parallel
+installed expert or new release framework exists. Documentary qualification does
+not establish compiler/native/hardware readiness.
 
 | Current field | Value |
 |---|---|
@@ -18,6 +20,9 @@ remain pending; no compiler/native/hardware readiness follows.
 | Full runtime payload | `22888f7fbe8cde4c3bb4a18b56ae60c268f6d4e33dde35a55505365be308e648`; 15 files |
 | Actual evaluated runtime | `99666394f1ca2087ff44375a18480bcf345bfb04800d5641fcc4f1d1204a69fa`; 15 files with three bounded excerpts |
 | Specification | `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b`; all 45 files unchanged |
+| Qualification payload | `3da154a28de4c9fd469263d90d526b89b5e4e2a1952b0c5caeb8bee62058c0a3`; six files, excluding this release record |
+| Immutable content commit | `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15` |
+| Content-checkpoint full skill-tree digest | `da89eb6d587dee7a3c85dfa97695b029285794688a06962a107b4afc4c384d8a` |
 | Preceding qualified version/content | `2.0.3`; `22cc5f00f381c82d347cf342be4fcff16bc291c6` |
 | Qualified scope | Documentary fixed-bank-0 input-mode startup contract and source/ownership/cost boundaries |
 | Non-qualified scope | Compiler repair/artifacts, genuine SYS/RESTORE, full keyboard/coexistence, finite external timing/stack/firmware guarantees and physical hardware |
@@ -28,8 +33,9 @@ remain pending; no compiler/native/hardware readiness follows.
 | Oracle/coverage | Pass: pre-guidance strengthened Q-P10; all original fields and other 112 cases exact. Four fresh documentary cases and 109 independently reviewed unchanged-field inheritances. |
 | Separate behavioral grade | Pass for Q-P01/Q-P03/Q-P12 in the initial separate grade; Q-P10 passes jointly with fresh source-location completion. The original Q-P10 citation FAIL and all captures remain below. |
 | Language Guard/HLE | All 27 actual rules assessed at unchanged language scope. P1/P2/F2 remain selected-profile bounds; H1/H2/H3/H4 preserve nominal costs/platform-versus-function storage; H5/C4/C5 require later independent native evidence; L3/L4/L8/F3 retain legal raw code, explicit operating mode, no new runtime/source ban and reachable optimization. Ten existing HLE disclosures unchanged; no new core-language exception. |
-| Independent review | Source, complete content/dependency, frozen-oracle and actual evaluator integrity reviews clear; final migration/binding review pending. |
-| Activation | Pending immutable content commit and public binding; candidate is inactive. |
+| Independent review | Source, complete content/dependency, frozen-oracle, actual evaluator integrity and exact inactive migration reviews clear. Binding review checks only this bookkeeping and the approved public guards. |
+| Content checkpoint | Full install/build/typecheck and owned tests PASS: 5,106 tests, zero failures, two existing compiler skips. The complete inactive expert tree is committed and independently pinned. |
+| Activation | Public metadata selects the exact qualified content commit. Complete raw-byte checks preserve every historical identity and negative fixture; compiler repair/native proof remain separate. |
 
 Startup changes only low DDRA direction and preserves PRA against its own zero
 accesses. This is not a whole-program hidden-latch promise where later raw,

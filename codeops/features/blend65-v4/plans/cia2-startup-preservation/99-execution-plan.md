@@ -1,9 +1,9 @@
 # Task T-09: CIA2 startup-state preservation
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
-> **Progress**: 0/4 tasks (0%)
+> **Progress**: 1/4 tasks (25%)
 > **Last Updated**: 2026-10-08
-> **Status**: Executing — T-09.1 inactive qualified content review and verification
+> **Status**: Executing — T-09.1 verified; T-09.2 independent RED regressions next
 > **Phase baseline commit**: 24c88f62e646f6661a2d23286ee6b1e1d305c358
 > **Phase baseline tree**: 6ef6cf1f8b62f6faa83af86485df8b3566ba33b4
 > **Scope mode**: strict
@@ -118,7 +118,7 @@ dependencies, CI and portfolio updates remain excluded. No push is authorized.
 
 ## Tasks
 
-### T-09.1 execution evidence — in progress
+### T-09.1 execution evidence — verified
 
 The supplemental hardware/product oracle was frozen before replacement guidance:
 SHA-256 `b9b3e411519a217add549bfb7ec7330340d25e831f4eb3f6f8d18b35cd89becf`.
@@ -171,15 +171,44 @@ SKILL-byte failure. The authorized successor guard preserves every historical
 checkpoint/negative and pins the entire new raw tree. Independent inactive-content
 review is clear. Fresh install/build/typecheck/full test commands pass: 5,106 tests,
 two existing compiler skips, zero failures; root suite 3,203/3,203. Existing build
-caches are used only by the normal project commands. Coherent local content
-checkpoint is now warranted; immutable binding remains pending. This is not
-activation or a compiler/native repair qualification claim.
+caches are used only by the normal project commands. The green inactive content
+checkpoint is `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15`. Exact activation binding
+is implemented; its independent review and fresh checkpoint are pending. All
+qualified content except release bookkeeping remains byte-identical. Active full
+tree SHA-256 is `21b1727a4715eed322a4fd9a75d41a7e593226e05aa9e2fe7fe94e31df808e58`;
+release SHA-256 is `016ed75458a38c4b588d22766724d1e65c680517d31429b97a5e79637a94d81a`.
+No compiler/native repair qualification is claimed.
+
+Independent actual binding review is clear: all 21 other expert files, all 45
+specification files, historical release body and 18 receipts remain exact.
+Directed foundation is 12/12. The first fresh activation full run passed all
+workspace tests and 3,202/3,203 root tests; one unchanged CIA1 return case stopped
+at its IRQ handler before the expected pre-release checkpoint. Startup and that
+test are unchanged. Its original failure log is retained; an unchanged directed
+four-profile recheck passes 4/4. The fresh complete rerun passes install/build/
+typecheck and all 5,106 tests, zero failures, two existing compiler skips; root
+3,203/3,203. The original failure is retained alongside the unchanged directed
+and complete rerun results; no assertion was suppressed or rewritten. Exact
+activation binding is verified. Expert 2.0.4 is the sole active authority, bound
+to immutable qualified content `0e2a6280`; no compiler repair is claimed yet.
 
 The source review also distinguishes an adjacent capture/setup sequence: 17 bytes
 and 22 nominal cycles where observable ordering permits, versus the separated
 20-byte/26-cycle projection below. Actual emitter/expert parity remains unproved.
 
-- [ ] T-09.1 Qualify and bind the approved expert correction. Freeze discriminating
+The bounded independent ordering review selects adjacent DDRA capture/setup in
+the existing bank-publication slot **after** CPU-port mapping. Each owned value
+is captured before its own mutation; Appendix C64 §5.1 does not require an atomic
+global snapshot. Returning stock IRQ/NMI preserves A and has no DDRA write; the
+sole pinned firmware DDRA writer is reset/non-returning IOINIT. No arbitrary
+resident-owner ban or reset-derived vector assumption follows. Early fusion was
+rejected without implementation: it moves VIC bank publication across 41 snapshot
+pairs and may change firmware PRA readback effects. Other pre-existing capture-order
+questions are not repaired or qualified by this placement decision. Public-artifact
+and native regressions will independently enforce the selected ordering and
+17-byte/22-nominal-cycle ceiling before implementation.
+
+- [x] T-09.1 Qualify and bind the approved expert correction. Freeze discriminating
       expectations before changing candidate guidance; review sources/oracle
       independently and evaluate changed/dependent cases. Reuse the existing
       staged content and binding checkpoints. Inventory all relevant writers and
@@ -229,13 +258,14 @@ count/status directly; do not add a multi-document set or alter the parser.
 
 | CIA2-only startup and return portion       |   Current | Candidate projection |
 | ------------------------------------------ | --------: | -------------------: |
-| Code bytes                                 |        40 |                   20 |
-| Nominal instruction cycles                 |        52 |                   26 |
+| Code bytes                                 |        40 |                   17 |
+| Nominal instruction cycles                 |        52 |                   22 |
 | Platform saved bytes                       |         2 |                    1 |
 | Added function homes / ZP / hardware stack | 0 / 0 / 0 |            0 / 0 / 0 |
 
 The projection counts two current absolute saves, two setup sequences and two
-restores against one save/setup/restore. It is not assembled or measured output.
+restores against one adjacent save/setup and one restore. The independent source
+review proves the selected ordering, not assembled or measured output.
 Nominal cycles exclude VIC stalls and interrupt interference. Whole-PRG bytes,
 alignment/padding, resident capacity and expert whole-program parity are Unknown
 until final assembly/layout. Do not claim a production-grade win from this table.

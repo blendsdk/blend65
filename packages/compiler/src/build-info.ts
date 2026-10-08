@@ -6,7 +6,7 @@ export const BUILD_INFO = Object.freeze({
   specificationId:
     "BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b",
   /** Sole active qualified expert release. */
-  expertVersion: "2.0.3",
+  expertVersion: "2.0.4",
   /** Qualified expert content, excluding its later release-record binding. */
-  expertContentCommit: "22cc5f00f381c82d347cf342be4fcff16bc291c6",
+  expertContentCommit: "0e2a6280ddf77e42252b7a50b85cf9ea3d732b15",
 });
