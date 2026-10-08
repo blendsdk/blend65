@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
 > **Status**: ❌ POSITIVE IMPLEMENTATION GATE BLOCKED — diagnostic proofs do not approve the public API
-> **Last Updated**: 2026-10-03 09:41 CEST
+> **Last Updated**: 2026-10-08 09:10 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -17,7 +17,7 @@
 | ID    | Category                                             | Decision needed                                                                                                                | Recommendation / authority                                                                                                                                                                                                                                                                | Status                                                                                                                                                                        |
 | ----- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AR-P1 | Scope / product boundary                             | What is the next planning task?                                                                                                | User confirmed the focused RD-05 keyboard/combined-input plan. Preserve both existing raw joystick reads and the approved library-first direction. The existing product boundary excludes an input manager, event queue, scheduler, debounce and repeat policy.                           | ✅ Resolved — existing scope and product authority                                                                                                                            |
-| AR-P2 | Data/state / technical — sensitive                   | What port-state and firmware-ownership contract permits exact scan restoration?                                                | Prove the bounded known-state transaction first. CIA reads observe pins, not the hidden output latch; saving a port read is not proof of arbitrary latch restoration. Stock returning NMI can also change the selected column. No hidden state manager or profile correction is approved. | ❌ Open                                                                                                                                                                       |
+| AR-P2 | Data/state / technical — sensitive                   | What port-state and firmware-ownership contract permits a usable standard scan?                                                | Recommend a narrowly cooperative stock keyboard handback, with exact restoration only where the prior state is proved. The whole-byte CIA1 PA-latch exception and exact R5.25/AC-20 amendment need the user's product decision. No frozen conflict is established; no state manager or frozen-authority edit is approved. | ❌ Open — proposed contract; not implementation authority                                                                                                                     |
 | AR-P3 | Behavior / integration / user-facing API — sensitive | What does a combined keyboard/joystick observation promise when shared lines or multiple keys prevent a unique interpretation? | Preserve raw observations and expose affected-key uncertainty, not blanket keyboard invalidation or invented input. Eight row bytes and two port observations are a candidate, not an accepted API. Names, acquisition-quality representation and certainty contract await the proof.     | ❌ Open                                                                                                                                                                       |
 | AR-P4 | Scope / delivery                                     | Should the next executable slice be proof-only rather than positive keyboard support?                                          | One bounded proof task using pinned ROM and existing VICE support, before accepting the keyboard API plan. No production changes, new framework, NMI adapter, profile correction or optimizer. Keep AR-P2/AR-P3 open for the positive plan.                                               | ✅ Resolved — user replied “proceed” to the proof-only recommendation; [T-04 mini-plan](../keyboard-scan-proof/99-execution-plan.md) owns execution                           |
 | AR-P5 | Scope / delivery / developer experience              | May one scan-aware ingress candidate test the approved ordinary-input direction?                                               | Reuse DEF-7 and existing diagnostic facilities. Test eight saved rows, both raw port observations and stock NMI coordination, without accepting public certainty semantics or changing frozen authority.                                                                                  | ✅ Resolved — user replied “I approve” on 2026-10-03 to the deeper assessment; [T-05](../keyboard-ingress-proof/99-execution-plan.md) owns the proof; AR-P2/AR-P3 remain open |
@@ -243,3 +243,136 @@ chaining using the false-STOP path and included restoration in the acquisition
 window. Challenger: **converged**. Expert lineage remains `2.0.1`, qualified content
 `1ce4852016e2a883cf1f733c6014c45e176bfc69`, with the already recorded interrupt-route,
 CIA-port and final-storage-closure boundaries. No frozen authority is changed.
+
+## Current contract reassessment — 2026-10-08
+
+This section supersedes the earlier next-prerequisite recommendation, not its historical
+observations. Baseline: clean implementation checkpoint `a05b461e60e0d543270cdb15866196af66337dc5`.
+The [shared NMI closeout](../rd-05-nmi-cia2/08-closeout.md),
+[CIA2 closeout](../rd-05-cia2-ownership/08-closeout.md) and
+[T-09 startup repair](../cia2-startup-preservation/99-execution-plan.md) have completed their
+bounded qualification. Ordinary private-home-free NMI source is no longer rejected merely
+because this support was unfinished. That does not prove a keyboard scan or CIA1 latch provenance.
+External aggregate stack, retained-ROM completion and physical input behavior remain unproved.
+
+### Two current construction probes
+
+Public `buildProject` and real ACME 0.97 constructed two ordinary-source ingress candidates
+on `c64-pal-prg-kernal-6581`, NMOS 6510, optimization `none`, both safety checks off. These are
+diagnostic builds, not new specification tests, a chosen public API or runtime qualification.
+
+| Candidate | Constructed ingress | Other measured resources |
+| --- | --- | --- |
+| Scoped constant PA-idle write and shared interference flag | 18 bytes; 33 nominal cycles to the saved predecessor jump | One shared flag, one 2-byte lifetime-owned link; PRG 883 bytes, resident 933 bytes, padding 205 bytes |
+| Persistent shared-active-byte conditional, then the same write/flag | 31 bytes; 32 inactive / 45 active nominal cycles to the saved predecessor jump | Two shared flags, one 2-byte lifetime-owned link; PRG 896 bytes, resident 947 bytes, padding 192 bytes |
+
+Both builds succeed without diagnostics, invocation-private RAM/ZP homes or scratch. Their
+reported NMI per-entry stack is 5 bytes: the CPU frame plus two temporary saves, not a complete
+external peak. CPU acceptance and the pinned ROM entry add 14 nominal cycles and 4 existing-ROM
+bytes before these measured ingress sequences. Stock predecessor work remains variable. Nominal
+cycles exclude bus stalls and interrupted-instruction completion; no finite whole-route deadline
+is established. These construction facts do not select scoped versus persistent installation:
+the full acquisition, installation/removal, steady-state and restoration costs remain Unknown.
+
+The ordinary conditional succeeds. The separate consuming-read/bit-condition source debt in
+[#100](https://github.com/blendsdk/blend65/issues/100) must not be generalized into a ban on all
+conditional NMI source. The persistent candidate nevertheless has an output defect: an equivalent
+compact expert guard is analytically 23 bytes / 28 inactive / 39 active nominal cycles, a gap of
+8 bytes / 4 inactive / 6 active cycles. That reference is not assembled or runtime-qualified.
+[#95](https://github.com/blendsdk/blend65/issues/95) identifies the related shared condition/branch
+layout seam; its joystick-only exception does not authorize this keyboard gap. No keyboard output
+waiver or optimizer implementation is approved here, and the gap must be resolved before claiming
+expert-quality positive support. Full packaged savings cannot be inferred from this component.
+
+Raw evidence is byte-compared and retained outside the source tree at
+`/home/gevik/workdir/github/blend65.ri/blend65/.git/worktrees/v4/keyboard-contract-discovery.xwm6JH/probes/`.
+`probe-results.jsonl` contains returned debug/memory/cost records; the two project folders retain
+sources, manifests and actual PRGs. The original source SHA-256 values are
+`974efa7e2577e6acb7b7d67a7be10dfaeae8deb0e43d1c4edb2045fe3a766908` (scoped) and
+`874f884fbed0f3312ae78a778dad252df90243dae54ebe5d5a97ceff1f5d4e77` (persistent).
+PRG SHA-256 values are `d7caf828ae63943629882e0f194acbe78f19e36cb5ea4157fd0457699110956c`
+and `399287cdede2ffc3e0583d240bbd8054764214eba1439651e8c876ed4dd42581`, respectively.
+
+### Best proposed default — narrowly cooperative CIA1 handback
+
+**Recommendation / Verified partial:** let the standard acquisition temporarily own the keyboard
+columns, then hand CIA1 PA back to the pinned stock keyboard idle value `$7F`. This is a proposed
+**whole-byte PA-latch** contract, including bits 5–7, not restoration of an unknown earlier latch.
+Restore applicable exact DDR/CPU/interrupt/vector/link state, avoid PB-latch writes, preserve
+timer configuration and CIA2, and retain RESTORE behavior. A custom port owner needs a separately
+proved compatible contract; stock compatibility must not silently overwrite another owner's state.
+The initial candidate scope is the four cooperative PRG profiles, not automatic D64/raw admission.
+
+The genuinely viable alternative is exact prior-state restoration under a proved known-state
+input lease. It is appropriate for a custom owner, but cannot be the ordinary default until that
+provenance can be established without making users manage CIA hardware. Pin reads and an
+uninstrumented firmware writer do not establish a reliable latch shadow. No manager, queue,
+dispatcher, hidden retry policy or compiler-special decoder is justified by this limitation.
+
+The strongest objection is that the proposed default changes the literal DDR/latch promise in
+[R5.25 and AC-20](../../requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md).
+T-05's seeded state and the existing exclusive-IRQ timer handback do not authorize that change.
+User approval must select this product direction explicitly. It must not be inferred from the
+previous startup correction or general permission to continue.
+
+Frozen compatibility is a separate interpretation checked inside AR-P2.
+[Appendix C64 §5.1](../../../../../spec/appendix-c64.md) requires exact captured compiler-owned
+state and gives explicit CPU-port and CIA1-timer scopes. It neither lists a captured CIA1 PA
+latch nor defines keyboard acquisition's ownership contract. Reading the complete subsection
+establishes a missing accepted library contract, not a demonstrated frozen-spec conflict. It
+does not itself authorize whole-byte PA handback. Positive implementation must prove its exact
+selected-profile ownership and normal-return obligations; do not widen compiler-owned startup
+state silently. No frozen edit is established as necessary. If a real normative conflict later
+appears, use its separate authority gate, not a silent requirements-only correction.
+
+The proposed expanded modification set is **only R5.25 and AC-20** in the linked RD-05 requirement
+document, plus this register; compiler, test, spec and expert files remain excluded. Replace the
+unconditional latch-preservation wording with this explicit rule: preserve exact saved DDRs;
+preserve the PB output latch without writing it; on the declared stock-cooperative input route,
+acquire the whole CIA1 PA latch and hand it back to `$7F` rather than claiming arbitrary prior-latch
+restoration. Keep timer/CIA2, CPU/IRQ/NMI/vector/link and RESTORE obligations unchanged. Outside
+that declared route, restoration needs proved prior-state/ownership rather than pin-read inference.
+All other R5.25/AC-20 clauses, all of R5.24/AC-19 and existing test expectations remain unchanged.
+This proposal is not yet accepted. Approval of the direction without that exact amendment authority
+does not permit an upstream edit or positive implementation.
+
+AR-P3 also remains open. All 64 coordinates and both joystick observations stay in scope.
+Normal sampling time skew is not an atomic snapshot; electrical ambiguity affects particular
+keys, while a firmware-disrupted acquisition needs honest quality information. Raw observations
+must not become invented key presses or a blanket claim that unaffected keys are unknowable.
+Representation, names, decoding and route placement are not selected here.
+
+Confidence: **Medium** for the proposed default. Proved ordinary-entry latch provenance without
+new machinery or user hardware setup would favor exact restoration. Hardening: narrowed the
+exception to necessary PA writes and kept frozen compatibility distinct from product approval.
+Challenger: **converged** on the default recommendation and missing-contract interpretation;
+complete implementation compatibility remains **Unknown**.
+The fresh native `design-challenger` independently read primary CIA/KERNAL sources but had no
+local file reader, so repository facts and normative excerpts were supplied, not independently
+byte-inspected. No complete scan or physical result follows from that agreement.
+
+Current lineage: expert `2.0.4`, qualified content
+`0e2a6280ddf77e42252b7a50b85cf9ea3d732b15`; references
+`c64-hardware.md#ports-and-data-direction`,
+`c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts`,
+`c64-memory-and-runtime.md#stock-cia1-service-on-final-exclusive-release`, and
+`sfa-and-abi.md#interrupt-route-completion-gate`.
+Governing keys: BLEND65-SPEC-4-038b70e9, MOS-6526-1981, CBM-C64-KERNAL-03 and MOS-PGM-1976.
+This is discovery evidence only. The positive-plan gate remains blocked on AR-P2/AR-P3; no
+additional plan file, compiler/test/requirement change or frozen-authority edit is authorized.
+
+### Discovery checkpoint validation
+
+Targeted Prettier, 20 local link targets, all four governing source keys, exact source/PRG hashes,
+archive byte comparison and whitespace checks pass. The relevant foundation suite passes 12/12.
+No compiler suite or VICE replay was rerun for this documentation-only checkpoint; T-09's
+5,201-pass/two-existing-skip result remains the unchanged implementation checkpoint, not new
+keyboard qualification. Security/performance auditors are not selected: no host input, execution
+or hot-path code changed. No new role, harness or validation framework is added.
+
+One fresh native correctness review reports no findings in the substantive register blob
+`f62efe699b671524530e2d5d29afd3981ca9d7f4` against the baseline above. It independently checked
+retained source/PRG bytes, hashes, resources, cycle arithmetic and pending-versus-approved scope.
+Only this validation footer follows that review. An initial reviewer routing read and a primary
+manifest-heading search exposed historical qualification/setup identifiers; these were unused
+and are not decisive evidence. This discovery is not a blind qualification run.
