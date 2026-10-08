@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: ❌ POSITIVE IMPLEMENTATION GATE BLOCKED — diagnostic proofs do not approve the public API
-> **Last Updated**: 2026-10-08 09:10 CEST
+> **Status**: ❌ POSITIVE IMPLEMENTATION GATE BLOCKED — AR-P3's saved-observation API needs approval
+> **Last Updated**: 2026-10-08 15:14 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -10,15 +10,15 @@
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Planning target   | `blend65-v4/RD-05` R5.25/AC-20 and the remaining R5.24/AC-19 keyboard-coexistence obligation. The user confirmed high effort and continuation after the proposed focused keyboard/combined-input planning task.                                                                                                 |
 | Context artifacts | RD-05 and its requirements decisions; the live feature roadmap; the completed joystick/library pilot; current source loading, profile declarations, semantic/lowering/storage and startup seams; frozen Specification 4 and expert baseline; primary CIA/KERNAL evidence. Reading does not authorize edits.     |
-| Modification set  | During positive-plan discovery, only this register may be written. AR-P4 approves T-04 and its feature-roadmap update; AR-P5 separately approves T-05, both existing decision registers and the feature roadmap. No compiler, tests, upstream requirements, frozen spec or expert-skill changes are authorized. |
+| Modification set  | This register and the user-approved correction to **only R5.25 and AC-20** in RD-05. AR-P4 approves T-04 and its feature-roadmap update; AR-P5 separately approves T-05, both existing decision registers and the feature roadmap. No compiler, tests, other requirement clauses, frozen spec or expert-skill changes are authorized. |
 
 ## Ambiguity register
 
 | ID    | Category                                             | Decision needed                                                                                                                | Recommendation / authority                                                                                                                                                                                                                                                                | Status                                                                                                                                                                        |
 | ----- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AR-P1 | Scope / product boundary                             | What is the next planning task?                                                                                                | User confirmed the focused RD-05 keyboard/combined-input plan. Preserve both existing raw joystick reads and the approved library-first direction. The existing product boundary excludes an input manager, event queue, scheduler, debounce and repeat policy.                           | ✅ Resolved — existing scope and product authority                                                                                                                            |
-| AR-P2 | Data/state / technical — sensitive                   | What port-state and firmware-ownership contract permits a usable standard scan?                                                | Recommend a narrowly cooperative stock keyboard handback, with exact restoration only where the prior state is proved. The whole-byte CIA1 PA-latch exception and exact R5.25/AC-20 amendment need the user's product decision. No frozen conflict is established; no state manager or frozen-authority edit is approved. | ❌ Open — proposed contract; not implementation authority                                                                                                                     |
-| AR-P3 | Behavior / integration / user-facing API — sensitive | What does a combined keyboard/joystick observation promise when shared lines or multiple keys prevent a unique interpretation? | Preserve raw observations and expose affected-key uncertainty, not blanket keyboard invalidation or invented input. Eight row bytes and two port observations are a candidate, not an accepted API. Names, acquisition-quality representation and certainty contract await the proof.     | ❌ Open                                                                                                                                                                       |
+| AR-P2 | Data/state / technical — sensitive                   | What port-state and firmware-ownership contract permits a usable standard scan?                                                | User accepted the narrowly cooperative whole-byte PA handback to `$7F`, exact saved DDR restoration and untouched PB latch, and authorized the exact R5.25/AC-20 amendment. Preserve timer/CIA2/CPU/interrupt/vector/link/RESTORE obligations; other routes need proved prior state and ownership. No state manager or frozen-authority edit. | ✅ Resolved — user: “I approve - proceed further” on 2026-10-08; contract only, not positive implementation qualification |
+| AR-P3 | Behavior / integration / user-facing API — sensitive | What does a combined keyboard/joystick observation promise when shared lines or multiple keys prevent a unique interpretation? | Recommend the ordinary-source saved-observation API below: one 11-byte logical snapshot, acquisition quality and three-result named queries. No atomic or unconditional physical-state certificate. The API and a short clarification confined to R5.25/AC-20 need explicit user approval. | ❌ Open — recommendation only; acquisition, decoder and complete cost remain unqualified |
 | AR-P4 | Scope / delivery                                     | Should the next executable slice be proof-only rather than positive keyboard support?                                          | One bounded proof task using pinned ROM and existing VICE support, before accepting the keyboard API plan. No production changes, new framework, NMI adapter, profile correction or optimizer. Keep AR-P2/AR-P3 open for the positive plan.                                               | ✅ Resolved — user replied “proceed” to the proof-only recommendation; [T-04 mini-plan](../keyboard-scan-proof/99-execution-plan.md) owns execution                           |
 | AR-P5 | Scope / delivery / developer experience              | May one scan-aware ingress candidate test the approved ordinary-input direction?                                               | Reuse DEF-7 and existing diagnostic facilities. Test eight saved rows, both raw port observations and stock NMI coordination, without accepting public certainty semantics or changing frozen authority.                                                                                  | ✅ Resolved — user replied “I approve” on 2026-10-03 to the deeper assessment; [T-05](../keyboard-ingress-proof/99-execution-plan.md) owns the proof; AR-P2/AR-P3 remain open |
 
@@ -333,8 +333,10 @@ acquire the whole CIA1 PA latch and hand it back to `$7F` rather than claiming a
 restoration. Keep timer/CIA2, CPU/IRQ/NMI/vector/link and RESTORE obligations unchanged. Outside
 that declared route, restoration needs proved prior-state/ownership rather than pin-read inference.
 All other R5.25/AC-20 clauses, all of R5.24/AC-19 and existing test expectations remain unchanged.
-This proposal is not yet accepted. Approval of the direction without that exact amendment authority
-does not permit an upstream edit or positive implementation.
+The user accepted this exact proposal with “I approve - proceed further” on 2026-10-08, replying
+to the request to amend **only R5.25 and AC-20**. Those two clauses now carry this contract.
+No other requirement clause or existing test changed. This accepts AR-P2's product contract,
+not a chosen API, route placement, positive implementation or runtime qualification.
 
 AR-P3 also remains open. All 64 coordinates and both joystick observations stay in scope.
 Normal sampling time skew is not an atomic snapshot; electrical ambiguity affects particular
@@ -358,10 +360,11 @@ Current lineage: expert `2.0.4`, qualified content
 `c64-memory-and-runtime.md#stock-cia1-service-on-final-exclusive-release`, and
 `sfa-and-abi.md#interrupt-route-completion-gate`.
 Governing keys: BLEND65-SPEC-4-038b70e9, MOS-6526-1981, CBM-C64-KERNAL-03 and MOS-PGM-1976.
-This is discovery evidence only. The positive-plan gate remains blocked on AR-P2/AR-P3; no
-additional plan file, compiler/test/requirement change or frozen-authority edit is authorized.
+This is discovery evidence only. AR-P2's exact requirement correction is accepted and applied;
+the positive-plan gate remains blocked on AR-P3. No additional plan file, compiler/test change,
+other upstream amendment or frozen-authority edit is authorized.
 
-### Discovery checkpoint validation
+### Discovery checkpoint validation — before AR-P2 approval
 
 Targeted Prettier, 20 local link targets, all four governing source keys, exact source/PRG hashes,
 archive byte comparison and whitespace checks pass. The relevant foundation suite passes 12/12.
@@ -376,3 +379,108 @@ retained source/PRG bytes, hashes, resources, cycle arithmetic and pending-versu
 Only this validation footer follows that review. An initial reviewer routing read and a primary
 manifest-heading search exposed historical qualification/setup identifiers; these were unused
 and are not decisive evidence. This discovery is not a blind qualification run.
+
+## AR-P3 — saved-observation API recommendation
+
+**Best option / Recommendation:** reuse `c64.input` and its installed normal-source module.
+Return one caller-owned snapshot and let ordinary Blend65 functions interpret it without fresh
+hardware reads. Proposed public signatures, not yet accepted:
+
+```blend65
+readInputSnapshot(): InputSnapshot
+keyState(snapshot: const InputSnapshot, key: Key): InputState
+joystickState(snapshot: const InputSnapshot, port: JoystickPort, control: JoystickControl): InputState
+```
+
+`InputSnapshot` contains eight active-low row bytes in declared PA-column order, two full raw
+port observations for joystick 1/PB and joystick 2/PA, and one `SnapshotQuality` byte. Its logical
+packed size is **11 bytes**, per frozen [SR-2](../../../../../spec/07-structs.md); this is not
+the complete storage, code, stack or timing cost. `Key` names the exact 64 matrix coordinates;
+RESTORE is not a member, and Shift Lock operates the existing left-shift coordinate.
+`JoystickPort` selects ports 1/2, and `JoystickControl` names up/down/left/right/fire.
+
+The proposed byte-backed `InputState` members are `OBSERVED_DOWN`, `OBSERVED_UP` and `UNCERTAIN`.
+They interpret retained samples under an explicitly declared stable-contact electrical model,
+not an atomic instant or an unconditional physical-switch certificate. Undetected contact
+changes can defeat physical attribution even when there is no firmware interference. The
+proposed `SnapshotQuality` members are `COMPLETE`, `INTERRUPTED` and `UNAVAILABLE`: completion
+reports acquisition, not contact stability. Interrupted acquisition yields uncertain named
+results; unavailable means no fresh compatible acquisition, not fabricated fresh observations.
+Its raw fields must not be treated as valid input. Exact initialization and failure paths must
+be closed in the technical design before the positive gate opens.
+
+Electrical uncertainty is local to affected results where the declared model proves that
+distinction. Preserve useful unaffected observations; do not turn one ambiguous chord into
+blanket electrical invalidation. Joystick grounds and ghost paths can propagate through connected
+keys. Timer PBON overrides DDRB, so its contamination need not be confined to PB6/PB7. Do not
+silently disable timers to make a scan appear complete. With only an attempt-wide firmware marker,
+claiming particular retained rows survived would require a separate proof; raw disrupted bytes
+cannot silently become named key states. Neither existing raw joystick read changes its meaning.
+
+One bounded local attempt is the smallest candidate. There is no hidden retry, cached last-good
+state, queue, scheduler, input manager or fallback. Application source chooses whether to retry,
+skip or retain its own prior state. A bounded attempt count does not prove a finite wall-clock
+deadline under unrestricted NMI arrival or retained-ROM work. Acquisition reuses the existing
+entry/storage/volatile/proof boundaries; saved-data decoding is normal Blend65, not name-dispatched
+compiler-special functions. Scope remains the four cooperative PRG profiles and AR-P2's exact
+preservation/handback contract.
+
+### Why this does not promise physical certainty
+
+An analytical counterexample uses no joysticks, PBON off and no firmware interference. Delete
+at `(PA0, PB0)` is never held. Hold Return `(PA0, PB1)`, W `(PA1, PB1)` and 3 `(PA1, PB0)` while
+sampling PA0: their ghost path produces `$FC`. Release them before PA1: the remaining seven
+column samples and both released-drive port observations can be `$FF`. Those bytes also describe
+a stable Delete+Return chord. A decoder seeing only these bytes cannot distinguish the two
+histories. This is an inference from the governing matrix model, not a new VICE or hardware result.
+No contact-speed bound or physical certificate follows from it.
+
+The existing R5.25/AC-20 wording admits correct coordinate decoding and declared ghosting, but
+does not explicitly define this saved-observation meaning. Prior time-skew acceptance and PA
+handback approval do not decide AR-P3. **Pending modification set:** this register and a short
+clarification to **only R5.25/AC-20** that named results interpret saved observations, with declared
+uncertainty, not instantaneous or unconditionally certified physical switch state. No such
+clarification is applied yet. Frozen spec/expert and existing tests remain outside this authority;
+no normative conflict is established and no positive implementation is approved.
+
+The viable alternative is observation bitsets plus separate certainty masks. That may amortize
+many queries, but makes ordinary callers check two results correctly and has the same temporal
+limitation. Measured internal reuse can later serve the enum API without exposing that burden.
+The strongest objection to the recommendation is that callers may still overread the simple
+state names, and repeated decoding could be costly. Conspicuous semantics and complete equivalent
+behavior/output proof are required; no cost waiver or new general optimizer is accepted.
+
+A fresh native `design-challenger` independently inspected the amended requirement clauses,
+library/loader and frozen function/struct rules. It converged on this surface and exposed the
+temporal-alias counterexample above. Complexity verdict: **Simplify** — no larger machinery.
+Confidence: **Medium** for the unqualified complete capability; **High** for the proposed surface.
+Hardening: made observed-state semantics explicit and separated acquisition quality from physical
+contact stability. Complete acquisition, decoder soundness, scoped/persistent route placement,
+restoration, expert parity and runtime qualification remain **Unknown**. Current lineage and
+governing source keys are unchanged from the current reassessment above.
+
+### Approved amendment checkpoint validation — 2026-10-08
+
+Targeted Prettier, 23 local link targets, four governing source keys and whitespace checks pass.
+An exact comparison with baseline `4e6104d26766a09b336d1150aa66bd42ca4acd3f` confirms every
+requirement byte outside R5.25/AC-20 is unchanged. Only the two authorized documents changed;
+code/tests/spec/expert remain untouched. Captured foundation verification passes **12/12** at
+15:11:59 CEST, duration 5.08 seconds. Logs remain outside the source tree at
+`/home/gevik/workdir/github/blend65.ri/blend65/.git/worktrees/v4/keyboard-contract-acceptance.1ZNFsS/`.
+No full compiler suite or VICE replay was rerun for this documentation-only checkpoint.
+
+Fresh reviewer-thread creation was unavailable at the thread limit. Two existing independent
+agents instead received complete bounded read-only charters: base correctness/scope/oracle
+integrity and target-platform contract truth. Both report **no findings** in requirement blob
+`58b61c301e30540b12a9440c581ca4866869fd37` and register blob
+`f20fb78d3402492c145d550cd5bac8cb9dc786c2`; only this validation footer and the final timestamp
+follow their substantive review. Their prior T-09 work is unrelated to this two-document diff.
+No test or runtime qualification is inferred from agreement. Security/performance auditors skip:
+no host-input or hot-path code changed. No language semantics, SFA or emitted-code change is made.
+
+A main-agent reference read included an old semantic-evaluation preamble before the normative
+heading. It is unused and non-decisive; no blind qualification is claimed here. The `/tmp`
+inventory was inspected; this task created no temporary folder there and did not delete other
+retained evidence. Roadmap lifecycle/counts remain unchanged: RD-05 is Executing, 4/10 RDs Done,
+and AR-P3 still blocks the positive keyboard plan. This is a green local checkpoint, not push
+authority or an accepted API.

@@ -237,8 +237,14 @@ programs and qualification evidence. They do not create supported game APIs. (AR
   line sharing, and perform one port read plus the required mask when preconditions prove that form.
   Do not touch CIA2 or hide a keyboard scan in a joystick read. (AR-003, AR-013)
 - [ ] **R5.25 — Implement keyboard and combined-input scanning.** Provide named-key tests and a
-  stable keyboard snapshot using the exact 8×8 matrix, declared column-drive sequence, DDR/latch
-  restoration, ghosting behavior, and joystick coexistence policy. Debounce and key-repeat policy
+  stable keyboard snapshot using the exact 8×8 matrix, declared column-drive sequence, ghosting
+  behavior, and joystick coexistence policy. Save and restore exact CIA1 DDRs; preserve the PB
+  output latch without writing it. On the four stock-cooperative PRG profiles, the declared input
+  route temporarily owns the whole CIA1 PA latch, including bits 5–7, and hands it back to `$7F`;
+  it does not claim restoration of an arbitrary earlier PA latch. Outside that route, restoration
+  requires proved prior state and ownership, not a port-pin read. This exception does not
+  automatically admit D64/raw routes. Preserve timer configuration, CIA2 and the applicable
+  CPU/IRQ/NMI/vector/saved-link state. Debounce and key-repeat policy
   remain ordinary application source; typed publication/critical-section operations expose their
   storage and cycle costs when needed. `RESTORE` remains an NMI source. (AR-003, AR-013, AR-038)
 - [ ] **R5.26 — Implement all eight hardware sprites.** Provide typed operations for 9-bit X,
@@ -755,8 +761,12 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
     both ports, preserve unrelated CIA1 state, and perform no CIA2 access. Keyboard-coexistence
     counterexamples use the declared combined policy rather than returning invented input.
 20. [ ] **AC-20 — Keyboard:** All 64 named matrix positions resolve from the correct driven column
-    and read row; snapshot tests preserve DDR/latches, expose declared ghosting/joystick ambiguity,
-    and treat RESTORE only as NMI.
+    and read row; snapshot tests restore exact saved CIA1 DDRs and preserve the PB latch without
+    writing it. The declared stock-cooperative input route on the four PRG profiles acquires the
+    whole PA latch and hands it back to `$7F`, not an arbitrary earlier latch; other routes require
+    proved prior state and ownership. No automatic D64/raw admission follows. Tests preserve
+    timer configuration, CIA2 and applicable CPU/IRQ/NMI/vector/saved-link state, expose declared
+    ghosting/joystick ambiguity, and treat RESTORE only as NMI.
 21. [ ] **AC-21 — Direct sprites:** Each of eight channels proves 9-bit X, Y, enable, expansion,
     mode, priority, colors, and placement-derived pointer behavior. Shared-register updates preserve
     other channels, and collision latches are read exactly once.
