@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: ❌ POSITIVE IMPLEMENTATION GATE BLOCKED — AR-P8 scope approval pending; technical closure in progress
-> **Last Updated**: 2026-10-09 13:34 CEST
+> **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — AR-P8 correction approved; technical closure in progress
+> **Last Updated**: 2026-10-09 14:10 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -23,7 +23,7 @@
 | AR-P5 | Scope / delivery / developer experience                              | May one scan-aware ingress candidate test the approved ordinary-input direction?                                               | Reuse DEF-7 and existing diagnostic facilities. Test eight saved rows, both raw port observations and stock NMI coordination, without accepting public certainty semantics or changing frozen authority.                                                                                                                                                                | ✅ Resolved — user replied “I approve” on 2026-10-03 to the deeper assessment; [T-05](../keyboard-ingress-proof/99-execution-plan.md) owns the proof; AR-P2/AR-P3 remain open |
 | AR-P6 | Test-oracle authority                                                | May the old bundled-source export inventory include the accepted API?                                                          | Extend only the exact exported-name expectation in `test/rd05/bundled-input-library.spec.test.ts` with the nine accepted top-level names; preserve all six old masks and every other fixture/assertion. Independent new tests own the new behavior.                                                                                                                     | ✅ Resolved — user: “I approve” on 2026-10-08 to the exact named AR-P6 follow-up                                                                                              |
 | AR-P7 | Technical (complexity escalation) / library reachability — sensitive | How can source-library exports remain usable without adding unused acquisition code/state to legacy input programs?            | Correct visibility versus execution-root classification for ordinary closed-program builds in the existing whole-program closure. Retain real callable entries, address dependencies, initializer effects and selected interrupt routes. Omit only proved unused private uninitialized/unplaced/non-escaped storage; no library-name special case or general optimizer. | ✅ Resolved — user: “I approve” on 2026-10-08 to the one named bounded support correction; independent verdict Justified                                                      |
-| AR-P8 | Technical (complexity escalation) / indexed-place proof — sensitive  | How can a normal masked saved-row query avoid retaining unused acquisition state?                                              | Best option: one local constant-mask containment proof in the existing helper; preserve exact-literal/raw-address semantics and every complete object-footprint guard. No general range/branch/interprocedural solver, new pass or decoder workaround.                                                                                                                  | ⛔ Open — exact scope amendment awaits user approval; independent verdict Justified, narrowly                                                                                 |
+| AR-P8 | Technical (complexity escalation) / indexed-place proof — sensitive  | How can a normal masked saved-row query avoid retaining unused acquisition state?                                              | One local constant-mask containment proof in the existing helper; preserve exact-literal/raw-address semantics and every complete object-footprint guard. No general range/branch/interprocedural solver, new pass or decoder workaround.                                                                                                                               | ✅ Resolved — user replied “proceed” to the named bounded extension on 2026-10-09; independent verdict Justified, narrowly                                                    |
 
 ## Evidence and lineage
 
@@ -682,7 +682,22 @@ Confidence: **Medium** for this remedy being the smallest complete library route
 **High** for the local mask mathematics. Hardening: preserve the shared exact resolver
 and limit the new proof to indexed containment. Challenger: **converged**. A measured
 equal-cost simpler decoder, or missing integer facts requiring a new representation,
-would change the recommendation. No implementation or expanded scope is accepted yet.
+would change the recommendation. The user replied **“proceed”** on 2026-10-09 to the
+single final question requesting this exact small extension. Its scope is now accepted;
+implementation still requires the bounded plan, preflight and specification-first checks.
+
+**Approval evidence:** Original goal: ordinary saved-row queries without unused acquisition
+storage. Extra support code: a private local constant-mask containment query in the existing
+global selector, separate from exact raw-address resolution. Why needed/evidence: the public
+diagnostic above retains one cold byte despite a bounded eight-row access. Smallest solution:
+reuse existing integer facts, definitions and object-footprint guards; no general solver,
+pass, pipeline API or runtime. Extra cost: one existing production file, focused new tests,
+one task plan and ordinary workflow evidence; zero dependency/runtime cost. Independent
+verdict: **Justified, narrowly**, with the inspection limit above. Direct user decision:
+**approved named extension**. The [T-11 mini-plan](../masked-index-containment/99-execution-plan.md)
+owns execution. This conservative scope gate approved an ordinary small helper, not a larger
+support subsystem; the lightweight task lane remains appropriate. Other keyboard decisions
+and the full positive implementation gate are unchanged.
 
 Current expert lineage remains 2.0.4/content `0e2a6280`; normative owners are
 `il-and-optimization.md#arithmetic-and-constant-evaluation`,
