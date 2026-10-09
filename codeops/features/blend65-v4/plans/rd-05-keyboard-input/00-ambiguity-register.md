@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — AR-P9/T-12 qualified; AR-P10 and remaining technical closure pending
-> **Last Updated**: 2026-10-09 18:35 CEST
+> **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — behavior decisions accepted; acquisition/decoder technical closure pending
+> **Last Updated**: 2026-10-09 20:02 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -25,7 +25,7 @@
 | AR-P7  | Technical (complexity escalation) / library reachability — sensitive   | How can source-library exports remain usable without adding unused acquisition code/state to legacy input programs?            | Correct visibility versus execution-root classification for ordinary closed-program builds in the existing whole-program closure. Retain real callable entries, address dependencies, initializer effects and selected interrupt routes. Omit only proved unused private uninitialized/unplaced/non-escaped storage; no library-name special case or general optimizer. | ✅ Resolved — user: “I approve” on 2026-10-08 to the one named bounded support correction; independent verdict Justified                                                                                                |
 | AR-P8  | Technical (complexity escalation) / indexed-place proof — sensitive    | How can a normal masked saved-row query avoid retaining unused acquisition state?                                              | One local constant-mask containment proof in the existing helper; preserve exact-literal/raw-address semantics and every complete object-footprint guard. No general range/branch/interprocedural solver, new pass or decoder workaround.                                                                                                                               | ✅ Resolved — user replied “proceed” to the named bounded extension on 2026-10-09; independent verdict Justified, narrowly                                                                                              |
 | AR-P9  | Technical (complexity escalation) / aggregate construction — sensitive | May the existing aggregate builder construct pure nested constants directly in a proved fresh final destination?               | Recommended bounded compiler-wide correction for the independently reproduced extra array temporary/copy. Reuse current aggregate/destination machinery before SFA closure; retain effect/alias/borrow fallbacks. No new pass, IR kind, general optimizer, runtime, API or old-oracle exception.                                                                        | ✅ Resolved — user: “i approve” on 2026-10-09 to the exact AR-P9/T-12 support packet; bounded T-12 qualification 14/14 complete; [closeout](../constant-nested-construction/08-closeout.md), not keyboard qualification |
-| AR-P10 | Behavioral / saved-observation compatibility — sensitive               | What should queries return for a `COMPLETE` snapshot whose bytes cannot represent any stable compatible electrical state?      | Proposed: retain directly justified `OBSERVED_UP`; other answers require a nonempty set of compatible stable explanations and agreement across that set. Incompatible data otherwise yields `UNCERTAIN`. Preserve raw bytes and acquisition quality; no retry, cache, component reconstruction or new API. See the proposal below.                                      | ❌ Open — proposed behavior needs explicit user approval; positive keyboard planning owner                                                                                                                              |
+| AR-P10 | Behavioral / saved-observation compatibility — sensitive               | What should queries return for a `COMPLETE` snapshot whose bytes cannot represent any stable compatible electrical state?      | Accepted: retain directly justified `OBSERVED_UP`; other answers require a nonempty set of compatible stable explanations and agreement across that set. Incompatible data otherwise yields `UNCERTAIN`. Preserve raw bytes and acquisition quality; no retry, cache, component reconstruction or new API. See the accepted policy below.                               | ✅ Resolved — user: “i approve” on 2026-10-09 to the single named AR-P10 policy; technical proof and costs remain pending                                                                                               |
 
 ## Evidence and lineage
 
@@ -875,12 +875,12 @@ confirms feature counters; its sole reported drift is the pre-existing portfolio
 `1/10` versus feature `4/10`, deferred to integration by the feature-branch rule.
 AR-P9 and AR-P10 remain open. Green local checkpoint only; no push authority.
 
-### AR-P10 — proposed inconsistent-observation policy
+### AR-P10 — accepted inconsistent-observation policy
 
-**Best option, not yet accepted:** preserve directly justified release observations;
+**Accepted option:** preserve directly justified release observations;
 do not infer a press from bytes that have no compatible stable explanation.
 
-| Saved evidence                                                                        | Proposed named result                       |
+| Saved evidence                                                                        | Accepted named result                       |
 | ------------------------------------------------------------------------------------- | ------------------------------------------- |
 | `COMPLETE`; designated released-drive raw joystick bit HIGH                           | `OBSERVED_UP` for that joystick control     |
 | `COMPLETE`; queried PB bit HIGH with that key's PA column correctly driven            | `OBSERVED_UP` for that key                  |
@@ -904,12 +904,12 @@ would instead require an explicitly approved component-local stability contract.
 This is analytical model reasoning, not a new VICE or silicon qualification.
 
 Compatible ghost chords are different: their explanation set is nonempty, and only
-results on which explanations differ are uncertain. The proposal therefore does not
+results on which explanations differ are uncertain. The accepted policy therefore does not
 make ordinary ghosting invalidate unrelated controls. It keeps raw bytes and
 `COMPLETE` unchanged, and adds no retry, repair, cache, status, public API, graph
 storage or validator service. Application source still owns skip/retry/prior-state
-policy. The requested authority is this register's public saved-observation policy;
-no requirement, frozen authority, existing test or production edit is requested now.
+policy. The accepted authority is this register's public saved-observation policy;
+no requirement, frozen authority, existing test or production edit is granted by it.
 
 Independent native design challenger: **converged** on direct release certificates
 plus conservative inference. The challenger had the exact accepted contract excerpts
@@ -931,12 +931,190 @@ Lineage: expert `2.0.4`, content `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15`,
 `c64-hardware.md#ports-and-data-direction`; governing MOS-6526-1981 and
 CBM-C64-PRG-1982. Primary keyboard/game-port pages above were rechecked.
 
-Proposal checkpoint: one fresh native correctness review reports **no findings** on
+Historical proposal checkpoint: one fresh native correctness review reports **no findings** on
 the single-document diff from `7b748659`. Foundation verification passes **12/12**
 with no skips; log `ar10-foundation.log` is retained in the private T-12 verification
 root. Forced Markdown formatting, local links, selected source keys, whitespace and
-unchanged frozen-authority/oracle guards pass. AR-P10 remains **Open**, not accepted;
+unchanged frozen-authority/oracle guards pass. AR-P10 remained **Open** at that checkpoint;
 no full compiler-suite rerun or new input runtime qualification is claimed. `/tmp`
 cleanup moved only the obsolete `blend65-profile-build-664FDV` test fixture and
 `blend65-cia2-discovery.rOjBzc` planning logs to recoverable trash; referenced
 qualification evidence and other temporary files were not changed.
+
+**Acceptance (2026-10-09):** the user replied **“i approve”** to the final message's
+single named AR-P10 behavior policy. This resolves the public inconsistent-input
+choice without changing raw bytes, acquisition quality or the existing API. It does
+not select installation placement, prove acquisition/decoder costs or authorize a
+new support framework. Continue the bounded acquisition/decoder technical closure;
+the positive implementation plan is not yet executable.
+
+### Full-matrix technical closure for the accepted saved-data policy
+
+**Status: Verified complete / Inference at the mathematical-model boundary.**
+The following characterizes all eight PA and eight PB endpoints, with both
+joystick ground domains. It is not an implementation, acquisition, timing or
+silicon result. The model is the accepted stable-contact, ideal active-low
+propagation model; the API does not certify that actual contacts stayed stable.
+No graph, search, enumeration or stored explanation set is needed in the library.
+
+Use byte-wide complements and intersections. Let `A = ~rawJoystick2` and
+`B = ~rawJoystick1` be released-drive grounded endpoint masks. For column `c`,
+let `L[c] = ~rows[c]` and `R[c] = L[c] & ~B`. Only bits 0–4 can have a direct
+joystick ground. Count eligible endpoints in the two ports separately:
+`k = popcount(A & $1F) + popcount(B & $1F)`, **not** a population count of their
+union. A PB0 ground and a PA0 ground are two different possible sources.
+
+A nonempty stable explanation set exists **if and only if** all six conditions
+hold:
+
+1. Every column contains all baseline grounded PB endpoints: `(L[c] & B) == B`.
+2. A grounded PA column has no additional low PB endpoint: if its bit is in
+   `A`, then `R[c] == 0`.
+3. Every unordered pair of residual masks is equal or disjoint:
+   `R[i] == R[j] || (R[i] & R[j]) == 0`.
+4. If either baseline mask is nonzero, `k > 0`.
+5. A grounded PA bit above bit 4 requires at least one grounded PB endpoint:
+   `(A & $E0) != 0` implies `B != 0`.
+6. A grounded PB bit above bit 4 requires at least one grounded PA endpoint:
+   `(B & $E0) != 0` implies `A != 0`.
+
+Necessity follows from low propagation: ungrounded connected components produce
+identical nonempty residual PB masks, different components are disjoint, and
+every grounded component needs an eligible direct source. An ineligible endpoint
+can only be grounded through an opposite-port vertex. For sufficiency, construct
+a complete bipartite component for each group of equal nonempty residual masks;
+their disjoint row sets prevent unwanted joins. Leave remaining ungrounded
+vertices isolated. If both baseline sets are nonempty, connect their complete
+bipartite graph and close the eligible ground contacts. If only one baseline set
+is nonempty, conditions 5/6 make every member directly eligible. Each construction
+reproduces every observed byte. This establishes nonemptiness rather than using
+agreement over an empty set.
+
+Classification first validates named arguments and `COMPLETE` quality, before
+any indexed access. Unnamed byte-enum values, `INTERRUPTED` and `UNAVAILABLE`
+yield `UNCERTAIN`, without out-of-bounds access or hardware reads. A directly
+observed queried HIGH bit yields `OBSERVED_UP` even if the other bytes are
+incompatible, per AR-P10. All other answers first require the six conditions.
+
+| Compatible queried LOW observation  | Necessary result under every explanation                                                                        |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Key column not in `A`, row in `B`   | `OBSERVED_UP`: closing this edge would ground the column, contradicting `A`.                                    |
+| Key in an ungrounded residual block | `OBSERVED_DOWN` iff the block has one column **or** one row; otherwise `UNCERTAIN`.                             |
+| Key column in `A`, row in `B`       | Apply the grounded-key condition below; otherwise `UNCERTAIN`.                                                  |
+| Joystick control                    | `OBSERVED_DOWN` iff the opposite port's baseline grounded mask is empty **or** `k == 1`; otherwise `UNCERTAIN`. |
+
+For a grounded key, let `m = popcount(A)` and `n = popcount(B)`. Its result is
+`OBSERVED_DOWN` if and only if:
+
+```text
+(m == 1 && (row >= 5 || k == 1)) || (n == 1 && (column >= 5 || k == 1))
+```
+
+For an ungrounded block with at least two vertices on each side, deleting the
+queried edge from the complete bipartite graph leaves a compatible connected
+explanation without that key. In a grounded star, a leaf edge can be omitted
+only if the leaf has its own eligible ground **and** another eligible ground
+can supply the remaining component. In a larger grounded block, deleting an
+edge preserves connectivity. A joystick contact can be omitted only when an
+opposite-port path leads to another eligible source. These constructions prove
+both explanations for the uncertain cases; the one-row/one-column and sole-source
+cases force the edge or contact.
+
+The sole-source term matters. `A={PA5}`, `B={PB0,PB5}` forces both keys: PB5 has
+only its star edge, and PB0 is the component's only eligible ground source. With
+`A={PA5}`, `B={PB0,PB1}`, either eligible PB source can ground PA5, so each star
+key is uncertain. No assumption forbids simultaneous or opposite joystick
+directions; all 32 electrical control combinations on each port remain admitted.
+
+The logical compatibility bound is eight column checks, at most 28 unordered
+pair checks and three groundability checks. Block multiplicity requires at most
+eight comparisons. These are logical work bounds, **not** emitted instruction,
+memory-read or cycle measurements. Repeated public queries can repeat that work;
+no hidden cache or acquisition is added to amortize it. Complete ordinary-source
+behavior and equivalent expert-output proof still belong to later specification-
+first implementation and qualification.
+
+One fresh native platform auditor independently derived the characterization and
+case proofs from the accepted model and normative hardware headings, with **no
+findings**. The primary independently derived the same conditions and grounded
+star exception. Earlier 3×3 enumeration is supporting evidence only, not this
+full-domain proof and not a runtime oracle. Expert lineage: `2.0.4`, qualified
+content `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15`,
+`c64-hardware.md#ports-and-data-direction`; MOS-6526-1981 and CBM-C64-PRG-1982.
+An incidental routing read exposed historical setup smoke identifiers; they were
+excluded and no evaluator/grader answers were used as this model's authority.
+
+### Existing call-scoped route — representation assessment
+
+**Status: Verified partial / Fact and Inference.** A fresh native SFA/ABI auditor
+inspected the existing balanced ownership, link-observer, storage-inventory,
+binding and machine-update consumers. Existing `setNMI`/`restoreNMI` can represent
+one balanced helper invocation and a balanced loop, using a lifetime-owned
+two-byte predecessor link. No dynamic frame, second route owner, parallel active
+flag or runtime is required merely to represent that scope.
+
+Decisive current consumers are
+[ownership](../../../../../packages/compiler/src/semantic/interrupt-ownership.ts),
+lines 411/479;
+[link observers](../../../../../packages/compiler/src/semantic/interrupt-context-facts.ts),
+lines 458/497;
+[storage inventory](../../../../../packages/compiler/src/storage/inventory.ts),
+line 540; and
+[machine publication](../../../../../packages/compiler/src/machine/lower-c64-interrupt.ts),
+line 255. Logical removal does not erase a suspended link reader. Re-capture of
+a live link is allowed only when its complete captured value is proved identical;
+unproved vector writers invalidate the existing scheme. Generated NMI code still
+requires no invocation-private homes, preserves entry A/X/Y/full status and D,
+and leaves the consuming CIA2 ICR read with the retained owner.
+
+Retained bare-route diagnostic evidence is under
+`/home/gevik/workdir/github/blend65.ri/blend65/.git/worktrees/v4/keyboard-contract-discovery.xwm6JH/probes/`.
+It does **not** contain a complete qualified scanner. The scoped constant body
+only writes idle PA and the interruption byte. Its old actual ingress is 18
+generated bytes / 33 nominal cycles; CPU acceptance plus the four existing-ROM
+entry bytes add 14 cycles, with five CPU-inclusive per-entry stack bytes. The
+21-byte/36-cycle installation and 10-byte/22-cycle removal total 58 nominal
+cycles per attempt, excluding the scan/call/status/output work. Link RAM is two
+bytes, marker RAM one, helper scratch and ZP zero. The actual old PRG is 883
+container bytes with 205 bytes of placement padding and a 933-byte resident
+span. These complete artifact quantities are historical diagnostic facts,
+not current scanner costs or a universal placement advantage.
+
+The old persistent conditional alternative is 31 ingress bytes, 32 inactive/45
+active cycles, two marker/activity bytes, 896 container bytes, 192 padding bytes
+and a 947-byte resident span. Existing source/branch debt can explain some of that
+difference; packaged differences alone do not prove a universal winner. The
+joystick pilot's cost exception does not apply to keyboard acquisition.
+
+**Remaining technical gate:** close the actual acquisition sequence, including
+released-pin sampling, compatible prior CIA1 owners, PBON races, exact DDR
+restoration and genuine RESTORE at every publication/removal/restoration boundary.
+The full construction candidate's DDR-changing ingress is not the bare 18-byte
+body above, and its successful build does not prove those obligations. Ordinary
+11-byte return/borrow closure, repeated calls, final layout, complete expert costs
+and sequential four-profile runtime cases are also unqualified. Do not add a
+support mechanism or narrow the accepted developer contract to make the diagnostic
+candidate pass. External nesting/stack/retained-ROM completion and physical
+edge behavior remain explicitly unproved. Expert lineage is unchanged; normative
+owners are `sfa-and-abi.md#interrupt-route-completion-gate` and
+`c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts`, with
+BLEND65-SPEC-4-038b70e9, MOS-PGM-1976 and CBM-C64-KERNAL-03.
+
+### Acceptance and model-proof checkpoint validation
+
+Fresh native correctness review independently checked the original complete
+formula, constructive counterexamples, quoted retained PRG quantities and current
+consumer locations. One minor rendered-table defect was corrected by moving the
+grounded-key formula to a standalone block; bounded re-review reports **no
+findings**. Historical setup-case exposure is excluded, not blind interrupt-route
+qualification. No production, old oracle, requirement or frozen-authority edit
+is made by this checkpoint.
+
+Forced touched Markdown formatting, 108 existing local file targets, selected
+normative source keys, accepted-policy/blocked-gate guards, whitespace and empty
+immutable-path guards pass. Fresh foundation suite: **12/12 pass**, no skips,
+duration 5.24 seconds at 20:00:27 CEST; retained log
+`/home/gevik/workdir/github/blend65.ri/blend65/.git/worktrees/v4/nested-constant-fix.6ev3Cu/ar10-acceptance-foundation.log`.
+No compiler-suite rerun or new emulator result is claimed. RD-05/DEF-7 remain
+open, 4/10 RDs complete. This task created no new `/tmp` evidence directory and
+removed no other user's files. Local green checkpoint only; no push authority.
