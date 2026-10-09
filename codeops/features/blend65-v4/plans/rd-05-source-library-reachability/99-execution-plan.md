@@ -1,8 +1,8 @@
 # Execution: source-library reachability prerequisite
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-10-09 12:34 CEST
-> **Progress**: 9/10 tasks (90%)
+> **Last Updated**: 2026-10-09 13:36 CEST
+> **Progress**: 10/10 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 > **Scope mode**: strict
 
@@ -59,7 +59,7 @@ all new specs after the complete correction. Preserve immutable oracles.
 
 - [x] 1.3.1 Add internal boundary/scaling tests and correct export-only implementation expectation — `semantic/whole-program.impl.test.ts` and focused `*.impl.test.ts`; AR-3–6 and approved AR-8. ✅ (completed: 2026-10-09 12:06 CEST; internal build and all 55 directed cases pass, including 31 new cases; deterministic identity/conversion-work bounds avoid load-sensitive deadlines)
 - [x] 1.3.2 Run full checkpoint, actual artifact/resource controls and sequential runtime witnesses — existing verification commands from [test strategy](07-testing-strategy.md). ✅ (completed: 2026-10-09 12:34 CEST; install/build/typecheck and all 5,556 owned tests pass; only two existing package skips; formatting/link/freeze checks pass; VICE sequential)
-- [ ] 1.3.3 Complete applicable independent phase reviews, fix-only verification and bounded closeout — this plan, keyboard register and feature roadmap; AR-1/6.
+- [x] 1.3.3 Complete applicable independent phase reviews, fix-only verification and bounded closeout — this plan, keyboard register and feature roadmap; AR-1/6. ✅ (completed: 2026-10-09 13:36 CEST; PE-001/TP-001 corrected; all six fix-only reviews clear; fresh install/build/typecheck and 5,690 tests pass, two existing skips; bounded closeout and downstream ownership recorded)
 
 **Verify:** Frozen install/build/typecheck/full Linux tests; targeted formatting/links and frozen
 authority checks. Independent reviews consume the complete phase diff and exact evidence.
@@ -214,3 +214,41 @@ reported stack byte. The fixed-word probe records exact cheaper addressing; it i
 hardware-write or BASIC-runtime claim. Public entry-to-return timing remains Unknown. These
 bounded controls do not establish a universal whole-program expert win. Independent reviews
 and closeout remain task 1.3.3.
+
+Initial independent review finds PE-001 and TP-001; AR-11/AR-12 record the bounded
+compiler-owned corrections. The complete-closure scaling regression reproduces 171,360
+root-prefix comparisons against its 11,520 ceiling before the membership fix. Its new
+aggregate-field fixture needed the existing `returnType` and effect-place shapes; the
+valid fixture passes unchanged before production correction. No old oracle changes.
+The blind hardware spec run (`vic-observer-red.log`) has 116 expected failures and 16
+disjoint prepasses across four profiles. Runtime stops at retention before VICE, so no
+pre-fix runtime result is claimed.
+
+The existing target-assignment consumer now uses exact root Set membership. The global
+selector retains unproved typed sprite pointer/enable effects and raw pointer-table,
+VIC display/enable/selector and CIA2 bank writes, including mirrors and each wrapped byte.
+Selected facts are resolved once. Existing disjoint color/position cases and assignment
+semantics stay unchanged. Directed verification, fresh full checkpoint and one independent
+fix-only review remain required before task 1.3.3 may complete.
+
+Directed fix verification is GREEN: `fix-build.log` / `fix-typecheck.log` pass;
+`fix-internal-final.log` passes 57 cases in seven files (3.57 seconds);
+`fix-spec-final.log` passes all 456 cases in eight files (229.89 seconds, started
+2026-10-09 13:10:09 CEST). The 132 new hardware cases include four actual two-frame
+collision VICE witnesses. Correctness and host-performance fix-only reviews are clear;
+remaining applicable reviews and fresh full Linux verification are in progress.
+
+Final fix checkpoint: `fix-checkpoint-install.log`, `fix-checkpoint-build.log`,
+`fix-checkpoint-typecheck.log` and `fix-checkpoint-test.log` all pass with exit zero.
+Compiler 1,847 passes / two existing skips; CLI 62; language server 21; editor six;
+root 3,754 in 174 files. Total 5,690 passes / two existing skips. Root started
+2026-10-09 13:16:19 CEST, duration 1,150.32 seconds; full test command 1,229.45 seconds.
+VICE remains sequential. All six native fix-only reviews report no surviving finding;
+PE-001 and TP-001 are resolved, not waived. Fresh actual artifact hashes/bytes match
+their original controls. No code or old oracle changed after this qualification.
+
+[Closeout](08-closeout.md) records final endpoints, complete controls, expert debt and
+deferral-expiry ownership. This plan is complete, not RD-05. Keyboard AR-P8's proposed
+local masked-index proof is an unimplemented next-scope decision; the separate baseline
+helper-assignment defect has an RD-05 callable-proof backlog owner. Neither is silently
+covered by this literal/conversion-only prerequisite or assigned to a closed owner.

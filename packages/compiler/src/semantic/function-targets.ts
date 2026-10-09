@@ -337,9 +337,12 @@ export function resolveTargetSets(
         const callee = bindingIdentityKey(operation.callee);
         if (!functions.has(callee)) continue;
         const globals = new Set(
-          [...assigned].filter((key) =>
-            [...globalRoots].some((root) => key === root || key.startsWith(`${root}\0`)),
-          ),
+          [...assigned].filter((key) => {
+            // Native source paths exclude NUL; it separates the complete binding
+            // identity from a field path, not one binding from a similar name.
+            const boundary = key.indexOf("\0");
+            return globalRoots.has(boundary < 0 ? key : key.slice(0, boundary));
+          }),
         );
         const callers = incoming.get(callee) ?? [];
         callers.push(globals);

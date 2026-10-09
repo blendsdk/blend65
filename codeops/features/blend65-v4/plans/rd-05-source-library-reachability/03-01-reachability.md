@@ -51,6 +51,13 @@ removed or reordered. Known selected platform operations consume only their scal
 arguments and declared device/vector effects; callback bodies are already reached. Any opaque
 or newly arbitrary-memory platform effect must remain conservative, not gain a default exemption.
 
+CPU write-address disjointness alone does not prove a VIC observer disjoint (AR-12). Numeric
+sprite-pointer/enable operations and raw pointer-table, VIC control/selector/enable or CIA2
+bank-selection writes may expose RAM to hardware fetches. Retain candidates when that complete
+fetch footprint is unproved, including actual register mirrors and wrapped word-write bytes.
+Ordinary disjoint color operations and the isolated sprite-position access keep their existing
+proof. No DMA/range solver is introduced.
+
 ## Producer-to-consumer placement (AR-3/5)
 
 Select the retained SemanticProgram globals in whole-program closure before source-ZP reservation,

@@ -1,7 +1,7 @@
 # Source-library reachability prerequisite
 
 > **Feature**: Approved cold-library correction
-> **Status**: Executing
+> **Status**: Complete — 10/10 verified; RD-05 and keyboard qualification remain open
 > **Created**: 2026-10-08
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
@@ -24,6 +24,8 @@ complexity: imported AR-1; technical contract is owned by the component specific
 | [Closure contract](03-01-reachability.md) | One focused component                   |
 | [Test strategy](07-testing-strategy.md)   | Independent behavior/output cases       |
 | [Execution](99-execution-plan.md)         | One phase, specification-first progress |
+| [Closeout](08-closeout.md)                | Qualified boundary and open ownership   |
+| [Phase review](09-phase-review.md)        | Findings, fixes and one re-review round |
 
 No public API or source syntax is added. For example, importing a constant does not make an
 unrelated exported function an executable entry. This benefit applies equally to user and

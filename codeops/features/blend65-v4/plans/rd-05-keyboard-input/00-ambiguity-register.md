@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: ❌ POSITIVE IMPLEMENTATION GATE BLOCKED — AR-P6/AR-P7 approved; technical closure in progress
-> **Last Updated**: 2026-10-08 21:11 CEST
+> **Status**: ❌ POSITIVE IMPLEMENTATION GATE BLOCKED — AR-P8 scope approval pending; technical closure in progress
+> **Last Updated**: 2026-10-09 13:34 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -23,6 +23,7 @@
 | AR-P5 | Scope / delivery / developer experience                              | May one scan-aware ingress candidate test the approved ordinary-input direction?                                               | Reuse DEF-7 and existing diagnostic facilities. Test eight saved rows, both raw port observations and stock NMI coordination, without accepting public certainty semantics or changing frozen authority.                                                                                                                                                                | ✅ Resolved — user replied “I approve” on 2026-10-03 to the deeper assessment; [T-05](../keyboard-ingress-proof/99-execution-plan.md) owns the proof; AR-P2/AR-P3 remain open |
 | AR-P6 | Test-oracle authority                                                | May the old bundled-source export inventory include the accepted API?                                                          | Extend only the exact exported-name expectation in `test/rd05/bundled-input-library.spec.test.ts` with the nine accepted top-level names; preserve all six old masks and every other fixture/assertion. Independent new tests own the new behavior.                                                                                                                     | ✅ Resolved — user: “I approve” on 2026-10-08 to the exact named AR-P6 follow-up                                                                                              |
 | AR-P7 | Technical (complexity escalation) / library reachability — sensitive | How can source-library exports remain usable without adding unused acquisition code/state to legacy input programs?            | Correct visibility versus execution-root classification for ordinary closed-program builds in the existing whole-program closure. Retain real callable entries, address dependencies, initializer effects and selected interrupt routes. Omit only proved unused private uninitialized/unplaced/non-escaped storage; no library-name special case or general optimizer. | ✅ Resolved — user: “I approve” on 2026-10-08 to the one named bounded support correction; independent verdict Justified                                                      |
+| AR-P8 | Technical (complexity escalation) / indexed-place proof — sensitive  | How can a normal masked saved-row query avoid retaining unused acquisition state?                                              | Best option: one local constant-mask containment proof in the existing helper; preserve exact-literal/raw-address semantics and every complete object-footprint guard. No general range/branch/interprocedural solver, new pass or decoder workaround.                                                                                                                  | ⛔ Open — exact scope amendment awaits user approval; independent verdict Justified, narrowly                                                                                 |
 
 ## Evidence and lineage
 
@@ -609,6 +610,87 @@ cost obligations and independent Justified verdict are recorded above. Extra mai
 the bounded identity/root/data consumers and their direct regressions, with no dependency/runtime.
 Remaining acquisition/decoder technical closure stays with this owner; approval is not runtime
 qualification or a gate pass. The earlier checkpoint footer below is historical.
+
+### AR-P7 prerequisite completion — 2026-10-09
+
+The [source-library prerequisite](../rd-05-source-library-reachability/08-closeout.md)
+is complete, 10/10 verified. The exact export-root and proved cold-data correction,
+approved fixed-address/resource repair and necessary indirect-hardware/scaling fixes
+pass 456 independent specification cases, 57 directed internal cases and fresh Linux
+install/build/typecheck/full test: 5,690 passes, two existing skips. All six fix-only
+reviews are clear. Frozen spec/expert and old specification tests are unchanged.
+This removes the named prerequisite, not the remaining technical closure or the
+whole library's cost proof. The new masked-index observation below has its own scope
+gate; no unresolved work is left owned by the completed prerequisite.
+
+## AR-P8 — masked saved-row query retains cold state
+
+The source-library prerequisite's approved proof deliberately stops at literal/conversion
+indices. That conservatism is sound, but it does not prove the whole keyboard library's
+zero-unused-acquisition-cost contract. A new public `buildProject` / ACME diagnostic
+uses ordinary source:
+
+```blend65
+struct Snapshot { rows: byte[8]; }
+let coldFlag: byte;
+function coldAcquisition(): void { coldFlag = 1; }
+function sample(data: const Snapshot, column: byte): byte {
+    return data.rows[column & 7];
+}
+```
+
+The caller supplies eight saved row bytes and a dynamic column. Both the control and
+cold variant build on PAL/6581, optimization `none`. The cold function disappears,
+but `coldFlag` remains: payload 826 bytes in both; ZP 8, reported stack component 2,
+scratch zero; resident RAM 911 versus 912. Current generations are
+`97095144-aeaa-4149-9b57-9ab341ab33d9` and
+`4f00e109-9f91-4f53-beec-41d59a433d20`, recorded in Git-private
+`keyboard-technical-closure.PHqrhM/capture-final.log`. This is an artifact diagnostic,
+not a complete decoder/acquisition or VICE/physical qualification.
+
+**Best option:** extend only local indexed-place containment for a constant nonnegative
+mask. A value AND 7 lies between zero and seven; that is a bound, not the exact value 7.
+Keep `literalResolver` exact because raw CPU/hardware address proofs also consume it.
+Use a private ordinal-bound query for indexed places only, respecting recorded runtime
+width/signedness and only proved value-preserving conversions. Unsafe masks, sign-bit
+ambiguity, unknown arithmetic/conversions and incomplete object footprints retain data.
+Preserve field offsets, strides, nested extents and full final access-width/root-size checks.
+No operation/effect moves, no new semantic pipeline interface or runtime check.
+
+**Exact proposed modification set:** the existing
+[global selector](../../../../../packages/compiler/src/semantic/reachable-globals.ts),
+focused new `*.impl.test.ts` coverage and an independently authored new
+`test/rd05/source-library-masked-index.spec.test.ts` using the existing public fixture;
+this register, a bounded task plan and normal roadmap updates. No old spec-test, frozen
+spec/expert, library API, frontend type rule, SFA/ABI, raw-address proof, dependency,
+general optimizer or acquisition implementation change. Approval permits planning this
+bounded correction; readiness/preflight/spec-first/verification/review still apply.
+
+The genuinely viable alternative is a normal-source constant-index decoder with equal
+complete behavior/output and lower complexity. No such construction/cost evidence is
+present; a branching rewrite solely to evade analysis is not established as equivalent
+expert output. A wider range/branch/loop/interprocedural solver is not justified here.
+This one witness does not prove that every possible decoder shape needs the extension,
+nor that it will settle all remaining indexed uses or the complete keyboard cost.
+
+A fresh independent native `design-challenger` recommends the same bounded direction;
+complexity verdict **Justified, narrowly**. Safe local file readers were unavailable to
+that no-Bash role, so exact source/contract/code excerpts and measurements were supplied
+by the primary, not independently byte-inspected. It separately identified the crucial
+bound-versus-literal distinction and refuses wider inference or a cold-cost waiver.
+Confidence: **Medium** for this remedy being the smallest complete library route;
+**High** for the local mask mathematics. Hardening: preserve the shared exact resolver
+and limit the new proof to indexed containment. Challenger: **converged**. A measured
+equal-cost simpler decoder, or missing integer facts requiring a new representation,
+would change the recommendation. No implementation or expanded scope is accepted yet.
+
+Current expert lineage remains 2.0.4/content `0e2a6280`; normative owners are
+`il-and-optimization.md#arithmetic-and-constant-evaluation`,
+`#memory-effects-and-volatility`, and
+`compiler-architecture.md#information-that-cannot-be-erased-early`. Frozen array ordinal
+promotion, narrow barriers, effects and wrapping govern; source `byte` alone never
+justifies an eight-bit intermediate. Legal unnamed key values still need explicit
+uncertain results, independently of the containment proof.
 
 ## AR-P3 acceptance checkpoint validation — 2026-10-08
 

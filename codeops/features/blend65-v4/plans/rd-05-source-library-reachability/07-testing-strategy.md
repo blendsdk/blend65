@@ -53,4 +53,19 @@ targeted touched-file formatting and unchanged spec/expert checks. Security appl
 no new input parser/path/process/auth/network boundary; existing validation and negative tests
 remain. Artifact compatibility uses fresh builds with no cache/schema migration. No Windows,
 macOS or physical-hardware closeout is claimed. Independent roles: correctness, semantics/DX,
-SFA/ABI, emitted-code/resource parity and host performance (AR-6).
+SFA/ABI, selected-platform observability, emitted-code/resource parity and host performance
+(AR-6 and AR-12).
+
+Review regression ST-17 (AR-12): numeric sprite pointer/enable and raw pointer-table,
+VIC control/selector/enable or CIA2 bank-selection writes → retain cold candidates unless
+their complete hardware fetch footprint is proved disjoint. Cover real register mirrors and
+a word crossing into an enabling register on all four profiles. Unsafe bank/control probes
+are artifact-only. A separately checked seeded transparent sprite block yields no collision
+in the bounded runtime fixture; its initialized image must be independently shown outside
+that block. Disjoint color and isolated sprite-position controls remain omission prepasses.
+New implementation-blind cases precede the helper correction; old spec expectations stay fixed.
+
+AR-11 internal regression: complete closure of 120 globals and 24 cold exported wrappers →
+only main retained, no global-prefix cross-product. Count actual native prefix checks without
+replacing method behavior or imposing a clock deadline. A global aggregate callback assigned
+in main then read by an exported ordinary callee remains a finite target.

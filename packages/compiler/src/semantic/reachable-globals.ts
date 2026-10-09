@@ -59,8 +59,6 @@ const FIXED_C64_CAPABILITIES: ReadonlySet<string> = new Set([
   "c64.vic.readAndClearSpriteSpriteCollisions",
   "c64.vic.setBorderColor",
   "c64.vic.setSpriteColor",
-  "c64.vic.setSpriteEnabled",
-  "c64.vic.setSpritePointer",
   "c64.vic.setSpritePosition",
   "c64.vic.vicSpriteBlock",
   "c64.video.waitNextFrame",
@@ -130,6 +128,54 @@ function rawMayObserve(
   for (let offset = 0; offset < width; offset += 1) {
     const byte = Number(BigInt.asUintN(16, address + BigInt(offset)));
     if (windows.some(({ start, end }) => byte >= start && byte <= end)) return true;
+  }
+  return false;
+}
+
+/** Resolve selected machine facts once; unproved target identity grants no exemption. */
+function profileFor(addressSpace: AddressSpace | undefined): TargetProfile | undefined {
+  if (
+    addressSpace === undefined ||
+    !("profileId" in addressSpace) ||
+    typeof addressSpace.profileId !== "string"
+  )
+    return undefined;
+  const selected = selectTargetProfile(addressSpace.profileId);
+  return selected.kind === "complete" ? selected.profile : undefined;
+}
+
+/**
+ * A device can read RAM indirectly after a CPU write outside the allocation windows.
+ * Without a complete fetch proof, retain data for sprite pointers and VIC mode,
+ * enable, memory-selector or CIA2 bank writes. Decode every byte and register mirror;
+ * color and position writes alone do not select a RAM consumer.
+ */
+function rawMaySelectHardwareRam(
+  address: bigint | undefined,
+  width: number,
+  profile: TargetProfile | undefined,
+): boolean {
+  if (address === undefined || profile === undefined) return true;
+  const { machine } = profile;
+  const displayControl = machine.spritePositionBase + 0x11;
+  for (let offset = 0; offset < width; offset += 1) {
+    const byte = Number(BigInt.asUintN(16, address + BigInt(offset)));
+    if (byte >= machine.spritePointerBase && byte < machine.spritePointerBase + 8) return true;
+    // The VIC's 64-register decode repeats through its entire 1 KiB I/O window.
+    if (byte >= machine.spritePositionBase && byte < machine.spritePositionBase + 0x400) {
+      const register = machine.spritePositionBase + ((byte - machine.spritePositionBase) & 0x3f);
+      if (
+        register === displayControl ||
+        register === machine.spriteEnable ||
+        register === machine.vicMemoryPointer
+      )
+        return true;
+    }
+    // CIA2's 16-register decode repeats through its entire 256-byte I/O window.
+    if (byte >= machine.cia2Base && byte < machine.cia2Base + 0x100) {
+      const register = machine.cia2Base + ((byte - machine.cia2Base) & 0x0f);
+      if (register === machine.cia2PortA || register === machine.cia2DataDirection) return true;
+    }
   }
   return false;
 }
@@ -206,16 +252,12 @@ function indexedMayObserve(
  * supplied allocation windows. Sprite pointers are screen RAM, not MMIO. Missing
  * selected-profile identity or any overlap leaves platform observability unknown.
  */
-function platformIsDisjoint(addressSpace: AddressSpace | undefined): boolean {
-  if (
-    addressSpace === undefined ||
-    !("profileId" in addressSpace) ||
-    typeof addressSpace.profileId !== "string"
-  )
-    return false;
-  const selected = selectTargetProfile(addressSpace.profileId);
-  if (selected.kind !== "complete") return false;
-  const { machine, interrupts } = selected.profile;
+function platformIsDisjoint(
+  addressSpace: AddressSpace | undefined,
+  profile: TargetProfile | undefined,
+): boolean {
+  if (addressSpace === undefined || profile === undefined) return false;
+  const { machine, interrupts } = profile;
   const effects = [
     { start: machine.spritePositionBase, end: machine.spriteColorBase + 7 },
     { start: machine.cia1Base, end: machine.cia1Base + 15 },
@@ -259,6 +301,7 @@ export function retainObservableGlobals(
 
   const windows =
     addressSpace === undefined ? undefined : [...addressSpace.ram, ...addressSpace.zeroPage];
+  const profile = profileFor(addressSpace);
   let platformDisjoint: boolean | undefined;
   const bodies = [
     ...semantic.functions.filter(({ id }) => reached.has(bindingIdentityKey(id))),
@@ -279,9 +322,14 @@ export function retainObservableGlobals(
           rawMayObserve(literal(operation.address), operation.width, windows)
         )
           return semantic;
+        if (
+          operation.kind === "memory-write" &&
+          rawMaySelectHardwareRam(literal(operation.address), operation.width, profile)
+        )
+          return semantic;
         if (operation.kind === "platform") {
           if (!FIXED_C64_CAPABILITIES.has(operation.capability)) return semantic;
-          platformDisjoint ??= platformIsDisjoint(addressSpace);
+          platformDisjoint ??= platformIsDisjoint(addressSpace, profile);
           if (!platformDisjoint) return semantic;
         }
       }

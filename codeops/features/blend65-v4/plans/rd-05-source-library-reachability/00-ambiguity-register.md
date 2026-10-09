@@ -1,7 +1,7 @@
 # Decisions: source-library reachability prerequisite
 
-> **Status**: 10 resolved; no open material item
-> **Last Updated**: 2026-10-09 11:51 CEST
+> **Status**: 12 resolved; no open material item
+> **Last Updated**: 2026-10-09 13:36 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Boundaries and authority
@@ -148,3 +148,40 @@ one-write requirement and every retention/placement/resource assertion remain un
 added byte and A-value checks independently exclude a write during the extended observation.
 No old oracle, compiler behavior, source instruction or cost bound changes. Status: Resolved;
 directed and combined runs plus independent oracle review must qualify the instrumentation.
+
+## AR-11 (runtime): complete-closure host scaling correction
+
+Independent PE-001 shows that correcting export entry seeds exposes an existing quadratic
+membership consumer: each assigned global fact at a direct call copies and scans all global
+roots. One thousand globals and one hundred cold wrappers imply about fifty million root
+comparisons in a round. The selector-only scaling case does not cover this earlier consumer.
+
+Compiler-owned fix ruling under PRIME workflow4: preserve the accepted entry/assignment
+semantics and replace that prefix scan with exact root membership through the existing Set.
+The existing NUL-delimited place-path representation supplies the root boundary. Add a
+deterministic complete-closure implementation regression, including aggregate field facts;
+no clock deadline, new analysis, dependency or support layer. This stays within the named
+function-target producer and focused implementation-test modification set. Status: Resolved;
+implementation, final verification and one fix-only independent review are complete;
+see [closeout](08-closeout.md).
+
+## AR-12 (runtime): indirect VIC memory observers
+
+Independent TP-001 demonstrates a missing observer, not a new platform feature. Numeric sprite
+pointers and enable operations can make VIC fetch source RAM even though the CPU writes only
+a register or pointer table. Raw sprite-pointer/control/bank writes cross the same boundary.
+The accepted private-data removal rule requires a complete observer proof, not CPU-address
+disjointness alone. A moved initialized image changes a collision result in the auditor's
+source/layout witness; its runtime endpoint remains Unknown pending independent tests.
+
+Compiler-owned fix ruling under PRIME workflow4: keep candidates for unproved VIC RAM-selecting
+or enabling effects through typed and raw interfaces. Guard the relevant selected-profile
+pointer-table, VIC control/selector/enable and CIA2 bank-selection writes, including actual
+register mirrors and complete wrapped byte footprints. Keep disjoint color accesses and the
+isolated sprite-position access unchanged. Do not add a DMA solver, runtime or layout framework;
+unknown proof simply retains data. Independently authored new specs precede this helper fix.
+No old specification test or frozen authority changes. This is the smallest correction to
+AR-3's existing observer rule in the named helper and new specification-test family, not a
+support-surface expansion or product decision. Status: Resolved; verification and one fix-only
+platform/oracle review are complete, including all four bounded runtime witnesses;
+see [closeout](08-closeout.md).
