@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
 > **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — AR-P9/T-12 qualified; AR-P10 and remaining technical closure pending
-> **Last Updated**: 2026-10-09 18:13 CEST
+> **Last Updated**: 2026-10-09 18:35 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -25,7 +25,7 @@
 | AR-P7  | Technical (complexity escalation) / library reachability — sensitive   | How can source-library exports remain usable without adding unused acquisition code/state to legacy input programs?            | Correct visibility versus execution-root classification for ordinary closed-program builds in the existing whole-program closure. Retain real callable entries, address dependencies, initializer effects and selected interrupt routes. Omit only proved unused private uninitialized/unplaced/non-escaped storage; no library-name special case or general optimizer. | ✅ Resolved — user: “I approve” on 2026-10-08 to the one named bounded support correction; independent verdict Justified                                                                                                |
 | AR-P8  | Technical (complexity escalation) / indexed-place proof — sensitive    | How can a normal masked saved-row query avoid retaining unused acquisition state?                                              | One local constant-mask containment proof in the existing helper; preserve exact-literal/raw-address semantics and every complete object-footprint guard. No general range/branch/interprocedural solver, new pass or decoder workaround.                                                                                                                               | ✅ Resolved — user replied “proceed” to the named bounded extension on 2026-10-09; independent verdict Justified, narrowly                                                                                              |
 | AR-P9  | Technical (complexity escalation) / aggregate construction — sensitive | May the existing aggregate builder construct pure nested constants directly in a proved fresh final destination?               | Recommended bounded compiler-wide correction for the independently reproduced extra array temporary/copy. Reuse current aggregate/destination machinery before SFA closure; retain effect/alias/borrow fallbacks. No new pass, IR kind, general optimizer, runtime, API or old-oracle exception.                                                                        | ✅ Resolved — user: “i approve” on 2026-10-09 to the exact AR-P9/T-12 support packet; bounded T-12 qualification 14/14 complete; [closeout](../constant-nested-construction/08-closeout.md), not keyboard qualification |
-| AR-P10 | Behavioral / saved-observation compatibility — sensitive               | What should queries return for a `COMPLETE` snapshot whose bytes cannot represent any stable compatible electrical state?      | Technical closure must explicitly choose and independently prove inconsistent-byte handling. Acquisition quality does not certify contact stability or byte-pattern compatibility. No validator service, graph storage or source restriction is approved.                                                                                                               | ❌ Open — behavior policy remains unselected; positive keyboard planning owner                                                                                                                                          |
+| AR-P10 | Behavioral / saved-observation compatibility — sensitive               | What should queries return for a `COMPLETE` snapshot whose bytes cannot represent any stable compatible electrical state?      | Proposed: retain directly justified `OBSERVED_UP`; other answers require a nonempty set of compatible stable explanations and agreement across that set. Incompatible data otherwise yields `UNCERTAIN`. Preserve raw bytes and acquisition quality; no retry, cache, component reconstruction or new API. See the proposal below.                                      | ❌ Open — proposed behavior needs explicit user approval; positive keyboard planning owner                                                                                                                              |
 
 ## Evidence and lineage
 
@@ -874,3 +874,69 @@ rerun or new keyboard runtime qualification is claimed. The read-only sync engin
 confirms feature counters; its sole reported drift is the pre-existing portfolio
 `1/10` versus feature `4/10`, deferred to integration by the feature-branch rule.
 AR-P9 and AR-P10 remain open. Green local checkpoint only; no push authority.
+
+### AR-P10 — proposed inconsistent-observation policy
+
+**Best option, not yet accepted:** preserve directly justified release observations;
+do not infer a press from bytes that have no compatible stable explanation.
+
+| Saved evidence                                                                        | Proposed named result                       |
+| ------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `COMPLETE`; designated released-drive raw joystick bit HIGH                           | `OBSERVED_UP` for that joystick control     |
+| `COMPLETE`; queried PB bit HIGH with that key's PA column correctly driven            | `OBSERVED_UP` for that key                  |
+| Other evidence; a nonempty set of compatible stable electrical explanations all agree | The agreed `OBSERVED_DOWN` or `OBSERVED_UP` |
+| Other evidence; explanations disagree or no whole-snapshot explanation exists         | `UNCERTAIN`                                 |
+
+The two HIGH implications require the accepted trustworthy acquisition, released-drive
+and electrical conditions. A directly closed switch would necessarily pull its pin
+LOW. These are inferences about retained observations, not current physical state or
+contact stability across the attempt. Remote contradictory bytes cannot turn that
+local HIGH implication into an invented press. `INTERRUPTED`, `UNAVAILABLE` and legal
+unnamed enum handling retain AR-P3's existing rules.
+
+For a concrete analytical witness, both released-drive bytes are `$FF`; saved column
+rows are `$FC,$FD,$FB,$FF,$FF,$FF,$FF,$FF`. The first two low masks overlap but differ,
+so no stable whole-matrix explanation exists. Direct joystick release observations
+remain useful. D at `(PA2,PB2)` is LOW, but must remain `UNCERTAIN`: a temporary PB2
+joystick ground during that column, released before the raw observation, can produce
+the same apparent singleton without D ever closing. Preserving D as an inferred DOWN
+would instead require an explicitly approved component-local stability contract.
+This is analytical model reasoning, not a new VICE or silicon qualification.
+
+Compatible ghost chords are different: their explanation set is nonempty, and only
+results on which explanations differ are uncertain. The proposal therefore does not
+make ordinary ghosting invalidate unrelated controls. It keeps raw bytes and
+`COMPLETE` unchanged, and adds no retry, repair, cache, status, public API, graph
+storage or validator service. Application source still owns skip/retry/prior-state
+policy. The requested authority is this register's public saved-observation policy;
+no requirement, frozen authority, existing test or production edit is requested now.
+
+Independent native design challenger: **converged** on direct release certificates
+plus conservative inference. The challenger had the exact accepted contract excerpts
+and electrical model, but no callable local reader; it did not independently inspect
+repository bytes. It rejected blanket uncertainty for losing direct evidence and a
+component model for requiring a larger stability contract. Strongest counterargument:
+a rigorously proved component model could preserve additional useful DOWN results.
+Confidence: **Medium** for the complete product recommendation; the direct implications
+and nonempty-model requirement have stronger analytical support. Hardening changed
+blanket invalidation by retaining the independently supported HIGH observations.
+
+Compatibility checks before inferred answers may inspect the whole matrix. The earlier
+eight-row per-query assessment does not prove this policy's bound. Repeated consumer
+queries may repeat that work; emitted bytes, cycles and complete acquisition/decoder
+costs remain **Unknown**. Full 8×8 classification with both joystick ground domains,
+exact acquisition preconditions, independent behavior/output oracles and expert parity
+remain technical gates. No implementation machinery or cost waiver is approved.
+Lineage: expert `2.0.4`, content `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15`,
+`c64-hardware.md#ports-and-data-direction`; governing MOS-6526-1981 and
+CBM-C64-PRG-1982. Primary keyboard/game-port pages above were rechecked.
+
+Proposal checkpoint: one fresh native correctness review reports **no findings** on
+the single-document diff from `7b748659`. Foundation verification passes **12/12**
+with no skips; log `ar10-foundation.log` is retained in the private T-12 verification
+root. Forced Markdown formatting, local links, selected source keys, whitespace and
+unchanged frozen-authority/oracle guards pass. AR-P10 remains **Open**, not accepted;
+no full compiler-suite rerun or new input runtime qualification is claimed. `/tmp`
+cleanup moved only the obsolete `blend65-profile-build-664FDV` test fixture and
+`blend65-cia2-discovery.rOjBzc` planning logs to recoverable trash; referenced
+qualification evidence and other temporary files were not changed.
