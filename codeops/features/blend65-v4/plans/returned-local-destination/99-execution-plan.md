@@ -1,8 +1,8 @@
 # Execution: proved returned-local destination
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-10-09 21:27 CEST
-> **Progress**: 0/15 tasks (0%)
+> **Last Updated**: 2026-10-09 21:48 CEST
+> **Progress**: 1/15 tasks (7%)
 > **CodeOps Artifact Schema**: 1
 
 ## Implementation phase
@@ -20,14 +20,23 @@ git-commit skill; no automatic push. No frozen or existing spec-test amendment.
 
 ## Phase 1: whole-function destination reuse
 
-> **Phase baseline tree**: record the complete phase-start snapshot through exec-plan
+> **Phase baseline tree**: 8ff0ebe0091b9ed6890509371b01f6373b90348d
 > **Lenses**: compiler/language, SFA/ABI, generated asynchronous observation, emitted output, host cost
+
+**Execution scope:** strict; the minimum design and AR-1 boundary are unchanged.
+Expected changes: the twelve production modules named in Session 1.2; the three
+new specification files in Session 1.1; the two new internal test files in 1.3.1;
+this plan's progress/qualification documents and the feature roadmap/upstream
+AR-P11 execution status. No existing spec test or frozen authority is included.
+The phase snapshot excludes all earlier planning edits. Root owns tightly coupled
+production work and durable progress; independent authors own only their assigned
+new specification file. No automatic push.
 
 ### Session 1.1 — independent specification tests
 
 Reference: [07](07-testing-strategy.md), [AR-1](00-ambiguity-register.md).
 
-- [ ] 1.1.1 [spec-author] Write ST-1–ST-5 and ST-12–ST-13 in `test/rd05/returned-local-behavior.spec.test.ts`, using existing public/VICE fixture interfaces.
+- [x] 1.1.1 [spec-author] Write ST-1–ST-5 and ST-12–ST-13 in `test/rd05/returned-local-behavior.spec.test.ts`, using existing public/VICE fixture interfaces. ✅ (implemented: 2026-10-09 21:44 CEST; verified: 2026-10-09 21:48 CEST)
 - [ ] 1.1.2 [spec-author] Write ST-6–ST-11 and ST-14 in `test/rd05/returned-local-safety.spec.test.ts`, preserving the frozen legality/value oracle.
 - [ ] 1.1.3 [spec-author] Write ST-15–ST-18 in `test/rd05/returned-local-output.spec.test.ts`; establish the exact selected PA-only diagnostic source/baseline for ST-18 before production changes.
 - [ ] 1.1.4 Run the new specification files; record RED output assertions and justified baseline-pass safety cases in `99-execution-plan.md`; no implementation yet.
@@ -84,3 +93,14 @@ relevant ambiguity/Won't-Have/future-consideration owners without reopening
 unrelated work or editing frozen authorities. T-14 completion does not close
 RD-05/DEF-7 or qualify the public keyboard library. The next owned work is the
 still-separate keyboard technical/positive plan gate.
+
+## Execution evidence
+
+| Task  | Verification                                                     | Result and bounded meaning                                                                                                                                                                                                                                                     |
+| ----- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1.1.1 | `yarn vitest run test/rd05/returned-local-behavior.spec.test.ts` | 28/28 pass, no skips, 37.33 seconds. Independent source-value, alias/lifetime and exact MMIO count/order protection on all four profiles. Baseline behavior passes are expected; destination/storage/output assertions are still pending. VICE-verified / hardware-unverified. |
+
+The independent behavior author read only its allowed normative packet and public
+fixture signatures, not compiler implementation, old assertions or private
+qualification answers. No expectation changed after verification. Raw log:
+`/home/gevik/workdir/github/blend65.ri/blend65/.git/worktrees/v4/returned-local-execution.ljm6xa/behavior-baseline.log`.
