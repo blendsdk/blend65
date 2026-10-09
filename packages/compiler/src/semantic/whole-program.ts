@@ -24,6 +24,7 @@ import { analyzeInterruptContexts } from "./interrupt-contexts.js";
 import type { InterruptContextAnalysis } from "./interrupt-contexts.js";
 import { checkInterruptOwnership, type InterruptOwnershipAnalysis } from "./interrupt-ownership.js";
 import { analyzeInterruptDomains, type FunctionDomains } from "./interrupt-domains.js";
+import { retainObservableGlobals } from "./reachable-globals.js";
 
 /** One whole-program entry source. */
 export type ProgramRoot =
@@ -95,7 +96,7 @@ export interface ValueLifetime {
 
 /** Complete closed target-neutral program admitted for storage planning. */
 export interface WholeProgram {
-  /** Original semantic program. */
+  /** Semantic program with the same observable globals seen by all storage/layout consumers. */
   readonly semantic: SemanticProgram;
   /** Startup, ordered initializer, main, and independently callable roots. */
   readonly roots: readonly ProgramRoot[];
@@ -197,27 +198,20 @@ function functionCalls(
   );
 }
 
-/** Keep externally visible and address-taken source functions as independent entries. */
+/** Keep ordinary function addresses as callable entries, even from otherwise cold owners. */
 function callableRoots(
   semantic: SemanticProgram,
   functions: readonly SemanticFunction[],
 ): readonly BindingId[] {
-  const known = new Map(functions.map((fn) => [bindingIdentityKey(fn.id), fn.id] as const));
+  const known = new Map(functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const));
   const roots = new Map<string, BindingId>();
-  for (const fn of functions) {
-    if (fn.exported && fn.entryKind !== "interrupt") roots.set(bindingIdentityKey(fn.id), fn.id);
-  }
   for (const owner of [...functions, ...semantic.globals]) {
     for (const block of owner.blocks) {
       for (const operation of block.operations) {
         if (operation.kind !== "function-address") continue;
         const key = bindingIdentityKey(operation.function);
         const target = known.get(key);
-        if (
-          target !== undefined &&
-          functions.find((fn) => bindingIdentityKey(fn.id) === key)?.entryKind !== "interrupt"
-        )
-          roots.set(key, target);
+        if (target !== undefined && target.entryKind !== "interrupt") roots.set(key, target.id);
       }
     }
   }
@@ -538,11 +532,12 @@ export function closeWholeProgram(
   if (recursion !== null) {
     return Object.freeze({ kind: "error", diagnostics: Object.freeze([recursion]) });
   }
+  const retainedSemantic = retainObservableGlobals(semantic, reachable, addressSpace);
   const ownership =
     interrupts === undefined
       ? undefined
       : checkInterruptOwnership(
-          semantic,
+          retainedSemantic,
           reachable,
           indirectTargets,
           selected.routes,
@@ -554,7 +549,7 @@ export function closeWholeProgram(
 
   const reachableFunctions = Object.freeze(reachableFunctionRecords.map(({ id }) => id));
   const globals = new Map(
-    semantic.globals.map((global) => [bindingIdentityKey(global.id), global] as const),
+    retainedSemantic.globals.map((global) => [bindingIdentityKey(global.id), global] as const),
   );
   const initializers = Object.freeze(
     semantic.initializerOrder.map((binding) => {
@@ -592,12 +587,12 @@ export function closeWholeProgram(
       }),
     ),
   );
-  const reachableAssets = reachableAssetIds(semantic, functions, reachable);
+  const reachableAssets = reachableAssetIds(retainedSemantic, functions, reachable);
   const callGraph = closeCallGraph(functions, calls, reachable);
-  const domainAnalysis = analyzeInterruptDomains(semantic, roots, callGraph);
+  const domainAnalysis = analyzeInterruptDomains(retainedSemantic, roots, callGraph);
 
   const program: WholeProgram = Object.freeze({
-    semantic,
+    semantic: retainedSemantic,
     roots: Object.freeze(roots),
     callGraph,
     indirectTargets,

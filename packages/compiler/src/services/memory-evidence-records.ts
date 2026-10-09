@@ -67,7 +67,9 @@ function physicalInterval(
     distinctOwnerIds.length === 1
       ? distinctOwnerIds[0]!
       : `overlay:${JSON.stringify(distinctOwnerIds)}`;
-  const zeroPage = isStorage && interval.start < 0x100;
+  // Physical resource class is independent of ownership: source globals can also
+  // live in zero page, but an interval that crosses $0100 is not wholly there.
+  const zeroPage = interval.start >= 0 && interval.end < 0x100;
   const memoryKind = isStorage
     ? zeroPage
       ? "zeroPage"

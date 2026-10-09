@@ -94,7 +94,7 @@ function effect(
 }
 
 describe("whole-program implementation", () => {
-  it("retains exported and address-taken functions as independent roots", () => {
+  it("retains address-taken functions but not source exports as independent roots", () => {
     const main = id(0);
     const exported = id(10);
     const addressed = id(20);
@@ -128,11 +128,10 @@ describe("whole-program implementation", () => {
     );
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected complete closure");
-    expect(result.program.reachableFunctions).toEqual([main, exported, addressed]);
+    expect(result.program.reachableFunctions).toEqual([main, addressed]);
     expect(result.program.roots).toEqual([
       { kind: "startup" },
       { kind: "main", function: main },
-      { kind: "callable", function: exported },
       { kind: "callable", function: addressed },
     ]);
   });

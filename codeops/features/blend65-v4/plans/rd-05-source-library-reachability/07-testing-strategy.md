@@ -44,6 +44,8 @@ Implementation tests after green cover unknown synthetic visibility metadata, co
 address classification, conversion/cycle boundaries, direct/indirect aggregate destination
 retention and host scaling. Existing `whole-program.impl.test.ts` may correct its export-only
 internal assumption while preserving its address-taken case. No old specification test changes.
+Approved AR-8 adds focused internal checks for byte/word addressing at `$00FF/$0100/$FFFF`,
+register-held byte writes and complete physical zero-page classification without SFA reownership.
 Core coverage target 90%, support 80%; directed edge coverage and full existing suite required.
 
 Checkpoint: `yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck`, `yarn test`;

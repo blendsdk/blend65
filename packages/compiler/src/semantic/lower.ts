@@ -119,6 +119,7 @@ function lowerGlobal(
       id: declaration.binding,
       storage: binding.storage,
       name: binding.name,
+      exported: binding.exported,
       type: declaration.type,
       initialBytes: null,
       runtimeInitialBytes: null,
@@ -134,6 +135,7 @@ function lowerGlobal(
       id: declaration.binding,
       storage: binding.storage,
       name: binding.name,
+      exported: binding.exported,
       type: declaration.type,
       initialBytes:
         (declaration.type.kind === "scalar" || declaration.type.kind === "enum") &&
@@ -184,6 +186,7 @@ function lowerGlobal(
     id: declaration.binding,
     storage: binding.storage,
     name: binding.name,
+    exported: binding.exported,
     type: declaration.type,
     initialBytes: null,
     runtimeInitialBytes: initializerBytes(declaration.initializer, declaration.type),

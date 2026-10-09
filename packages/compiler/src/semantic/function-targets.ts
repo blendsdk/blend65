@@ -287,7 +287,8 @@ export function resolveTargetSets(
     }
   }
   // A direct callee starts with the globals assigned on every route to each
-  // call site. Address-taken and exported functions remain independent entries.
+  // call site. Address-taken functions remain independent entries. Source export
+  // controls visibility; it does not erase assignments made by an ordinary caller.
   const globalRoots = new Set(program.globals.map((global) => bindingIdentityKey(global.id)));
   const allGlobalAssignments = new Set(initializedGlobals);
   for (const root of globalRoots) allGlobalAssignments.add(root);
@@ -303,7 +304,6 @@ export function resolveTargetSets(
   }
   const independent = new Set([
     bindingIdentityKey(program.main),
-    ...program.functions.filter((fn) => fn.exported).map((fn) => bindingIdentityKey(fn.id)),
     ...addressTaken.keys(),
     ...handlerAddresses,
   ]);

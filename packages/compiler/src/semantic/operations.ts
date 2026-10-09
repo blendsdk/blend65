@@ -410,7 +410,7 @@ export interface SemanticFunction {
   readonly id: BindingId;
   /** Source display name used when a later diagnostic must identify the function. */
   readonly name?: string;
-  /** Public source declaration retained as an independently callable entry. */
+  /** Source visibility; executable roots require a call, address, or selected callback route. */
   readonly exported?: boolean;
   /** Ordinary call body or callback-only interrupt handler body. */
   readonly entryKind?: "ordinary" | "interrupt";
@@ -436,6 +436,8 @@ export interface SemanticGlobal {
   readonly id: BindingId;
   /** Source display name retained for diagnostics after frontend binding. */
   readonly name?: string;
+  /** Source visibility; absent provenance must never be assumed to mean private storage. */
+  readonly exported?: boolean;
   /** Whether the source binding is mutable module storage or an immutable constant. */
   readonly storage: "module" | "constant";
   /** Declared global type. */

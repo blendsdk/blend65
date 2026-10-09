@@ -102,7 +102,7 @@ function setPointer(
   ]);
 }
 
-/** Lower one dynamic volatile byte/word read with modulo-65536 `(zp),Y` addressing. */
+/** Lower a volatile read directly for fixed addresses or through `(zp),Y` for runtime ones. */
 export function lowerMemoryRead(
   operation: MemoryReadOperation,
   context: RawMemoryLoweringContext,
@@ -117,7 +117,7 @@ export function lowerMemoryRead(
       machineInstruction(
         context.cpu,
         operation.width === 1 && context.byteRegister === "x" ? "ldx" : "lda",
-        "absolute",
+        low < 0x100 ? "zero-page" : "absolute",
         Object.freeze({ kind: "absolute", value: low }),
         [absoluteEffect("read", low, 0)],
         operation.span,
@@ -129,7 +129,7 @@ export function lowerMemoryRead(
         machineInstruction(
           context.cpu,
           "ldx",
-          "absolute",
+          high < 0x100 ? "zero-page" : "absolute",
           Object.freeze({ kind: "absolute", value: high }),
           [absoluteEffect("read", high, 1)],
           operation.span,
@@ -195,7 +195,7 @@ export function lowerMemoryRead(
   return Object.freeze(instructions);
 }
 
-/** Lower one dynamic volatile byte/word write with low-byte-first ordering. */
+/** Lower a fixed or runtime volatile write, preserving low-byte-first order and 16-bit wrap. */
 export function lowerMemoryWrite(
   operation: MemoryWriteOperation,
   context: RawMemoryLoweringContext,
@@ -226,7 +226,7 @@ export function lowerMemoryWrite(
         machineInstruction(
           context.cpu,
           "sta",
-          "absolute",
+          target < 0x100 ? "zero-page" : "absolute",
           Object.freeze({ kind: "absolute", value: target }),
           [absoluteEffect("write", target, offset)],
           operation.span,

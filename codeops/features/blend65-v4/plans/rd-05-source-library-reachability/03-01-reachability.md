@@ -69,3 +69,12 @@ function count. Selected calls, initializers and callbacks still need their obse
 Unrelated selected-function code quality is not waived; existing tracked output debt is not
 permission to introduce a new regression. New host work is bounded by scanned operations/uses,
 not globals times operations. Existing sequential VICE helpers suffice for runtime cases.
+
+## Exact output/evidence correction (approved AR-8)
+
+For a known raw byte address, select the direct zero-page instruction when that byte lies in
+`$0000–$00FF`, otherwise absolute. Select each word byte independently after 16-bit wrap;
+preserve the exact volatile address, low-first order and one access per byte. No pointer or
+function storage is added. Published physical memory intervals are classified as zero page
+only when the complete inclusive interval lies in that range, regardless of source/SFA owner.
+Source globals remain source globals; this reporting correction does not assign them to SFA.

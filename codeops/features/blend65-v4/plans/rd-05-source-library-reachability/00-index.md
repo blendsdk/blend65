@@ -1,7 +1,7 @@
 # Source-library reachability prerequisite
 
 > **Feature**: Approved cold-library correction
-> **Status**: Planning Complete
+> **Status**: Executing
 > **Created**: 2026-10-08
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
@@ -28,3 +28,7 @@ complexity: imported AR-1; technical contract is owned by the component specific
 No public API or source syntax is added. For example, importing a constant does not make an
 unrelated exported function an executable entry. This benefit applies equally to user and
 installed source. Keyboard acquisition/decoder planning remains with its existing owner.
+
+Approved AR-8 extends only fixed-address selection in `machine/lower-memory.ts`, physical
+zero-page reporting in `services/memory-evidence-records.ts` and focused internal tests. These
+common defects were exposed by the unchanged new output/resource oracles; no support layer is added.
