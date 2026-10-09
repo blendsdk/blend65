@@ -8,7 +8,8 @@ import {
   type LoweredValue,
 } from "./lower-control.js";
 import type { MachineInstruction, MachineOperand } from "./machine-types.js";
-import { lowerAggregateIndex, type AggregateIndexTerm } from "./lower-aggregate-index.js";
+import { lowerAggregateIndex } from "./lower-aggregate-index.js";
+import { aggregateAddressPlan, type AggregateAddressPlan } from "./lower-aggregate-place.js";
 import {
   loweringFailure,
   appendLoadA,
@@ -22,12 +23,6 @@ import {
   type FunctionLoweringState,
   typeBytes,
 } from "./lower-state.js";
-
-/** Packed offset facts recovered from a place's declared root type. */
-interface AggregateAddressPlan {
-  readonly staticOffset: number;
-  readonly indices: readonly AggregateIndexTerm[];
-}
 
 /** A compile-time byte offset or an unsigned byte ordinal that needs no pointer pair. */
 type DirectAggregateAccess =
@@ -181,49 +176,6 @@ function reusableAggregateAddressCache(
     rootBindingKey,
     indices.flatMap((index) => (index === null ? [] : [index])),
   );
-}
-
-/** Walk one packed field/index path and retain each exact element stride. */
-function aggregateAddressPlan(
-  place: SemanticPlace,
-  state: FunctionLoweringState,
-  source: SourceSpan,
-): AggregateAddressPlan {
-  if (place.rootType === undefined) {
-    throw loweringFailure("Indexed aggregate place is missing its declared root type", source);
-  }
-  let current = place.rootType;
-  let staticOffset = 0;
-  const indices: AggregateIndexTerm[] = [];
-  for (const component of place.path) {
-    if (component.kind === "field") {
-      if (current.kind !== "struct") {
-        throw loweringFailure("Field selection does not follow a packed struct type", source);
-      }
-      const field = current.fields.find(({ name }) => name === component.name);
-      if (field === undefined) {
-        throw loweringFailure(`Packed struct has no field '${component.name}'`, source);
-      }
-      staticOffset += field.offset;
-      current = field.type;
-      continue;
-    }
-    if (current.kind !== "array") {
-      throw loweringFailure("Index selection does not follow a fixed array type", source);
-    }
-    const stride = typeBytes(current.element);
-    const retained = state.values.get(component.value);
-    if (retained?.kind === "constant") {
-      if (!Number.isSafeInteger(retained.value) || retained.value < 0) {
-        throw loweringFailure("Aggregate index constant is outside the address domain", source);
-      }
-      staticOffset = (staticOffset + retained.value * stride) & 0xffff;
-    } else {
-      indices.push(Object.freeze({ value: component.value, stride, extent: current.length }));
-    }
-    current = current.element;
-  }
-  return Object.freeze({ staticOffset, indices: Object.freeze(indices) });
 }
 
 /** Form one exact 16-bit packed aggregate address in an SFA-owned ZP pair. */
@@ -590,7 +542,11 @@ export function aggregateDestination(
   const instructions: MachineInstruction[] = [];
   let indirect = false;
   let result: LoweredValue;
-  if (operation.destination?.kind === "caller") {
+  const fixed = freshAggregateHome(operation, state);
+  if (fixed !== null && operation.destination?.kind === "place") {
+    result = fixed;
+    state.aggregatePlaces.set(operation.result, operation.destination.place);
+  } else if (operation.destination?.kind === "caller") {
     const requestId = `${bindingIdentityKey(state.owner)}:pointer:aggregate-return-destination`;
     if (!state.input.placement.homes.some((home) => home.requestId === requestId)) {
       throw loweringFailure(
@@ -652,6 +608,39 @@ export function aggregateDestination(
     });
   }
   return { instructions, result, indirect };
+}
+
+/**
+ * Select only a certified private local's complete, non-wrapping child interval.
+ * The declaration supplies freshness/purity; the backend additionally proves the
+ * concrete home and bounds. Missing proof falls back to ordinary address lowering.
+ */
+function freshAggregateHome(
+  operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
+  state: FunctionLoweringState,
+): Extract<LoweredValue, { readonly kind: "storage" }> | null {
+  const destination = operation.destination;
+  if (destination?.kind !== "place" || destination.freshConstant !== true) return null;
+  const place = destination.place;
+  if (place.rootType === undefined || place.asset !== undefined) return null;
+  const bytes = typeBytes(operation.type);
+  const rootBytes = typeBytes(place.rootType);
+  const root = loweredPlace(place, rootBytes, false, state);
+  if (
+    root.kind !== "storage" ||
+    !root.requestId.endsWith(`:local:${bindingIdentityKey(place.root)}`)
+  )
+    return null;
+  const home = state.input.placement.homes.find(({ requestId }) => requestId === root.requestId);
+  const plan = aggregateAddressPlan(place, state, operation.span);
+  if (
+    !plan.fixedInBounds ||
+    plan.staticOffset + bytes > rootBytes ||
+    home === undefined ||
+    plan.staticOffset + bytes > home.bytes
+  )
+    return null;
+  return Object.freeze({ ...root, bytes, offset: plan.staticOffset });
 }
 
 /** Return a retained indirect result pointer to the first byte after page writes. */

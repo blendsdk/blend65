@@ -23,6 +23,7 @@ import {
   lowerLargeCapturedAggregatePlace,
 } from "./lower-aggregate-build.js";
 import { lowerAggregatePlaceCopyLoop } from "./lower-aggregate-copy.js";
+import { appendConstantConstruction } from "./lower-aggregate-members.js";
 import { canUseByteFillLoop, lowerAggregateByteFillLoop } from "./lower-aggregate-fill.js";
 import type {
   MachineBlock,
@@ -124,12 +125,16 @@ export function lowerFunction(
   const addressValues = new Set<string>();
   for (const block of blocks) {
     for (const operation of block.operations) {
-      if (
+      const indexedPlace =
         operation.kind === "load" ||
         operation.kind === "store" ||
         operation.kind === "place-address"
-      ) {
-        for (const component of operation.place.path) {
+          ? operation.place
+          : operation.kind === "aggregate" && operation.destination?.kind === "place"
+            ? operation.destination.place
+            : null;
+      if (indexedPlace !== null) {
+        for (const component of indexedPlace.path) {
           if (component.kind === "index") {
             addressValues.add(component.value);
             recordUse(component.value, operation);
@@ -255,6 +260,7 @@ export function lowerFunction(
     }
     let currentLabel = block.id;
     let currentInstructions: MachineInstruction[] = [];
+    let constructionLiteral: number | null = null;
     let waitIndex = 0;
     let variableShiftIndex = 0;
     let checkedDivisionIndex = 0;
@@ -280,6 +286,13 @@ export function lowerFunction(
       }
     };
     for (const operation of block.operations) {
+      const constantConstruction =
+        operation.kind === "aggregate" &&
+        operation.destination?.kind === "place" &&
+        operation.destination.freshConstant === true;
+      if (operation.kind !== "constant" && operation.kind !== "convert" && !constantConstruction) {
+        constructionLiteral = null;
+      }
       recordInstructionSite();
       precedingSite = operation;
       precedingInstructions = currentInstructions.length;
@@ -349,6 +362,7 @@ export function lowerFunction(
         continue;
       }
       if (operation.kind === "aggregate" && canUseByteFillLoop(operation, state)) {
+        constructionLiteral = null;
         const filled = lowerAggregateByteFillLoop(
           operation,
           state,
@@ -416,7 +430,18 @@ export function lowerFunction(
         );
         loweredBlocks.push(...built.blocks);
         currentLabel = built.continuation;
-        currentInstructions = [...built.continuationInstructions];
+        const home = state.values.get(operation.result);
+        if (constantConstruction && built.blocks.length === 0 && home?.kind === "storage") {
+          constructionLiteral = appendConstantConstruction(
+            currentInstructions,
+            built.continuationInstructions.slice(currentInstructions.length),
+            constructionLiteral,
+            home.requestId,
+          );
+        } else {
+          currentInstructions = [...built.continuationInstructions];
+          constructionLiteral = null;
+        }
         aggregateBuildIndex += 1;
         continue;
       }
@@ -457,7 +482,22 @@ export function lowerFunction(
         }
       }
       if (operation.kind !== "platform" || operation.capability !== "c64.video.waitNextFrame") {
-        currentInstructions.push(...lowerOperation(operation, state));
+        const selected = lowerOperation(operation, state);
+        const home =
+          "result" in operation && operation.result !== null
+            ? state.values.get(operation.result)
+            : undefined;
+        if (constantConstruction && home?.kind === "storage") {
+          constructionLiteral = appendConstantConstruction(
+            currentInstructions,
+            selected,
+            constructionLiteral,
+            home.requestId,
+          );
+        } else {
+          currentInstructions.push(...selected);
+          if (selected.length > 0) constructionLiteral = null;
+        }
         continue;
       }
 

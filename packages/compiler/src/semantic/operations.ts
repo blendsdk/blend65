@@ -64,7 +64,12 @@ export interface SemanticPlace {
 
 /** An already chosen home for a fixed aggregate result. */
 export type AggregateDestination =
-  | { readonly kind: "place"; readonly place: SemanticPlace }
+  | {
+      readonly kind: "place";
+      readonly place: SemanticPlace;
+      /** New private local lifetime initialized by an entirely effect-free constant literal. */
+      readonly freshConstant?: true;
+    }
   | { readonly kind: "caller" };
 
 /** Fields shared by value-producing arithmetic operations. */

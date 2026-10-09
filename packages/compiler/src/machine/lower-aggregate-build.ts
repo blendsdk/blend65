@@ -1,12 +1,15 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SemanticOperation, SemanticPlace } from "../semantic/operations.js";
-import {
-  aggregateDestination,
-  lowerAggregateAddress,
-  restoreAggregateDestinationPage,
-} from "./lower-aggregate.js";
+import { aggregateDestination, restoreAggregateDestinationPage } from "./lower-aggregate.js";
 import type { PackedHome } from "./lower-aggregate-copy.js";
 import { lowerDirectionalCopyLoops } from "./lower-aggregate-direction.js";
+import {
+  memberWrites,
+  remainingMemberWrites,
+  placeSource,
+  readMemberByte,
+} from "./lower-aggregate-members.js";
+import type { MemberSource, MemberWrite } from "./lower-aggregate-members.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import type { MachineBlock, MachineInstruction, MachineOperand } from "./machine-types.js";
 import {
@@ -18,136 +21,6 @@ import {
   type FunctionLoweringState,
   typeBytes,
 } from "./lower-state.js";
-
-/** One member of a packed aggregate in its final byte position. */
-interface MemberWrite {
-  readonly valueId: string;
-  readonly start: number;
-  readonly bytes: number;
-}
-
-/** An existing aggregate object's bytes, rather than its lowered address value. */
-interface MemberSource {
-  readonly value: LoweredValue;
-  readonly indirect: boolean;
-}
-
-/** Expand declared members into final offsets after their expressions were evaluated. */
-function memberWrites(
-  operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
-): readonly MemberWrite[] {
-  if (operation.type.kind === "array") {
-    if (operation.elements.length > operation.type.length) {
-      throw loweringFailure(
-        "Aggregate has more elements than its fixed array type",
-        operation.span,
-      );
-    }
-    const bytes = typeBytes(operation.type.element);
-    return Object.freeze(
-      Array.from({ length: operation.type.length }, (_, index) => {
-        const valueId = operation.elements[index]?.value ?? operation.fill;
-        if (valueId === null || valueId === undefined) {
-          throw loweringFailure("Fixed array construction is missing an element", operation.span);
-        }
-        return Object.freeze({ valueId, start: index * bytes, bytes });
-      }),
-    );
-  }
-  if (operation.type.kind !== "struct") {
-    throw loweringFailure("Aggregate construction requires an aggregate type", operation.span);
-  }
-  const byField = new Map(
-    operation.elements.flatMap(({ field, value }) =>
-      field === null ? [] : [[field, value] as const],
-    ),
-  );
-  return Object.freeze(
-    operation.type.fields.map((field) => {
-      const valueId = byField.get(field.name);
-      if (valueId === undefined) {
-        throw loweringFailure(
-          `Struct construction is missing field '${field.name}'`,
-          operation.span,
-        );
-      }
-      return Object.freeze({ valueId, start: field.offset, bytes: typeBytes(field.type) });
-    }),
-  );
-}
-
-/** Resolve a complete source object without interpreting its address bytes as content. */
-function placeSource(
-  place: SemanticPlace,
-  bytes: number,
-  valueId: string,
-  state: FunctionLoweringState,
-  operation: Extract<SemanticOperation, { readonly kind: "aggregate" | "place-address" }>,
-): { readonly setup: readonly MachineInstruction[]; readonly source: MemberSource } {
-  if (place.path.length === 0) {
-    const value = loweredPlace(place, bytes, false, state);
-    if (value.kind !== "storage" || !value.requestId.includes(":parameter:")) {
-      return { setup: Object.freeze([]), source: { value, indirect: false } };
-    }
-  }
-  const address = lowerAggregateAddress(
-    place,
-    state,
-    operation.span,
-    `construct-source:${valueId}`,
-  );
-  return {
-    setup: address.instructions,
-    source: { value: address.pointer, indirect: true },
-  };
-}
-
-/** Read one byte from either an object home or a retained page pointer. */
-function readMemberByte(
-  instructions: MachineInstruction[],
-  source: MemberSource,
-  offset: number,
-  state: FunctionLoweringState,
-  operation: Extract<SemanticOperation, { readonly kind: "aggregate" | "place-address" }>,
-): void {
-  if (!source.indirect) {
-    appendLoadA(instructions, source.value, offset, state, operation.span);
-    return;
-  }
-  if (source.value.kind !== "storage") {
-    throw loweringFailure("Aggregate source has no pointer home", operation.span);
-  }
-  if (offset > 0 && (offset & 0xff) === 0) {
-    instructions.push(
-      machineInstruction(
-        state.input.profile.cpu,
-        "inc",
-        "storage",
-        Object.freeze({ kind: "storage", requestId: source.value.requestId, offset: 1 }),
-        [],
-        operation.span,
-      ),
-    );
-  }
-  instructions.push(
-    machineInstruction(
-      state.input.profile.cpu,
-      "ldy",
-      "immediate",
-      Object.freeze({ kind: "immediate", value: offset & 0xff }),
-      [],
-      operation.span,
-    ),
-    machineInstruction(
-      state.input.profile.cpu,
-      "lda",
-      "indirect-indexed-y",
-      Object.freeze({ kind: "indirect-y", requestId: source.value.requestId, offset: 0 }),
-      [],
-      operation.span,
-    ),
-  );
-}
 
 /** Capture an aggregate source at its evaluation point before later effects run. */
 export function lowerCapturedAggregatePlace(
@@ -384,7 +257,7 @@ export function lowerLargeAggregateBuild(
   readonly continuationInstructions: readonly MachineInstruction[];
 } {
   const destination = aggregateDestination(operation, state);
-  const writes = memberWrites(operation);
+  const writes = remainingMemberWrites(operation, destination, state);
   const memberUseCounts = new Map<string, number>();
   for (const { valueId } of writes) {
     memberUseCounts.set(valueId, (memberUseCounts.get(valueId) ?? 0) + 1);
@@ -589,7 +462,7 @@ export function lowerAggregate(
   state: FunctionLoweringState,
 ): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
   const destination = aggregateDestination(operation, state);
-  const writes = memberWrites(operation);
+  const writes = remainingMemberWrites(operation, destination, state);
   const instructions: MachineInstruction[] = [...destination.instructions];
   const sources = new Map<string, MemberSource>();
 

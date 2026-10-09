@@ -14,6 +14,7 @@ import {
   required,
 } from "./lower-control.js";
 import { CallLowerer } from "./lower-calls.js";
+import { lowerAggregateLiteral } from "./lower-aggregate-literal.js";
 import type {
   AggregateDestination,
   SemanticPlace,
@@ -28,46 +29,6 @@ function expressionValue(expression: TypedExpr): TypedExpr {
     throw new Error("Completed assignment expression is missing its value expression");
   }
   return value;
-}
-
-/** Conservatively identify later expressions that can change an earlier place value. */
-function mayWriteDuringEvaluation(expression: TypedExpr): boolean {
-  if (expression.kind === "assignment" || expression.kind === "call") return true;
-  if (expression.kind === "array-literal") {
-    return (
-      (expression.elements ?? []).some(mayWriteDuringEvaluation) ||
-      (expression.fill !== null &&
-        expression.fill !== undefined &&
-        mayWriteDuringEvaluation(expression.fill))
-    );
-  }
-  if (expression.kind === "struct-literal") {
-    return (expression.fields ?? []).some(({ value }) => mayWriteDuringEvaluation(value));
-  }
-  if (expression.kind === "binary") {
-    return (
-      (expression.left !== undefined && mayWriteDuringEvaluation(expression.left)) ||
-      (expression.right !== undefined && mayWriteDuringEvaluation(expression.right))
-    );
-  }
-  if (expression.kind === "conditional") {
-    return (
-      (expression.condition !== undefined && mayWriteDuringEvaluation(expression.condition)) ||
-      (expression.whenTrue !== undefined && mayWriteDuringEvaluation(expression.whenTrue)) ||
-      (expression.whenFalse !== undefined && mayWriteDuringEvaluation(expression.whenFalse))
-    );
-  }
-  if (expression.kind === "index") {
-    return (
-      (expression.object !== undefined && mayWriteDuringEvaluation(expression.object)) ||
-      (expression.index !== undefined && mayWriteDuringEvaluation(expression.index))
-    );
-  }
-  if (expression.kind === "member") {
-    return expression.object !== undefined && mayWriteDuringEvaluation(expression.object);
-  }
-  const operand = expression.operand;
-  return operand !== undefined && "type" in operand && mayWriteDuringEvaluation(operand);
 }
 
 /** Direct expression-to-operation lowering for one owning CFG builder. */
@@ -226,7 +187,16 @@ export class ExpressionLowerer {
         return this.calls.lowerCall(expression, operationType, destination);
       case "array-literal":
       case "struct-literal":
-        return this.lowerAggregate(expression, destination);
+        return lowerAggregateLiteral(
+          expression,
+          destination,
+          this.builder,
+          this.lower,
+          (element) =>
+            element.kind === "assignment"
+              ? this.lowerAssignment(element, true)
+              : this.lowerPlaceValue(element, element.type, true),
+        );
     }
   }
 
@@ -474,57 +444,5 @@ export class ExpressionLowerer {
       return captured;
     }
     return value;
-  }
-
-  /** Lower a fixed array or struct literal as one direct aggregate construction. */
-  private lowerAggregate(expression: TypedExpr, destination?: AggregateDestination): ValueId {
-    const elements =
-      expression.kind === "array-literal"
-        ? (expression.elements ?? []).map((element) => ({ field: null, expression: element }))
-        : (expression.fields ?? []).map(({ name, value }) => ({ field: name, expression: value }));
-    // A place-backed member is a value, not a promise to read that place later.
-    // Capture it before a following expression can write through the same object.
-    const laterMayWrite: boolean[] = new Array(elements.length);
-    let followingMayWrite =
-      expression.fill === null || expression.fill === undefined
-        ? false
-        : mayWriteDuringEvaluation(expression.fill);
-    for (let index = elements.length - 1; index >= 0; index -= 1) {
-      laterMayWrite[index] = followingMayWrite;
-      followingMayWrite ||= mayWriteDuringEvaluation(elements[index]!.expression);
-    }
-    const values = elements.map(({ field, expression: element }, index) => {
-      const capture =
-        laterMayWrite[index] === true &&
-        (element.type.kind === "array" || element.type.kind === "struct") &&
-        (((element.kind === "name" || element.kind === "member" || element.kind === "index") &&
-          element.place !== null) ||
-          element.kind === "assignment");
-      const value = capture
-        ? element.kind === "assignment"
-          ? this.lowerAssignment(element, true)
-          : this.lowerPlaceValue(element, element.type, true)
-        : this.lower(element);
-      if (value === null) throw new Error("Completed aggregate element has no value");
-      return Object.freeze({ field, value });
-    });
-    const fill =
-      expression.fill === null || expression.fill === undefined
-        ? null
-        : this.lower(expression.fill);
-    const result = this.builder.nextValue();
-    this.builder.emit(
-      Object.freeze({
-        kind: "aggregate",
-        result,
-        elements: Object.freeze(values),
-        fill,
-        type: expression.type,
-        ...(destination === undefined ? {} : { destination }),
-        integer: null,
-        span: expression.span,
-      }),
-    );
-    return result;
   }
 }

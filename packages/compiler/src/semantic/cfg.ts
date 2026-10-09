@@ -1,5 +1,6 @@
 import { SCALAR_TYPES } from "../frontend/constants.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { isConstantAggregateLiteral } from "./lower-aggregate-literal.js";
 import type {
   SemanticBinding,
   SemanticType,
@@ -197,6 +198,9 @@ export class ControlFlowBuilder {
           statement.type.kind === "array" || statement.type.kind === "struct"
             ? Object.freeze({
                 kind: "place",
+                ...(isConstantAggregateLiteral(statement.initializer, this.bindingsByKey)
+                  ? { freshConstant: true as const }
+                  : {}),
                 place: Object.freeze({
                   root: statement.binding,
                   rootType: statement.type,

@@ -65,6 +65,11 @@ function operationUses(operation: SemanticOperation): readonly ValueId[] {
       return [
         ...operation.elements.map(({ value }) => value),
         ...(operation.fill === null ? [] : [operation.fill]),
+        ...(operation.destination?.kind === "place"
+          ? operation.destination.place.path.flatMap((part) =>
+              part.kind === "index" ? [part.value] : [],
+            )
+          : []),
       ];
     case "merge":
       return [];
