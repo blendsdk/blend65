@@ -77,17 +77,26 @@ function removable(global: SemanticGlobal): boolean {
   );
 }
 
-/**
- * Resolve body-local integer literals/conversions without executing arithmetic or
- * following mutable storage. Memoization handles definition order and shared chains;
- * iterative traversal keeps long chains off the host stack. Cycles remain unknown.
- */
-function literalResolver(blocks: readonly SemanticBlock[]): (value: ValueId) => bigint | undefined {
+/** Inventory each reachable body's value definitions once for both proof queries. */
+function valueDefinitions(
+  blocks: readonly SemanticBlock[],
+): ReadonlyMap<ValueId, SemanticOperation> {
   const definitions = new Map<ValueId, SemanticOperation>();
   for (const block of blocks)
     for (const operation of block.operations)
       if ("result" in operation && operation.result !== null)
         definitions.set(operation.result, operation);
+  return definitions;
+}
+
+/**
+ * Resolve body-local integer literals/conversions without executing arithmetic or
+ * following mutable storage. Memoization handles definition order and shared chains;
+ * iterative traversal keeps long chains off the host stack. Cycles remain unknown.
+ */
+function literalResolver(
+  definitions: ReadonlyMap<ValueId, SemanticOperation>,
+): (value: ValueId) => bigint | undefined {
   const memo = new Map<ValueId, bigint | undefined>();
   return (value) => {
     let cursor = value;
@@ -115,6 +124,66 @@ function literalResolver(blocks: readonly SemanticBlock[]): (value: ValueId) => 
       memo.set(conversion.result, result);
     }
     return result;
+  };
+}
+
+/**
+ * Prove only a nonnegative inclusive maximum for array containment. AND clears all
+ * bits outside a constant mask; a signed mask must also clear the sign bit. A later
+ * conversion preserves the proof only when every possible value fits unchanged.
+ * This is not an exact value and must never resolve a raw CPU or hardware address.
+ * Memoized iterative conversion walks keep shared tails and long chains inexpensive;
+ * missing facts, other arithmetic and cycles deliberately remain unknown.
+ */
+function ordinalBoundResolver(
+  definitions: ReadonlyMap<ValueId, SemanticOperation>,
+  literal: (value: ValueId) => bigint | undefined,
+): (value: ValueId) => bigint | undefined {
+  const memo = new Map<ValueId, bigint | undefined>();
+  return (value) => {
+    let cursor = value;
+    let bound: bigint | undefined;
+    const seen = new Set<ValueId>();
+    const conversions: ConvertOperation[] = [];
+    while (!memo.has(cursor) && !seen.has(cursor)) {
+      seen.add(cursor);
+      const exact = literal(cursor);
+      if (exact !== undefined) {
+        bound = exact >= 0n ? exact : undefined;
+        break;
+      }
+      const operation = definitions.get(cursor);
+      if (operation?.kind === "convert" && operation.integer !== null) {
+        conversions.push(operation);
+        cursor = operation.operand;
+        continue;
+      }
+      if (
+        operation?.kind === "binary" &&
+        operation.operator === "&" &&
+        operation.integer !== null
+      ) {
+        const { width, signed } = operation.integer;
+        const maximum = (1n << BigInt(width - (signed ? 1 : 0))) - 1n;
+        for (const operand of [operation.left, operation.right]) {
+          const mask = literal(operand);
+          if (mask !== undefined && mask >= 0n && mask <= maximum)
+            bound = bound === undefined || mask < bound ? mask : bound;
+        }
+      }
+      break;
+    }
+    if (memo.has(cursor)) bound = memo.get(cursor);
+    else memo.set(cursor, bound);
+    for (const conversion of conversions.reverse()) {
+      if (bound !== undefined && conversion.integer !== null) {
+        const { width, signed } = conversion.integer;
+        const maximum = (1n << BigInt(width - (signed ? 1 : 0))) - 1n;
+        if (bound > maximum) bound = undefined;
+      }
+      memo.set(conversion.result, bound);
+    }
+    return bound;
   };
 }
 
@@ -219,7 +288,7 @@ function placeUses(operation: SemanticOperation): readonly PlaceUse[] {
  */
 function indexedMayObserve(
   use: PlaceUse,
-  literal: (value: ValueId) => bigint | undefined,
+  ordinalBound: (value: ValueId) => bigint | undefined,
 ): boolean {
   if (!use.place.path.some(({ kind }) => kind === "index")) return false;
   const rootType = use.place.rootType;
@@ -238,7 +307,7 @@ function indexedMayObserve(
       type = field.type;
     } else {
       if (type.kind !== "array") return true;
-      const index = literal(selection.value);
+      const index = ordinalBound(selection.value);
       if (index === undefined || index < 0n || index >= BigInt(type.length)) return true;
       offset += Number(index) * semanticTypeSize(type.element);
       type = type.element;
@@ -310,12 +379,14 @@ export function retainObservableGlobals(
   for (const body of bodies) {
     if (body.entry === null) continue;
     const blocks = reachableBlocks(body.entry, body.blocks);
-    const literal = literalResolver(blocks);
+    const definitions = valueDefinitions(blocks);
+    const literal = literalResolver(definitions);
+    const ordinalBound = ordinalBoundResolver(definitions, literal);
     for (const block of blocks) {
       for (const operation of block.operations) {
         for (const use of placeUses(operation)) {
           retained.add(bindingIdentityKey(use.place.root));
-          if (indexedMayObserve(use, literal)) return semantic;
+          if (indexedMayObserve(use, ordinalBound)) return semantic;
         }
         if (
           (operation.kind === "memory-read" || operation.kind === "memory-write") &&

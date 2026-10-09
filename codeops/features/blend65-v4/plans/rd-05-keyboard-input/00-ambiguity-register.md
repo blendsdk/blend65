@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — AR-P8 correction approved; technical closure in progress
-> **Last Updated**: 2026-10-09 14:10 CEST
+> **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — AR-P8 correction qualified; technical closure in progress
+> **Last Updated**: 2026-10-09 15:15 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -698,6 +698,19 @@ verdict: **Justified, narrowly**, with the inspection limit above. Direct user d
 owns execution. This conservative scope gate approved an ordinary small helper, not a larger
 support subsystem; the lightweight task lane remains appropriate. Other keyboard decisions
 and the full positive implementation gate are unchanged.
+
+**Qualified completion (2026-10-09):** [T-11 closeout](../masked-index-containment/08-closeout.md)
+settles this diagnostic with one existing selector change, not a decoder workaround or general
+solver. Its immutable new oracle first produced 56 genuine omission failures / 76 prepasses;
+all 132 new cases then passed. Final install/build/typecheck and all 5,866 tests pass with two
+existing package skips; six independent native reviews have no in-scope findings. Fresh actual
+diagnostic builds omit only the cold BSS byte: resident RAM 912→911, payload 826/container 828,
+SFA 28/ZP 8/generated stack component 2/scratch zero unchanged. Four-profile sequential VICE
+checks validate saved lookup values and ordered watchpoint/source-access observations, not
+complete silicon bus traffic or keyboard acquisition. Existing index-code expert-output debt
+remains with open #89; it is neither fixed nor waived here. The original exact raw-address
+resolver, old spec tests and frozen authorities remain unchanged. The full positive keyboard
+gate and RD-05/DEF-7 remain open; resume the approved keyboard technical closure next.
 
 Current expert lineage remains 2.0.4/content `0e2a6280`; normative owners are
 `il-and-optimization.md#arithmetic-and-constant-evaluation`,

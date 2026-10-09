@@ -1,10 +1,10 @@
 # Task T-11: Prove local masked array indices without changing address semantics
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
-> **Progress**: 0/4 tasks (0%)
-> **Last Updated**: 2026-10-09 14:10 CEST
+> **Progress**: 4/4 tasks (100%)
+> **Last Updated**: 2026-10-09 15:15 CEST
 > **Phase baseline**: `25533bc2c3d5143e41acbcf8b74082958216e42c`
-> **Phase baseline tree**: `dfb47c03f071bc31f3930c05373f245a963f5077`
+> **Phase baseline tree**: `43f8797a15a5f4bd60a6c32dea2e87cf2f016586`
 > **Scope mode**: strict
 
 ## Objective and authority
@@ -93,10 +93,10 @@ entry with real semantic objects, no arithmetic/proof mocks. Preserve semantic b
 
 ## Tasks
 
-- [ ] T-11.1 [spec-author] Freeze the independent new source cases before any production edit; capture genuine red omissions and prepassing conservative controls, source hash and author provenance. Directed Verify: new spec file using the existing root Vitest command. Deliverable: one new immutable oracle plus red log; no old test edit.
-- [ ] T-11.2 Implement only the local bound query and indexed consumer; preserve exact raw resolver semantics. Directed Verify: run `yarn build` first to refresh compiler package output, then new specs plus existing source-library raw/indexed/hardware suites. Deliverable: smallest production diff and green source evidence.
-- [ ] T-11.3 Add the focused internal boundary/deep/shared/cycle and complete-footprint tests; capture complete actual assembly/artifact/resource costs and unchanged operations. Directed Verify: new and existing selector internals, all source-library specs, build and typecheck. Deliverable: focused internal suite and independent behavior/output evidence.
-- [ ] T-11.4 Run full Linux verification and independent correctness, semantics, SFA/ABI, platform, output and host-performance reviews. Resolve findings within authority; record scope limits, preflight identity, deferral check and roadmap status; local green commit without pushing. Deliverable: verified complete bounded task, not an RD-05/keyboard closeout.
+- [x] T-11.1 [spec-author] Freeze the independent new source cases before any production edit; capture genuine red omissions and prepassing conservative controls, source hash and author provenance. Directed Verify: new spec file using the existing root Vitest command. Deliverable: one new immutable oracle plus red log; no old test edit. (verified: 2026-10-09 14:40 CEST) Final 294-line oracle SHA-256 `9098a0cc77d1c5c880db4fefef8c6fac3c2a609d3081b7ab12c49512c3674c65`; 56 genuine omission failures, 76 prepasses including four sequential VICE controls; 26.37 s. Construction-only spelling/identity/driver corrections preceded this freeze; no old oracle or production edit. Earlier large driver stalled in baseline host compilation, not VICE; fixed-slot host-stepped driver preserves exhaustive expectations. Incidental historical expert navigation supplied no assertion or implementation answer.
+- [x] T-11.2 Implement only the local bound query and indexed consumer; preserve exact raw resolver semantics. Directed Verify: run `yarn build` first to refresh compiler package output, then new specs plus existing source-library raw/indexed/hardware suites. Deliverable: smallest production diff and green source evidence. (verified: 2026-10-09 14:44 CEST) Fresh build 4/4; all 516 directed cases pass in 104.13 s. Exact raw/hardware consumers unchanged; one production file, 416 lines.
+- [x] T-11.3 Add the focused internal boundary/deep/shared/cycle and complete-footprint tests; capture complete actual assembly/artifact/resource costs and unchanged operations. Directed Verify: new and existing selector internals, all source-library specs, build and typecheck. Deliverable: focused internal suite and independent behavior/output evidence. (verified: 2026-10-09 14:51 CEST) All 588 source-library cases and 63 internals pass; build/typecheck pass. One BSS byte saved, payload 826/container 828 unchanged; full intervals and original control hashes reconciled in [evidence](08-closeout.md). Reported stack component is not an external peak; total cycles Unknown.
+- [x] T-11.4 Run full Linux verification and independent correctness, semantics, SFA/ABI, platform, output and host-performance reviews. Resolve findings within authority; record scope limits, preflight identity, deferral check and roadmap status; local green commit without pushing. Deliverable: verified complete bounded task, not an RD-05/keyboard closeout. (verified: 2026-10-09 15:15 CEST) Install/build/typecheck and all 5,866 tests pass, two existing package skips; complete root 3,886/3,886 in 1,262.73 s. Six independent native reviews have no in-scope findings; actual code/oracle hashes unchanged. [Closeout](08-closeout.md) records complete costs, VICE watchpoint/physical limits, unchanged baseline output debt owned by open #89, provenance and deferral expiry. Local green checkpoint only; RD-05/DEF-7/keyboard positive gate stay open.
 
 **Verify:** During tasks run directed Vitest tests. At the final checkpoint run
 `yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck`, `yarn test`.
