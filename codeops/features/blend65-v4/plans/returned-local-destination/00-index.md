@@ -1,6 +1,6 @@
 # Proved returned-local destination
 
-> **Status**: Planning Complete — preflight passed, implementation pending
+> **Status**: Blocked — T-16 assessment complete; AR-6 observer-contract ruling pending
 > **Created**: 2026-10-09
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
@@ -24,20 +24,23 @@ This is T-14, a prerequisite, not the positive keyboard plan or RD-05 closeout.
 
 ## Documents
 
-| Document                                              | Owner                                        |
-| ----------------------------------------------------- | -------------------------------------------- |
-| [Decisions](00-ambiguity-register.md)                 | Imported approval and planning gate          |
-| [Requirements](01-requirements.md)                    | Plan-local acceptance and exclusions         |
-| [Current state](02-current-state.md)                  | Reinspected producer/consumer facts          |
-| [Destination proof and binding](03-01-destination.md) | One bounded technical contract               |
-| [Testing](07-testing-strategy.md)                     | Independent behavior and output expectations |
-| [Execution](99-execution-plan.md)                     | Sole mutable task progress                   |
+| Document                                                           | Owner                                                     |
+| ------------------------------------------------------------------ | --------------------------------------------------------- |
+| [Decisions](00-ambiguity-register.md)                              | Imported approval and planning gate                       |
+| [Requirements](01-requirements.md)                                 | Plan-local acceptance and exclusions                      |
+| [Current state](02-current-state.md)                               | Reinspected producer/consumer facts                       |
+| [Destination proof and binding](03-01-destination.md)              | One bounded technical contract                            |
+| [Testing](07-testing-strategy.md)                                  | Independent behavior and output expectations              |
+| [Execution](99-execution-plan.md)                                  | Sole mutable task progress                                |
+| [Qualification](08-closeout.md)                                    | Actual costs, evidence and pending gates                  |
+| [Entry-observation assessment](09-entry-observation-assessment.md) | Physical overlap, contract distinction and pending ruling |
 
 The [preflight report](00-preflight-report.md) owns the scan, technical corrections
 and exact reviewed artifact hashes. The unrelated legal partial-array backend
 defect remains separately owned by T-15; it is not repaired or waived here.
 
-One phase, three sessions, fifteen tasks. Applicable lenses are **compiler and
+One phase, three sessions, nineteen tasks after the execution-only guard, internal-test and
+activation splits recorded in [live progress](99-execution-plan.md). Applicable lenses are **compiler and
 language**, plus **concurrency** for generated asynchronous observation and
 existing domain/closure consumers. No distributed runtime, persistent-format
 migration or host security boundary is introduced. Existing build generations
@@ -48,4 +51,13 @@ Lineage: expert `2.0.4`, content
 `BLEND65-SPEC-4-038b70e9`; selected NMOS 6510, cooperative PRG profiles,
 ACME 0.97 and VICE 3.10. Qualification uses optimization `none`, safety off,
 Linux Node 22+. Other supported modes keep their existing semantics; no new
-target claim is made. Implementation, actual cost and runtime remain **Unknown**.
+target claim is made. Implementation and actual costs are recorded in
+[qualification](08-closeout.md). Independent platform review found TP-001:
+incoming bitmap mode leaves caller storage visible to VIC fetches. Final
+checkpoint and review disposition are blocked on
+[AR-6](00-ambiguity-register.md#ar-6-runtime--incoming-bitmap-display-invalidates-hardware-disjointness).
+The approved [T-16 assessment](09-entry-observation-assessment.md) distinguishes
+physical overlap from a specified semantic failure. It recommends a narrow
+observer-contract clarification before adding startup/layout support. That ruling
+is pending; no compiler change, protected-test edit or qualification waiver follows.
+No positive keyboard or whole-program parity claim follows.

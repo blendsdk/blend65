@@ -88,8 +88,8 @@ impossible, nor certify retained firmware or full-program stack/completion.
 | `test/rd05/returned-local-output.spec.test.ts`   | ST-15–ST-18            |
 
 The implementation owner then writes focused internal tests in
-`packages/compiler/test/returned-local-destination.impl.test.ts` and
-`packages/compiler/test/aggregate-place-proof.impl.test.ts`: missing metadata,
+`packages/compiler/src/semantic/returned-local-destination.impl.test.ts` and
+`packages/compiler/src/semantic/aggregate-place-proof.impl.test.ts`: missing metadata,
 incomplete initializer coverage and its structurally unchanged fallback,
 bad/mixed value-use chains, byte/word footprint,
 mask conversions, address wrap, deterministic certificate order, unknown effects,

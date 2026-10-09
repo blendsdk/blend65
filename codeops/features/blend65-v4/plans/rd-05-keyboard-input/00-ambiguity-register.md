@@ -1384,3 +1384,25 @@ the optimization applies; no compiler behavior or output win is claimed merely
 from approval. The return-only correction does not authorize the separate
 initializer/read/condition/index debts. A larger mechanism reopens AR-P11 rather
 than silently expanding it. Expert lineage remains `2.0.4`/content `0e2a6280`.
+
+### AR-P11 implementation qualification — blocked by observer-contract ruling
+
+The approved [T-14 plan](../returned-local-destination/00-index.md) reaches
+17/19 task checkpoints. All six independent lenses have reported. MC-001's
+introduced size growth and SM-001's persistent source-publication gap are
+corrected, but TP-001 finds that incoming bitmap mode can expose the caller
+result during direct construction. This is a distinct platform-proof failure,
+not a reason to add an input-library workaround or bitmap-off source rule.
+
+Final qualification and closeout are blocked on
+[AR-6 / RD-05 T-16](../returned-local-destination/00-ambiguity-register.md#ar-6-runtime--incoming-bitmap-display-invalidates-hardware-disjointness).
+The latest complete root test run was intentionally halted; no full PASS or
+unconditional artifact eligibility is claimed. Existing AR-P11 approval does
+not grant startup/layout changes, protected-oracle edits or baseline rebasing.
+The separately approved
+[T-16 assessment](../returned-local-destination/09-entry-observation-assessment.md)
+is complete. Physical overlap is established, not a defined semantic failure.
+The recommended narrow plan-observer clarification awaits a named ruling; all
+current guards remain unchanged and no startup/layout implementation is approved.
+RD-05/DEF-7 and the positive keyboard gate remain open. Frozen spec/expert and
+every old oracle are unchanged; no implementation commit or push follows.
