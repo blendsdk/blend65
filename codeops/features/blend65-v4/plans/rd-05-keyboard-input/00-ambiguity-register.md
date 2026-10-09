@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — behavior decisions accepted; acquisition/decoder technical closure pending
-> **Last Updated**: 2026-10-09 20:02 CEST
+> **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — saved-data model closed; bounded aggregate-return support decision pending
+> **Last Updated**: 2026-10-09 20:28 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -14,18 +14,19 @@
 
 ## Ambiguity register
 
-| ID     | Category                                                               | Decision needed                                                                                                                | Recommendation / authority                                                                                                                                                                                                                                                                                                                                              | Status                                                                                                                                                                                                                  |
-| ------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AR-P1  | Scope / product boundary                                               | What is the next planning task?                                                                                                | User confirmed the focused RD-05 keyboard/combined-input plan. Preserve both existing raw joystick reads and the approved library-first direction. The existing product boundary excludes an input manager, event queue, scheduler, debounce and repeat policy.                                                                                                         | ✅ Resolved — existing scope and product authority                                                                                                                                                                      |
-| AR-P2  | Data/state / technical — sensitive                                     | What port-state and firmware-ownership contract permits a usable standard scan?                                                | User accepted the narrowly cooperative whole-byte PA handback to `$7F`, exact saved DDR restoration and untouched PB latch, and authorized the exact R5.25/AC-20 amendment. Preserve timer/CIA2/CPU/interrupt/vector/link/RESTORE obligations; other routes need proved prior state and ownership. No state manager or frozen-authority edit.                           | ✅ Resolved — user: “I approve - proceed further” on 2026-10-08; contract only, not positive implementation qualification                                                                                               |
-| AR-P3  | Behavior / integration / user-facing API — sensitive                   | What does a combined keyboard/joystick observation promise when shared lines or multiple keys prevent a unique interpretation? | User accepted the ordinary-source saved-observation API below: one 11-byte logical snapshot, acquisition quality and three-result named queries, with no atomic or unconditional physical-state certificate. The approved clarification is confined to R5.25/AC-20.                                                                                                     | ✅ Resolved — user: “I approve” on 2026-10-08; public contract, not runtime qualification                                                                                                                               |
-| AR-P4  | Scope / delivery                                                       | Should the next executable slice be proof-only rather than positive keyboard support?                                          | One bounded proof task using pinned ROM and existing VICE support, before accepting the keyboard API plan. No production changes, new framework, NMI adapter, profile correction or optimizer. Keep AR-P2/AR-P3 open for the positive plan.                                                                                                                             | ✅ Resolved — user replied “proceed” to the proof-only recommendation; [T-04 mini-plan](../keyboard-scan-proof/99-execution-plan.md) owns execution                                                                     |
-| AR-P5  | Scope / delivery / developer experience                                | May one scan-aware ingress candidate test the approved ordinary-input direction?                                               | Reuse DEF-7 and existing diagnostic facilities. Test eight saved rows, both raw port observations and stock NMI coordination, without accepting public certainty semantics or changing frozen authority.                                                                                                                                                                | ✅ Resolved — user replied “I approve” on 2026-10-03 to the deeper assessment; [T-05](../keyboard-ingress-proof/99-execution-plan.md) owns the proof; AR-P2/AR-P3 remain open                                           |
-| AR-P6  | Test-oracle authority                                                  | May the old bundled-source export inventory include the accepted API?                                                          | Extend only the exact exported-name expectation in `test/rd05/bundled-input-library.spec.test.ts` with the nine accepted top-level names; preserve all six old masks and every other fixture/assertion. Independent new tests own the new behavior.                                                                                                                     | ✅ Resolved — user: “I approve” on 2026-10-08 to the exact named AR-P6 follow-up                                                                                                                                        |
-| AR-P7  | Technical (complexity escalation) / library reachability — sensitive   | How can source-library exports remain usable without adding unused acquisition code/state to legacy input programs?            | Correct visibility versus execution-root classification for ordinary closed-program builds in the existing whole-program closure. Retain real callable entries, address dependencies, initializer effects and selected interrupt routes. Omit only proved unused private uninitialized/unplaced/non-escaped storage; no library-name special case or general optimizer. | ✅ Resolved — user: “I approve” on 2026-10-08 to the one named bounded support correction; independent verdict Justified                                                                                                |
-| AR-P8  | Technical (complexity escalation) / indexed-place proof — sensitive    | How can a normal masked saved-row query avoid retaining unused acquisition state?                                              | One local constant-mask containment proof in the existing helper; preserve exact-literal/raw-address semantics and every complete object-footprint guard. No general range/branch/interprocedural solver, new pass or decoder workaround.                                                                                                                               | ✅ Resolved — user replied “proceed” to the named bounded extension on 2026-10-09; independent verdict Justified, narrowly                                                                                              |
-| AR-P9  | Technical (complexity escalation) / aggregate construction — sensitive | May the existing aggregate builder construct pure nested constants directly in a proved fresh final destination?               | Recommended bounded compiler-wide correction for the independently reproduced extra array temporary/copy. Reuse current aggregate/destination machinery before SFA closure; retain effect/alias/borrow fallbacks. No new pass, IR kind, general optimizer, runtime, API or old-oracle exception.                                                                        | ✅ Resolved — user: “i approve” on 2026-10-09 to the exact AR-P9/T-12 support packet; bounded T-12 qualification 14/14 complete; [closeout](../constant-nested-construction/08-closeout.md), not keyboard qualification |
-| AR-P10 | Behavioral / saved-observation compatibility — sensitive               | What should queries return for a `COMPLETE` snapshot whose bytes cannot represent any stable compatible electrical state?      | Accepted: retain directly justified `OBSERVED_UP`; other answers require a nonempty set of compatible stable explanations and agreement across that set. Incompatible data otherwise yields `UNCERTAIN`. Preserve raw bytes and acquisition quality; no retry, cache, component reconstruction or new API. See the accepted policy below.                               | ✅ Resolved — user: “i approve” on 2026-10-09 to the single named AR-P10 policy; technical proof and costs remain pending                                                                                               |
+| ID     | Category                                                                   | Decision needed                                                                                                                 | Recommendation / authority                                                                                                                                                                                                                                                                                                                                              | Status                                                                                                                                                                                                                  |
+| ------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AR-P1  | Scope / product boundary                                                   | What is the next planning task?                                                                                                 | User confirmed the focused RD-05 keyboard/combined-input plan. Preserve both existing raw joystick reads and the approved library-first direction. The existing product boundary excludes an input manager, event queue, scheduler, debounce and repeat policy.                                                                                                         | ✅ Resolved — existing scope and product authority                                                                                                                                                                      |
+| AR-P2  | Data/state / technical — sensitive                                         | What port-state and firmware-ownership contract permits a usable standard scan?                                                 | User accepted the narrowly cooperative whole-byte PA handback to `$7F`, exact saved DDR restoration and untouched PB latch, and authorized the exact R5.25/AC-20 amendment. Preserve timer/CIA2/CPU/interrupt/vector/link/RESTORE obligations; other routes need proved prior state and ownership. No state manager or frozen-authority edit.                           | ✅ Resolved — user: “I approve - proceed further” on 2026-10-08; contract only, not positive implementation qualification                                                                                               |
+| AR-P3  | Behavior / integration / user-facing API — sensitive                       | What does a combined keyboard/joystick observation promise when shared lines or multiple keys prevent a unique interpretation?  | User accepted the ordinary-source saved-observation API below: one 11-byte logical snapshot, acquisition quality and three-result named queries, with no atomic or unconditional physical-state certificate. The approved clarification is confined to R5.25/AC-20.                                                                                                     | ✅ Resolved — user: “I approve” on 2026-10-08; public contract, not runtime qualification                                                                                                                               |
+| AR-P4  | Scope / delivery                                                           | Should the next executable slice be proof-only rather than positive keyboard support?                                           | One bounded proof task using pinned ROM and existing VICE support, before accepting the keyboard API plan. No production changes, new framework, NMI adapter, profile correction or optimizer. Keep AR-P2/AR-P3 open for the positive plan.                                                                                                                             | ✅ Resolved — user replied “proceed” to the proof-only recommendation; [T-04 mini-plan](../keyboard-scan-proof/99-execution-plan.md) owns execution                                                                     |
+| AR-P5  | Scope / delivery / developer experience                                    | May one scan-aware ingress candidate test the approved ordinary-input direction?                                                | Reuse DEF-7 and existing diagnostic facilities. Test eight saved rows, both raw port observations and stock NMI coordination, without accepting public certainty semantics or changing frozen authority.                                                                                                                                                                | ✅ Resolved — user replied “I approve” on 2026-10-03 to the deeper assessment; [T-05](../keyboard-ingress-proof/99-execution-plan.md) owns the proof; AR-P2/AR-P3 remain open                                           |
+| AR-P6  | Test-oracle authority                                                      | May the old bundled-source export inventory include the accepted API?                                                           | Extend only the exact exported-name expectation in `test/rd05/bundled-input-library.spec.test.ts` with the nine accepted top-level names; preserve all six old masks and every other fixture/assertion. Independent new tests own the new behavior.                                                                                                                     | ✅ Resolved — user: “I approve” on 2026-10-08 to the exact named AR-P6 follow-up                                                                                                                                        |
+| AR-P7  | Technical (complexity escalation) / library reachability — sensitive       | How can source-library exports remain usable without adding unused acquisition code/state to legacy input programs?             | Correct visibility versus execution-root classification for ordinary closed-program builds in the existing whole-program closure. Retain real callable entries, address dependencies, initializer effects and selected interrupt routes. Omit only proved unused private uninitialized/unplaced/non-escaped storage; no library-name special case or general optimizer. | ✅ Resolved — user: “I approve” on 2026-10-08 to the one named bounded support correction; independent verdict Justified                                                                                                |
+| AR-P8  | Technical (complexity escalation) / indexed-place proof — sensitive        | How can a normal masked saved-row query avoid retaining unused acquisition state?                                               | One local constant-mask containment proof in the existing helper; preserve exact-literal/raw-address semantics and every complete object-footprint guard. No general range/branch/interprocedural solver, new pass or decoder workaround.                                                                                                                               | ✅ Resolved — user replied “proceed” to the named bounded extension on 2026-10-09; independent verdict Justified, narrowly                                                                                              |
+| AR-P9  | Technical (complexity escalation) / aggregate construction — sensitive     | May the existing aggregate builder construct pure nested constants directly in a proved fresh final destination?                | Recommended bounded compiler-wide correction for the independently reproduced extra array temporary/copy. Reuse current aggregate/destination machinery before SFA closure; retain effect/alias/borrow fallbacks. No new pass, IR kind, general optimizer, runtime, API or old-oracle exception.                                                                        | ✅ Resolved — user: “i approve” on 2026-10-09 to the exact AR-P9/T-12 support packet; bounded T-12 qualification 14/14 complete; [closeout](../constant-nested-construction/08-closeout.md), not keyboard qualification |
+| AR-P10 | Behavioral / saved-observation compatibility — sensitive                   | What should queries return for a `COMPLETE` snapshot whose bytes cannot represent any stable compatible electrical state?       | Accepted: retain directly justified `OBSERVED_UP`; other answers require a nonempty set of compatible stable explanations and agreement across that set. Incompatible data otherwise yields `UNCERTAIN`. Preserve raw bytes and acquisition quality; no retry, cache, component reconstruction or new API. See the accepted policy below.                               | ✅ Resolved — user: “i approve” on 2026-10-09 to the single named AR-P10 policy; technical proof and costs remain pending                                                                                               |
+| AR-P11 | Technical (complexity escalation) / aggregate-return ownership — sensitive | May the existing aggregate-destination machinery eliminate a proved unnecessary local-to-caller return copy before SFA closure? | Pending bounded support packet: ordinary fresh result construction, complete ownership/effect/alias/interrupt proof and safe existing fallbacks. No new pass, IR kind, API, runtime, general optimizer or old-oracle exception. Independent bounded assessments are complete; user decision and implementation qualification remain pending.                            | ❌ Open — AR-P10 behavior approval does not approve this compiler correction.                                                                                                                                           |
 
 ## Evidence and lineage
 
@@ -1118,3 +1119,223 @@ duration 5.24 seconds at 20:00:27 CEST; retained log
 No compiler-suite rerun or new emulator result is claimed. RD-05/DEF-7 remain
 open, 4/10 RDs complete. This task created no new `/tmp` evidence directory and
 removed no other user's files. Local green checkpoint only; no push authority.
+
+### Acquisition design closure — direct existing scoped ingress
+
+**Plan-owned smallest direction, within accepted AR-P2/AR-P3:** use existing
+balanced `setNMI`/`restoreNMI` with the PA-only ingress and one interruption byte.
+No persistent activity byte, DDR-writing ingress, new NMI route or state manager
+is selected. This is an internal plan choice under the project's workflow prime
+directive, not a newly attributed user decision or positive qualification.
+
+The candidate order is: balanced status save/IRQ exclusion; two non-consuming
+PBON reads; coherent saved DDR capture; idle PA write and scan-compatible DDR
+setup while the prior compatible route still owns NMI; marker clear before
+publication; scoped installation; released-drive PA=`$FF` pin observations with
+DDRA=`$FF`; the eight one-low column observations; final idle PA=`$7F` write;
+route removal; exact saved DDR restoration; final marker read; status restoration.
+Every acquisition-driven non-idle column is protected. The ingress only writes
+idle PA and the shared marker, preserves its entry state, and chains through the
+existing proved predecessor. Port reads observe pins even with DDR output bits;
+released observations do not require DDRA=`$00`.
+
+AR-P2's **compatible prior owner** remains a real condition, not an assumption
+that every arbitrary register state is stock-compatible. For the pinned stock
+NMI STOP path, idle PA7 must be driven low, PA1/PA6 must support the `$BD` shift
+check, other PA and all PB lines must be released, and PBON must remain clear.
+An output-configured PB line requires independently known high-latch provenance;
+pin reads cannot prove that provenance. The full retained stock IRQ scan can
+require stronger conditions. DDRA=`$FF`/DDRB=`$00` is a sufficient default,
+**not** a blanket source restriction or newly chosen runtime rejection rule.
+Custom composed chained/exclusive owners need their actual effects and terminal
+contracts proved; no `$FE47`-at-every-call or no-custom-handler rule is introduced.
+The existing generated installation entry and whole-program vector/link proof
+remain mandatory. Coherent DDR/PBON facts cannot survive an unaccounted concurrent
+writer merely because the scanner set I.
+
+A proposed DDRA=`$7F` handoff counterexample was refuted: stock already cannot
+drive STOP in that prior state, so its later missed STOP alone is not an
+acquisition-introduced failure under a compatible-owner contract. Conversely,
+holding a DDR-writing ingress through final restoration could overwrite the
+restored directions. The PA-only candidate avoids needing that extra mechanism.
+
+The handback oracle separates the library's own final `$7F` write/release order
+from legitimate later retained-owner writes. For example, pinned `UD60` can write
+PA=`$7E` after its shift check when STOP+1 are held and the stock route returns.
+This is not an invented key or a scan-induced STOP error. The library does not
+promise to suppress firmware or freeze its registers indefinitely after handing
+ownership back. A stronger exact-at-RET latch predicate would be a different
+contract, not an excuse to add an adapter. Authority: pinned
+[UD60](https://raw.githubusercontent.com/mist64/cbmsrc/01bd60f162ef92212ef0cb67546ae8f42be34168/KERNAL_C64_03/time)
+and
+[NNMI](https://raw.githubusercontent.com/mist64/cbmsrc/01bd60f162ef92212ef0cb67546ae8f42be34168/KERNAL_C64_03/rs232nmi).
+
+The fresh SFA/ABI auditor independently inspected the full earlier candidate and
+primary firmware, then refuted the counterexample and found **no surviving
+findings** in this bounded direction. **Verified partial / Inference**, not a
+complete acquisition artifact or runtime result. Exact source/ABI, composed owner
+effects, ordinary 11-byte return storage, MMIO traces, repeated helpers/loops,
+four-profile sequential VICE, complete costs and physical checks remain due.
+External nesting, total stack, retained-ROM completion and deadlines remain
+Unknown. Expert `2.0.4`/content `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15`;
+`c64-hardware.md#ports-and-data-direction`,
+`c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts` and
+`sfa-and-abi.md#interrupt-route-completion-gate`; MOS-6526-1981,
+CBM-C64-KERNAL-03 and BLEND65-SPEC-4-038b70e9. Historical routing setup evidence
+exposed by the bounded read was excluded from decisive checks.
+
+## AR-P11 — ordinary aggregate-return copy, not an input workaround
+
+Current baseline: clean `275848be07919eadda79c3dd0ab9322daecc2222`, Node 22.23.1,
+real public `checkProject`/`buildProject`, ACME 0.97, PAL/6581 cooperative PRG,
+NMOS 6510, optimization `none`, safety off. The diagnostic contains no keyboard
+operation, library import, NMI hook or hidden runtime:
+
+```blend65
+struct Sample { values: byte[8]; first: byte; second: byte; quality: byte; }
+function sample(): Sample {
+    let result: Sample = {
+        values: [0,0,0,0,0,0,0,0], first: 0, second: 0, quality: 2
+    };
+    result.values[0] = peek($D020);
+    return result;
+}
+function main(): void {
+    let received: Sample = sample();
+    poke($D021, received.values[0]);
+}
+```
+
+Both public services succeed without diagnostics. Full sources, manifest, exact
+assembly/labels/PRG and cost/storage records remain at
+`/home/gevik/workdir/github/blend65.ri/blend65/.git/worktrees/v4/aggregate-return-discovery.oO7u6X/`.
+Generation `dd4572ea-7155-4c45-809b-685d72941e16`, PRG SHA-256
+`38509116150cd46edbf119bb570aff06a810dd6c8439169a1cfa4e939c1cb100`.
+Actual artifact: 713 container / 711 payload bytes, resident span 787, zero
+padding, four ZP bytes, 23 ordinary SFA bytes, 49 platform-state bytes, two
+bounded generated stack bytes, zero helper scratch. Sample is 70 code bytes:
+37 constant initialization, 12 read/spill/reload/store, 21 return tail. The tail
+initializes a two-byte source pointer that its absolute-indexed reads do not use,
+then copies the eleven-byte result from its local home into the caller's object.
+Caller and callee each reserve eleven bytes; the device-read spill reserves one.
+This is **Verified partial / Fact** at construction/actual-byte evidence, not
+runtime or transformation qualification. The report leaves path cycles Unknown;
+manual byte-based calculation gives 208 actual tail cycles including RTS:
+204 base cycles plus four indexed-read page crossings at offsets 7–10.
+
+The unchanged earlier full scan candidate was also rebuilt, not modified:
+generation `7a07835c-de91-419d-8855-19b33dd14577`, PRG SHA-256
+`bd31556c45e4b35bcd125af7ab8745d4657cf3ef6eadc1f804ea8bc8ed77ce8b`.
+T-12 reduces its acquisition body from 472 to 397 bytes and removes eight RAM
+and four ZP bytes. Placement adds 75 padding bytes, so its actual container
+remains 1,149 bytes; resident span is 1,249, ZP eight, ordinary SFA 44, BSS 50,
+ingress 28, startup 328, restore 281, caller 26, BASIC 12, scratch zero.
+The same W10211 warning remains; its truth at that installation lifetime is
+unqualified. This old DDR-writing construction is **not** the selected PA-only
+direction and is not new scan or decoder qualification.
+
+The candidate correction must reuse the existing aggregate destination and
+return consumers, before SFA closure: fresh non-observable caller destination,
+exclusively returned local, complete alias/lifetime/effect/nested-call/interrupt
+proof, and unchanged safe fallbacks wherever that proof fails. Current anchors:
+[expression destinations](../../../../../packages/compiler/src/semantic/lower-expressions.ts),
+line 54;
+[aggregate construction](../../../../../packages/compiler/src/machine/lower-aggregate.ts),
+line 549;
+[return delivery](../../../../../packages/compiler/src/machine/lower-aggregate-return.ts),
+line 220; and
+[hidden result inventory](../../../../../packages/compiler/src/storage/inventory.ts),
+line 399. No speculative pass, new IR kind, new storage model, special library
+name, public API or old-test amendment is proposed. General inlining, condition,
+index, read-forwarding and unrelated RD-08 debt remain separate; a return-only
+correction does not prove the entire keyboard artifact meets the expert floor.
+
+### Independent output boundary and proposed support packet
+
+The native output auditor independently decoded the actual bytes: sample
+**70 bytes / 272 nominal cycles**, main **20 bytes / 27 cycles**, including its
+JSR. Their complete local work is **90 bytes / 299 cycles**. Startup is 328
+bytes / 441 cycles, restoration 281 / 385, and BASIC stub 12 bytes. Generated
+entry-through-restoration work is 1,125 nominal cycles, excluding BASIC execution,
+retained firmware, asynchronous events and DMA. Two stack bytes are the bounded
+generated call component, not unrestricted external nesting or firmware proof.
+
+An independently derived analytical body using the **same hidden destination
+ABI**, with current outgoing A=2, Y=11, N=0, Z=1, C=1 and unchanged X/V/D/I,
+is **26 bytes / 134 nominal cycles**, assuming its loop branches share a page.
+It initializes the fresh destination in place, omits the unobservable zero later
+overwritten at offset 0, and reads the device once into that offset. Target local
+work is 46 bytes / 161 cycles with the unchanged main. This target requires a
+fresh private caller object, unobservable local address/identity, and no relevant
+argument/callback/nested-call/raw/opaque/asynchronous observer. Its code is
+**unassembled/unexecuted**; storage binding, layout, runtime and the actual
+correction remain Unknown. The comparison establishes a plausible full-body
+gap, **not** a promise that the return-only correction achieves this target.
+Initializer and read-forwarding differences remain independent debts.
+
+The smallest proof must govern the complete returned local, not only its first
+initializer. Existing semantic return expressions already carry a caller
+destination, but a local-name return becomes a place address. The machine then
+materializes that pointer even when its copy loop recovers a direct source.
+Changing only the initializer destination is insufficient: later member writes
+still use the local root, and the nested-constant direct path requires a proved
+fresh direct destination. Preserve or safely extend the existing proof through
+every read/write and terminal use **before** storage closure, retaining current
+materialization for unproved cases. This is not approval to add a general solver
+or to hide new staging/storage in emission.
+
+| Complexity field                   | Proposed bounded correction                                                                                                                                                                                                                                                        |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Original goal                      | Accepted normal-source keyboard and both-joystick library with expert output; do not work around an ordinary return defect in its source.                                                                                                                                          |
+| Extra system or support code       | One compiler-wide aggregate-return destination correction through the existing semantic/destination, storage-inventory and machine-return consumers.                                                                                                                               |
+| Why it may be needed               | A fresh fixed result is built in an extra local object and copied into the already caller-owned result; an additional source pointer has no reader.                                                                                                                                |
+| Evidence                           | The isolated non-keyboard artifact above has two eleven-byte objects, an unused two-byte ZP source pointer and a 208-cycle return tail. The same copy remains in the rebuilt earlier scanner.                                                                                      |
+| Smallest solution that still works | Coalesce only a proved exclusively returned local into a fresh non-observable caller destination before SFA closure; preserve alias, lifetime, effects, nested calls and interrupt observations, with unchanged safe fallbacks. Remove only proved unused source-address setup.    |
+| Extra cost                         | Necessary existing producer/consumer changes and focused new independent behavior/output/resource regressions. No new pass, IR kind, storage model, runtime, public API, package, dependency, harness or old-oracle edit. Any materially larger proof mechanism reopens this gate. |
+| Independent verdict                | **Justified, narrowly**: the existing caller destination is the right boundary, but its presence alone does not prove safe whole-local substitution.                                                                                                                               |
+| Direct user decision               | **Pending** — this exact support correction is AR-P11; AR-P10's behavior approval does not grant it.                                                                                                                                                                               |
+
+**Best option:** approve that bounded return correction as the next prerequisite.
+It helps ordinary programs returning fixed data, not only keyboard code. Removing
+only the unused pointer is useful but leaves the hot copy; waiting for the whole
+RD-08 optimizer conflicts with its present dependency on RD-05. Neither is a
+substitute for qualifying this required component. No new runtime or source-level
+workaround is selected, and no keyboard cost exception is requested.
+
+One fresh independent design challenger converges on this direction with verdict
+**Justified, narrowly**. It had no local reader and judged supplied exact code
+anchors/artifact facts, not independent byte inspection or skill qualification.
+The native output auditor did inspect the current source, actual assembly/PRG and
+complete reports. Strongest counterargument: safe whole-local substitution may
+need proof facts the present consumers lack; the tiny example does not prove the
+full scanner or all returned locals safe. Confidence: **Medium**. Hardening:
+guard every local access and nested-member construction rather than changing only
+the initializer; retain fallbacks and reopen scope if new machinery is needed.
+The actual implementation must have independent RED behavior tests, assembled
+output/resource expectations and relevant runtime qualification before closure.
+
+Fresh GitHub title/body checks distinguish the existing owners: #82 covers
+redundant pointer setup for borrowed aggregate members; #81 covers alias-class
+specialization; #70 covers ordinary forwarding/dead stores; #102 covers constant
+nested construction. #83 concerns conditional function-value homes, **not** this
+aggregate-return copy. The distinct measured return-copy debt is now
+[#103](https://github.com/blendsdk/blend65/issues/103), filed under the standing
+parity-defect rule. Filing it does not approve the proposed correction. No existing
+issue was edited or closed. Remaining full-library costs and ordinary
+initialization/read/condition/index debt stay explicit, not silently approved by
+this packet. Expert lineage
+is `2.0.4`/content `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15`,
+`6502-lowering-casebook.md#calls-returns-abi-and-helpers`,
+`6502-lowering-casebook.md#aggregates-copies-and-layout`,
+`sfa-and-abi.md#modern-source-and-static-storage` and
+`evidence-parity-and-recovery.md#equivalent-work-accounting`; MOS-PGM-1976,
+BLEND65-SPEC-4-038b70e9 and ACME-097-R266. No new `/tmp` directory, production,
+test or frozen-authority edit was made. The positive gate remains closed pending
+the named support decision and its qualification.
+
+Discovery checkpoint verification: the root foundation suite passes 12/12 with
+no skips; forced formatting, local links/source keys, whitespace and protected
+path guards pass. Independent correctness review found only an outdated pending
+assessment phrase; it is corrected above. No production/test/frozen-authority
+change, compiler-suite rerun or new emulator qualification is claimed. RD-05
+remains Executing at 4/10 RDs Done; AR-P11 is Open. Local commit only, no push.
