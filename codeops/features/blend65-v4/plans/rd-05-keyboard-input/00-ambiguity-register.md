@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — AR-P12's named output-correction scope awaits approval; acquisition and decoder qualification remain pending
-> **Last Updated**: 2026-10-10 08:10 CEST
+> **Status**: ✅ GATE PASSED — AR-P1–AR-P12 resolved; planning authority only, acquisition and decoder qualification remain pending
+> **Last Updated**: 2026-10-10 09:40 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -27,9 +27,14 @@
 | AR-P9  | Technical (complexity escalation) / aggregate construction — sensitive     | May the existing aggregate builder construct pure nested constants directly in a proved fresh final destination?                | Recommended bounded compiler-wide correction for the independently reproduced extra array temporary/copy. Reuse current aggregate/destination machinery before SFA closure; retain effect/alias/borrow fallbacks. No new pass, IR kind, general optimizer, runtime, API or old-oracle exception.                                                                                    | ✅ Resolved — user: “i approve” on 2026-10-09 to the exact AR-P9/T-12 support packet; bounded T-12 qualification 14/14 complete; [closeout](../constant-nested-construction/08-closeout.md), not keyboard qualification |
 | AR-P10 | Behavioral / saved-observation compatibility — sensitive                   | What should queries return for a `COMPLETE` snapshot whose bytes cannot represent any stable compatible electrical state?       | Accepted: retain directly justified `OBSERVED_UP`; other answers require a nonempty set of compatible stable explanations and agreement across that set. Incompatible data otherwise yields `UNCERTAIN`. Preserve raw bytes and acquisition quality; no retry, cache, component reconstruction or new API. See the accepted policy below.                                           | ✅ Resolved — user: “i approve” on 2026-10-09 to the single named AR-P10 policy; technical proof and costs remain pending                                                                                               |
 | AR-P11 | Technical (complexity escalation) / aggregate-return ownership — sensitive | May the existing aggregate-destination machinery eliminate a proved unnecessary local-to-caller return copy before SFA closure? | Accepted narrower whole-function correction: one completely initialized returned local, contained accesses, no observable address or alias, and every actual stable call supplying a fresh private destination. Any unknown preserves the entire existing function/copy. No per-call variants, forced temporaries, solver, new pass, IR kind, API, runtime or old-oracle exception. | ✅ Resolved — user: “I approve” on 2026-10-09 to the single narrower AR-P11 packet; T-14 implementation qualified 19/19 on 2026-10-10. Positive keyboard plan and qualification remain separate.                        |
-| AR-P12 | Technical (complexity escalation) / exact emitted-output scope — sensitive | May the keyboard plan include the three demonstrated existing-consumer output corrections below?                                | Preserve the approved source API and compatible-owner contract. Name only masked byte addressing, adjacent expression/flag use, and fixed-address/immediate call-result use in existing lowering consumers; retain all general fallbacks. No automatic admission mechanism, new pass, IR kind, solver, runtime, API, dependency, harness or old-oracle exception.                   | ❌ Open — independent verdict Justified; exact named correction batch awaits direct user approval; no implementation authority attributed to “proceed”                                                                  |
+| AR-P12 | Technical (complexity escalation) / exact emitted-output scope — sensitive | May the keyboard plan include the three demonstrated existing-consumer output corrections below?                                | Preserve the approved source API and compatible-owner contract. Name only masked byte addressing, adjacent expression/flag use, and fixed-address/immediate call-result use in existing lowering consumers; retain all general fallbacks. No automatic admission mechanism, new pass, IR kind, solver, runtime, API, dependency, harness or old-oracle exception.                   | ✅ Resolved — user: “I approve” on 2026-10-10 to this exact three-family correction batch; independent verdict Justified. Implementation and qualification remain pending.                                              |
 
 ## Evidence and lineage
+
+The sections below preserve a chronological discovery log. Earlier pending-gate
+wording, proposals and expert versions describe their dated checkpoints, not the
+current state. The table above and latest accepted AR-P2/AR-P3/AR-P10/AR-P11/AR-P12
+sections govern this plan. The current planning gate does not qualify execution.
 
 - Current declarations provide only the two raw joystick reads and five saved-byte predicates:
   [profile declarations](../../../../../packages/compiler/src/frontend/profile.ts), lines 242–251.
@@ -1525,7 +1530,7 @@ normal scope/ambiguity gate.
 | Smallest solution that still works | Separate small specification-first corrections in the keyboard plan, preserving every general fallback. No new pass, IR kind, solver, runtime, API, dependency, harness, state manager, forced source cast or unrolling policy.                                                                                                    |
 | Extra cost                         | Focused changes to existing compiler consumers and narrow compile-time facts before existing SFA closure, plus independent behavior/output regressions and sequential runtime checks. No new persistent support subsystem.                                                                                                         |
 | Independent verdict                | **Justified** — the same blind challenger independently assessed the additional output-scope packet. Each measured gap has an existing consumer; separate specification-first tasks avoid a combined cross-cutting patch. Fixed-place identity and scalar-result/flag availability still need explicit producer-to-consumer proof. |
-| Direct user decision               | Pending — no output correction or positive plan is implemented by this checkpoint.                                                                                                                                                                                                                                                 |
+| Direct user decision               | Approved — user: “I approve” on 2026-10-10 to this exact three-family packet. Approval authorizes separate specification-first plan tasks, not a larger mechanism or a completed output/runtime claim.                                                                                                                             |
 
 **Best option / recommendation:** approve exactly these three pattern families
 for separate small tasks in the keyboard plan. Retain the ordinary source API,
@@ -1568,4 +1573,16 @@ suite **12/12 pass**, no skips, started 08:08:59 CEST, duration 5.55 seconds.
 Independent correctness review reports **no findings** and clean oracle integrity;
 it verified documentation consistency and the foundation log, not scanner runtime
 or expert output. No compiler-suite rerun or new emulator result is claimed.
-AR-P12 remains Open at this green local documentation checkpoint; no push.
+AR-P12 remained Open at that green local documentation checkpoint; no push.
+
+### AR-P12 approval — 2026-10-10
+
+The user's subsequent **“I approve”** accepts exactly the packet above. All
+twelve planning decisions are now resolved. The modification set additionally
+permits the three named existing-consumer correction families, their new
+independent specification/implementation tests and focused qualification evidence.
+It does not permit automatic owner admission, a new optimization framework,
+source restrictions or any additional old-test change. AR-P6 remains the only
+approved old-oracle exception. Planning completion and preflight follow;
+acquisition, saved-data decoding and complete expert-output qualification remain
+pending, and RD-05/DEF-7 remain open.
