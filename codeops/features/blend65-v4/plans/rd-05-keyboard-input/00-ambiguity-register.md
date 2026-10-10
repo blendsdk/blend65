@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — saved-data model and return prerequisite qualified; keyboard technical plan and qualification pending
-> **Last Updated**: 2026-10-10 01:59 CEST
+> **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — AR-P12's named output-correction scope awaits approval; acquisition and decoder qualification remain pending
+> **Last Updated**: 2026-10-10 08:10 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -27,6 +27,7 @@
 | AR-P9  | Technical (complexity escalation) / aggregate construction — sensitive     | May the existing aggregate builder construct pure nested constants directly in a proved fresh final destination?                | Recommended bounded compiler-wide correction for the independently reproduced extra array temporary/copy. Reuse current aggregate/destination machinery before SFA closure; retain effect/alias/borrow fallbacks. No new pass, IR kind, general optimizer, runtime, API or old-oracle exception.                                                                                    | ✅ Resolved — user: “i approve” on 2026-10-09 to the exact AR-P9/T-12 support packet; bounded T-12 qualification 14/14 complete; [closeout](../constant-nested-construction/08-closeout.md), not keyboard qualification |
 | AR-P10 | Behavioral / saved-observation compatibility — sensitive                   | What should queries return for a `COMPLETE` snapshot whose bytes cannot represent any stable compatible electrical state?       | Accepted: retain directly justified `OBSERVED_UP`; other answers require a nonempty set of compatible stable explanations and agreement across that set. Incompatible data otherwise yields `UNCERTAIN`. Preserve raw bytes and acquisition quality; no retry, cache, component reconstruction or new API. See the accepted policy below.                                           | ✅ Resolved — user: “i approve” on 2026-10-09 to the single named AR-P10 policy; technical proof and costs remain pending                                                                                               |
 | AR-P11 | Technical (complexity escalation) / aggregate-return ownership — sensitive | May the existing aggregate-destination machinery eliminate a proved unnecessary local-to-caller return copy before SFA closure? | Accepted narrower whole-function correction: one completely initialized returned local, contained accesses, no observable address or alias, and every actual stable call supplying a fresh private destination. Any unknown preserves the entire existing function/copy. No per-call variants, forced temporaries, solver, new pass, IR kind, API, runtime or old-oracle exception. | ✅ Resolved — user: “I approve” on 2026-10-09 to the single narrower AR-P11 packet; T-14 implementation qualified 19/19 on 2026-10-10. Positive keyboard plan and qualification remain separate.                        |
+| AR-P12 | Technical (complexity escalation) / exact emitted-output scope — sensitive | May the keyboard plan include the three demonstrated existing-consumer output corrections below?                                | Preserve the approved source API and compatible-owner contract. Name only masked byte addressing, adjacent expression/flag use, and fixed-address/immediate call-result use in existing lowering consumers; retain all general fallbacks. No automatic admission mechanism, new pass, IR kind, solver, runtime, API, dependency, harness or old-oracle exception.                   | ❌ Open — independent verdict Justified; exact named correction batch awaits direct user approval; no implementation authority attributed to “proceed”                                                                  |
 
 ## Evidence and lineage
 
@@ -1413,3 +1414,158 @@ RD-05/DEF-7 and the positive keyboard gate remain open. Frozen spec/expert and
 every old oracle are unchanged. The returned-local prerequisite is qualified;
 the next owned work is the separate keyboard technical/positive plan gate.
 This is a green local implementation checkpoint; no automatic push.
+
+## Keyboard technical closure review — 2026-10-10
+
+Read-only review baseline: clean `9bc2a4732d148ecb33bfd8ba9fcd5a21ff385f68`.
+The platform and emitted-output auditors inspected the actual PA-only candidate,
+its caller and all four resumed acquisition generations. Neither ran verification
+or VICE. Their conclusions do not extend T-14's qualification to input support.
+
+### Compatible-owner boundary: keep the accepted contract
+
+The scoped PA-only ingress remains the smallest design under AR-P2/AR-P3. No
+unconditional hardware defect survives against that conditional sequence.
+Qualification still has to establish the selected predecessor's effects, coherent
+capture, exact restoration, ordinary helper/repeated-call behavior and RESTORE.
+A prior handler that writes a DDR between the two capture reads can produce a
+torn saved pair; the existing no-unaccounted-writer condition excludes that case.
+The interruption byte is not a universal certificate for the pre-install window.
+
+Current internal facts distinguish vector/link/source-mask relations from input
+compatibility: `semantic/interrupt-context-facts.ts:68–104` has no CIA1 port/DDRs/
+PBON relation; `semantic/cia-ownership-facts.ts:61–93` excludes port/DDR offsets;
+`semantic/interrupt-address-facts.ts:59–79` exposes internal write-address facts.
+The public install/restore capabilities in `frontend/profile.ts:252–277` return
+`void`, not a source-visible admission value. All these paths are relative to
+`packages/compiler/src/`. Balanced ownership composition is supporting evidence,
+not an automatic input-compatibility decision.
+
+**Plan-owned direction within the existing approval:** specify and qualify the
+stock route and compatible custom predecessors under the accepted precondition.
+Do not introduce an automatic ownership checker, source-visible eligibility
+primitive, library-name special case, blanket DDRA rule, custom-handler ban or
+`$FE47`-at-every-call requirement. In particular, `UNAVAILABLE` does not silently
+acquire a promise to diagnose every arbitrary incompatible owner. No public
+behavior or supported-route expansion is selected here.
+
+One blind design challenger independently recommended that direction. An extra
+admission prototype would investigate a stronger automatic-admission promise,
+not implement the accepted conditional contract. Its strongest counterargument
+is the ease of violating the precondition; public documentation and qualification
+must make the boundary explicit. Confidence **High** for this planning direction;
+automatic admission, scanner runtime and full parity remain **Unknown**.
+The challenger used root-supplied actual-file excerpts because its read-only
+role lacked a file-reading tool; this is a decision challenge, not independent
+runtime or byte qualification.
+
+### Actual current output: defects, not a keyboard cost waiver
+
+Raw evidence remains at
+`/home/gevik/workdir/github/blend65.ri/blend65/.git/worktrees/v4/returned-local-execution.ljm6xa/acquisition/`.
+The PAL/6581 generation is
+`final-pal-6581/9faf9e4e-6b2e-41e5-8085-554ffba28db7`; the other three are
+identified in the retained `resumed-artifacts.log`. The auditor directly
+reconstructed the quantities below; all four PRG/assembly/labels/cost files
+match byte-for-byte. ACME 0.97, NMOS 6510, optimization `none`; no runtime result.
+
+| Current component                    | Output bytes |                   Nominal cycles |
+| ------------------------------------ | -----------: | -------------------------------: |
+| Startup entry                        |          328 |                              441 |
+| Ordinary caller, including both JSRs |           55 |                               75 |
+| Acquisition                          |          363 | COMPLETE 1,654 / UNAVAILABLE 154 |
+| Diagnostic saved-row query           |           63 |                               91 |
+| Ingress placement padding            |           17 |                                — |
+| A-only ingress to predecessor        |           18 |                               33 |
+| Startup restoration                  |          281 |                              385 |
+| BASIC stub                           |           12 |         BASIC execution excluded |
+
+Container **1,139**, payload **1,137**, resident span **1,227** bytes; PRG SHA-256
+`dea6714d5d9916c1a3fecfeb981852209944c97aadbc4e350817a0907c083401`.
+Residency includes 50 BSS, 34 ordinary SFA and six ZP bytes; no decoder tables or
+generated helpers. Full generated paths are **2,646 / 1,146 nominal cycles**.
+VIC stalls, external arrivals, predecessor ROM work and BASIC execution are not
+included. The five-byte per-entry ingress stack cost is not an external peak.
+Hardware acceptance plus the four existing ROM stub bytes add 14 cycles before
+the ingress; those ROM bytes add zero bytes to the PRG. External nesting,
+firmware completion and finite deadlines remain unproved.
+
+| Finding                                                                  | Current → equivalent expert expectation                                                     | Existing correction consumers                                                                    |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| MC-001: masked byte addressing and selected-byte retention               | Row store **63 B/88 cycles → 23 B/34**; query **63 B/91 → 23 B/37**                         | `machine/lower-scalar.ts:20–77`, `lower-aggregate-index.ts:60–138`, `lower-aggregate.ts:304–440` |
+| MC-002: disposable expression homes and recreated flags                  | PBON branch **36 B/46 or 47 cycles → 10 B/12 or 13**; marker `EOR #0` adds **2 B/2 cycles** | `machine/lower-register-forwarding.ts:58–140`, `lower-scalar.ts:456–533`                         |
+| MC-003: fixed borrowed-address staging and immediate scalar-result spill | Caller **55 B/75 cycles → 41 B/55**                                                         | `machine/lower-call.ts:19–65,151–170` and the existing forwarding selector                       |
+
+These are **MAJOR output defects**, with analytical expert expectations, not
+assembled expert artifacts or whole-decoder costs. The row comparison retains
+16-bit page carry/wrap, X, outgoing Y=`0`, C/V and result N/Z; the scan consumes
+PB exactly once after PA and forms the destination before that read. The PBON
+comparison retains both ordered CIA reads once, unchanged status boundaries and
+all eleven initialization stores. The marker remains a fresh shared-state read.
+The caller comparison retains the current hidden destination, parameter homes,
+two calls and restoration jump. Overlapping/clobbering argument evaluation still
+needs staging. Logical scratch savings do not establish final SFA/ZP savings;
+placement padding may absorb local code-size changes.
+
+The complete saved-data decoder has not been constructed or costed. The plan may
+own concrete source, behavior, output and runtime tasks before qualification;
+it may not mark those endpoints complete, transfer a joystick-only exception,
+subtract local deltas to invent a packaged target, or use RD-08 ownership as a
+keyboard output waiver. Unknowns discovered during implementation retain their
+normal scope/ambiguity gate.
+
+### AR-P12 — named existing-consumer correction scope
+
+| Complexity field                   | Proposed boundary                                                                                                                                                                                                                                                                                                                  |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Original goal                      | Ordinary-source combined input with the approved behavior and expert assembly output.                                                                                                                                                                                                                                              |
+| Extra system or support code       | Only the three demonstrated compiler-wide pattern families in MC-001–MC-003, in the existing lowering/value/forwarding consumers.                                                                                                                                                                                                  |
+| Why it may be needed               | The current artifact unnecessarily widens/retains masked ordinals, saves disposable expression values and stages fixed addresses/immediate results. T-14's return-only approval does not authorize these separate corrections.                                                                                                     |
+| Evidence                           | The actual artifact and source/consumer locations above; each expert candidate preserves the original ABI and ordered effects.                                                                                                                                                                                                     |
+| Smallest solution that still works | Separate small specification-first corrections in the keyboard plan, preserving every general fallback. No new pass, IR kind, solver, runtime, API, dependency, harness, state manager, forced source cast or unrolling policy.                                                                                                    |
+| Extra cost                         | Focused changes to existing compiler consumers and narrow compile-time facts before existing SFA closure, plus independent behavior/output regressions and sequential runtime checks. No new persistent support subsystem.                                                                                                         |
+| Independent verdict                | **Justified** — the same blind challenger independently assessed the additional output-scope packet. Each measured gap has an existing consumer; separate specification-first tasks avoid a combined cross-cutting patch. Fixed-place identity and scalar-result/flag availability still need explicit producer-to-consumer proof. |
+| Direct user decision               | Pending — no output correction or positive plan is implemented by this checkpoint.                                                                                                                                                                                                                                                 |
+
+**Best option / recommendation:** approve exactly these three pattern families
+for separate small tasks in the keyboard plan. Retain the ordinary source API,
+compatible-owner precondition, general lowering fallbacks and original oracles.
+This is compiler-wide output correction, not a keyboard-specific special case.
+Correcting one family first is viable sequencing, not a waiver of the other two.
+The strongest counterargument is the caller correction's alias/ABI sensitivity
+and the unconstructed decoder; independent behavior/output expectations and
+separate green checkpoints address that risk without introducing an optimizer
+framework. Confidence **High** for necessity/boundedness, **Medium** for eventual
+sufficiency. Hardening: narrowed the direction to existing consumers and excluded
+automatic admission machinery; **Challenger: converged**. Further mechanism or
+scope growth requires its own exact ruling, not an inference from AR-P12.
+
+All three findings must remain visible until corrected and qualified; fixing
+only one is not permission to close the keyboard output gate. Exact full-plan
+tasks and test cases follow only after the named correction scope is approved.
+Every old oracle remains unchanged except AR-P6's already approved nine-name
+inventory extension when its implementation task is reached.
+
+Lineage: active frozen expert **2.0.4**, content
+`0e2a6280ddf77e42252b7a50b85cf9ea3d732b15`; frozen Specification 4.0 identity
+`BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b`.
+Selected normative headings: CIA ports/data direction, interrupt entry/exit,
+SFA interrupt-route/final-closure, lowering loads/stores/pointers/calls/volatility,
+CPU flags/addressing and equivalent-work accounting. Governing keys:
+MOS-6526-1981, MOS-PGM-1976, MOS-HW-1976, MOS-6510-1982, CBM-C64-PRG-1982,
+CBM-C64-KERNAL-03, ACME-097-R266 and BLEND65-SPEC-4-038b70e9.
+Both artifact auditors reported exposure to historical summarized conclusions
+in their bounded register reads; those summaries were excluded from decisive
+checks. Current byte/cost reconstruction is distinct from a blind hardware
+qualification. No frozen authority, production, test oracle or runtime evidence
+changed. RD-05/DEF-7 remain open; 4/10 RDs Done. No new `/tmp` directory was
+created and no unrelated temporary files were removed.
+
+Checkpoint validation: forced formatting, local links, the new AR-P12 anchor,
+selected source-key definitions, blocked/register-only gate, unchanged progress,
+whitespace and empty immutable/code/test/portfolio guards pass. Fresh foundation
+suite **12/12 pass**, no skips, started 08:08:59 CEST, duration 5.55 seconds.
+Independent correctness review reports **no findings** and clean oracle integrity;
+it verified documentation consistency and the foundation log, not scanner runtime
+or expert output. No compiler-suite rerun or new emulator result is claimed.
+AR-P12 remains Open at this green local documentation checkpoint; no push.
