@@ -11,6 +11,12 @@ interfaces. Production/compiler implementation, prior output expectations and
 historical reviewer/grading answers are forbidden author inputs. They do not
 review their own oracle. Root owns expensive verification; VICE runs sequentially.
 
+Existing specification tests stay unchanged except AR-P6's exact nine-name
+inventory extension and AR-P13's exact two Timer-A setup sites. The latter stops
+only the inherited counter before each source's initial ICR read, preserving
+other CRA bits and every source, assertion, injection, timeout and observed
+interval. No added acknowledgement or shared-harness correction is authorized.
+
 Use existing `profile-fixture`/VICE interfaces from [02](02-current-state.md).
 Check actual PRG bytes, not only assembly text. A pure electrical reference in a
 test may construct endpoint reachability from declared contacts independently
@@ -52,7 +58,7 @@ production edits. They are not full-package targets.
 | ST-21 | Two generated overlapping entries; genuine STOP+RESTORE; changing-key false-STOP witness → monotonic interruption marker, no generated private overlap; genuine STOP remains reachable and false scan-induced STOP is absent under the compatible-owner condition. No finite external nesting/ROM deadline is inferred.                                                                                        | AR-P2/AR-P3; T-04/T-05 method; frozen cooperative exception                                 |
 | ST-22 | Actual compatible generated chained predecessor and compatible exclusive terminal owner → composed scan works without a no-custom-handler ban or per-call FE47 gate. Known unproved generated storage/vector mutation keeps existing rejection/no-generation behavior. A port-DDR writer outside the accepted coherent-owner precondition is not falsely certified by SEI.                                     | AR-P2; existing program/vector proof; [03-03](03-03-acquisition.md#preconditions-and-scope) |
 | ST-23 | Exact installed source in an ordinary caller and saved-query-only program → independently derived whole equivalent expert acquisition/query/caller baselines; all complete path/code/data/padding/BSS/SFA/ZP/scratch/stack/MMIO costs reported, no ratio above the expert floor silently accepted. Local meets have a measured owned path-to-beat issue; RD-08 is not a waiver.                                | prime directive; AR-P12                                                                     |
-| ST-24 | Full ordinary source build/run, normal return to BASIC, M1 and existing joystick/NMI suites → unchanged unrelated APIs, diagnostics, package/path/hash/overlay protections and no generation on existing errors. Raw/D64 profiles gain no new admission claim; no frozen/old oracle change except AR-P6.                                                                                                       | R5.25; AR-P6; existing profile/product boundary                                             |
+| ST-24 | Full ordinary source build/run, normal return to BASIC, M1 and existing joystick/NMI suites → unchanged unrelated APIs, diagnostics, package/path/hash/overlay protections and no generation on existing errors. Raw/D64 profiles gain no new admission claim; no frozen/old oracle change except AR-P6/AR-P13.                                                                                                       | R5.25; AR-P6/AR-P13; existing profile/product boundary                                             |
 
 ## Coverage and qualification
 

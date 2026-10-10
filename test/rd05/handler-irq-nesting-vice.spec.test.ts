@@ -291,6 +291,10 @@ describe.sequential("nested IRQ storage and complete status in pinned VICE", () 
         await monitor.writeIo(0xd01a, Uint8Array.of(0));
         await monitor.writeIo(0xd019, Uint8Array.of(1));
         await monitor.writeIo(CIA1_ICR, Uint8Array.of(0x7f));
+        // Masking interrupts does not stop a timer from creating another pending event.
+        // Stop the inherited counter; leave acknowledgement to the source's ICR read.
+        const timerAControl = await ioByte(monitor, 0xdc0e);
+        await monitor.writeIo(0xdc0e, Uint8Array.of(timerAControl & 0xee));
         const a = entries("A");
         const b = entries("B");
         const arm = entries("arm");

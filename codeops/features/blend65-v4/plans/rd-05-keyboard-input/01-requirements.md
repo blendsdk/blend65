@@ -11,8 +11,9 @@
 | Remaining R5.24 / AC-19               | Both joystick ports' keyboard coexistence; preserve completed raw/predicate APIs |
 | Necessary compiler output corrections | Exact AR-P12 three-family modification set                                       |
 | One old inventory amendment           | Exact AR-P6 nine-name extension only                                             |
+| Two old timer setup corrections       | Exact AR-P13 four-profile/eight-status-case CRA read/write pairs only; all substantive test behavior unchanged |
 
-Other RD-05 slices, T-10/T-13/T-15, existing RD-08 optimization debts, asset work,
+Other RD-05 slices, T-10/T-13/T-15/T-17, existing RD-08 optimization debts, asset work,
 raw/D64 admission, final user-host and physical QA are outside this plan. They
 are neither silently fixed nor waived. Completed T-11/T-12/T-14 are prerequisites,
 not keyboard qualification. No requirement or frozen-authority edit is planned.

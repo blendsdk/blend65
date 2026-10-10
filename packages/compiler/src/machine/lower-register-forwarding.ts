@@ -27,12 +27,17 @@ export function selectRegisterForwarding(
 } {
   const constantValues = new Set<string>();
   const zeroValues = new Set<string>();
-  const blocksById = new Map(blocks.map((block) => [block.id, block]));
+  const byteMasks = new Set<string>();
+  const fixedReadsOutsideZeroPage = new Set<string>();
   for (const block of blocks) {
     for (const operation of block.operations) {
       if (operation.kind === "constant") {
         constantValues.add(operation.result);
         if (operation.value === 0n) zeroValues.add(operation.result);
+        if (typeof operation.value === "bigint" && operation.value >= 0n && operation.value <= 255n)
+          byteMasks.add(operation.result);
+        if (typeof operation.value === "bigint" && (operation.value & 0xffffn) > 255n)
+          fixedReadsOutsideZeroPage.add(operation.result);
       } else if (operation.kind === "convert" && constantValues.has(operation.operand)) {
         constantValues.add(operation.result);
       }
@@ -65,9 +70,87 @@ export function selectRegisterForwarding(
     for (let index = 0; index < block.operations.length; index += 1) {
       const producer = block.operations[index]!;
       if (
+        producer.kind === "binary" &&
+        ["&", "|", "^"].includes(producer.operator) &&
+        typeBytes(producer.type) === 1 &&
+        singleUseValues.has(producer.result)
+      ) {
+        const consumer = nextMachineOperation(block, index);
+        if (
+          consumer?.kind === "binary" &&
+          ["&", "|", "^"].includes(consumer.operator) &&
+          typeBytes(consumer.type) === 1 &&
+          consumer.left === producer.result &&
+          constantValues.has(consumer.right)
+        )
+          forwardedRegisterValues.add(producer.result);
+      }
+      if (
+        ((producer.kind === "memory-read" &&
+          producer.width === 1 &&
+          constantValues.has(producer.address)) ||
+          (producer.kind === "load" && typeBytes(producer.type) === 1) ||
+          (producer.kind === "binary" &&
+            typeBytes(producer.type) === 1 &&
+            ["&", "|", "^"].includes(producer.operator))) &&
+        singleUseValues.has(producer.result)
+      ) {
+        const consumer = nextMachineOperation(block, index);
+        if (
+          consumer?.kind === "binary" &&
+          ["==", "!="].includes(consumer.operator) &&
+          consumer.left === producer.result &&
+          zeroValues.has(consumer.right) &&
+          nextMachineOperation(block, block.operations.indexOf(consumer)) === undefined &&
+          block.terminator.kind === "branch" &&
+          block.terminator.condition === consumer.result
+        ) {
+          // This consumer needs both A and the producer's freshly established Z.
+          // A-only forwarding to a store does not grant this flag ownership.
+          forwardedRegisterValues.add(producer.result);
+        }
+      }
+      if (
+        producer.kind === "binary" &&
+        producer.operator === "&" &&
+        (typeBytes(producer.type) === 2 ||
+          (producer.type.kind === "scalar" && producer.type.name === "byte")) &&
+        singleUseValues.has(producer.result) &&
+        (byteMasks.has(producer.left) || byteMasks.has(producer.right))
+      ) {
+        const consumer = nextMachineOperation(block, index);
+        /** Only the sole stride-one selection can consume this still-live ordinal. */
+        const selectsOrdinal = (operation: typeof consumer): boolean => {
+          if (operation?.kind !== "load" && operation?.kind !== "store") return false;
+          const [component] = operation.place.path;
+          return (
+            typeBytes(operation.type) === 1 &&
+            operation.place.path.length === 1 &&
+            component?.kind === "index" &&
+            component.value === producer.result
+          );
+        };
+        if (selectsOrdinal(consumer)) forwardedRegisterValues.add(producer.result);
+        else if (
+          consumer?.kind === "memory-read" &&
+          consumer.width === 1 &&
+          fixedReadsOutsideZeroPage.has(consumer.address) &&
+          singleUseValues.has(consumer.result)
+        ) {
+          const store = nextMachineOperation(block, block.operations.indexOf(consumer));
+          if (store?.kind === "store" && store.value === consumer.result && selectsOrdinal(store)) {
+            // Its one fixed read can follow private pointer setup at the store,
+            // after the retention owner proves that setup cannot touch its address.
+            forwardedRegisterValues.add(producer.result);
+            forwardedRegisterValues.add(consumer.result);
+          }
+        }
+      }
+      if (
         (producer.kind !== "load" &&
           producer.kind !== "memory-read" &&
           producer.kind !== "bcd" &&
+          (producer.kind !== "call" || typeBytes(producer.type) !== 1) &&
           (producer.kind !== "platform" ||
             (producer.capability !== "c64.input.readJoystick1" &&
               producer.capability !== "c64.input.readJoystick2" &&
@@ -97,37 +180,17 @@ export function selectRegisterForwarding(
       }
       const preceding = block.operations[precedingIndex];
       if (
-        producer.kind === "memory-read" &&
-        producer.width === 1 &&
-        constantValues.has(producer.address) &&
-        consumer?.kind === "binary" &&
-        ["==", "!="].includes(consumer.operator) &&
-        consumer.left === producer.result &&
-        zeroValues.has(consumer.right) &&
-        following === undefined &&
-        block.terminator.kind === "branch" &&
-        block.terminator.condition === consumer.result &&
-        [block.terminator.whenTrue, block.terminator.whenFalse].every((id) => {
-          const arm = blocksById.get(id);
-          const call = arm?.operations[0];
-          return (
-            arm?.operations.length === 1 &&
-            arm.terminator.kind === "unreachable" &&
-            call?.kind === "call" &&
-            call.arguments.length === 0 &&
-            call.result === null &&
-            call.type.kind === "scalar" &&
-            call.type.name === "void"
-          );
-        })
-      ) {
-        // One adjacent LDA supplies both A and Z for this closed terminal-call
-        // selection. No instruction or effect is allowed between read and test.
+        producer.kind === "load" &&
+        typeBytes(producer.type) === 1 &&
+        consumer === undefined &&
+        block.terminator.kind === "return" &&
+        block.terminator.value === producer.result
+      )
         forwardedRegisterValues.add(producer.result);
-      }
       if (
         ((producer.kind === "load" && typeBytes(producer.type) === 1) ||
           (producer.kind === "memory-read" && producer.width === 1) ||
+          (producer.kind === "call" && typeBytes(producer.type) === 1) ||
           (producer.kind === "platform" && typeBytes(producer.type) === 1)) &&
         consumer?.kind === "memory-write" &&
         consumer.width === 1 &&
@@ -136,7 +199,7 @@ export function selectRegisterForwarding(
       ) {
         // A fixed store consumes A without changing it. Dynamic destinations need pointer
         // setup, so they retain the existing stable-value path. This removes only the
-        // temporary store/reload, never the ordered source read or destination write.
+        // temporary store/reload, never the source read/call or destination write.
         forwardedRegisterValues.add(producer.result);
       }
       if (
@@ -157,6 +220,18 @@ export function selectRegisterForwarding(
           arithmeticIndex += 1;
         }
         const arithmetic = block.operations[arithmeticIndex];
+        if (
+          arithmetic?.kind === "binary" &&
+          ["&", "|", "^"].includes(arithmetic.operator) &&
+          typeBytes(arithmetic.type) === 1 &&
+          arithmetic.left === producer.result &&
+          arithmetic.right === consumer.result
+        ) {
+          // The second fixed read becomes the ALU operand at the same bus-access
+          // position. It does not overwrite the first sample still owned by A.
+          forwardedRegisterValues.add(producer.result);
+          forwardedRegisterValues.add(consumer.result);
+        }
         if (
           arithmetic?.kind === "bcd" &&
           arithmetic.width === 1 &&

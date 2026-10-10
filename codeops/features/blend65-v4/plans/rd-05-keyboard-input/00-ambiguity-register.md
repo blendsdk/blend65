@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: ✅ GATE PASSED — AR-P1–AR-P12 resolved; planning authority only, acquisition and decoder qualification remain pending
-> **Last Updated**: 2026-10-10 09:40 CEST
+> **Status**: Gate passed — AR-P1–AR-P13 resolved; acquisition and decoder qualification remain pending
+> **Last Updated**: 2026-10-10 13:22 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -13,6 +13,10 @@
 | Modification set  | This register, the approved R5.25/AC-20 clarification and, after technical gate closure, this bounded keyboard plan and normal roadmap updates. AR-P6 approves only the nine-name extension of one old export inventory. AR-P7 approves the bounded ordinary closed-program root/private-storage correction. Implementation remains specification-first and plan-gated; other old test edits, requirement clauses, frozen spec and expert changes are not authorized. |
 
 ## Ambiguity register
+
+Current runtime authority additionally includes AR-P13's exact two-file test-setup
+exception. All other old-test, frozen-specification and expert changes remain
+unauthorized. The chronological proposals below retain their original gate state.
 
 | ID     | Category                                                                   | Decision needed                                                                                                                 | Recommendation / authority                                                                                                                                                                                                                                                                                                                                                          | Status                                                                                                                                                                                                                  |
 | ------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -28,6 +32,7 @@
 | AR-P10 | Behavioral / saved-observation compatibility — sensitive                   | What should queries return for a `COMPLETE` snapshot whose bytes cannot represent any stable compatible electrical state?       | Accepted: retain directly justified `OBSERVED_UP`; other answers require a nonempty set of compatible stable explanations and agreement across that set. Incompatible data otherwise yields `UNCERTAIN`. Preserve raw bytes and acquisition quality; no retry, cache, component reconstruction or new API. See the accepted policy below.                                           | ✅ Resolved — user: “i approve” on 2026-10-09 to the single named AR-P10 policy; technical proof and costs remain pending                                                                                               |
 | AR-P11 | Technical (complexity escalation) / aggregate-return ownership — sensitive | May the existing aggregate-destination machinery eliminate a proved unnecessary local-to-caller return copy before SFA closure? | Accepted narrower whole-function correction: one completely initialized returned local, contained accesses, no observable address or alias, and every actual stable call supplying a fresh private destination. Any unknown preserves the entire existing function/copy. No per-call variants, forced temporaries, solver, new pass, IR kind, API, runtime or old-oracle exception. | ✅ Resolved — user: “I approve” on 2026-10-09 to the single narrower AR-P11 packet; T-14 implementation qualified 19/19 on 2026-10-10. Positive keyboard plan and qualification remain separate.                        |
 | AR-P12 | Technical (complexity escalation) / exact emitted-output scope — sensitive | May the keyboard plan include the three demonstrated existing-consumer output corrections below?                                | Preserve the approved source API and compatible-owner contract. Name only masked byte addressing, adjacent expression/flag use, and fixed-address/immediate call-result use in existing lowering consumers; retain all general fallbacks. No automatic admission mechanism, new pass, IR kind, solver, runtime, API, dependency, harness or old-oracle exception.                   | ✅ Resolved — user: “I approve” on 2026-10-10 to this exact three-family correction batch; independent verdict Justified. Implementation and qualification remain pending.                                              |
+| AR-P13 | Runtime / exact old-specification fixture authority | May two existing timer fixtures establish a stopped Timer-A precondition before their source's initial ICR read? | At their existing stopped startup/main checkpoints only, read CIA1 CRA and write `CRA & $EE`; preserve other readable control bits and suppress START/LOAD. No source, assertion, timeout, controlled injection, observed interval or shared-harness change; no added ICR acknowledgement. | Resolved — user: “I approve, proceed and don't stop unless you really have to” on 2026-10-10 to the exact two-file packet. Qualification remains pending. |
 
 ## Evidence and lineage
 
@@ -1586,3 +1591,81 @@ source restrictions or any additional old-test change. AR-P6 remains the only
 approved old-oracle exception. Planning completion and preflight follow;
 acquisition, saved-data decoding and complete expert-output qualification remain
 pending, and RD-05/DEF-7 remain open.
+
+### AR-P13 — deterministic setup for two existing CIA1 timer fixtures
+
+Task 1.3.3's complete Linux checkpoint exits 1: **6,138 passes, two failures,
+two existing skips**. The failures occur before the tests' controlled timer
+injection, at `cia-basic-return-vice.spec.test.ts:200` and
+`handler-irq-nesting-vice.spec.test.ts:350`. Two unchanged sequential reruns pass
+all 13 cases each, with no skips. Neither rerun erases the failed checkpoint or
+establishes its cause; the original timer transitions were not recorded.
+
+Independent platform follow-up **TP-001 (MINOR, existing fixture setup)** finds
+a valid timing counterexample in both fixtures. The stock CIA1 Timer A remains
+running. Masking its interrupt does not stop its counter. A source ICR read
+clears events already pending, but a later underflow can latch another event
+while masked. LOAD does not acknowledge that event. The first fixture can
+therefore enter its handler when the source enables Timer A, before
+`beforeRelease`; the second can reach `beforeOpportunity` with pending bit 0
+set but no handler entry. This demonstrates a setup dependency, not attribution
+of the recorded failures to that mechanism or a compiler defect.
+
+Authority: expert **2.0.4**, content
+`0e2a6280ddf77e42252b7a50b85cf9ea3d732b15`, normative
+`c64-hardware.md#timers-and-control` and `#interrupt-control`; primary
+**MOS-6526-1981**, printed pp.6–8. The
+[manufacturer datasheet](https://myoldcomputer.nl/Files/mos_6526_cia.pdf) was
+rechecked. START controls counting independently of the interrupt mask; pending
+data and interrupt masks are distinct; LOAD is a write strobe, not an ICR clear.
+
+**Best option / recommendation:** approve only these two local test-setup changes:
+
+| File and exact case family | Permitted change |
+| --- | --- |
+| `test/rd05/cia-basic-return-vice.spec.test.ts`, four existing profile cases | At the existing stopped startup-entry checkpoint, after recording original entry CPU/state/stack and before resuming into source, read CIA1 CRA non-consumingly and write `CRA & $EE`. |
+| `test/rd05/handler-irq-nesting-vice.spec.test.ts`, eight existing status-matrix cases only | At the existing stopped main checkpoint, after masking CIA1 sources and before resuming into the source's initial ICR read, make the same CRA-preserving stop. The separate nested-storage case is unchanged. |
+
+The mask clears START and suppresses LOAD while preserving every other readable
+CRA bit, including TOD selection. Add a short durable explanation beside each
+setup write. Do not add an ICR read/acknowledgement, change Timer B, modify any
+Blend65 source string, change or remove an assertion, relax a timeout, alter a
+controlled injection or measured MMIO interval, or edit a shared fixture.
+The source's existing consuming read clears old pending events; a stopped
+Timer A cannot recreate them before intentional arming. All later timer,
+restoration, register/status, firmware-service and output checks remain required.
+
+The strongest counterargument is that this narrows the incoming timer state.
+These cases deliberately inject and prove a subsequent underflow; they do not
+promise to qualify every arbitrary live-counter phase before injection. Accepting
+uncontrolled pre-injection events instead would expand checkpoint/trace handling
+and change the zero-pending scenario. A compiler change would incorrectly hide
+legal device behavior. No new timer framework, API or compiler correction is
+needed.
+
+Confidence: **High** for the setup counterexample and bounded remedy; the exact
+cause of the original failures remains **Unknown**. Hardening: preserve all
+readable CRA bits rather than writing a new complete control value, and leave
+acknowledgement to the unchanged source. Independent correctness follow-up
+converges on the exact two local read/write pairs and confirms non-vacuity:
+deliberate timer injection, exact handback trace, complete status/register/stack,
+vector restoration and later KERNAL service remain tested. Apply the status
+setup only in its eight-case callback, never shared `inVice()`. Both independent
+follow-ups are read-only and add no execution result. A complete GREEN checkpoint
+and an independent exact-fix review remain due after any approval. AR-P6 remains the
+only accepted old-oracle exception until the user explicitly accepts AR-P13.
+Task 1.3.3 pauses at this authority gate; progress remains **18/35**, RD-05 and
+DEF-7 remain open. No old specification test, frozen authority or compiler file
+is changed by this proposal, and no RED phase is committed or pushed.
+
+### AR-P13 approval — 2026-10-10
+
+The user explicitly approves the exact two-file packet above and continued work:
+“I approve, proceed and don't stop unless you really have to”. Apply only the
+four BASIC-return profile cases and eight status-matrix setup sites, preserving
+every stated boundary. AR-P6 and AR-P13 are now the only accepted old-oracle
+exceptions. This resolves the runtime authority gate, not verification. Task
+1.3.3 resumes at 18/35; fresh directed/full checks and independent exact-fix
+review remain required. Make trivial implementation choices within the approved
+contract without another prompt; material scope and protected-oracle expansion
+still require exact authority. No automatic push is authorized.

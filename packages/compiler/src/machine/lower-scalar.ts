@@ -32,8 +32,14 @@ export function lowerBitwise(
   if (width !== 1 && width !== 2) {
     throw loweringFailure("Bitwise lowering requires a byte or word result", operation.span);
   }
+  // A byte-sized AND mask proves the word's high byte is zero. Keep the
+  // source word width, but do not compute or store that already-known byte.
+  const byteMask = (value: LoweredValue): boolean =>
+    value.kind === "constant" && value.value >= 0 && value.value <= 0xff;
+  const zeroHigh = width === 2 && opcode === "and" && (byteMask(left) || byteMask(right));
+  if (zeroHigh && byteMask(left) && !byteMask(right)) [left, right] = [right, left];
   const request =
-    width === 1
+    width === 1 || zeroHigh
       ? null
       : requestStorage(
           state,
@@ -45,8 +51,14 @@ export function lowerBitwise(
           "Multi-byte bitwise result",
           operation.type,
         );
-  const result: LoweredValue =
-    request === null
+  const result: LoweredValue = zeroHigh
+    ? Object.freeze({
+        kind: "zero-extended",
+        low: Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
+        bytes: 2,
+        signed: isSignedType(operation.type),
+      })
+    : request === null
       ? Object.freeze({
           kind: "register",
           registers: "a",
@@ -60,20 +72,25 @@ export function lowerBitwise(
           signed: isSignedType(operation.type),
         });
   const instructions: MachineInstruction[] = [];
-  for (let offset = 0; offset < width; offset += 1) {
+  const adjacentRead =
+    width === 1 && state.adjacentByteRead?.value === operation.right
+      ? state.adjacentByteRead.instruction
+      : null;
+  for (let offset = 0; offset < (zeroHigh ? 1 : width); offset += 1) {
     appendLoadA(instructions, left, offset, state, operation.span);
     instructions.push(
       machineInstruction(
         state.input.profile.cpu,
         opcode,
-        modeForValue(right, offset),
-        operandForValue(right, offset),
-        [],
-        operation.span,
+        adjacentRead?.mode ?? modeForValue(right, offset),
+        adjacentRead?.operand ?? operandForValue(right, offset),
+        adjacentRead?.memory ?? [],
+        adjacentRead?.source ?? operation.span,
       ),
     );
     if (result.kind === "storage") instructions.push(storeA(result, offset, state, operation.span));
   }
+  if (adjacentRead !== null) delete state.adjacentByteRead;
   return Object.freeze({ instructions: Object.freeze(instructions), result });
 }
 

@@ -64,6 +64,7 @@ function terminalChoice(
     width?: 1 | 2;
     fixed?: boolean;
     singleUse?: boolean;
+    producer?: SemanticOperation;
   } = {},
 ): boolean {
   const zero: SemanticOperation = {
@@ -97,7 +98,11 @@ function terminalChoice(
       "entry",
       [
         ...(options.fixed === false ? [] : [{ ...destination, result: "source" }]),
-        { ...read, width: options.width ?? 1, type: options.width === 2 ? WORD : BYTE },
+        options.producer ?? {
+          ...read,
+          width: options.width ?? 1,
+          type: options.width === 2 ? WORD : BYTE,
+        },
         ...(options.barrier
           ? [{ kind: "cpu-control" as const, control: "asm_nop" as const, span }]
           : []),
@@ -149,10 +154,64 @@ describe("adjacent register ownership", () => {
     expect(terminalChoice()).toBe(true);
   });
 
+  it("should preserve the fresh read/Z proof when a selected arm returns", () => {
+    expect(terminalChoice({ returns: true })).toBe(true);
+  });
+
+  it.each(["&", "|", "^"] as const)(
+    "should fuse only adjacent single-use byte %s operands",
+    (operator) => {
+      const second = { ...read, result: "second", address: "destination" };
+      const binary: SemanticOperation = {
+        kind: "binary",
+        operator,
+        result: "combined",
+        left: "value",
+        right: "second",
+        type: BYTE,
+        integer: null,
+        span,
+      };
+      const select = (tail: readonly SemanticOperation[], values = ["value", "second"]) =>
+        selectRegisterForwarding(
+          [
+            semanticBlock(
+              "entry",
+              [{ ...destination, result: "source" }, read, destination, second, ...tail],
+              { kind: "return", value: "combined" },
+            ),
+          ],
+          new Set(values),
+        ).forwardedRegisterValues;
+      expect([...select([binary])]).toEqual(["value", "second"]);
+      expect(select([binary], ["second"]).has("value")).toBe(false);
+      expect(select([{ ...binary, type: WORD }]).has("value")).toBe(false);
+      expect(select([{ kind: "cpu-control", control: "asm_nop", span }, binary]).has("value")).toBe(
+        false,
+      );
+    },
+  );
+
+  it("should forward an ordinary byte call only into its adjacent fixed byte store", () => {
+    const call: Extract<SemanticOperation, { kind: "call" }> = {
+      kind: "call",
+      result: "value",
+      callee: sourceBinding(903),
+      arguments: [],
+      type: BYTE,
+      span,
+    };
+    expect(forwarded([call, destination, write])).toBe(true);
+    expect(forwarded([call, destination, write], false)).toBe(false);
+    expect(forwarded([call, write])).toBe(false);
+    expect(forwarded([{ ...call, type: WORD }, destination, write])).toBe(false);
+    expect(forwarded([call, { ...read, result: "other" }, destination, write])).toBe(false);
+    expect(terminalChoice({ producer: call })).toBe(false);
+  });
+
   it.each([
     ["nonzero comparison", { zero: 1n }],
     ["explicit intervening instruction", { barrier: true }],
-    ["returning arm", { returns: true }],
     ["word read", { width: 2 as const }],
     ["dynamic source address", { fixed: false }],
     ["multiple read consumers", { singleUse: false }],

@@ -47,7 +47,7 @@ function appendImmediateStore(
   );
 }
 
-/** Widen and scale one ordinal into a reusable two-byte SFA temporary. */
+/** Reuse a proved byte offset, or widen and scale it into a two-byte SFA temporary. */
 export function lowerAggregateIndex(
   term: AggregateIndexTerm,
   state: FunctionLoweringState,
@@ -56,6 +56,16 @@ export function lowerAggregateIndex(
   const index = state.values.get(term.value);
   if (index === undefined || index.kind === "condition" || index.bytes > 2) {
     throw loweringFailure("Aggregate index has no retained byte/word value", source);
+  }
+  // A stride-one unsigned byte needs no widening home. A zero-extended word
+  // carries the same proof without changing the source expression's type.
+  if (term.stride === 1) {
+    if (index.kind === "zero-extended") {
+      return Object.freeze({ instructions: Object.freeze([]), value: index.low });
+    }
+    if (index.bytes === 1 && index.signed !== true) {
+      return Object.freeze({ instructions: Object.freeze([]), value: index });
+    }
   }
   const candidateRequest = requestStorage(
     state,

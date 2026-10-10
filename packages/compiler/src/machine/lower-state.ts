@@ -108,6 +108,13 @@ export interface FunctionLoweringState {
   readonly materializedValues: ReadonlySet<string>;
   /** One-use A/AX results consumed by the next instruction-producing operation. */
   readonly forwardedRegisterValues: ReadonlySet<string>;
+  /** One adjacent fixed byte read delivered by its proved store or bitwise consumer. */
+  adjacentByteRead?: {
+    /** Sole consuming operation's semantic value identity. */
+    readonly value: string;
+    /** Original instruction, including its source and ordered volatile effect. */
+    readonly instruction: MachineInstruction;
+  };
   /** Word BCD results written directly to one fixed volatile destination. */
   readonly directBcdWrites: ReadonlyMap<string, MemoryWriteOperation>;
   /** Later fixed-address volatile byte of a subtraction, staged from X. */
@@ -305,10 +312,90 @@ export function retainMachineValue(
   state: FunctionLoweringState,
 ): { readonly instructions: readonly MachineInstruction[]; readonly value: LoweredValue } {
   const hasSemanticLifetime = selectedValueLifetime(state, resultId) !== undefined;
+  const register = value.kind === "zero-extended" ? value.low : value;
+  // Bounds guards insert instruction-producing blocks before the indexed
+  // consumer. Its ordinal must be stable even when ordinary adjacency holds.
+  const checkedOrdinal = state.input.boundsCheck && state.addressValues.has(resultId);
+  let checkedRead = false;
+  const instruction = instructionsInput.length === 1 ? instructionsInput[0]! : null;
+  if (
+    state.forwardedRegisterValues.has(resultId) &&
+    value.kind === "register" &&
+    value.registers === "a" &&
+    value.bytes === 1 &&
+    instruction?.opcode === "lda" &&
+    instruction.operand?.kind === "absolute" &&
+    instruction.memory.length === 1 &&
+    instruction.memory[0]!.volatile &&
+    instruction.memory[0]!.kind === "read"
+  ) {
+    const owner = bindingIdentityKey(state.owner);
+    const blocks =
+      state.input.program.semantic.functions.find((fn) => bindingIdentityKey(fn.id) === owner)
+        ?.blocks ??
+      state.input.program.semantic.globals.find((global) => bindingIdentityKey(global.id) === owner)
+        ?.blocks;
+    const operations =
+      blocks?.find((block) => block.id === state.currentSemanticBlockId)?.operations ?? [];
+    const producerIndex = operations.findIndex(
+      (operation) => "result" in operation && operation.result === resultId,
+    );
+    let next = producerIndex < 0 ? operations.length : producerIndex + 1;
+    while (next < operations.length) {
+      const operation = operations[next]!;
+      if (
+        operation.kind !== "constant" &&
+        (operation.kind !== "convert" || state.values.get(operation.operand)?.kind !== "constant")
+      )
+        break;
+      next += 1;
+    }
+    const store = operations[next];
+    if (
+      store?.kind === "binary" &&
+      ["&", "|", "^"].includes(store.operator) &&
+      typeBytes(store.type) === 1 &&
+      store.right === resultId &&
+      state.forwardedRegisterValues.has(store.left) &&
+      state.values.get(store.left)?.kind === "register" &&
+      state.adjacentByteRead === undefined
+    ) {
+      // The ALU instruction performs this exact read after the first sample.
+      // No intervening instruction or effect is removed or reordered.
+      state.adjacentByteRead = Object.freeze({ value: resultId, instruction });
+      return Object.freeze({ instructions: Object.freeze([]), value });
+    }
+    const component = store?.kind === "store" ? store.place.path[0] : undefined;
+    const ordinal = component?.kind === "index" ? state.values.get(component.value) : undefined;
+    const ordinalByte = ordinal?.kind === "zero-extended" ? ordinal.low : ordinal;
+    checkedRead =
+      state.input.boundsCheck === true && store?.kind === "store" && component?.kind === "index";
+    if (
+      !state.input.boundsCheck &&
+      store?.kind === "store" &&
+      store.value === resultId &&
+      typeBytes(store.type) === 1 &&
+      store.place.path.length === 1 &&
+      ordinalByte?.kind === "register" &&
+      ordinalByte.registers === "a" &&
+      ordinalByte.bytes === 1 &&
+      state.adjacentByteRead === undefined &&
+      state.input.profile.storage.zeroPage.every(
+        ({ start, end }) =>
+          instruction.operand!.kind === "absolute" &&
+          (instruction.operand!.value < start || instruction.operand!.value > end),
+      )
+    ) {
+      // Only the existing ZP pair is written before this read. Its fixed address
+      // is outside every permitted pair window; no read, call or bounds guard moves.
+      state.adjacentByteRead = Object.freeze({ value: resultId, instruction });
+      return Object.freeze({ instructions: Object.freeze([]), value });
+    }
+  }
   if (
     !state.materializedValues.has(resultId) ||
-    state.forwardedRegisterValues.has(resultId) ||
-    value.kind !== "register" ||
+    (state.forwardedRegisterValues.has(resultId) && !checkedOrdinal && !checkedRead) ||
+    register.kind !== "register" ||
     !hasSemanticLifetime
   ) {
     return Object.freeze({ instructions: instructionsInput, value });
@@ -317,20 +404,20 @@ export function retainMachineValue(
     state,
     `retained-value:${resultId}`,
     "temporary",
-    value.bytes,
+    register.bytes,
     "ram",
     source,
     "Semantic value retained across later machine clobbers",
-    type,
+    value.kind === "zero-extended" ? null : type,
   );
   const retained: LoweredValue = Object.freeze({
     kind: "storage",
     requestId: request.id,
-    bytes: value.bytes,
-    signed: value.signed ?? false,
+    bytes: register.bytes,
+    signed: register.signed ?? false,
   });
   const instructions = [...instructionsInput, storeA(retained, 0, state, source)];
-  if (value.registers === "ax") {
+  if (register.registers === "ax") {
     instructions.push(
       machineInstruction(
         state.input.profile.cpu,
@@ -344,7 +431,7 @@ export function retainMachineValue(
   }
   return Object.freeze({
     instructions: Object.freeze(instructions),
-    value: retained,
+    value: value.kind === "zero-extended" ? Object.freeze({ ...value, low: retained }) : retained,
   });
 }
 
@@ -377,6 +464,10 @@ export function appendLoadA(
   state: FunctionLoweringState,
   source: SourceSpan,
 ): void {
+  if (value.kind === "zero-extended" && offset === 0) {
+    appendLoadA(instructions, value.low, 0, state, source);
+    return;
+  }
   if (value.kind === "register") {
     if (offset === 0) return;
     if (offset === 1 && value.registers === "ax") {

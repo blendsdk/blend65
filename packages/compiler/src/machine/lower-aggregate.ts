@@ -8,23 +8,22 @@ import {
   type LoweredValue,
 } from "./lower-control.js";
 import type { MachineInstruction, MachineOperand } from "./machine-types.js";
-import { lowerAggregateIndex } from "./lower-aggregate-index.js";
-import { aggregateAddressPlan, type AggregateAddressPlan } from "./lower-aggregate-place.js";
+import { aggregateAddressPlan, lowerAggregateAddress } from "./lower-aggregate-place.js";
 import {
   loweringFailure,
   aggregateResultPointer,
   appendLoadA,
-  createAggregateAddressCache,
   isSignedType,
   isReturnedLocalPlace,
   loadA,
   loweredPlace,
   requestStorage,
   storeA,
-  type AggregateAddressCache,
   type FunctionLoweringState,
   typeBytes,
 } from "./lower-state.js";
+
+export { lowerAggregateAddress } from "./lower-aggregate-place.js";
 
 /** A compile-time byte offset or an unsigned byte ordinal that needs no pointer pair. */
 type DirectAggregateAccess =
@@ -145,193 +144,6 @@ function directIndexInstructions(
   return Object.freeze(instructions);
 }
 
-/**
- * Identify an indexed aggregate base that can remain in the shared address pair.
- * Register values are excluded because their contents may change without changing their identity.
- */
-function reusableAggregateAddressCache(
-  place: SemanticPlace,
-  plan: AggregateAddressPlan,
-  accessBytes: number,
-  state: FunctionLoweringState,
-): AggregateAddressCache | null {
-  if (
-    accessBytes <= 0 ||
-    plan.indices.length === 0 ||
-    plan.staticOffset < 0 ||
-    plan.staticOffset + accessBytes > 0x100
-  ) {
-    return null;
-  }
-  const indices = plan.indices.map((term) => {
-    const value = state.values.get(term.value);
-    if (value?.kind !== "storage") return null;
-    return Object.freeze({
-      requestId: value.requestId,
-      bytes: value.bytes,
-      signed: value.signed === true,
-      stride: term.stride,
-    });
-  });
-  if (indices.some((index) => index === null)) return null;
-  const rootBindingKey = bindingIdentityKey(place.root);
-  return createAggregateAddressCache(
-    rootBindingKey,
-    indices.flatMap((index) => (index === null ? [] : [index])),
-  );
-}
-
-/** Form one exact 16-bit packed aggregate address in an SFA-owned ZP pair. */
-export function lowerAggregateAddress(
-  place: SemanticPlace,
-  state: FunctionLoweringState,
-  source: SourceSpan,
-  retainedId: string | null = null,
-  accessBytes = 0,
-): {
-  readonly instructions: readonly MachineInstruction[];
-  readonly pointer: Extract<LoweredValue, { readonly kind: "storage" }>;
-  readonly displacement: number;
-} {
-  const plan = aggregateAddressPlan(place, state, source);
-  const returnedRoot = isReturnedLocalPlace(place, state);
-  if (
-    returnedRoot &&
-    plan.indices.length === 0 &&
-    (plan.staticOffset === 0 ||
-      (retainedId === null && accessBytes > 0 && plan.staticOffset + accessBytes <= 256))
-  ) {
-    const root = loweredPlace(place, 2, false, state);
-    if (root.kind !== "storage")
-      throw loweringFailure("Returned local base is not a retained pointer", source);
-    state.aggregateAddressCache = null;
-    return Object.freeze({
-      instructions: Object.freeze([]),
-      pointer: root,
-      displacement: plan.staticOffset,
-    });
-  }
-  const cache =
-    retainedId === null ? reusableAggregateAddressCache(place, plan, accessBytes, state) : null;
-  const displacement = cache === null ? 0 : plan.staticOffset;
-  const pointerRequest = requestStorage(
-    state,
-    retainedId === null ? "aggregate-address" : `aggregate-address:${retainedId}`,
-    "pointer",
-    2,
-    "zero-page-required",
-    source,
-    "Page-safe packed aggregate address",
-  );
-  const pointer: LoweredValue = Object.freeze({
-    kind: "storage",
-    requestId: pointerRequest.id,
-    bytes: 2,
-    signed: false,
-  });
-  if (cache !== null && state.aggregateAddressCache?.key === cache.key) {
-    return Object.freeze({ instructions: Object.freeze([]), pointer, displacement });
-  }
-  if (retainedId === null) state.aggregateAddressCache = null;
-  const root = loweredPlace(place, typeBytes(place.rootType!), false, state);
-  // Aggregate parameters contain a borrowed base address; copied scalar/enum
-  // parameters contain the value itself, so their address names the SFA home.
-  const parameterRoot =
-    returnedRoot ||
-    ((place.rootType?.kind === "array" || place.rootType?.kind === "struct") &&
-      root.kind === "storage" &&
-      root.requestId.includes(":parameter:"));
-  const addressStaticOffset = cache === null ? plan.staticOffset : 0;
-  const instructions: MachineInstruction[] = [];
-  if (parameterRoot) {
-    instructions.push(
-      loadA(root, 0, state, source),
-      storeA(pointer, 0, state, source),
-      loadA(root, 1, state, source),
-      storeA(pointer, 1, state, source),
-    );
-  } else {
-    for (const addressByte of ["low", "high"] as const) {
-      const operand =
-        root.kind === "storage"
-          ? Object.freeze({
-              kind: "storage" as const,
-              requestId: root.requestId,
-              offset: addressStaticOffset,
-              addressByte,
-            })
-          : root.kind === "label"
-            ? Object.freeze({
-                kind: "label" as const,
-                label: root.label,
-                offset: addressStaticOffset,
-                addressByte,
-              })
-            : null;
-      if (operand === null) throw loweringFailure("Aggregate root has no stable address", source);
-      instructions.push(
-        machineInstruction(state.input.profile.cpu, "lda", "immediate", operand, [], source),
-        storeA(pointer, addressByte === "low" ? 0 : 1, state, source),
-      );
-    }
-  }
-
-  if (parameterRoot && addressStaticOffset !== 0) {
-    instructions.push(
-      loadA(pointer, 0, state, source),
-      machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], source),
-      machineInstruction(
-        state.input.profile.cpu,
-        "adc",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: addressStaticOffset & 0xff }),
-        [],
-        source,
-      ),
-      storeA(pointer, 0, state, source),
-      loadA(pointer, 1, state, source),
-      machineInstruction(
-        state.input.profile.cpu,
-        "adc",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: (addressStaticOffset >> 8) & 0xff }),
-        [],
-        source,
-      ),
-      storeA(pointer, 1, state, source),
-    );
-  }
-  for (const term of plan.indices) {
-    const scaled = lowerAggregateIndex(term, state, source);
-    instructions.push(...scaled.instructions);
-    instructions.push(
-      loadA(pointer, 0, state, source),
-      machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], source),
-      machineInstruction(
-        state.input.profile.cpu,
-        "adc",
-        modeForValue(scaled.value),
-        operandForValue(scaled.value, 0),
-        [],
-        source,
-      ),
-      storeA(pointer, 0, state, source),
-      loadA(pointer, 1, state, source),
-      machineInstruction(
-        state.input.profile.cpu,
-        "adc",
-        modeForValue(scaled.value, 1),
-        operandForValue(scaled.value, 1),
-        [],
-        source,
-      ),
-      storeA(pointer, 1, state, source),
-    );
-  }
-  if (cache !== null) state.aggregateAddressCache = cache;
-  return Object.freeze({ instructions: Object.freeze(instructions), pointer, displacement });
-}
-
 /** Load one packed indexed place now, preserving source read order in an SFA value. */
 export function lowerAggregateLoad(
   operation: Extract<SemanticOperation, { readonly kind: "load" }>,
@@ -400,22 +212,33 @@ export function lowerAggregateLoad(
     });
   }
   const address = lowerAggregateAddress(operation.place, state, operation.span, null, bytes);
-  const resultRequest = requestStorage(
-    state,
-    `aggregate-load:${operation.result}`,
-    "temporary",
-    bytes,
-    "ram",
-    operation.span,
-    "Materialized packed aggregate selection",
-    operation.type,
-  );
-  const result: LoweredValue = Object.freeze({
-    kind: "storage",
-    requestId: resultRequest.id,
-    bytes,
-    signed: isSignedType(operation.type),
-  });
+  const resultRequest =
+    bytes === 1
+      ? null
+      : requestStorage(
+          state,
+          `aggregate-load:${operation.result}`,
+          "temporary",
+          bytes,
+          "ram",
+          operation.span,
+          "Materialized packed aggregate selection",
+          operation.type,
+        );
+  const result: LoweredValue =
+    resultRequest === null
+      ? Object.freeze({
+          kind: "register",
+          registers: "a",
+          bytes: 1,
+          signed: isSignedType(operation.type),
+        })
+      : Object.freeze({
+          kind: "storage",
+          requestId: resultRequest.id,
+          bytes,
+          signed: isSignedType(operation.type),
+        });
   const instructions = [...address.instructions];
   for (let offset = 0; offset < bytes; offset += 1) {
     instructions.push(
@@ -435,8 +258,8 @@ export function lowerAggregateLoad(
         [],
         operation.span,
       ),
-      storeA(result, offset, state, operation.span),
     );
+    if (resultRequest !== null) instructions.push(storeA(result, offset, state, operation.span));
   }
   return Object.freeze({ instructions: Object.freeze(instructions), result });
 }
@@ -502,7 +325,9 @@ export function lowerAggregateStore(
   }
   let value = valueInput;
   const instructions: MachineInstruction[] = [];
-  if (value.kind === "register") {
+  const adjacentRead =
+    state.adjacentByteRead?.value === operation.value ? state.adjacentByteRead : null;
+  if (value.kind === "register" && adjacentRead === null) {
     const stagingRequest = requestStorage(
       state,
       `aggregate-store:${operation.span.start}`,
@@ -533,7 +358,10 @@ export function lowerAggregateStore(
         operation.span,
       ),
     );
-    appendLoadA(instructions, value, offset, state, operation.span);
+    if (adjacentRead !== null && offset === 0) {
+      instructions.push(adjacentRead.instruction);
+      delete state.adjacentByteRead;
+    } else appendLoadA(instructions, value, offset, state, operation.span);
     instructions.push(
       machineInstruction(
         state.input.profile.cpu,

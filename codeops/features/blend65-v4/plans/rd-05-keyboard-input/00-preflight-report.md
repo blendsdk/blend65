@@ -231,3 +231,54 @@ part of its own target identity set.
 
 Future consumption must compare these identities and directly recheck changed
 sections; metadata/progress changes do not silently inherit a stale pass.
+
+Execution entry on 2026-10-10 at 09:46 CEST compared all nine identities before
+any implementation edit and found them exact. The subsequent index status,
+execution timestamp, baseline tree and expected modification set are workflow
+bookkeeping only; root directly checked that they preserve the passed contract.
+No runtime or output acceptance is inferred from entry.
+
+At 09:53 CEST root mechanically decomposed ST-1–ST-3's original single test task
+into row-read, row-write and fallback/bounds files before authoring. The live
+execution count is now 31 (15/16), rather than the passed draft's 29 (13/16).
+The same cases, specification-first order, public contracts, exact exceptions
+and three production correction families remain unchanged. New file paths are
+declared phase deliverables, not a helper or harness. The delivery reviewer
+directly checked counts (15+16=31), all five Verify targets, specification-first
+order and the expected modification set; no findings. This is not a fresh
+set-wide audit or new runtime qualification.
+
+At 10:25 CEST, before ST-3 was written, the author reported that unchecked
+retention and checked diagnostic/stop cases could not fit readably into one
+sub-200-line task. Root separated them into the guard and bounds files, with
+distinct tasks and both Verify targets. The live count is 32 (16/16); no case,
+oracle, interface, production owner or exception changed. Historical hashes
+and pass identities above remain unchanged. This coverage-preserving split is
+execution bookkeeping, not permission for new support machinery.
+The bounded independent delivery recheck confirms 16+16=32, all six Verify
+targets, ST-3 ownership before RED/production, and unchanged modification/oracle
+gates; no findings. Its incidental exposure to embedded baseline summaries was
+excluded from this bookkeeping check, which makes no domain/runtime claim.
+
+At 10:40 CEST, before ST-4–ST-6 were written, their author separated the ordered
+predicate cost from fresh-flag and retention guards to keep both files readable
+below the task limit. The live count is 33 (17/16), with seven Session 1.1 Verify
+targets. Root directly rechecked their distinct coverage, specification-first
+ordering and unchanged six production owners/AR-P6 exception. This is a
+coverage-preserving execution split, not new behavior or support machinery;
+historical preflight hashes and findings remain unchanged.
+
+At 10:47 CEST, before ST-7–ST-9 were written, fixed caller cost/ABI
+and dynamic/alias fallback guards were likewise split into separate files/tasks.
+The live count is 34 (18/16), with eight Session 1.1 Verify targets. Root
+directly rechecked the named coverage and unchanged production/oracle gates.
+No new support module, harness, behavior or exception is introduced; the actual
+resource inventory remains part of existing baseline/GREEN/checkpoint work.
+
+At 11:18 CEST, before adjacent delivery, root separated stride-one address
+formation from adjacent byte delivery to preserve the three-owner task bound.
+The live count is 35 (19/16). The unchanged first correction family occupies
+tasks 1.2.2–1.2.3; no case, oracle, production owner, exception or support surface
+changes. Family qualification still requires its complete behavior and output
+tests to pass before the next family. Root rechecked task counts, ordering and
+the completion boundary; historical preflight identities remain unchanged.

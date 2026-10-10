@@ -10,7 +10,9 @@ import { bindMachineProgram } from "./bind.js";
 import { lowerMachineProgram } from "./lower.js";
 import {
   BYTE,
+  BYTE_PAIR,
   VOID,
+  WORD,
   loadOperation,
   semanticBlock,
   semanticFunction,
@@ -61,6 +63,139 @@ function voidCall(
 }
 
 describe("call ABI and scalar retention", () => {
+  it.each([0n, 1n])(
+    "should preserve fixed-home identity only for zero-offset borrow %s",
+    (ordinal) => {
+      const outer: SemanticType = { kind: "array", element: BYTE_PAIR, length: 2, size: 4 };
+      const root = sourceBinding(9201);
+      const parameter = { id: sourceBinding(9202), type: BYTE_PAIR };
+      const sink = semanticFunction(9203, "sink", [parameter], VOID, [
+        semanticBlock("sink.entry", [], { kind: "return", value: null }),
+      ]);
+      const main = semanticFunction(9200, "main", [], VOID, [
+        semanticBlock(
+          "main.entry",
+          [
+            {
+              kind: "constant",
+              result: "ordinal",
+              value: ordinal,
+              type: WORD,
+              integer: null,
+              span: sourceSpan(9204),
+            },
+            {
+              kind: "place-address",
+              result: "borrowed",
+              place: { root, rootType: outer, path: [{ kind: "index", value: "ordinal" }] },
+              type: BYTE_PAIR,
+              integer: null,
+              span: sourceSpan(9205),
+            },
+            voidCall(sink.id, ["borrowed"], 9206),
+          ],
+          { kind: "return", value: null },
+        ),
+      ]);
+      const result = lowerCloseBind(wholeProgramFor([main, sink]));
+      const pointers = result.closure.inventory.requests.filter(({ id }) =>
+        id.includes("aggregate-address:borrowed"),
+      );
+      expect(pointers).toHaveLength(ordinal === 0n ? 0 : 1);
+      const instructions = result.lowered.program.functions[0]!.blocks[0]!.instructions;
+      if (ordinal === 0n) {
+        expect(instructions.map(({ opcode }) => opcode)).toEqual([
+          "lda",
+          "sta",
+          "lda",
+          "sta",
+          "jsr",
+        ]);
+        expect(instructions[0]!.operand).toMatchObject({ kind: "storage", addressByte: "low" });
+        expect(instructions[2]!.operand).toMatchObject({ kind: "storage", addressByte: "high" });
+      }
+      expect(result.bound.kind).toBe("complete");
+    },
+  );
+
+  it.each([
+    [BYTE, false, 1],
+    [BYTE, true, 1],
+    [WORD, false, 2],
+  ] as const)(
+    "should close ordinary %s call-result storage with barrier=%s",
+    (type, barrier, bytes) => {
+      const span = sourceSpan(9301);
+      const callee = semanticFunction(9310, "produce", [], type, [
+        semanticBlock(
+          "produce.entry",
+          [{ kind: "constant", result: "answer", value: 0x42n, type, integer: null, span }],
+          { kind: "return", value: "answer" },
+        ),
+      ]);
+      const call = {
+        kind: "call" as const,
+        result: "value",
+        callee: callee.id,
+        arguments: [],
+        type,
+        span,
+      };
+      const main = semanticFunction(9300, "main", [], VOID, [
+        semanticBlock(
+          "main.entry",
+          [
+            call,
+            ...(barrier
+              ? [{ kind: "cpu-control" as const, control: "asm_nop" as const, span }]
+              : []),
+            {
+              kind: "constant",
+              result: "destination",
+              value: 0x3301n,
+              type: WORD,
+              integer: null,
+              span,
+            },
+            {
+              kind: "memory-write",
+              address: "destination",
+              value: "value",
+              width: bytes,
+              byteOrder: "low-first",
+              volatile: true,
+              span,
+            },
+          ],
+          { kind: "return", value: null },
+        ),
+      ]);
+      const lifetime: ValueLifetime = {
+        function: main.id,
+        value: "value",
+        definition: { block: "main.entry", operation: 0 },
+        liveAt: [{ block: "main.entry", operation: barrier ? 3 : 2 }],
+        callsCrossed: [],
+      };
+      const result = lowerCloseBind(wholeProgramFor([main, callee], [lifetime]));
+      const retained = result.closure.inventory.requests.find(({ id }) =>
+        id.includes("retained-value:value"),
+      );
+      if (type === BYTE && !barrier) {
+        expect(retained).toBeUndefined();
+        expect(
+          result.lowered.program.functions[0]!.blocks[0]!.instructions.map(({ opcode }) => opcode),
+        ).toEqual(["jsr", "sta"]);
+      } else {
+        expect(retained).toMatchObject({ bytes });
+        expect(
+          result.closure.certificate.homes.some(({ requestId }) => requestId === retained?.id),
+        ).toBe(true);
+      }
+      expect(result.bound.kind).toBe("complete");
+    },
+  );
+
   it("binds a no-argument two-target call to a page-safe local thunk", () => {
     const callbackType = Object.freeze({
       kind: "function" as const,

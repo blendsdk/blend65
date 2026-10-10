@@ -190,6 +190,10 @@ describe.sequential("CIA1 stock service after normal return in real VICE", () =>
           const callerReturn =
             ((stack[(entryCpu.sp + 1) & 0xff]! | (stack[(entryCpu.sp + 2) & 0xff]! << 8)) + 1) &
             0xffff;
+          // Stop the inherited counter before the source clears its pending events.
+          // Preserve other control bits without force-loading or acknowledging ICR.
+          const timerAControl = (await monitor.readIo(0xdc0e, 0xdc0e))[0]!;
+          await monitor.writeIo(0xdc0e, Uint8Array.of(timerAControl & 0xee));
           const returnCheckpoint = await checkpoint(callerReturn);
           const beforeAddress = functionAddress("beforeRelease");
           const afterAddress = functionAddress("afterRelease");
