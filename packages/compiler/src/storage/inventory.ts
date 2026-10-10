@@ -342,6 +342,12 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
       .map((route) => route.installation),
   );
   const globalKeys = new Set(program.semantic.globals.map(({ id }) => bindingIdentityKey(id)));
+  const returnedLocals = new Map(
+    (program.returnedLocalDestinations ?? []).map(
+      (binding) =>
+        [bindingIdentityKey(binding.function), bindingIdentityKey(binding.local)] as const,
+    ),
+  );
 
   for (const functionId of program.reachableFunctions) {
     const source = functions.get(bindingIdentityKey(functionId));
@@ -481,6 +487,7 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
           }
         }
         for (const [key, local] of locals) {
+          if (returnedLocals.get(bindingIdentityKey(fn.id)) === key) continue;
           requests.push(
             Object.freeze({
               id: bindingRequestId(fn.id, "local", local.id, domain, activationRoot),

@@ -1,7 +1,7 @@
 # T-16 assessment: incoming display and private storage
 
 > **Date**: 2026-10-10
-> **Status**: Verified partial — bounded assessment complete; plan ruling pending
+> **Status**: Complete bounded assessment — exact ruling approved and independently reviewed
 > **Owner**: RD-05 T-16 / [AR-6](00-ambiguity-register.md#ar-6-runtime--incoming-bitmap-display-invalidates-hardware-disjointness)
 > **CodeOps Artifact Schema**: 1
 
@@ -9,13 +9,18 @@
 
 The user's “i approve” authorizes the separately offered startup/layout assessment
 only. It does not authorize implementation, existing-test changes, frozen-authority
-changes or a protected cost-baseline rebase. T-14 remains blocked at 17/19.
+changes or a protected cost-baseline rebase. The subsequent user's “I approve”,
+2026-10-10, approves the exact narrow clarification and resumption of review/final
+verification. At the approved resumption, T-14 had 17/19 tasks and no new production edits. Independent
+semantics and platform supplements find no surviving TP-001 MAJOR under that
+exact contract; physical overlap remains reported. This closes T-16's
+assessment/ruling only, not T-14's runtime and complete-checkpoint obligations.
 
-**Best option:** obtain a narrow plan clarification before adding startup or
+**Approved best option:** apply the narrow plan clarification before adding startup or
 placement support. Preserve observations required by source and selected platform
 contracts. Do not promise identical incidental pixels from compiler-selected,
-unpublished private storage. Retain every existing observer guard. This is a
-proposed interpretation of the frozen compiler latitude, not an undefined-behavior
+unpublished private storage. Retain every existing observer guard. This is
+an approved interpretation of the frozen compiler latitude, not an undefined-behavior
 exception, an implemented guard change or a qualification waiver.
 
 The earlier blocker combined two different claims. Possible physical overlap is
@@ -77,9 +82,9 @@ Unknown. Existing [evidence accounting](../../../../../packages/compiler/src/ser
 sums occupied intervals; that total must not conceal capacity or address-span costs.
 No baseline rebase, hidden padding or new source restriction is approved.
 
-## Proposed ruling and remaining work
+## Approved ruling and remaining work
 
-The proposed clarification of [eligibility item 6](03-01-destination.md#whole-function-eligibility)
+The approved clarification of [eligibility item 6](03-01-destination.md#whole-function-eligibility)
 is: “Relevant observers are those required by source and selected platform
 contracts. This proof does not guarantee an unchanged incidental bitmap trace of
 unpublished compiler-private storage across permitted allocation and copy-elision
@@ -88,7 +93,7 @@ choices.” This does not claim that physical overlap is absent.
 Keep all current raw-address, escape, call, asynchronous-effect and persistent
 source-publication guards, including executable initializers. Do not edit startup,
 layout, a specification oracle, frozen specification/expert authority or a cost
-baseline. After a named ruling, independently review its exact interpretation,
+baseline. With the named ruling supplied, independently review its exact interpretation,
 resume fresh behavior/output and full project qualification, and dispose TP-001
 against that contract. A genuine missed source/platform observer remains a defect.
 
@@ -123,8 +128,10 @@ immutable-path/oracle-hash and whitespace checks. The plan-required
 That foundation result validates this documentation checkpoint, not T-14.
 Independent correctness review reports **no findings** for document consistency,
 permission/oracle integrity and evidence scope; it clears no compiler review gate.
-T-14's last complete root verification remains
-interrupted, not a PASS. Acquisition/NMI runtime qualification and physical hardware
+At the earlier documentation-only assessment checkpoint, T-14's root run was
+interrupted, not a PASS. Subsequent runtime/checkpoint evidence belongs to
+[T-14 qualification](08-closeout.md), not this assessment. Acquisition/NMI
+runtime qualification and physical hardware
 remain Unknown. No RD closeout or deferral retirement follows from this assessment.
 
 Context: Linux, NMOS 6510, cooperative PAL/NTSC × SID 6581/8580 PRG profiles,

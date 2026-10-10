@@ -44,6 +44,14 @@ every operation, home and copy on the current path. It adds no source error.
    fallback. Do not treat `opaque` as synonymous with harmless fixed MMIO, or
    claim that I excludes NMI. No new external stack or firmware guarantee follows.
 
+   Per [AR-6](00-ambiguity-register.md#ar-6-runtime--incoming-bitmap-display-invalidates-hardware-disjointness),
+   relevant observers are those required by source and selected platform
+   contracts. This proof does not guarantee an unchanged incidental bitmap trace
+   of unpublished compiler-private storage across permitted allocation and
+   copy-elision choices. Every existing raw-address, escape, call, asynchronous
+   and persistent source-publication guard remains unchanged. Physical overlap
+   alone is not a source-entry restriction or a claim of hardware invisibility.
+
 These conditions are intentionally conservative. Calls that use the completed
 result later, including ordinary borrowed queries after return, are not early
 observers merely because they use its address later. They must not be made

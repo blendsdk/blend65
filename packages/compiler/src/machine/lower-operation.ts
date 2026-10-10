@@ -34,6 +34,7 @@ import {
   appendLoadA,
   bindingLabel,
   isSignedType,
+  isReturnedLocalPlace,
   loweredPlace,
   requestStorage,
   retainMachineValue,
@@ -227,6 +228,14 @@ export function lowerOperation(
     const value = state.values.get(operation.value);
     if (value === undefined) throw loweringFailure("Stored value was not lowered", operation.span);
     const aggregateSource = state.aggregatePlaces.get(operation.value);
+    if (
+      aggregateSource !== undefined &&
+      aggregateSource.path.length === 0 &&
+      operation.place.path.length === 0 &&
+      isReturnedLocalPlace(operation.place, state) &&
+      bindingIdentityKey(aggregateSource.root) === bindingIdentityKey(operation.place.root)
+    )
+      return Object.freeze([]);
     if (aggregateSource !== undefined) {
       return lowerAggregatePlaceCopy(operation, aggregateSource, state);
     }
@@ -601,6 +610,11 @@ export function lowerOperation(
     }
     if (operation.type.kind === "array" || operation.type.kind === "struct") {
       state.aggregatePlaces.set(operation.result, operation.place);
+      if (operation.place.path.length === 0 && isReturnedLocalPlace(operation.place, state)) {
+        state.values.set(operation.result, loweredPlace(operation.place, 2, false, state));
+        state.directCallerResults.add(operation.result);
+        return Object.freeze([]);
+      }
     }
     if (operation.place.rootType === undefined) {
       state.values.set(

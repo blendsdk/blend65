@@ -12,9 +12,11 @@ import { lowerAggregateIndex } from "./lower-aggregate-index.js";
 import { aggregateAddressPlan, type AggregateAddressPlan } from "./lower-aggregate-place.js";
 import {
   loweringFailure,
+  aggregateResultPointer,
   appendLoadA,
   createAggregateAddressCache,
   isSignedType,
+  isReturnedLocalPlace,
   loadA,
   loweredPlace,
   requestStorage,
@@ -69,6 +71,7 @@ function directAggregateAccess(
 ): DirectAggregateAccess | null {
   if (
     place.rootType === undefined ||
+    isReturnedLocalPlace(place, state) ||
     (type.kind !== "scalar" && type.kind !== "enum") ||
     typeBytes(type) > 2
   ) {
@@ -191,6 +194,23 @@ export function lowerAggregateAddress(
   readonly displacement: number;
 } {
   const plan = aggregateAddressPlan(place, state, source);
+  const returnedRoot = isReturnedLocalPlace(place, state);
+  if (
+    returnedRoot &&
+    plan.indices.length === 0 &&
+    (plan.staticOffset === 0 ||
+      (retainedId === null && accessBytes > 0 && plan.staticOffset + accessBytes <= 256))
+  ) {
+    const root = loweredPlace(place, 2, false, state);
+    if (root.kind !== "storage")
+      throw loweringFailure("Returned local base is not a retained pointer", source);
+    state.aggregateAddressCache = null;
+    return Object.freeze({
+      instructions: Object.freeze([]),
+      pointer: root,
+      displacement: plan.staticOffset,
+    });
+  }
   const cache =
     retainedId === null ? reusableAggregateAddressCache(place, plan, accessBytes, state) : null;
   const displacement = cache === null ? 0 : plan.staticOffset;
@@ -217,9 +237,10 @@ export function lowerAggregateAddress(
   // Aggregate parameters contain a borrowed base address; copied scalar/enum
   // parameters contain the value itself, so their address names the SFA home.
   const parameterRoot =
-    (place.rootType?.kind === "array" || place.rootType?.kind === "struct") &&
-    root.kind === "storage" &&
-    root.requestId.includes(":parameter:");
+    returnedRoot ||
+    ((place.rootType?.kind === "array" || place.rootType?.kind === "struct") &&
+      root.kind === "storage" &&
+      root.requestId.includes(":parameter:"));
   const addressStaticOffset = cache === null ? plan.staticOffset : 0;
   const instructions: MachineInstruction[] = [];
   if (parameterRoot) {
@@ -547,14 +568,7 @@ export function aggregateDestination(
     result = fixed;
     state.aggregatePlaces.set(operation.result, operation.destination.place);
   } else if (operation.destination?.kind === "caller") {
-    const requestId = `${bindingIdentityKey(state.owner)}:pointer:aggregate-return-destination`;
-    if (!state.input.placement.homes.some((home) => home.requestId === requestId)) {
-      throw loweringFailure(
-        "Aggregate return destination has no certified pointer home",
-        operation.span,
-      );
-    }
-    result = Object.freeze({ kind: "storage", requestId, bytes: 2, signed: false });
+    result = aggregateResultPointer(state.owner, state, operation.span);
     indirect = true;
     state.directCallerResults.add(operation.result);
   } else if (
@@ -563,7 +577,10 @@ export function aggregateDestination(
   ) {
     const place = operation.destination.place;
     const home = loweredPlace(place, operation.type.size, false, state);
-    if (home.kind === "storage" && home.requestId.includes(":parameter:")) {
+    if (
+      home.kind === "storage" &&
+      (home.requestId.includes(":parameter:") || isReturnedLocalPlace(place, state))
+    ) {
       const address = lowerAggregateAddress(
         place,
         state,
@@ -651,7 +668,14 @@ export function restoreAggregateDestinationPage(
   operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
   state: FunctionLoweringState,
 ): readonly MachineInstruction[] {
-  if (!indirect || !state.retainedAggregateResults.has(operation.result) || advancedPages === 0) {
+  const returnedRoot =
+    operation.destination?.kind === "place" &&
+    isReturnedLocalPlace(operation.destination.place, state);
+  if (
+    !indirect ||
+    (!returnedRoot && !state.retainedAggregateResults.has(operation.result)) ||
+    advancedPages === 0
+  ) {
     return Object.freeze([]);
   }
   if (result.kind !== "storage") {

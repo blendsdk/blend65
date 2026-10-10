@@ -1,7 +1,7 @@
 # Returned-local destination — decisions
 
-> **Status**: ❌ BLOCKED — AR-6 assessment complete; observer-contract ruling pending
-> **Last Updated**: 2026-10-10 00:24 CEST
+> **Status**: ✅ GATE PASSED — AR-6 clarification approved; qualification and review complete
+> **Last Updated**: 2026-10-10 01:59 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Scope contract
@@ -141,11 +141,12 @@ code; require the same independent reviewers' one bounded fix-only check.
 ## AR-6 (runtime) — incoming bitmap display invalidates hardware disjointness
 
 **Category:** Observer-contract ruling; possible startup/layout scope expansion.
-**Status:** Open. The separately offered bounded assessment is user-approved
-and complete; see [T-16 assessment](09-entry-observation-assessment.md). TP-001
-remains a MAJOR plan-proof gap, not an established semantic failure. Final
-qualification and closeout stop pending the exact plan ruling. Assessment
-approval is not implementation or protected-oracle amendment authority.
+**Status:** Resolved by the user's “I approve”, 2026-10-10, to the exact final
+recommendation following [T-16 assessment](09-entry-observation-assessment.md).
+The user approves only the narrow observer-contract clarification and resumption
+of independent review/final verification. TP-001's physical premise is retained;
+its plan-proof disposition must be checked independently against this ruling.
+No new startup/layout or protected-oracle amendment authority follows.
 
 **Finding:** the hardware-publication flag in
 `packages/compiler/src/semantic/returned-local-destination.ts:358` accounts for
@@ -167,12 +168,17 @@ The assessment now distinguishes that promise from specified source/platform
 observations: no inspected frozen clause establishes an invariant pixel trace
 of unnamed compiler-private bytes. This is an inference from explicit allocation
 and copy-elision latitude, not authority to discard a source effect. The broad
-plan wording remains binding until a named ruling; no source or entry restriction
+plan wording was binding until this named ruling; no source or entry restriction
 is introduced.
 
-**Scope decision needed:** approve the assessment's narrow observer-contract
-clarification, or retain the literal physical-fetch promise and separately
-authorize placement work. No remedy is selected by assessment approval alone.
+**Approved scope decision:** clarify relevant observers as those required by
+source and selected platform contracts. The proof does not guarantee an unchanged
+incidental bitmap trace of unpublished compiler-private storage across permitted
+allocation and copy-elision choices. Preserve all existing raw-address, escape,
+call, asynchronous-effect and persistent source-publication guards, including
+executable initializers. Source-identified display data, MMIO and applicable
+timing/interrupt obligations remain protected. Resume qualification without
+startup/layout changes, oracle weakening, frozen-authority edits or baseline rebasing.
 Any future startup/layout design must preserve
 non-owned interrupt/device state and report complete bytes, RAM, cycles and
 placement costs. The exact remedy is not yet proved. D011 is absent from the
@@ -184,7 +190,7 @@ padding or merely move a live object.
 
 No startup edit, new layout mechanism, new state byte, protected-test change,
 baseline rebase or frozen-authority amendment is authorized here. RD-05 T-16
-owns the completed bounded assessment and pending plan ruling, not an authorized fix. The measured
+owns the completed bounded assessment and approved plan ruling, not an authorized startup/layout fix. The measured
 ordinary payload improvement is only 17 bytes; a future common startup cost
 must not be silently cancelled against a changed baseline. The initial challenger
 supported withholding qualification and investigating startup/layout. The fresh
@@ -193,6 +199,12 @@ plan-observer ruling: preserve all current source/raw/asynchronous/publication
 guards without adding startup or placement machinery. Confidence: medium; an
 explicit private-display promise or missed defined observer would change that
 direction. Hardening separates physical overlap from semantic obligations;
-challenger converged conditionally on named approval. RD-05/DEF-7 and keyboard
-qualification remain open; the implementation is not a green checkpoint. The
-assessment adds no runtime proof and clears no review gate.
+challenger converged conditionally on named approval, now supplied. RD-05/DEF-7
+and keyboard qualification remain open. Independent semantics and platform
+supplements find no surviving TP-001 MAJOR under that exact contract. They
+preserve the physical-overlap fact and find no missed defined observer; all
+production/test hashes remain unchanged. The fresh full checkpoint passes 6,043
+tests with two existing unrelated skips, including all 88 new specifications.
+The base review's final consistency check is clear; T-14 finishes 19/19 with the
+bounded evidence in [qualification](08-closeout.md). Approval and static review
+themselves add no runtime proof or unconditional implementation qualification.

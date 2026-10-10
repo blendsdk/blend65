@@ -14,6 +14,7 @@ import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import type { MachineBlock, MachineInstruction, MachineOperand } from "./machine-types.js";
 import {
   appendLoadA,
+  isReturnedLocalPlace,
   loweredPlace,
   loweringFailure,
   requestStorage,
@@ -263,6 +264,7 @@ export function lowerLargeAggregateBuild(
     memberUseCounts.set(valueId, (memberUseCounts.get(valueId) ?? 0) + 1);
   }
   const targetPlace = operation.destination?.kind === "place" ? operation.destination.place : null;
+  const returnedTarget = targetPlace !== null && isReturnedLocalPlace(targetPlace, state);
   const blocks: MachineBlock[] = [];
   let currentLabel = entryLabel;
   let pending: MachineInstruction[] = [...prefix, ...destination.instructions];
@@ -411,13 +413,40 @@ export function lowerLargeAggregateBuild(
       continue;
     }
     pending.push(...(resolved?.setup ?? []));
-    const targetPointer = destination.indirect
-      ? copyAddressToPointer(destination.result, true, start, "target", operation, state)
-      : null;
+    const fixedReturnedTarget = returnedTarget && destination.indirect && start + bytes <= 256;
+    const targetPointer =
+      destination.indirect && !fixedReturnedTarget
+        ? copyAddressToPointer(destination.result, true, start, "target", operation, state)
+        : null;
     if (targetPointer !== null) pending.push(...targetPointer.instructions);
     for (let offset = 0; offset < bytes; offset += 1) {
       readMemberByte(pending, source, offset, state, operation);
-      if (targetPointer === null) {
+      if (fixedReturnedTarget) {
+        if (destination.result.kind !== "storage")
+          throw loweringFailure("Returned construction has no pointer home", operation.span);
+        pending.push(
+          machineInstruction(
+            state.input.profile.cpu,
+            "ldy",
+            "immediate",
+            Object.freeze({ kind: "immediate", value: start + offset }),
+            [],
+            operation.span,
+          ),
+          machineInstruction(
+            state.input.profile.cpu,
+            "sta",
+            "indirect-indexed-y",
+            Object.freeze({
+              kind: "indirect-y",
+              requestId: destination.result.requestId,
+              offset: 0,
+            }),
+            [],
+            operation.span,
+          ),
+        );
+      } else if (targetPointer === null) {
         pending.push(storeA(destination.result, start + offset, state, operation.span));
       } else {
         if (targetPointer.value.kind !== "storage") {

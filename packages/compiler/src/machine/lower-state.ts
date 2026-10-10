@@ -86,6 +86,8 @@ export function createAggregateAddressCache(
 export interface FunctionLoweringState {
   /** Source function whose execution storage is being selected. */
   readonly owner: BindingId;
+  /** Memoized certified source root; null records the ordinary separate-home path. */
+  returnedLocalRoot?: BindingId | null;
   /** Proven vector nesting at this machine variant's entry. */
   readonly interruptDepth: InterruptExecutionContext;
   /** Machine location of each already selected semantic value. */
@@ -226,13 +228,44 @@ export function requestStorage(
   return request;
 }
 
-/** Find the provisional home identity already assigned to a source place. */
+/** Match a certified root once per execution context, before any direct-home fallback. */
+export function isReturnedLocalPlace(place: SemanticPlace, state: FunctionLoweringState): boolean {
+  if (state.input.program.returnedLocalDestinations === undefined) return false;
+  if (state.returnedLocalRoot === undefined) {
+    const owner = bindingIdentityKey(state.owner);
+    state.returnedLocalRoot =
+      state.input.program.returnedLocalDestinations?.find(
+        (binding) => bindingIdentityKey(binding.function) === owner,
+      )?.local ?? null;
+  }
+  return (
+    state.returnedLocalRoot !== null &&
+    bindingIdentityKey(state.returnedLocalRoot) === bindingIdentityKey(place.root)
+  );
+}
+
+/** Resolve the existing fixed-result ABI's closed pointer, never an object's data bytes. */
+export function aggregateResultPointer(
+  owner: BindingId,
+  state: FunctionLoweringState,
+  source: SourceSpan,
+): Extract<LoweredValue, { readonly kind: "storage" }> {
+  const requestId = `${bindingIdentityKey(owner)}:pointer:aggregate-return-destination`;
+  if (!state.input.placement.homes.some((home) => home.requestId === requestId))
+    throw loweringFailure("Aggregate return destination has no certified pointer home", source);
+  return Object.freeze({ kind: "storage", requestId, bytes: 2, signed: false });
+}
+
+/** Find a source object's direct home, or its certified caller-result base pointer. */
 export function loweredPlace(
   place: SemanticPlace,
   bytes: number,
   signed: boolean,
   state: FunctionLoweringState,
 ): LoweredValue {
+  if (isReturnedLocalPlace(place, state)) {
+    return aggregateResultPointer(state.owner, state, place.root.span);
+  }
   if (place.asset !== undefined) {
     return Object.freeze({ kind: "label", label: `asset.${place.asset}`, bytes, signed });
   }

@@ -36,3 +36,8 @@ not applicable to this internal compiler correction.
 
 If A-5 or A-6 needs machinery excluded by AR-1, stop and reopen that support
 decision. Do not declare the defect fixed merely because one copy disappeared.
+
+AR-6 clarifies A-2's observer boundary as source and selected platform contracts,
+not an invariant incidental display of unpublished compiler-private storage.
+This preserves every existing observer guard and changes no frozen language rule,
+source admission, timing obligation, specification oracle or cost baseline.

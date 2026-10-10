@@ -1,12 +1,12 @@
 # Qualification: proved returned-local destination
 
 > **Parent**: [Index](00-index.md)
-> **Date**: 2026-10-09
-> **Status**: Blocked — T-16 assessment complete; AR-6 observer-contract ruling open
+> **Date**: 2026-10-10
+> **Status**: Qualified — 19/19 tasks; full verification and independent review complete
 > **Boundary**: T-14 only; RD-05, DEF-7 and the positive keyboard gate remain open
 > **CodeOps Artifact Schema**: 1
 
-## Implemented, unqualified boundary
+## Qualified bounded implementation
 
 One immutable whole-function certificate allows a completely initialized returned
 local to use the existing caller-owned result directly. All admitted construction,
@@ -29,24 +29,26 @@ construction. This disproves blanket physical invisibility; it does not alone
 establish a specified semantic failure. The initial disposition required fallback
 under the plan's literal physical-observer wording.
 [AR-6](00-ambiguity-register.md#ar-6-runtime--incoming-bitmap-display-invalidates-hardware-disjointness)
-blocks final verification and acceptance. The approved
-[T-16 assessment](09-entry-observation-assessment.md) now recommends a narrow
-observer-contract clarification with all existing guards unchanged, before
-adding startup/layout support. Named approval is pending; no source-entry
-restriction or qualification waiver is introduced.
-The implementation remains uncommitted work in progress; neither qualification
-nor an implementation release is claimed.
+records the user's approved narrow plan clarification: required source/platform
+observations stay equivalent, but legal allocation/copy elision need not preserve
+the incidental pixel trace of unpublished compiler-private storage. All existing
+guards stay unchanged. The [T-16 assessment](09-entry-observation-assessment.md)
+does not authorize startup/layout support, a source-entry restriction, baseline
+rebasing or a qualification waiver. Final verification and all independent
+review gates pass, including the base review's final consistency check.
+This records the coherent green local implementation checkpoint. No public
+keyboard, full-body parity or user-host release qualification follows.
 
 ## Acceptance and verification
 
 | Acceptance | Evidence and current boundary                                                                                                                                                                                                     |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A-1        | Retained ordinary and selected artifacts have no redundant returned-local home or final copy; eligibility is blocked by TP-001.                                                                                                   |
-| A-2        | The existing four-profile oracles passed 88/88 before AR-4, but do not settle bitmap-at-entry observation. Final runtime rerun is incomplete; TP-001 remains MAJOR.                                                               |
+| A-1        | Fresh ordinary and selected artifacts retain no redundant returned-local home or final copy. All seventeen exact-source generations reproduce byte-for-byte under the approved observer boundary.                                 |
+| A-2        | Fresh unchanged four-profile oracles pass 88/88, including runtime values, aliases and ordered effects. Independent semantics/platform disposition is clear under AR-6; the complete repository checkpoint passes.                |
 | A-3        | Whole-function fallbacks cover mixed callers, existing/global/borrowed/forwarded destinations, address observation, unknown/escaping accesses and asynchronous observers. The separate partial-array backend defect remains T-15. |
-| A-4        | Independent SFA/ABI review reports no finding: caller/result-pointer demands and every existing domain remain closed. This does not prove the separate hardware eligibility condition.                                            |
-| A-5        | Retained exact-source artifacts improve measured costs in their tested display context. Incoming-state correctness and any common startup/layout cost are unresolved; acceptance is blocked. Full-body parity is not claimed.     |
-| A-6        | Retained actual PA-only artifacts improve measured costs on all four profiles, but TP-001 blocks unconditional eligibility. No public keyboard or acquisition runtime qualification follows.                                      |
+| A-4        | Independent SFA/ABI review reports no finding: caller/result-pointer demands and every existing domain remain closed. Fresh assembly and memory/debug reports are unchanged.                                                      |
+| A-5        | Fresh exact-source artifacts reproduce all measured code/storage improvements without startup/layout changes or baseline rebasing. Complete nominal-path costs stay bounded; full-body expert parity is not claimed.              |
+| A-6        | Fresh actual PA-only artifacts reproduce the measured improvements on all four profiles. This is artifact/cost evidence, not public keyboard or acquisition runtime qualification.                                                |
 
 Baseline: **60 PASS / 28 intended RED / 88**; no fixture failures or skips.
 Activated binding: **88 PASS**, no skips. After AR-4, the directed package run
@@ -57,6 +59,14 @@ Strict TypeScript checking of both normally build-excluded internal test files
 also passes. The fresh post-AR-5 install/build/typecheck pass. The compiler suite
 passes **1,944** cases with two existing skips. The complete root run was
 intentionally halted on TP-001; it is not a full checkpoint pass.
+
+After the exact AR-6 ruling, fresh four-profile oracles pass **88/88**, no skips:
+output 20, safety 40 and behavior 28. The fresh complete repository checkpoint
+exits zero: **6,043 passed**, with **two existing unrelated compiler skips**.
+The root suite passes 4,010 tests in 181 files, taking 1,356.50 seconds. Owned
+packages pass 1,944 compiler, 62 CLI, 21 language-server and six VS Code tests.
+Install, build and typecheck pass. No new case is skipped. Earlier interrupted
+runs remain historical supporting evidence, not the successful checkpoint.
 
 The first full run exposed one old internal Y-barrier expectation. The existing
 helper was narrowed to the hidden-return target; its unchanged old tests now pass.
@@ -77,11 +87,13 @@ VICE 3.10 sequentially; no physical-hardware, deadline or external nesting claim
 
 ## Independent actual-byte costs
 
-These are the retained **post-AR-4 artifact snapshot**, not final qualification
-after AR-5 or the pending observer-contract disposition. The ordinary runtime proof used
-normal text-mode entry. No bitmap-at-entry pixel/timing probe was run. Source
-hashes and exact byte costs remain useful evidence; they cannot prove TP-001
-safe or authorize rebasing a protected baseline to hide common startup costs.
+These are the retained **post-AR-4 artifact costs**, reproduced byte-for-byte by
+seventeen fresh post-AR-5 generations after the approved AR-6 clarification.
+The ordinary runtime proof used normal text-mode entry; no bitmap-at-entry
+pixel/timing probe was run. Physical private-storage overlap remains real, not
+a promised invariant pixel trace. No startup/layout cost is introduced, and no
+protected baseline is rebased. Runtime, artifact and review evidence are distinct;
+none establishes external hardware or all-entry timing guarantees.
 
 The output auditor reconciled actual PRG bytes, labels and all build/report hashes.
 Nominal cycles are independently counted from those bytes, not taken from the
@@ -194,9 +206,19 @@ build, assets and PRG files. Originals and failed/interrupted logs are retained.
 `final-*` retain the earlier interrupted checkpoint; `y-selection-*` own directed
 AR-4 verification. `persistent-observer-red.log`, `persistent-observer-green.log`
 and `persistent-observer-types.log` retain AR-5's RED/GREEN and strict typing.
-`qualified-{install,build,typecheck,test}.log` own the latest post-AR-5 checkpoint,
-whose complete test run was halted on TP-001. Artifact identity after AR-5 is
-not yet verified.
+`qualified-{install,build,typecheck,test}.log` own the earlier post-AR-5 checkpoint,
+whose complete test run was halted on TP-001. Fresh `resumed-artifacts.log` binds
+all seventeen current generations to their immutable original generation paths.
+PRG, assembly, labels, costs, memory and debug bytes are identical; diagnostic
+codes are unchanged. Original files remain retained even though normal public
+builds advance generated `current.json` pointers. `resumed-source.sha256` pins
+the thirteen production modules, two internal tests and three immutable oracles.
+`resumed-{install,build,typecheck,test}.log` all exit zero. The terminal test
+summary establishes 6,043 combined passes and two existing unrelated skips.
+Explicit strict checking of both internal tests passes in
+`resumed-internal-types2.log`; the first invocation's TS5112 command-option
+error is retained in `resumed-internal-types.log`, not counted as a code failure
+or verification pass.
 
 | Fixture                     | Exact source SHA-256                                               | Final PRG SHA-256                                                  |
 | --------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
@@ -226,27 +248,30 @@ No authority content changed; physical hardware and external timing remain unpro
 Review baseline tree: `8ff0ebe0091b9ed6890509371b01f6373b90348d`. Six independent
 lenses are required; no reviewer runs tests or mutates the repository.
 
-| Lens                                               | Current result                                                                                                                           |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Correctness / standards / scope / oracle integrity | No findings; final checkpoint supplement due                                                                                             |
-| Semantics / modern DX                              | SM-001 MAJOR resolved by AR-5; no other finding within reviewed scope; incoming-state boundary remains separately unproved               |
-| SFA / ABI                                          | No findings; final storage and hidden-pointer ABI traced to retained assembly; does not settle TP-001                                    |
-| Platform / asynchronous effects                    | TP-001 MAJOR open: inherited bitmap fetches can observe caller storage; final qualification blocked                                      |
-| Actual emitted output                              | MC-001 corrected; post-AR-4 costs independently reconciled; AR-5 artifact identity/final checkpoint pending; existing RD-08 debts remain |
-| Host performance                                   | No surviving finding; no introduced realistic bottleneck found; final checkpoint remains incomplete                                      |
+| Lens                                               | Current result                                                                                                                                                                |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Correctness / standards / scope / oracle integrity | No findings; final base-review consistency clear. All six new files inspected and all eighteen code/test hashes match verified evidence.                                      |
+| Semantics / modern DX                              | SM-001 resolved by AR-5; final static supplement finds no missed defined observer or new restriction under exact approved AR-6. Full root run now passes.                     |
+| SFA / ABI                                          | No findings; final storage and hidden-pointer ABI traced to retained assembly. Fresh assembly/memory/debug byte identity preserves that reviewed closure.                     |
+| Platform / asynchronous effects                    | No surviving finding under approved AR-6: TP-001's physical overlap remains real, not an invariant private-layout pixel promise. No source/platform guard removed.            |
+| Actual emitted output                              | No new findings; MC-001 corrected. Independently verified 17 fresh generations, 102 byte comparisons, all artifact hashes, legal opcodes and exact costs; RD-08 debts remain. |
+| Host performance                                   | No surviving finding; no introduced realistic bottleneck found; full verification completes successfully                                                                      |
 
 The initial recommendation challenger supported fallback and a separate
 startup/layout assessment. The approved T-16 assessment and fresh challenge
-recommend a precise observer-contract ruling first: physical overlap is proved,
-but no defined semantic failure follows from overlap alone. No earlier gate is
-cleared by that recommendation. D011 save/mask/restore cannot recover an arbitrary
+recommended a precise observer-contract ruling first: physical overlap is proved,
+but no defined semantic failure follows from overlap alone. The user approved
+that exact ruling on 2026-10-10. D011 save/mask/restore cannot recover an arbitrary
 hidden compare bit, and placement brings capacity/span costs without hiding all
-private implementation traffic. Confidence is medium for the proposed ruling;
-named approval and fresh qualification remain due. See the assessment for exact
+private implementation traffic. The independent semantics/platform supplements
+complete the exact ruling's disposition without a code or oracle change. Fresh
+full qualification and the base correctness supplement pass. See the assessment for exact
 cost bounds, strongest counterargument and evidence limits.
 
-Deferral-expiry check for this proposed T-14 closeout: no other rationale expires.
-The relevant keyboard AR-P11 prerequisite is this task, not a newly orphaned owner.
+Deferral-expiry check: **did this task's deliverables expire any deferral's stated
+rationale?** The keyboard AR-P11 returned-local prerequisite is now qualified;
+the separate positive keyboard plan remains RD-05-owned and becomes the next work.
+No other rationale expires, and no owner becomes orphaned.
 RD-05/DEF-7 still own keyboard/coexistence and remaining platform/workload proof.
 RD-05's Won't-Have owners remain RD-06 assets, RD-07 delivery, RD-08 general
 optimization, RD-09 tools and RD-10 user-host/physical QA. FUT-012's reason to
@@ -255,5 +280,10 @@ not invalidated. T-10 callable assignment, T-13 host cloning and T-15 partial-ar
 lowering remain separately owned; none is silently repaired or waived.
 
 The repository is not opted into managed technical documentation (`docs/index.md`
-is absent); no architecture-document scaffold is added. A green local implementation checkpoint
-is due only after AR-6, final tests and all review gates clear. No automatic push.
+is absent); no architecture-document scaffold is added. The feature roadmap keeps
+four of ten RDs Done. The portfolio's existing one-of-ten arithmetic drift is
+deferred to integration by the feature-branch policy; the read-only engine check
+reports that known drift, not a portfolio synchronization PASS. No portfolio write
+is made here. The green local implementation checkpoint includes the exact
+approved clarification, verified code/oracles and completed review/progress
+records. No automatic push.

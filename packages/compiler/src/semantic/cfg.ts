@@ -198,6 +198,7 @@ export class ControlFlowBuilder {
           statement.type.kind === "array" || statement.type.kind === "struct"
             ? Object.freeze({
                 kind: "place",
+                freshLocal: true as const,
                 ...(isConstantAggregateLiteral(statement.initializer, this.bindingsByKey)
                   ? { freshConstant: true as const }
                   : {}),

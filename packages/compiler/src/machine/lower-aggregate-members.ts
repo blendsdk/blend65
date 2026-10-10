@@ -1,9 +1,12 @@
 import type { SemanticOperation, SemanticPlace } from "../semantic/operations.js";
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { lowerAggregateAddress } from "./lower-aggregate.js";
-import { machineInstruction, type LoweredValue } from "./lower-control.js";
+import { aggregateAddressPlan } from "./lower-aggregate-place.js";
+import { machineInstruction, machineState, type LoweredValue } from "./lower-control.js";
 import type { MachineInstruction } from "./machine-types.js";
 import {
   appendLoadA,
+  isReturnedLocalPlace,
   loweredPlace,
   loweringFailure,
   typeBytes,
@@ -144,8 +147,9 @@ export function readMemberByte(
 
 /**
  * Exclude a child only when its entire completed object is already the final member.
- * Equal root names or overlapping intervals are not enough: both direct homes,
- * request identities, starts and complete extents must match before staging begins.
+ * Direct homes need equal request identities and full intervals. A certified
+ * indirect root additionally proves exact parent/child packed offsets and extent;
+ * pointer bytes themselves are never mistaken for the child object's contents.
  */
 export function remainingMemberWrites(
   operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
@@ -153,6 +157,45 @@ export function remainingMemberWrites(
   state: FunctionLoweringState,
 ): readonly MemberWrite[] {
   const writes = memberWrites(operation);
+  if (
+    operation.destination?.kind === "place" &&
+    operation.destination.freshConstant === true &&
+    destination.indirect &&
+    isReturnedLocalPlace(operation.destination.place, state)
+  ) {
+    const parent = operation.destination.place;
+    const target = aggregateAddressPlan(parent, state, operation.span);
+    return Object.freeze(
+      writes.filter(({ valueId, start, bytes }) => {
+        const source = state.aggregatePlaces.get(valueId);
+        if (
+          source === undefined ||
+          !state.values.has(valueId) ||
+          bindingIdentityKey(source.root) !== bindingIdentityKey(parent.root)
+        )
+          return true;
+        let type = source.rootType;
+        for (const step of source.path) {
+          type =
+            step.kind === "field" && type?.kind === "struct"
+              ? type.fields.find(({ name }) => name === step.name)?.type
+              : step.kind === "index" && type?.kind === "array"
+                ? type.element
+                : undefined;
+        }
+        const child = aggregateAddressPlan(source, state, operation.span);
+        const complete =
+          type !== undefined &&
+          typeBytes(type) === bytes &&
+          target.fixedInBounds &&
+          child.fixedInBounds &&
+          child.staticOffset === target.staticOffset + start &&
+          start >= 0 &&
+          start + bytes <= typeBytes(operation.type);
+        return !complete;
+      }),
+    );
+  }
   if (
     operation.destination?.kind !== "place" ||
     operation.destination.freshConstant !== true ||
@@ -178,10 +221,16 @@ export function remainingMemberWrites(
 }
 
 /**
- * Append one proved private construction, reusing only an identical immediate A load.
- * A local STA preserves A/N/Z. Every other instruction or memory observer invalidates
- * that proof. The caller starts each block with no proof and clears it at unrelated
- * source operations and split control flow; this is not a general register optimizer.
+ * Append one proved private construction without reloading known constant bytes.
+ * Private direct stores leave A unchanged. Only construction through the existing
+ * hidden aggregate-result pointer also retains A across immediate Y offsets and
+ * matching pointer stores and private high-byte pointer steps. Consecutive known
+ * Y offsets within this selection use INY: it saves one operand byte while
+ * preserving the exact Y/N/Z result, carry and two-cycle cost of LDY immediate.
+ * Other targets keep the older conservative barrier. Y never escapes this call.
+ * The retained A fact describes its value, not status flags. The caller clears
+ * it at unrelated source operations and split control flow; no general register
+ * optimization or control-flow inference is performed here.
  */
 export function appendConstantConstruction(
   target: MachineInstruction[],
@@ -189,8 +238,11 @@ export function appendConstantConstruction(
   literalInA: number | null,
   requestId: string,
 ): number | null {
+  const returnedTarget = requestId.endsWith(":pointer:aggregate-return-destination");
+  let offsetInY: number | null = null;
   for (const instruction of selected) {
     const operand = instruction.operand;
+    let appended = instruction;
     if (
       instruction.opcode === "lda" &&
       instruction.mode === "immediate" &&
@@ -200,17 +252,48 @@ export function appendConstantConstruction(
       if (literalInA === operand.value) continue;
       literalInA = operand.value;
     } else if (
+      returnedTarget &&
+      instruction.opcode === "ldy" &&
+      instruction.mode === "immediate" &&
+      operand?.kind === "immediate" &&
+      Number.isInteger(operand.value) &&
+      operand.value >= 0 &&
+      operand.value <= 0xff &&
+      instruction.memory.length === 0
+    ) {
+      if (offsetInY !== null && ((offsetInY + 1) & 0xff) === operand.value) {
+        appended = Object.freeze({
+          ...instruction,
+          opcode: "iny",
+          mode: "implied",
+          operand: null,
+          uses: machineState(["y"]),
+          cost: Object.freeze({ bytes: 1, minCycles: 2, maxCycles: 2 }),
+        });
+      }
+      offsetInY = operand.value;
+    } else if (
       !(
-        instruction.opcode === "sta" &&
-        instruction.mode === "storage" &&
-        operand?.kind === "storage" &&
-        operand.requestId === requestId &&
-        instruction.memory.every(({ volatile }) => !volatile)
+        (returnedTarget &&
+          (instruction.opcode === "inc" || instruction.opcode === "dec") &&
+          instruction.mode === "storage" &&
+          operand?.kind === "storage" &&
+          operand.requestId === requestId &&
+          operand.offset === 1 &&
+          instruction.memory.every(({ volatile }) => !volatile)) ||
+        (instruction.opcode === "sta" &&
+          ((instruction.mode === "storage" && operand?.kind === "storage") ||
+            (returnedTarget &&
+              instruction.mode === "indirect-indexed-y" &&
+              operand?.kind === "indirect-y")) &&
+          operand.requestId === requestId &&
+          instruction.memory.every(({ volatile }) => !volatile))
       )
     ) {
       literalInA = null;
+      offsetInY = null;
     }
-    target.push(instruction);
+    target.push(appended);
   }
   return literalInA;
 }

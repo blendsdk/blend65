@@ -25,6 +25,8 @@ import type { InterruptContextAnalysis } from "./interrupt-contexts.js";
 import { checkInterruptOwnership, type InterruptOwnershipAnalysis } from "./interrupt-ownership.js";
 import { analyzeInterruptDomains, type FunctionDomains } from "./interrupt-domains.js";
 import { retainObservableGlobals } from "./reachable-globals.js";
+import { proveReturnedLocalDestinations } from "./returned-local-destination.js";
+import type { ReturnedLocalDestination } from "./returned-local-destination.js";
 
 /** One whole-program entry source. */
 export type ProgramRoot =
@@ -112,6 +114,8 @@ export interface WholeProgram {
   readonly interruptContextAnalysis?: InterruptContextAnalysis;
   /** Entry domains that can overlap while entering each source function. */
   readonly executionDomains?: readonly FunctionDomains[];
+  /** Optional whole-function returned-local bindings proved before any storage is omitted. */
+  readonly returnedLocalDestinations?: readonly ReturnedLocalDestination[];
   /** Non-fatal shared-state warnings found during whole-program closure. */
   readonly diagnostics?: readonly ProjectDiagnostic[];
   /** Ordered executable initializer contexts, when retained by whole-program closure. */
@@ -616,8 +620,16 @@ export function closeWholeProgram(
   if (contextAnalysis.diagnostics.length > 0) {
     return Object.freeze({ kind: "error", diagnostics: contextAnalysis.diagnostics });
   }
+  const completed = Object.freeze({ ...program, interruptContextAnalysis: contextAnalysis });
+  const returnedLocalDestinations = proveReturnedLocalDestinations(completed, addressSpace);
   return Object.freeze({
     kind: "complete",
-    program: Object.freeze({ ...program, interruptContextAnalysis: contextAnalysis }),
+    program:
+      returnedLocalDestinations.length === 0
+        ? completed
+        : Object.freeze({
+            ...completed,
+            returnedLocalDestinations,
+          }),
   });
 }

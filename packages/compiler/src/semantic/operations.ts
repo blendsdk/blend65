@@ -67,6 +67,8 @@ export type AggregateDestination =
   | {
       readonly kind: "place";
       readonly place: SemanticPlace;
+      /** A declaration initializer starts a new local lifetime; this alone proves no alias safety. */
+      readonly freshLocal?: true;
       /** New private local lifetime initialized by an entirely effect-free constant literal. */
       readonly freshConstant?: true;
     }

@@ -1,8 +1,8 @@
 # Execution: proved returned-local destination
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-10-10 00:24 CEST
-> **Progress**: 17/19 tasks (89%)
+> **Last Updated**: 2026-10-10 01:59 CEST
+> **Progress**: 19/19 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Implementation phase
@@ -76,8 +76,8 @@ Reference: [07](07-testing-strategy.md), [A-1–A-6](01-requirements.md#plan-loc
 - [x] 1.3.1a Add focused `packages/compiler/src/semantic/aggregate-place-proof.impl.test.ts` after GREEN; cover complete footprints, raw address wrap, mask conversions and bounded shared definition walks in 07. ✅ (implemented: 2026-10-09 23:05 CEST; verified: 2026-10-09 23:06 CEST)
 - [x] 1.3.1b Add the body/inventory portion of `packages/compiler/src/semantic/returned-local-destination.impl.test.ts` after GREEN; cover missing/bad body facts and ST-7's unchanged semantic operations/complete local inventory in 07. ✅ (implemented: 2026-10-09 23:08 CEST; verified: 2026-10-09 23:09 CEST)
 - [x] 1.3.1c Complete that same internal file's caller/observer guards, deterministic certificates and domain propagation in 07; no additional test module. ✅ (implemented: 2026-10-09 23:10 CEST; verified: 2026-10-09 23:12 CEST)
-- [!] 1.3.2 Qualify actual assembled bytes, complete costs and sequential four-profile VICE cases, then run the full project checkpoint; retain raw evidence and results in `08-closeout.md`. ⛔ (blocked: 2026-10-09 23:55 CEST; TP-001 incoming bitmap visibility requires AR-6 scope ruling; full verification intentionally halted)
-- [!] 1.3.3 Run independent correctness, semantics/DX, SFA/ABI, platform, output and host-performance phase reviews in waves; dispose findings, verify any authorized fixes, complete the deferral check and update `08-closeout.md` plus the feature roadmap. ⛔ (blocked: 2026-10-09 23:55 CEST; all six lenses reported, TP-001 MAJOR remains unresolved under AR-6)
+- [x] 1.3.2 Qualify actual assembled bytes, complete costs and sequential four-profile VICE cases, then run the full project checkpoint; retain raw evidence and results in `08-closeout.md`. ✅ (resumed: 2026-10-10 01:29 CEST; verified: 2026-10-10 01:57 CEST; 17 fresh artifact identities, 88 unchanged specification cases and the complete 6,043-pass checkpoint pass; two existing unrelated skips)
+- [x] 1.3.3 Run independent correctness, semantics/DX, SFA/ABI, platform, output and host-performance phase reviews in waves; dispose findings, verify any authorized fixes, complete the deferral check and update `08-closeout.md` plus the feature roadmap. ✅ (resumed: 2026-10-10 01:29 CEST; verified: 2026-10-10 01:59 CEST; all six lenses clear, including final base-review consistency; deferral and roadmap boundaries recorded)
 
 Verify: `yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck`, `yarn
 test`; targeted touched-file formatting, frozen-authority/old-oracle and whitespace
@@ -100,7 +100,23 @@ still-separate keyboard technical/positive plan gate.
 
 ## Execution evidence
 
-Task 1.3.2 is blocked on AR-6. Exact-source ordinary and all four selected after-generations
+Approved AR-6 resumption: all seventeen current exact-source generations reproduce
+PRG/assembly/labels/costs/memory/debug bytes and diagnostic codes unchanged in
+`resumed-artifacts.log`. The independent output supplement checks all 102 byte
+comparisons, actual source hashes, artifact hashes, instruction legality and
+resource/cycle totals. Fresh four-profile specifications pass **88/88**: output
+20, safety 40, behavior 28. Install/build/typecheck, strict internal typing and
+code formatting pass. The complete root run in `resumed-test.log` exits zero:
+181 files and 4,010 tests pass in 1,356.50 seconds. Combined with the owned package
+suites, the checkpoint passes 6,043 tests with two existing unrelated skips.
+The 88 new specifications have no skips. Independent semantics/platform
+supplements dispose TP-001 under the exact approved contract without removing
+its physical premise or changing any guard. The final base review finds no
+correctness, maintainability, standards, scope, oracle-integrity or evidence-
+consistency finding. All eighteen code/test hashes match the verified snapshot.
+
+Earlier retained checkpoints below predate the approved AR-6 resumption.
+Task 1.3.2 was blocked on AR-6. Exact-source ordinary and all four selected after-generations
 are retained in `ordinary-qualified` and `acquisition/after-*`; originals survive.
 The initial full checkpoint passes install/build/typecheck, then reports one old
 internal barrier failure among 1,933 compiler passes and two existing skips.
@@ -154,8 +170,10 @@ run's eighteen unselected tests are not counted as passes).
 The separately approved [T-16 assessment](09-entry-observation-assessment.md) is
 complete on 2026-10-10. It separates physical bitmap overlap from specified
 source/platform observation and recommends a narrow plan-contract clarification.
-The ruling is still pending; tasks 1.3.2 and 1.3.3 remain blocked. Assessment adds
-no compiler edit, runtime proof, protected-oracle exception or full checkpoint pass.
+The user's 2026-10-10 “I approve” accepted the exact observer-contract clarification.
+Tasks 1.3.2 and 1.3.3 resumed with unchanged production code, guards, oracles and
+startup/layout. The successful fresh evidence and independent disposition are
+recorded above; approval itself was not a full checkpoint pass.
 
 Task 1.3.1c: both new internal files pass all 24 cases. Explicit strict TypeScript
 checking of these normally build-excluded test files also passes. Mixed callers,

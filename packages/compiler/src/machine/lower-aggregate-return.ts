@@ -1,8 +1,4 @@
-import {
-  bindingIdentityKey,
-  type BindingId,
-  type SemanticType,
-} from "../frontend/semantic-types.js";
+import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import type { AggregateDestination, SemanticPlace } from "../semantic/operations.js";
 import { lowerAggregateAddress } from "./lower-aggregate.js";
@@ -12,6 +8,8 @@ import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import type { MachineBlock, MachineInstruction } from "./machine-types.js";
 import {
   appendLoadA,
+  aggregateResultPointer as resultPointer,
+  isReturnedLocalPlace,
   loweredPlace,
   loweringFailure,
   requestStorage,
@@ -19,17 +17,11 @@ import {
   type FunctionLoweringState,
 } from "./lower-state.js";
 
-/** Find the closed two-byte destination home of a fixed-aggregate result. */
-function resultPointer(
-  owner: BindingId,
-  state: FunctionLoweringState,
-  source: SourceSpan,
-): Extract<LoweredValue, { readonly kind: "storage" }> {
-  const requestId = `${bindingIdentityKey(owner)}:pointer:aggregate-return-destination`;
-  if (!state.input.placement.homes.some((home) => home.requestId === requestId)) {
-    throw loweringFailure("Aggregate return destination has no certified pointer home", source);
-  }
-  return Object.freeze({ kind: "storage", requestId, bytes: 2, signed: false });
+/** A certified complete root has already been delivered; every other source retains its copy. */
+function alreadyDelivered(valueId: string, state: FunctionLoweringState): boolean {
+  if (state.directCallerResults.has(valueId)) return true;
+  const place = state.aggregatePlaces.get(valueId);
+  return place !== undefined && place.path.length === 0 && isReturnedLocalPlace(place, state);
 }
 
 /** Copy the contents of one already materialized pointer into another. */
@@ -220,7 +212,7 @@ export function lowerAggregateReturn(
   state: FunctionLoweringState,
   source: SourceSpan,
 ): readonly MachineInstruction[] {
-  if (state.directCallerResults.has(valueId)) return Object.freeze([]);
+  if (alreadyDelivered(valueId, state)) return Object.freeze([]);
   const destination = resultPointer(state.owner, state, source);
   const place = state.aggregatePlaces.get(valueId);
   const resolved =
@@ -269,7 +261,7 @@ export function lowerAggregateReturnLoop(
   prefix: readonly MachineInstruction[],
   ordinal: number,
 ): { readonly blocks: readonly MachineBlock[]; readonly continuation: string } | null {
-  if (state.directCallerResults.has(valueId)) return null;
+  if (alreadyDelivered(valueId, state)) return null;
   const destination = resultPointer(state.owner, state, source);
   const place = state.aggregatePlaces.get(valueId);
   const retained = state.values.get(valueId);

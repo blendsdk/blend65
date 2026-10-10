@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — saved-data model and AR-P11 scope accepted; return correction and keyboard qualification pending
-> **Last Updated**: 2026-10-09 20:50 CEST
+> **Status**: ❌ POSITIVE KEYBOARD IMPLEMENTATION GATE BLOCKED — saved-data model and return prerequisite qualified; keyboard technical plan and qualification pending
+> **Last Updated**: 2026-10-10 01:59 CEST
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -26,7 +26,7 @@
 | AR-P8  | Technical (complexity escalation) / indexed-place proof — sensitive        | How can a normal masked saved-row query avoid retaining unused acquisition state?                                               | One local constant-mask containment proof in the existing helper; preserve exact-literal/raw-address semantics and every complete object-footprint guard. No general range/branch/interprocedural solver, new pass or decoder workaround.                                                                                                                                           | ✅ Resolved — user replied “proceed” to the named bounded extension on 2026-10-09; independent verdict Justified, narrowly                                                                                              |
 | AR-P9  | Technical (complexity escalation) / aggregate construction — sensitive     | May the existing aggregate builder construct pure nested constants directly in a proved fresh final destination?                | Recommended bounded compiler-wide correction for the independently reproduced extra array temporary/copy. Reuse current aggregate/destination machinery before SFA closure; retain effect/alias/borrow fallbacks. No new pass, IR kind, general optimizer, runtime, API or old-oracle exception.                                                                                    | ✅ Resolved — user: “i approve” on 2026-10-09 to the exact AR-P9/T-12 support packet; bounded T-12 qualification 14/14 complete; [closeout](../constant-nested-construction/08-closeout.md), not keyboard qualification |
 | AR-P10 | Behavioral / saved-observation compatibility — sensitive                   | What should queries return for a `COMPLETE` snapshot whose bytes cannot represent any stable compatible electrical state?       | Accepted: retain directly justified `OBSERVED_UP`; other answers require a nonempty set of compatible stable explanations and agreement across that set. Incompatible data otherwise yields `UNCERTAIN`. Preserve raw bytes and acquisition quality; no retry, cache, component reconstruction or new API. See the accepted policy below.                                           | ✅ Resolved — user: “i approve” on 2026-10-09 to the single named AR-P10 policy; technical proof and costs remain pending                                                                                               |
-| AR-P11 | Technical (complexity escalation) / aggregate-return ownership — sensitive | May the existing aggregate-destination machinery eliminate a proved unnecessary local-to-caller return copy before SFA closure? | Accepted narrower whole-function correction: one completely initialized returned local, contained accesses, no observable address or alias, and every actual stable call supplying a fresh private destination. Any unknown preserves the entire existing function/copy. No per-call variants, forced temporaries, solver, new pass, IR kind, API, runtime or old-oracle exception. | ✅ Resolved — user: “I approve” on 2026-10-09 to the single narrower AR-P11 packet after the additional read-only analysis; implementation qualification remains pending.                                               |
+| AR-P11 | Technical (complexity escalation) / aggregate-return ownership — sensitive | May the existing aggregate-destination machinery eliminate a proved unnecessary local-to-caller return copy before SFA closure? | Accepted narrower whole-function correction: one completely initialized returned local, contained accesses, no observable address or alias, and every actual stable call supplying a fresh private destination. Any unknown preserves the entire existing function/copy. No per-call variants, forced temporaries, solver, new pass, IR kind, API, runtime or old-oracle exception. | ✅ Resolved — user: “I approve” on 2026-10-09 to the single narrower AR-P11 packet; T-14 implementation qualified 19/19 on 2026-10-10. Positive keyboard plan and qualification remain separate.                        |
 
 ## Evidence and lineage
 
@@ -1385,24 +1385,31 @@ from approval. The return-only correction does not authorize the separate
 initializer/read/condition/index debts. A larger mechanism reopens AR-P11 rather
 than silently expanding it. Expert lineage remains `2.0.4`/content `0e2a6280`.
 
-### AR-P11 implementation qualification — blocked by observer-contract ruling
+### AR-P11 implementation qualification — approved observer clarification
 
-The approved [T-14 plan](../returned-local-destination/00-index.md) reaches
-17/19 task checkpoints. All six independent lenses have reported. MC-001's
+The approved [T-14 plan](../returned-local-destination/00-index.md) completes
+19/19 task checkpoints. All six independent lenses are clear. MC-001's
 introduced size growth and SM-001's persistent source-publication gap are
 corrected, but TP-001 finds that incoming bitmap mode can expose the caller
-result during direct construction. This is a distinct platform-proof failure,
-not a reason to add an input-library workaround or bitmap-off source rule.
+result during direct construction. This defeated the initial plan's blanket
+physical-invisibility promise, not a reason to add an input-library workaround
+or bitmap-off source rule. The exact approved observer clarification below
+retains this physical premise and every defined source/platform observation.
 
-Final qualification and closeout are blocked on
+Final qualification and closeout resume under the approved
 [AR-6 / RD-05 T-16](../returned-local-destination/00-ambiguity-register.md#ar-6-runtime--incoming-bitmap-display-invalidates-hardware-disjointness).
-The latest complete root test run was intentionally halted; no full PASS or
-unconditional artifact eligibility is claimed. Existing AR-P11 approval does
+The earlier root run was intentionally halted, not counted as a PASS. The fresh
+complete checkpoint passes 6,043 tests with two existing unrelated skips; final
+base-review consistency is clear. Existing AR-P11 approval does
 not grant startup/layout changes, protected-oracle edits or baseline rebasing.
 The separately approved
 [T-16 assessment](../returned-local-destination/09-entry-observation-assessment.md)
 is complete. Physical overlap is established, not a defined semantic failure.
-The recommended narrow plan-observer clarification awaits a named ruling; all
-current guards remain unchanged and no startup/layout implementation is approved.
+The user's 2026-10-10 “I approve” accepts the exact narrow plan-observer
+clarification; all current guards remain unchanged and no startup/layout
+implementation is approved. Fresh final verification and independent domain
+disposition pass; assessment approval itself is not compiler qualification.
 RD-05/DEF-7 and the positive keyboard gate remain open. Frozen spec/expert and
-every old oracle are unchanged; no implementation commit or push follows.
+every old oracle are unchanged. The returned-local prerequisite is qualified;
+the next owned work is the separate keyboard technical/positive plan gate.
+This is a green local implementation checkpoint; no automatic push.
