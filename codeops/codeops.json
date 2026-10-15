@@ -14,66 +14,79 @@
     "maxConcurrentAgents": 4,
     "roles": {
       "explorer": {
+        "model": "openai/gpt-6.1-sol",
         "effort": "medium",
         "reasoning": "medium",
         "sandbox": "read-only"
       },
       "executor": {
+        "model": "openai/gpt-6.1-sol",
         "effort": "high",
         "reasoning": "high",
         "sandbox": "workspace-write"
       },
       "demanding-executor": {
+        "model": "openai/gpt-6.1-sol",
         "effort": "high",
         "reasoning": "xhigh",
         "sandbox": "workspace-write"
       },
       "correctness-reviewer": {
+        "model": "openai/gpt-6-astra",
         "effort": "high",
         "reasoning": "high",
         "sandbox": "read-only"
       },
       "semantics-reviewer": {
+        "model": "openai/gpt-6-astra",
         "effort": "high",
         "reasoning": "xhigh",
         "sandbox": "read-only"
       },
       "sfa-abi-auditor": {
+        "model": "openai/gpt-6-astra",
         "effort": "high",
         "reasoning": "xhigh",
         "sandbox": "read-only"
       },
       "target-platform-auditor": {
+        "model": "openai/gpt-6-astra",
         "effort": "high",
         "reasoning": "xhigh",
         "sandbox": "read-only"
       },
       "machine-code-auditor": {
+        "model": "openai/gpt-6-astra",
         "effort": "high",
         "reasoning": "xhigh",
         "sandbox": "read-only"
       },
       "performance-auditor": {
+        "model": "openai/gpt-6-astra",
         "effort": "high",
         "reasoning": "xhigh",
         "sandbox": "read-only"
       },
       "preflight-auditor": {
+        "model": "openai/gpt-6-astra",
         "effort": "high",
         "reasoning": "high",
         "sandbox": "read-only"
       },
       "security-auditor": {
+        "model": "openai/gpt-6-astra",
         "effort": "high",
         "reasoning": "high",
         "sandbox": "read-only"
       },
       "design-challenger": {
+        "model": "openai/gpt-6-astra",
         "effort": "high",
         "reasoning": "xhigh",
         "sandbox": "read-only"
       },
       "spec-test-author": {
+        "model": "openai/gpt-6.1-sol",
         "effort": "high",
         "reasoning": "high",
         "sandbox": "workspace-write"

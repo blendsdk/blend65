@@ -94,6 +94,25 @@ up agents or by writing a plan.
 
 ## Dispatch and evidence
 
+Read each role's optional `model` preference and `reasoning` default from
+`codeops.json`. Sol owns implementation/exploration and independent specification
+authoring; Astra owns independent reviews. Pass the selected `provider/model#variant`
+explicitly in the native subagent tool's `model` argument. For example, the
+demanding executor uses `openai/gpt-6.1-sol#xhigh` and the machine-code auditor uses
+`openai/gpt-6-astra#xhigh` with the current defaults. The structured model field
+is a dispatch preference, not an automatic runtime model switch; native charters
+remain unpinned and must not be regenerated to apply it.
+
+An applicable explicit run/dispatch effort override takes precedence over the
+role default. Select a supported variant without an effort-only approval pause;
+do not emit an unsupported CodeOps effort marker such as `xhigh` (the marker's
+vocabulary is only `low`, `medium`, `high`, `max`). A native model suffix and the
+role's provider-level `reasoning` field can use `xhigh`. A failed or unavailable
+preference falls back to the current model and a supported effort, with a clear
+report and unchanged independence, reviewer count and permission boundaries.
+Dispatch success records that the requested override was accepted; metadata or
+an agent's self-description alone does not prove effective provider settings.
+
 Start packets with `[codeops-dispatch agent=<role> feature=<owner> phase=<unit>]`.
 Supply the scope and original goal, smallest design, baseline/diff or artifact, task and
 deliverables, authoritative excerpts and exact approved exceptions, target paths, selected
@@ -137,7 +156,8 @@ second active alias.
 
 Use `effort` for the supported low/medium/high workflow preference and `reasoning`
 for the intended model reasoning level. Unsupported model variants must be
-reported, not silently claimed as applied. No model is pinned by this migration.
+reported, not silently claimed as applied. The migration did not pin native
+models; current structured preferences are applied through explicit dispatch.
 
 `analyze-agents` records coverage and proposes at most two evidenced gaps, after
 deduplicating the current registry. `setup-routing` owns approved specialist

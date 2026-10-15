@@ -259,22 +259,37 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
    still surfaced — as one tagged recommendation with at most the minimal real alternative —
    because choosing it silently would be deciding on the user's behalf.
 
-### Reasoning effort — advisory and risk-based
+### Automatic model and reasoning-effort routing
 
-Use the lowest available reasoning effort adequate for the task's complexity and
-risk. Give a brief recommendation when it materially helps the user; do not stop
-routine authorized work for effort confirmation or require manual agent switching
-before each task. A change in risk calls for reassessment, not an effort-only gate.
+Keep GPT-6.1 Sol as the implementation lead and use GPT-6 Astra for independent
+reviews. The exact per-role model and reasoning defaults live in
+`codeops/codeops.json`; follow `codeops/agent-routing.md` when dispatching.
+Keep tightly coupled implementation with one owner, and keep specification-test
+authors implementation-blind and independent of their reviewers.
 
-Do not assume or change the primary session's selected model or variant without
-the user's request. An effort recommendation or routing metadata is not evidence
-that a model setting was applied. Follow supported role-routing policy for
-delegation and report unavailable settings honestly.
+Select delegated models and supported reasoning variants automatically through
+the native subagent tool's explicit `model` override (`provider/model#variant`).
+Do not rely on inheritance or assume that structured policy alone changes the
+model. Use the configured role's reasoning default unless an applicable explicit
+run/dispatch override changes it. Do not regenerate the hand-authored native
+agents with the legacy CodeOps generator or change their permissions.
 
-This removes only the manual effort handoff. Scope, material user-owned decisions,
-native permissions, verification, independent review and exact oracle-edit
-authority remain unchanged. `--auto-design` still cannot decide reserved choices;
-`--auto-commit` still never authorizes an automatic push in this repository.
+For inline skill runs, use supported CodeOps automatic effort when its scope is
+safe. If it would affect another concurrent session, retain the current variant
+and report that fallback once. Keep the primary session's selected model; do not
+silently change its UI model/variant or claim that a suggestion was applied.
+
+**Never pause solely for model, effort or manual agent-switch confirmation.**
+Reassess effort when risk changes and continue within the approved scope. This
+supersedes earlier effort-only handoff instructions, including inherited plan
+instructions; historical approval records remain evidence, not new gates. If a
+preferred model/variant is unavailable, report the actual fallback, use the
+current model with supported effort and preserve the required independent roles.
+
+Scope, material user-owned decisions, native permissions, verification,
+independent review and exact oracle-edit authority remain unchanged.
+`--auto-design` still cannot decide reserved choices; `--auto-commit` still never
+authorizes an automatic push in this repository.
 
 ### Environment & dependencies
 
