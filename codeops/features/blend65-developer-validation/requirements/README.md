@@ -65,6 +65,7 @@ packets. A new native agent is not justified or authorized.
 | --- | --- | --- |
 | AR | [Decision register](00-ambiguity-register.md) | Approved scope, authority, failure, concurrency and evidence boundaries. |
 | RD-01 | [Developer skill and Slither port](RD-01-developer-skill-and-slither-port.md) | Source assessment, companion skill, complete port and bounded qualification. |
+| Input | [Slither source assessment](_draft/slither-source-assessment.md) | Pinned original inputs and two-build evidence; runtime/profile/rights assessment remains partial. |
 
 ## Dependencies and Implementation Order
 

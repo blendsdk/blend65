@@ -16,4 +16,4 @@
 <!-- prettier-ignore -->
 | ID | Title | RD | Plan | Stage | Status | Last Updated | Depends-on / Blocker |
 |---|---|---|---|---|---|---|---|
-| RD-01 | Developer Skill and Slither Port | [RD-01](requirements/RD-01-developer-skill-and-slither-port.md) | — | RD Drafted | ✏️ | 2026-10-15 | Source/licence/build assessment first; compiler gaps retain existing owners. |
+| RD-01 | Developer Skill and Slither Port | [RD-01](requirements/RD-01-developer-skill-and-slither-port.md) | — | RD Drafted | ✏️ | 2026-10-15 | Original builds match; rights/profile/runtime assessment and preflight remain. |
