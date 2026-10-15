@@ -61,6 +61,15 @@ export type LoweredValue =
       readonly usesFlag: "n" | "v" | "z" | "c";
     };
 
+/** Return each distinct semantic successor without introducing a second graph. */
+export function semanticSuccessors(terminator: SemanticTerminator): readonly string[] {
+  if (terminator.kind === "jump") return Object.freeze([terminator.target]);
+  if (terminator.kind !== "branch") return Object.freeze([]);
+  return terminator.whenTrue === terminator.whenFalse
+    ? Object.freeze([terminator.whenTrue])
+    : Object.freeze([terminator.whenTrue, terminator.whenFalse]);
+}
+
 /** Build an immutable machine-state record. */
 export function machineState(
   registers: MachineStateUse["registers"] = [],

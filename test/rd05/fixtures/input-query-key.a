@@ -1,0 +1,140 @@
+; Full byte-domain key query; borrowed pointer02/03, key04.
+; Root SFA02..09; helper0A..0F and dead caller07 during compatibility.
+; No07 value crosses that call: residual reads follow its new definition.
+;221 instruction bytes; no lookup data, row copy or MMIO.
+key_state:
+ldy #10
+lda ($02),y
+beq key_quality_ok
+jmp key_uncertain
+key_quality_ok:
+lda $04
+cmp #64
+bcc key_named
+jmp key_uncertain
+key_named:
+and #7
+tax
+lda #1
+cpx #0
+beq key_row_ready
+key_row_shift:
+asl
+dex
+bne key_row_shift
+key_row_ready:
+sta $06
+lda $04
+lsr
+lsr
+lsr
+sta $05
+tay
+lda ($02),y
+and $06
+beq key_low
+jmp key_up
+key_low:
+lda $02
+sta $0a
+lda $03
+sta $0b
+jsr compatible
+bne key_compatible
+jmp key_uncertain
+key_compatible:
+ldy #9
+lda ($02),y
+eor #$ff
+sta $08
+ldy #8
+lda ($02),y
+eor #$ff
+sta $09
+ldx $05
+lda #1
+cpx #0
+beq key_column_ready
+key_column_shift:
+asl
+dex
+bne key_column_shift
+key_column_ready:
+and $08
+bne key_grounded
+key_ungrounded:
+lda $09
+and $06
+bne key_up
+key_residual:
+lda $09
+eor #$ff
+sta $07
+ldy $05
+lda ($02),y
+eor #$ff
+and $07
+sta $06
+sec
+sbc #1
+and $06
+beq key_down
+key_count_columns:
+ldy #0
+ldx #0
+key_block_column:
+lda ($02),y
+eor #$ff
+and $07
+cmp $06
+bne key_block_next
+inx
+cpx #2
+bcs key_uncertain
+key_block_next:
+iny
+cpy #8
+bne key_block_column
+jmp key_down
+key_grounded:
+lda $08
+sec
+sbc #1
+and $08
+sta $06
+bne key_compute_single_row
+lda $04
+and #7
+cmp #5
+bcs key_down
+key_compute_single_row:
+lda $09
+sec
+sbc #1
+and $09
+bne key_test_single_column
+lda $05
+cmp #5
+bcs key_down
+jmp key_sole_source
+key_test_single_column:
+lda $06
+bne key_uncertain
+key_sole_source:
+lda $08
+and #$1f
+sta $0a
+lda $09
+and #$1f
+sta $0b
+jsr sole_source
+bne key_down
+key_uncertain:
+lda #2
+rts
+key_up:
+lda #1
+rts
+key_down:
+lda #0
+rts

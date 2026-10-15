@@ -7,6 +7,8 @@ import type {
   MachineInstruction,
   MachineMemoryEffect,
 } from "../machine/machine-types.js";
+import type { StorageHome } from "../storage/storage-types.js";
+import type { MachineProgram } from "../machine/machine-types.js";
 
 /** Stable identity of the platform-owned cooperative-startup save area. */
 export const C64_STARTUP_STATE_ID = "platform.startup-state";
@@ -35,8 +37,22 @@ const STARTUP_STATE = Object.freeze({
   bytes: 49,
 });
 
+/** Balanced display-independent programs need only status and the three mapping bytes. */
+const COMPACT_STARTUP_STATE = Object.freeze({
+  ...STARTUP_STATE,
+  status: 0,
+  cpuDirection: 1,
+  cpuPort: 2,
+  cia2Direction: 3,
+  bytes: 4,
+});
+
 /** Inputs needed to construct the selected cooperative C64 startup. */
 export interface C64StartupInput {
+  /** Closed-program proof that no source owner depends on the display defaults. */
+  readonly displayIndependent?: boolean;
+  /** Actual allocated zero-page bytes borrowed from the cooperative BASIC caller. */
+  readonly borrowedZeroPage?: readonly number[];
   /** Callable module-initializer labels in proved execution order. */
   readonly initializerLabels: readonly string[];
   /** Exact ordered initializer actions when some operations can be safely inlined. */
@@ -82,12 +98,76 @@ function deviceMode(address: number): "zero-page" | "absolute" {
 }
 
 /** Return the resident data object used to restore the caller and C64 after main returns. */
-export function createC64StartupStateData(): MachineDataObject {
+export function createC64StartupStateData(
+  input: Pick<C64StartupInput, "displayIndependent" | "borrowedZeroPage"> = {},
+): MachineDataObject {
+  const state = input.displayIndependent === true ? COMPACT_STARTUP_STATE : STARTUP_STATE;
   return Object.freeze({
     id: C64_STARTUP_STATE_ID,
     kind: "bss",
     alignment: 1,
-    bytes: Object.freeze(new Array<number>(STARTUP_STATE.bytes).fill(0)),
+    bytes: Object.freeze(new Array<number>(state.bytes + borrowedBasicBytes(input).length).fill(0)),
+  });
+}
+
+/**
+ * Preserve only actually borrowed addresses. $02 is free; the remaining admitted
+ * BASIC window contains vectors, persistent data, executable CHRGET and temporaries.
+ * Without a complete BASIC liveness proof, temporary-looking bytes are not assumed dead.
+ */
+function borrowedBasicBytes(input: Pick<C64StartupInput, "borrowedZeroPage">): readonly number[] {
+  return [...new Set(input.borrowedZeroPage)]
+    .filter((address) => address >= 3 && address <= 0x8f)
+    .sort((left, right) => left - right);
+}
+
+/**
+ * Bind platform-owned BASIC snapshots to the existing final ZP allocation. This
+ * saves caller state for the whole program; it does not invent a function home or
+ * helper spill after storage closure. Direct machine programs keep the full default.
+ * A malformed supplied save object remains an error rather than being overwritten.
+ */
+export function bindC64StartupState(
+  program: MachineProgram,
+  homes: readonly StorageHome[],
+  profile: TargetProfile,
+): MachineProgram | null {
+  const configuration = program.c64Startup;
+  if (configuration === undefined) return program;
+  const previous = createC64StartupStateData(configuration);
+  const supplied = program.data.find(({ id }) => id === C64_STARTUP_STATE_ID);
+  if (
+    supplied === undefined ||
+    supplied.kind !== previous.kind ||
+    supplied.alignment !== previous.alignment ||
+    supplied.bytes.length !== previous.bytes.length ||
+    supplied.bytes.some((byte) => byte !== 0)
+  )
+    return null;
+  const borrowed = homes
+    .filter(({ region }) => region === "zero-page")
+    .flatMap(({ address, bytes }) =>
+      Array.from({ length: bytes }, (_, offset) => address + offset),
+    );
+  for (const data of program.data) {
+    if (!data.zeropage) continue;
+    if (data.placement?.at == null) return null;
+    borrowed.push(
+      ...Array.from({ length: data.bytes.length }, (_, offset) => data.placement!.at! + offset),
+    );
+  }
+  const bound = Object.freeze({ ...configuration, borrowedZeroPage: Object.freeze(borrowed) });
+  const result = createC64Startup({ ...bound, profile });
+  if (result.kind !== "complete") return null;
+  return Object.freeze({
+    ...program,
+    c64Startup: bound,
+    startup: result.startup,
+    data: Object.freeze(
+      program.data.map((data) =>
+        data.id === C64_STARTUP_STATE_ID ? createC64StartupStateData(bound) : data,
+      ),
+    ),
   });
 }
 
@@ -163,60 +243,97 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
     return Object.freeze({ kind: "error", reason: "Startup requires the selected C64 profile" });
   }
   const cpu = input.profile.cpu;
+  const compact = input.displayIndependent === true;
+  const state = compact ? COMPACT_STARTUP_STATE : STARTUP_STATE;
+  const borrowed = borrowedBasicBytes(input);
   const machine = input.profile.machine;
   const preservedDevices = Object.freeze([
-    Object.freeze({ address: cpu.portDirectionAddress, offset: STARTUP_STATE.cpuDirection }),
-    Object.freeze({ address: cpu.portDataAddress, offset: STARTUP_STATE.cpuPort }),
-    Object.freeze({ address: machine.vicMemoryPointer, offset: STARTUP_STATE.vicMemory }),
-    Object.freeze({ address: machine.spriteEnable, offset: STARTUP_STATE.spriteEnable }),
-    Object.freeze({ address: machine.spriteXHigh, offset: STARTUP_STATE.spriteXHigh }),
-    Object.freeze({ address: machine.spriteYExpand, offset: STARTUP_STATE.spriteYExpand }),
-    Object.freeze({ address: machine.spritePriority, offset: STARTUP_STATE.spritePriority }),
-    Object.freeze({ address: machine.spriteMulticolor, offset: STARTUP_STATE.spriteMulticolor }),
-    Object.freeze({ address: machine.spriteXExpand, offset: STARTUP_STATE.spriteXExpand }),
-    Object.freeze({ address: machine.borderColor, offset: STARTUP_STATE.border }),
-    Object.freeze({ address: machine.backgroundColor, offset: STARTUP_STATE.background }),
-    ...Array.from({ length: 16 }, (_, index) =>
-      Object.freeze({
-        address: machine.spritePositionBase + index,
-        offset: STARTUP_STATE.spritePositions + index,
-      }),
-    ),
-    ...Array.from({ length: 8 }, (_, index) =>
-      Object.freeze({
-        address: machine.spriteColorBase + index,
-        offset: STARTUP_STATE.spriteColors + index,
-      }),
-    ),
-    ...Array.from({ length: 8 }, (_, index) =>
-      Object.freeze({
-        address: machine.spritePointerBase + index,
-        offset: STARTUP_STATE.spritePointers + index,
-      }),
-    ),
+    Object.freeze({ address: cpu.portDirectionAddress, offset: state.cpuDirection }),
+    Object.freeze({ address: cpu.portDataAddress, offset: state.cpuPort }),
+    ...(compact
+      ? []
+      : [
+          Object.freeze({ address: machine.vicMemoryPointer, offset: state.vicMemory }),
+          Object.freeze({ address: machine.spriteEnable, offset: state.spriteEnable }),
+          Object.freeze({ address: machine.spriteXHigh, offset: state.spriteXHigh }),
+          Object.freeze({ address: machine.spriteYExpand, offset: state.spriteYExpand }),
+          Object.freeze({ address: machine.spritePriority, offset: state.spritePriority }),
+          Object.freeze({ address: machine.spriteMulticolor, offset: state.spriteMulticolor }),
+          Object.freeze({ address: machine.spriteXExpand, offset: state.spriteXExpand }),
+          Object.freeze({ address: machine.borderColor, offset: state.border }),
+          Object.freeze({ address: machine.backgroundColor, offset: state.background }),
+          ...Array.from({ length: 16 }, (_, index) =>
+            Object.freeze({
+              address: machine.spritePositionBase + index,
+              offset: state.spritePositions + index,
+            }),
+          ),
+          ...Array.from({ length: 8 }, (_, index) =>
+            Object.freeze({
+              address: machine.spriteColorBase + index,
+              offset: state.spriteColors + index,
+            }),
+          ),
+          ...Array.from({ length: 8 }, (_, index) =>
+            Object.freeze({
+              address: machine.spritePointerBase + index,
+              offset: state.spritePointers + index,
+            }),
+          ),
+        ]),
   ]);
   const entry: MachineInstruction[] = [
-    stateInstruction(cpu, "sta", STARTUP_STATE.a),
-    stateInstruction(cpu, "stx", STARTUP_STATE.x),
-    stateInstruction(cpu, "sty", STARTUP_STATE.y),
+    ...(compact
+      ? []
+      : [
+          stateInstruction(cpu, "sta", state.a),
+          stateInstruction(cpu, "stx", state.x),
+          stateInstruction(cpu, "sty", state.y),
+        ]),
     machineInstruction(cpu, "php", "implied", null),
     machineInstruction(cpu, "pla", "implied", null),
-    stateInstruction(cpu, "sta", STARTUP_STATE.status),
-    machineInstruction(cpu, "tsx", "implied", null),
-    stateInstruction(cpu, "stx", STARTUP_STATE.stack),
+    stateInstruction(cpu, "sta", state.status),
+    ...(compact
+      ? []
+      : [
+          machineInstruction(cpu, "tsx", "implied", null),
+          stateInstruction(cpu, "stx", state.stack),
+        ]),
     machineInstruction(cpu, "cld", "implied", null),
   ];
-  for (const { address, offset } of preservedDevices) {
-    entry.push(...saveDevice(cpu, address, offset));
+  if (compact) {
+    // Borrowed-byte captures use A only. Keep the direction in X until mapping,
+    // then capture the port last so its fresh A value needs no memory reload.
+    entry.push(
+      machineInstruction(
+        cpu,
+        "ldx",
+        deviceMode(cpu.portDirectionAddress),
+        Object.freeze({ kind: "absolute", value: cpu.portDirectionAddress }),
+        [deviceEffect("read", cpu.portDirectionAddress)],
+      ),
+      stateInstruction(cpu, "stx", state.cpuDirection),
+    );
+  } else {
+    for (const { address, offset } of preservedDevices) {
+      entry.push(...saveDevice(cpu, address, offset));
+    }
+  }
+  for (const [index, address] of borrowed.entries()) {
+    entry.push(...saveDevice(cpu, address, state.bytes + index));
   }
   entry.push(
-    machineInstruction(
-      cpu,
-      "lda",
-      deviceMode(cpu.portDataAddress),
-      Object.freeze({ kind: "absolute", value: cpu.portDataAddress }),
-      [deviceEffect("read", cpu.portDataAddress)],
-    ),
+    ...(compact
+      ? saveDevice(cpu, cpu.portDataAddress, state.cpuPort)
+      : [
+          machineInstruction(
+            cpu,
+            "lda",
+            deviceMode(cpu.portDataAddress),
+            Object.freeze({ kind: "absolute", value: cpu.portDataAddress }),
+            [deviceEffect("read", cpu.portDataAddress)],
+          ),
+        ]),
     machineInstruction(cpu, "and", "immediate", Object.freeze({ kind: "immediate", value: 0xf8 })),
     machineInstruction(cpu, "ora", "immediate", Object.freeze({ kind: "immediate", value: 0x06 })),
     machineInstruction(
@@ -226,13 +343,17 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       Object.freeze({ kind: "absolute", value: cpu.portDataAddress }),
       [deviceEffect("write", cpu.portDataAddress)],
     ),
-    machineInstruction(
-      cpu,
-      "lda",
-      deviceMode(cpu.portDirectionAddress),
-      Object.freeze({ kind: "absolute", value: cpu.portDirectionAddress }),
-      [deviceEffect("read", cpu.portDirectionAddress)],
-    ),
+    ...(compact
+      ? [machineInstruction(cpu, "txa", "implied", null)]
+      : [
+          machineInstruction(
+            cpu,
+            "lda",
+            deviceMode(cpu.portDirectionAddress),
+            Object.freeze({ kind: "absolute", value: cpu.portDirectionAddress }),
+            [deviceEffect("read", cpu.portDirectionAddress)],
+          ),
+        ]),
     machineInstruction(cpu, "ora", "immediate", Object.freeze({ kind: "immediate", value: 0x07 })),
     machineInstruction(
       cpu,
@@ -243,7 +364,7 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
     ),
     // These fixed-bank profiles use input pull-ups for bank zero. Saving and masking DDRA
     // leaves the unreadable PRA output latch untouched; pin readback cannot restore that latch.
-    ...saveDevice(cpu, machine.cia2DataDirection, STARTUP_STATE.cia2Direction),
+    ...saveDevice(cpu, machine.cia2DataDirection, state.cia2Direction),
     machineInstruction(cpu, "and", "immediate", Object.freeze({ kind: "immediate", value: 0xfc })),
     machineInstruction(
       cpu,
@@ -252,65 +373,73 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       Object.freeze({ kind: "absolute", value: machine.cia2DataDirection }),
       [deviceEffect("write", machine.cia2DataDirection)],
     ),
-    machineInstruction(cpu, "lda", "immediate", Object.freeze({ kind: "immediate", value: 0x14 })),
-    machineInstruction(
-      cpu,
-      "sta",
-      "absolute",
-      Object.freeze({ kind: "absolute", value: machine.vicMemoryPointer }),
-      [deviceEffect("write", machine.vicMemoryPointer)],
-    ),
-    machineInstruction(cpu, "lda", "immediate", Object.freeze({ kind: "immediate", value: 0 })),
-    machineInstruction(
-      cpu,
-      "sta",
-      "absolute",
-      Object.freeze({ kind: "absolute", value: machine.spriteEnable }),
-      [deviceEffect("write", machine.spriteEnable)],
-    ),
-    machineInstruction(
-      cpu,
-      "sta",
-      "absolute",
-      Object.freeze({ kind: "absolute", value: machine.spriteYExpand }),
-      [deviceEffect("write", machine.spriteYExpand)],
-    ),
-    machineInstruction(
-      cpu,
-      "sta",
-      "absolute",
-      Object.freeze({ kind: "absolute", value: machine.spritePriority }),
-      [deviceEffect("write", machine.spritePriority)],
-    ),
-    machineInstruction(
-      cpu,
-      "sta",
-      "absolute",
-      Object.freeze({ kind: "absolute", value: machine.spriteMulticolor }),
-      [deviceEffect("write", machine.spriteMulticolor)],
-    ),
-    machineInstruction(
-      cpu,
-      "sta",
-      "absolute",
-      Object.freeze({ kind: "absolute", value: machine.spriteXExpand }),
-      [deviceEffect("write", machine.spriteXExpand)],
-    ),
-    machineInstruction(
-      cpu,
-      "sta",
-      "absolute",
-      Object.freeze({ kind: "absolute", value: machine.borderColor }),
-      [deviceEffect("write", machine.borderColor)],
-    ),
-    machineInstruction(
-      cpu,
-      "sta",
-      "absolute",
-      Object.freeze({ kind: "absolute", value: machine.backgroundColor }),
-      [deviceEffect("write", machine.backgroundColor)],
-    ),
   );
+  if (!compact)
+    entry.push(
+      machineInstruction(
+        cpu,
+        "lda",
+        "immediate",
+        Object.freeze({ kind: "immediate", value: 0x14 }),
+      ),
+      machineInstruction(
+        cpu,
+        "sta",
+        "absolute",
+        Object.freeze({ kind: "absolute", value: machine.vicMemoryPointer }),
+        [deviceEffect("write", machine.vicMemoryPointer)],
+      ),
+      machineInstruction(cpu, "lda", "immediate", Object.freeze({ kind: "immediate", value: 0 })),
+      machineInstruction(
+        cpu,
+        "sta",
+        "absolute",
+        Object.freeze({ kind: "absolute", value: machine.spriteEnable }),
+        [deviceEffect("write", machine.spriteEnable)],
+      ),
+      machineInstruction(
+        cpu,
+        "sta",
+        "absolute",
+        Object.freeze({ kind: "absolute", value: machine.spriteYExpand }),
+        [deviceEffect("write", machine.spriteYExpand)],
+      ),
+      machineInstruction(
+        cpu,
+        "sta",
+        "absolute",
+        Object.freeze({ kind: "absolute", value: machine.spritePriority }),
+        [deviceEffect("write", machine.spritePriority)],
+      ),
+      machineInstruction(
+        cpu,
+        "sta",
+        "absolute",
+        Object.freeze({ kind: "absolute", value: machine.spriteMulticolor }),
+        [deviceEffect("write", machine.spriteMulticolor)],
+      ),
+      machineInstruction(
+        cpu,
+        "sta",
+        "absolute",
+        Object.freeze({ kind: "absolute", value: machine.spriteXExpand }),
+        [deviceEffect("write", machine.spriteXExpand)],
+      ),
+      machineInstruction(
+        cpu,
+        "sta",
+        "absolute",
+        Object.freeze({ kind: "absolute", value: machine.borderColor }),
+        [deviceEffect("write", machine.borderColor)],
+      ),
+      machineInstruction(
+        cpu,
+        "sta",
+        "absolute",
+        Object.freeze({ kind: "absolute", value: machine.backgroundColor }),
+        [deviceEffect("write", machine.backgroundColor)],
+      ),
+    );
   const initializers =
     input.initializers ??
     input.initializerLabels.map((label) => Object.freeze({ kind: "call" as const, label }));
@@ -333,17 +462,30 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
   for (const { address, offset } of preservedDevices.slice(2)) {
     restore.push(...restoreDevice(cpu, address, offset));
   }
+  for (const [index, address] of borrowed.entries()) {
+    restore.push(...restoreDevice(cpu, address, state.bytes + index));
+  }
   restore.push(
-    ...restoreDevice(cpu, machine.cia2DataDirection, STARTUP_STATE.cia2Direction),
-    ...restoreDevice(cpu, cpu.portDataAddress, STARTUP_STATE.cpuPort),
-    ...restoreDevice(cpu, cpu.portDirectionAddress, STARTUP_STATE.cpuDirection),
-    stateInstruction(cpu, "ldx", STARTUP_STATE.stack),
-    machineInstruction(cpu, "txs", "implied", null),
-    stateInstruction(cpu, "lda", STARTUP_STATE.status),
+    ...restoreDevice(cpu, machine.cia2DataDirection, state.cia2Direction),
+    ...restoreDevice(cpu, cpu.portDataAddress, state.cpuPort),
+    ...restoreDevice(cpu, cpu.portDirectionAddress, state.cpuDirection),
+    // The compact proof excludes stack-memory writes; source status saves,
+    // calls and returning interrupts already balance SP. No extra save is held.
+    ...(compact
+      ? []
+      : [
+          stateInstruction(cpu, "ldx", state.stack),
+          machineInstruction(cpu, "txs", "implied", null),
+        ]),
+    stateInstruction(cpu, "lda", state.status),
     machineInstruction(cpu, "pha", "implied", null),
-    stateInstruction(cpu, "lda", STARTUP_STATE.a),
-    stateInstruction(cpu, "ldx", STARTUP_STATE.x),
-    stateInstruction(cpu, "ldy", STARTUP_STATE.y),
+    ...(compact
+      ? []
+      : [
+          stateInstruction(cpu, "lda", state.a),
+          stateInstruction(cpu, "ldx", state.x),
+          stateInstruction(cpu, "ldy", state.y),
+        ]),
     machineInstruction(cpu, "plp", "implied", null),
   );
 

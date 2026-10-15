@@ -1,6 +1,7 @@
 import { SCALAR_TYPES } from "../frontend/constants.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { isConstantAggregateLiteral } from "./lower-aggregate-literal.js";
+import { lowerCondition } from "./lower-control.js";
 import type {
   SemanticBinding,
   SemanticType,
@@ -52,6 +53,32 @@ function isExpressionList(
 /** Return whether a scalar type is the language's void type. */
 function isVoid(type: SemanticType): boolean {
   return type.kind === "scalar" && type.name === "void";
+}
+
+/**
+ * Recognize returned comparison truth without changing raw Boolean values.
+ * Comparisons and trees made only from comparisons can choose constant return
+ * arms directly. Names, calls, conversions and other logical leaves keep their
+ * original value representation; this does not normalize arbitrary Booleans.
+ */
+function isReturnedPredicate(expression: TypedExpr): boolean {
+  if (
+    expression.kind !== "binary" ||
+    expression.type.kind !== "scalar" ||
+    expression.type.name !== "boolean" ||
+    expression.conversion !== null ||
+    expression.constant !== null
+  )
+    return false;
+  if (["==", "!=", "<", "<=", ">", ">="].includes(expression.operator ?? "")) return true;
+  return (
+    expression.evaluation === "short-circuit" &&
+    (expression.operator === "&&" || expression.operator === "||") &&
+    expression.left !== undefined &&
+    expression.right !== undefined &&
+    isReturnedPredicate(expression.left) &&
+    isReturnedPredicate(expression.right)
+  );
 }
 
 /** Direct stateful builder for structured source control flow. */
@@ -252,6 +279,26 @@ export class ControlFlowBuilder {
         this.terminate(Object.freeze({ kind: "jump", target: loop.breakTarget }));
         return;
       case "return": {
+        if (statement.value != null && isReturnedPredicate(statement.value)) {
+          const whenTrue = this.createBlock("return-true");
+          const whenFalse = this.createBlock("return-false");
+          lowerCondition(statement.value, this, lowerExpression, whenTrue.id, whenFalse.id);
+          this.select(whenTrue);
+          this.terminate(
+            Object.freeze({
+              kind: "return",
+              value: this.emitBooleanConstant(true, statement.value.span),
+            }),
+          );
+          this.select(whenFalse);
+          this.terminate(
+            Object.freeze({
+              kind: "return",
+              value: this.emitBooleanConstant(false, statement.value.span),
+            }),
+          );
+          return;
+        }
         const value =
           statement.value == null
             ? null
@@ -273,9 +320,9 @@ export class ControlFlowBuilder {
     lowerExpression: LowerSemanticExpression,
     loop: LoopTargets | null,
   ): void {
-    const condition = lowerExpression(statement.condition);
-    if (condition === null) throw new Error("Completed if condition did not produce a value");
     if (typeof statement.condition.constant === "boolean") {
+      if (lowerExpression(statement.condition) === null)
+        throw new Error("Completed if condition did not produce a value");
       if (statement.condition.constant) this.lowerBody(statement.then, lowerExpression, loop);
       else if (statement.otherwise !== null) {
         this.lowerElse(statement.otherwise, lowerExpression, loop);
@@ -287,12 +334,7 @@ export class ControlFlowBuilder {
     if (conditionBlock === null) return;
     const whenTrue = this.createBlock("if-true");
     const whenFalse = this.createBlock("if-false");
-    conditionBlock.terminator = Object.freeze({
-      kind: "branch",
-      condition,
-      whenTrue: whenTrue.id,
-      whenFalse: whenFalse.id,
-    });
+    lowerCondition(statement.condition, this, lowerExpression, whenTrue.id, whenFalse.id);
 
     this.select(whenTrue);
     this.lowerBody(statement.then, lowerExpression, loop);
@@ -344,16 +386,14 @@ export class ControlFlowBuilder {
     entry.terminator = Object.freeze({ kind: "jump", target: conditionBlock.id });
 
     this.select(conditionBlock);
-    const condition = lowerExpression(conditionExpression);
-    if (condition === null) throw new Error("Completed while condition did not produce a value");
     const conditionIsLiteralTrue =
       conditionExpression.kind === "boolean" && conditionExpression.constant === true;
     if (conditionIsLiteralTrue) {
+      if (lowerExpression(conditionExpression) === null)
+        throw new Error("Completed while condition did not produce a value");
       this.terminate(Object.freeze({ kind: "jump", target: body.id }));
     } else {
-      this.terminate(
-        Object.freeze({ kind: "branch", condition, whenTrue: body.id, whenFalse: end.id }),
-      );
+      lowerCondition(conditionExpression, this, lowerExpression, body.id, end.id);
     }
 
     this.select(body);
@@ -384,11 +424,7 @@ export class ControlFlowBuilder {
     });
     this.jumpFrom(this.current, conditionBlock.id);
     this.select(conditionBlock);
-    const condition = lowerExpression(conditionExpression);
-    if (condition === null) throw new Error("Completed do-while condition has no value");
-    this.terminate(
-      Object.freeze({ kind: "branch", condition, whenTrue: body.id, whenFalse: end.id }),
-    );
+    lowerCondition(conditionExpression, this, lowerExpression, body.id, end.id);
     this.select(end);
   }
 
@@ -486,20 +522,18 @@ export class ControlFlowBuilder {
     initializerExit.terminator = Object.freeze({ kind: "jump", target: conditionBlock.id });
 
     this.select(conditionBlock);
-    const condition =
-      statement.condition === null
-        ? this.emitBooleanConstant(true, statement.span)
-        : lowerExpression(statement.condition);
-    if (condition === null) throw new Error("Completed for condition did not produce a value");
     const conditionIsAlwaysTrue =
       statement.condition === null ||
       (statement.condition.kind === "boolean" && statement.condition.constant === true);
     if (conditionIsAlwaysTrue) {
+      const condition =
+        statement.condition === null
+          ? this.emitBooleanConstant(true, statement.span)
+          : lowerExpression(statement.condition);
+      if (condition === null) throw new Error("Completed for condition did not produce a value");
       this.terminate(Object.freeze({ kind: "jump", target: body.id }));
-    } else {
-      this.terminate(
-        Object.freeze({ kind: "branch", condition, whenTrue: body.id, whenFalse: end.id }),
-      );
+    } else if (statement.condition !== null) {
+      lowerCondition(statement.condition, this, lowerExpression, body.id, end.id);
     }
 
     this.select(body);
@@ -515,7 +549,7 @@ export class ControlFlowBuilder {
     this.select(end);
   }
 
-  /** Emit the implicit true condition used by `for (;;)` without target facts. */
+  /** Emit a Boolean loop condition or return-arm value without target facts. */
   private emitBooleanConstant(value: boolean, span: TypedExpr["span"]): ValueId {
     const result = this.nextValue();
     this.emit(

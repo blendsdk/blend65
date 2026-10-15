@@ -420,76 +420,84 @@ describe("call ABI and scalar retention", () => {
     ).toEqual([expect.objectContaining({ bytes: 2 }), expect.objectContaining({ bytes: 2 })]);
   });
 
-  it("passes a global packed-struct base address through closure and binding", () => {
-    const globalId = sourceBinding(1110);
-    const record: SemanticType = Object.freeze({
-      kind: "struct",
-      binding: sourceBinding(1111),
-      size: 3,
-      fields: Object.freeze([
-        Object.freeze({ name: "tag", type: BYTE, offset: 0 }),
-        Object.freeze({ name: "value", type: BYTE, offset: 1 }),
-        Object.freeze({ name: "flags", type: BYTE, offset: 2 }),
-      ]),
-    });
-    const parameter = Object.freeze({ id: sourceBinding(1120), type: record });
-    const sink = semanticFunction(1130, "sink-struct", [parameter], VOID, [
-      semanticBlock("sink.entry", [], Object.freeze({ kind: "return" as const, value: null })),
-    ]);
-    const main = semanticFunction(1100, "main", [], VOID, [
-      semanticBlock(
-        "main.entry",
-        [
-          aggregateLoad("global-record", globalId, record),
-          voidCall(sink.id, ["global-record"], 1102),
-        ],
-        Object.freeze({ kind: "return" as const, value: null }),
-      ),
-    ]);
-    const base = wholeProgramFor([main, sink]);
-    const semantic: SemanticProgram = Object.freeze({
-      ...base.semantic,
-      globals: Object.freeze([
-        Object.freeze({
-          id: globalId,
-          storage: "module" as const,
-          type: record,
-          initialBytes: null,
-          runtimeInitialBytes: null,
-          entry: null,
-          blocks: Object.freeze([]),
-          source: sourceSpan(1110),
-        }),
-      ]),
-    });
-    const program = Object.freeze({ ...base, semantic });
+  it.each(["load", "place-address"] as const)(
+    "passes a global packed-struct %s through closure and binding",
+    (producerKind) => {
+      const globalId = sourceBinding(1110);
+      const record: SemanticType = Object.freeze({
+        kind: "struct",
+        binding: sourceBinding(1111),
+        size: 3,
+        fields: Object.freeze([
+          Object.freeze({ name: "tag", type: BYTE, offset: 0 }),
+          Object.freeze({ name: "value", type: BYTE, offset: 1 }),
+          Object.freeze({ name: "flags", type: BYTE, offset: 2 }),
+        ]),
+      });
+      const parameter = Object.freeze({ id: sourceBinding(1120), type: record });
+      const sink = semanticFunction(1130, "sink-struct", [parameter], VOID, [
+        semanticBlock("sink.entry", [], Object.freeze({ kind: "return" as const, value: null })),
+      ]);
+      const main = semanticFunction(1100, "main", [], VOID, [
+        semanticBlock(
+          "main.entry",
+          [
+            { ...aggregateLoad("global-record", globalId, record), kind: producerKind },
+            voidCall(sink.id, ["global-record"], 1102),
+          ],
+          Object.freeze({ kind: "return" as const, value: null }),
+        ),
+      ]);
+      const base = wholeProgramFor([main, sink]);
+      const semantic: SemanticProgram = Object.freeze({
+        ...base.semantic,
+        globals: Object.freeze([
+          Object.freeze({
+            id: globalId,
+            storage: "module" as const,
+            type: record,
+            initialBytes: null,
+            runtimeInitialBytes: null,
+            entry: null,
+            blocks: Object.freeze([]),
+            source: sourceSpan(1110),
+          }),
+        ]),
+      });
+      const program = Object.freeze({ ...base, semantic });
 
-    const result = lowerCloseBind(program);
-    const instructions = result.lowered.program.functions[0]!.blocks[0]!.instructions;
-    expect(
-      instructions
-        .filter(({ opcode }) => opcode === "lda")
-        .slice(0, 2)
-        .map(({ mode, operand }) => ({ mode, operand })),
-    ).toEqual([
-      expect.objectContaining({
-        mode: "immediate",
-        operand: expect.objectContaining({ kind: "label", addressByte: "low" }),
-      }),
-      expect.objectContaining({
-        mode: "immediate",
-        operand: expect.objectContaining({ kind: "label", addressByte: "high" }),
-      }),
-    ]);
-    expect(result.bound.program.data).toEqual([
-      expect.objectContaining({ kind: "bss", bytes: [0, 0, 0] }),
-      expect.objectContaining({
-        id: "platform.startup-state",
-        kind: "bss",
-        bytes: new Array<number>(49).fill(0),
-      }),
-    ]);
-  });
+      const result = lowerCloseBind(program);
+      expect(
+        result.closure.inventory.requests.filter(({ id }) =>
+          id.includes("aggregate-address:global-record"),
+        ),
+      ).toEqual([]);
+      const instructions = result.lowered.program.functions[0]!.blocks[0]!.instructions;
+      expect(
+        instructions
+          .filter(({ opcode }) => opcode === "lda")
+          .slice(0, 2)
+          .map(({ mode, operand }) => ({ mode, operand })),
+      ).toEqual([
+        expect.objectContaining({
+          mode: "immediate",
+          operand: expect.objectContaining({ kind: "label", addressByte: "low" }),
+        }),
+        expect.objectContaining({
+          mode: "immediate",
+          operand: expect.objectContaining({ kind: "label", addressByte: "high" }),
+        }),
+      ]);
+      expect(result.bound.program.data).toEqual([
+        expect.objectContaining({ kind: "bss", bytes: [0, 0, 0] }),
+        expect.objectContaining({
+          id: "platform.startup-state",
+          kind: "bss",
+          bytes: new Array<number>(4).fill(0),
+        }),
+      ]);
+    },
+  );
 
   it("captures a scalar load before a call can mutate its source", () => {
     const value = Object.freeze({ id: sourceBinding(1210), type: BYTE });

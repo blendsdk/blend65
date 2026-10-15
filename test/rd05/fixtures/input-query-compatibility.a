@@ -1,0 +1,90 @@
+; Helper0A..0F: pointer,A,B,~B,R; column mask overlays dead caller07.
+; Both callers define their own07 value only after this call returns.
+;142 bytes; no lookup data, row copy, graph cache or MMIO.
+; Conditions retain distinct port endpoints; no equal-bit merging.
+compatible:
+ldy #9
+lda ($0a),y
+eor #$ff
+sta $0c
+ldy #8
+lda ($0a),y
+eor #$ff
+sta $0d
+eor #$ff
+sta $0e
+lda $0c
+ora $0d
+beq grounds_done
+lda $0c
+and #$1f
+sta $0f
+lda $0d
+and #$1f
+ora $0f
+beq incompatible
+eligible_present:
+lda $0c
+and #$e0
+beq check_pb_high
+lda $0d
+beq incompatible
+check_pb_high:
+lda $0d
+and #$e0
+beq grounds_done
+lda $0c
+beq incompatible
+grounds_done:
+lda #1
+sta $07
+ldx #0
+column_check:
+txa
+tay
+lda ($0a),y
+eor #$ff
+sta $0f
+and $0d
+cmp $0d
+bne incompatible
+baseline_present:
+lda $0f
+and $0e
+sta $0f
+lda $0c
+and $07
+beq pairs_begin
+lda $0f
+beq next_column
+jmp incompatible
+pairs_begin:
+lda $0f
+beq next_column
+txa
+tay
+iny
+cpy #8
+beq next_column
+pair_check:
+lda ($0a),y
+eor #$ff
+and $0e
+cmp $0f
+beq next_pair
+and $0f
+bne incompatible
+next_pair:
+iny
+cpy #8
+bne pair_check
+next_column:
+asl $07
+inx
+cpx #8
+bne column_check
+lda #1
+rts
+incompatible:
+lda #0
+rts

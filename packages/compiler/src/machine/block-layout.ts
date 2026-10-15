@@ -33,6 +33,17 @@ function blockBytes(block: MachineBlock): number | null {
   return Number.isSafeInteger(total) && total >= 0 ? total : null;
 }
 
+/** Identify a direct successor, without inferring reachability through other blocks. */
+function directlyReaches(terminator: MachineTerminator, label: string): boolean {
+  if (terminator.kind === "jump" || terminator.kind === "fallthrough")
+    return terminator.target === label;
+  if (terminator.kind === "branch")
+    return terminator.target === label || terminator.fallthrough === label;
+  if (terminator.kind === "long-branch")
+    return terminator.jump.target === label || terminator.fallthrough === label;
+  return false;
+}
+
 /** Calculate block origins and complete function length. */
 function positions(fn: MachineFunction, origin: number) {
   const byLabel = new Map<string, number>();
@@ -49,23 +60,140 @@ function positions(fn: MachineFunction, origin: number) {
 /** Put every declared fallthrough immediately after its source block. */
 function orderBlocks(fn: MachineFunction): MachineFunction | null {
   if (fn.blocks.length === 0) return fn;
-  const byLabel = new Map(fn.blocks.map((block) => [block.label, block] as const));
-  if (byLabel.size !== fn.blocks.length) return null;
+  const declared = new Map(fn.blocks.map((block) => [block.label, block] as const));
+  if (declared.size !== fn.blocks.length) return null;
+  // Equal pure constant returns need one load/RTS, not one copy per source arm.
+  // Keep each old label as an empty alias so existing edge and label ownership
+  // stays intact. No other state-producing instruction or memory access may be shared.
+  const constantReturns = new Map<number, string>();
+  for (const block of fn.blocks) {
+    const instruction = block.instructions[0];
+    if (
+      block.terminator.kind !== "return" ||
+      block.instructions.length !== 1 ||
+      instruction?.opcode !== "lda" ||
+      instruction.mode !== "immediate" ||
+      instruction.operand?.kind !== "immediate" ||
+      !Number.isInteger(instruction.operand.value) ||
+      instruction.operand.value < 0 ||
+      instruction.operand.value > 0xff ||
+      instruction.memory.length !== 0
+    )
+      continue;
+    const target = constantReturns.get(instruction.operand.value);
+    if (target === undefined) {
+      constantReturns.set(instruction.operand.value, block.label);
+    } else {
+      declared.set(
+        block.label,
+        Object.freeze({
+          ...block,
+          instructions: Object.freeze([]),
+          terminator: Object.freeze({ kind: "fallthrough" as const, target }),
+        }),
+      );
+    }
+  }
+  /** Resolve only instruction-empty internal aliases; cyclic chains stay unchanged. */
+  const resolve = (label: string): string => {
+    const seen = new Set<string>();
+    let current = label;
+    while (!seen.has(current)) {
+      seen.add(current);
+      const block = declared.get(current);
+      if (
+        block === undefined ||
+        block.instructions.length !== 0 ||
+        (block.terminator.kind !== "jump" && block.terminator.kind !== "fallthrough") ||
+        !declared.has(block.terminator.target)
+      )
+        return current;
+      current = block.terminator.target;
+    }
+    return label;
+  };
+  const resolved = new Map(fn.blocks.map(({ label }) => [label, resolve(label)]));
+  const targetOf = (label: string): string => resolved.get(label) ?? label;
+  const aliases = new Map<string, MachineBlock[]>();
+  const byLabel = new Map<string, MachineBlock>();
+  for (const block of declared.values()) {
+    const target = targetOf(block.label);
+    if (target !== block.label) {
+      const group = aliases.get(target) ?? [];
+      group.push(block);
+      aliases.set(target, group);
+      continue;
+    }
+    const terminator = block.terminator;
+    byLabel.set(
+      block.label,
+      Object.freeze({
+        ...block,
+        terminator: Object.freeze(
+          terminator.kind === "branch"
+            ? {
+                ...terminator,
+                target: targetOf(terminator.target),
+                fallthrough: targetOf(terminator.fallthrough),
+              }
+            : terminator.kind === "jump" || terminator.kind === "fallthrough"
+              ? { ...terminator, target: targetOf(terminator.target) }
+              : terminator.kind === "long-branch"
+                ? {
+                    ...terminator,
+                    jump: Object.freeze({
+                      ...terminator.jump,
+                      target: targetOf(terminator.jump.target),
+                    }),
+                    fallthrough: targetOf(terminator.fallthrough),
+                  }
+                : terminator,
+        ),
+      }),
+    );
+  }
   const remaining = new Set(byLabel.keys());
   const pending: string[] = [];
   const ordered: MachineBlock[] = [];
-  let next: string | undefined = fn.blocks[0]!.label;
+  let next: string | undefined = targetOf(fn.blocks[0]!.label);
   let bridge = 0;
+  const occupiedLabels = new Set(declared.keys());
 
   const enqueue = (label: string): boolean => {
     if (!byLabel.has(label)) return false;
     if (remaining.has(label) && !pending.includes(label)) pending.push(label);
     return true;
   };
+  /** A still-unplaced conditional predecessor should precede its shared return tail. */
+  const sharedReturn = (label: string): boolean =>
+    byLabel.get(label)?.terminator.kind === "return" &&
+    [...remaining].some((pendingLabel) => {
+      const terminator = byLabel.get(pendingLabel)!.terminator;
+      return (
+        (terminator.kind === "branch" || terminator.kind === "long-branch") &&
+        directlyReaches(terminator, label)
+      );
+    });
+  /** Preserve every original alias at its target's address, without orphan jump bytes. */
+  const appendBlock = (block: MachineBlock): void => {
+    const group = aliases.get(block.label) ?? [];
+    group.forEach((alias, index) =>
+      ordered.push(
+        Object.freeze({
+          ...alias,
+          terminator: Object.freeze({
+            kind: "fallthrough" as const,
+            target: group[index + 1]?.label ?? block.label,
+          }),
+        }),
+      ),
+    );
+    ordered.push(block);
+  };
 
   while (remaining.size > 0) {
     while (next !== undefined && !remaining.has(next)) next = pending.shift();
-    if (next === undefined) next = fn.blocks.find((block) => remaining.has(block.label))?.label;
+    if (next === undefined) next = [...byLabel.keys()].find((label) => remaining.has(label));
     if (next === undefined) return null;
     const original = byLabel.get(next);
     if (original === undefined) return null;
@@ -76,7 +204,28 @@ function orderBlocks(fn: MachineFunction): MachineFunction | null {
     if (original.terminator.kind === "branch") {
       const { target, fallthrough } = original.terminator;
       if (!byLabel.has(target) || !byLabel.has(fallthrough)) return null;
-      if (remaining.has(fallthrough)) {
+      // A successor which also reaches the other arm must precede that shared
+      // continuation. Otherwise nested conditions need a bridge back to a label
+      // already placed. Inversion keeps exactly the same condition and effects.
+      const bothReturn =
+        byLabel.get(target)!.terminator.kind === "return" &&
+        byLabel.get(fallthrough)!.terminator.kind === "return";
+      const targetShared = bothReturn && sharedReturn(target);
+      const fallthroughShared = bothReturn && sharedReturn(fallthrough);
+      const targetFirst =
+        remaining.has(target) &&
+        (directlyReaches(byLabel.get(target)!.terminator, fallthrough) ||
+          (bothReturn &&
+            ((!targetShared && fallthroughShared) ||
+              // Two shared tails cannot both follow the remaining predecessor.
+              // Place the smaller terminal first, keeping the larger tail last.
+              (targetShared &&
+                fallthroughShared &&
+                blockBytes(byLabel.get(target)!)! < blockBytes(byLabel.get(fallthrough)!)!) ||
+              (!targetShared &&
+                !fallthroughShared &&
+                blockBytes(byLabel.get(target)!)! > blockBytes(byLabel.get(fallthrough)!)!))));
+      if (remaining.has(fallthrough) && !targetFirst) {
         follow = fallthrough;
         enqueue(target);
       } else if (remaining.has(target)) {
@@ -92,17 +241,19 @@ function orderBlocks(fn: MachineFunction): MachineFunction | null {
           }),
         });
         follow = target;
+        enqueue(fallthrough);
       } else {
         let bridgeLabel: string;
         do {
           bridgeLabel = `${original.label}.fallthrough.${bridge}`;
           bridge += 1;
-        } while (byLabel.has(bridgeLabel));
+        } while (occupiedLabels.has(bridgeLabel));
+        occupiedLabels.add(bridgeLabel);
         block = Object.freeze({
           ...original,
           terminator: Object.freeze({ ...original.terminator, fallthrough: bridgeLabel }),
         });
-        ordered.push(block);
+        appendBlock(block);
         ordered.push(
           Object.freeze({
             label: bridgeLabel,
@@ -142,39 +293,26 @@ function orderBlocks(fn: MachineFunction): MachineFunction | null {
       }
       if (remaining.has(original.terminator.fallthrough)) follow = original.terminator.fallthrough;
     } else if (original.terminator.kind === "jump" && byLabel.has(original.terminator.target)) {
-      enqueue(original.terminator.target);
+      const target = original.terminator.target;
+      if (remaining.has(target)) {
+        // This unconditional edge has no alternative successor. Place its target
+        // next and keep the same label/effects without paying for a redundant JMP.
+        // Back edges and targets already placed still need their original jump.
+        follow = target;
+        block = Object.freeze({
+          ...original,
+          terminator: Object.freeze({ kind: "fallthrough" as const, target }),
+        });
+      }
     }
 
-    ordered.push(block);
+    appendBlock(block);
     next = follow ?? pending.shift();
   }
 
-  // A body made entirely of empty unconditional blocks has no bus, flag or
-  // explicit timing effects. Preserve all labels and its back edge, but let
-  // adjacent forward edges share an address instead of emitting extra jumps.
-  // Bodies with instructions, branches or exit duties keep their existing order.
-  const emptyLoop = ordered.every(
-    (block) =>
-      block.instructions.length === 0 &&
-      (block.terminator.kind === "jump" || block.terminator.kind === "fallthrough"),
-  );
   return Object.freeze({
     ...fn,
-    blocks: Object.freeze(
-      ordered.map((block, index) =>
-        emptyLoop &&
-        block.terminator.kind === "jump" &&
-        block.terminator.target === ordered[index + 1]?.label
-          ? Object.freeze({
-              ...block,
-              terminator: Object.freeze({
-                kind: "fallthrough" as const,
-                target: block.terminator.target,
-              }),
-            })
-          : block,
-      ),
-    ),
+    blocks: Object.freeze(ordered),
   });
 }
 

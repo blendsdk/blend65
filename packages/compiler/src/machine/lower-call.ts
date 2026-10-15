@@ -1,5 +1,5 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
-import type { SemanticOperation } from "../semantic/operations.js";
+import type { SemanticFunction, SemanticOperation } from "../semantic/operations.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import { prepareAggregateCallResult } from "./lower-aggregate-return.js";
 import type { MachineInstruction } from "./machine-types.js";
@@ -14,6 +14,37 @@ import {
   type FunctionLoweringState,
   typeBytes,
 } from "./lower-state.js";
+
+/**
+ * Recognize a direct call whose first and only parameter consumes the current A.
+ * Its declared byte home is written before any result-address setup or JSR.
+ * Reuse the closed source signature rather than assuming every scalar is a byte;
+ * aggregate, wider, interrupt-entry and unknown callees keep stable arguments.
+ * The adjacency owner must separately prove the value's sole use and live A.
+ * @param operation The next source call, with arguments already evaluated in order.
+ * @param argument The sole byte value still held in A.
+ * @param functions Closed source declarations used by the existing marshaller.
+ * @returns Whether the unchanged parameter marshaller can consume A immediately.
+ */
+export function canReceiveByteArgumentInA(
+  operation: Extract<SemanticOperation, { readonly kind: "call" }>,
+  argument: string,
+  functions: readonly SemanticFunction[],
+): boolean {
+  if (operation.arguments.length !== 1 || operation.arguments[0] !== argument) return false;
+  const callee = functions.find(
+    ({ id }) => bindingIdentityKey(id) === bindingIdentityKey(operation.callee),
+  );
+  const parameter = callee?.parameters[0];
+  return (
+    callee?.entryKind !== "interrupt" &&
+    callee?.parameters.length === 1 &&
+    parameter !== undefined &&
+    parameter.outerUnsized !== true &&
+    (parameter.type.kind === "scalar" || parameter.type.kind === "enum") &&
+    typeBytes(parameter.type) === 1
+  );
+}
 
 /** Copy an aggregate argument's address into its two-byte by-reference parameter home. */
 function marshalAggregateAddress(

@@ -1,14 +1,110 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
-import type { SemanticPlace } from "../semantic/operations.js";
+import type { SemanticBlock, SemanticOperation, SemanticPlace } from "../semantic/operations.js";
+import {
+  literalResolver,
+  ordinalBoundResolver,
+  placeUses,
+  rawMayObserve,
+  valueDefinitions,
+} from "../semantic/aggregate-place-proof.js";
+import { guardedOrdinalBounds } from "../semantic/guarded-place-proof.js";
 import {
   machineCost,
   machineInstruction,
   machineState,
   type LoweredValue,
 } from "./lower-control.js";
-import type { MachineBlock, MachineInstruction, MachineTerminator } from "./machine-types.js";
-import { loadA, loweringFailure, type FunctionLoweringState } from "./lower-state.js";
+import type {
+  MachineBlock,
+  MachineInstruction,
+  MachineLoweringInput,
+  MachineTerminator,
+} from "./machine-types.js";
+import { loadA, loweringFailure, typeBytes, type FunctionLoweringState } from "./lower-state.js";
+
+/**
+ * Hand existing unsigned maxima to indexed accesses and byte shifts at the actual use.
+ * Source values and their homes keep their declared widths. Shared/address-exposed
+ * bindings never acquire reload facts, and unknown writes/calls discard such facts.
+ * Already captured immutable values retain their meaning. No recurrence is inferred.
+ */
+export function ordinalBoundsForFunction(
+  blocks: readonly SemanticBlock[],
+  input: MachineLoweringInput,
+): ReadonlyMap<SemanticOperation, ReadonlyMap<string, bigint>> {
+  const hasIndexedAccess = blocks.some((block) =>
+    block.operations.some((operation) =>
+      placeUses(operation).some(({ place }) => place.path.some(({ kind }) => kind === "index")),
+    ),
+  );
+  /** Wider-result shifts retain their existing full-count selection. */
+  const isByteShift = (
+    operation: SemanticOperation,
+  ): operation is Extract<SemanticOperation, { kind: "binary" }> =>
+    operation.kind === "binary" &&
+    (operation.operator === "<<" || operation.operator === ">>") &&
+    typeBytes(operation.type) === 1;
+  if (!hasIndexedAccess && !blocks.some(({ operations }) => operations.some(isByteShift)))
+    return new Map();
+  const definitions = valueDefinitions(blocks);
+  const literal = literalResolver(definitions);
+  // Constant counts use fixed-shift selection. Do not invoke a guarded walk
+  // solely because a function contains a compile-time shift expression.
+  if (
+    !hasIndexedAccess &&
+    !blocks.some(({ operations }) =>
+      operations.some(
+        (operation) => isByteShift(operation) && literal(operation.right) === undefined,
+      ),
+    )
+  )
+    return new Map();
+  const bound = ordinalBoundResolver(definitions, literal);
+  const unstableRoots = new Set(
+    input.program.semantic.globals.map(({ id }) => bindingIdentityKey(id)),
+  );
+  for (const block of blocks)
+    for (const operation of block.operations)
+      if (operation.kind === "place-address")
+        unstableRoots.add(bindingIdentityKey(operation.place.root));
+  const windows = [...input.profile.storage.ram, ...input.profile.storage.zeroPage];
+  const guarded = guardedOrdinalBounds(
+    blocks[0]!.id,
+    blocks,
+    definitions,
+    unstableRoots,
+    literal,
+    bound,
+    (operation) =>
+      operation.kind === "call" ||
+      operation.kind === "indirect-call" ||
+      operation.kind === "platform" ||
+      (operation.kind === "store" && operation.place.path.length > 0) ||
+      (operation.kind === "aggregate" &&
+        operation.destination?.kind === "place" &&
+        operation.destination.place.path.length > 0) ||
+      (operation.kind === "memory-write" &&
+        rawMayObserve(literal(operation.address), operation.width, windows)),
+  );
+  const result = new Map<SemanticOperation, ReadonlyMap<string, bigint>>();
+  for (const block of blocks)
+    for (const operation of block.operations) {
+      const ordinals = new Map<string, bigint>();
+      if (isByteShift(operation)) {
+        const maximum = guarded.get(operation)?.get(operation.right) ?? bound(operation.right);
+        if (maximum !== undefined) ordinals.set(operation.right, maximum);
+      }
+      for (const { place } of placeUses(operation))
+        for (const component of place.path)
+          if (component.kind === "index") {
+            const maximum = guarded.get(operation)?.get(component.value) ?? bound(component.value);
+            if (maximum !== undefined) ordinals.set(component.value, maximum);
+          }
+      if (ordinals.size > 0) result.set(operation, ordinals);
+    }
+  return result;
+}
 
 /** One dynamic ordinal and the extent of the array selected at that path step. */
 interface BoundsIndex {

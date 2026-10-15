@@ -6,6 +6,7 @@ import type { WholeProgram } from "../semantic/whole-program.js";
 import type { InterruptMaterializations } from "../semantic/interrupt-context-facts.js";
 import type { PlacementConstraints } from "../frontend/semantic-types.js";
 import type { StoragePlacement } from "../storage/storage-types.js";
+import type { C64StartupInput } from "../layout/startup.js";
 
 /** Machine flags whose validity is tracked across structured instructions. */
 export type MachineFlag = CpuFlag;
@@ -234,6 +235,8 @@ export interface MachineProgram {
   readonly data: readonly MachineDataObject[];
   /** Selected platform startup and return owner. */
   readonly startup: MachineFunction;
+  /** Compiler-proved startup choice; final layout binds actual borrowed caller bytes. */
+  readonly c64Startup?: Omit<C64StartupInput, "profile">;
   /** Complete finite storage demand discovered by lowering/binding. */
   readonly requiredStorage: readonly StorageRequest[];
   /** Complete request set covered by the expected final certificate. */

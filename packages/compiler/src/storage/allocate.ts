@@ -101,6 +101,33 @@ function interfere(edges: ReadonlySet<string>, left: string, right: string): boo
   return edges.has(pair);
 }
 
+/**
+ * Prove one required-zero-page clique cannot fit, using the full window union.
+ * Pairwise interference forces every positive member's bytes to be disjoint.
+ * Preferred requests are excluded because they can use RAM. Missing a larger
+ * clique is harmless: an inconclusive witness leaves exact placement in charge.
+ */
+function requiredZeroPageExceedsCapacity(
+  requests: readonly StorageRequest[],
+  profile: StorageProfile,
+  edges: ReadonlySet<string>,
+): boolean {
+  const available = new Set<number>();
+  for (const range of rangesForRegion(profile.zeroPage, "zero-page")) {
+    for (let address = range.start; address <= range.end; address += 1) available.add(address);
+  }
+  const clique: string[] = [];
+  let bytes = 0;
+  for (const request of requests) {
+    if (request.region !== "zero-page-required" || request.bytes === 0) continue;
+    if (!clique.every((id) => interfere(edges, request.id, id))) continue;
+    clique.push(request.id);
+    bytes += request.bytes;
+    if (bytes > available.size) return true;
+  }
+  return false;
+}
+
 /** Find the first legal address for one request in a concrete region. */
 function findAddress(
   request: StorageRequest,
@@ -234,6 +261,11 @@ export function allocateStorage(
   }
 
   if (firstFailure !== null) {
+    // Do not mistake space occupied by failed first-fit choices for unavailable
+    // capacity. Only a clique exceeding the full normalized union proves failure.
+    if (requiredZeroPageExceedsCapacity(requests, profile, edges)) {
+      return Object.freeze({ kind: "error", reason: "resource", requestId: firstFailure });
+    }
     const exact = placeExactly(requests, profile, edges);
     if (exact === null) {
       return Object.freeze({ kind: "error", reason: "resource", requestId: firstFailure });

@@ -170,6 +170,14 @@ export function lowerVariableShift(
   const saturationLabel = `${stem}.saturated`;
   const continuation = `${stem}.continue`;
   if (width === 1 && (right.bytes === 1 || right.kind !== "register")) {
+    const maximum = state.ordinalBounds?.get(operation.right);
+    // This fact bounds the complete count, including a word's high byte.
+    // Without it, preserve both full-count saturation tests and the fill path.
+    const boundedCount = maximum !== undefined && maximum >= 0n && maximum < 8n;
+    const countLow = right.kind === "zero-extended" ? right.low : right;
+    // Only private homes can swap these reads. Loading X last owns a fresh
+    // count-zero flag; labels or live registers keep the conservative order.
+    const freshCountZero = boundedCount && left.kind === "storage" && countLow.kind === "storage";
     const result: LoweredValue = Object.freeze({
       kind: "register",
       registers: "a",
@@ -178,7 +186,7 @@ export function lowerVariableShift(
     });
     const entryInstructions = [...prefix];
     const lowInstructions: MachineInstruction[] = [];
-    if (right.bytes === 2) {
+    if (right.bytes === 2 && !boundedCount) {
       entryInstructions.push(
         machineInstruction(
           cpu,
@@ -201,28 +209,30 @@ export function lowerVariableShift(
       );
       appendLoadA(lowInstructions, left, 0, state, source);
     } else {
+      if (freshCountZero) appendLoadA(entryInstructions, left, 0, state, source);
       entryInstructions.push(
         machineInstruction(
           cpu,
-          right.kind === "register" ? "tax" : "ldx",
-          right.kind === "register" ? "implied" : modeForValue(right, 0),
-          right.kind === "register" ? null : operandForValue(right, 0),
+          countLow.kind === "register" ? "tax" : "ldx",
+          countLow.kind === "register" ? "implied" : modeForValue(countLow, 0),
+          countLow.kind === "register" ? null : operandForValue(countLow, 0),
           [],
           source,
         ),
       );
-      appendLoadA(entryInstructions, left, 0, state, source);
+      if (!freshCountZero) appendLoadA(entryInstructions, left, 0, state, source);
     }
-    lowInstructions.push(
-      machineInstruction(
-        cpu,
-        "cpx",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: 8 }),
-        [],
-        source,
-      ),
-    );
+    if (!boundedCount)
+      lowInstructions.push(
+        machineInstruction(
+          cpu,
+          "cpx",
+          "immediate",
+          Object.freeze({ kind: "immediate", value: 8 }),
+          [],
+          source,
+        ),
+      );
     const shifted =
       operation.operator === "<<"
         ? [machineInstruction(cpu, "asl", "accumulator", null, [], source)]
@@ -240,7 +250,7 @@ export function lowerVariableShift(
             ]
           : [machineInstruction(cpu, "lsr", "accumulator", null, [], source)];
     const saturated: MachineInstruction[] = [];
-    if (operation.operator === ">>" && isSignedType(operation.type)) {
+    if (!boundedCount && operation.operator === ">>" && isSignedType(operation.type)) {
       if (right.bytes === 2) appendLoadA(saturated, left, 0, state, source);
       saturated.push(
         machineInstruction(
@@ -276,7 +286,7 @@ export function lowerVariableShift(
           source,
         ),
       );
-    } else {
+    } else if (!boundedCount) {
       saturated.push(
         machineInstruction(
           cpu,
@@ -303,27 +313,33 @@ export function lowerVariableShift(
           label: entryLabel,
           instructions: Object.freeze(entryInstructions),
           terminator:
-            right.bytes === 2
+            right.bytes === 2 && !boundedCount
               ? branch("bne", saturationLabel, lowLabel, state)
               : Object.freeze({ kind: "fallthrough", target: lowLabel }),
         }),
         Object.freeze({
           label: lowLabel,
           instructions: Object.freeze(lowInstructions),
-          terminator: branch("bcs", saturationLabel, zeroLabel, state),
+          terminator: boundedCount
+            ? Object.freeze({ kind: "fallthrough", target: zeroLabel })
+            : branch("bcs", saturationLabel, zeroLabel, state),
         }),
         Object.freeze({
           label: zeroLabel,
-          instructions: Object.freeze([
-            machineInstruction(
-              cpu,
-              "cpx",
-              "immediate",
-              Object.freeze({ kind: "immediate", value: 0 }),
-              [],
-              source,
-            ),
-          ]),
+          instructions: Object.freeze(
+            freshCountZero
+              ? []
+              : [
+                  machineInstruction(
+                    cpu,
+                    "cpx",
+                    "immediate",
+                    Object.freeze({ kind: "immediate", value: 0 }),
+                    [],
+                    source,
+                  ),
+                ],
+          ),
           terminator: branch("beq", continuation, loopLabel, state),
         }),
         Object.freeze({
@@ -334,16 +350,20 @@ export function lowerVariableShift(
           ]),
           terminator: branch("bne", loopLabel, continuation, state),
         }),
-        Object.freeze({
-          label: saturationLabel,
-          instructions: Object.freeze(saturated),
-          terminator: Object.freeze({
-            kind: "jump",
-            opcode: "jmp",
-            target: continuation,
-            cost: machineCost(cpu, "jmp", "absolute"),
-          }),
-        }),
+        ...(!boundedCount
+          ? [
+              Object.freeze({
+                label: saturationLabel,
+                instructions: Object.freeze(saturated),
+                terminator: Object.freeze({
+                  kind: "jump" as const,
+                  opcode: "jmp" as const,
+                  target: continuation,
+                  cost: machineCost(cpu, "jmp", "absolute"),
+                }),
+              }),
+            ]
+          : []),
       ]),
       continuation,
       continuationInstructions: retained.instructions,

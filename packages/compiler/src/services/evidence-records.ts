@@ -1,5 +1,6 @@
 import type { CompleteC64Layout } from "../artifacts/acme-validate.js";
 import { machineFunctionSegments, sameSpan } from "./debug-machine-ranges.js";
+import { capturedByteLocations, privateHomeAvailability } from "./debug-storage-locations.js";
 import { c64InterruptEntryLabel } from "../machine/lower-c64-interrupt.js";
 import { acmeLabelName, acmeLabelNames } from "../artifacts/acme-labels.js";
 import type { EvidenceRecord } from "../artifacts/evidence-types.js";
@@ -584,7 +585,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       if (home.bytes > 0 && liveRangeIndexes.length === 0) {
         throw new Error("Storage request lifetime has no final machine range");
       }
-      symbolDrafts.push({
+      const draft = {
         name: request.binding === null ? request.id : bindingIdentityKey(request.binding),
         qualifiedName: `${ownerName}::${request.id}`,
         kind,
@@ -603,29 +604,36 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
         availability:
           home.bytes === 0
             ? Object.freeze({ kind: "optimizedAway", rule: "zero-byte position marker" })
-            : Object.freeze({
-                kind: "available",
-                pieces: Object.freeze([
-                  Object.freeze({
-                    kind: "memory",
-                    machine: Object.freeze({
-                      addressSpaceIndex: 0,
-                      start: home.address,
-                      end: home.address + home.bytes,
-                    }),
-                    valueOffset: 0,
-                    byteLength: home.bytes,
-                  }),
-                ]),
-              }),
-      });
+            : privateHomeAvailability(home),
+      };
+      const machine = machineFunctions.get(sourceFunction.machineIds[variantIndex]!);
+      const capture =
+        machine === undefined
+          ? null
+          : capturedByteLocations(machine, sourceFunction.body, request, home);
+      if (capture === null) symbolDrafts.push(draft);
+      else
+        for (const location of capture) {
+          const starts = new Set(location.starts);
+          const indexes = functionRanges.filter((index) => starts.has(rangeDrafts[index]!.start));
+          if (indexes.length !== starts.size)
+            throw new Error("Captured local location has no final instruction range");
+          symbolDrafts.push({
+            ...draft,
+            liveRangeIndexes: Object.freeze(indexes),
+            availability: location.availability,
+          });
+        }
     }
   }
-  symbolDrafts.sort((left, right) =>
-    compareText(
-      `${left.qualifiedName}\0${left.kind}\0${JSON.stringify(left.origin)}`,
-      `${right.qualifiedName}\0${right.kind}\0${JSON.stringify(right.origin)}`,
-    ),
+  symbolDrafts.sort(
+    (left, right) =>
+      compareText(
+        `${left.qualifiedName}\0${left.kind}\0${JSON.stringify(left.origin)}`,
+        `${right.qualifiedName}\0${right.kind}\0${JSON.stringify(right.origin)}`,
+      ) ||
+      (left.contextIndex ?? -1) - (right.contextIndex ?? -1) ||
+      (left.liveRangeIndexes[0] ?? -1) - (right.liveRangeIndexes[0] ?? -1),
   );
   const symbolKey = (symbol: (typeof symbolDrafts)[number]): string =>
     `${symbol.qualifiedName}\0${symbol.kind}\0${JSON.stringify(symbol.origin)}`;

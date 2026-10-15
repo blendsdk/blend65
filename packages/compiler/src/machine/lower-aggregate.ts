@@ -241,15 +241,20 @@ export function lowerAggregateLoad(
         });
   const instructions = [...address.instructions];
   for (let offset = 0; offset < bytes; offset += 1) {
+    // A short borrowed-field construction may already establish this exact Y.
+    // No instruction intervenes before the read, so reloading zero is redundant.
+    if (address.zeroIndexInY !== true || offset !== 0 || address.displacement !== 0)
+      instructions.push(
+        machineInstruction(
+          state.input.profile.cpu,
+          "ldy",
+          "immediate",
+          Object.freeze({ kind: "immediate", value: address.displacement + offset }),
+          [],
+          operation.span,
+        ),
+      );
     instructions.push(
-      machineInstruction(
-        state.input.profile.cpu,
-        "ldy",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: address.displacement + offset }),
-        [],
-        operation.span,
-      ),
       machineInstruction(
         state.input.profile.cpu,
         "lda",
@@ -348,16 +353,18 @@ export function lowerAggregateStore(
   const address = lowerAggregateAddress(operation.place, state, operation.span, null, bytes);
   instructions.push(...address.instructions);
   for (let offset = 0; offset < bytes; offset += 1) {
-    instructions.push(
-      machineInstruction(
-        state.input.profile.cpu,
-        "ldy",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: address.displacement + offset }),
-        [],
-        operation.span,
-      ),
-    );
+    // Value loading below writes A only; this construction-owned Y remains zero.
+    if (address.zeroIndexInY !== true || offset !== 0 || address.displacement !== 0)
+      instructions.push(
+        machineInstruction(
+          state.input.profile.cpu,
+          "ldy",
+          "immediate",
+          Object.freeze({ kind: "immediate", value: address.displacement + offset }),
+          [],
+          operation.span,
+        ),
+      );
     if (adjacentRead !== null && offset === 0) {
       instructions.push(adjacentRead.instruction);
       delete state.adjacentByteRead;

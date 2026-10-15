@@ -131,9 +131,37 @@ function maximumConcurrentBytes(
   }
   const weights = new Map(requests.map(({ id, bytes }) => [id, bytes] as const));
   const ordered = requests.map(({ id }) => id).sort(compareText);
+  // In a complete graph every group is a singleton, so grouping cannot tighten
+  // the additive bound. Keep the original search without that extra work.
+  const completeGraph = ordered.every((id) => adjacent.get(id)!.size === ordered.length - 1);
+
+  /**
+   * Bound a clique by grouping vertices that cannot coexist in that clique.
+   * Each group is independent, so a clique takes at most its largest weight.
+   * This is only a search bound: the reported peak still comes from exact search.
+   */
+  function independentGroupBound(candidates: readonly string[]): number {
+    const groups: { ids: string[]; maximum: number }[] = [];
+    for (const id of candidates) {
+      const neighbors = adjacent.get(id)!;
+      const value = weights.get(id)!;
+      const group = groups.find(({ ids }) => ids.every((member) => !neighbors.has(member)));
+      if (group === undefined) {
+        groups.push({ ids: [id], maximum: value });
+      } else {
+        group.ids.push(id);
+        group.maximum = Math.max(group.maximum, value);
+      }
+    }
+    return groups.reduce((sum, group) => sum + group.maximum, 0);
+  }
+
   let best = 0;
   const search = (candidates: readonly string[], weight: number): void => {
     best = Math.max(best, weight);
+    if (!completeGraph && weight + independentGroupBound(candidates) <= best) return;
+    // The sibling bound remains additive. A group's maximum cannot be reduced
+    // by subtracting a removed vertex: another member may still carry its weight.
     let remaining = candidates.reduce((sum, id) => sum + (weights.get(id) ?? 0), 0);
     for (let index = 0; index < candidates.length; index += 1) {
       if (weight + remaining <= best) return;

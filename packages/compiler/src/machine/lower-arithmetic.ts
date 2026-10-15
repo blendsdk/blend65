@@ -56,6 +56,20 @@ export function lowerArithmetic(
       }),
     });
   }
+  if (!subtract && state.byteOrdinalAdditions?.has(operation.result)) {
+    // The sole next indexed consumer proves this unsigned sum is below 256.
+    // Select before allocation: no high-byte work or two-byte temporary is needed.
+    // Keep a word representation; checked retention may still stage its low byte.
+    return Object.freeze({
+      instructions: Object.freeze(instructions),
+      result: Object.freeze({
+        kind: "zero-extended",
+        low: Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
+        bytes: 2,
+        signed: false,
+      }),
+    });
+  }
   const scratch = requestStorage(
     state,
     `arithmetic:${operation.result}`,

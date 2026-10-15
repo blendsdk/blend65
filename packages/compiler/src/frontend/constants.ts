@@ -434,6 +434,7 @@ export function applyExpectedScalar(
         type: SCALAR_TYPES.byte,
         conversion: "identity",
         integer: integerFacts(SCALAR_TYPES.byte, false),
+        ...(node.kind === "cast" ? { operand: node } : {}),
       }),
       exact: result.exact,
     };
@@ -486,6 +487,7 @@ export function applyExpectedScalar(
         constant: result.exact,
         conversion,
         integer: integerFacts(expected, false),
+        ...(node.kind === "cast" ? { operand: node } : {}),
       }),
       exact: result.exact,
     };
@@ -513,7 +515,16 @@ export function applyExpectedScalar(
   const conversion = fromFacts.signed ? "sign-extend" : "zero-extend";
   warnNarrowArithmetic(result, expected, expression, fromFacts.width, toFacts.width, host);
   return {
-    node: Object.freeze({ ...node, type: expected, conversion, integer: node.integer }),
+    // Keep an explicit cast as the inner value when its surrounding context
+    // adds another conversion. Overwriting it would lose truncation or signed
+    // reinterpretation before arithmetic, indexing, or argument evaluation.
+    node: Object.freeze({
+      ...node,
+      type: expected,
+      conversion,
+      integer: node.integer,
+      ...(node.kind === "cast" ? { operand: node } : {}),
+    }),
     exact: result.exact,
   };
 }

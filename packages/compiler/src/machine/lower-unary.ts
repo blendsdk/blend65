@@ -1,4 +1,4 @@
-import type { SemanticOperation } from "../semantic/operations.js";
+import type { SemanticBlock, SemanticOperation } from "../semantic/operations.js";
 import {
   machineInstruction,
   modeForValue,
@@ -16,10 +16,16 @@ import {
   typeBytes,
 } from "./lower-state.js";
 
-/** Lower one admitted scalar unary operation without a runtime helper. */
+/**
+ * Lower one scalar unary operation without a runtime helper. Only the actual
+ * owning block can prove a final branch-only result; absent context is conservative.
+ * The owner's byte-return-arm proof can permit a one-byte index-register test.
+ */
 export function lowerUnary(
   operation: Extract<SemanticOperation, { readonly kind: "unary" }>,
   state: FunctionLoweringState,
+  block?: SemanticBlock,
+  byteReturnArms = false,
 ): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
   const operand = state.values.get(operation.operand);
   if (operand === undefined || operand.kind === "condition") {
@@ -55,6 +61,35 @@ export function lowerUnary(
           operation.span,
         ),
       );
+    }
+    if (
+      state.branchConditions.has(operation.result) &&
+      !state.materializedValues.has(operation.result) &&
+      block?.operations.at(-1) === operation &&
+      block.terminator.kind === "branch" &&
+      block.terminator.condition === operation.result
+    ) {
+      // Only this immediate branch consumes the negation. A fresh load/OR owns
+      // Z; a returned or otherwise live A needs an explicit test of its value.
+      if (instructions.length === 0) {
+        // These terminal byte-return arms cannot observe X or outgoing carry.
+        // NMI code retains CMP: a new X clobber could enlarge its entry saves.
+        const disposableX = byteReturnArms && state.interruptDepth.domain !== "nmi";
+        instructions.push(
+          machineInstruction(
+            state.input.profile.cpu,
+            disposableX ? "tax" : "cmp",
+            disposableX ? "implied" : "immediate",
+            disposableX ? null : Object.freeze({ kind: "immediate", value: 0 }),
+            [],
+            operation.span,
+          ),
+        );
+      }
+      return Object.freeze({
+        instructions: Object.freeze(instructions),
+        result: Object.freeze({ kind: "condition", whenTrue: "beq", usesFlag: "z" }),
+      });
     }
     instructions.push(
       machineInstruction(

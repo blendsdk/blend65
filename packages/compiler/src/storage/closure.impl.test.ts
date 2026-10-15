@@ -103,7 +103,127 @@ function profile(capacity = 16): StorageProfile {
   });
 }
 
+/** Construct only the supplied graph through real closure's selected helper conflicts. */
+function weightedGraphClosure(
+  weights: readonly number[],
+  pairs: readonly (readonly [number, number])[],
+  regions: readonly StorageRequest["region"][] = weights.map(() => "ram"),
+) {
+  const main = fn(binding(600));
+  const requests = weights.map((bytes, index) => ({
+    ...request(main.id, `v${index}`, bytes, index + 1),
+    region: regions[index]!,
+  }));
+  return closeStorage(
+    inventory([main], requests),
+    {
+      ...profile(),
+      ram: [{ start: 0x5000, end: 0x50ff }],
+      zeroPage: [{ start: 0x40, end: 0x7f }],
+    },
+    {
+      candidateRequestIds: [],
+      helperCalls: pairs.map(([left, right], index) => ({
+        id: `edge:${index}`,
+        caller: main.id,
+        liveRequestIds: [`v${left}`],
+        helperRequestIds: [`v${right}`],
+        stackBytes: 0,
+      })),
+      discover: () => [],
+    },
+  );
+}
+
+/** Independently enumerate all subsets; no coloring or search-bound logic is reused. */
+function subsetCliquePeak(
+  weights: readonly number[],
+  pairs: readonly (readonly [number, number])[],
+) {
+  let peak = 0;
+  for (let subset = 0; subset < 2 ** weights.length; subset += 1) {
+    const members = weights.map((_weight, index) => index).filter((index) => subset & (1 << index));
+    const clique = members.every((left, index) =>
+      members.slice(index + 1).every((right) => pairs.some(([a, b]) => a === left && b === right)),
+    );
+    if (clique)
+      peak = Math.max(
+        peak,
+        members.reduce((sum, index) => sum + weights[index]!, 0),
+      );
+  }
+  return peak;
+}
+
 describe("static storage closure implementation", () => {
+  it.each(
+    [
+      [1, 10],
+      [9, 10, 1],
+      [0, 10, 0],
+    ].map((weights) => ({ weights })),
+  )(
+    "should keep the heaviest independent request when ordered weights are $weights",
+    ({ weights }) => {
+      const result = weightedGraphClosure(weights, []);
+      expect(result).toMatchObject({
+        kind: "complete",
+        certificate: { peakBytes: { ram: 10, zeroPage: 0 } },
+      });
+    },
+  );
+
+  it("should report clique demand rather than physical coloring volume on an odd cycle", () => {
+    const result = weightedGraphClosure(
+      [1, 1, 1, 1, 1],
+      [
+        [0, 1],
+        [0, 4],
+        [1, 2],
+        [2, 3],
+        [3, 4],
+      ],
+    );
+    expect(result).toMatchObject({
+      kind: "complete",
+      certificate: { peakBytes: { ram: 2, zeroPage: 0 }, staticBytes: { ram: 3, zeroPage: 0 } },
+    });
+  });
+
+  it("should match independent subset enumeration for every five-vertex weighted graph", () => {
+    const weights = [0, 1, 2, 4, 3];
+    const possible: [number, number][] = [];
+    for (let left = 0; left < weights.length; left += 1)
+      for (let right = left + 1; right < weights.length; right += 1) possible.push([left, right]);
+    for (let graph = 0; graph < 2 ** possible.length; graph += 1) {
+      const pairs = possible.filter((_pair, index) => graph & (1 << index));
+      const result = weightedGraphClosure(weights, pairs);
+      expect(result, `graph ${graph}`).toMatchObject({
+        kind: "complete",
+        certificate: { peakBytes: { ram: subsetCliquePeak(weights, pairs), zeroPage: 0 } },
+      });
+    }
+  });
+
+  it("should compute weighted peaks independently for final RAM and zero-page homes", () => {
+    const result = weightedGraphClosure(
+      [5, 2, 7, 3],
+      [
+        [0, 1],
+        [0, 2],
+        [0, 3],
+        [1, 2],
+        [1, 3],
+        [2, 3],
+      ],
+      ["ram", "zero-page-required", "ram", "zero-page-required"],
+    );
+    expect(result).toMatchObject({
+      kind: "complete",
+      certificate: { peakBytes: { ram: 12, zeroPage: 5 }, staticBytes: { ram: 12, zeroPage: 5 } },
+    });
+  });
+
   it.each([false, true])("counts only live saves at a direct call (nested=%s)", (nested) => {
     const called = { ...fn(binding(503)), statusStackPeak: 3 };
     const main = fn(binding(501));

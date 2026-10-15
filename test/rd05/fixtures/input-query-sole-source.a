@@ -1,0 +1,24 @@
+; Private exact-one-eligible-endpoint helper; distinct masks in0A/0B.
+;32 bytes; sibling of compatibility; A/Z result is consumed immediately.
+sole_source:
+lda $0a
+beq sole_try_second
+ldx $0b
+bne sole_no
+sec
+sbc #1
+and $0a
+beq sole_yes
+sole_no:
+lda #0
+rts
+sole_try_second:
+lda $0b
+beq sole_no
+sec
+sbc #1
+and $0b
+bne sole_no
+sole_yes:
+lda #1
+rts

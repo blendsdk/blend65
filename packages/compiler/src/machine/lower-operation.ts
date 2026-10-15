@@ -1,6 +1,6 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { scalarWarning } from "../frontend/constants.js";
-import type { SemanticOperation } from "../semantic/operations.js";
+import type { SemanticBlock, SemanticOperation } from "../semantic/operations.js";
 import type { InterruptRoute } from "../semantic/whole-program.js";
 import { lowerConversion } from "./lower-conversion.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
@@ -8,6 +8,7 @@ import { lowerMemoryRead, lowerMemoryWrite } from "./lower-memory.js";
 import { advanceAggregateInductionAddress } from "./lower-induction.js";
 import { lowerAggregatePlaceCopy } from "./lower-aggregate-copy.js";
 import { lowerAggregate, lowerCapturedAggregatePlace } from "./lower-aggregate-build.js";
+import { fixedAggregateSource } from "./lower-aggregate-place.js";
 import type { MachineInstruction } from "./machine-types.js";
 import {
   lowerAggregateAddress,
@@ -15,8 +16,8 @@ import {
   lowerAggregateStore,
 } from "./lower-aggregate.js";
 import {
+  canForwardByteArithmetic,
   lowerBitwise,
-  lowerComparison,
   lowerConstantMultiply,
   lowerFixedShift,
 } from "./lower-scalar.js";
@@ -27,6 +28,7 @@ import {
   lowerBcdWordToConstantMemory,
 } from "./lower-arithmetic.js";
 import { lowerUnary } from "./lower-unary.js";
+import { lowerComparison } from "./lower-comparison.js";
 import { lowerRuntimeMultiply } from "./lower-multiply.js";
 import { lowerRuntimeDivision } from "./lower-division.js";
 import {
@@ -61,11 +63,19 @@ function loadedValueStage(
   });
 }
 
-/** Select the direct machine form of one typed operation, preserving source order. */
+/**
+ * Select one typed operation, preserving source order. The owning block, when
+ * supplied by the function selector, proves immediate branch consumption. Its
+ * byte-return-arm proof permits a disposable index only at that terminal consumer.
+ * Its loop index proves bounded arithmetic adjacency without rescanning the block.
+ */
 export function lowerOperation(
   operation: SemanticOperation,
   state: FunctionLoweringState,
   selectedInterruptRoute?: InterruptRoute,
+  block?: SemanticBlock,
+  byteReturnArms = false,
+  operationIndex?: number,
 ): readonly MachineInstruction[] {
   if (
     operation.kind === "call" ||
@@ -262,7 +272,7 @@ export function lowerOperation(
   }
   if (operation.kind === "convert") return lowerConversion(operation, state);
   if (operation.kind === "unary") {
-    const lowered = lowerUnary(operation, state);
+    const lowered = lowerUnary(operation, state, block, byteReturnArms);
     const retained = retainMachineValue(
       operation.result,
       lowered.result,
@@ -430,14 +440,16 @@ export function lowerOperation(
         operation.span,
       );
     }
-    const retained = retainMachineValue(
-      operation.result,
-      lowered.result,
-      lowered.instructions,
-      operation.type,
-      operation.span,
-      state,
-    );
+    const retained = canForwardByteArithmetic(operation, block, state, operationIndex)
+      ? { instructions: lowered.instructions, value: lowered.result }
+      : retainMachineValue(
+          operation.result,
+          lowered.result,
+          lowered.instructions,
+          operation.type,
+          operation.span,
+          state,
+        );
     state.values.set(operation.result, retained.value);
     const callSiteCycles = retained.instructions.reduce(
       (cycles, instruction) => cycles + instruction.cost.maxCycles,
@@ -613,6 +625,11 @@ export function lowerOperation(
       if (operation.place.path.length === 0 && isReturnedLocalPlace(operation.place, state)) {
         state.values.set(operation.result, loweredPlace(operation.place, 2, false, state));
         state.directCallerResults.add(operation.result);
+        return Object.freeze([]);
+      }
+      const fixed = fixedAggregateSource(operation.place, state, operation.span, operation.result);
+      if (fixed !== null) {
+        state.values.set(operation.result, fixed);
         return Object.freeze([]);
       }
     }

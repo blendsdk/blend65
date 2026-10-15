@@ -8,14 +8,24 @@ import type {
   SemanticTerminator,
 } from "../semantic/operations.js";
 import type { StorageRequest } from "../storage/storage-types.js";
-import { lowerTerminator, machineCost, machineInstruction, machineState } from "./lower-control.js";
+import {
+  lowerTerminator,
+  machineCost,
+  machineInstruction,
+  machineState,
+  semanticSuccessors,
+} from "./lower-control.js";
 import { prepareAggregateInduction } from "./lower-induction.js";
 import { lowerOperation } from "./lower-operation.js";
-import { selectRegisterForwarding } from "./lower-register-forwarding.js";
+import { appendImmediateByteBitwise, appendScalarPrefix } from "./lower-scalar.js";
+import { canOmitComparisonCaptureReload } from "./byte-capture-observers.js";
+import { selectRegisterForwarding, selectZeroReturn } from "./lower-register-forwarding.js";
 import { lowerIndirectCall, lowerInterruptSink } from "./lower-indirect.js";
 import { lowerVariableShift } from "./lower-variable-shift.js";
+import { selectGuardedShiftCount } from "./lower-guarded-shift.js";
+import { hasByteReturnArms, selectTerminalByteLeaves } from "./lower-terminal-byte.js";
 import { lowerCheckedDivision } from "./lower-checked-division.js";
-import { lowerBoundsGuards } from "./lower-bounds.js";
+import { lowerBoundsGuards, ordinalBoundsForFunction } from "./lower-bounds.js";
 import { lowerAggregateReturn, lowerAggregateReturnLoop } from "./lower-aggregate-return.js";
 import {
   hasLargeAggregateMember,
@@ -40,15 +50,6 @@ import {
   appendLoadA,
   storeA,
 } from "./lower-state.js";
-
-/** Return each distinct successor for the local control-flow facts. */
-function semanticSuccessors(terminator: SemanticTerminator): readonly string[] {
-  if (terminator.kind === "jump") return Object.freeze([terminator.target]);
-  if (terminator.kind !== "branch") return Object.freeze([]);
-  return terminator.whenTrue === terminator.whenFalse
-    ? Object.freeze([terminator.whenTrue])
-    : Object.freeze([terminator.whenTrue, terminator.whenFalse]);
-}
 
 /** Lower one ordered block list into one machine function. */
 export function lowerFunction(
@@ -170,14 +171,21 @@ export function lowerFunction(
   const singleUseValues = new Set(
     [...valueUseCounts].filter(([, uses]) => uses === 1).map(([value]) => value),
   );
+  const ordinalBounds = ordinalBoundsForFunction(blocks, input);
   const {
     forwardedRegisterValues,
+    byteOrdinalAdditions,
     directBcdWrites,
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,
     wordSubtractRightLowStaged,
-  } = selectRegisterForwarding(blocks, singleUseValues);
+  } = selectRegisterForwarding(
+    blocks,
+    singleUseValues,
+    ordinalBounds,
+    input.program.semantic.functions,
+  );
   const state: FunctionLoweringState = {
     owner,
     interruptDepth,
@@ -194,6 +202,7 @@ export function lowerFunction(
     ),
     materializedValues,
     forwardedRegisterValues,
+    byteOrdinalAdditions,
     directBcdWrites,
     subtractRightInX,
     wordAddLeftHighInY,
@@ -222,9 +231,10 @@ export function lowerFunction(
     aggregateAddressCache: null,
     aggregateInduction: null,
   };
-  const sourceResult = input.program.semantic.functions.find(
+  const sourceFunction = input.program.semantic.functions.find(
     (candidate) => bindingIdentityKey(candidate.id) === bindingIdentityKey(owner),
-  )?.result;
+  );
+  const sourceResult = sourceFunction?.result;
   state.aggregateInduction = prepareAggregateInduction(blocks, state);
   const loweredBlocks: MachineBlock[] = [];
   const semanticExitLabels = new Map<string, string>();
@@ -234,6 +244,7 @@ export function lowerFunction(
   let indirectCallIndex = 0;
   for (const block of blocks) {
     state.currentSemanticBlockId = block.id;
+    const byteReturnArms = !returnsToStartup && hasByteReturnArms(block, blocks, blockIndexes);
     state.divisionReuse = null;
     const incoming = predecessors.get(block.id) ?? [];
     const blockIndex = blockIndexes.get(block.id)!;
@@ -285,7 +296,11 @@ export function lowerFunction(
         instructionSites?.add(precedingSite);
       }
     };
-    for (const operation of block.operations) {
+    for (let operationIndex = 0; operationIndex < block.operations.length; operationIndex += 1) {
+      const operation = block.operations[operationIndex]!;
+      const currentBounds = ordinalBounds.get(operation);
+      if (currentBounds === undefined) delete state.ordinalBounds;
+      else state.ordinalBounds = currentBounds;
       const constantConstruction =
         operation.kind === "aggregate" &&
         operation.destination?.kind === "place" &&
@@ -482,7 +497,14 @@ export function lowerFunction(
         }
       }
       if (operation.kind !== "platform" || operation.capability !== "c64.video.waitNextFrame") {
-        const selected = lowerOperation(operation, state);
+        const selected = lowerOperation(
+          operation,
+          state,
+          undefined,
+          block,
+          byteReturnArms,
+          operationIndex,
+        );
         const home =
           "result" in operation && operation.result !== null
             ? state.values.get(operation.result)
@@ -495,8 +517,27 @@ export function lowerFunction(
             home.requestId,
           );
         } else {
-          currentInstructions.push(...selected);
-          if (selected.length > 0) constructionLiteral = null;
+          if (
+            operation.kind === "binary" &&
+            ["^", "|"].includes(operation.operator) &&
+            typeBytes(operation.type) === 1
+          )
+            appendImmediateByteBitwise(currentInstructions, selected, input.profile.cpu);
+          else
+            appendScalarPrefix(
+              currentInstructions,
+              selected,
+              operation,
+              operation.kind === "binary" &&
+                ["==", "!=", "<", "<=", ">", ">="].includes(operation.operator) &&
+                canOmitComparisonCaptureReload(input, sourceFunction, currentInstructions),
+            );
+          if (selected.length > 0) {
+            // A local composition can append real code without growing the list.
+            // Record its source site directly so IRQ boundary analysis retains it.
+            instructionSites?.add(operation);
+            constructionLiteral = null;
+          }
         }
         continue;
       }
@@ -673,9 +714,22 @@ export function lowerFunction(
   helperUses.push(...state.helperUses.map((use) => Object.freeze({ ...use, caller: owner })));
   warnings.push(...state.warnings);
   const sourceName = input.bindingNames?.get(bindingIdentityKey(owner));
+  const selectedBlocks = selectTerminalByteLeaves(
+    Object.freeze([...loweredBlocks, ...state.helperBlocks]),
+    state,
+    returnsToStartup,
+    sourceFunction,
+  );
   return Object.freeze({
     id,
-    blocks: Object.freeze([...loweredBlocks, ...state.helperBlocks]),
+    blocks: selectGuardedShiftCount(
+      !returnsToStartup && sourceResult?.kind === "scalar" && sourceResult.name === "boolean"
+        ? selectZeroReturn(selectedBlocks)
+        : selectedBlocks,
+      state,
+      returnsToStartup,
+      sourceFunction,
+    ),
     ...(sourceName === undefined ? {} : { sourceName }),
   });
 }

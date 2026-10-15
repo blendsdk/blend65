@@ -108,6 +108,8 @@ export interface FunctionLoweringState {
   readonly materializedValues: ReadonlySet<string>;
   /** One-use A/AX results consumed by the next instruction-producing operation. */
   readonly forwardedRegisterValues: ReadonlySet<string>;
+  /** Exact sole adjacent indexed additions selected from that access's unsigned proof. */
+  readonly byteOrdinalAdditions?: ReadonlySet<string>;
   /** One adjacent fixed byte read delivered by its proved store or bitwise consumer. */
   adjacentByteRead?: {
     /** Sole consuming operation's semantic value identity. */
@@ -131,6 +133,8 @@ export interface FunctionLoweringState {
   readonly retainedAggregateResults: ReadonlySet<string>;
   /** Values used as addresses rather than loaded scalar contents. */
   readonly addressValues: ReadonlySet<string>;
+  /** Existing inclusive unsigned maxima valid at this exact indexed access or shift. */
+  ordinalBounds?: ReadonlyMap<string, bigint>;
   /** Call sites conservatively crossed by discovered storage. */
   readonly callSpans: readonly SourceSpan[];
   /** Edge-local copies needed to materialize control-flow merge values. */

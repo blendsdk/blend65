@@ -846,11 +846,18 @@ entries for that path. Profile resources define their entry mapping in the selec
 `TieBreakRecord` is `{ kind: "none" }` or
 `{ kind: "stableId", candidateIds: string[] }`.
 
-Decision and candidate IDs are unique; decisions and candidates sort by ID; baseline and selected IDs resolve to
-feasible candidates; a rejected candidate is never selected. Incomparable components and tie-break
-IDs are sorted and unique. A stable-ID tie break is present only when every tied candidate has an
-identical complete vector. `decisions` is empty for `mode: "none"`; other modes record every
-consequential selection or retained baseline without becoming a pass log or tuning database.
+Decision and candidate IDs are unique; decisions and candidates sort by ID. The baseline ID
+resolves to an existing candidate, feasible or rejected; the selected ID resolves to a feasible
+candidate, and a rejected candidate is never selected. A rejected baseline records its exact hard
+reasons, not a fabricated cost vector. Incomparable components resolve against the feasible
+baseline's vector, or the selected vector when the baseline is rejected; comparable candidates
+still use the same semantic-path and profile-resource contract. Incomparable components and
+tie-break IDs are sorted and unique. A stable-ID tie break is present only when every tied
+candidate has an identical complete vector. `decisions` is empty for `mode: "none"`; other modes
+record every consequential selection or retained baseline without becoming a pass log or tuning
+database. This bounded feasible-baseline correction was explicitly approved on 2026-10-12 in
+[whole-input preflight PF-002](../plans/whole-input-cost-closure/00-preflight-report.md);
+all record fields, tags, schema version and remaining validation obligations are unchanged.
 
 For M1, the build sidecar publishes the PRG artifact set, the raw sprite source is represented by one
 resident asset record, the memory sidecar contains the complete reconciled ledger, and the

@@ -117,7 +117,58 @@ function reusableAggregateAddressCache(
   );
 }
 
-/** Keep a sole fixed-home call argument direct; otherwise form its exact address in a ZP pair. */
+/**
+ * Preserve a sole fixed-object argument or terminal local return by its actual home.
+ * A global label and a certified local home both have stable identity. Borrowed
+ * parameters and returned-local pointers contain runtime addresses instead and
+ * must keep their existing captured-pointer path. This does not capture or copy
+ * an aggregate value; the caller handles those source operations beforehand.
+ * A whole callee-local return is still copied through the hidden destination;
+ * only the unused source-pointer construction is omitted.
+ * @returns The existing object identity, or null when ordinary pointer formation is required.
+ */
+export function fixedAggregateSource(
+  place: SemanticPlace,
+  state: FunctionLoweringState,
+  source: SourceSpan,
+  retainedId: string,
+): Extract<LoweredValue, { readonly kind: "storage" | "label" }> | null {
+  if (
+    place.rootType === undefined ||
+    !state.singleUseValues.has(retainedId) ||
+    state.aggregatePlaces.get(retainedId) !== place ||
+    isReturnedLocalPlace(place, state)
+  )
+    return null;
+  const plan = aggregateAddressPlan(place, state, source);
+  const root = loweredPlace(place, typeBytes(place.rootType), false, state);
+  if (
+    !plan.fixedInBounds ||
+    plan.indices.length !== 0 ||
+    plan.staticOffset !== 0 ||
+    (root.kind !== "storage" && root.kind !== "label") ||
+    (root.kind === "storage" && root.requestId.includes(":parameter:"))
+  )
+    return null;
+  const block = state.input.program.semantic.functions
+    .find((fn) => bindingIdentityKey(fn.id) === bindingIdentityKey(state.owner))
+    ?.blocks.find((candidate) => candidate.id === state.currentSemanticBlockId);
+  const callArgument = block?.operations.some(
+    (operation) => operation.kind === "call" && operation.arguments.includes(retainedId),
+  );
+  const last = block?.operations.at(-1);
+  const terminalLocalReturn =
+    root.kind === "storage" &&
+    place.path.length === 0 &&
+    last?.kind === "place-address" &&
+    last.result === retainedId &&
+    block?.terminator.kind === "return" &&
+    block.terminator.value === retainedId;
+  if (!callArgument && !terminalLocalReturn) return null;
+  return root;
+}
+
+/** Form an aggregate's exact address in a ZP pair, retaining a proved page displacement. */
 export function lowerAggregateAddress(
   place: SemanticPlace,
   state: FunctionLoweringState,
@@ -128,31 +179,12 @@ export function lowerAggregateAddress(
   readonly instructions: readonly MachineInstruction[];
   readonly pointer: Extract<LoweredValue, { readonly kind: "storage" }>;
   readonly displacement: number;
+  /** This construction itself leaves Y=0 for its immediate zero-displacement byte access. */
+  readonly zeroIndexInY?: true;
 } {
   const plan = aggregateAddressPlan(place, state, source);
   const returnedRoot = isReturnedLocalPlace(place, state);
   const root = loweredPlace(place, typeBytes(place.rootType!), false, state);
-  if (
-    retainedId !== null &&
-    state.singleUseValues.has(retainedId) &&
-    state.aggregatePlaces.get(retainedId) === place &&
-    plan.fixedInBounds &&
-    plan.indices.length === 0 &&
-    plan.staticOffset === 0 &&
-    !returnedRoot &&
-    root.kind === "storage" &&
-    !root.requestId.includes(":parameter:") &&
-    state.input.program.semantic.functions
-      .find((fn) => bindingIdentityKey(fn.id) === bindingIdentityKey(state.owner))
-      ?.blocks.find((block) => block.id === state.currentSemanticBlockId)
-      ?.operations.some(
-        (operation) => operation.kind === "call" && operation.arguments.includes(retainedId),
-      )
-  ) {
-    // The existing call marshaller already distinguishes a data home from a
-    // captured pointer. Keep that identity; no pointer bytes need materializing.
-    return Object.freeze({ instructions: Object.freeze([]), pointer: root, displacement: 0 });
-  }
   if (
     returnedRoot &&
     plan.indices.length === 0 &&
@@ -200,8 +232,18 @@ export function lowerAggregateAddress(
       root.requestId.includes(":parameter:"));
   const addressStaticOffset = cache === null ? plan.staticOffset : 0;
   const instructions: MachineInstruction[] = [];
+  const zeroIndexInY =
+    parameterRoot &&
+    retainedId === null &&
+    accessBytes === 1 &&
+    plan.indices.length === 0 &&
+    addressStaticOffset > 0 &&
+    addressStaticOffset <= 0xff;
   const term = plan.indices.length === 1 ? plan.indices[0]! : null;
   const ordinal = term === null ? undefined : state.values.get(term.value);
+  const ordinalMaximum = term === null ? undefined : state.ordinalBounds?.get(term.value);
+  // A proved word maximum changes only address selection: its high byte is
+  // already zero here. The original source value, home and later updates stay words.
   const byteOrdinal =
     ordinal?.kind === "zero-extended"
       ? ordinal.low
@@ -210,14 +252,31 @@ export function lowerAggregateAddress(
           ordinal.bytes === 1 &&
           ordinal.signed !== true
         ? ordinal
-        : null;
+        : ordinal !== undefined &&
+            (ordinal.kind === "storage" || ordinal.kind === "label") &&
+            ordinal.bytes === 2 &&
+            ordinal.signed !== true &&
+            ordinalMaximum !== undefined &&
+            ordinalMaximum >= 0n &&
+            ordinalMaximum < 256n
+          ? Object.freeze({ ...ordinal, bytes: 1 })
+          : null;
   if (term?.stride === 1 && byteOrdinal !== null && (!parameterRoot || addressStaticOffset === 0)) {
     // Consume a live ordinal before loading the base. The carry from the low
     // sum enters the high byte, so this is still a full 16-bit address.
     appendLoadA(instructions, byteOrdinal, 0, state, source);
-    instructions.push(
-      machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], source),
-    );
+    // The exact adjacent nonwrapping ADC already leaves carry clear. Checked
+    // guards can overwrite it, and retained values require the normal reset.
+    const additionOwnsCarry =
+      state.input.boundsCheck !== true &&
+      state.byteOrdinalAdditions?.has(term.value) === true &&
+      byteOrdinal.kind === "register" &&
+      byteOrdinal.registers === "a" &&
+      instructions.length === 0;
+    if (!additionOwnsCarry)
+      instructions.push(
+        machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], source),
+      );
     for (const addressByte of ["low", "high"] as const) {
       const offset = addressByte === "low" ? 0 : 1;
       const operand = parameterRoot
@@ -266,12 +325,55 @@ export function lowerAggregateAddress(
     return Object.freeze({ instructions: Object.freeze(instructions), pointer, displacement });
   }
   if (parameterRoot) {
-    instructions.push(
-      loadA(root, 0, state, source),
-      storeA(pointer, 0, state, source),
-      loadA(root, 1, state, source),
-      storeA(pointer, 1, state, source),
-    );
+    if (addressStaticOffset === 0) {
+      instructions.push(
+        loadA(root, 0, state, source),
+        storeA(pointer, 0, state, source),
+        loadA(root, 1, state, source),
+        storeA(pointer, 1, state, source),
+      );
+    } else {
+      // Add while loading the borrowed base, without first copying and reloading
+      // the pair. Carry still joins both bytes before the unchanged final access.
+      if (zeroIndexInY)
+        instructions.push(
+          machineInstruction(
+            state.input.profile.cpu,
+            "ldy",
+            "immediate",
+            Object.freeze({ kind: "immediate", value: 0 }),
+            [],
+            source,
+          ),
+        );
+      instructions.push(
+        loadA(root, 0, state, source),
+        machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], source),
+        machineInstruction(
+          state.input.profile.cpu,
+          "adc",
+          "immediate",
+          Object.freeze({ kind: "immediate", value: addressStaticOffset & 0xff }),
+          [],
+          source,
+        ),
+        storeA(pointer, 0, state, source),
+        zeroIndexInY
+          ? machineInstruction(state.input.profile.cpu, "tya", "implied", null, [], source)
+          : loadA(root, 1, state, source),
+        machineInstruction(
+          state.input.profile.cpu,
+          "adc",
+          zeroIndexInY ? modeForValue(root, 1) : "immediate",
+          zeroIndexInY
+            ? operandForValue(root, 1)
+            : Object.freeze({ kind: "immediate", value: (addressStaticOffset >> 8) & 0xff }),
+          [],
+          source,
+        ),
+        storeA(pointer, 1, state, source),
+      );
+    }
   } else {
     for (const addressByte of ["low", "high"] as const) {
       const operand =
@@ -298,31 +400,6 @@ export function lowerAggregateAddress(
     }
   }
 
-  if (parameterRoot && addressStaticOffset !== 0) {
-    instructions.push(
-      loadA(pointer, 0, state, source),
-      machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], source),
-      machineInstruction(
-        state.input.profile.cpu,
-        "adc",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: addressStaticOffset & 0xff }),
-        [],
-        source,
-      ),
-      storeA(pointer, 0, state, source),
-      loadA(pointer, 1, state, source),
-      machineInstruction(
-        state.input.profile.cpu,
-        "adc",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: (addressStaticOffset >> 8) & 0xff }),
-        [],
-        source,
-      ),
-      storeA(pointer, 1, state, source),
-    );
-  }
   for (const term of plan.indices) {
     const scaled = lowerAggregateIndex(term, state, source);
     const byteOffset = scaled.value.kind !== "condition" && scaled.value.bytes === 1;
@@ -354,5 +431,10 @@ export function lowerAggregateAddress(
     );
   }
   if (cache !== null) state.aggregateAddressCache = cache;
-  return Object.freeze({ instructions: Object.freeze(instructions), pointer, displacement });
+  return Object.freeze({
+    instructions: Object.freeze(instructions),
+    pointer,
+    displacement,
+    ...(zeroIndexInY ? { zeroIndexInY: true as const } : {}),
+  });
 }

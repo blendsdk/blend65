@@ -1,0 +1,21 @@
+module Game;
+import {
+  InputSnapshot, InputState, Key, JoystickPort, JoystickControl,
+  SnapshotQuality, keyState, joystickState
+} from c64.input;
+let saved: InputSnapshot;
+let keyResult: InputState;
+let joystickResult: InputState;
+function main(): void {
+  for (let i: word = 0; i < 8; i += 1) {
+    saved.rows[i] = peek($C110 + i);
+  }
+  saved.joystick1 = peek($C118);
+  saved.joystick2 = peek($C119);
+  saved.quality = SnapshotQuality(peek($C11A));
+  keyResult = keyState(saved, Key(peek($C100)));
+  joystickResult = joystickState(
+    saved, JoystickPort(peek($C101)), JoystickControl(peek($C102)));
+  poke($C103, keyResult);
+  poke($C104, joystickResult);
+}

@@ -1,0 +1,78 @@
+; Same complete transaction and full guards as the fast alternative.
+;149 bytes /513 cycles normal; PBON142 cycles at the selected whole placement.
+; SFA02 captured DDRA,03 captured DDRB,04 rotating scan mask,0A/0B prior link.
+; Looped init109 cycles; looped rows243 cycles, exact eight drive/read pairs.
+; No scan local uses hardware stack; only explicit source/sink status pushes.
+; Normal CIA1 traffic14 reads/15 writes; PBON2 reads/0 writes.
+acquisition:
+lda #0
+ldx #9
+clear_raw:
+sta saved,x
+dex
+bpl clear_raw
+lda #2
+sta saved+10
+php
+sei
+lda $dc0e
+sta $02
+lda $dc0f
+ora $02
+and #2
+beq acquisition_available
+plp
+rts
+acquisition_available:
+lda $dc02
+sta $02
+lda $dc03
+sta $03
+lda #$7f
+sta $dc00
+lda #$ff
+sta $dc02
+lda #0
+sta $dc03
+sta marker
+php
+lda $0318
+sta $0a
+lda $0319
+sta $0b
+lda #>callback
+sta $0319
+plp
+lda #$ff
+sta $dc00
+lda $dc01
+sta saved+8
+lda $dc00
+sta saved+9
+ldx #0
+lda #$fe
+scan_rows:
+sta $dc00
+sta $04
+lda $dc01
+sta saved,x
+lda $04
+sec
+rol
+inx
+cpx #8
+bne scan_rows
+lda #$7f
+sta $dc00
+php
+lda $0b
+sta $0319
+plp
+lda $02
+sta $dc02
+lda $03
+sta $dc03
+lda marker
+sta saved+10
+plp
+rts

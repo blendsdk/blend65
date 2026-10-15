@@ -46,78 +46,11 @@ import type {
 } from "./machine-types.js";
 import { loweringFailure, isLoweringFailure, typeBytes, bindingLabel } from "./lower-state.js";
 import { lowerFunction } from "./lower-function.js";
+import { lowerData } from "./lower-data.js";
+import { hasDisplayIndependentStartup } from "./lower-startup.js";
 import { createC64NmiEntries } from "./nmi-entry.js";
 import type { PendingC64NmiEntry } from "./nmi-entry.js";
 export * from "./lower-state.js";
-
-/** Return the machine data objects owned by globals and reachable assets. */
-function lowerData(
-  program: WholeProgram,
-  generatedData: ReadonlyMap<string, MachineDataObject>,
-  functions: readonly MachineFunction[],
-  startup: MachineFunction,
-  bindingNames?: ReadonlyMap<string, string>,
-): readonly MachineDataObject[] {
-  const spriteAssets = new Set(
-    [...functions, startup].flatMap((fn) =>
-      fn.blocks.flatMap((block) =>
-        block.instructions.flatMap((instruction) =>
-          instruction.operand?.kind === "label" &&
-          instruction.operand.transform === "vic-sprite-block"
-            ? [instruction.operand.label]
-            : [],
-        ),
-      ),
-    ),
-  );
-  const globals = program.semantic.globals
-    .filter(
-      (global) =>
-        !(global.storage === "constant" && global.type.kind === "scalar" && !global.placement),
-    )
-    .map((global) => {
-      const sourceName = bindingNames?.get(bindingIdentityKey(global.id));
-      const bytes = typeBytes(global.type);
-      const encoded = global.initialBytes;
-      if (encoded !== null && encoded.length !== bytes) {
-        throw loweringFailure("Global initial bytes do not match the declared type", global.source);
-      }
-      return Object.freeze({
-        id: bindingLabel("global", global.id),
-        ...(sourceName === undefined ? {} : { sourceName }),
-        kind:
-          encoded === null
-            ? ("bss" as const)
-            : global.storage === "constant"
-              ? ("immutable" as const)
-              : ("global" as const),
-        alignment: 1,
-        bytes: encoded ?? Object.freeze(new Array<number>(bytes).fill(0)),
-        ...(global.placement ? { placement: global.placement } : {}),
-        ...(global.zeropage ? { zeropage: true } : {}),
-      });
-    });
-  const reachable = new Set(program.reachableAssets);
-  const assets = program.semantic.assets
-    .filter(({ id }) => reachable.has(id))
-    .map((asset) => {
-      const vicSpriteBlocks = spriteAssets.has(`asset.${asset.id}`);
-      return Object.freeze({
-        id: `asset.${asset.id}`,
-        kind: "asset" as const,
-        assetId: asset.id,
-        sourceName: asset.sourcePath,
-        vicSpriteBlocks,
-        alignment: vicSpriteBlocks ? 64 : 1,
-        bytes: asset.bytes,
-        ...(asset.placement === undefined ? {} : { placement: asset.placement }),
-      });
-    });
-  const generated = [...generatedData.values()].sort((left, right) =>
-    Buffer.compare(Buffer.from(left.id), Buffer.from(right.id)),
-  );
-  return Object.freeze([...globals, ...assets, ...generated, createC64StartupStateData()]);
-}
 
 /** Lower a side-effect-free constant module initializer to inline runtime stores. */
 function lowerConstantInitializer(
@@ -517,8 +450,11 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
         (global) => [bindingIdentityKey(global.id), global] as const,
       ),
     );
+    const displayIndependent = hasDisplayIndependentStartup(input.program);
     const startupInitializers: C64StartupInitializer[] = [];
-    let initializerAccumulator: number | null = 0;
+    // Full display setup ends with A=0. The compact DDRA transaction retains
+    // incoming upper direction bits, so its first initializer has no known A.
+    let initializerAccumulator: number | null = displayIndependent ? null : 0;
     for (const initializer of input.program.semantic.initializerOrder) {
       const global = globalsByKey.get(bindingIdentityKey(initializer));
       if (global === undefined || global.entry === null) {
@@ -614,12 +550,13 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
       throw loweringFailure("Main function is absent", input.program.semantic.main.span);
     }
     const mainLabel = bindingLabel("fn", mainFunction.id);
-    const startup = createC64Startup({
+    const c64Startup = Object.freeze({
       initializerLabels: Object.freeze([]),
       initializers: Object.freeze(startupInitializers),
       mainLabel,
-      profile: input.profile,
+      displayIndependent,
     });
+    const startup = createC64Startup({ ...c64Startup, profile: input.profile });
     if (startup.kind === "error") {
       throw loweringFailure(startup.reason, null);
     }
@@ -695,8 +632,10 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
           machineFunctions,
           startup.startup,
           input.bindingNames,
+          createC64StartupStateData(c64Startup),
         ),
         startup: startup.startup,
+        c64Startup,
         requiredStorage: Object.freeze([...requests]),
         certifiedStorage,
         storageInventoryHash: inventoryHash,

@@ -77,8 +77,13 @@ describe("machine contract corrections", () => {
     const testIndex = result.function.blocks.findIndex(({ label }) => label === "test");
     const test = result.function.blocks[testIndex]!;
     expect(test.terminator).toEqual(
-      expect.objectContaining({ opcode: "bne", fallthrough: "true", target: "false" }),
+      expect.objectContaining({ opcode: "bne", fallthrough: "true", target: "test" }),
     );
+    // Instruction-empty entry/false aliases share the canonical test address.
+    for (const label of ["entry", "false", "test"])
+      expect(result.function.blocks.find((block) => block.label === label)?.origin).toBe(
+        test.origin,
+      );
     expect(result.function.blocks[testIndex + 1]?.label).toBe("true");
   });
 

@@ -4,8 +4,12 @@ import type { ControlFlowBuilder } from "./cfg.js";
 import type { BlockId, SemanticFunction, SemanticOperation, ValueId } from "./operations.js";
 import { reachableBlocks } from "./value-lifetimes.js";
 
-/** Count actual uses, including predecessor merges and computed place indexes. */
-function valueUses(operation: SemanticOperation, value: ValueId): number {
+/**
+ * List actual value operands, including predecessor merges and computed places.
+ * Repeated operands stay repeated so consumers can distinguish one use from two
+ * occurrences in the same call. Block terminators are separate from operations.
+ */
+export function operationValueUses(operation: SemanticOperation): readonly ValueId[] {
   const operands: ValueId[] = [];
   if ("operand" in operation) operands.push(operation.operand);
   if ("left" in operation) operands.push(operation.left, operation.right);
@@ -30,7 +34,7 @@ function valueUses(operation: SemanticOperation, value: ValueId): number {
           : null;
   if (place !== null)
     operands.push(...place.path.flatMap((part) => (part.kind === "index" ? [part.value] : [])));
-  return operands.filter((operand) => operand === value).length;
+  return operands;
 }
 
 /**
@@ -64,7 +68,10 @@ export function sinkTerminalChoice(
   );
   const operations = fn.blocks.flatMap((block) => block.operations);
   const uses = (value: ValueId): number =>
-    operations.reduce((sum, op) => sum + valueUses(op, value), 0) +
+    operations.reduce(
+      (sum, op) => sum + operationValueUses(op).filter((operand) => operand === value).length,
+      0,
+    ) +
     fn.blocks.filter(({ terminator }) =>
       terminator.kind === "branch"
         ? terminator.condition === value
@@ -197,6 +204,56 @@ function emitMerge(
     }),
   );
   return result;
+}
+
+/**
+ * End the current block with a condition whose only consumer is a control edge.
+ * Short-circuit operands select their successor directly instead of creating a
+ * merged Boolean value. Ordinary leaves still use the normal expression lowerer,
+ * so comparisons, calls and their effects retain their existing ownership.
+ * Constant left operands are evaluated for effects before skipping an unreachable
+ * right operand. Stored expressions and returns that retain a raw Boolean value
+ * use value lowering separately; comparison-only returns can select return arms.
+ */
+export function lowerCondition(
+  expression: TypedExpr,
+  builder: ControlFlowBuilder,
+  lower: (child: TypedExpr) => ValueId | null,
+  whenTrue: BlockId,
+  whenFalse: BlockId,
+): void {
+  if (expression.kind === "binary" && expression.evaluation === "short-circuit") {
+    const left = expression.left;
+    const right = expression.right;
+    const operator = expression.operator;
+    if (left === undefined || right === undefined || (operator !== "&&" && operator !== "||")) {
+      throw new Error("Completed logical condition is missing an operand or operator");
+    }
+    if (typeof left.constant === "boolean") {
+      if (lower(left) === null) throw new Error("Completed logical left operand has no value");
+      const evaluateRight = operator === "&&" ? left.constant : !left.constant;
+      if (evaluateRight) lowerCondition(right, builder, lower, whenTrue, whenFalse);
+      else
+        builder.terminate(
+          Object.freeze({ kind: "jump", target: left.constant ? whenTrue : whenFalse }),
+        );
+      return;
+    }
+    const selected = builder.createBlock("condition-selected");
+    lowerCondition(
+      left,
+      builder,
+      lower,
+      operator === "&&" ? selected.id : whenTrue,
+      operator === "&&" ? whenFalse : selected.id,
+    );
+    builder.select(selected);
+    lowerCondition(right, builder, lower, whenTrue, whenFalse);
+    return;
+  }
+  const condition = lower(expression);
+  if (condition === null) throw new Error("Completed condition did not produce a value");
+  builder.terminate(Object.freeze({ kind: "branch", condition, whenTrue, whenFalse }));
 }
 
 /** Lower Boolean short circuit with no operation in the bypassed right arm. */

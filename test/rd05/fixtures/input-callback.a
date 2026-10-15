@@ -1,0 +1,16 @@
+; Scoped matching-low route: entry low47, immutable page-safe prior link0A/0B.
+;18 emitted bytes /33 cycles; existing CPU entry7 + ROM indirect stub7 separate.
+; CPU frame3 plus own P/A2 bytes; X/Y unchanged, P saved before A.
+; Exact PA7F-before-marker order; prior full route remains reachable once.
+; Existing ROM, external retained owner, STOP and aggregate NMI costs Unknown.
+callback:
+php
+pha
+cld
+lda #$7f
+sta $dc00
+lda #1
+sta marker
+pla
+plp
+jmp ($000a)

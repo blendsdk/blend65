@@ -1,0 +1,89 @@
+; Full byte-domain port/control query; pointer02/03, port04, control05.
+; Sibling of key query; shares root SFA02..09, never simultaneously live.
+; Caller07 is dead during compatibility; both port arms redefine it before use.
+;138 instruction bytes; no lookup data, row copy or MMIO.
+joystick_state:
+ldy #10
+lda ($02),y
+bne joystick_uncertain
+joystick_quality_ok:
+lda $04
+cmp #1
+beq joystick_port_ok
+cmp #2
+bne joystick_uncertain
+joystick_port_ok:
+lda $05
+cmp #5
+bcs joystick_uncertain
+joystick_control_ok:
+tax
+lda #1
+cpx #0
+beq joystick_mask_ready
+joystick_mask_shift:
+asl
+dex
+bne joystick_mask_shift
+joystick_mask_ready:
+sta $06
+lda $04
+cmp #1
+beq joystick_read_port1
+ldy #9
+jmp joystick_read_own
+joystick_read_port1:
+ldy #8
+joystick_read_own:
+lda ($02),y
+and $06
+bne joystick_up
+joystick_low:
+lda $02
+sta $0a
+lda $03
+sta $0b
+jsr compatible
+beq joystick_uncertain
+joystick_compatible:
+lda $04
+cmp #1
+beq joystick_masks_port1
+ldy #9
+lda ($02),y
+eor #$ff
+sta $07
+ldy #8
+lda ($02),y
+eor #$ff
+sta $08
+jmp joystick_masks_ready
+joystick_masks_port1:
+ldy #8
+lda ($02),y
+eor #$ff
+sta $07
+ldy #9
+lda ($02),y
+eor #$ff
+sta $08
+joystick_masks_ready:
+lda $08
+beq joystick_down
+lda $07
+and #$1f
+sta $0a
+lda $08
+and #$1f
+sta $0b
+jsr sole_source
+bne joystick_down
+joystick_uncertain:
+lda #2
+rts
+joystick_up:
+lda #1
+rts
+joystick_down:
+lda #0
+rts

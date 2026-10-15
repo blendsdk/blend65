@@ -45,7 +45,7 @@ describe("effect-free terminal layout", () => {
     });
   });
 
-  it("does not collapse a loop with an explicit timing instruction", () => {
+  it("retains an explicit timing instruction while removing ordinary redundant jumps", () => {
     const fn = emptyLoop();
     const result = repairMachineBranches(
       {
@@ -63,10 +63,15 @@ describe("effect-free terminal layout", () => {
     );
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected layout");
-    expect(result.byteLength).toBe(10);
+    expect(result.byteLength).toBe(4);
+    expect(
+      result.function.blocks
+        .flatMap(({ instructions }) => instructions)
+        .map(({ opcode }) => opcode),
+    ).toEqual(["nop"]);
     expect(result.function.blocks.map(({ terminator }) => terminator.kind)).toEqual([
-      "jump",
-      "jump",
+      "fallthrough",
+      "fallthrough",
       "jump",
     ]);
   });
@@ -89,7 +94,7 @@ describe("effect-free terminal layout", () => {
     );
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected layout");
-    expect(result.byteLength).toBe(7);
+    expect(result.byteLength).toBe(1);
     expect(result.function.blocks[2]!.terminator.kind).toBe("return");
   });
 
@@ -101,5 +106,79 @@ describe("effect-free terminal layout", () => {
         reason: "missing-label",
       },
     );
+  });
+
+  it("orders a nested condition before its shared false continuation without a bridge", () => {
+    const branch = (target: string, fallthrough: string) => ({
+      kind: "branch" as const,
+      opcode: "bne",
+      target,
+      fallthrough,
+      uses: { registers: [], flags: ["z" as const] },
+      cost: { bytes: 2, minCycles: 2, maxCycles: 4 },
+    });
+    const result = repairMachineBranches(
+      {
+        id: "nested",
+        blocks: [
+          { label: "entry", instructions: [], terminator: branch("true", "second") },
+          { label: "second", instructions: [], terminator: branch("third", "false") },
+          { label: "true", instructions: [], terminator: { kind: "return" } },
+          { label: "false", instructions: [], terminator: { kind: "return" } },
+          { label: "third", instructions: [], terminator: branch("true", "false") },
+        ],
+      },
+      0x2000,
+    );
+    if (result.kind !== "complete") throw new Error("Expected nested layout");
+    expect(result.byteLength).toBe(8);
+    expect(result.function.blocks.map(({ label }) => label)).toEqual([
+      "entry",
+      "second",
+      "third",
+      "false",
+      "true",
+    ]);
+    expect(result.function.blocks[1]!.terminator).toMatchObject({
+      kind: "branch",
+      opcode: "beq",
+      target: "false",
+      fallthrough: "third",
+    });
+    expect(result.function.blocks.every(({ label }) => !label.includes(".fallthrough."))).toBe(
+      true,
+    );
+  });
+
+  it("keeps backward edges and external transfers as real jumps", () => {
+    const fn = emptyLoop();
+    const result = repairMachineBranches(
+      {
+        ...fn,
+        blocks: [
+          ...fn.blocks,
+          {
+            label: "external",
+            instructions: [],
+            terminator: {
+              kind: "jump",
+              opcode: "jmp",
+              target: "other-function",
+              cost: { bytes: 3, minCycles: 3, maxCycles: 3 },
+            },
+          },
+        ],
+      },
+      0x2000,
+    );
+    if (result.kind !== "complete") throw new Error("Expected jump layout");
+    expect(result.function.blocks[2]!.terminator).toMatchObject({
+      kind: "jump",
+      target: "condition",
+    });
+    expect(result.function.blocks[3]!.terminator).toMatchObject({
+      kind: "jump",
+      target: "other-function",
+    });
   });
 });

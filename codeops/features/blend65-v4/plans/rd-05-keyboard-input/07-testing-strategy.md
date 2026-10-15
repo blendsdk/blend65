@@ -57,10 +57,169 @@ production edits. They are not full-package targets.
 | ST-20 | NMI before publication, during removal and after removal/restoration → valid old/new route at every transition, no lost predecessor or reused live link, no scan-induced invented STOP/key. Own final PA=$7F handoff occurs before route removal/DDR restoration; later legitimate UD60 PA=$7E is not a failed exact-at-RET promise.                                                                           | AR-P2; pinned NNMI/UD60; existing matching-low proof                                        |
 | ST-21 | Two generated overlapping entries; genuine STOP+RESTORE; changing-key false-STOP witness → monotonic interruption marker, no generated private overlap; genuine STOP remains reachable and false scan-induced STOP is absent under the compatible-owner condition. No finite external nesting/ROM deadline is inferred.                                                                                        | AR-P2/AR-P3; T-04/T-05 method; frozen cooperative exception                                 |
 | ST-22 | Actual compatible generated chained predecessor and compatible exclusive terminal owner → composed scan works without a no-custom-handler ban or per-call FE47 gate. Known unproved generated storage/vector mutation keeps existing rejection/no-generation behavior. A port-DDR writer outside the accepted coherent-owner precondition is not falsely certified by SEI.                                     | AR-P2; existing program/vector proof; [03-03](03-03-acquisition.md#preconditions-and-scope) |
-| ST-23 | Exact installed source in an ordinary caller and saved-query-only program → independently derived whole equivalent expert acquisition/query/caller baselines; all complete path/code/data/padding/BSS/SFA/ZP/scratch/stack/MMIO costs reported, no ratio above the expert floor silently accepted. Local meets have a measured owned path-to-beat issue; RD-08 is not a waiver.                                | prime directive; AR-P12                                                                     |
-| ST-24 | Full ordinary source build/run, normal return to BASIC, M1 and existing joystick/NMI suites → unchanged unrelated APIs, diagnostics, package/path/hash/overlay protections and no generation on existing errors. Raw/D64 profiles gain no new admission claim; no frozen/old oracle change except AR-P6/AR-P13.                                                                                                       | R5.25; AR-P6/AR-P13; existing profile/product boundary                                             |
+| ST-23 | Exact installed source in an ordinary caller and saved-query-only program, explicitly optimized for size → independently derived whole equivalent expert acquisition/query/caller baselines; all complete path/code/data/padding/BSS/SFA/ZP/scratch/stack/MMIO costs reported, no ratio above the expert floor silently accepted. None retains canonical correctness/accounting. Local meets have a measured owned path-to-beat issue; RD-08 is not a waiver. | prime directive; AR-P12; [whole-input AR-P4](../whole-input-cost-closure/00-ambiguity-register.md#ar-p4--exact-approved-complexity-decision) |
+| ST-24 | Full ordinary source build/run, normal return to BASIC, M1 and existing joystick/NMI suites → unchanged unrelated APIs, diagnostics, package/path/hash/overlay protections and no generation on existing errors. Raw/D64 profiles gain no new admission claim; no frozen/old oracle change except AR-P6/AR-P13.                                                                                                | R5.25; AR-P6/AR-P13; existing profile/product boundary                                      |
+
+## Residual consumer specification cases
+
+These local cases implement the exact approved AR-P25 scope, not a replacement
+for ST-23's complete input limits. New independent concern-specific specifications
+are RED first. Use current public build/artifact/VICE helpers; no new harness.
+
+| Case  | Independent contract and cost boundary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ST-25 | Adjacent sole-use byte complement/bitwise/fixed-store/scalar-return values match language results without needless staging. Fixed absolute RAM complement/store leaf costs at most9 bytes/16 nominal cycles; three immediate operations cost at most13/20. Absolute-home byte parameter complement return costs at most6/12 and may beat it with ZP. Ordered volatile accesses and wider/multi-use/call/effect/block fallbacks remain correct; no unpromised outgoing A/X/Y obligation.                                                                                                                                                                     |
+| ST-26 | Condition-only nested `&&`/`\|\|` preserve every left-to-right read/call and bypass path without a Boolean home solely for branching. Escaping/stored/multi-use Boolean values remain canonical and correct. Independent complete routine costs include all branches, merge/repair and return paths.                                                                                                                                                                                                                                                                                                                                                        |
+| ST-27 | Existing unsigned guards proving a stride-one access ordinal below256 allow byte ordinal formation with full pointer carry/wrap. Unproved/stale/signed/alias/call/join cases retain generic semantics. Source word state and loop updates are unchanged; no new counter/recurrence proof.                                                                                                                                                                                                                                                                                                                                                                   |
+| ST-28 | Eligible borrowed constant offsets preserve the exact addressed byte, dummy-read/bank/effect footprint and interference contract. Unknown runtime-address/footprint cases retain full displacement; read-only is not a RAM proof.                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ST-29 | Omitting an existing proved-unused copy source pointer changes no source/destination byte, alias direction, volatile effect, ABI or scratch closure; the absolute-indexed copy itself remains. Complete code/setup cost is included.                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ST-30 | The bounded immediate EOR/AND/EOR identity preserves all byte results and final flags/state without crossing effects or intermediate uses. Complete fixed-store leaves meet11 bytes/18 nominal cycles; parameter returns meet8/14 or beat it with ZP. Exhaustive256 values, two nontrivial masks, ordered volatile reads/writes and saved/call/word fallbacks are independent. Actual source emission inventory remains valid when append shrinks the list. The old13/20 delivery expectation stays unchanged and is not an expert-floor claim.                                                                                                             |
+| ST-31 | Ordinary branch-only call results before two direct constant byte returns independently test A, including every nonzero Boolean representation and opposite callee Z. Complete wrapper12/18–19 excludes the separately charged callee4/10. Startup, NMI-domain, materialized, delayed, wider and effectful continuations retain conservative behavior; no extra homes/stack/register-save growth. Original branch-negation oracles stay unchanged.                                                                                                                                                                                                          |
+| ST-32 | A byte-result variable shift with an exact unsigned0..7 count bound omits only high-count/range/saturation work. Byte/word count homes retain declared widths. Masks, conversions and reaching guards are separate from unknown/invalidated reloads. Zero bypass, wrapping left/logical right/arithmetic right, wide-count saturation and ordered effects have independent native expectations. The bounded absolute-load core including return is15 bytes/19 zero cycles or17+7k positive cycles; signed right17 bytes/19 zero or17+9k. Producer/guard bytes and final-layout penalties remain separately charged; no whole-leaf or complete-input waiver. |
+
+ST-33 supplements, rather than changes, ST-32: complete masked byte/word count
+leaves for byte/sbyte left and right shifts meet18 bytes (20 for signed right),
+including mask, count/value loads, zero bypass, complete loop and RTS. Nominal
+zero cost is23 cycles; positive k1..7 costs21+7k, or21+9k for signed right.
+Actual branch-page penalties are accounted separately. The source word count
+retains its two-byte home; only the proved mask's low byte is needed. A new
+implementation-blind oracle derives these whole-leaf expectations before code.
+The old guard/native/fallback programs, limits and assertions remain unchanged.
+This is not a complete guarded-leaf or input-library parity waiver.
+
+ST-34 independently charges the complete word-mask→byte-conversion→byte/sbyte
+shift leaf. The exact0..7 masked value survives conversion, so complete leaves
+meet the same18-byte/20-byte limits as ST-33. All four profiles and shift forms
+run through the existing public build/accounting helpers. Existing native
+conversion, effect, source-home-width and fallback cases remain unchanged.
+
+ST-35 charges the complete guarded byte/sbyte shift leaf, including both guard
+widths, all rejection/zero/loop/return bytes and full parameter-home widths.
+Four profiles meet22/24 bytes for byte counts and27/29 for word counts; signed
+right is the larger value. Accepted nominal paths are byte zero23 cycles,
+positive21+7k/9k; a word's zero-high rejection check adds6. These cycles are
+analytical in the supplemental byte oracle, not a new CPU evaluator. Existing
+native/core expectations stay unchanged; actual-byte output review separately
+checks complete paths and branch-page penalties. No complete input waiver.
+
+ST-36 charges complete ordinary returned byte-zero predicates and comparison-leaf
+short-circuit trees using existing public build/VICE fixtures. Direct LDA/branch
+and two constant-return arms fit11 bytes/15 nominal cycles; two ordered tests fit
+16 bytes/21 cycles. Charge any actual jumps/padding and taken-branch page penalty.
+No staging writes, stack traffic or private scratch is allowed for these leaves.
+Native cases verify zero/nonzero truth, exact right-side bypass/read order, no
+input writes, balanced SP and unchanged I/D. Raw Boolean returns preserve exact
+bytes0/1/$80/$FF and retain their existing value path. This is no general
+canonical-Boolean requirement, arbitrary logical-return rewrite or whole-input
+budget waiver. A blind author freezes both new oracles before production.
+
+ST-37 freezes a separate stronger public output oracle: ordinary zero inequality
+fits8 bytes/14 nominal cycles; the two ordered logical forms fit13 bytes/20
+cycles. Conjunction's one-read path fits13 cycles and disjunction's15. Every
+complete path charges RTS, jumps, padding and actual branch-page penalties,
+preserves canonical0/1 for these selected comparison idioms, and has one ordered
+input read or exactly input-then-right reads. No scratch, staging writes or stack
+traffic. All earlier output/native/effects files remain immutable. Native/effects
+regressions remain the independent behavior oracle; no general Boolean encoding
+or whole-input waiver follows from these stronger local costs.
+
+ST-38 supplements the unchanged earlier oracles with ordinary two/three-test
+early-return chains selecting byte2 or byte1. Complete16/21-byte floors charge
+every arm, return, jump and padding byte; one/two/three-read nominal paths fit
+15/21/27 cycles plus actual taken-branch page penalties. Independent sequential
+native groups cover320 combinations of0/1/$80/$FF operands across four profiles,
+selected result1/2, exact ordered prefixes/right bypass, no input writes, one
+result write followed by marker, balanced SP and unchanged I/D. No copied input,
+private scratch or explicit stack saves are permitted for these leaves. Sharing
+must preserve all labels and never admit memory effects or extra instructions.
+
+ST-39 freezes two independent ordinary-byte arithmetic/bitwise oracles. Captured
+`m & (m - 1)` and its reversed form, plus wrapping addition with OR/XOR, fit13
+complete bytes/22 nominal cycles and at most one private byte. An already-owned
+byte parameter fits10 bytes/18 cycles, with its parameter home charged. Whole
+accounting still includes callers, argument setup and startup. Sequential native
+groups exhaust256 inputs for eight byte witnesses per profile and nine word
+boundary patterns. Values, exact capture/mutation/result/marker order, no extra
+input writes, balanced SP and unchanged I/D are independent expectations. Calls,
+multiple arithmetic uses, later mutation of a second capture and word operations
+retain their required stable values; no tight local cost is imposed on fallbacks.
+No old oracle or whole-input ceiling changes.
+
+ST-40 freezes the stronger32-case pure terminal companion before code. All four
+profiles cover captured AND subtraction, OR/XOR addition in both operand orders,
+and an already-owned parameter AND subtraction in both orders. Complete captured
+12-byte/22-cycle and parameter9-byte/18-cycle floors include RTS and charge every
+home, caller, marshalling and startup byte. The original ST-39 output/native
+files stay immutable. Official instruction costs allow A/X/Y alternatives without
+prescribing a sequence. Only ordinary terminal byte-return state is unpromised;
+startup, IRQ/NMI, surviving nonterminal register/flag obligations and extra effects
+must not borrow this eligibility. Existing independent native samples still own
+behavior, and private tests own exact gates, metadata and conservative fallbacks.
 
 ## Coverage and qualification
+
+ST-41 freezes the captured unsigned-byte comparison's independent output,
+native and debugger oracles before production. Four bit-7 threshold forms on
+four profiles fit15 complete owner bytes,13 nominal bypass cycles and26 called
+owner cycles plus18 helper cycles; actual branch-page penalties are separate.
+The local's instruction-entry locations must be truthful, not a stale private
+home on the bypass. An unchanged returned-call companion exhausts byte values
+without assuming callee-preserved flags. Together32 native groups cover8,192
+samples, exact read/write order, return values and stack/I/D obligations.
+
+The later blind20-case observer companion reaches meaningful RED before its
+guard repair. Runtime raw/unchecked-index readers, IRQ readers/writers and
+persistent RAM publication must retain unconditional capture save/reload on all
+four profiles. These are assembled fallback controls, not exhaustive native
+interleaving evidence. The exact initial-read exemption needs actual ownership
+and exclusive-main execution; full-window checks must survive final reallocation.
+No old oracle, source admission or complete-input ceiling changes.
+
+ST-42 freezes the fixed-shift delivery's28 complete output cases and48 native
+groups before production. Unsigned left/right counts1/3/7 fit8/10/11 bytes and
+16/20/20 nominal cycles; signed right1 fits10 bytes/18 cycles. Every leaf charges
+its declared parameter and RTS, with no unnamed expression home. Exact seven-bit
+endpoint extraction may change C only at an ordinary main-domain void return
+without a later observer; all other register/flag/effect obligations remain.
+The native mathematical oracle exhausts256 byte inputs per shape and adds word
+boundaries, dynamic/saturated counts, intervening calls, multiple uses and
+branch-selected destinations. The latter is not an indexed-place control;
+focused private tests independently retain that fallback. Source read/write
+order/count, unchanged input and unselected output, markers and SP/I/D remain
+observable. Complete caller, startup and storage costs are separately charged.
+Whole saved relocation can add or remove taken branch-page penalties, so local
+cycle savings are not a uniform whole-path claim. No old oracle changes.
+
+ST-43 freezes36 complete one-bit-shift/OR1 output cases and56 native groups
+before production. Unsigned left/right and signed right return leaves meet
+6/7/9 bytes and14/14/16 nominal cycles, including parameter load and RTS.
+Each fixed absolute store adds3 bytes/four cycles. Exact ASL/ORA#1→SEC/ROL
+must preserve every final register/flag, including C; source spans and official
+selected-CPU effects/costs remain truthful. Same-width casts only reinterpret
+bits. Full caller, parameter, startup and resource costs stay charged. Native
+expectations exhaust256 byte inputs and263 word samples, plus dynamic counts,
+multi-use, clobbering calls and an actual indexed destination. Values, ordered
+source reads and result/marker writes, unchanged inputs/unselected output and
+SP/I/D are independent of instruction selection. These groups do not measure
+outgoing C/V, whole timing, silicon or exhaustive interrupt interleavings.
+No old oracle or whole-input ceiling changes.
+
+ST-44 freezes12 complete scalar-byte call-delivery output cases and32 native
+groups/8,220 source-derived invocations before production. An ordinary direct
+caller with one byte argument fits10 bytes/20 nominal cycles, or10/22 when a
+separately charged4-byte/10-cycle function produces the byte. The sink costs
+7 bytes/14 cycles including its declared parameter load, fixed store and RTS.
+One exact parameter home remains; expression-only caller/producer homes do not.
+Calls, complete bodies, startup, markers, physical overlays and stack routes are
+charged separately, never treated as a free register ABI. Same-width signed
+reinterpretation preserves bits. Native expectations cover all256 byte inputs,
+two effectful arguments in source order, wider boundaries, reused captures
+across mutation, zero extension and a nonvacuous two-target indirect call.
+Ordered reads/writes, unchanged or deliberately changed input, output/markers
+and SP/I/D remain observable. These cases do not promise outgoing C/V, external
+interrupt bounds, whole timing or silicon proof. The author's preimplementation
+draft-only observer-identity correction, refrozen hashes and meaningful RED are
+recorded in the journal; no existing oracle or whole-input ceiling changes.
 
 Cover all named coordinates, both ports' full 32-control domains, both-port
 ground interactions, ungrounded stars/rectangles, eligible/ineligible grounded

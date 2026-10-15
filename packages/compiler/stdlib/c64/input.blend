@@ -1,5 +1,7 @@
 module c64.input;
 
+import { setNMI, restoreNMI } from c64.system;
+
 /** Up switch bit in a sampled joystick byte; a clear bit means pressed. */
 export const joystickUpMask: byte = 1;
 
@@ -17,3 +19,472 @@ export const joystickFireMask: byte = 16;
 
 /** All five switch bits; the upper three sampled bits are not joystick controls. */
 export const joystickControlsMask: byte = 31;
+
+/**
+ * What the saved bytes establish about a switch, not its current live state.
+ * Shared keyboard/joystick wiring can leave a low line ambiguous.
+ */
+export enum InputState {
+  /** Every compatible stable explanation has this switch closed. */
+  OBSERVED_DOWN = 0,
+  /** The saved observation establishes that this switch is open. */
+  OBSERVED_UP = 1,
+  /** Invalid, interrupted or ambiguous saved data cannot establish a state. */
+  UNCERTAIN = 2
+}
+
+/** Whether one acquisition completed without a scoped interruption. */
+export enum SnapshotQuality {
+  /** All planned samples were taken; this does not promise simultaneous inputs. */
+  COMPLETE = 0,
+  /** A returning NMI reached the scoped scan; raw samples remain available. */
+  INTERRUPTED = 1,
+  /** The port configuration prevented sampling; raw bytes are zero placeholders. */
+  UNAVAILABLE = 2
+}
+
+/** The two physical C64 joystick connectors. */
+export enum JoystickPort {
+  /** Connector 1, sampled through the keyboard row port. */
+  PORT_1 = 1,
+  /** Connector 2, sampled through the keyboard column port. */
+  PORT_2 = 2
+}
+
+/** A physical joystick switch; keyboard overlap can make a saved low ambiguous. */
+export enum JoystickControl {
+  /** Up switch. */
+  UP = 0,
+  /** Down switch. */
+  DOWN = 1,
+  /** Left switch. */
+  LEFT = 2,
+  /** Right switch. */
+  RIGHT = 3,
+  /** Fire switch. */
+  FIRE = 4
+}
+
+/**
+ * One packed 11-byte observation used by pure keyboard and joystick queries.
+ * COMPLETE is scan quality, not an atomic snapshot or guaranteed contact truth.
+ * Retain the object and query it as often as needed; queries do not resample.
+ * @example let saved: InputSnapshot = readInputSnapshot();
+ */
+export struct InputSnapshot {
+  /** Eight raw row samples, one for each driven keyboard column. */
+  rows: byte[8];
+  /** Raw connector-1 sample; upper bits are not joystick switches. */
+  joystick1: byte;
+  /** Raw connector-2 sample; upper bits are not joystick switches. */
+  joystick2: byte;
+  /** Sample validity; unavailable raw zeros are not pressed/released evidence. */
+  quality: SnapshotQuality;
+}
+
+/**
+ * The 64 physical keyboard switches, encoded as column * 8 + row.
+ * Shifted characters are not separate switches. RESTORE is an NMI input,
+ * and SHIFT LOCK holds LEFT_SHIFT; neither adds a matrix member.
+ */
+export enum Key {
+  /** Delete key. */
+  DELETE = 0,
+  /** Return key. */
+  RETURN = 1,
+  /** Physical horizontal cursor key; Shift selects the other direction. */
+  CURSOR_LEFT_RIGHT = 2,
+  /** F7 key; Shift selects F8. */
+  F7 = 3,
+  /** F1 key; Shift selects F2. */
+  F1 = 4,
+  /** F3 key; Shift selects F4. */
+  F3 = 5,
+  /** F5 key; Shift selects F6. */
+  F5 = 6,
+  /** Physical vertical cursor key; Shift selects the other direction. */
+  CURSOR_UP_DOWN = 7,
+  /** Digit 3 key. */
+  DIGIT_3 = 8,
+  /** W key. */
+  W = 9,
+  /** A key. */
+  A = 10,
+  /** Digit 4 key. */
+  DIGIT_4 = 11,
+  /** Z key. */
+  Z = 12,
+  /** S key. */
+  S = 13,
+  /** E key. */
+  E = 14,
+  /** Left Shift key; SHIFT LOCK holds this same switch. */
+  LEFT_SHIFT = 15,
+  /** Digit 5 key. */
+  DIGIT_5 = 16,
+  /** R key. */
+  R = 17,
+  /** D key. */
+  D = 18,
+  /** Digit 6 key. */
+  DIGIT_6 = 19,
+  /** C key. */
+  C = 20,
+  /** F key. */
+  F = 21,
+  /** T key. */
+  T = 22,
+  /** X key. */
+  X = 23,
+  /** Digit 7 key. */
+  DIGIT_7 = 24,
+  /** Y key. */
+  Y = 25,
+  /** G key. */
+  G = 26,
+  /** Digit 8 key. */
+  DIGIT_8 = 27,
+  /** B key. */
+  B = 28,
+  /** H key. */
+  H = 29,
+  /** U key. */
+  U = 30,
+  /** V key. */
+  V = 31,
+  /** Digit 9 key. */
+  DIGIT_9 = 32,
+  /** I key. */
+  I = 33,
+  /** J key. */
+  J = 34,
+  /** Digit 0 key. */
+  DIGIT_0 = 35,
+  /** M key. */
+  M = 36,
+  /** K key. */
+  K = 37,
+  /** O key. */
+  O = 38,
+  /** N key. */
+  N = 39,
+  /** Plus key. */
+  PLUS = 40,
+  /** P key. */
+  P = 41,
+  /** L key. */
+  L = 42,
+  /** Minus key. */
+  MINUS = 43,
+  /** Period key. */
+  PERIOD = 44,
+  /** Colon key. */
+  COLON = 45,
+  /** At-sign key. */
+  AT = 46,
+  /** Comma key. */
+  COMMA = 47,
+  /** Pound-sign key. */
+  POUND = 48,
+  /** Asterisk key. */
+  ASTERISK = 49,
+  /** Semicolon key. */
+  SEMICOLON = 50,
+  /** Home key. */
+  HOME = 51,
+  /** Right Shift key. */
+  RIGHT_SHIFT = 52,
+  /** Equals key. */
+  EQUALS = 53,
+  /** Up-arrow key. */
+  UP_ARROW = 54,
+  /** Slash key. */
+  SLASH = 55,
+  /** Digit 1 key. */
+  DIGIT_1 = 56,
+  /** Left-arrow key. */
+  LEFT_ARROW = 57,
+  /** Control key. */
+  CONTROL = 58,
+  /** Digit 2 key. */
+  DIGIT_2 = 59,
+  /** Space key. */
+  SPACE = 60,
+  /** Commodore key. */
+  COMMODORE = 61,
+  /** Q key. */
+  Q = 62,
+  /** RUN/STOP key; RESTORE is a separate NMI input. */
+  RUN_STOP = 63
+}
+
+/**
+ * Check whether all saved bytes admit any stable compatible contact state.
+ * Grounded endpoints must appear in every sample. Other connected components
+ * have identical row sets or disjoint row sets; overlapping unequal sets cannot
+ * describe stable wiring. At most eight columns and 28 pairs are inspected.
+ * Read the borrowed rows in place, without a graph, copied matrix or cache.
+ */
+function snapshotCompatible(snapshot: const InputSnapshot): boolean {
+  let groundedColumns: byte = ~snapshot.joystick2;
+  let groundedRows: byte = ~snapshot.joystick1;
+
+  // Only the five joystick switch bits can be a direct ground source.
+  if ((groundedColumns | groundedRows) != 0 &&
+      ((groundedColumns & joystickControlsMask) |
+       (groundedRows & joystickControlsMask)) == 0) {
+    return false;
+  }
+  if ((groundedColumns & $E0) != 0 && groundedRows == 0) {
+    return false;
+  }
+  if ((groundedRows & $E0) != 0 && groundedColumns == 0) {
+    return false;
+  }
+
+  let columnMask: byte = 1;
+  for (let column: word = 0; column < 8; column += 1) {
+    let lowRows: byte = ~snapshot.rows[column];
+    if ((lowRows & groundedRows) != groundedRows) {
+      return false;
+    }
+    let residual: byte = lowRows & ~groundedRows;
+    if ((groundedColumns & columnMask) != 0 && residual != 0) {
+      return false;
+    }
+    // An empty residual is already disjoint from every other component.
+    if (residual != 0) {
+      for (let other: word = column + 1; other < 8; other += 1) {
+        let otherResidual: byte = ~snapshot.rows[other] & ~groundedRows;
+        if (otherResidual != residual && (otherResidual & residual) != 0) {
+          return false;
+        }
+      }
+    }
+    columnMask <<= 1;
+  }
+  return true;
+}
+
+/**
+ * Test whether exactly one eligible endpoint exists across two separate ports.
+ * Both arguments contain only the five directly groundable switch bits.
+ * A nonzero mask has one bit when clearing its lowest bit leaves zero.
+ * Equal bit positions on different ports remain two different sources.
+ */
+function soleGroundSource(columns: byte, rows: byte): boolean {
+  if (columns == 0) {
+    return rows != 0 && (rows & (rows - 1)) == 0;
+  }
+  if (rows != 0) {
+    return false;
+  }
+  return (columns & (columns - 1)) == 0;
+}
+
+/**
+ * Classify one physical key using only a borrowed saved observation.
+ * Invalid keys/quality and ambiguous low observations return UNCERTAIN.
+ * A saved high directly establishes release even if remote rows disagree.
+ * No hardware is read and the snapshot is never changed or copied.
+ * @param snapshot One retained acquisition or an ordinary saved value.
+ * @param key A named physical matrix switch.
+ * @returns The state established by compatible stable explanations.
+ * @example keyState(saved, Key.SPACE) == InputState.OBSERVED_DOWN
+ */
+export function keyState(snapshot: const InputSnapshot, key: Key): InputState {
+  let ordinal: byte = byte(key);
+  if (snapshot.quality != SnapshotQuality.COMPLETE || ordinal >= 64) {
+    return InputState.UNCERTAIN;
+  }
+  let row: byte = ordinal & 7;
+  let column: byte = ordinal >> 3;
+  let rowMask: byte = 1 << row;
+  if ((snapshot.rows[column] & rowMask) != 0) {
+    return InputState.OBSERVED_UP;
+  }
+  if (!snapshotCompatible(snapshot)) {
+    return InputState.UNCERTAIN;
+  }
+  let groundedColumns: byte = ~snapshot.joystick2;
+  let groundedRows: byte = ~snapshot.joystick1;
+  let columnMask: byte = 1 << column;
+  if ((groundedColumns & columnMask) == 0) {
+    if ((groundedRows & rowMask) != 0) {
+      // A closed key to this ground would also ground its column, contrary
+      // to the saved column observation. This low belongs to another source.
+      return InputState.OBSERVED_UP;
+    }
+    let residual: byte = ~snapshot.rows[column] & ~groundedRows;
+    if ((residual & (residual - 1)) == 0) {
+      // A compatible floating block with one row forces each star edge.
+      return InputState.OBSERVED_DOWN;
+    }
+    let matchingColumns: byte = 0;
+    for (let candidate: word = 0; candidate < 8; candidate += 1) {
+      let otherResidual: byte = ~snapshot.rows[candidate] & ~groundedRows;
+      if (otherResidual == residual) {
+        matchingColumns += 1;
+        if (matchingColumns >= 2) {
+          // With multiple rows and columns, removing this edge still leaves
+          // a connected explanation; the saved bytes cannot prove it closed.
+          return InputState.UNCERTAIN;
+        }
+      }
+    }
+    return InputState.OBSERVED_DOWN;
+  }
+
+  // The queried low in a compatible grounded column implies nonzero row
+  // and column ground masks. Clearing their lowest bit tests each star size.
+  let otherColumns: byte = groundedColumns & (groundedColumns - 1);
+  if (otherColumns == 0 && row >= 5) {
+    return InputState.OBSERVED_DOWN;
+  }
+  let otherRows: byte = groundedRows & (groundedRows - 1);
+  if (otherRows == 0) {
+    if (column >= 5) {
+      return InputState.OBSERVED_DOWN;
+    }
+  } else if (otherColumns != 0) {
+    return InputState.UNCERTAIN;
+  }
+  // Eligible leaves can obtain their ground elsewhere unless this endpoint
+  // is the only eligible source across both ports. Noneligible leaves cannot.
+  if (soleGroundSource(groundedColumns & joystickControlsMask,
+                       groundedRows & joystickControlsMask)) {
+    return InputState.OBSERVED_DOWN;
+  }
+  return InputState.UNCERTAIN;
+}
+
+/**
+ * Classify a switch on either joystick using only the borrowed saved bytes.
+ * Invalid quality, port or control returns UNCERTAIN before any shift.
+ * A directly saved high proves release. A low may instead be conducted through
+ * the keyboard from another ground, so it is not unconditionally pressed.
+ * No hardware is read and the snapshot is never changed or copied.
+ * @param snapshot One retained acquisition or an ordinary saved value.
+ * @param port The named physical connector, 1 or 2.
+ * @param control One of the five physical joystick switches.
+ * @returns The state established by compatible stable explanations.
+ * @example joystickState(saved, JoystickPort.PORT_2, JoystickControl.FIRE)
+ */
+export function joystickState(snapshot: const InputSnapshot, port: JoystickPort,
+                               control: JoystickControl): InputState {
+  if (snapshot.quality != SnapshotQuality.COMPLETE ||
+      (port != JoystickPort.PORT_1 && port != JoystickPort.PORT_2) ||
+      byte(control) >= 5) {
+    return InputState.UNCERTAIN;
+  }
+  let controlMask: byte = 1 << byte(control);
+  let ownSample: byte = snapshot.joystick1;
+  if (port == JoystickPort.PORT_2) {
+    ownSample = snapshot.joystick2;
+  }
+  if ((ownSample & controlMask) != 0) {
+    return InputState.OBSERVED_UP;
+  }
+  if (!snapshotCompatible(snapshot)) {
+    return InputState.UNCERTAIN;
+  }
+  let oppositeGrounds: byte = ~snapshot.joystick2;
+  if (port == JoystickPort.PORT_2) {
+    oppositeGrounds = ~snapshot.joystick1;
+  }
+  if (oppositeGrounds == 0) {
+    return InputState.OBSERVED_DOWN;
+  }
+  if (soleGroundSource(~ownSample & joystickControlsMask,
+                       oppositeGrounds & joystickControlsMask)) {
+    return InputState.OBSERVED_DOWN;
+  }
+  return InputState.UNCERTAIN;
+}
+
+/** CIA1 keyboard-column port and raw joystick-2 pins. */
+const CIA1_PORT_A: word = $DC00;
+/** CIA1 keyboard-row port and raw joystick-1 pins. */
+const CIA1_PORT_B: word = $DC01;
+/** Direction of the keyboard-column pins. */
+const CIA1_DIRECTION_A: word = $DC02;
+/** Direction of the keyboard-row pins. */
+const CIA1_DIRECTION_B: word = $DC03;
+/** Timer-A control; PBON can override the row port's bit six. */
+const CIA1_CONTROL_A: word = $DC0E;
+/** Timer-B control; PBON can override the row port's bit seven. */
+const CIA1_CONTROL_B: word = $DC0F;
+/** The timer-output enable bit shared by both control registers. */
+const TIMER_PORT_OUTPUT: byte = 2;
+/** The column value required by the compatible cooperative firmware owner. */
+const FIRMWARE_IDLE_COLUMNS: byte = $7F;
+
+/** Idempotent shared flag; only acquisition start clears it, before publication. */
+let scanInterrupted: byte;
+
+/**
+ * Restore firmware-compatible columns before the existing wrapper chains NMI.
+ * Literal stores need no invocation-private state, so overlapping entries can
+ * repeat them safely. The retained owner, not this callback, consumes CIA2 ICR.
+ */
+interrupt function interruptScan(): void {
+  poke(CIA1_PORT_A, FIRMWARE_IDLE_COLUMNS);
+  scanInterrupted = 1;
+}
+
+/**
+ * Take one saved keyboard and both-joystick observation on a cooperative C64.
+ * Requires compatible prior port/NMI ownership and no competing port writer.
+ * Timers may run, but timer output on either row pin makes the scan unavailable.
+ * A returning scoped NMI makes the retained raw samples INTERRUPTED; the function
+ * does not retry or promise simultaneous samples or definite contact states.
+ * Restores caller status, exact port directions and prior NMI ownership. It never
+ * writes the row latch, timer controls, interrupt-source registers or CIA2.
+ * @returns One complete saved object; unavailable raw bytes are zero placeholders.
+ * @example let saved: InputSnapshot = readInputSnapshot();
+ *          let state: InputState = keyState(saved, Key.SPACE);
+ */
+export function readInputSnapshot(): InputSnapshot {
+  let result: InputSnapshot = {
+    rows: [0, 0, 0, 0, 0, 0, 0, 0],
+    joystick1: 0, joystick2: 0, quality: SnapshotQuality.UNAVAILABLE
+  };
+  asm_php();
+  asm_sei();
+  let controlA: byte = peek(CIA1_CONTROL_A);
+  let controlB: byte = peek(CIA1_CONTROL_B);
+  if (((controlA | controlB) & TIMER_PORT_OUTPUT) != 0) {
+    asm_plp();
+    return result;
+  }
+  let directionA: byte = peek(CIA1_DIRECTION_A);
+  let directionB: byte = peek(CIA1_DIRECTION_B);
+  // The compatible predecessor still owns NMI during direction preparation.
+  poke(CIA1_PORT_A, FIRMWARE_IDLE_COLUMNS);
+  poke(CIA1_DIRECTION_A, $FF);
+  poke(CIA1_DIRECTION_B, 0);
+  scanInterrupted = 0;
+  setNMI(&interruptScan);
+  poke(CIA1_PORT_A, $FF);
+  result.joystick1 = peek(CIA1_PORT_B);
+  result.joystick2 = peek(CIA1_PORT_A);
+  let columnMask: byte = $FE;
+  for (let column: word = 0; column < 8; column += 1) {
+    poke(CIA1_PORT_A, columnMask);
+    result.rows[column] = peek(CIA1_PORT_B);
+    columnMask = (columnMask << 1) | 1;
+  }
+  // Hand back idle columns before releasing the hook, then restore directions.
+  // Later firmware may legitimately drive a different column again.
+  poke(CIA1_PORT_A, FIRMWARE_IDLE_COLUMNS);
+  restoreNMI();
+  poke(CIA1_DIRECTION_A, directionA);
+  poke(CIA1_DIRECTION_B, directionB);
+  if (scanInterrupted != 0) {
+    result.quality = SnapshotQuality.INTERRUPTED;
+  } else {
+    result.quality = SnapshotQuality.COMPLETE;
+  }
+  asm_plp();
+  return result;
+}

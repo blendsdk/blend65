@@ -12,7 +12,7 @@ import {
   satisfiesSourcePlacement,
   sourceDataStart,
 } from "./c64-layout-placement.js";
-import { C64_STARTUP_STATE_ID, createC64StartupStateData } from "./startup.js";
+import { C64_STARTUP_STATE_ID, createC64StartupStateData, bindC64StartupState } from "./startup.js";
 
 /** One inclusive placed interval in the selected C64 memory map. */
 export interface C64LayoutInterval {
@@ -74,6 +74,11 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   ) {
     return Object.freeze({ kind: "error", reason: "profile-or-certificate", objectId: null });
   }
+  const boundStartup = bindC64StartupState(input.program, input.certificate.homes, input.profile);
+  if (boundStartup === null) {
+    return Object.freeze({ kind: "error", reason: "invalid-data", objectId: C64_STARTUP_STATE_ID });
+  }
+  input = { ...input, program: boundStartup };
   const intervals: C64LayoutInterval[] = [];
   const stubBytes = Object.freeze([
     0x0b, 0x08, 0x0a, 0x00, 0x9e, 0x32, 0x30, 0x36, 0x31, 0x00, 0x00, 0x00,
@@ -292,7 +297,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
       placedRestore,
     ]),
   });
-  const expectedStartupState = createC64StartupStateData();
+  const expectedStartupState = createC64StartupStateData(input.program.c64Startup);
   const suppliedStartupState = input.program.data.find(({ id }) => id === C64_STARTUP_STATE_ID);
   if (
     suppliedStartupState !== undefined &&

@@ -67,7 +67,7 @@ describe.sequential("CIA2 fixed-bank startup assembled output", () => {
         kind: "compiler",
         id: "platform.startup-state",
       });
-      expect(startupState[0]!.size).toBe(49);
+      expect(startupState[0]!.size).toBe(4);
       expect(
         intervals.filter(
           (interval) =>
@@ -76,7 +76,7 @@ describe.sequential("CIA2 fixed-bank startup assembled output", () => {
             profileRecord(interval.owner).id === "platform.startup-state",
         ),
       ).toHaveLength(1);
-      expect(Number(startupState[0]!.end) - Number(startupState[0]!.start)).toBe(49);
+      expect(Number(startupState[0]!.end) - Number(startupState[0]!.start)).toBe(4);
       expect(
         intervals.filter((interval) =>
           ["sfa", "zeroPage", "scratch"].includes(String(interval.kind)),

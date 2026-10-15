@@ -132,7 +132,20 @@ async function expectLibrary(result: AnalysisResult, expectedId = libraryId) {
   const exports = program.bindings.filter(
     (binding) => binding.id.sourceId === expectedId && binding.exported,
   );
-  expect(exports.map(({ name }) => name).sort()).toEqual(masks.map(([name]) => name).sort());
+  expect(exports.map(({ name }) => name).sort()).toEqual(
+    [
+      ...masks.map(([name]) => name),
+      "InputSnapshot",
+      "InputState",
+      "JoystickControl",
+      "JoystickPort",
+      "Key",
+      "SnapshotQuality",
+      "joystickState",
+      "keyState",
+      "readInputSnapshot",
+    ].sort(),
+  );
   for (const [name, value] of masks) {
     const { binding, typed } = declaration(program, `c64.input.${name}`);
     expect(binding.id.sourceId).toBe(expectedId);

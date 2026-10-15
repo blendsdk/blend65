@@ -167,7 +167,11 @@ export function analyzeScalarBinary(
     );
     return { node: null, exact: null };
   }
-  const naturalResultType = commonIntegerType(left.node.type, right.node.type)!;
+  // A shift count is unsigned even when the shifted value is signed. It does
+  // not select the result's signedness or width like a second arithmetic operand.
+  const naturalResultType = shift
+    ? left.node.type
+    : commonIntegerType(left.node.type, right.node.type)!;
   const ordinalType = context.ordinalContext
     ? integerFacts(naturalResultType, false)?.signed
       ? SCALAR_TYPES.sword

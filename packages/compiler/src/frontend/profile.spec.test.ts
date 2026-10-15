@@ -348,7 +348,9 @@ describe("selected frontend profile", () => {
     expect(selected.kind).toBe("complete");
     if (selected.kind !== "complete") throw new Error("Expected the selected profile");
     expect(result.program.profile).toEqual(selected.profile);
-    expect(result.program.calls).toHaveLength(12);
+    expect(
+      result.program.calls.filter(({ caller }) => caller.sourceId === "src/game.blend"),
+    ).toHaveLength(12);
   });
 
   // An unknown selection is terminal and cannot silently acquire another environment.

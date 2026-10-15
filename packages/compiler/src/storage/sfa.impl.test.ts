@@ -91,6 +91,148 @@ function inventory(owner: BindingId, requests: readonly StorageRequest[]): Stora
 }
 
 describe("static storage allocator implementation", () => {
+  it.each([false, true])(
+    "should reject a witnessed required-ZP overflow without futile placement (duplicate windows=%s)",
+    (duplicate) => {
+      const owner = binding(700);
+      const requests = Array.from({ length: 72 }, (_value, index) =>
+        request(owner, `r${String(index).padStart(2, "0")}`, 2, 1, "zero-page-required", [1]),
+      );
+      const storage = inventory(owner, requests);
+      const window = { start: 2, end: 143 }; // 142 unique bytes, not 284 for duplicate windows.
+      const result = allocateStorage(storage, buildInterference(storage), {
+        zeroPage: duplicate ? [window, window] : [window],
+        ram: [{ start: 0x4000, end: 0x40ff }],
+      });
+      expect(result).toEqual({ kind: "error", reason: "resource", requestId: "r71" });
+      expect(result).not.toHaveProperty("placement");
+    },
+  );
+
+  it("should count overlapping zero-page windows once without losing feasible addresses", () => {
+    const owner = binding(701);
+    const storage = inventory(owner, [
+      request(owner, "a", 2, 1, "zero-page-required", [1]),
+      request(owner, "b", 2, 1, "zero-page-required", [1]),
+      request(owner, "c", 2, 1, "zero-page-required", [1]),
+    ]);
+    const result = allocateStorage(storage, buildInterference(storage), {
+      zeroPage: [
+        { start: 0x40, end: 0x43 },
+        { start: 0x42, end: 0x45 },
+      ],
+      ram: [],
+    });
+    expect(result).toMatchObject({
+      kind: "complete",
+      placement: { homes: [{ address: 0x40 }, { address: 0x42 }, { address: 0x44 }] },
+    });
+  });
+
+  it("should keep zero-byte placement and noninterfering required overlays unchanged", () => {
+    const owner = binding(702);
+    const storage = inventory(owner, [
+      request(owner, "empty", 0, 1, "zero-page-required", [1]),
+      request(owner, "first", 2, 1, "zero-page-required", [2]),
+      request(owner, "second", 2, 1, "zero-page-required", [3]),
+    ]);
+    const result = allocateStorage(storage, buildInterference(storage), {
+      zeroPage: [{ start: 0x40, end: 0x41 }],
+      ram: [],
+    });
+    expect(result).toMatchObject({
+      kind: "complete",
+      placement: {
+        homes: [
+          { requestId: "empty", address: 0x40, bytes: 0 },
+          { requestId: "first", address: 0x40, bytes: 2 },
+          { requestId: "second", address: 0x40, bytes: 2 },
+        ],
+      },
+    });
+  });
+
+  it.each([
+    { zeroPage: [] },
+    { zeroPage: [{ start: 0x100, end: 0x1ff }] },
+    { zeroPage: [{ start: 8, end: 7 }] },
+  ])(
+    "should preserve resource failure when the normalized zero-page union is empty ($zeroPage)",
+    ({ zeroPage }) => {
+      const owner = binding(703);
+      const storage = inventory(owner, [
+        request(owner, "required", 1, 1, "zero-page-required", [1]),
+      ]);
+      expect(allocateStorage(storage, [], { zeroPage, ram: [] })).toEqual({
+        kind: "error",
+        reason: "resource",
+        requestId: "required",
+      });
+    },
+  );
+
+  it.each([-1, 0.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "should report malformed bytes %s before a required-ZP impossibility witness",
+    (bytes) => {
+      const owner = binding(704);
+      const storage = inventory(owner, [
+        request(owner, "overflow", 300, 1, "zero-page-required", [1]),
+        request(owner, "malformed", bytes, 1, "zero-page-required", [1]),
+      ]);
+      expect(
+        allocateStorage(storage, buildInterference(storage), { zeroPage: [], ram: [] }),
+      ).toEqual({
+        kind: "error",
+        reason: "resource",
+        requestId: "malformed",
+      });
+    },
+  );
+
+  it("should retain exact ZP backtracking over the full window after an unlucky first fit", () => {
+    const owner = binding(705);
+    const storage = inventory(
+      owner,
+      ["a", "b", "c", "d"].map((id, index) =>
+        request(owner, id, 1, 1, "zero-page-required", [index + 1]),
+      ),
+    );
+    const result = allocateStorage(
+      storage,
+      [
+        { left: "a", right: "c", reason: "lifetime" },
+        { left: "b", right: "d", reason: "lifetime" },
+        { left: "c", right: "d", reason: "lifetime" },
+      ],
+      { zeroPage: [{ start: 0x40, end: 0x41 }], ram: [] },
+    );
+    expect(result).toMatchObject({
+      kind: "complete",
+      placement: {
+        homes: [
+          { requestId: "a", address: 0x40 },
+          { requestId: "b", address: 0x41 },
+          { requestId: "c", address: 0x41 },
+          { requestId: "d", address: 0x40 },
+        ],
+      },
+    });
+  });
+
+  it("should leave alignment and fragmentation failures to exact placement", () => {
+    const owner = binding(706);
+    const storage = inventory(owner, [request(owner, "wide", 3, 4, "zero-page-required", [1])]);
+    expect(
+      allocateStorage(storage, [], {
+        zeroPage: [
+          { start: 0x40, end: 0x41 },
+          { start: 0x44, end: 0x45 },
+        ],
+        ram: [],
+      }),
+    ).toEqual({ kind: "error", reason: "resource", requestId: "wide" });
+  });
+
   it("never places a callable word at an NMOS indirect-jump page end", () => {
     const owner = binding(1);
     const callable: StorageRequest = Object.freeze({

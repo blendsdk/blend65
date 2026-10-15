@@ -4,6 +4,7 @@ import type { ProjectSnapshot, SourceRecord } from "../project/types.js";
 import { analyzeProject } from "../frontend/service.js";
 import { buildSemanticProgram } from "./lower.js";
 import { ControlFlowBuilder } from "./cfg.js";
+import { reachableBlocks } from "./value-lifetimes.js";
 
 const PROFILE_ID = "c64-pal-prg-kernal-6581";
 
@@ -59,6 +60,119 @@ function lower(text: string) {
 }
 
 describe("semantic CFG implementation", () => {
+  it.each([
+    "a == 0",
+    "a != b",
+    "wide < $0100",
+    "signed >= 0",
+    "(a != 0) && (b != 0)",
+    "(a == 0) || (b != 0)",
+    "((a != 0) || (b == 0)) && (wide != 0)",
+  ])("returns comparison-only truth through two constant arms for %s", (expression) => {
+    const program = lower(
+      `module Game;
+      function predicate(a: byte, b: byte, wide: word, signed: sword): boolean {
+        return ${expression};
+      }
+      function main(): void { let result: boolean = predicate(1, 2, 3, 4); }`,
+    );
+    const predicate = program.functions.find(({ name }) => name === "Game.predicate")!;
+    const operations = predicate.blocks.flatMap(({ operations }) => operations);
+    expect(operations.filter(({ kind }) => kind === "merge")).toHaveLength(0);
+    const returns = predicate.blocks.filter(({ terminator }) => terminator.kind === "return");
+    expect(returns).toHaveLength(2);
+    for (const block of returns) {
+      expect(block.operations).toHaveLength(1);
+      const value = block.operations[0]!;
+      expect(value.kind).toBe("constant");
+      if (value.kind !== "constant") throw new Error("Missing constant return arm");
+      expect(value.type).toEqual({ kind: "scalar", name: "boolean" });
+      expect(block.terminator).toEqual({ kind: "return", value: value.result });
+    }
+    expect(
+      returns.map(({ operations }) => {
+        const operation = operations[0]!;
+        if (operation.kind !== "constant") throw new Error("Missing Boolean return value");
+        return operation.value;
+      }),
+    ).toEqual([true, false]);
+  });
+
+  it.each([
+    "return raw;",
+    "return other();",
+    "return raw && (a != 0);",
+    "return (a != 0) || raw;",
+    "return true;",
+    "let saved: boolean = (a != 0) && (b != 0); return saved;",
+  ])("keeps the value-return path for non-predicate or stored source %s", (body) => {
+    const program = lower(
+      `module Game;
+      function other(): boolean { return peek($3300) != 0; }
+      function predicate(a: byte, b: byte, raw: boolean): boolean { ${body} }
+      function main(): void { let result: boolean = predicate(1, 2, true); }`,
+    );
+    const predicate = program.functions.find(({ name }) => name === "Game.predicate")!;
+    expect(predicate.blocks.some(({ id }) => id.endsWith(":return-true"))).toBe(false);
+    expect(predicate.blocks.some(({ id }) => id.endsWith(":return-false"))).toBe(false);
+    if (body.includes("&&") || body.includes("||"))
+      expect(
+        predicate.blocks
+          .flatMap(({ operations }) => operations)
+          .filter(({ kind }) => kind === "merge"),
+      ).toHaveLength(1);
+  });
+
+  it("uses branch edges for nested conditions while materializing escaping Boolean values", () => {
+    const program = lower(
+      [
+        "module Game;",
+        "function choose(flag: boolean): byte { if ((flag && peek($3300) != 0) || peek($3301) != 0) { return 1; } return 2; }",
+        "function saved(flag: boolean): boolean { return flag && peek($3300) != 0; }",
+        "function main(): void { poke($3200, choose(true)); let value: boolean = saved(false); }",
+      ].join("\n"),
+    );
+    const choose = program.functions.find(({ name }) => name === "Game.choose")!;
+    const saved = program.functions.find(({ name }) => name === "Game.saved")!;
+    expect(choose.blocks.filter(({ terminator }) => terminator.kind === "branch")).toHaveLength(3);
+    expect(
+      choose.blocks.flatMap(({ operations }) => operations).filter(({ kind }) => kind === "merge"),
+    ).toHaveLength(0);
+    expect(
+      saved.blocks.flatMap(({ operations }) => operations).filter(({ kind }) => kind === "merge"),
+    ).toHaveLength(1);
+  });
+
+  it.each([
+    "while (flag && peek($3300) != 0) {}",
+    "do {} while (flag && peek($3300) != 0);",
+    "for (; flag && peek($3300) != 0;) {}",
+  ])("keeps condition-only loop graphs free of Boolean merges for %s", (statement) => {
+    const program = lower(
+      `module Game; function loop(flag: boolean): void { ${statement} } function main(): void { loop(false); }`,
+    );
+    const loop = program.functions.find(({ name }) => name === "Game.loop")!;
+    expect(loop.blocks.filter(({ terminator }) => terminator.kind === "branch")).toHaveLength(2);
+    expect(
+      loop.blocks.flatMap(({ operations }) => operations).filter(({ kind }) => kind === "merge"),
+    ).toHaveLength(0);
+  });
+
+  it("does not emit bypassed right-side effects for constant logical left operands", () => {
+    const program = lower(
+      "module Game; function effect(): boolean { poke($3200, 1); return true; } function main(): void { if (false && effect()) { poke($3201, 2); } if (true || effect()) { poke($3202, 3); } }",
+    );
+    const main = program.functions.find(({ name }) => name === "Game.main")!;
+    expect(
+      main.blocks.flatMap(({ operations }) => operations).filter(({ kind }) => kind === "call"),
+    ).toHaveLength(0);
+    expect(
+      reachableBlocks(main.entry, main.blocks)
+        .flatMap(({ operations }) => operations)
+        .filter(({ kind }) => kind === "memory-write"),
+    ).toHaveLength(1);
+  });
+
   it("retains the proved status-save peak for hardware-stack closure", () => {
     const program = lower(
       [

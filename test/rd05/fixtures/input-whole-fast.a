@@ -1,0 +1,98 @@
+; Complete unrolled-acquisition expert program; documented NMOS6510 ISA.
+; Assemble from repo root: acme -f cbm -o /tmp/input-fast.prg this-file.a
+; Companion ordinary source: input-caller.blend.
+; Entry080D via shipped RUN/SYS stub; owned RAM, matching NMINV FE47 when installing.
+; Bank0 via saved DDRA&FC, zero CIA2 PRA accesses; exact DDRA restored.
+; Incoming P/SP, processor-port readbacks and borrowed03..06 restored.
+; Main falls through; normal RTS returns to usable BASIC, no outgoing A/X/Y promise.
+; Input C100..C102 stable; output C103..C104 observable, disjoint all owners.
+; CIA sample values vary; no prior/external handler mutates query bytes.
+; Whole payload963 = stub12+startup102+caller50+acquisition235+queries533+callback18+pad13.
+; Trailing general21: platform captures7, source snapshot11/results2, marker1.
+; Physical ZP02..0F is14 bytes; helper07 overlays a dead caller slot, counted once.
+; External qualification RAM5 bytes is not emitted or compiler allocated.
+; Bounded generated stack: startupP1 + query/helper returns4=5, no main call.
+; Acquisition+outerP+typed-sinkP also5; one scoped NMI adds CPU3+P/A2=10.
+; The incoming two-byte SYS return is external baseline, not generated stack use.
+; Firmware reserve20 is capacity, not generated use; external aggregate Unknown.
+; CPU cycles below count080D through final RTS, no VIC/RDY stalls or IRQ/NMI.
+; Existing ROM bytes/cycles, retained-owner paths, STOP/nonreturning: Unknown.
+; No whole time guarantee inferred from bounded generated instruction paths.
+; Path all_high: 684 cycles, key/joy results1/1.
+; Path invalid_arguments: 609 cycles, key/joy results2/2.
+; Path one_key: 1498 cycles, key/joy results0/1.
+; Path ghost_square: 1717 cycles, key/joy results2/1.
+; Path joy1_single: 1906 cycles, key/joy results1/0.
+; Path dual_ground: 2026 cycles, key/joy results2/2.
+; Path absent_eligible: 802 cycles, key/joy results2/1.
+; Path invalid_control: 652 cycles, key/joy results1/2.
+; Path pbon: 350 cycles, key/joy results2/2.
+; Paths use key0/port1/control0 unless invalid arguments255/255 or control255.
+; Raw objects: HIGH=FFx10; one_key=FE,FFx9; ghost=FC,FC,FFx8.
+; joy1_single=FEx9,FF; dual_ground=FEx10; absent_eligible=DF,FFx8,DF.
+; Saved quality0 unless interrupted1/unnamed255; absent_eligible key5.
+; PBON=CRA bit1 returns zero raw placeholders/quality2, not released evidence.
+; All guards retain arbitrary unnamed enum values.
+; Taken extra cycles at994/99E/9A4/9C4/9D1 in joystick guards.
+; Taken extra cycles atABF/AD6/AE9/AFC in key predicates/loop.
+; Other branches do not cross pages; all relative displacements fit [-128,127].
+; Saved object offsets0..10 never cross page; constant C110,X reads do not cross.
+!cpu 6502
+* = $0801
+!byte $0b,$08,$0a,$00,$9e,$32,$30,$36,$31,$00,$00,$00
+!source "test/rd05/fixtures/input-startup.a"
+main:
+jsr acquisition
+lda #<saved
+sta $02
+lda #>saved
+sta $03
+lda $c100
+sta $04
+jsr key_state
+sta key_result
+lda $c101
+sta $04
+lda $c102
+sta $05
+jsr joystick_state
+sta joystick_result
+lda key_result
+sta $c103
+lda joystick_result
+sta $c104
+restore:
++restore_basic
+!source "test/rd05/fixtures/input-acquisition-fast.a"
+!source "test/rd05/fixtures/input-query-joystick.a"
+!source "test/rd05/fixtures/input-query-sole-source.a"
+!fill 13,0
+!source "test/rd05/fixtures/input-callback.a"
+!source "test/rd05/fixtures/input-query-key.a"
+!source "test/rd05/fixtures/input-query-compatibility.a"
+payload_end = *
+!if startup != $80d { !error "startup placement changed" }
+!if main != $84c { !error "main placement changed" }
+!if restore != $87e { !error "restore placement changed" }
+!if acquisition != $8a5 { !error "acquisition placement changed" }
+!if key_state != $a59 { !error "key_state placement changed" }
+!if callback != $a47 { !error "callback placement changed" }
+!if joystick_state != $990 { !error "joystick_state placement changed" }
+!if compatible != $b36 { !error "compatible placement changed" }
+!if sole_source != $a1a { !error "sole_source placement changed" }
+saved_ddr = payload_end
+saved_port = saved_ddr+1
+saved_cia2_ddra = saved_port+1
+saved_basic_vectors = saved_cia2_ddra+1
+saved = saved_basic_vectors+4
+key_result = saved+11
+joystick_result = key_result+1
+marker = joystick_result+1
+bss_end = joystick_result+2
+!if payload_end-$0801 != 963 { !error "Whole payload changed" }
+!if bss_end-payload_end != 21 { !error "General ownership changed" }
+!if (saved & $ff)+10 > $ff { !error "Saved page-cross assumption" }
+!if callback != $0a47 { !error "Matching-low placement changed" }
+; hidden-return specialization: unique stable saved address encoded once per store.
+; No address-taken acquisition, second destination or alias requires generic fallback.
+; Public pointer/scalar query arguments retain their source evaluation order.

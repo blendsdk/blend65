@@ -108,10 +108,14 @@ export async function readProfileArtifacts(built: BuildSuccess) {
   };
 }
 
-/** Build with real ACME and retain detached artifact bytes after temporary cleanup. */
-export async function buildProfileSource(source: string, target: string) {
+/** Build with real ACME in the requested mode, defaulting to none, and retain detached artifacts. */
+export async function buildProfileSource(
+  source: string,
+  target: string,
+  optimization: "none" | "size" = "none",
+) {
   return withProfileProject(source, target, async (project) => {
-    const built = await buildProject({ project, optimization: "none" });
+    const built = await buildProject({ project, optimization });
     if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
     return readProfileArtifacts(built);
   });

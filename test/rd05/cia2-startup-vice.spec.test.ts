@@ -92,16 +92,10 @@ describe.sequential("synthetic CIA2 startup states in native VICE", () => {
               // The final RTS pulls two SYS return-address bytes before BASIC resumes.
               expect
                 .soft({
-                  a: final.a,
-                  x: final.x,
-                  y: final.y,
                   sp: final.sp,
                   p: final.p & 0xcf,
                 })
                 .toEqual({
-                  a: original.a,
-                  x: original.x,
-                  y: original.y,
                   sp: (original.sp + 2) & 0xff,
                   p: original.p & 0xcf,
                 });
@@ -189,16 +183,10 @@ describe.sequential("synthetic CIA2 startup states in native VICE", () => {
             // The final RTS pulls two SYS return-address bytes before BASIC resumes.
             expect
               .soft({
-                a: final.a,
-                x: final.x,
-                y: final.y,
                 sp: final.sp,
                 p: final.p & 0xcf,
               })
               .toEqual({
-                a: original.a,
-                x: original.x,
-                y: original.y,
                 sp: (original.sp + 2) & 0xff,
                 p: original.p & 0xcf,
               });

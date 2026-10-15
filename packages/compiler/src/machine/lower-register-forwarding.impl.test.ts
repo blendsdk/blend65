@@ -209,6 +209,50 @@ describe("adjacent register ownership", () => {
     expect(terminalChoice({ producer: call })).toBe(false);
   });
 
+  it("should forward one adjacent byte to an unselected scalar home", () => {
+    const store: Extract<SemanticOperation, { kind: "store" }> = {
+      kind: "store",
+      place: { root: sourceBinding(904), rootType: BYTE, path: [] },
+      value: "value",
+      type: BYTE,
+      span,
+    };
+    const producers: readonly SemanticOperation[] = [
+      read,
+      {
+        kind: "call",
+        result: "value",
+        callee: sourceBinding(903),
+        arguments: [],
+        type: BYTE,
+        span,
+      },
+      {
+        kind: "platform",
+        capability: "c64.cia2.readAndClearPendingSources",
+        arguments: [],
+        result: "value",
+        type: BYTE,
+        effect: "volatile-read",
+        span,
+      },
+    ];
+    for (const producer of producers) {
+      expect(forwarded([producer, store])).toBe(true);
+      expect(forwarded([producer, destination, store])).toBe(true);
+      expect(forwarded([producer, store], false)).toBe(false);
+      expect(forwarded([producer, { ...read, result: "other" }, store])).toBe(false);
+      expect(forwarded([producer, { ...store, type: WORD }])).toBe(false);
+      expect(forwarded([producer, { ...store, value: "other" }])).toBe(false);
+      for (const path of [
+        [{ kind: "field", name: "member" }] as const,
+        [{ kind: "index", value: "ordinal" }] as const,
+      ])
+        expect(forwarded([producer, { ...store, place: { ...store.place, path } }])).toBe(false);
+    }
+    expect(forwarded([{ ...read, width: 2, type: WORD }, store])).toBe(false);
+  });
+
   it.each([
     ["nonzero comparison", { zero: 1n }],
     ["explicit intervening instruction", { barrier: true }],

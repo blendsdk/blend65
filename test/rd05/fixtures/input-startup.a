@@ -1,0 +1,62 @@
+; Cooperative bank-0 entry and normal RTS return to usable stock BASIC.
+; Preserve incoming P/SP, processor-port readbacks and CIA2 DDRA exactly.
+; Bank pins become inputs: their pull-ups select bank0 without accessing PRA.
+; Preserve the borrowed BASIC conversion vectors03..06; do not borrow10.
+; No outgoing A/X/Y value is promised by main():void.
+; Original P is re-pushed unchanged; copied P enters fall-through main with D clear.
+;102 instruction bytes /157 nominal CPU cycles including final RTS.
+; Seven general platform-state bytes, separate from function SFA.
+; Loaded globals lack initializers and are fully assigned before use.
+CIA2_DDRA = $dd02
+startup:
+php
+sei
+cld
+lda $03
+sta saved_basic_vectors
+lda $04
+sta saved_basic_vectors+1
+lda $05
+sta saved_basic_vectors+2
+lda $06
+sta saved_basic_vectors+3
+lda $00
+sta saved_ddr
+lda $01
+sta saved_port
+and #$f8
+ora #$06
+sta $01
+lda saved_ddr
+ora #$07
+sta $00
+lda CIA2_DDRA
+sta saved_cia2_ddra
+and #$fc
+sta CIA2_DDRA
+pla
+pha
+and #$f7
+pha
+plp
+; Each complete program invokes this inline after its main body.
+; The saved SYS return address remains directly beneath original P.
+!macro restore_basic {
+sei
+lda saved_basic_vectors
+sta $03
+lda saved_basic_vectors+1
+sta $04
+lda saved_basic_vectors+2
+sta $05
+lda saved_basic_vectors+3
+sta $06
+lda saved_cia2_ddra
+sta CIA2_DDRA
+lda saved_port
+sta $01
+lda saved_ddr
+sta $00
+plp
+rts
+}

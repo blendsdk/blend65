@@ -1,0 +1,103 @@
+; Unique global hidden return destination saved; no copy or destination pointer.
+;235 bytes /321 cycles complete normal transaction; PBON route81 cycles.
+; SFA02: CRA guard then captured DDRA;03: captured DDRB;0A/0B: prior link.
+; Link is immutable while its route can run; queries start only after removal.
+; Outer SEI proves I=1 across both typed balanced PHP/PLP transactions.
+; A is dead at void sinks; no fictitious all-register callee-save obligation.
+; Normal CIA1 traffic14 reads/15 writes; PBON2 reads/0 writes.
+acquisition:
+lda #0
+sta saved+0
+sta saved+1
+sta saved+2
+sta saved+3
+sta saved+4
+sta saved+5
+sta saved+6
+sta saved+7
+sta saved+8
+sta saved+9
+lda #2
+sta saved+10
+php
+sei
+lda $dc0e
+sta $02
+lda $dc0f
+ora $02
+and #2
+beq acquisition_available
+plp
+rts
+acquisition_available:
+lda $dc02
+sta $02
+lda $dc03
+sta $03
+lda #$7f
+sta $dc00
+lda #$ff
+sta $dc02
+lda #0
+sta $dc03
+sta marker
+php
+lda $0318
+sta $0a
+lda $0319
+sta $0b
+lda #>callback
+sta $0319
+plp
+lda #$ff
+sta $dc00
+lda $dc01
+sta saved+8
+lda $dc00
+sta saved+9
+lda #$fe
+sta $dc00
+lda $dc01
+sta saved+0
+lda #$fd
+sta $dc00
+lda $dc01
+sta saved+1
+lda #$fb
+sta $dc00
+lda $dc01
+sta saved+2
+lda #$f7
+sta $dc00
+lda $dc01
+sta saved+3
+lda #$ef
+sta $dc00
+lda $dc01
+sta saved+4
+lda #$df
+sta $dc00
+lda $dc01
+sta saved+5
+lda #$bf
+sta $dc00
+lda $dc01
+sta saved+6
+lda #$7f
+sta $dc00
+lda $dc01
+sta saved+7
+lda #$7f
+sta $dc00
+php
+lda $0b
+sta $0319
+plp
+lda $02
+sta $dc02
+lda $03
+sta $dc03
+lda marker
+sta saved+10
+plp
+rts

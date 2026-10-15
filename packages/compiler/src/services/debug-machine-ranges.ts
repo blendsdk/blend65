@@ -59,6 +59,8 @@ export function machineFunctionSegments(
         block.label.startsWith(`${id}.move.`) ||
         block.label.startsWith(`${id}.fill.`) ||
         block.label.startsWith(`${id}.indirect.`) ||
+        // A layout bridge belongs to the same source edge, not a new source operation.
+        block.label.startsWith(`${id}.fallthrough.`) ||
         block.label.startsWith(`${id}.bounds.`),
     );
     if (sourceBlock === undefined) throw new Error("Final machine block has no semantic CFG owner");

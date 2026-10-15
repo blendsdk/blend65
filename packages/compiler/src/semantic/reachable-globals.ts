@@ -1,6 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SemanticGlobal, SemanticProgram } from "./operations.js";
 import { reachableBlocks } from "./value-lifetimes.js";
+import { guardedOrdinalBounds } from "./guarded-place-proof.js";
 import {
   FIXED_C64_CAPABILITIES,
   literalResolver,
@@ -48,13 +49,16 @@ export function retainObservableGlobals(
   );
   if (candidates.size === 0) return semantic;
   const retained = new Set<string>();
+  const unstableRoots = new Set(semantic.globals.map(({ id }) => bindingIdentityKey(id)));
   // An address can escape through a cold owner. It remains a source dependency,
   // even though that owner's executable body itself is not a root.
   for (const owner of [...semantic.functions, ...semantic.globals])
     for (const block of owner.blocks)
       for (const operation of block.operations)
-        if (operation.kind === "place-address")
+        if (operation.kind === "place-address") {
           retained.add(bindingIdentityKey(operation.place.root));
+          unstableRoots.add(bindingIdentityKey(operation.place.root));
+        }
 
   const windows =
     addressSpace === undefined ? undefined : [...addressSpace.ram, ...addressSpace.zeroPage];
@@ -70,13 +74,27 @@ export function retainObservableGlobals(
     const definitions = valueDefinitions(blocks);
     const literal = literalResolver(definitions);
     const ordinalBound = ordinalBoundResolver(definitions, literal);
+    const guarded = guardedOrdinalBounds(
+      body.entry,
+      blocks,
+      definitions,
+      unstableRoots,
+      literal,
+      ordinalBound,
+      (operation) =>
+        operation.kind === "memory-write" &&
+        rawMayObserve(literal(operation.address), operation.width, windows),
+    );
     for (const block of blocks) {
       for (const operation of block.operations) {
         for (const use of placeUses(operation)) {
           retained.add(bindingIdentityKey(use.place.root));
           if (
             use.place.path.some(({ kind }) => kind === "index") &&
-            placeMayEscapeRoot(use, ordinalBound)
+            placeMayEscapeRoot(
+              use,
+              (value) => guarded.get(operation)?.get(value) ?? ordinalBound(value),
+            )
           )
             return semantic;
         }
