@@ -9,4 +9,4 @@
 <!-- prettier-ignore -->
 | ID | Title | Plan | Stage | Status | Depends-on / Blocker |
 | --- | --- | --- | --- | --- | --- |
-| T-01 | OpenCode-native workflow migration | [Plan](plans/opencode-native-migration/99-execution-plan.md) | Done | ✅ | 6/6 migration tasks; 13 native agents verified, two bounded independent reviews complete, exact legacy files retired. Compiler progress and intentional RED preserved. |
+| T-01 | OpenCode-native workflow migration | [Plan](plans/opencode-native-migration/99-execution-plan.md) | Done | ✅ | 6/6 migration tasks; 13 native agents verified and exact legacy files retired. Approved instruction-policy follow-up verified with correctness/security clearance; effort advice is non-blocking and non-secret workflow reads no longer need per-file chat approval. Secret/native/oracle safeguards and compiler progress are unchanged. |

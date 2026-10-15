@@ -158,12 +158,73 @@ coverage, link, credential-pattern and Git whitespace checks above. No active
 Codex directory remains. Verification output is captured only in a task-owned
 temporary log, removed after the scoped checkpoint.
 
-**Continue:** read the whole-input cost-closure journal, obtain the required
-task/batch effort confirmation for resumed compiler work, and resume partial
-1.1.5 before 1.1.7 and the complete specification RED gate. Do not jump to size
-implementation. Reuse the qualified native reviewers with bounded independent
-packets; use parent-supplied authorized excerpts rather than bypassing sensitive
-paths or read-only tool restrictions.
+**Continue:** read the whole-input cost-closure journal and resume partial 1.1.5
+before 1.1.7 and the complete specification RED gate. Apply the current root
+`AGENTS.md` policy: effort advice no longer requires a manual handoff. Do not jump
+to size implementation. Reuse the qualified native reviewers with bounded
+independent packets. Non-secret workflow reads remain subject to native permissions
+and review-input boundaries; use parent-supplied authorized excerpts when direct
+access is not permitted.
 
 **Cleanup:** task-owned verification logs, helper and commit-message files are
 temporary and removed after the checkpoint. No prior compiler evidence is deleted.
+
+## Approved instruction-policy follow-up — 2026-10-15
+
+The user explained that the repeated effort handoff and blanket dot-path approval
+rules came from the old Codex harness. The user requested replacement only where
+the rules no longer make sense, then directly approved reading and editing the
+global `/home/gevik/.config/opencode/AGENTS.md` for the selective correction after
+the two proposed changes and retained safeguards were presented.
+
+The bounded correction changes that global file and the root `AGENTS.md`:
+
+- Effort recommendations become advisory; no routine per-task stop or manual
+  agent switch. No claim is made that the primary model or variant was changed.
+- Known non-secret, task-relevant workflow documents may be read without an
+  additional per-file chat approval. This does not permit arbitrary hidden
+  configuration, unknown-sensitive files, cache scans or hidden writes.
+- Native permission prompts and denials, exact secret-access approval, task scope,
+  destructive-action gates, frozen/oracle authority, independent review and
+  green-only commits remain binding. No automatic push is authorized.
+
+An independent design challenger first withheld relaxation because its compressed
+packet lacked the full approval exchange. After receiving that exact exchange,
+it confirmed that both proposed changes were already authorized and withdrew the
+request for another approval. It retained the narrow read/write distinction and
+the warning that instructions do not prove filesystem isolation.
+
+OpenCode V2 sources: [Permissions](https://opencode.ai/v2/docs/permissions),
+[Agents](https://opencode.ai/v2/docs/agents) and
+[Instructions](https://opencode.ai/v2/docs/instructions). These distinguish native
+permission checks from task authority, subagent permissions from parent permissions,
+and model recommendations from session model selection. Ambient instruction edits
+are documented as updating before a later model request; no service restart or
+native permission/configuration edit is part of this correction.
+
+Verification passes: explicit-parser Markdown formatting **4/4** without
+configuration discovery, local links, whitespace and exact preservation of root guidance outside
+the two approved sections. Compiler/specification/test/example scope, both active
+compiler journals and the v4/portfolio roadmaps are unchanged. No compiler suite
+was run or claimed green for this documentation-only correction.
+
+Independent correctness and `mcp-agent` security reviews report no findings. Both
+distinguish direct non-hidden repository inspection from parent-supplied global
+text and preservation results. Security initially lacked the exact diff, then
+its native external-directory permission denied the task-owned diff artifact.
+That denial was respected; the complete already-authorized diff and global
+before/after text were supplied inline instead. No tool, permission or charter
+was changed to grant the denied access. Broad filesystem isolation remains
+unproved; this is instruction-policy review, not a new native enforcement audit.
+
+OpenCode delivered the ambient global/root instruction updates during this
+session after the edit. No restart was needed and no primary model or variant
+was changed. Performance and compiler-domain audits are not applicable: no host
+implementation, generated code or domain contract changed.
+
+The six original migration tasks stay complete; this is a verified bounded
+guidance follow-up, not new compiler qualification. Whole-input remains **9/40**,
+keyboard **38/48** and v4 **4/10 RDs**. The portfolio is unchanged on this
+non-integration branch. The global preference file is outside this repository
+and cannot be included in its local commit. Task-owned review/verification and
+commit-message files are removed after that local checkpoint; no push is authorized.
