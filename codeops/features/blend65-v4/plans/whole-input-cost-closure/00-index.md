@@ -29,6 +29,7 @@ plan remains 38/48 until its own qualification tasks pass.
 
 ## Documents
 
+<!-- prettier-ignore -->
 | Document | Owner |
 | --- | --- |
 | [Decisions](00-ambiguity-register.md) | Scope, direct approval, exact oracle exception and analytical cost ledger |
@@ -40,6 +41,25 @@ plan remains 38/48 until its own qualification tasks pass.
 | [Tests](07-testing-strategy.md) | Independent behavior and cost expectations |
 | [Preflight](00-preflight-report.md) | Complete rescan, verified corrections and remaining implementation evidence limits |
 | [Execution](99-execution-plan.md) | Single task-progress authority |
+
+## Specialist Agents
+
+Existing specialist selection for the current phase is explicit below. This is
+workflow metadata only: task 1.3.7 already requires all six independent review
+lenses. Correctness, semantics/DX and host-performance review remain mandatory in
+addition to these domain auditors. No new capability, compiler behavior, oracle
+exception or review waiver is introduced.
+
+<!-- prettier-ignore -->
+| Role | Kind | Use | Authority |
+| --- | --- | --- | --- |
+| sfa-abi-auditor | reviewer | Phase 1 storage, calls, lifetimes and final closure | Existing task 1.3.7; project routing |
+| target-platform-auditor | reviewer | Phase 1 interrupts, startup, visibility and runtime evidence | Existing task 1.3.7; project routing |
+| machine-code-auditor | reviewer | Phase 1 equivalent assembly and complete artifact/resource costs | Existing task 1.3.7; project routing |
+
+The OpenCode migration does not requalify the design or replace historical
+preflight identities. Runtime checks, exact oracle gates and the existing
+specification-first continuation remain unchanged.
 
 ## Usage
 

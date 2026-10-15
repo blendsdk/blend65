@@ -15,54 +15,67 @@
     "roles": {
       "explorer": {
         "effort": "medium",
+        "reasoning": "medium",
         "sandbox": "read-only"
       },
       "executor": {
         "effort": "high",
+        "reasoning": "high",
         "sandbox": "workspace-write"
       },
       "demanding-executor": {
-        "effort": "xhigh",
+        "effort": "high",
+        "reasoning": "xhigh",
         "sandbox": "workspace-write"
       },
       "correctness-reviewer": {
         "effort": "high",
+        "reasoning": "high",
         "sandbox": "read-only"
       },
       "semantics-reviewer": {
-        "effort": "xhigh",
+        "effort": "high",
+        "reasoning": "xhigh",
         "sandbox": "read-only"
       },
       "sfa-abi-auditor": {
-        "effort": "xhigh",
+        "effort": "high",
+        "reasoning": "xhigh",
         "sandbox": "read-only"
       },
       "target-platform-auditor": {
-        "effort": "xhigh",
+        "effort": "high",
+        "reasoning": "xhigh",
         "sandbox": "read-only"
       },
-      "6502-output-auditor": {
-        "effort": "xhigh",
+      "machine-code-auditor": {
+        "effort": "high",
+        "reasoning": "xhigh",
         "sandbox": "read-only"
       },
       "performance-auditor": {
-        "effort": "xhigh",
+        "effort": "high",
+        "reasoning": "xhigh",
         "sandbox": "read-only"
       },
       "preflight-auditor": {
         "effort": "high",
+        "reasoning": "high",
         "sandbox": "read-only"
       },
       "security-auditor": {
         "effort": "high",
+        "reasoning": "high",
         "sandbox": "read-only"
       },
       "design-challenger": {
-        "effort": "xhigh",
+        "effort": "high",
+        "reasoning": "xhigh",
         "sandbox": "read-only"
       },
       "spec-test-author": {
         "effort": "high",
+        "reasoning": "high",
         "sandbox": "workspace-write"
       }
     }

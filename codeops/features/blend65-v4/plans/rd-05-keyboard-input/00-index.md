@@ -234,8 +234,27 @@ public interfaces. Complete output assertions are split into three concern
 files with plain independent assembly/source fixtures. There are 48 tasks
 without expanded product scope or a new test framework.
 
+## Specialist Agents
+
+The existing domain specialists below cover the remaining Phase 2 work. Completed
+Phase 1 review records stay historical. Base correctness, semantics/DX and
+host-performance review remain required by project routing and the execution
+plan; these roles do not replace them or bypass the whole-input prerequisite.
+
+<!-- prettier-ignore -->
+| Role | Kind | Use | Authority |
+| --- | --- | --- | --- |
+| sfa-abi-auditor | reviewer | Phase 2 saved data, calls, storage and asynchronous lifetimes | Existing review gate; project routing |
+| target-platform-auditor | reviewer | Phase 2 CIA/NMI, ownership, coexistence and native evidence | Existing review gate; project routing |
+| machine-code-auditor | reviewer | Phase 2 whole-library expert output and complete resource costs | Existing review gate; project routing |
+
+This is OpenCode workflow metadata, not a new product contract, completed
+qualification or amendment of any cost/behavior oracle. Historical preflight
+identities remain historical; no design recertification is claimed.
+
 ## Documents
 
+<!-- prettier-ignore -->
 | Document                                          | Owns                                                  |
 | ------------------------------------------------- | ----------------------------------------------------- |
 | [Decisions](00-ambiguity-register.md)             | Accepted scope and behavior; historical discovery     |

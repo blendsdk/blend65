@@ -1,9 +1,9 @@
 # Portfolio Roadmap: blend65.ri
 
 > **Status**: Active
-> **Last Updated**: 2026-09-24
-> **Features**: 1 of 8 done
-> **CodeOps Skills Version**: 3.0.0
+> **Last Updated**: 2026-10-15
+> **Features**: 2 of 9 done
+> **CodeOps Artifact Schema**: 1
 >
 > Per-feature detail — including the full per-slice/per-phase history — lives in each
 > feature's own roadmap (linked below) and in the plan directories under
@@ -16,10 +16,12 @@
 
 ## Features
 
+<!-- prettier-ignore -->
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-expert-skillset | [→](features/blend65-expert-skillset/00-roadmap.md) | v1.0.0 is the single active qualified Blend65 domain-expert baseline at content commit `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa`; C64-first 6502/compiler/game knowledge, SFA doctrine, modular target architecture, qualification, and release are complete | 1/1 RD; 7/7 phases | ✅ | 2026-09-09 |
-| blend65-v4 | [→](features/blend65-v4/00-roadmap.md) | RD-04 Phases 1–6 and 76/99 tasks verified. Phase 7 compile-time, intrinsic and raw-embed implementation passes full checks and VICE; specification-case sweep is next. Approved NMI and handler-side IRQ deferrals are owned by RD-05. RD-02/03 native Windows closeout remains deferred to RD-10. | 1/10 RDs | 🔄 | 2026-09-26 |
+| blend65-expert-skillset | [→](features/blend65-expert-skillset/00-roadmap.md) | Original expert baseline complete; active authority is the single qualified release record, not this historical summary. Workflow migration does not change or requalify it. | 1/1 RD; 7/7 phases | ✅ | 2026-10-15 |
+| blend65-v4 | [→](features/blend65-v4/00-roadmap.md) | RD-01–RD-04 done. RD-05 keyboard remains blocked at 38/48; bounded RD-08 whole-input prerequisite paused at 9/40 with two partial specification tasks and intentional size-mode RED. Resume its execution journal, not implementation. Native user-host and production qualification remain RD-10-owned. | 4/10 RDs | 🔄 | 2026-10-15 |
+| _maintenance | [→](features/_maintenance/00-roadmap.md) | OpenCode-native migration 6/6; 13 agents verified, guidance and specialist check refreshed, v3 policy aligned, exact Codex files retired after bounded independent review. Compiler progress unchanged. | 1/1 tasks | ✅ | 2026-10-15 |
 | blend65-c64u | [→](features/blend65-c64u/00-roadmap.md) | Owned successor to v4 C64; requirements discovery follows the v4 production-readiness handoff | 0/1 RDs | ⬜ | 2026-09-10 |
 | compiler-readiness | [→](features/compiler-readiness/00-roadmap.md) | RD-05 Phase 3 remains paused; RD-08 correction round two is active for 1 critical and 13 major independent re-review findings; checkpoint remains uncommitted | RD-05 34/70; RD-08 21/62; 4/8 roadmap RDs | 🔄 | 2026-09-03 |
 | game-optimizer-codegen | [→](features/game-optimizer-codegen/00-roadmap.md) | Requirements gate passed: 18 comprehensive RDs and 26 resolved architecture decisions define the C64-first, target-profile-driven whole-program optimizer, expert backend, proof system and commercial game corpus; preflight next | 0/18 | 🔄 | 2026-07-24 |
@@ -29,6 +31,7 @@
 
 ## Archived
 
+<!-- prettier-ignore -->
 | Feature | Roadmap | Completed | Last Updated |
 |---------|---------|-----------|--------------|
 | — | — | — | — |

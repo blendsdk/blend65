@@ -2,7 +2,7 @@
 
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-14 08:31
-> **Progress**: 30/31 tasks (97%)
+> **Progress**: 31/31 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -17,6 +17,7 @@ CodeOps spec-test file/RED template.
 
 ## Phases
 
+<!-- prettier-ignore -->
 | Phase | Outcome | Tasks |
 |---|---|---:|
 | 1 | Baseline and exact semantic oracles | 5 |

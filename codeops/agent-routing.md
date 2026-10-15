@@ -3,8 +3,10 @@
 This is the project dispatch contract, not a compiler stage or a second expert skill.
 The primary agent reads it before planning and before selecting phase reviewers.
 [Structured configuration](codeops.json) registers roles, effort and permissions;
-[agent charters](../.codex/agents/) define each role's review responsibility.
-No daemon, new dependency, global Codex setting or plugin modification is required.
+[native OpenCode charters](../.opencode/agents/) define each role's responsibility.
+No daemon, new dependency, global configuration change or plugin modification is required.
+The charters are project-owned V2 Markdown: visible subagents with ordered
+`permissions`, no model pins and no legacy TOML runtime dependency.
 
 ## Authority and ownership
 
@@ -28,8 +30,13 @@ Aggregate roadmap status/counts are permitted workflow context, not case-answer 
 
 The primary owns user decisions, plans/roadmaps, finding dispositions, fixes and green
 local commits. Auditors are read-only and never commit, push, edit tests or create issues.
-Live runtime permission overrides can supersede a TOML sandbox default; read-only actions
-remain mandatory even when the host exposes broader tools. Agent agreement is not proof.
+All read-only roles default-deny unlisted actions, shell, edits and child delegation;
+only read/search, research and skill-loading actions are allowed. Writers ask for shell,
+executors deny specification edits and the spec author can write only specification files.
+Do not bypass a tool denial with shell, another tool or another agent. Generic fallbacks
+need equivalent restrictions; a prompt-only promise does not prove enforced permissions.
+Agent agreement is not proof. The sensitive-path rule in AGENTS.md remains stricter
+than general read access; use authorized excerpts when direct access is not approved.
 
 Keep implementation inline when tasks share substantial context. Delegate bounded phases
 only when isolation or capability improves the result; parallel writes need disjoint ownership.
@@ -40,7 +47,7 @@ of its own oracle. Generic approval never authorizes changing an existing specif
 
 Select all applicable rows, including changes in callers or consumers outside the apparent
 owner. A tag is a useful summary, not permission to omit a relevant risk. The third column
-is the role default in configuration, not a new per-command effort-confirmation pause.
+is the intended reasoning default, not a new per-command effort-confirmation pause.
 
 | Phase signal                                                                                    | Review owner              | Effort | Distinct responsibility                                                              |
 | ----------------------------------------------------------------------------------------------- | ------------------------- | ------ | ------------------------------------------------------------------------------------ |
@@ -48,7 +55,7 @@ is the role default in configuration, not a new per-command effort-confirmation 
 | Language behavior, evaluation, diagnostics, APIs or restrictions                                | `semantics-reviewer`      | xhigh  | Semantic preservation and modern-source DX, reported separately                      |
 | Calls/returns, aliases/lifetimes, helpers/spills, allocation/closure or interrupt overlap       | `sfa-abi-auditor`         | xhigh  | Function-storage and calling-convention proof from producer to final consumer        |
 | CPU/profile, MMIO, banking, firmware/interrupts, timing, asset visibility or delivery placement | `target-platform-auditor` | xhigh  | Exact selected-machine and artifact contract; C64 does not become universal doctrine |
-| Lowering/selection, optimization, allocation/layout or target-library output                    | `6502-output-auditor`     | xhigh  | Equivalent expert assembly and complete generated resource costs                     |
+| Lowering/selection, optimization, allocation/layout or target-library output                    | `machine-code-auditor`    | xhigh  | Equivalent expert assembly and complete generated resource costs                     |
 | Compiler/tool host hot paths or scaling                                                         | `performance-auditor`     | xhigh  | Host performance, not emitted-code parity                                            |
 | Source/config/asset input, host tool invocation or other security boundary                      | Existing security review  | high   | Applicable input/path/process security, using a bounded supported checklist          |
 
@@ -118,12 +125,40 @@ a fresh generic agent with the complete charter and bounded packet. Preserve ind
 effort capability, read-only actions and reviewer count. Inline fallback cannot replace a required
 independent review. Do not install a second skill, mutate global settings or restart user processes.
 
+## Native ownership and maintenance
+
+All 13 native files are hand-authored ports, not stock installer output. Preserve
+their project-specific contracts. The three existing domain auditors have
+metadata briefs in `codeops/specialists/`; their executable charters remain in
+`.opencode/agents/`. The former `6502-output-auditor` is now
+`machine-code-auditor`, with the same responsibility and finding prefix. Historical
+records retain their original names; resolve them through this mapping, not a
+second active alias.
+
+Use `effort` for the supported low/medium/high workflow preference and `reasoning`
+for the intended model reasoning level. Unsupported model variants must be
+reported, not silently claimed as applied. No model is pinned by this migration.
+
+`analyze-agents` records coverage and proposes at most two evidenced gaps, after
+deduplicating the current registry. `setup-routing` owns approved specialist
+changes and the managed AGENTS index. Refresh the project-managed section with
+`analyze-project` only after coverage is current; preserve hand-authored policy.
+
+The installed CodeOps 2.2.1 generator emits legacy fields and hidden catalog
+agents. Do not regenerate these native charters from its stock templates. Its
+`--check` classifies hand-authored files rather than validating their V2 policy.
+The existing `--sync-agents-md` renderer remains the owner of the specialist
+index. Configuration, effective permissions, native loading and behavioral smoke
+checks are separate results; see the
+[migration evidence](features/_maintenance/plans/opencode-native-migration/99-execution-plan.md).
+
 ## Setup verification
 
-Parse all TOMLs and JSON; check unique role names, descriptions/instructions, declared efforts,
-read-only reviewer defaults and agreement with the role registry. Validate against the existing
-CodeOps schema. The stock installer checks its known roles and preserves hand-authored files;
-it does not generate or semantically validate these three project-specific agents.
+Parse native Markdown frontmatter and JSON. Check role/filename agreement,
+descriptions, visible subagent mode, ordered default-deny permissions, intended
+reasoning and registry parity. Verify that reviewers cannot edit, use shell,
+delegate or call unlisted mutation tools. Writers must not bypass oracle gates.
+Do not use generator byte equality as a test of hand-authored charter correctness.
 
 Check targeted Markdown/JSON formatting, links and frozen-authority guards. Exercise small,
 read-only packets for valid and invalid nested calls/storage, device effects, complete versus
@@ -132,7 +167,11 @@ oracle edits. Also check that unrelated work does not select specialists. Do not
 agent the grader's expected verdicts. Configuration parsing, native role loading and behavioral
 packet checks are separate results; record fallbacks honestly rather than claiming native activation.
 
-## Current setup evidence
+## Historical setup evidence — 2026-10-04
+
+This section records the former Codex setup. It is historical evidence, not
+OpenCode activation or present expert-version authority. Current migration
+qualification is recorded in the linked maintenance execution document.
 
 Checked 2026-10-04 against worktree snapshot `162e1577`. The modification set is exactly this
 file, `AGENTS.md`, `codeops.json`, the three new specialist TOMLs and the two existing
