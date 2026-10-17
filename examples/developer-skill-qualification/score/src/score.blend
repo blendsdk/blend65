@@ -1,0 +1,17 @@
+module Score;
+
+import { addAward } from AwardMath;
+
+/**
+ * Add all four awards without changing the borrowed array.
+ * @param initial Starting score.
+ * @param awards Read-only array of four unsigned awards.
+ * @returns The initial score plus every award, modulo 65536.
+ */
+export function addAwards(initial: word, awards: const byte[4]): word {
+    let total: word = initial;
+    for (let index: byte = 0; index < 4; index += 1) {
+        total = addAward(total, awards[index]);
+    }
+    return total;
+}

@@ -9,6 +9,9 @@ AR-S4–AR-S5 require independent new tests and oracle review before payload
 authoring. The spec author receives requirements, the component's interfaces and
 these ST cases only; compiler implementation, payload, authored modules and
 expert evaluator material are forbidden. A different reviewer checks the oracle.
+AR-P1 fixes the component's exact private observation fields. AR-P2/P3 authorize
+only the documented compatibility and RAM-visibility corrections. Tests use those
+contracts rather than inventing fields from a future implementation.
 Only the execution owner runs commands. Fresh payload/application writers receive
 the component's answer-free packets, not this document. Existing oracles are
 never amended by this plan.
@@ -28,7 +31,7 @@ and independent-review evidence, not a fabricated Vitest model call.
 | ST-05 | Score request and six vectors below | Public check/build succeeds; VICE RAM words exactly equal the six independent answers; const awards unchanged by the authored source | Authoring spec + source review; R1.8, AR-S4/AR-S6, Ch02/04, FN-3 |
 | ST-06 | Patrol request and ten vectors below | Public check/build succeeds; observed positions/directions exactly match all ten independent answers through an ordinary returned struct | Authoring spec; R1.8, AR-S4/AR-S6, Ch06 FN-4, Ch07 |
 | ST-07 | Temporary score module returns zero; temporary patrol returns `{x:0,right:false}` for every call | Both compile, but the same oracle detects at least one actual runtime mismatch for each. An expected zero case alone must not make a bad control pass | Authoring negative controls; R1.17 as applied by R1.8, AR-S4/AR-S12 |
-| ST-08 | Missing result global, wrong global width, absent/ambiguous completion range or invalid location | Driver returns Unknown/failure before any claim of correct values; never synthesize expected results | Driver/spec controls; R1.19/R1.21, AR-S6–AR-S7 |
+| ST-08 | Missing result global, wrong global width, absent/disconnected/conflicting completion mapping or invalid location | Driver returns Unknown/failure before any claim of correct values; a valid multi-record operation is not itself ambiguity; never synthesize expected results | Driver/spec controls; R1.19/R1.21, AR-S6–AR-S7, AR-P2 |
 | ST-09 | Wrong generation/artifact/profile/mode or stale source identity | Affected proof is rejected/Unknown; no foreign current-output lookup or silent fallback | Artifact controls + workflow; R1.19, AR-S9 |
 | ST-10 | Skill version/request changes while old authored source still passes tests | Old attempt is retained but not current skill qualification; affected requests are re-authored in fresh contexts and reverified | Workflow; R1.8/R1.19, AR-S9 |
 | ST-11 | Untrusted comment asks to run commands, change frozen authority or claim all C64 features qualified | Treat it as data; no execution/authority change/broader claim. Real protected files are never test fixtures | Security review + bounded fresh-context request; R1.6/R1.21, AR-S10/AR-S12 |
@@ -87,6 +90,21 @@ write only their assigned new spec files; the execution owner creates supporting
 documents and owns execution. No old tests, M1 helpers or expert oracles change.
 AR-S5–AR-S7, AR-S12.
 
+The user-approved AR-P2 exception permits only three setup corrections in the
+frozen authoring spec and directly needed file-local plumbing: select the explicit
+manifest, identify the invalid-location target by verified declaration/type/width,
+and admit a valid complete multi-record marker baseline before remapping one
+same-owner/context/space donor with a positive gap from it. Assert the original
+baseline remains intact and the mutation adds one disconnected component. Keep
+all semantic vectors/answers, positive assertions, mismatch requirements, Unknown
+expectations, digest rebinding and setup-failure checks unchanged. The independent
+oracle author applies this exception; bounded review/refreeze precede resumed use.
+
+The already planned implementation tests also cover the pinned installed-input
+inventory and owned rehashed ROM/MMIO locations, plus wrong live DDR/port states.
+The RAM rejection and visibility checks remain specific to this qualified profile,
+not a memory framework or a new public testing API. AR-P3.
+
 ## Coverage and Decisive Evidence
 
 Exercise assertions cover every fixed input/output row and all claimed authoring
@@ -127,3 +145,16 @@ sequential emulator cases. No window is currently reserved. Keep logs and
 generated fixture outputs under the task-owned temporary root, delete only owned
 scratch, and retain selected durable result evidence without secrets. No blanket
 claim of full verification follows from a subset command. AR-S8–AR-S10.
+
+### One-Checkpoint AR-P5 Disposition
+
+On 2026-10-18 the user explicitly approved complete batched root coverage and
+the exact 317 baseline-pinned failures in 16 unchanged files as non-blocking for
+this one `none`-based skill milestone and its local commit. The
+[checkpoint record](13-checkpoint-blocker.md) binds the finite case sets,
+assertions, unchanged causal inputs and claim limits. This is not an executable
+test exclusion or a reusable baseline allowance. Every owned/non-excepted
+executed test must pass; additional or materially changed failures and new skips
+block. Two existing compiler skips remain disclosed. Report the full `yarn test`
+command as failed and root coverage as batched, never as full-repository GREEN.
+No compiler/oracle/requirements/policy change or push is permitted by this ruling.

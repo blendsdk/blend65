@@ -1,0 +1,39 @@
+module Patrol;
+
+/** Position and travel direction for a patrol bounded by 0 and 319. */
+export struct PatrolState {
+    /** Horizontal position, from 0 through 319 inclusive. */
+    x: word;
+    /** True when travelling toward 319; false when travelling toward 0. */
+    right: boolean;
+}
+
+/**
+ * Move within 0..319, clamping and reversing at the destination endpoint.
+ * A zero amount preserves both position and direction, even at an endpoint.
+ *
+ * @param x Current position; the caller supplies a value from 0 through 319.
+ * @param right Whether to move toward the upper endpoint.
+ * @param amount Distance to move; any excess beyond an endpoint is discarded.
+ * @returns The new position and direction as an ordinary struct value.
+ */
+export function step(x: word, right: boolean, amount: byte): PatrolState {
+    if (amount == 0) {
+        return { x: x, right: right };
+    }
+
+    if (right) {
+        // Word arithmetic keeps the largest possible sum, 574, without wrapping.
+        let nextX: word = x + amount;
+        if (nextX >= 319) {
+            return { x: 319, right: false };
+        }
+        return { x: nextX, right: right };
+    }
+
+    // Check before subtraction so an unsigned position cannot wrap below zero.
+    if (amount >= x) {
+        return { x: 0, right: true };
+    }
+    return { x: x - amount, right: right };
+}

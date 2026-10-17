@@ -108,11 +108,40 @@ observeExercise(project: string, exercise: "score" | "patrol"):
   Promise<ExerciseObservation>
 ```
 
-`ExerciseObservation` is a local test union: `kind: "observed"` with the exercise
-discriminator, observed word arrays and (for patrol) Boolean directions, PRG and
-build-sidecar hashes, generation ID and the existing `ViceRuntimeIdentity`; or
-`kind: "unknown"` with a reason. The helper never accepts expected result values
-and never compares against an oracle. Spec tests own those comparisons.
+AR-P1 fixes the exact private result fields before oracle authoring:
+
+```typescript
+type ExerciseObservation =
+  | {
+      readonly kind: "observed";
+      readonly exercise: "score";
+      readonly scores: readonly number[];
+      readonly generationId: string;
+      readonly prgSha256: string;
+      readonly buildJsonSha256: string;
+      readonly runtime: ViceRuntimeIdentity;
+    }
+  | {
+      readonly kind: "observed";
+      readonly exercise: "patrol";
+      readonly positions: readonly number[];
+      readonly directions: readonly boolean[];
+      readonly generationId: string;
+      readonly prgSha256: string;
+      readonly buildJsonSha256: string;
+      readonly runtime: ViceRuntimeIdentity;
+    }
+  | { readonly kind: "unknown"; readonly reason: string };
+```
+
+Word arrays contain integers in 0..65535; their already approved extents are
+six scores or ten positions/directions. `generationId` is the existing canonical
+UUID v4; both hash fields are lowercase 64-digit SHA-256. `ViceRuntimeIdentity`
+is the unchanged type from `test/m1/vice-runtime.ts:34–47`: executable path/hash
+and three ROM name/path/byte-count/hash records. It does not include a profile
+field. The fixed profile/options remain validated against project/build evidence.
+The helper never accepts expected result values or compares against an oracle;
+spec tests own those comparisons. This test-local contract adds no product API.
 
 The independent tests construct fixed `Game` wrapper projects around the
 authored modules. Their named globals are `scores: word[6]` or
@@ -124,12 +153,34 @@ is test-owned; it is not the application's implementation or a teaching example.
 Use public `checkProject` and `buildProject`, consume only the returned immutable
 generation and validate the fields actually read. Resolve result globals via
 their exact wrapper source identity/declaration spans and available public debug
-memory pieces. Resolve a unique machine range for the completion-marker source
-span, confirm it lies in the bound PRG, and stop before executing it with the
-existing monitor's execute checkpoint. Computation must already have completed
-at that boundary. Missing/ambiguous mappings or unavailable globals are Unknown,
+memory pieces. AR-P2 resolves the exact source declaration, global kind and
+type/width; emitted debug names are not promised source names. Bind the marker's
+exact expression span, excluding its trailing semicolon, to the complete set of
+source-associated instruction records. Require one valid function/context with
+consistent forward/reverse indexes, one unbanked CPU-space identity and a single
+strictly contiguous, non-overlapping interval inside the hash-bound PRG. A gap,
+duplicate interval, conflicting owner/context or additional expansion is Unknown.
+Do not assume one record per operation or choose an arbitrary first match.
+
+Separately establish from the exact artifact/producer facts that the interval's
+start is this straight-line operation's entry and that all result writes precede
+it. Contiguity alone is not operation-identity proof. Retain this evidence for
+the wrong-module controls and repeat it for genuinely authored artifacts. If it
+cannot be established through existing evidence, stop without adding a decoder,
+IR field or compiler change. Use the existing execute checkpoint before this
+proved entry; do not impose a permanent instruction count or opcode sequence.
+Missing/ambiguous mappings or unavailable globals are Unknown,
 not permission to use expected values, patch authored code, suppress optimization
 or impose a particular generated instruction shape. AR-S6–AR-S7.
+
+Public check/build receive the explicit `blend65.json` manifest selector. Their
+source inventories must contain exactly the fixed local inputs plus the current
+installed `@blend65/stdlib/c64/input.blend` identity: 16,118 bytes, SHA-256
+`d5c3129c80fea3cdc13e08edc22b53241b10f4a86cde9ef4524306baa23e29c7`.
+Check that pin in both sidecars and independently hash the local inputs. This
+fixed qualification pin is not an independent reread of installed bytes; both
+sidecars share a producer. Reject other extras/duplicates/omissions. Compiler or
+library changes invalidate the pin and affected claims; never refresh it silently.
 
 Start only the pinned existing VICE helper in an agreed exclusive window;
 attest version/model/ROMs, read actual RAM without side effects, and terminate
@@ -138,6 +189,14 @@ record the fixed cycle termination limit separately from measured costs.
 Exercises install no handler or audio player. Existing KERNAL/CIA/RESTORE behavior
 is retained; no samples prove unrestricted NMI stack, reentrancy or deadlines.
 No physical claim follows. AR-S6, AR-S10.
+
+AR-P3 confines every result piece to the selected resident RAM interval
+`[0x0801, 0xd000)`. At the stopped checkpoint, before any result read, require
+`(DDR & 7) === 7` and `(port & 7) === 6`, as the existing startup establishes.
+Ignore unrelated upper bits and keep execution stopped throughout observation.
+Reject different visibility instead of reading ROM/MMIO as result RAM. These
+are this fixed observer's machine checks, not new language/ABI restrictions.
+BSS results need not lie inside the PRG payload. Keep M1 helpers unchanged.
 
 ## Acceptance and Negative Controls
 

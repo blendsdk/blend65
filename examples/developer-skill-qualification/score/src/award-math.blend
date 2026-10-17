@@ -1,0 +1,12 @@
+module AwardMath;
+
+/**
+ * Add one award using 16-bit wrapping arithmetic.
+ * @param total Current score.
+ * @param award Unsigned award to add.
+ * @returns The updated score modulo 65536.
+ */
+export function addAward(total: word, award: byte): word {
+    // Widen before addition so carries beyond 255 remain part of the score.
+    return total + word(award);
+}

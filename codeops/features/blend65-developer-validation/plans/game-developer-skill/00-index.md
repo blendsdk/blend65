@@ -1,7 +1,7 @@
 # Game-Developer Skill: First Implementation Plan
 
 > **Feature**: Companion authoring guidance and two independent core-source exercises
-> **Status**: Planning Complete — bounded skill slice
+> **Status**: Complete — bounded skill slice only; aggregate RED under exact AR-P5 disposition
 > **Created**: 2026-10-16
 > **Implements**: blend65-developer-validation/RD-01
 > **Coverage**: R1.5–R1.8; applicable portions of R1.12 and R1.19–R1.21 only
