@@ -1,7 +1,7 @@
 # Slither Player Dependency Handoff
 
 > **Status**: Open — assessment and existing-owner disposition required
-> **Date**: 2026-10-18 11:43 CEST
+> **Date**: 2026-10-18 11:57 CEST
 > **Compiler/source snapshot**: `76a8aa0e`; no compiler changes in this feature
 > **CodeOps Artifact Schema**: 1
 
@@ -25,14 +25,25 @@ session, authorize an extra adapter, or modify a compiler requirement.
 
 | Boundary | Evidence needed before dependent port work |
 | --- | --- |
-| Provenance | Applicable rights for the selected exported player/content, with notices and any actual third-party restrictions distinguished from the repository's declared MIT licence. |
+| Provenance | User-owned under combined-port AR-P6. Continue local technical work without an agent licensing gate; do not claim clearance or publish/distribute on the user's behalf. |
 | Exact external ABI | Entry conditions, register/status clobbers, writable and self-modifying ranges, ZP/stack, banking, reentrancy, IRQ/NMI interaction, original cadence and music/SFX coexistence. |
 | Public compiler support | A qualified public path for the selected contract and profile, or an explicit existing-owner blocker. Raw byte inclusion is not a callable-player ABI. |
 | Runtime and costs | Declaration-compatible PAL/8580 evidence, independent behavior/device expectations and complete applicable resource costs; earlier 6581 control-flow samples do not supply these. |
 
-These are open prerequisites, not fabricated public compiler failures. There is
-no new executable rejection case or diagnostic expectation in this handoff.
-No compiler code, old oracle, player binary, skill or port source is changed.
+The initial handoff contained static prerequisites, not public failure results.
+The technical continuation below now supplies actual reduced public probes,
+without creating an executable specification test or changing an old diagnostic
+expectation. No compiler code, old oracle, retained player binary, skill or port
+source is changed.
+
+**Technical continuation:** [public probes](slither-public-support-probes.md)
+now reproduce E10204 through public check/build and the CLI for the exact SID
+data/metadata forms. A raw control succeeds; it is not a callable-player path.
+The asset-free audio import separately returns `COMPILER_INCOMPLETE`. These
+actual endpoints supersede static-only absence evidence without inventing an
+E10256 result. RD-06 retains the repair owner. A fresh, output-blind
+[source behavior inventory](slither-source-behavior.md) also records update,
+input, geometry, scoring and audio-route facts for continued technical planning.
 
 ## Bounded Public Provenance Follow-up
 
@@ -52,6 +63,14 @@ No vendor, upstream author or third party was contacted.
 
 ## Specific Next Evidence
 
+**Current user ruling — 2026-10-18:** “I will deal with the licensing myself.
+just continue with the work.” Licensing is now the user's responsibility under
+combined-port AR-P6. The agent does not continue licence searches, send the
+historical draft questions below or wait for rights evidence before technical
+assessment. No claim of clearance or publication/distribution authority follows.
+The remaining agent work is technical: exact player ABI/effects/costs and the
+existing compiler owner's public support disposition.
+
 The [PAL/8580 follow-up](slither-pal8580-followup.md) now establishes bounded
 movement/collision/restart on the declaration-compatible model and one actual
 player tick. It does not clear rights, full player ABI/costs or public support.
@@ -59,7 +78,8 @@ Source-owned raster cadence, direct crash effects and the unproved D-set player
 entry are recorded there for the existing owner. No previous compiler capability
 or qualification status advances.
 
-The next public enquiry is specific and currently **unsent**. It would ask the
+The previous proposed public enquiry remains **unsent** and is no longer an
+agent next step. The retained draft would ask the
 Slither author or SidTracker64 vendor:
 
 1. Who authored `data/slither_r.sid`'s tune and exported player in the pinned
