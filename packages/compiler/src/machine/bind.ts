@@ -10,6 +10,8 @@ import type {
   MachineMemoryAddress,
   MachineOperand,
   MachineProgram,
+  MachineBlock,
+  MachineBodyOrigin,
 } from "./machine-types.js";
 
 /** Resolve and bounds-check one certified storage home plus byte offset. */
@@ -255,7 +257,9 @@ function bindInstruction(
   let mode = instruction.mode;
   if (instruction.operand?.kind === "storage") {
     mode =
-      instruction.mode === "indirect" || instruction.mode === "absolute-y"
+      instruction.mode === "indirect" ||
+      instruction.mode === "absolute-y" ||
+      instruction.mode === "absolute-x"
         ? instruction.mode
         : bound.mode!;
     if (
@@ -299,6 +303,65 @@ function bindFunction(
   });
 }
 
+/** Preserve every source association when an existing physical comparison proves code equal. */
+function mergeObserverBlock(
+  left: MachineBlock,
+  right: MachineBlock,
+  leftOwner: MachineFunction,
+  rightOwner: MachineFunction,
+): MachineBlock {
+  const bodies: MachineBodyOrigin[] = [];
+  const seen = new Set<string>();
+  for (const [block, owner] of [
+    [left, leftOwner],
+    [right, rightOwner],
+  ] as const) {
+    const origins =
+      block.observerBodies ??
+      owner.observerBodies ??
+      (owner.sourceFunction !== undefined && owner.executionContext !== undefined
+        ? [{ sourceFunction: owner.sourceFunction, executionContext: owner.executionContext }]
+        : []);
+    for (const origin of origins) {
+      const key = JSON.stringify(origin);
+      if (!seen.has(key)) {
+        seen.add(key);
+        bodies.push(Object.freeze({ ...origin }));
+      }
+    }
+  }
+  let changed = bodies.length > 0;
+  const instructions = left.instructions.map((instruction, index) => {
+    const extra = right.instructions[index]?.observerOrigins;
+    if (extra === undefined) return instruction;
+    const origins = [...new Set([...(instruction.observerOrigins ?? []), ...extra])];
+    changed = true;
+    return Object.freeze({ ...instruction, observerOrigins: Object.freeze(origins) });
+  });
+  return changed
+    ? Object.freeze({
+        ...left,
+        instructions: Object.freeze(instructions),
+        ...(bodies.length === 0 ? {} : { observerBodies: Object.freeze(bodies) }),
+      })
+    : left;
+}
+
+/** Keep whole-body origins as well as per-instruction origins when equivalent root variants share. */
+function mergeObserverFunction(left: MachineFunction, right: MachineFunction): MachineFunction {
+  const blocks = left.blocks.map((block, index) =>
+    mergeObserverBlock(block, right.blocks[index]!, left, right),
+  );
+  const bodies = blocks[0]?.observerBodies;
+  return blocks.every((block, index) => block === left.blocks[index])
+    ? left
+    : Object.freeze({
+        ...left,
+        blocks: Object.freeze(blocks),
+        ...(bodies === undefined ? {} : { observerBodies: bodies }),
+      });
+}
+
 /** Share byte-multiply bodies only when final physical scratch and instructions match exactly. */
 function shareBoundByteMultiplyHelpers(
   functions: readonly MachineFunction[],
@@ -307,6 +370,10 @@ function shareBoundByteMultiplyHelpers(
   const canonical = new Map<string, string>();
   const redirects = new Map<string, string>();
   const removed = new Set<string>();
+  const allBlocks = new Map(
+    functions.flatMap((fn) => fn.blocks.map((block) => [block.label, { block, fn }] as const)),
+  );
+  const mergedBlocks = new Map<string, MachineBlock>();
   for (const fn of functions) {
     const byLabel = new Map(fn.blocks.map((block) => [block.label, block] as const));
     for (const entry of fn.blocks) {
@@ -315,7 +382,8 @@ function shareBoundByteMultiplyHelpers(
       if (body.some((block) => block === undefined)) continue;
       // Source spans and private labels differ, but physical operands and costs must agree.
       const fingerprint = JSON.stringify(body, (key, value: unknown) => {
-        if (key === "source") return undefined;
+        if (key === "source" || key === "observerOrigins" || key === "observerBodies")
+          return undefined;
         if (
           (key === "label" || key === "target" || key === "fallthrough") &&
           typeof value === "string" &&
@@ -330,6 +398,18 @@ function shareBoundByteMultiplyHelpers(
         canonical.set(fingerprint, entry.label);
       } else {
         redirects.set(entry.label, shared);
+        for (const [index, suffix] of suffixes.entries()) {
+          const original = allBlocks.get(`${shared}${suffix}`)!;
+          mergedBlocks.set(
+            original.block.label,
+            mergeObserverBlock(
+              mergedBlocks.get(original.block.label) ?? original.block,
+              body[index]!,
+              original.fn,
+              fn,
+            ),
+          );
+        }
         for (const suffix of suffixes) removed.add(`${entry.label}${suffix}`);
       }
     }
@@ -342,6 +422,7 @@ function shareBoundByteMultiplyHelpers(
         blocks: Object.freeze(
           fn.blocks
             .filter((block) => !removed.has(block.label))
+            .map((block) => mergedBlocks.get(block.label) ?? block)
             .map((block) =>
               Object.freeze({
                 ...block,
@@ -427,6 +508,7 @@ function shareBoundRootBodies(
     const canonical = new Map<string, MachineFunction>();
     const removed = new Set<string>();
     const redirects = new Map<string, string>();
+    const merged = new Map<string, MachineFunction>();
     for (const fn of current) {
       const match = /^(.*)\.irq\.root[0-9a-f]+\.depth\d+$/u.exec(fn.id);
       if (match === null || fn.origin !== undefined || fn.placement !== undefined) continue;
@@ -434,10 +516,12 @@ function shareBoundRootBodies(
       const fingerprint = JSON.stringify(
         [fn.sourceName ?? null, fn.blocks],
         (key, value: unknown) =>
-          typeof value === "string" &&
-          (key === "label" || key === "target" || key === "fallthrough")
-            ? (local.get(value) ?? value)
-            : value,
+          key === "observerOrigins" || key === "observerBodies"
+            ? undefined
+            : typeof value === "string" &&
+                (key === "label" || key === "target" || key === "fallthrough")
+              ? (local.get(value) ?? value)
+              : value,
       );
       const identity = JSON.stringify([match[1], fingerprint]);
       const previous = canonical.get(identity);
@@ -446,6 +530,9 @@ function shareBoundRootBodies(
         continue;
       }
       removed.add(fn.id);
+      const combined = mergeObserverFunction(previous, fn);
+      canonical.set(identity, combined);
+      merged.set(previous.id, combined);
       redirects.set(fn.id, previous.id);
       fn.blocks.forEach((block, index) => {
         redirects.set(block.label, previous.blocks[index]!.label);
@@ -453,7 +540,9 @@ function shareBoundRootBodies(
     }
     if (removed.size === 0) return Object.freeze({ functions: current, startup: currentStartup });
     current = Object.freeze(
-      current.filter((fn) => !removed.has(fn.id)).map((fn) => redirectBoundLabels(fn, redirects)),
+      current
+        .filter((fn) => !removed.has(fn.id))
+        .map((fn) => redirectBoundLabels(merged.get(fn.id) ?? fn, redirects)),
     );
     currentStartup = redirectBoundLabels(currentStartup, redirects);
   }

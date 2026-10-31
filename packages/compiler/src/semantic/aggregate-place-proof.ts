@@ -1,4 +1,8 @@
-import type { SemanticType, StructFieldType } from "../frontend/semantic-types.js";
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import type { BindingId, SemanticType, StructFieldType } from "../frontend/semantic-types.js";
+import type { ClosedObjectFacts } from "./closed-object-facts.js";
+import type { FixedLoopFacts } from "./fixed-loop-facts.js";
+import type { SemanticFunction } from "./operations.js";
 import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import type { StorageRange } from "../storage/storage-types.js";
 import { selectTargetProfile } from "../target/profile.js";
@@ -133,6 +137,125 @@ export function rawMayObserve(
     if (windows.some(({ start, end }) => byte >= start && byte <= end)) return true;
   }
   return false;
+}
+
+/**
+ * Retain every byte touched by a raw access over one proved unsigned address interval.
+ * The maximum displacement describes possible addresses, not an assumed exact value.
+ * Word arithmetic and a second accessed byte both wrap in the 16-bit address domain.
+ * @param start First mathematical address before 16-bit wrapping.
+ * @param displacement Nonnegative inclusive distance to the last possible address.
+ * @param width Original access width, whose order/count remain attached to the source operation.
+ * @returns One or two inclusive logical ranges, or the full address domain.
+ */
+function wrappedRawRanges(
+  start: bigint,
+  displacement: bigint,
+  width: 1 | 2,
+): readonly StorageRange[] {
+  const extent = displacement + BigInt(width - 1);
+  if (extent >= 0xffffn) return Object.freeze([Object.freeze({ start: 0, end: 0xffff })]);
+  const first = Number(BigInt.asUintN(16, start));
+  const end = first + Number(extent);
+  return Object.freeze(
+    end <= 0xffff
+      ? [Object.freeze({ start: first, end })]
+      : [
+          Object.freeze({ start: first, end: 0xffff }),
+          Object.freeze({ start: 0, end: end & 0xffff }),
+        ],
+  );
+}
+
+/**
+ * Prove a literal address, an existing unsigned bound, or a literal-plus-bounded ordinal.
+ * No mutable load or source array extent supplies a bound by itself. Unknown inputs
+ * remain unknown; this query does not change the operation or its volatile effects.
+ * @param operation Original raw read/write with modulo-65536 addresses.
+ * @param definitions Once-indexed source value definitions for this body.
+ * @param literal Existing exact literal/conversion query.
+ * @param upperBound Existing use-site unsigned maximum, including supplied induction facts.
+ * @returns Complete inclusive access footprint, or null when it cannot be bounded.
+ */
+export function rawAccessFootprint(
+  operation: Extract<SemanticOperation, { readonly kind: "memory-read" | "memory-write" }>,
+  definitions: ReadonlyMap<ValueId, SemanticOperation>,
+  literal: (value: ValueId) => bigint | undefined,
+  upperBound: (value: ValueId) => bigint | undefined,
+): readonly StorageRange[] | null {
+  const exact = literal(operation.address);
+  if (exact !== undefined) return wrappedRawRanges(exact, 0n, operation.width);
+  const address = definitions.get(operation.address);
+  if (
+    address?.kind === "binary" &&
+    address.operator === "+" &&
+    address.integer?.width === 16 &&
+    address.integer.signed === false
+  ) {
+    for (const [base, ordinal] of [
+      [address.left, address.right],
+      [address.right, address.left],
+    ]) {
+      const start = literal(base);
+      const bound = upperBound(ordinal);
+      if (start !== undefined && bound !== undefined && bound >= 0n)
+        return wrappedRawRanges(start, bound, operation.width);
+    }
+  }
+  const maximum = upperBound(operation.address);
+  return maximum !== undefined && maximum >= 0n
+    ? wrappedRawRanges(0n, maximum, operation.width)
+    : null;
+}
+
+/**
+ * Prove generated constant indices safe before expanding a loop. Unknown or
+ * out-of-extent counter expressions retain ordinary guards; unrelated runtime
+ * indices remain untouched by the specialization.
+ * @param loop Immutable source loop and its nonnegative range premises.
+ * @param ordinals Counter-dependent source values that expansion may fold.
+ * @returns Whether no new constant can bypass a required runtime bounds stop.
+ */
+export function derivedIndicesAreInBounds(
+  loop: FixedLoopFacts,
+  ordinals: ReadonlySet<string>,
+): boolean {
+  for (const operation of loop.body.operations)
+    for (const { place } of placeUses(operation)) {
+      if (!place.path.some((part) => part.kind === "index" && ordinals.has(part.value))) continue;
+      const rootType = place.rootType;
+      if (rootType === undefined) return false;
+      let type: SemanticType = rootType;
+      let outer = true;
+      const parameter = loop.function.parameters.find(
+        (value) => bindingIdentityKey(value.id) === bindingIdentityKey(place.root),
+      );
+      for (const part of place.path) {
+        if (part.kind === "field") {
+          if (type.kind !== "struct") return false;
+          const field: StructFieldType | undefined = type.fields.find(
+            (value) => value.name === part.name,
+          );
+          if (field === undefined) return false;
+          type = field.type;
+        } else {
+          if (type.kind !== "array") return false;
+          if (ordinals.has(part.value)) {
+            const maximum = loop.valueBounds.get(part.value);
+            if (
+              (outer && parameter?.outerUnsized === true) ||
+              maximum === undefined ||
+              maximum < 0n ||
+              maximum >= BigInt(type.length)
+            )
+              return false;
+          }
+          outer = false;
+          type = type.element;
+        }
+      }
+    }
+  return true;
 }
 
 /** Inclusive allocation windows already supplied to whole-program closure. */
@@ -296,6 +419,152 @@ export function placeMayEscapeRoot(
     }
   }
   return offset < 0 || use.width > semanticTypeSize(type) || offset + use.width > rootSize;
+}
+
+/**
+ * Index conditional source stability for scalar byte globals sampled inside one function.
+ * Typed/root/range premises and every physical/firmware/A/P observer remain
+ * obligations of the final candidate. This query never treats absent homes as empty.
+ * @param fn Actual immutable source function whose entry can initialize the sample.
+ * @param facts Existing source effects, whole-object origins and range premises.
+ * @param profile Selected target and permitted placement envelope.
+ * @returns A memoized source-only predicate; unsupported mutation keeps ordinary loads.
+ */
+export function createGlobalByteStabilityQuery(
+  fn: SemanticFunction,
+  facts: ClosedObjectFacts,
+  profile: TargetProfile,
+): (root: BindingId) => boolean {
+  const program = facts.program;
+  const globals = new Map(
+    program.semantic.globals.map((global) => [bindingIdentityKey(global.id), global]),
+  );
+  const entry = new Set(fn.blocks.find((block) => block.id === fn.entry)?.operations ?? []);
+  const async = new Set(
+    (program.executionDomains ?? []).flatMap((value) =>
+      value.domains.some((domain) => domain !== "main") ? [bindingIdentityKey(value.function)] : [],
+    ),
+  );
+  const borrowed = new Set(
+    program.semantic.functions.flatMap((value) =>
+      value.parameters
+        .filter((parameter) => parameter.type.kind === "array" || parameter.type.kind === "struct")
+        .map((parameter) => bindingIdentityKey(parameter.id)),
+    ),
+  );
+  const unknown =
+    (program.executionDomains === undefined && (program.interruptRoutes?.length ?? 0) > 0) ||
+    fn.blocks.some((block) =>
+      block.operations.some(
+        (operation) =>
+          operation.kind === "call" ||
+          operation.kind === "indirect-call" ||
+          operation.kind === "platform",
+      ),
+    ) ||
+    facts.observations.some(
+      (observation) =>
+        observation.access === "write" &&
+        observation.target.kind === "raw" &&
+        (observation.target.ranges === null ||
+          observation.target.ranges.some(
+            (range) =>
+              range.start <= profile.cpu.portDataAddress &&
+              range.end >= profile.cpu.portDirectionAddress,
+          )),
+    );
+  const relevant = facts.observations.filter(
+    (observation) =>
+      bindingIdentityKey(observation.owner) === bindingIdentityKey(fn.id) ||
+      async.has(bindingIdentityKey(observation.owner)),
+  );
+  const memo = new Map<string, boolean>();
+  return (root) => {
+    const key = bindingIdentityKey(root);
+    const previous = memo.get(key);
+    if (previous !== undefined) return previous;
+    const global = globals.get(key);
+    let stable = !unknown && global?.type.kind === "scalar" && global.type.name === "byte";
+    const envelope =
+      global?.placement?.at == null
+        ? [...profile.storage.ram, ...profile.storage.zeroPage]
+        : [{ start: global.placement.at, end: global.placement.at }];
+    for (const observation of relevant) {
+      const target = observation.target;
+      if (target.kind === "platform" && !target.envelopeDisjoint) stable = false;
+      if (observation.access !== "write") continue;
+      if (
+        target.kind === "raw" &&
+        (target.ranges === null ||
+          target.ranges.some((range) =>
+            envelope.some((home) => range.start <= home.end && range.end >= home.start),
+          ))
+      )
+        stable = false;
+      if (target.kind !== "place") continue;
+      const targetKey = bindingIdentityKey(target.place.root);
+      const origin = facts.parameters.get(targetKey)?.origin.place.root;
+      if (!target.withinRoot || (borrowed.has(targetKey) && origin === undefined)) stable = false;
+      if (
+        bindingIdentityKey(origin ?? target.place.root) === key &&
+        !(observation.owner === fn.id && entry.has(observation.operation))
+      )
+        stable = false;
+    }
+    memo.set(key, stable);
+    return stable;
+  };
+}
+
+/** Producer-owned marker; its instance is carried by each fact, never stored in a registry. */
+const FIXED_LOOP_FACT_SEAL = Symbol("fixed-loop-source-facts");
+
+/** Opaque finite snapshot checks both field identity and mutable container contents. */
+class FixedLoopFactSeal {
+  /** Original source fields, including exact operations, domains and frozen exit records. */
+  readonly fields: readonly (readonly [PropertyKey, unknown])[];
+  /** Membership is a source CFG premise, not just a Set object's identity. */
+  readonly members: readonly string[];
+  /** Retained range premises must not be changed by editing the original Map. */
+  readonly bounds: readonly (readonly [string, bigint])[];
+
+  /** Capture only this already-derived fact; no source analysis or global cache is introduced. */
+  constructor(facts: FixedLoopFacts) {
+    this.fields = Object.freeze(
+      Reflect.ownKeys(facts).map((key) => {
+        const value: unknown = Reflect.get(facts, key);
+        return Object.freeze([key, value] as const);
+      }),
+    );
+    this.members = Object.freeze([...facts.members]);
+    this.bounds = Object.freeze([...facts.valueBounds].map((entry) => Object.freeze(entry)));
+    Object.freeze(this);
+  }
+
+  /** A copied equal packet is safe; a changed field, missing member or edited bound is not. */
+  matches(facts: FixedLoopFacts): boolean {
+    return (
+      Reflect.ownKeys(facts).length === this.fields.length + 1 &&
+      this.fields.every(
+        ([key, value]) => Reflect.has(facts, key) && Reflect.get(facts, key) === value,
+      ) &&
+      facts.members.size === this.members.length &&
+      this.members.every((member) => facts.members.has(member)) &&
+      facts.valueBounds.size === this.bounds.length &&
+      this.bounds.every(([value, maximum]) => facts.valueBounds.get(value) === maximum)
+    );
+  }
+}
+
+/** Bind one derived immutable loop packet without re-running its source proof. */
+export function sealFixedLoopFacts(facts: FixedLoopFacts): FixedLoopFacts {
+  return Object.freeze({ ...facts, [FIXED_LOOP_FACT_SEAL]: new FixedLoopFactSeal(facts) });
+}
+
+/** Reject stale/copied premises or edited containers before machine consumers use a loop fact. */
+export function validFixedLoopFacts(facts: FixedLoopFacts): boolean {
+  const seal: unknown = Reflect.get(facts, FIXED_LOOP_FACT_SEAL);
+  return seal instanceof FixedLoopFactSeal && seal.matches(facts);
 }
 
 /**

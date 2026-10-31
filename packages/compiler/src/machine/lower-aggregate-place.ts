@@ -1,6 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SemanticPlace } from "../semantic/operations.js";
 import type { SourceSpan } from "../project/types.js";
+import { selectedStoragePlace } from "../storage/selection.js";
 import { lowerAggregateIndex, type AggregateIndexTerm } from "./lower-aggregate-index.js";
 import {
   machineInstruction,
@@ -137,7 +138,8 @@ export function fixedAggregateSource(
     place.rootType === undefined ||
     !state.singleUseValues.has(retainedId) ||
     state.aggregatePlaces.get(retainedId) !== place ||
-    isReturnedLocalPlace(place, state)
+    (isReturnedLocalPlace(place, state) &&
+      selectedStoragePlace(place, state.sourceFacts?.storage) === place)
   )
     return null;
   const plan = aggregateAddressPlan(place, state, source);
@@ -183,7 +185,9 @@ export function lowerAggregateAddress(
   readonly zeroIndexInY?: true;
 } {
   const plan = aggregateAddressPlan(place, state, source);
-  const returnedRoot = isReturnedLocalPlace(place, state);
+  const returnedRoot =
+    isReturnedLocalPlace(place, state) &&
+    selectedStoragePlace(place, state.sourceFacts?.storage) === place;
   const root = loweredPlace(place, typeBytes(place.rootType!), false, state);
   if (
     returnedRoot &&

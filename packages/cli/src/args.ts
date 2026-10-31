@@ -15,8 +15,8 @@ export interface ProjectSelections {
 
 /** Build selections accepted by `build` and `run`. */
 export interface BuildSelections extends ProjectSelections {
-  /** The only optimization mode implemented by this compiler slice. */
-  readonly optimization?: "none";
+  /** Optional direct-lowering or code-size optimization override. */
+  readonly optimization?: "none" | "size";
   /** Optional bounds-check override. */
   readonly boundsCheck?: boolean;
   /** Optional division-by-zero-check override. */
@@ -103,7 +103,12 @@ export function parseArguments(argv: readonly string[]): CliArguments | null {
       return hasBuildOptions ? null : { kind: "check", options: projectOptions };
     }
 
-    if (values.optimization !== undefined && values.optimization !== "none") return null;
+    if (
+      values.optimization !== undefined &&
+      values.optimization !== "none" &&
+      values.optimization !== "size"
+    )
+      return null;
     const boundsCheck = booleanFrom(values["bounds-check"]);
     const divisionZeroCheck = booleanFrom(values["division-zero-check"]);
     if (boundsCheck === null || divisionZeroCheck === null) return null;

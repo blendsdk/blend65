@@ -1,4 +1,5 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { declaredStorage } from "../storage/selection.js";
 import type { SemanticBlock, SemanticOperation } from "../semantic/operations.js";
 import type { CpuFacts } from "../target/nmos6510.js";
 import {
@@ -132,7 +133,7 @@ export function canForwardByteArithmetic(
     if (
       value.kind !== "storage" ||
       value.bytes !== 1 ||
-      state.input.placement.homes.some((home) => home.requestId === stage)
+      declaredStorage(state.input, (id) => id === stage) !== undefined
     )
       return false;
     privateLoad = { result: consumer.result, value };
@@ -291,14 +292,19 @@ export function lowerBitwise(
       state.addressValues.has(operation.result);
     if (!ordinalIdentity)
       instructions.push(
-        machineInstruction(
-          state.input.profile.cpu,
-          opcode,
-          adjacentRead?.mode ?? modeForValue(right, offset),
-          adjacentRead?.operand ?? operandForValue(right, offset),
-          adjacentRead?.memory ?? [],
-          adjacentRead?.source ?? operation.span,
-        ),
+        Object.freeze({
+          ...machineInstruction(
+            state.input.profile.cpu,
+            opcode,
+            adjacentRead?.mode ?? modeForValue(right, offset),
+            adjacentRead?.operand ?? operandForValue(right, offset),
+            adjacentRead?.memory ?? [],
+            adjacentRead?.source ?? operation.span,
+          ),
+          ...(adjacentRead?.observerOrigins === undefined
+            ? {}
+            : { observerOrigins: adjacentRead.observerOrigins }),
+        }),
       );
     if (result.kind === "storage") instructions.push(storeA(result, offset, state, operation.span));
   }

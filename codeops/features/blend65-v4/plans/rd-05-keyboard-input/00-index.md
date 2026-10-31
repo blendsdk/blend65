@@ -1,6 +1,6 @@
 # Keyboard and combined-input library
 
-> **Status**: Blocked — AR-P38/whole-input AR-P4 scope approved; bounded early RD-08 prerequisite plan awaits preflight/execution; Phase 1 GREEN; all76 current behavior cases pass,12 whole-size cases fail;38/48 verified tasks
+> **Status**: Blocked — prerequisite28/40; task1.2.16 held-P/AR-P84 done; #133 tracked by AR-P83; Phase 1 GREEN; 38/48 verified parent tasks
 > **Created**: 2026-10-10
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1

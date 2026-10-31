@@ -7,7 +7,7 @@ import type {
   MachineInstruction,
   MachineMemoryEffect,
 } from "../machine/machine-types.js";
-import type { StorageHome } from "../storage/storage-types.js";
+import type { StorageHome, StartupStackDemand } from "../storage/storage-types.js";
 import type { MachineProgram } from "../machine/machine-types.js";
 
 /** Stable identity of the platform-owned cooperative-startup save area. */
@@ -37,14 +37,16 @@ const STARTUP_STATE = Object.freeze({
   bytes: 49,
 });
 
-/** Balanced display-independent programs need only status and the three mapping bytes. */
+/**
+ * Balanced display-independent programs hold the original P on the hardware
+ * stack. Only the three mapping bytes survive in the platform save area.
+ */
 const COMPACT_STARTUP_STATE = Object.freeze({
   ...STARTUP_STATE,
-  status: 0,
-  cpuDirection: 1,
-  cpuPort: 2,
-  cia2Direction: 3,
-  bytes: 4,
+  cpuDirection: 0,
+  cpuPort: 1,
+  cia2Direction: 2,
+  bytes: 3,
 });
 
 /** Inputs needed to construct the selected cooperative C64 startup. */
@@ -72,6 +74,8 @@ export type C64StartupInitializer =
 export type C64StartupResult =
   | {
       readonly kind: "complete";
+      /** Actual platform-only stack behavior of the emitted constructor. */
+      readonly stackDemand: StartupStackDemand;
       readonly stub: { readonly origin: 0x0801; readonly bytes: readonly number[] };
       readonly startup: MachineFunction & { readonly origin: 0x080d };
     }
@@ -290,12 +294,14 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
           stateInstruction(cpu, "stx", state.x),
           stateInstruction(cpu, "sty", state.y),
         ]),
+    // Compact startup keeps the original status byte on the stack. The entry
+    // masks IRQs while it captures platform state and clears decimal mode.
     machineInstruction(cpu, "php", "implied", null),
-    machineInstruction(cpu, "pla", "implied", null),
-    stateInstruction(cpu, "sta", state.status),
     ...(compact
-      ? []
+      ? [machineInstruction(cpu, "sei", "implied", null)]
       : [
+          machineInstruction(cpu, "pla", "implied", null),
+          stateInstruction(cpu, "sta", state.status),
           machineInstruction(cpu, "tsx", "implied", null),
           stateInstruction(cpu, "stx", state.stack),
         ]),
@@ -457,8 +463,27 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       );
     }
   }
+  if (compact) {
+    // Copy the held original P into the live register without removing it.
+    // This restores the caller's I state for main while D stays binary.
+    entry.push(
+      machineInstruction(cpu, "tsx", "implied", null),
+      machineInstruction(cpu, "inx", "implied", null),
+      machineInstruction(
+        cpu,
+        "lda",
+        "absolute-x",
+        Object.freeze({ kind: "absolute", value: 0x0100 }),
+      ),
+      machineInstruction(cpu, "pha", "implied", null),
+      machineInstruction(cpu, "plp", "implied", null),
+      machineInstruction(cpu, "cld", "implied", null),
+    );
+  }
 
-  const restore: MachineInstruction[] = [];
+  const restore: MachineInstruction[] = compact
+    ? [machineInstruction(cpu, "sei", "implied", null)]
+    : [];
   for (const { address, offset } of preservedDevices.slice(2)) {
     restore.push(...restoreDevice(cpu, address, offset));
   }
@@ -469,28 +494,41 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
     ...restoreDevice(cpu, machine.cia2DataDirection, state.cia2Direction),
     ...restoreDevice(cpu, cpu.portDataAddress, state.cpuPort),
     ...restoreDevice(cpu, cpu.portDirectionAddress, state.cpuDirection),
-    // The compact proof excludes stack-memory writes; source status saves,
-    // calls and returning interrupts already balance SP. No extra save is held.
+    // Mask IRQs before the first owned device or memory transaction. Compact
+    // restore reads the held byte, removes it with TXS, then pushes a copy for
+    // the final PLP. Nothing after PLP changes flags, so the original status is
+    // returned exactly; the full path keeps its explicit copy.
     ...(compact
-      ? []
+      ? [
+          machineInstruction(cpu, "tsx", "implied", null),
+          machineInstruction(cpu, "inx", "implied", null),
+          machineInstruction(
+            cpu,
+            "lda",
+            "absolute-x",
+            Object.freeze({ kind: "absolute", value: 0x0100 }),
+          ),
+          machineInstruction(cpu, "txs", "implied", null),
+          machineInstruction(cpu, "pha", "implied", null),
+          machineInstruction(cpu, "plp", "implied", null),
+        ]
       : [
           stateInstruction(cpu, "ldx", state.stack),
           machineInstruction(cpu, "txs", "implied", null),
-        ]),
-    stateInstruction(cpu, "lda", state.status),
-    machineInstruction(cpu, "pha", "implied", null),
-    ...(compact
-      ? []
-      : [
+          stateInstruction(cpu, "lda", state.status),
+          machineInstruction(cpu, "pha", "implied", null),
           stateInstruction(cpu, "lda", state.a),
           stateInstruction(cpu, "ldx", state.x),
           stateInstruction(cpu, "ldy", state.y),
+          machineInstruction(cpu, "plp", "implied", null),
         ]),
-    machineInstruction(cpu, "plp", "implied", null),
   );
 
   return Object.freeze({
     kind: "complete",
+    stackDemand: Object.freeze(
+      compact ? { heldBytes: 1, transientPeakBytes: 2 } : { heldBytes: 0, transientPeakBytes: 1 },
+    ),
     stub: Object.freeze({ origin: 0x0801, bytes: BASIC_STUB }),
     startup: Object.freeze({
       id: "startup",

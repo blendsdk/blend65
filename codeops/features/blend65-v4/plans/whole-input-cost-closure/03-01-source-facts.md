@@ -113,6 +113,19 @@ range is not narrowed. Recognition never deletes a source condition or changes
 the type/signedness/check policy. Optional straight-line expansion is only the
 proved exact-eight-trip body and keeps each volatile access and source range.
 
+Conditional counter maxima retain their recognized-loop observer premises when
+handed to object/effect queries. `ClosedObjectValueBounds.observerLoops` becomes
+`ClosedObjectFacts.rangeObservers`; the existing whole-tuple pending-obligation
+gate must close counter alias/visibility at both reference and candidate homes.
+Keeping the loop's original representation does not discharge a premise used by
+another rewrite. No general proof-dependency engine or new public API is added.
+
+Lexical register-policy depth is retained from the already checked frontend
+tree, before normalized CFGs can lose a non-repeating parent loop. The size-only
+checked-source handoff carries immutable function/condition-span/depth records;
+there is no reparse, second frontend analysis or block-label heuristic. Missing
+nesting is unknown, and stale source/function identities fail internally.
+
 ## Fact validity
 
 Attach source/program identity and execution context to every fact. Origin

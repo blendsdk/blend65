@@ -148,6 +148,13 @@ function sourceKey(operation: {
  * Measure qualified NMOS IRQ overlap, rather than adding independent maxima.
  * Calls reuse summaries keyed by active installations and the incoming I-bit possibility.
  * No machine state, storage request, instruction or runtime dispatcher is introduced.
+ * @param program Closed source and actual IRQ ownership transitions.
+ * @param helpers Selected helper stack effects.
+ * @param startupBytes Absolute platform-only startup peak, including held state when present.
+ * @param instructionSites Actual instruction-producing source boundaries.
+ * @param requests Complete selected storage used by root/link interference.
+ * @param startupHeldBytes Validated platform bytes below initializer/main, not callable roots.
+ * @returns One feasible winning route and conflicts accumulated across all IRQ paths.
  */
 export function simultaneousIRQStackPeak(
   program: WholeProgram,
@@ -155,6 +162,7 @@ export function simultaneousIRQStackPeak(
   startupBytes: number,
   instructionSites: StorageBinder["instructionSites"],
   requests: readonly StorageRequest[] = [],
+  startupHeldBytes = 0,
 ): SimultaneousStackPeak {
   const functions = new Map(
     program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn]),
@@ -558,7 +566,7 @@ export function simultaneousIRQStackPeak(
       : analyze(key, global.entry, global.blocks, { ...state, eligible: state.enabled });
     peak = deeper(peak, {
       ...body.peak,
-      program: body.peak.program + (inline ? 0 : 2),
+      program: body.peak.program + (inline ? 0 : 2) + startupHeldBytes,
       route: [
         "startup",
         `${inline ? "inline-initializer" : "initializer"}:${key}`,
@@ -571,7 +579,10 @@ export function simultaneousIRQStackPeak(
     }
     state = { ...body.exit, eligible: body.exit.enabled };
   }
-  if (reachesMain) peak = deeper(peak, summarize(program.semantic.main, state).peak);
+  if (reachesMain) {
+    const main = summarize(program.semantic.main, state).peak;
+    peak = deeper(peak, { ...main, program: main.program + startupHeldBytes });
+  }
   for (const root of program.roots) {
     if (root.kind === "callable") {
       peak = deeper(

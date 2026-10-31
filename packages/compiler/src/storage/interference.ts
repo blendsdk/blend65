@@ -1,7 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
-import type { SemanticFunction } from "../semantic/operations.js";
+import type { SemanticFunction, SemanticOperation } from "../semantic/operations.js";
 import type { IndirectTargetSets } from "../semantic/function-targets.js";
 import { interruptDepthAt, interruptExecutionContexts } from "../semantic/interrupt-contexts.js";
 import type {
@@ -16,7 +16,13 @@ import {
   interruptMaterializations,
   interruptRetainedBlocks,
 } from "../semantic/interrupt-context-facts.js";
-import type { WholeProgram } from "../semantic/whole-program.js";
+import type { WholeProgram, SemanticPosition } from "../semantic/whole-program.js";
+import { validLocalStorageLifetime } from "../semantic/local-storage-lifetimes.js";
+import type {
+  MachineFunction,
+  MachineInstruction,
+  MachineSourceFacts,
+} from "../machine/machine-types.js";
 import { hasHandlerSideIrqInstall } from "./inventory.js";
 import type {
   HelperCallDemand,
@@ -24,7 +30,241 @@ import type {
   IrqOverlapFacts,
   StorageInventory,
   StorageRequest,
+  SelectedHelperUse,
 } from "./storage-types.js";
+
+/** Actual symbolic access site; display names and memory-effect arrays alone are not authority. */
+export interface MachineStorageAccess {
+  /** Exact emitted body or startup that owns this instruction. */
+  readonly function: MachineFunction;
+  /** Original symbolic instruction, including address bytes and ordered effects. */
+  readonly instruction: MachineInstruction;
+}
+
+/**
+ * Index all function-storage references before binding or demand projection.
+ * @param functions Every emitted body, including startup and helper blocks.
+ * @returns One entry per actual request/instruction pair, including effect-only uses.
+ */
+export function machineStorageAccesses(
+  functions: readonly MachineFunction[],
+): ReadonlyMap<string, readonly MachineStorageAccess[]> {
+  const accesses = new Map<string, MachineStorageAccess[]>();
+  for (const fn of functions)
+    for (const block of fn.blocks)
+      for (const instruction of block.instructions) {
+        const ids = new Set<string>();
+        const operand = instruction.operand;
+        if (operand?.kind === "storage" || operand?.kind === "indirect-y")
+          ids.add(operand.requestId);
+        for (const effect of instruction.memory) {
+          if (effect.address.kind === "storage" || effect.address.kind === "indirect-y")
+            ids.add(effect.address.requestId);
+        }
+        for (const id of ids) {
+          const entries = accesses.get(id) ?? [];
+          entries.push({ function: fn, instruction });
+          accesses.set(id, entries);
+        }
+      }
+  return accesses;
+}
+
+/** One exact source operation, or a terminator whose lowering uses the owner span. */
+interface AccessPosition {
+  /** Original CFG boundary; no machine address is substituted for a source position. */
+  readonly position: SemanticPosition;
+  /** Null represents a terminator whose selector uses the whole owner span. */
+  readonly operation: SemanticOperation | null;
+}
+
+/** Index source associations once, retaining ambiguity instead of choosing a convenient match. */
+function sourceAccessPositions(
+  fn: SemanticFunction,
+): ReadonlyMap<string, readonly AccessPosition[]> {
+  const result = new Map<string, AccessPosition[]>();
+  const add = (
+    source: SourceSpan,
+    position: SemanticPosition,
+    operation: SemanticOperation | null,
+  ) => {
+    const key = JSON.stringify([source.sourceId, source.start, source.end]);
+    const entries = result.get(key) ?? [];
+    entries.push({ position, operation });
+    result.set(key, entries);
+  };
+  for (const block of fn.blocks) {
+    block.operations.forEach((operation, index) =>
+      add(operation.span, { block: block.id, operation: index }, operation),
+    );
+    const edge = block.terminator;
+    if (edge.kind === "branch" || (edge.kind === "return" && edge.value !== null))
+      add(fn.id.span, { block: block.id, operation: block.operations.length }, null);
+  }
+  return result;
+}
+
+/**
+ * Admit producer-sealed binding occupancy only when every selected access is covered.
+ * Unknown source association, foreign backing, callable/domain entries or a missing
+ * proof retains the original request. Machine snapshots and spills are never narrowed.
+ * @param facts Validated original source packets; placed globals do not replace that source.
+ * @param requests Complete retained selected declarations and machine demand.
+ * @param accesses Actual startup/body/helper operand and memory-effect references.
+ * @returns Original requests or covered binding copies, preserving every other constraint.
+ */
+export function coveredBindingRequests(
+  facts: MachineSourceFacts,
+  requests: readonly StorageRequest[],
+  accesses: ReadonlyMap<string, readonly MachineStorageAccess[]>,
+): readonly StorageRequest[] {
+  if (facts.nonLoopBundle !== "closed") return requests;
+  const byOwner = new Map(
+    [...facts.functions].map(([fn, packet]) => [bindingIdentityKey(fn.id), packet]),
+  );
+  const sites = new Map(
+    [...facts.functions.keys()].map((fn) => [bindingIdentityKey(fn.id), sourceAccessPositions(fn)]),
+  );
+  const excluded = new Set(
+    facts.program.roots
+      .filter((root) => root.kind === "callable" || root.kind === "interrupt")
+      .map((root) => bindingIdentityKey(root.function)),
+  );
+  return requests.map((request) => {
+    if (
+      (request.storageClass !== "local" && request.storageClass !== "parameter") ||
+      request.binding === null ||
+      request.persistent ||
+      request.pageSafeIndirect ||
+      request.activationRoot !== undefined ||
+      (request.domain !== undefined && request.domain !== "main")
+    )
+      return request;
+    const owner = bindingIdentityKey(request.owner);
+    const packet = byOwner.get(owner);
+    const domains = facts.program.executionDomains?.find(
+      (entry) => bindingIdentityKey(entry.function) === owner,
+    )?.domains;
+    const key = bindingIdentityKey(request.binding);
+    const lifetime = packet?.lifetimes.get(key);
+    if (
+      packet === undefined ||
+      excluded.has(owner) ||
+      domains === undefined ||
+      domains.some((domain) => domain !== "main") ||
+      lifetime === undefined ||
+      !validLocalStorageLifetime(facts.program, key, lifetime)
+    )
+      return request;
+    const occupied = new Set(lifetime.liveAt.map(positionKey));
+    for (const access of accesses.get(request.id) ?? []) {
+      const caller = access.function.sourceFunction;
+      const source = access.instruction.source;
+      if (caller === undefined || source === null) return request;
+      const callerKey = bindingIdentityKey(caller);
+      const matches = sites
+        .get(callerKey)
+        ?.get(JSON.stringify([source.sourceId, source.start, source.end]));
+      if (matches?.length !== 1) return request;
+      const site = matches[0]!;
+      if (callerKey === owner) {
+        if (!occupied.has(positionKey(site.position))) return request;
+        continue;
+      }
+      // Only actual direct-call stores into this callee parameter are incoming
+      // delivery. Foreign object reads/writes are not silently recast as marshals.
+      const operand = access.instruction.operand;
+      if (
+        request.storageClass !== "parameter" ||
+        site.operation?.kind !== "call" ||
+        bindingIdentityKey(site.operation.callee) !== owner ||
+        !packet.function.parameters.some((parameter) => bindingIdentityKey(parameter.id) === key) ||
+        !["sta", "stx", "sty"].includes(access.instruction.opcode) ||
+        operand?.kind !== "storage" ||
+        access.instruction.mode !== "storage" ||
+        operand.requestId !== request.id ||
+        operand.addressByte !== undefined ||
+        (operand.offset ?? 0) < 0 ||
+        (operand.offset ?? 0) >= request.bytes ||
+        access.instruction.memory.some(
+          (effect) =>
+            (effect.address.kind === "storage" || effect.address.kind === "indirect-y") &&
+            effect.address.requestId === request.id &&
+            (effect.kind !== "write" || effect.address.kind !== "storage"),
+        ) ||
+        !occupied.has(positionKey({ block: packet.function.entry, operation: 0 }))
+      )
+        return request;
+    }
+    return Object.freeze({ ...request, lifetime });
+  });
+}
+
+/**
+ * Keep canonical helper conflicts except bindings already proved dead at this exact operation.
+ * This does not shorten helper outputs, staging, snapshots or scratch lifetimes.
+ * @param facts Original selected packets, or undefined for the canonical path.
+ * @param requests Actual complete selected inventory, not its reference declarations.
+ * @param rootAware Whether existing specialization distinguishes activation roots.
+ * @returns A context-specific lookup sharing one source-position index per lowering attempt.
+ */
+export function helperLiveRequestQuery(
+  facts: MachineSourceFacts | undefined,
+  requests: readonly StorageRequest[],
+  rootAware: boolean,
+): (use: SelectedHelperUse) => readonly string[] {
+  const byOwner = new Map<string, StorageRequest[]>();
+  for (const request of requests) {
+    const key = bindingIdentityKey(request.owner);
+    const entries = byOwner.get(key) ?? [];
+    entries.push(request);
+    byOwner.set(key, entries);
+  }
+  const sourceSites = new Map(
+    facts?.program.semantic.functions.map((fn) => [
+      bindingIdentityKey(fn.id),
+      sourceAccessPositions(fn),
+    ]) ?? [],
+  );
+  return (use) => {
+    const helper = new Set(use.requestIds);
+    const owner = bindingIdentityKey(use.caller);
+    const canonical = (byOwner.get(owner) ?? []).filter(
+      (request) =>
+        (!rootAware || request.activationRoot === use.activationRoot) && !helper.has(request.id),
+    );
+    const sites = sourceSites
+      .get(owner)
+      ?.get(JSON.stringify([use.source.sourceId, use.source.start, use.source.end]));
+    if (facts?.nonLoopBundle !== "closed" || sites?.length !== 1 || sites[0]!.operation === null)
+      return Object.freeze(canonical.map((request) => request.id));
+    const position = positionKey(sites[0]!.position);
+    return Object.freeze(
+      canonical
+        .filter((request) => {
+          if (
+            (request.storageClass !== "local" && request.storageClass !== "parameter") ||
+            request.binding === null ||
+            request.persistent ||
+            request.pageSafeIndirect ||
+            (request.domain ?? "main") !== use.domain ||
+            request.activationRoot !== use.activationRoot ||
+            !validLocalStorageLifetime(
+              facts.program,
+              bindingIdentityKey(request.binding),
+              request.lifetime,
+            )
+          )
+            return true;
+          return (
+            request.lifetime.liveAt.some((point) => positionKey(point) === position) ||
+            request.lifetime.callsCrossed.some((source) => sameSpan(source, use.source))
+          );
+        })
+        .map((request) => request.id),
+    );
+  };
+}
 
 /** Compare stable identities without locale-dependent collation. */
 function compareText(left: string, right: string): number {

@@ -73,11 +73,19 @@ function operationStackDepths(fn: SemanticFunction): ReadonlyMap<SemanticOperati
   return depths;
 }
 
-/** Compute the deepest reachable direct-call chain and retain the exact winning route. */
+/**
+ * Compute relative call routes, adding platform-held bytes once at startup-owned roots only.
+ * @param inventory Actual selected function storage and unchanged source call graph.
+ * @param helperCalls Selected helper stack effects at their original operations.
+ * @param nmiEntries Actual generated entries whose independent per-entry peaks are needed.
+ * @param startupHeldBytes Validated platform bytes below initializer/main execution.
+ * @returns Winning program, independent callable/interrupt and scoped NMI routes.
+ */
 export function hardwareCallRoutes(
   inventory: StorageInventory,
   helperCalls: readonly HelperCallDemand[],
   nmiEntries: readonly NmiEntryStackDemand[] = [],
+  startupHeldBytes = 0,
 ): {
   /** Existing program call/status route, before bounded IRQ overlap. */
   readonly program: HardwareStackRoute;
@@ -255,7 +263,13 @@ export function hardwareCallRoutes(
   let deepest: HardwareStackRoute = Object.freeze({ bytes: 0, route: Object.freeze(["main"]) });
   for (const root of inventory.program.roots) {
     if (root.kind === "main" || root.kind === "callable") {
-      deepest = deeperStackRoute(deepest, depth(bindingIdentityKey(root.function)));
+      const route = depth(bindingIdentityKey(root.function));
+      deepest = deeperStackRoute(
+        deepest,
+        root.kind === "main"
+          ? Object.freeze({ ...route, bytes: route.bytes + startupHeldBytes })
+          : route,
+      );
       continue;
     }
     if (root.kind === "initializer") {
@@ -285,7 +299,10 @@ export function hardwareCallRoutes(
           }),
         );
       }
-      deepest = deeperStackRoute(deepest, initializerDepth);
+      deepest = deeperStackRoute(
+        deepest,
+        Object.freeze({ ...initializerDepth, bytes: initializerDepth.bytes + startupHeldBytes }),
+      );
     }
   }
   let interrupt: HardwareStackRoute = Object.freeze({ bytes: 0, route: Object.freeze([]) });

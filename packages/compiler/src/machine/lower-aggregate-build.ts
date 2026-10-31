@@ -45,6 +45,7 @@ export function lowerCapturedAggregatePlace(
     bytes,
     signed: false,
   });
+  state.aggregateCaptures?.push(Object.freeze({ operation, requestId: request.id }));
   const source = placeSource(operation.place, bytes, operation.result, state, operation);
   const instructions: MachineInstruction[] = [...source.setup];
   for (let offset = 0; offset < bytes; offset += 1) {
@@ -187,6 +188,7 @@ export function lowerLargeCapturedAggregatePlace(
     bytes,
     signed: false,
   });
+  state.aggregateCaptures?.push(Object.freeze({ operation, requestId: request.id }));
   const source = placeSource(operation.place, bytes, operation.result, state, operation);
   const from = copyAddressToPointer(
     source.source.value,

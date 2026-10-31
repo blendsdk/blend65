@@ -1,6 +1,5 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
-import type { BindingId } from "../frontend/semantic-types.js";
-import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
+import type { ProjectDiagnostic } from "../project/types.js";
 import {
   interruptDepthAt,
   interruptExecutionContexts,
@@ -16,17 +15,26 @@ import {
   interruptCodeContexts,
   interruptExecutionKey,
 } from "../semantic/interrupt-context-facts.js";
-import type { WholeProgram } from "../semantic/whole-program.js";
-import type { SemanticOperation, SemanticTerminator } from "../semantic/operations.js";
-import type { HelperCallDemand, StorageRequest } from "../storage/storage-types.js";
+import { validFixedLoopFacts } from "../semantic/aggregate-place-proof.js";
+import type {
+  SemanticFunction,
+  SemanticOperation,
+  SemanticTerminator,
+} from "../semantic/operations.js";
+import type {
+  HelperCallDemand,
+  StorageRequest,
+  SelectedHelperUse,
+} from "../storage/storage-types.js";
+import { helperLiveRequestQuery } from "../storage/interference.js";
 import { storageInventoryHash } from "../storage/closure.js";
-import { hasHandlerSideIrqInstall, inventoryStorage } from "../storage/inventory.js";
+import { hasHandlerSideIrqInstall } from "../storage/inventory.js";
+import { logicalStorageForLowering, projectMachineStorage } from "../storage/selection.js";
 import {
   createC64Startup,
   createC64StartupStateData,
   type C64StartupInitializer,
 } from "../layout/startup.js";
-import { machineInstruction } from "./lower-control.js";
 import { c64InterruptEntryLabel, createC64InterruptEntry, RAW_HANDLER_ENTRY } from "./lower-c64.js";
 import { createC64ReferenceInterruptEntry } from "./lower-c64-interrupt.js";
 import {
@@ -34,98 +42,78 @@ import {
   contextFunctionLabel,
   domainRequestId,
   domainStorageRequest,
-  provisionalDomainAliases,
+  provisionalLoweringStorage,
 } from "./interrupt-specialize.js";
 import type {
   MachineDataObject,
   MachineFunction,
-  MachineInstruction,
   MachineLoweringInput,
   MachineLoweringResult,
-  MachineMemoryEffect,
 } from "./machine-types.js";
-import { loweringFailure, isLoweringFailure, typeBytes, bindingLabel } from "./lower-state.js";
+import {
+  loweringFailure,
+  isLoweringFailure,
+  bindingLabel,
+  validateMachineSourceFacts,
+} from "./lower-state.js";
 import { lowerFunction } from "./lower-function.js";
-import { lowerData } from "./lower-data.js";
+import { selectBooleanCallFlags } from "./lower-call.js";
+import { bindFixedLoopContext } from "./fixed-loop-selection.js";
+import { validByteComplementFacts } from "./byte-value-availability.js";
+import { lowerData, lowerConstantInitializer } from "./lower-data.js";
+import { createLoweringProducer } from "./lowering-provenance.js";
 import { hasDisplayIndependentStartup } from "./lower-startup.js";
 import { createC64NmiEntries } from "./nmi-entry.js";
 import type { PendingC64NmiEntry } from "./nmi-entry.js";
 export * from "./lower-state.js";
 
-/** Lower a side-effect-free constant module initializer to inline runtime stores. */
-function lowerConstantInitializer(
-  global: WholeProgram["semantic"]["globals"][number],
-  input: MachineLoweringInput,
-  accumulator: number | null,
-): { readonly instructions: readonly MachineInstruction[]; readonly accumulator: number | null } {
-  const bytes = global.runtimeInitialBytes;
-  if (bytes === null || global.entry === null || bytes.length !== typeBytes(global.type)) {
-    throw loweringFailure(
-      "Constant runtime initializer bytes do not match the global",
-      global.source,
-    );
-  }
-  const target = bindingLabel("global", global.id);
-  const instructions: MachineInstruction[] = [];
-  let currentAccumulator = accumulator;
-  for (const [offset, value] of bytes.entries()) {
-    if (value !== currentAccumulator) {
-      instructions.push(
-        machineInstruction(
-          input.profile.cpu,
-          "lda",
-          "immediate",
-          Object.freeze({ kind: "immediate", value }),
-          [],
-          global.source,
-        ),
-      );
-      currentAccumulator = value;
-    }
-    const memory = Object.freeze([
-      Object.freeze({
-        kind: "write" as const,
-        address: Object.freeze({ kind: "symbolic" as const, label: target, offset }),
-        width: 1 as const,
-        volatile: false,
-        order: 0,
-      }),
-    ]) satisfies readonly MachineMemoryEffect[];
-    instructions.push(
-      machineInstruction(
-        input.profile.cpu,
-        "sta",
-        "absolute",
-        Object.freeze({ kind: "label", label: target, offset }),
-        memory,
-        global.source,
-      ),
-    );
-  }
-  return Object.freeze({
-    instructions: Object.freeze(instructions),
-    accumulator: currentAccumulator,
-  });
-}
+/** Only this private pair can attest results from the compiler's real lowering implementation. */
+const loweringProducer = createLoweringProducer(lowerMachineProgramBody);
 
 /**
  * Lower one closed semantic program directly to documented NMOS machine operations.
- * @param input Closed program, provisional SFA placement and exact selected profile.
+ * @param input Closed program, logical declarations or actual SFA placement, and exact target facts.
  * @returns Structured machine program plus its finite late-storage binder.
  */
-export function lowerMachineProgram(input: MachineLoweringInput): MachineLoweringResult {
+export const lowerMachineProgram = loweringProducer.produce;
+
+/**
+ * Verify the real lowerer's unchanged symbolic program, binder and selected inventory.
+ * @param program Actual symbolic root returned by this lowering producer.
+ * @param binder Its exact selected helper/startup/site demands.
+ * @param inventory Complete selected inventory used by final closure.
+ * @param target Original target facts, before source zero-page reservation.
+ * @returns Whether the same producer inputs, contents and permitted profile derivation remain.
+ */
+export const validLoweringProvenance = loweringProducer.matches;
+
+/** Build the direct symbolic result before the private producer attaches its immutable receipt. */
+function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringResult {
   const requests: StorageRequest[] = [];
   const generatedData = new Map<string, MachineDataObject>();
-  const helperUses: {
-    readonly id: string;
-    readonly caller: BindingId;
-    readonly requestIds: readonly string[];
-    readonly source: SourceSpan;
-    readonly activationRoot?: string;
-  }[] = [];
+  const helperUses: SelectedHelperUse[] = [];
   const warnings: ProjectDiagnostic[] = [];
   const instructionSites = new Set<SemanticOperation | SemanticTerminator>();
   try {
+    const initialInventory = logicalStorageForLowering(input);
+    if (initialInventory === null)
+      throw loweringFailure("Missing or inconsistent logical storage declarations", null);
+    validateMachineSourceFacts(input);
+    for (const [fn, facts] of input.sourceFacts?.functions ?? []) {
+      if (facts.loops.some((loop) => !validFixedLoopFacts(loop)))
+        throw loweringFailure(
+          "Flat-eight facts do not match the checked source template",
+          fn.source,
+        );
+      if (
+        facts.complements !== undefined &&
+        !validByteComplementFacts(facts.complements, facts, input.profile.id)
+      )
+        throw loweringFailure(
+          "Byte complement facts do not match the checked source function",
+          fn.source,
+        );
+    }
     const functionsByKey = new Map(
       input.program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
     );
@@ -141,7 +129,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
     const loweringInput = Object.freeze({
       ...input,
       retainedInterrupts: retained,
-      placement: provisionalDomainAliases(input.placement, input.program),
+      ...provisionalLoweringStorage(input),
     });
     const routeDepths = interruptRouteDepths(input.program, contexts);
     const routeSlots = new Map<SemanticOperation, Set<string>>();
@@ -170,6 +158,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
       }
     }
     const machineFunctions: MachineFunction[] = [];
+    const booleanOwners = new Map<string, SemanticFunction>();
     const pendingNmiEntries: PendingC64NmiEntry[] = [];
     const rawHandlerBodies = new Map<string, MachineFunction>();
     for (const functionId of input.program.reachableFunctions) {
@@ -216,15 +205,11 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
             ? Object.freeze({
                 ...input,
                 retainedInterrupts: retained,
-                placement: provisionalDomainAliases(
-                  input.placement,
-                  input.program,
-                  context.activationRoot,
-                ),
+                ...provisionalLoweringStorage(input, context.activationRoot),
               })
             : loweringInput;
         const discovered: StorageRequest[] = [];
-        const selectedHelpers: typeof helperUses = [];
+        const selectedHelpers: Omit<SelectedHelperUse, "domain" | "activationRoot">[] = [];
         const body = lowerFunction(
           id,
           semantic.id,
@@ -255,6 +240,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
           ...selectedHelpers.map((use) =>
             Object.freeze({
               ...use,
+              domain: context.domain,
               id:
                 rootAware && context.activationRoot !== undefined
                   ? `${use.id}.${context.domain}.root${Buffer.from(context.activationRoot).toString("hex")}.depth${context.localIrqDepth ?? 0}${context.localNmiDepth === undefined ? "" : `.${context.localNmiDepth}`}`
@@ -384,14 +370,19 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
             );
           }
         } else {
-          const selected = domainMachineFunction(
-            lowered,
-            context,
-            contexts,
-            input.program,
-            rootAware,
+          const selected = bindFixedLoopContext(
+            domainMachineFunction(lowered, context, contexts, input.program, rootAware),
+            lowered.id,
+            (requestId) =>
+              domainRequestId(
+                requestId,
+                context.domain,
+                input.program,
+                rootAware ? context.activationRoot : undefined,
+              ),
           );
           if (machineFunctions.some((fn) => fn.id === selected.id)) continue;
+          if (context.domain === "main") booleanOwners.set(selected.id, semantic);
           machineFunctions.push(
             semantic.placement
               ? Object.freeze({ ...selected, placement: semantic.placement })
@@ -440,6 +431,8 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
             entry.route.variant,
             binding.requestId,
             input.profile,
+            input.sourceFacts?.nonLoopBundle !== undefined ||
+              input.sourceFacts?.loopPolicy !== undefined,
           ),
         );
       }
@@ -479,7 +472,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
             nmi: entry?.nmi ?? 0,
           });
         const discovered: StorageRequest[] = [];
-        const selectedHelpers: typeof helperUses = [];
+        const selectedHelpers: Omit<SelectedHelperUse, "domain" | "activationRoot">[] = [];
         const body = lowerFunction(
           label,
           initializer,
@@ -504,6 +497,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
           ...selectedHelpers.map((use) =>
             Object.freeze({
               ...use,
+              domain: context.domain,
               id: `${use.id}.${context.domain}.depth${context.irq}.${context.nmi}`,
               requestIds: Object.freeze(
                 use.requestIds.map((requestId) =>
@@ -544,6 +538,10 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
     }
     const nmiEntries = createC64NmiEntries(pendingNmiEntries, machineFunctions, input.profile);
     machineFunctions.push(...nmiEntries.functions);
+    const selectedFunctions =
+      input.sourceFacts?.nonLoopBundle === "closed"
+        ? selectBooleanCallFlags(machineFunctions, booleanOwners, input.profile.cpu)
+        : machineFunctions;
 
     const mainFunction = functionsByKey.get(bindingIdentityKey(input.program.semantic.main));
     if (mainFunction === undefined) {
@@ -575,47 +573,47 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
     requests.length = 0;
     requests.push(...uniqueRequests.values());
     requests.sort((left, right) => Buffer.compare(Buffer.from(left.id), Buffer.from(right.id)));
-    const initialInventory = inventoryStorage(input.program);
-    const certifiedStorage = Object.freeze(
-      [...initialInventory.requests, ...requests].sort((left, right) =>
-        Buffer.compare(Buffer.from(left.id), Buffer.from(right.id)),
-      ),
+    const storage = projectMachineStorage(
+      input,
+      initialInventory,
+      selectedFunctions,
+      startup.startup,
+      requests,
     );
-    const inventoryHash = storageInventoryHash(
-      Object.freeze({
-        program: input.program,
-        requests: certifiedStorage,
-        results: initialInventory.results,
-      }),
-    );
+    if (storage.kind === "error") throw loweringFailure(storage.reason, storage.source);
+    requests.length = 0;
+    requests.push(...storage.lateRequests);
+    const certifiedStorage = storage.inventory.requests;
+    const inventoryHash = storageInventoryHash(storage.inventory);
     const helperCallsById = new Map<string, HelperCallDemand>();
-    for (const use of helperUses) {
-      const helperIds = new Set(use.requestIds);
-      const call: HelperCallDemand = Object.freeze({
-        id: use.id,
-        caller: use.caller,
-        source: use.source,
-        helperRequestIds: use.requestIds,
-        liveRequestIds: Object.freeze(
-          certifiedStorage
-            .filter(
-              (request) =>
-                bindingIdentityKey(request.owner) === bindingIdentityKey(use.caller) &&
-                (!rootAware || request.activationRoot === use.activationRoot) &&
-                !helperIds.has(request.id),
-            )
-            .map((request) => request.id),
-        ),
-        stackBytes: 2,
-      });
-      const previous = helperCallsById.get(call.id);
-      if (previous !== undefined && JSON.stringify(previous) !== JSON.stringify(call)) {
-        throw loweringFailure("Equivalent helper contexts disagree on storage demand", use.source);
+    if (helperUses.length > 0) {
+      const helperLiveRequests = helperLiveRequestQuery(
+        input.sourceFacts,
+        certifiedStorage,
+        rootAware,
+      );
+      for (const use of helperUses) {
+        const call: HelperCallDemand = Object.freeze({
+          id: use.id,
+          caller: use.caller,
+          source: use.source,
+          helperRequestIds: use.requestIds,
+          liveRequestIds: helperLiveRequests(use),
+          stackBytes: 2,
+        });
+        const previous = helperCallsById.get(call.id);
+        if (previous !== undefined && JSON.stringify(previous) !== JSON.stringify(call)) {
+          throw loweringFailure(
+            "Equivalent helper contexts disagree on storage demand",
+            use.source,
+          );
+        }
+        helperCallsById.set(call.id, call);
       }
-      helperCallsById.set(call.id, call);
     }
     const helperCalls = [...helperCallsById.values()];
     const binder = Object.freeze({
+      startupStack: startup.stackDemand,
       candidateRequestIds: Object.freeze(requests.map(({ id }) => id)),
       helperCalls: Object.freeze(helperCalls),
       nmiEntries: nmiEntries.stackDemands,
@@ -624,12 +622,14 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
     });
     return Object.freeze({
       kind: "complete",
+      inventory: storage.inventory,
       program: Object.freeze({
-        functions: Object.freeze(machineFunctions),
+        ...(storage.evidence === undefined ? {} : { storageSelection: storage.evidence }),
+        functions: Object.freeze(selectedFunctions),
         data: lowerData(
           input.program,
           generatedData,
-          machineFunctions,
+          selectedFunctions,
           startup.startup,
           input.bindingNames,
           createC64StartupStateData(c64Startup),

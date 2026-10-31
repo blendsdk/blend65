@@ -27,10 +27,10 @@ export interface CheckOptions extends ProjectLoadOptions {
   readonly signal?: AbortSignal;
 }
 
-/** Build inputs supported by the unoptimized compiler slice. */
+/** Build inputs with an optional code-size optimization selection. */
 export interface BuildOptions extends CheckOptions {
-  /** The only optimization mode implemented by this compiler slice. */
-  readonly optimization?: "none";
+  /** Override the manifest mode with direct lowering or code-size optimization. */
+  readonly optimization?: "none" | "size";
   /** Override the manifest's bounds-check setting. */
   readonly boundsCheck?: boolean;
   /** Override the manifest's division-by-zero check setting. */

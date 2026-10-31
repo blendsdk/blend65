@@ -8,18 +8,28 @@ import type {
   SemanticTerminator,
 } from "../semantic/operations.js";
 import type { StorageRequest } from "../storage/storage-types.js";
+import { lowerTerminator, machineCost, machineInstruction, machineState } from "./lower-control.js";
 import {
-  lowerTerminator,
-  machineCost,
-  machineInstruction,
-  machineState,
-  semanticSuccessors,
-} from "./lower-control.js";
+  prepareFixedLoops,
+  enterFixedLoopBlock,
+  selectFixedLoopOperation,
+  finishFixedLoopBlock,
+  finishFixedLoops,
+  prepareFixedCounterStorage,
+  lowerFixedCounterOperation,
+} from "./fixed-loop-selection.js";
 import { prepareAggregateInduction } from "./lower-induction.js";
+import { byteComplementNoCode } from "./byte-value-availability.js";
+import { prepareByteComplements } from "./lower-unary.js";
 import { lowerOperation } from "./lower-operation.js";
+import { appendMergeCopies } from "./lower-merge-copies.js";
 import { appendImmediateByteBitwise, appendScalarPrefix } from "./lower-scalar.js";
 import { canOmitComparisonCaptureReload } from "./byte-capture-observers.js";
-import { selectRegisterForwarding, selectZeroReturn } from "./lower-register-forwarding.js";
+import {
+  selectRegisterForwarding,
+  selectZeroReturn,
+  selectByteWindows,
+} from "./lower-register-forwarding.js";
 import { lowerIndirectCall, lowerInterruptSink } from "./lower-indirect.js";
 import { lowerVariableShift } from "./lower-variable-shift.js";
 import { selectGuardedShiftCount } from "./lower-guarded-shift.js";
@@ -48,7 +58,7 @@ import {
   type AggregateAddressCache,
   type FunctionLoweringState,
   appendLoadA,
-  storeA,
+  functionValueUses,
 } from "./lower-state.js";
 
 /** Lower one ordered block list into one machine function. */
@@ -70,108 +80,26 @@ export function lowerFunction(
   interruptDepth: InterruptExecutionContext = { domain: "main", irq: 0, nmi: 0 },
   instructionSites?: Set<SemanticOperation | SemanticTerminator>,
 ): MachineFunction {
-  const blockIndexes = new Map(blocks.map((block, index) => [block.id, index] as const));
-  const predecessors = new Map(blocks.map((block) => [block.id, [] as string[]] as const));
-  for (const block of blocks) {
-    for (const successor of semanticSuccessors(block.terminator)) {
-      const incoming = predecessors.get(successor);
-      if (incoming !== undefined) incoming.push(block.id);
-    }
-  }
-  const positions = Object.freeze(
-    blocks.flatMap((block) =>
-      Array.from({ length: block.operations.length + 1 }, (_, operation) =>
-        Object.freeze({ block: block.id, operation }),
-      ),
-    ),
+  const fixedLoops = prepareFixedLoops(blocks, input, owner, interruptDepth.domain);
+  const { blockIndexes, predecessors, positions } = fixedLoops;
+  const { materializedValues, singleUseValues, retainedAggregateResults, addressValues } =
+    functionValueUses(blocks);
+  const sourceFunction = input.program.semantic.functions.find(
+    (candidate) => bindingIdentityKey(candidate.id) === bindingIdentityKey(owner),
   );
-  const materializedValues = new Set<string>();
-  const valueUseCounts = new Map<string, number>();
-  const aggregateDestinations = new Map(
-    blocks.flatMap((block) =>
-      block.operations.flatMap((operation) =>
-        operation.kind === "aggregate"
-          ? [
-              [
-                operation.result,
-                operation.destination?.kind === "place" ? operation.destination.place : null,
-              ] as const,
-            ]
-          : [],
-      ),
-    ),
-  );
-  const retainedAggregateResults = new Set<string>();
-  const recordUse = (
-    value: string,
-    consumer: (typeof blocks)[number]["operations"][number] | null,
-  ): void => {
-    materializedValues.add(value);
-    valueUseCounts.set(value, (valueUseCounts.get(value) ?? 0) + 1);
-    if (!aggregateDestinations.has(value)) return;
-    const destination = aggregateDestinations.get(value);
-    if (
-      consumer?.kind === "store" &&
-      destination !== null &&
-      destination !== undefined &&
-      (consumer.place === destination ||
-        (consumer.place.path.length === 0 &&
-          destination.path.length === 0 &&
-          bindingIdentityKey(consumer.place.root) === bindingIdentityKey(destination.root)))
-    ) {
-      return;
-    }
-    retainedAggregateResults.add(value);
-  };
-  const addressValues = new Set<string>();
-  for (const block of blocks) {
-    for (const operation of block.operations) {
-      const indexedPlace =
-        operation.kind === "load" ||
-        operation.kind === "store" ||
-        operation.kind === "place-address"
-          ? operation.place
-          : operation.kind === "aggregate" && operation.destination?.kind === "place"
-            ? operation.destination.place
-            : null;
-      if (indexedPlace !== null) {
-        for (const component of indexedPlace.path) {
-          if (component.kind === "index") {
-            addressValues.add(component.value);
-            recordUse(component.value, operation);
-          }
-        }
-      }
-      if (operation.kind === "store") recordUse(operation.value, operation);
-      else if (operation.kind === "convert") recordUse(operation.operand, operation);
-      else if (operation.kind === "unary") recordUse(operation.operand, operation);
-      else if (operation.kind === "binary" || operation.kind === "bcd") {
-        recordUse(operation.left, operation);
-        recordUse(operation.right, operation);
-      } else if (operation.kind === "call" || operation.kind === "platform") {
-        for (const argument of operation.arguments) recordUse(argument, operation);
-      } else if (operation.kind === "indirect-call") {
-        recordUse(operation.target, operation);
-        for (const argument of operation.arguments) recordUse(argument, operation);
-      } else if (operation.kind === "memory-read") recordUse(operation.address, operation);
-      else if (operation.kind === "memory-write") {
-        recordUse(operation.address, operation);
-        recordUse(operation.value, operation);
-      } else if (operation.kind === "aggregate") {
-        for (const element of operation.elements) recordUse(element.value, operation);
-        if (operation.fill !== null) recordUse(operation.fill, operation);
-      } else if (operation.kind === "merge") {
-        for (const incoming of operation.incoming) recordUse(incoming.value, operation);
-      }
-    }
-    if (block.terminator.kind === "return" && block.terminator.value !== null) {
-      recordUse(block.terminator.value, null);
-    }
-  }
-  const singleUseValues = new Set(
-    [...valueUseCounts].filter(([, uses]) => uses === 1).map(([value]) => value),
-  );
-  const ordinalBounds = ordinalBoundsForFunction(blocks, input);
+  const sourceFacts =
+    sourceFunction === undefined ? undefined : input.sourceFacts?.functions.get(sourceFunction);
+  const complements =
+    input.sourceFacts?.nonLoopBundle === "closed" &&
+    interruptDepth.domain === "main" &&
+    sourceFunction?.entryKind !== "interrupt"
+      ? sourceFacts?.complements
+      : undefined;
+  const complementFree =
+    complements === undefined
+      ? undefined
+      : byteComplementNoCode(complements, input.placement, blocks, input.logicalStorage);
+  const ordinalBounds = ordinalBoundsForFunction(blocks, input, fixedLoops.counterFacts);
   const {
     forwardedRegisterValues,
     byteOrdinalAdditions,
@@ -185,11 +113,20 @@ export function lowerFunction(
     singleUseValues,
     ordinalBounds,
     input.program.semantic.functions,
+    complementFree?.noCode,
+    complementFree?.addressValues,
   );
   const state: FunctionLoweringState = {
     owner,
+    fixedLoops,
+    ...(sourceFacts === undefined ? {} : { sourceFacts }),
     interruptDepth,
     values: new Map(),
+    ...(input.observerEvidence &&
+    interruptDepth.domain === "main" &&
+    interruptDepth.activationRoot === undefined
+      ? { aggregateCaptures: [] }
+      : {}),
     aggregatePlaces: new Map(),
     directCallerResults: new Set(),
     requests,
@@ -201,7 +138,7 @@ export function lowerFunction(
       ),
     ),
     materializedValues,
-    forwardedRegisterValues,
+    forwardedRegisterValues: new Set(forwardedRegisterValues),
     byteOrdinalAdditions,
     directBcdWrites,
     subtractRightInX,
@@ -231,19 +168,20 @@ export function lowerFunction(
     aggregateAddressCache: null,
     aggregateInduction: null,
   };
-  const sourceFunction = input.program.semantic.functions.find(
-    (candidate) => bindingIdentityKey(candidate.id) === bindingIdentityKey(owner),
-  );
   const sourceResult = sourceFunction?.result;
   state.aggregateInduction = prepareAggregateInduction(blocks, state);
+  prepareFixedCounterStorage(state, ordinalBounds);
+  if (complements !== undefined && complementFree !== undefined)
+    state.byteComplements = prepareByteComplements(complements, state, blocks, complementFree);
   const loweredBlocks: MachineBlock[] = [];
   const semanticExitLabels = new Map<string, string>();
   const aggregateAddressCacheAtExit = new Map<string, AggregateAddressCache | null>();
   const boundsStopLabel = `${blocks[0]?.id ?? id}.bounds.stop`;
   let boundsStopSource: SourceSpan | null = null;
   let indirectCallIndex = 0;
-  for (const block of blocks) {
-    state.currentSemanticBlockId = block.id;
+  for (const block of fixedLoops.blocks) {
+    enterFixedLoopBlock(block, state);
+    const occurrenceStart = loweredBlocks.length;
     const byteReturnArms = !returnsToStartup && hasByteReturnArms(block, blocks, blockIndexes);
     state.divisionReuse = null;
     const incoming = predecessors.get(block.id) ?? [];
@@ -312,6 +250,7 @@ export function lowerFunction(
       precedingSite = operation;
       precedingInstructions = currentInstructions.length;
       precedingBlocks = loweredBlocks.length;
+      if (selectFixedLoopOperation(operation, state)) continue;
       if (
         input.boundsCheck === true &&
         (operation.kind === "load" ||
@@ -497,14 +436,9 @@ export function lowerFunction(
         }
       }
       if (operation.kind !== "platform" || operation.capability !== "c64.video.waitNextFrame") {
-        const selected = lowerOperation(
-          operation,
-          state,
-          undefined,
-          block,
-          byteReturnArms,
-          operationIndex,
-        );
+        const selected =
+          lowerFixedCounterOperation(operation, state, operationIndex) ??
+          lowerOperation(operation, state, undefined, block, byteReturnArms, operationIndex);
         const home =
           "result" in operation && operation.result !== null
             ? state.values.get(operation.result)
@@ -593,13 +527,14 @@ export function lowerFunction(
       waitIndex += 1;
     }
     recordInstructionSite();
-    precedingSite = block.terminator;
+    precedingSite = fixedLoops.current?.source.terminator ?? block.terminator;
     precedingInstructions = currentInstructions.length;
     precedingBlocks = loweredBlocks.length;
     if (state.aggregateInduction?.preheader === block.id) {
       currentInstructions.push(...state.aggregateInduction.initialization);
       state.aggregateAddressCache = state.aggregateInduction.cache;
     }
+    currentInstructions.push(...(state.byteComplements?.prefixes.get(block.id) ?? []));
     if (block.terminator.kind === "return" && block.terminator.value !== null) {
       if (sourceResult?.kind === "array" || sourceResult?.kind === "struct") {
         const loop =
@@ -671,30 +606,11 @@ export function lowerFunction(
         ),
       }),
     );
+    finishFixedLoopBlock(loweredBlocks, occurrenceStart, state);
     semanticExitLabels.set(block.id, currentLabel);
     aggregateAddressCacheAtExit.set(block.id, state.aggregateAddressCache);
   }
-  for (const copy of state.mergeCopies) {
-    const incoming = state.values.get(copy.incoming);
-    const exitLabel = semanticExitLabels.get(copy.predecessor);
-    if (incoming === undefined || incoming.kind === "condition" || exitLabel === undefined) {
-      throw loweringFailure("Merge predecessor has no materialized incoming value", copy.source);
-    }
-    const blockIndex = loweredBlocks.findIndex(({ label }) => label === exitLabel);
-    const block = loweredBlocks[blockIndex];
-    if (block === undefined || block.terminator.kind !== "jump") {
-      throw loweringFailure("Merge predecessor is not an edge-specific jump", copy.source);
-    }
-    const instructions = [...block.instructions];
-    for (let offset = 0; offset < copy.bytes; offset += 1) {
-      appendLoadA(instructions, incoming, offset, state, copy.source);
-      instructions.push(storeA(copy.destination, offset, state, copy.source));
-    }
-    loweredBlocks[blockIndex] = Object.freeze({
-      ...block,
-      instructions: Object.freeze(instructions),
-    });
-  }
+  appendMergeCopies(state, loweredBlocks, semanticExitLabels);
   if (boundsStopSource !== null) {
     loweredBlocks.push(
       Object.freeze({
@@ -714,22 +630,58 @@ export function lowerFunction(
   helperUses.push(...state.helperUses.map((use) => Object.freeze({ ...use, caller: owner })));
   warnings.push(...state.warnings);
   const sourceName = input.bindingNames?.get(bindingIdentityKey(owner));
-  const selectedBlocks = selectTerminalByteLeaves(
+  let selectedBlocks = selectTerminalByteLeaves(
     Object.freeze([...loweredBlocks, ...state.helperBlocks]),
     state,
     returnsToStartup,
     sourceFunction,
   );
-  return Object.freeze({
-    id,
-    blocks: selectGuardedShiftCount(
-      !returnsToStartup && sourceResult?.kind === "scalar" && sourceResult.name === "boolean"
-        ? selectZeroReturn(selectedBlocks)
-        : selectedBlocks,
-      state,
-      returnsToStartup,
-      sourceFunction,
-    ),
-    ...(sourceName === undefined ? {} : { sourceName }),
-  });
+  // Select the complete EOR/reload replacement before zero-return shaping.
+  // An EOR-based omitted LDA #0 is not a valid return contract for preserved A.
+  const byteSelection =
+    sourceFunction !== undefined &&
+    sourceFunction.entryKind !== "interrupt" &&
+    input.sourceFacts?.nonLoopBundle === "closed"
+      ? selectByteWindows(
+          { id, blocks: selectedBlocks },
+          sourceFunction.id,
+          input.profile.cpu,
+          interruptDepth.domain,
+          state,
+        )
+      : null;
+  if (byteSelection !== null) selectedBlocks = byteSelection.blocks;
+  return finishFixedLoops(
+    Object.freeze({
+      id,
+      sourceFunction: owner,
+      ...(state.aggregateCaptures?.length
+        ? { observerCaptures: Object.freeze(state.aggregateCaptures) }
+        : {}),
+      ...(input.sourceFacts?.nonLoopBundle === undefined &&
+      input.sourceFacts?.loopPolicy === undefined &&
+      !input.observerEvidence
+        ? {}
+        : { executionContext: Object.freeze({ ...interruptDepth }) }),
+      blocks: selectGuardedShiftCount(
+        !returnsToStartup && sourceResult?.kind === "scalar" && sourceResult.name === "boolean"
+          ? selectZeroReturn(selectedBlocks)
+          : selectedBlocks,
+        state,
+        returnsToStartup,
+        sourceFunction,
+      ),
+      ...(sourceName === undefined ? {} : { sourceName }),
+      ...(byteSelection?.byteAvailabilityProofs === undefined
+        ? {}
+        : { byteAvailabilityProofs: byteSelection.byteAvailabilityProofs }),
+      ...(byteSelection?.nativeStoreProofs === undefined
+        ? {}
+        : { nativeStoreProofs: byteSelection.nativeStoreProofs }),
+      ...(state.byteComplements?.proofs.length
+        ? { byteComplementProofs: state.byteComplements.proofs }
+        : {}),
+    }),
+    fixedLoops,
+  );
 }

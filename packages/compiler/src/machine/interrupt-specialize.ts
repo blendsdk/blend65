@@ -11,7 +11,11 @@ import type {
   InterruptExecutionContexts,
 } from "../semantic/interrupt-contexts.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
-import type { StorageHome, StoragePlacement, StorageRequest } from "../storage/storage-types.js";
+import type {
+  StoragePlacement,
+  StorageRequest,
+  StorageInventory,
+} from "../storage/storage-types.js";
 import type {
   MachineBlock,
   MachineFunction,
@@ -19,11 +23,43 @@ import type {
   MachineMemoryAddress,
   MachineOperand,
   MachineTerminator,
+  MachineLoweringInput,
 } from "./machine-types.js";
 
 /** Use the existing mainline spelling, but distinguish fixed interrupt homes. */
 function domainOwner(key: string, domain: ExecutionDomain, activationRoot?: string): string {
   return `${key}${domain === "main" ? "" : `@${domain}`}${activationRoot === undefined ? "" : `@${activationRoot}`}`;
+}
+
+/** Reuse the existing domain/root alias order for declarations and real homes. */
+function provisionalAliases<T>(
+  entries: readonly T[],
+  identity: (entry: T) => string,
+  rename: (entry: T, id: string) => T,
+  program: WholeProgram,
+  activationRoot?: string,
+): readonly T[] {
+  const existing = new Set(entries.map(identity));
+  const aliases: T[] = [];
+  const domains: readonly ExecutionDomain[] =
+    activationRoot === undefined ? ["irq", "nmi"] : ["main", "irq", "nmi"];
+  const hasNmiContexts =
+    program.interruptRoutes?.some(({ sink }) => sink.domain === "nmi") === true;
+  for (const entry of program.executionDomains ?? []) {
+    const key = bindingIdentityKey(entry.function);
+    for (const entry of entries) {
+      for (const domain of domains) {
+        const prefix = `${domainOwner(key, domain, domain === "irq" || hasNmiContexts ? activationRoot : undefined)}:`;
+        const id = identity(entry);
+        if (!id.startsWith(prefix)) continue;
+        const alias = `${key}:${id.slice(prefix.length)}`;
+        if (existing.has(alias)) continue;
+        existing.add(alias);
+        aliases.push(rename(entry, alias));
+      }
+    }
+  }
+  return Object.freeze([...entries, ...aliases]);
 }
 
 /** Expose provisional unsuffixed names to the existing single-body selector. */
@@ -32,26 +68,57 @@ export function provisionalDomainAliases(
   program: WholeProgram,
   activationRoot?: string,
 ): StoragePlacement {
-  const existing = new Set(placement.homes.map(({ requestId }) => requestId));
-  const aliases: StorageHome[] = [];
-  const domains: readonly ExecutionDomain[] =
-    activationRoot === undefined ? ["irq", "nmi"] : ["main", "irq", "nmi"];
-  const hasNmiContexts =
-    program.interruptRoutes?.some(({ sink }) => sink.domain === "nmi") === true;
-  for (const entry of program.executionDomains ?? []) {
-    const key = bindingIdentityKey(entry.function);
-    for (const home of placement.homes) {
-      for (const domain of domains) {
-        const prefix = `${domainOwner(key, domain, domain === "irq" || hasNmiContexts ? activationRoot : undefined)}:`;
-        if (!home.requestId.startsWith(prefix)) continue;
-        const alias = `${key}:${home.requestId.slice(prefix.length)}`;
-        if (existing.has(alias)) continue;
-        existing.add(alias);
-        aliases.push(Object.freeze({ ...home, requestId: alias }));
-      }
-    }
-  }
-  return Object.freeze({ homes: Object.freeze([...placement.homes, ...aliases]) });
+  const homes = provisionalAliases(
+    placement.homes,
+    (home) => home.requestId,
+    (home, requestId) => Object.freeze({ ...home, requestId }),
+    program,
+    activationRoot,
+  );
+  return Object.freeze({ homes });
+}
+
+/**
+ * Build a query-only declaration namespace; aliases never enter certification.
+ * @param inventory Original unallocated requests and their true ABI metadata.
+ * @param program Checked source used by the existing domain rewrite.
+ * @param activationRoot Exact installation root, when one is selected.
+ * @returns Original declarations plus canonical lookup aliases, with no physical address.
+ */
+export function provisionalDeclarationAliases(
+  inventory: StorageInventory,
+  program: WholeProgram,
+  activationRoot?: string,
+): StorageInventory {
+  const requests = provisionalAliases(
+    inventory.requests,
+    (request) => request.id,
+    (request, id) => Object.freeze({ ...request, id }),
+    program,
+    activationRoot,
+  );
+  return Object.freeze({ ...inventory, requests });
+}
+
+/** Bind only query namespaces; original inventories and real physical facts stay distinct. */
+export function provisionalLoweringStorage(
+  input: MachineLoweringInput,
+  activationRoot?: string,
+): Pick<MachineLoweringInput, "logicalStorage" | "placement"> {
+  return {
+    ...(input.placement === undefined
+      ? {}
+      : { placement: provisionalDomainAliases(input.placement, input.program, activationRoot) }),
+    ...(input.logicalStorage === undefined
+      ? {}
+      : {
+          logicalStorage: provisionalDeclarationAliases(
+            input.logicalStorage,
+            input.program,
+            activationRoot,
+          ),
+        }),
+  };
 }
 
 /** Replace an invocation-private home with its fixed execution-domain home. */

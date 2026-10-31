@@ -4,6 +4,28 @@ import type { SemanticOperation, SemanticTerminator } from "../semantic/operatio
 import type { ValueLifetime, WholeProgram } from "../semantic/whole-program.js";
 import type { ExecutionDomain } from "../semantic/interrupt-domains.js";
 import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.js";
+import type { MachineProgram } from "../machine/machine-types.js";
+
+/** Complete selected demand, or an inconsistent source/result representation. */
+export type MachineStorageProjection =
+  | {
+      /** Requests/results and late discovery agree before any allocation. */
+      readonly kind: "complete";
+      /** Complete inventory consumed by certification, allocation and shared re-closure. */
+      readonly inventory: StorageInventory;
+      /** Only surviving machine-discovered requests may be rediscovered. */
+      readonly lateRequests: readonly StorageRequest[];
+      /** Original demand and source authority remain pending final observer validation. */
+      readonly evidence?: NonNullable<MachineProgram["storageSelection"]>;
+    }
+  | {
+      /** Missing or inconsistent actual backing is not a resource rejection. */
+      readonly kind: "error";
+      /** Specific internal result representation which could not be established. */
+      readonly reason: string;
+      /** Original function needing that representation. */
+      readonly source: SourceSpan;
+    };
 
 /** Function-execution storage categories owned by static frame allocation. */
 export type StorageClass =
@@ -59,7 +81,19 @@ export interface StorageRequest {
 export type ResultLocation =
   | { readonly kind: "a" }
   | { readonly kind: "ax" }
-  | { readonly kind: "storage"; readonly requestId: string };
+  | { readonly kind: "storage"; readonly requestId: string }
+  | {
+      /** A proved complete source object replaces the hidden result pointer. */
+      readonly kind: "fixed-object";
+      /** Fully resolved source object, never an erased intermediate pointer. */
+      readonly objectBindingId: BindingId;
+      /** Source frame owning private object bytes, or null for a verified global. */
+      readonly owner: BindingId | null;
+      /** Complete packed object width. */
+      readonly bytes: number;
+      /** Actual retained private object request, or null only for a global. */
+      readonly backingRequestId: string | null;
+    };
 
 /** ABI result decision for one reachable source function. */
 export interface FunctionResultLocation {
@@ -107,6 +141,30 @@ export interface StorageProfile {
   readonly interruptStackBytes?: number;
   /** Bytes retained on the hardware stack while startup-owned code executes. */
   readonly startupStackBytes?: number;
+}
+
+/** Actual platform-only stack demand produced by the selected startup constructor. */
+export interface StartupStackDemand {
+  /** Bytes held once beneath module initializers and main, not beneath independent callable roots. */
+  readonly heldBytes: number;
+  /** Absolute startup-only peak, already including any held bytes present at that boundary. */
+  readonly transientPeakBytes: number;
+}
+
+/** Context-bound helper use before its live request set is constructed. */
+export interface SelectedHelperUse {
+  /** Stable selected helper-call identity. */
+  readonly id: string;
+  /** Original function or executable initializer invoking the helper. */
+  readonly caller: BindingId;
+  /** Actual execution domain, never inferred from the generated ID. */
+  readonly domain: ExecutionDomain;
+  /** Actual activation root when the existing specialization requires one. */
+  readonly activationRoot?: string;
+  /** Exact selected scratch identities owned by this helper invocation. */
+  readonly requestIds: readonly string[];
+  /** Original semantic operation which selected the helper. */
+  readonly source: SourceSpan;
 }
 
 /** One selected direct helper call and its complete storage/stack overlap facts. */
@@ -167,6 +225,8 @@ export interface NmiEntryStackPeak {
 
 /** Finite machine-binding seam used when closure may discover new storage. */
 export interface StorageBinder {
+  /** Actual constructor facts; absent legacy binders retain profile-only startup accounting. */
+  readonly startupStack?: StartupStackDemand;
   /** Complete finite set of request identities which binding may introduce. */
   readonly candidateRequestIds: readonly string[];
   /** Selected direct helper calls with explicit storage and stack effects. */

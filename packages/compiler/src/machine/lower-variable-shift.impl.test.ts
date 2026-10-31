@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { effectFixture } from "../../test-support/size-observer-effects-fixture.js";
+import { ordinalBoundsForFunction } from "./lower-bounds.js";
+import { placeUses } from "../semantic/aggregate-place-proof.js";
 import type { SemanticType } from "../frontend/semantic-types.js";
 import type { SemanticOperation } from "../semantic/operations.js";
 import { valueLifetimes } from "../semantic/value-lifetimes.js";
@@ -382,4 +386,200 @@ describe("bounded variable shift selection and storage", () => {
     ])
       expect(forwardsCount({ converted: true, ...options })).toBe(false);
   });
+});
+
+/** Query authentic selected-loop facts without inventing maxima or bypassing closure. */
+function countBounds(body: string, boundsCheck = false, loopPrefix = "") {
+  const text = `module Game;let seed:byte=255;let answer:byte=0;let data:byte[8];
+function touch():void{seed+=1;}
+function main():void{
+for(let i:word=0;i<8;i+=1){${loopPrefix}data[i]=byte(i);}
+${body}}`;
+  const input = effectFixture(text, "size", boundsCheck, "low-byte");
+  const fn = input.checked.program.semantic.functions.find(
+    (fn) => fn.id === input.checked.program.semantic.main,
+  )!;
+  const facts = input.candidate.lowered.program.storageSelection!.sourceFacts.functions.get(fn)!;
+  expect(facts.loops).toHaveLength(1);
+  const blocks = [
+    fn.blocks.find((block) => block.id === fn.entry)!,
+    ...fn.blocks.filter((block) => block.id !== fn.entry),
+  ];
+  const uses = blocks
+    .flatMap((block) => block.operations)
+    .filter(
+      (op) =>
+        op.span.start >= text.indexOf(body) &&
+        ((op.kind === "binary" && op.operator === "<<") ||
+          (op.kind !== "store" &&
+            placeUses(op).some(({ place }) => place.path.some((part) => part.kind === "index")))),
+    );
+  const context = { program: input.checked.program, profile: input.checked.profile };
+  return {
+    input,
+    facts,
+    uses,
+    selected: ordinalBoundsForFunction(blocks, context, facts.loops),
+    original: ordinalBoundsForFunction(blocks, context),
+  };
+}
+
+describe("joint loop and use-site ordinal bounds", () => {
+  it.each([false, true])(
+    "should keep a tighter local maximum for both consumers with bounds=%s",
+    (bounds) => {
+      for (const setup of ["let count:byte=seed&7;", "let count:byte=seed;if(count>=8){return;}"]) {
+        const result = countBounds(`${setup}answer=1<<count;answer=data[count];`, bounds);
+        expect(result.uses).toHaveLength(2);
+        for (const use of result.uses) {
+          const values = [...result.original.get(use)!.entries()];
+          expect(values).toHaveLength(1);
+          const [value, maximum] = values[0]!;
+          expect(maximum).toBe(7n);
+          expect(result.facts.loops[0]!.valueBounds.get(value)).toBe(255n);
+          expect(result.selected.get(use)?.get(value)).toBe(7n);
+        }
+      }
+    },
+  );
+
+  it("should keep an ordinary mask bound when no use-site reload fact is needed", () => {
+    const result = countBounds("answer=1<<(seed&7);answer=data[seed&7];");
+    expect(result.uses).toHaveLength(2);
+    for (const use of result.uses) {
+      expect([...result.original.get(use)!.values()]).toEqual([7n]);
+      expect([...result.selected.get(use)!.values()]).toEqual([7n]);
+    }
+  });
+
+  it("should retain tighter induction bounds instead of widening them to the local answer", () => {
+    const result = countBounds("let count:byte=seed;answer=1<<count;", false, "touch();");
+    const loop = result.facts.loops[0]!;
+    const use = loop.body.operations.find((op) => op.kind === "store" && op.place.path.length > 0)!;
+    expect([...result.selected.get(use)!.values()]).toEqual([7n]);
+    expect(result.original.has(use)).toBe(false);
+    expect([...result.selected.get(result.uses[0]!)!.values()]).toEqual([255n]);
+  });
+
+  it.each([
+    ["count=seed;", 255n, false],
+    ["touch();", 255n, false],
+    ["let callback:fn():void=&touch;callback();", 255n, false],
+    ["poke($C100,1);", 255n, false],
+    ["poke(word(seed),1);", 255n, false],
+    ["data[0]=1;", 255n, false],
+    ["if(seed==0){count=7;}else{count=15;}", 15n, true],
+    ["if(seed==0){count=seed;}", 255n, false],
+    ["asm_nop();", 7n, true],
+  ] as const)("should preserve reload invalidation through %s", (barrier, maximum, known) => {
+    const result = countBounds(
+      `let count:byte=seed&7;${barrier}answer=1<<count;answer=data[count];`,
+    );
+    expect(result.uses).toHaveLength(2);
+    for (const use of result.uses) {
+      expect([...result.selected.get(use)!.values()]).toEqual([maximum]);
+      expect(result.original.has(use)).toBe(known);
+      if (known) expect([...result.original.get(use)!.values()]).toEqual([maximum]);
+    }
+  });
+
+  it.each([0, 7, 8, 255])("should keep the exact inclusive mask maximum %s", (mask) => {
+    const result = countBounds(`let count:byte=seed&${mask};answer=1<<count;answer=data[count];`);
+    for (const use of result.uses)
+      expect([...result.selected.get(use)!.values()]).toEqual([BigInt(mask)]);
+  });
+
+  it("should leave a word reload unknown when neither proof bounds that value", () => {
+    const result = countBounds("let count:word=word(seed);answer=1<<count;answer=data[count];");
+    expect(result.uses).toHaveLength(2);
+    for (const use of result.uses) {
+      expect(result.original.has(use)).toBe(false);
+      expect(result.selected.has(use)).toBe(false);
+    }
+  });
+
+  it("should not turn a global mask store into a private reload guarantee", () => {
+    const result = countBounds("seed=seed&7;answer=1<<seed;answer=data[seed];");
+    expect(result.uses).toHaveLength(2);
+    for (const use of result.uses) {
+      expect(result.original.has(use)).toBe(false);
+      expect([...result.selected.get(use)!.values()]).toEqual([255n]);
+    }
+  });
+
+  it("should retain an already captured value across a later call, but not reload its binding", () => {
+    const result = countBounds("let count:byte=seed&7;answer=1<<count;touch();");
+    const fn = result.facts.function;
+    const shift = result.uses[0]!;
+    const call = fn.blocks.flatMap((block) => block.operations).find((op) => op.kind === "call")!;
+    // Model an evaluated count held across a call: move only the call after that
+    // load and before its immutable-value consumer, retaining every real identity.
+    const blocks = fn.blocks.map((block) => ({
+      ...block,
+      operations: block.operations
+        .filter((op) => op !== call)
+        .flatMap((op) => (op === shift ? [call, op] : [op])),
+    }));
+    const maxima = ordinalBoundsForFunction(
+      blocks,
+      { program: result.input.checked.program, profile: result.input.checked.profile },
+      result.facts.loops,
+    );
+    expect([...maxima.get(shift)!.values()]).toEqual([7n]);
+  });
+
+  it.each([false, true])(
+    "should omit only the unreachable saved-query guard with bounds=%s",
+    (bounds) => {
+      const text = readFileSync(
+        new URL("../../../../test/rd05/fixtures/input-saved-caller.blend", import.meta.url),
+        "utf8",
+      );
+      const input = effectFixture(text, "size", bounds, "low-byte");
+      const packet = [
+        ...input.candidate.lowered.program.storageSelection!.sourceFacts.functions.values(),
+      ].find((packet) =>
+        packet.function.blocks.some((block) =>
+          block.operations.some(
+            (op) =>
+              op.kind === "binary" &&
+              op.operator === "<<" &&
+              input.checked.sourceText(op.span) === "1 << row",
+          ),
+        ),
+      )!;
+      const shift = packet.function.blocks
+        .flatMap((block) => block.operations)
+        .find(
+          (op) =>
+            op.kind === "binary" &&
+            op.operator === "<<" &&
+            input.checked.sourceText(op.span) === "1 << row",
+        )!;
+      const blocks = [
+        packet.function.blocks.find((block) => block.id === packet.function.entry)!,
+        ...packet.function.blocks.filter((block) => block.id !== packet.function.entry),
+      ];
+      const maxima = ordinalBoundsForFunction(
+        blocks,
+        { program: input.checked.program, profile: input.checked.profile },
+        packet.loops,
+      );
+      expect([...maxima.get(shift)!.values()]).toEqual([7n]);
+      const actual = input.candidate.shared.layout.program.functions.find(
+        (fn) => fn.sourceFunction === packet.function.id,
+      )!;
+      const instructions = actual.blocks
+        .flatMap((block) => block.instructions)
+        .filter((item) => item.source === shift.span);
+      expect(
+        instructions.some(
+          (item) =>
+            item.opcode === "cpx" && item.operand?.kind === "immediate" && item.operand.value === 8,
+        ),
+      ).toBe(false);
+      expect(instructions.filter((item) => item.opcode === "asl")).toHaveLength(1);
+      expect(instructions.filter((item) => item.opcode === "dex")).toHaveLength(1);
+    },
+  );
 });

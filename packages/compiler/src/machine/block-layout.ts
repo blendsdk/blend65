@@ -114,6 +114,40 @@ function orderBlocks(fn: MachineFunction): MachineFunction | null {
   };
   const resolved = new Map(fn.blocks.map(({ label }) => [label, resolve(label)]));
   const targetOf = (label: string): string => resolved.get(label) ?? label;
+  // Source ownership is input evidence, not something layout may guess from a label.
+  // Validate before filtering so duplicate owners cannot disappear with old aliases.
+  const sourceOwners = new Map<string, number>();
+  if (fn.observerBlocks !== undefined) {
+    if (new Set(fn.observerBlocks.map(([source]) => source)).size !== fn.observerBlocks.length)
+      return null;
+    for (const [index, [, labels]] of fn.observerBlocks.entries()) {
+      if (labels.length === 0) return null;
+      for (const label of labels) {
+        if (!declared.has(label) || sourceOwners.has(label)) return null;
+        sourceOwners.set(label, index);
+      }
+    }
+  }
+  // Re-layout can turn an old bridge into a free alias at its destination. Keep
+  // that actual label, but retire its interior source association. A source entry
+  // and any block which originally carried instructions must remain associated.
+  const retired =
+    fn.observerBlocks === undefined
+      ? undefined
+      : new Set(
+          fn.blocks
+            .filter(
+              (block) =>
+                block.instructions.length === 0 &&
+                block.terminator.kind === "jump" &&
+                targetOf(block.label) !== block.label,
+            )
+            .map((block) => block.label),
+        );
+  const sourceGroups = fn.observerBlocks?.map(
+    ([source, labels]) =>
+      [source, labels.filter((label, index) => index === 0 || !retired!.has(label))] as const,
+  );
   const aliases = new Map<string, MachineBlock[]>();
   const byLabel = new Map<string, MachineBlock>();
   for (const block of declared.values()) {
@@ -249,6 +283,26 @@ function orderBlocks(fn: MachineFunction): MachineFunction | null {
           bridge += 1;
         } while (occupiedLabels.has(bridgeLabel));
         occupiedLabels.add(bridgeLabel);
+        if (sourceGroups !== undefined) {
+          const owner = sourceOwners.get(original.label);
+          // The fresh continuation has only its parent's fallthrough as an entry;
+          // an unresolved transfer or address reference must not acquire this label.
+          if (
+            owner === undefined ||
+            fn.blocks.some(
+              (entry) =>
+                directlyReaches(entry.terminator, bridgeLabel) ||
+                entry.instructions.some(
+                  ({ operand }) => operand?.kind === "label" && operand.label === bridgeLabel,
+                ),
+            )
+          )
+            return null;
+          const labels = sourceGroups[owner]![1];
+          const rank = labels.indexOf(original.label);
+          if (rank < 0) return null;
+          labels.splice(rank + 1, 0, bridgeLabel);
+        }
         block = Object.freeze({
           ...original,
           terminator: Object.freeze({ ...original.terminator, fallthrough: bridgeLabel }),
@@ -313,6 +367,15 @@ function orderBlocks(fn: MachineFunction): MachineFunction | null {
   return Object.freeze({
     ...fn,
     blocks: Object.freeze(ordered),
+    ...(sourceGroups === undefined
+      ? {}
+      : {
+          observerBlocks: Object.freeze(
+            sourceGroups.map(([source, labels]) =>
+              Object.freeze([source, Object.freeze(labels)] as const),
+            ),
+          ),
+        }),
   });
 }
 

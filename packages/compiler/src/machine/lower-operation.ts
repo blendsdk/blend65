@@ -47,6 +47,7 @@ import {
 
 import { lowerDirectCall } from "./lower-call.js";
 import { lowerPlatformOperation } from "./lower-platform.js";
+import { declaredStorage } from "../storage/selection.js";
 
 /** Return the preplanned home used to preserve one loaded scalar, when required. */
 function loadedValueStage(
@@ -54,7 +55,7 @@ function loadedValueStage(
   state: FunctionLoweringState,
 ): LoweredValue | null {
   const requestId = `${bindingIdentityKey(state.owner)}:argument-stage:${operation.result}`;
-  if (!state.input.placement.homes.some((home) => home.requestId === requestId)) return null;
+  if (declaredStorage(state.input, (id) => id === requestId) === undefined) return null;
   return Object.freeze({
     kind: "storage",
     requestId,
@@ -532,6 +533,7 @@ export function lowerOperation(
       return lowered.instructions;
     }
     const instructions = lowerMemoryRead(operation, {
+      observerEvidence: state.input.observerEvidence === true,
       cpu: state.input.profile.cpu,
       owner: state.owner,
       values: state.values,
@@ -548,7 +550,7 @@ export function lowerOperation(
         ),
       lowByteRequest: (source) => {
         const requestId = `${bindingIdentityKey(state.owner)}:temporary:word-read-low:${source.result}`;
-        if (!state.input.placement.homes.some((home) => home.requestId === requestId)) {
+        if (declaredStorage(state.input, (id) => id === requestId) === undefined) {
           throw loweringFailure("Word raw-memory read has no certified low-byte home", source.span);
         }
         return requestId;
@@ -578,6 +580,7 @@ export function lowerOperation(
       throw loweringFailure("Raw-memory register value was not proved current", operation.span);
     }
     return lowerMemoryWrite(operation, {
+      observerEvidence: state.input.observerEvidence === true,
       cpu: state.input.profile.cpu,
       owner: state.owner,
       values: state.values,

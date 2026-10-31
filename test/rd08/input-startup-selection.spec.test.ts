@@ -670,7 +670,6 @@ function main(): void {
             installed ? 1 : 0,
           ]);
           expect([...(await monitor.readMemory(0x318, 0x319))]).toEqual([0x47, 0xfe]);
-          expect([...(await monitor.readMemory(link, link + 1))]).toEqual([0x47, 0xfe]);
           if (mode === "size") expect(libraryBytes(artifacts, restore, 1)).toEqual([0x78]);
           await stopAt(monitor, 0xe147);
           const returned = await monitor.readCpuRegisters();

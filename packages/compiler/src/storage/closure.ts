@@ -20,6 +20,7 @@ import type {
   StoragePlacement,
   StorageProfile,
   StorageRequest,
+  StartupStackDemand,
 } from "./storage-types.js";
 
 /** Compare stable identities without locale-dependent collation. */
@@ -199,6 +200,7 @@ function hardwareStackPeak(
   helperCalls: readonly HelperCallDemand[],
   instructionSites: StorageBinder["instructionSites"],
   selectedPeak?: ReturnType<typeof simultaneousIRQStackPeak>,
+  startupStack?: StartupStackDemand,
 ): {
   readonly total: number;
   readonly program: number;
@@ -217,7 +219,7 @@ function hardwareStackPeak(
   ) {
     return null;
   }
-  const startup = profile.startupStackBytes ?? 0;
+  const startup = Math.max(profile.startupStackBytes ?? 0, startupStack?.transientPeakBytes ?? 0);
   if (
     (inventory.program.interruptRoutes?.length ?? 0) > 0 &&
     profile.interruptStackBytes === undefined
@@ -230,10 +232,11 @@ function hardwareStackPeak(
         startup,
         instructionSites,
         inventory.requests,
+        startupStack?.heldBytes ?? 0,
       );
     return { ...peak, total: peak.program + peak.system };
   }
-  const routes = hardwareCallRoutes(inventory, helperCalls);
+  const routes = hardwareCallRoutes(inventory, helperCalls, [], startupStack?.heldBytes ?? 0);
   if (!Number.isFinite(routes.program.bytes) || !Number.isFinite(routes.interrupt.bytes))
     return null;
   const program = deeperStackRoute(
@@ -260,12 +263,24 @@ function certificate(
   stackPeak: NonNullable<ReturnType<typeof hardwareStackPeak>>,
   helperCalls: readonly HelperCallDemand[],
   nmiEntries: readonly NmiEntryStackPeak[],
+  startupStack?: StartupStackDemand,
 ): StorageClosureCertificate {
   return Object.freeze({
     inventoryHash: storageInventoryHash(inventory),
     graphHash: hashRecords([
       ...interference.map(({ left, right, reason }) => JSON.stringify([left, right, reason])),
       ...helperCalls.map(helperFingerprint),
+      ...(startupStack === undefined ||
+      (startupStack.heldBytes === 0 &&
+        startupStack.transientPeakBytes === (profile.startupStackBytes ?? 0))
+        ? []
+        : [
+            JSON.stringify([
+              "startup-stack",
+              startupStack.heldBytes,
+              startupStack.transientPeakBytes,
+            ]),
+          ]),
     ]),
     profileId: profile.profileId ?? "unspecified",
     homes: placement.homes,
@@ -294,6 +309,16 @@ function binderFacts(discover: StorageDiscovery | StorageBinder): StorageBinder 
 
 /** Validate the finite binder declaration before executing its callback. */
 function validBinder(binder: StorageBinder, inventory: StorageInventory): boolean {
+  const startup = binder.startupStack;
+  if (
+    startup !== undefined &&
+    (startup === null ||
+      !Number.isSafeInteger(startup.heldBytes) ||
+      startup.heldBytes < 0 ||
+      !Number.isSafeInteger(startup.transientPeakBytes) ||
+      startup.transientPeakBytes < startup.heldBytes)
+  )
+    return false;
   const candidateIds = new Set(binder.candidateRequestIds);
   const helperIds = new Set(binder.helperCalls.map(({ id }) => id));
   if (
@@ -384,9 +409,10 @@ export function closeStorage(
         ? simultaneousIRQStackPeak(
             inventory.program,
             helperCalls,
-            profile.startupStackBytes ?? 0,
+            Math.max(profile.startupStackBytes ?? 0, binder.startupStack?.transientPeakBytes ?? 0),
             binder.instructionSites,
             inventory.requests,
+            binder.startupStack?.heldBytes ?? 0,
           )
         : undefined;
     const interference = buildInterference(inventory, helperCalls, selectedPeak?.irqOverlap);
@@ -436,6 +462,7 @@ export function closeStorage(
       helperCalls,
       binder.instructionSites,
       selectedPeak,
+      binder.startupStack,
     );
     if (stackPeak === null) return Object.freeze({ kind: "error", reason: "stack" });
     if (!Number.isFinite(stackPeak.total)) {
@@ -490,6 +517,7 @@ export function closeStorage(
         stackPeak,
         helperCalls,
         nmiEntries,
+        binder.startupStack,
       ),
     });
   }

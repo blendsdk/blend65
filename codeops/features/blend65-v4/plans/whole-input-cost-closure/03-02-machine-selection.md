@@ -54,6 +54,17 @@ their C/D obligations. Stores never create N/Z ownership. A physical register
 recipe is invalid across an unproved call, join, IRQ/NMI clobber or competing loop.
 Only the one proved condition edge is retained; this is not a general CFG allocator.
 
+AR-P26's necessary local output correction stays inside these existing packets.
+A positive straight-line X/Y loop may bypass its first bare immediate comparison
+only when actual N/Z/C continuation proof permits it; the original comparison
+remains on the backedge and original source/control identities remain recorded.
+The exact arithmetic-capture/private-write/reload/native-store window may retain
+A through both source writes. It preserves the source-variable write, source
+evaluation, original requests and every removed access/state interval. Existing
+N/Z continuation proof permits two stores; otherwise ORA0 restores flags without
+assuming decimal-mode arithmetic equivalence. Candidate graph construction precedes
+joint flag proofs. No general source-variable propagation or none-path rewrite.
+
 ## Source-to-sequence map
 
 | Existing ordinary source component | Complete target route | Necessary certificates |

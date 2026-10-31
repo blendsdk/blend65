@@ -4,8 +4,6 @@ import { join } from "node:path";
 import { serializeAcme } from "../artifacts/acme-serializer.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { analyzeProjectWithAssets } from "../frontend/service.js";
-import { bindMachineProgram } from "../machine/bind.js";
-import { lowerMachineProgram } from "../machine/lower.js";
 import type { C64KernalProfileId } from "../profile/c64-kernal.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import { loadProjectWithControls } from "../project/snapshot.js";
@@ -15,15 +13,9 @@ import { releaseGenerationPin } from "../publication/pins.js";
 import { publishGeneration } from "../publication/publication.js";
 import type { GenerationPin, PublishedGeneration } from "../publication/publication.js";
 import { buildSemanticProgram } from "../semantic/lower.js";
-import { overlappingIrqRootWarnings } from "../semantic/interrupt-domains.js";
 import { closeWholeProgram } from "../semantic/whole-program.js";
-import { allocateStorage } from "../storage/allocate.js";
-import { closeStorage } from "../storage/closure.js";
-import { nmiPrivateStorageRoute } from "../storage/nmi-private-storage.js";
-import { buildInterference } from "../storage/interference.js";
-import { inventoryStorage } from "../storage/inventory.js";
+import { collectSourceLoopNesting } from "../semantic/fixed-loop-facts.js";
 import { selectTargetProfile } from "../target/profile.js";
-import type { TargetProfile } from "../target/profile.js";
 import { runAcme } from "../tools/acme.js";
 import { discoverAcme } from "../tools/discovery.js";
 import { prepareEvidence } from "./evidence.js";
@@ -39,33 +31,9 @@ import type {
   ServiceMeasurements,
 } from "./types.js";
 import { findVice, launchVice, probeVice } from "./vice.js";
-import { reserveZeroPageGlobals } from "./zero-page-globals.js";
-import { closeSharedStorage } from "./shared-storage.js";
-import {
-  embeddedPayloadOverflow,
-  residentDataOverflow,
-  sharedRamAllocationFailure,
-  layoutResourceWarnings,
-  resourceSourceSpans,
-  sourceZeroPageOverflow,
-  sourcePlacementFailure,
-  storageResourceWarnings,
-} from "./resource-diagnostics.js";
-
-interface CheckedPipeline {
-  readonly lowered: Extract<ReturnType<typeof lowerMachineProgram>, { readonly kind: "complete" }>;
-  readonly resourceSpans: ReadonlyMap<string, SourceSpan>;
-  readonly snapshot: ProjectSnapshot;
-  readonly profile: TargetProfile;
-  readonly program: ReturnType<typeof closeWholeProgram> extends infer Result
-    ? Result extends { readonly kind: "complete"; readonly program: infer Program }
-      ? Program
-      : never
-    : never;
-  readonly certificate: Extract<ReturnType<typeof closeStorage>, { readonly kind: "complete" }>;
-  readonly machine: Extract<ReturnType<typeof bindMachineProgram>, { readonly kind: "complete" }>;
-  readonly diagnostics: readonly ProjectDiagnostic[];
-}
+import { resourceSourceSpans } from "./resource-diagnostics.js";
+import { closeCanonicalReference, closeCanonicalStorage } from "./size-selection.js";
+import type { CanonicalPipeline, CheckedSourceInput } from "./size-selection.js";
 
 interface PreparedBuild {
   /** Identity from the same checked snapshot that produced the published generation. */
@@ -76,7 +44,12 @@ interface PreparedBuild {
 }
 
 type PipelineResult =
-  | { readonly kind: "complete"; readonly value: CheckedPipeline }
+  | { readonly kind: "complete"; readonly value: CanonicalPipeline }
+  | { readonly kind: "failure"; readonly failure: ServiceFailure };
+
+/** Source/type/effect checks complete independently of a successful resource reference. */
+type CheckedSourceResult =
+  | { readonly kind: "complete"; readonly value: CheckedSourceInput }
   | { readonly kind: "failure"; readonly failure: ServiceFailure };
 
 type PreparedBuildResult =
@@ -128,7 +101,7 @@ function effectiveSnapshot(
   const boundsCheck: unknown = Reflect.get(options, "boundsCheck");
   const divisionZeroCheck: unknown = Reflect.get(options, "divisionZeroCheck");
   if (
-    (optimization !== undefined && optimization !== "none") ||
+    (optimization !== undefined && optimization !== "none" && optimization !== "size") ||
     (boundsCheck !== undefined && typeof boundsCheck !== "boolean") ||
     (divisionZeroCheck !== undefined && typeof divisionZeroCheck !== "boolean")
   ) {
@@ -154,8 +127,8 @@ function incompleteStage(stage: string): ServiceFailure {
   ]);
 }
 
-/** Run every check-owned stage through final storage binding without platform layout. */
-async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
+/** Retain checked source before any optional representation depends on allocation success. */
+async function checkSource(options: BuildOptions): Promise<CheckedSourceResult> {
   if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
   const loaded = await loadProjectWithControls({
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
@@ -204,164 +177,41 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
   if (closed.kind === "error") {
     return { kind: "failure", failure: failure("compiler", closed.diagnostics) };
   }
-  const resourceSpans = resourceSourceSpans(analyzed.program);
-  const zeroPageOverflow = sourceZeroPageOverflow(closed.program, selected.profile, resourceSpans);
-  if (zeroPageOverflow !== null)
-    return { kind: "failure", failure: failure("source", [zeroPageOverflow]) };
-  const reserved = reserveZeroPageGlobals(closed.program, selected.profile.storage);
-  if (reserved.kind === "error") {
-    const owner = reserved.conflict;
-    return {
-      kind: "failure",
-      failure: failure("source", [
-        projectDiagnostic(
-          "E10273",
-          `Cannot place '${owner.name?.split(".").at(-1) ?? "zero-page object"}' — explicit placement constraints conflict with occupied storage or the selected zero-page window; change or remove the explicit constraint`,
-          resourceSpans.get(`placement:${bindingIdentityKey(owner.id)}`) ??
-            resourceSpans.get(bindingIdentityKey(owner.id)) ??
-            owner.source,
-        ),
-      ]),
-    };
-  }
-  const allocationProfile = Object.freeze({
-    ...selected.profile,
-    storage: Object.freeze({ ...reserved.storage, profileId: selected.profile.id }),
-  });
-  const inventory = inventoryStorage(reserved.program);
-  const provisional = allocateStorage(inventory, buildInterference(inventory), reserved.storage);
-  if (provisional.kind === "error") {
-    return { kind: "failure", failure: incompleteStage("static storage allocation") };
-  }
-  const lowered = lowerMachineProgram({
-    bindingNames: new Map(
-      analyzed.program.bindings.map((binding) => [
-        bindingIdentityKey(binding.id),
-        binding.qualifiedName ?? binding.name,
-      ]),
-    ),
-    program: reserved.program,
-    placement: provisional.placement,
-    profile: allocationProfile,
-    boundsCheck: selectedSnapshot.manifest.boundsCheck,
-    divisionZeroCheck: selectedSnapshot.manifest.divisionZeroCheck,
-    sourceText: (span) => {
-      const source = analyzed.inputs.sources.find(({ sourceId }) => sourceId === span.sourceId);
-      return source === undefined
-        ? ""
-        : Buffer.from(source.text, "utf8").subarray(span.start, span.end).toString("utf8");
-    },
-  });
-  if (lowered.kind === "error") {
-    return {
-      kind: "failure",
-      failure: failure("compiler", [serviceDiagnostic("COMPILER_LOWERING", lowered.reason)]),
-    };
-  }
-  const certificate = closeStorage(inventory, reserved.storage, lowered.binder);
-  if (certificate.kind === "error") {
-    if (certificate.reason === "stack" && certificate.measured !== undefined) {
-      if (!Number.isFinite(certificate.measured)) {
-        const witness = certificate.route ?? [];
-        const reentered = witness.findLast((part) => part.startsWith("reentered:"))?.slice(10);
-        const handler = closed.program.semantic.functions.find(
-          (fn) => bindingIdentityKey(fn.id) === reentered,
-        );
-        const routeFunctions = new Set(witness);
-        const related = (closed.program.interruptRoutes ?? [])
-          .filter(
-            (route) =>
-              routeFunctions.has(bindingIdentityKey(route.handler)) ||
-              (handler !== undefined &&
-                route.installation.span.sourceId === handler.source.sourceId &&
-                route.installation.span.start >= handler.source.start &&
-                route.installation.span.end <= handler.source.end),
-          )
-          .map((route) => ({
-            span: route.installation.span,
-            message: "Handler selected on this unbounded IRQ route",
-          }));
-        return {
-          kind: "failure",
-          failure: failure("source", [
-            projectDiagnostic(
-              "E10245",
-              "Execution path 'IRQ re-entry' can overlap or consume hardware stack without a static bound — use a bounded interrupt/callback design",
-              handler?.source ??
-                resourceSpans.get(bindingIdentityKey(closed.program.semantic.main)) ??
-                closed.program.semantic.main.span,
-              null,
-              related,
-            ),
-          ]),
-        };
-      }
-      return {
-        kind: "failure",
-        failure: failure("source", [
-          projectDiagnostic(
-            "E10238",
-            `Target resource budget exceeded for 'hardware stack' — used ${certificate.measured}, available ${certificate.available} on '${selected.profile.id}'`,
-            resourceSpans.get(bindingIdentityKey(closed.program.semantic.main)) ??
-              closed.program.semantic.main.span,
-          ),
-        ]),
-      };
-    }
-    return { kind: "failure", failure: incompleteStage("static storage closure") };
-  }
-  const privateNmi = nmiPrivateStorageRoute(certificate.inventory);
-  if (privateNmi !== null) {
-    return {
-      kind: "failure",
-      failure: failure("source", [
-        projectDiagnostic(
-          "E10245",
-          `Execution path '${privateNmi.sink.source}' has unbounded private-storage overlap, disallowed unbounded stack use, or unproved generated reentrancy`,
-          privateNmi.installation.span,
-        ),
-      ]),
-    };
-  }
-  const machine = bindMachineProgram(lowered.program, certificate.certificate);
-  if (machine.kind === "error") {
-    return { kind: "failure", failure: incompleteStage("machine storage binding") };
-  }
-  const irqWarnings = overlappingIrqRootWarnings(reserved.program, certificate.irqOverlap);
-  const previousWarnings = reserved.program.diagnostics ?? [];
   return Object.freeze({
     kind: "complete",
     value: Object.freeze({
       snapshot: Object.freeze({ ...selectedSnapshot, ...analyzed.inputs }),
-      lowered,
-      resourceSpans,
+      resourceSpans: resourceSourceSpans(analyzed.program),
       profile: selected.profile,
-      program: reserved.program,
-      certificate,
-      machine,
-      diagnostics: Object.freeze([
-        ...loaded.observations,
-        ...analyzed.diagnostics,
-        ...previousWarnings,
-        ...irqWarnings.filter(
-          (warning) =>
-            !previousWarnings.some(
-              (previous) =>
-                previous.code === warning.code &&
-                previous.message.split(" has ")[0]?.split(" can ")[0] ===
-                  warning.message.split(" has ")[0]?.split(" can ")[0],
-            ),
-        ),
-        ...lowered.diagnostics,
-        ...storageResourceWarnings(
-          reserved.program,
-          selected.profile,
-          certificate.certificate,
-          resourceSpans,
-        ),
-      ]),
+      program: closed.program,
+      ...(selectedSnapshot.manifest.optimization === "size"
+        ? { loopNesting: collectSourceLoopNesting(closed.program, analyzed.program) }
+        : {}),
+      bindingNames: new Map(
+        analyzed.program.bindings.map((binding) => [
+          bindingIdentityKey(binding.id),
+          binding.qualifiedName ?? binding.name,
+        ]),
+      ),
+      sourceText: (span: SourceSpan) => {
+        const source = analyzed.inputs.sources.find(({ sourceId }) => sourceId === span.sourceId);
+        return source === undefined
+          ? ""
+          : Buffer.from(source.text, "utf8").subarray(span.start, span.end).toString("utf8");
+      },
+      diagnostics: Object.freeze([...loaded.observations, ...analyzed.diagnostics]),
     }),
   });
+}
+
+/** Checking keeps the direct pre-layout storage proof regardless of manifest preference. */
+async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
+  const source = await checkSource(options);
+  if (source.kind === "failure") return source;
+  const canonical = closeCanonicalStorage(source.value);
+  return canonical.kind === "resource-rejected"
+    ? { kind: "failure", failure: canonical.failure }
+    : canonical;
 }
 
 /** Ensure the compiler-owned output root is a stable direct child before staging begins. */
@@ -409,45 +259,30 @@ async function removeOwnedDirectory(
 
 /** Compile, assemble, reconcile and publish one fresh generation. */
 async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<PreparedBuildResult> {
-  const checked = await checkPipeline(options);
-  if (checked.kind === "failure") return checked;
-  const { snapshot, profile, program, resourceSpans, lowered } = checked.value;
+  const source = await checkSource(options);
+  if (source.kind === "failure") return source;
+  const storage = closeCanonicalStorage(source.value);
+  if (storage.kind === "failure") return storage;
+  const size = source.value.snapshot.manifest.optimization === "size";
+  if (!size && storage.kind === "resource-rejected")
+    return { kind: "failure", failure: storage.failure };
+  // Keep the original checkpoint after direct storage proof and before layout.
+  // A cancelled size attempt must not enter the later candidate constructor.
   if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
-  const payloadOverflow =
-    embeddedPayloadOverflow(lowered.program, profile, resourceSpans) ??
-    residentDataOverflow(lowered.program, profile, resourceSpans);
-  if (payloadOverflow !== null)
-    return { kind: "failure", failure: failure("source", [payloadOverflow]) };
-  const shared = closeSharedStorage(
-    lowered.program,
-    lowered.binder,
-    checked.value.certificate,
-    profile,
-  );
-  if (shared.kind === "resource-error") {
-    return {
-      kind: "failure",
-      failure: failure("source", [sharedRamAllocationFailure(shared.used, profile, shared.source)]),
-    };
+  const reference =
+    storage.kind === "resource-rejected" ? storage : closeCanonicalReference(storage.value);
+  if (reference.kind === "failure") return reference;
+  if (size) {
+    // Candidate construction consumes this checked source and its exact reference
+    // outcome. Until that path closes, do not publish direct output as optimized.
+    return { kind: "failure", failure: incompleteStage("size candidate selection") };
   }
-  if (shared.kind === "error") {
-    return {
-      kind: "failure",
-      failure: failure("compiler", [
-        shared.reason === "source-placement"
-          ? sourcePlacementFailure(lowered.program, resourceSpans, shared.objectId)
-          : serviceDiagnostic(
-              "COMPILER_LAYOUT",
-              `Platform layout failed: ${shared.reason}${shared.objectId === null ? "" : ` (${shared.objectId})`}`,
-            ),
-      ]),
-    };
-  }
-  const { layout, certificate } = shared;
-  const diagnostics = [
-    ...checked.value.diagnostics,
-    ...layoutResourceWarnings(layout, program, profile, resourceSpans),
-  ];
+  if (reference.kind === "resource-rejected")
+    return { kind: "failure", failure: reference.failure };
+  const { snapshot, profile } = reference.checked;
+  if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
+  const { layout, certificate } = reference.shared;
+  const diagnostics = reference.diagnostics;
   const serialization = serializeAcme({
     layout,
     certificate: certificate.certificate,
@@ -530,7 +365,7 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
   try {
     evidence = await prepareEvidence({
       snapshot,
-      program,
+      program: reference.checked.program,
       inventory: certificate.inventory,
       certificate: certificate.certificate,
       layout,

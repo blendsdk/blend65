@@ -6,7 +6,32 @@ import {
   type LoweredValue,
 } from "./lower-control.js";
 import type { MachineInstruction } from "./machine-types.js";
+import type { CpuFacts } from "../target/nmos6510.js";
 import { appendLoadA, requestStorage, storeA, type FunctionLoweringState } from "./lower-state.js";
+
+/**
+ * Encode value-preserving byte equality only after its complete window/context proof.
+ * This is not a general comparison preference: CMP changes C/N and preserves A,
+ * whereas EOR preserves C and destroys A. The caller must prove those differences unobserved.
+ * @param original Actual reference equality instruction retained by ordinary lowering.
+ * @param cpu Exact selected opcode/flag/cost facts.
+ * @returns The structured CMP alternative, or null for a different operation.
+ */
+export function valuePreservingByteEquality(
+  original: MachineInstruction,
+  cpu: CpuFacts,
+): MachineInstruction | null {
+  return original.opcode !== "eor"
+    ? null
+    : machineInstruction(
+        cpu,
+        "cmp",
+        original.mode,
+        original.operand,
+        original.memory,
+        original.source,
+      );
+}
 
 /** Lower equality or ordering to flags retained directly by a branch terminator. */
 export function lowerComparison(

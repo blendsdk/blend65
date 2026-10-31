@@ -67,7 +67,7 @@ export function lowerIndirectCall(
   // address remains on the stack, and the target's ordinary RTS returns A/AX.
   const home =
     target.kind === "storage"
-      ? state.input.placement.homes.find(({ requestId }) => requestId === target.requestId)
+      ? state.input.placement?.homes.find(({ requestId }) => requestId === target.requestId)
       : undefined;
   const pointer =
     home === undefined ? -1 : home.address + (target.kind === "storage" ? (target.offset ?? 0) : 0);

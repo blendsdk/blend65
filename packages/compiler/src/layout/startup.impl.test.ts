@@ -35,7 +35,39 @@ function startupBytes(startup: MachineFunction): number {
 }
 
 describe("C64 startup binding", () => {
-  it("keeps full direct construction and uses the four-byte compact state only with proof", () => {
+  it.each([false, true])(
+    "should report current emitted held/transient facts without changing rebound startup, compact=%s",
+    (compact) => {
+      const original = configuredProgram(compact);
+      const input = {
+        initializerLabels: [],
+        mainLabel: "main",
+        displayIndependent: compact,
+        profile: profile(),
+      };
+      const result = createC64Startup(input);
+      expect(result.kind).toBe("complete");
+      if (result.kind !== "complete") return;
+      expect(result.stackDemand).toEqual(
+        compact ? { heldBytes: 1, transientPeakBytes: 2 } : { heldBytes: 0, transientPeakBytes: 1 },
+      );
+      expect(result.startup).toEqual(original.startup);
+      const bound = bindC64StartupState(
+        original,
+        [{ requestId: "borrowed", address: 3, bytes: 1, region: "zero-page" }],
+        profile(),
+      );
+      expect(bound).not.toBeNull();
+      if (bound === null) return;
+      const rebound = createC64Startup({ ...bound.c64Startup!, profile: profile() });
+      expect(rebound.kind).toBe("complete");
+      if (rebound.kind !== "complete") return;
+      expect(rebound.stackDemand).toEqual(result.stackDemand);
+      expect(rebound.startup).toEqual(bound.startup);
+    },
+  );
+
+  it("keeps full direct construction and uses the three-byte compact state only with proof", () => {
     const full = configuredProgram(false);
     const compact = configuredProgram(true);
     const direct = createC64Startup({
@@ -47,9 +79,53 @@ describe("C64 startup binding", () => {
     if (direct.kind !== "complete") throw new Error("Expected default startup");
     expect(direct.startup).toEqual(full.startup);
     expect(createC64StartupStateData().bytes).toHaveLength(49);
-    expect(compact.data[0]!.bytes).toHaveLength(4);
-    expect(startupBytes(compact.startup)).toBe(60);
+    expect(compact.data[0]!.bytes).toHaveLength(3);
+    expect(startupBytes(compact.startup)).toBe(69);
     expect(startupBytes(full.startup)).toBe(609);
+  });
+
+  it("holds the original status on the stack and copies it for the compact main entry", () => {
+    const compact = createC64Startup({
+      initializerLabels: [],
+      mainLabel: "main",
+      displayIndependent: true,
+      profile: profile(),
+    });
+    const full = createC64Startup({
+      initializerLabels: [],
+      mainLabel: "main",
+      profile: profile(),
+    });
+    if (compact.kind !== "complete" || full.kind !== "complete")
+      throw new Error("Expected both startup constructors");
+    const entry = compact.startup.blocks[0]!.instructions;
+    const restore = compact.startup.blocks[1]!.instructions;
+    expect(entry.slice(0, 3).map(({ opcode }) => opcode)).toEqual(["php", "sei", "cld"]);
+    expect(restore[0]?.opcode).toBe("sei");
+    expect(compact.stackDemand).toEqual({ heldBytes: 1, transientPeakBytes: 2 });
+    const copy = entry.slice(-6);
+    expect(copy.map(({ opcode }) => opcode)).toEqual(["tsx", "inx", "lda", "pha", "plp", "cld"]);
+    expect(copy[2]).toMatchObject({
+      mode: "absolute-x",
+      operand: { kind: "absolute", value: 0x0100 },
+    });
+    const restoreCopy = restore.slice(-6);
+    expect(restoreCopy.map(({ opcode }) => opcode)).toEqual([
+      "tsx",
+      "inx",
+      "lda",
+      "txs",
+      "pha",
+      "plp",
+    ]);
+    expect(restoreCopy[2]).toMatchObject({
+      mode: "absolute-x",
+      operand: { kind: "absolute", value: 0x0100 },
+    });
+    expect(compact.startup.blocks[1]!.instructions.at(-1)?.opcode).toBe("plp");
+    expect(full.stackDemand).toEqual({ heldBytes: 0, transientPeakBytes: 1 });
+    expect(full.startup.blocks[0]!.instructions[0]?.opcode).toBe("sta");
+    expect(full.startup.blocks[1]!.instructions[0]?.opcode).toBe("lda");
   });
 
   it.each([true, false])("snapshots the actual unique BASIC bytes, compact=%s", (compact) => {
@@ -72,7 +148,7 @@ describe("C64 startup binding", () => {
     const result = bindC64StartupState(program, homes, profile());
     expect(result).not.toBeNull();
     if (result === null) throw new Error("Expected complete startup binding");
-    expect(result.data[0]!.bytes).toHaveLength((compact ? 4 : 49) + 5);
+    expect(result.data[0]!.bytes).toHaveLength((compact ? 3 : 49) + 5);
     expect(startupBytes(result.startup)).toBe(startupBytes(original.startup) + 50);
     expect(result.requiredStorage).toBe(program.requiredStorage);
     expect(result.data[1]).toBe(source);

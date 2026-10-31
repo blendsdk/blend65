@@ -1,12 +1,88 @@
 # Execution: keyboard and combined input
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-10-11
+> **Last Updated**: 2026-11-01
 > **Progress**: 38/48 tasks (79%)
-> **Status**: Blocked — AR-P38 whole-input cost-closure design is unresolved
+> **Status**: Blocked — prerequisite28/40; task1.2.16 held-P/AR-P84 done; #133 tracked by AR-P83; 38/48 verified parent tasks
 > **CodeOps Artifact Schema**: 1
 
 ## Implementation phases
+
+Current prerequisite handoff, 2026-10-23: the approved/preflighted
+[whole-input plan](../whole-input-cost-closure/99-execution-plan.md) is26/40.
+Its independent specification authoring and complete RED gate are recorded:
+381cases,257meaningful failures/124baseline passes/0skips. This does not qualify
+size output or complete any parent task. The explicit size option surface is
+locally verified, as are checked-source/reference, source facts and bounded
+aggregate/byte/Boolean/loop recipes. Task12passes776directed/45boundary cases and
+224final native cases, with local expert meets tracked in#114. Selected
+storage/covered occupancy now passes817directed/45boundary cases and60native
+value/order/count cases plus6canonical-occupancy controls. Call-live/
+stack handoff now passes835directed/45boundary cases and8native helper cases plus
+one conservative-helper control. Continue final observers/startup/constructor/debug
+in prerequisite1.2.15onward; this parent
+stays38/48 with every source/behavior/resource and963/725-byte gate unchanged.
+The resumed prerequisite has fresh build/typecheck/124focused passes and unchanged
+eleven oracles. Its30construction probes identify the Original-only induction
+barrier before selected counter/native-store/expansion admission. AR-P53's exact
+observer ownership/scope decision is pending; no parent task advances.
+On2026-10-24 the user approves only a read-only strategist trial. Its36primary
+probes and same-context final assessment produce a Ready to implement—narrowed
+four-file LowByte design, not correctness or scope clearance. The revised AR-P53
+packet stays pending. Existing CodeOps agents/configuration and compiler code
+remain unchanged; this parent remains38/48.
+The user then directly approves the narrowed four-file implementation with **“I do”**;
+the prerequisite resumes task15without advancing this parent or any qualification.
+Its first LowByte draft reaches780/700normally formatted lines and remains unwired;
+AR-P54now awaits a direct user capacity/scope decision before any additional
+leaf or implementation. Diagnostic draft build is RED with six TypeScript errors;
+no parent/source/behavior/resource qualification or GREEN checkpoint is claimed.
+The user then approves exactly the fifth-file split with **“yes”**; prerequisite
+task15resumes at21:01CEST without advancing this parent or any qualification.
+That bounded LowByte unit now passes48focused,strict/build/typecheck and96sequential
+PAL/6581cases/24ACME images, with four no-findings static reviews. Full compiler
+2807passes/13unchanged frontier failures/two existing skips remains RED; parent38/48
+and original963/725qualification stay blocked on complete prerequisite closure.
+Inherited scalar-store capture debt has explicit RD-08/#115ownership, not a waiver.
+The2026-10-25continuation rechecks unchanged LowByte/build/typecheck/11oracles and
+measures48next-class constructions. AR-P55now blocks the next selected-loop proof
+scope and separate read-only assessment authority. No parent progress, compiler/
+oracle/helper/agent change or qualification claim follows from discovery.
+The separate approved read-only assessment then completes with a Justified narrow
+scalar register factor verdict after14ACME/24PAL/4snapshot diagnostics. This plan's
+existing AR-P17no-outgoing-AXY-value terminal ruling supplies the exact return
+contract; no new ABI or oracle amendment is inferred. AR-P55's six-path code/test
+scope still needs direct user approval. Parent38/48and full input limits stay put.
+The user's subsequent **“I approve”** directly approves that sole exact six-path
+packet/two-label implementation-test amendment. At23:33CETprerequisite task15resumes
+partial. Parent38/48and whole-input/native/phase gates do not advance with scope.
+That exact scalar X/Y snapshot unit now passes101focused,1170directed,45boundaries,
+96defined-answer PAL/6581VICE cases and24actual ACME images. Four bounded reviews
+find no introduced observer defect; inherited output MAJORs remain#115/#116-owned,
+not waived. Fresh full compiler2860passes/13known frontier failures/two skips stays
+RED, root suite not reached. Prerequisite26/40,parent38/48, original963/725and
+remaining observer/phase gates remain; no GREEN commit/push.
+The user's next **“proceed”** starts read-only typed-index scope discovery, not
+implementation permission. Fresh scalar101tests/f96f43e3/11oracles remain intact;
+96isolated/24exact-input constructions and9ACME images separate the missing address/
+pointer/state proof from actual nested/main/raw/async closure. AR-P56owns the next
+exact scope gate;26/40,parent38/48and all original bounds remain unchanged.
+The sole independent assessment completes Justified—existing-owner four-path
+indexed-store proof/test packet, with a mandatory packed-offset/dummy-access
+correction confirmed in actual field code. Exact AR-P56approval remains pending;
+no implementation/test/producer/fixture/oracle/agent edits occur. This shared
+building block does not qualify the actual raw/main/nested/async input loops.
+The user's subsequent **“Yes - proceed further”** directly approves the sole exact
+four-path/API packet. At11:39CETprerequisite task15resumes partial, with all caps,
+old tests/oracles/producers/fixture/agents protected; qualification and full input
+gates remain. Counts26/40and38/48do not advance with permission.
+The approved four-path indexed-store proof is now locally verified:160focused/
+1229directed/45boundary tests,16ACME images and64sequential defined-answer PAL/6581
+VICE cases pass, with four bounded reviews finding no introduced observer defect.
+Inherited output MAJORs are explicitly#119/#117/#118-owned, not waived or fixed.
+Fresh full2919passes/13known failures/two existing skips stays RED, root suite not
+reached. Complete real input/main/nested/raw/async/observer and963/725/phase gates
+remain; prerequisite26/40,parent38/48unchanged, no GREEN commit/push.
 
 | Phase | Title                                                    | Tasks | Dependency                                |
 | ----- | -------------------------------------------------------- | ----- | ----------------------------------------- |

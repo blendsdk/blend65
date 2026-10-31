@@ -51,6 +51,8 @@ export const RAW_HANDLER_ENTRY: MachineEntryFacts = Object.freeze({
  * cannot observe decimal mode or change registers/status, so its ordinary
  * chain or firmware-tail jump suffices. This shell creates no source return or arrival;
  * its real captured word and source placement still belong to the artifact.
+ * @param retainSourceIdentity Retain the source binding only for explicitly selected construction.
+ * @returns A reference shell; source identity never supplies an execution context or arrival proof.
  */
 export function createC64ReferenceInterruptEntry(
   source: SemanticFunction,
@@ -58,6 +60,7 @@ export function createC64ReferenceInterruptEntry(
   variant: InterruptVariantFacts,
   linkRequestId: string,
   profile: TargetProfile,
+  retainSourceIdentity = false,
 ): MachineFunction {
   if (
     variant.terminal !== "jump-saved-vector" &&
@@ -82,6 +85,7 @@ export function createC64ReferenceInterruptEntry(
         );
   return Object.freeze({
     id,
+    ...(retainSourceIdentity ? { sourceFunction: source.id } : {}),
     ...(source.name === undefined ? {} : { sourceName: source.name }),
     ...(source.placement ? { placement: source.placement } : {}),
     blocks: Object.freeze([
@@ -94,7 +98,10 @@ export function createC64ReferenceInterruptEntry(
   });
 }
 
-/** Build one fixed, page-safe firmware entry around a callback-only source body. */
+/**
+ * Build one fixed, page-safe firmware entry around a callback-only source body.
+ * Selected construction provenance remains separate from complete execution proof.
+ */
 export function createC64InterruptEntry(
   body: MachineFunction,
   id: string,
@@ -202,6 +209,12 @@ export function createC64InterruptEntry(
   });
   return Object.freeze({
     id,
+    ...(body.executionContext === undefined
+      ? {}
+      : {
+          ...(body.sourceFunction === undefined ? {} : { sourceFunction: body.sourceFunction }),
+          executionContext: body.executionContext,
+        }),
     blocks: Object.freeze(blocks),
     ...(body.placement === undefined ? {} : { placement: body.placement }),
     ...(selectedNmi

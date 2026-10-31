@@ -78,6 +78,30 @@ function operationUses(operation: SemanticOperation): readonly ValueId[] {
   }
 }
 
+/**
+ * List conservative operands for backing-home occupancy, including hidden places.
+ * Unlike SSA edge liveness, a potential backing read keeps every merge input:
+ * it may be copied or deferred by the selected representation. Existing SSA
+ * liveness below retains its separate predecessor-edge handling unchanged.
+ * @param operation Original source operation before machine representation selection.
+ * @returns Every value which may keep a source home needed by this operation.
+ */
+export function potentialValueInputs(operation: SemanticOperation): readonly ValueId[] {
+  if (operation.kind === "merge") return operation.incoming.map((incoming) => incoming.value);
+  const values = operationUses(operation);
+  if (
+    (operation.kind === "call" || operation.kind === "indirect-call") &&
+    operation.aggregateDestination?.kind === "place"
+  )
+    return [
+      ...values,
+      ...operation.aggregateDestination.place.path.flatMap((part) =>
+        part.kind === "index" ? [part.value] : [],
+      ),
+    ];
+  return values;
+}
+
 /** Return the values consumed by a block terminator. */
 function terminatorUses(block: SemanticBlock): readonly ValueId[] {
   if (block.terminator.kind === "branch") return [block.terminator.condition];

@@ -1,14 +1,31 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
-import type { MemoryWriteOperation, SemanticPlace } from "../semantic/operations.js";
+import type { ByteComplementRuntime } from "./byte-value-availability.js";
+import type { FixedLoopRuntime } from "./fixed-loop-selection.js";
+import type {
+  MemoryWriteOperation,
+  SemanticBlock,
+  SemanticOperation,
+  SemanticPlace,
+} from "../semantic/operations.js";
 import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.js";
+import { validLocalStorageLifetime } from "../semantic/local-storage-lifetimes.js";
 import type { StorageRequest } from "../storage/storage-types.js";
+import {
+  selectedStoragePlace,
+  validObjectStorageSelection,
+  validObjectStorageBundle,
+  validNonLoopBundleTag,
+  declaredStorage,
+} from "../storage/selection.js";
 import {
   machineInstruction,
   type LoweredValue,
   modeForValue,
   operandForValue,
+  typeBytes,
+  bindingLabel,
 } from "./lower-control.js";
 import { type AggregateInductionRuntime } from "./lower-induction.js";
 import type { MultiplyHelper } from "./lower-multiply.js";
@@ -18,7 +35,12 @@ import type {
   MachineDataObject,
   MachineInstruction,
   MachineLoweringInput,
+  MachineFunctionSourceFacts,
+  MachineFunction,
+  AggregateAddressCache,
 } from "./machine-types.js";
+
+export type { AggregateAddressCache } from "./machine-types.js";
 
 /** Internal proving failure converted to the direct lowering error union. */
 export interface LoweringFailure extends Error {
@@ -36,34 +58,8 @@ export function isLoweringFailure(error: unknown): error is LoweringFailure {
   return error instanceof Error && error.name === "LoweringFailure" && "source" in error;
 }
 
-/** Return the exact packed byte width of one semantic type. */
-export function typeBytes(type: SemanticType): number {
-  if (type.kind === "array" || type.kind === "struct") return type.size;
-  if (type.kind === "function" || type.kind === "interrupt-handler") return 2;
-  if (type.kind === "enum") return 1;
-  if (type.name === "void") return 0;
-  return type.name === "word" || type.name === "sword" ? 2 : 1;
-}
-
-/** Return whether one scalar uses signed two's-complement ordering. */
-export function isSignedType(type: SemanticType): boolean {
-  return type.kind === "scalar" && (type.name === "sbyte" || type.name === "sword");
-}
-
-/** Convert a source binding into the stable generated label used by layout and serialization. */
-export function bindingLabel(prefix: string, binding: BindingId): string {
-  return `${prefix}.${bindingIdentityKey(binding)}`;
-}
-
-/** Compile-time identity of the indexed aggregate base held in the shared address pair. */
-export interface AggregateAddressCache {
-  /** Stable identity of the aggregate root and scaled index sources. */
-  readonly key: string;
-  /** Source binding whose packed bytes the pointer addresses. */
-  readonly rootBindingKey: string;
-  /** Storage homes whose current values contributed dynamic index terms. */
-  readonly indexRequestIds: readonly string[];
-}
+/** Keep existing scalar-width and label entries with their common value/control owner. */
+export { typeBytes, bindingLabel, isSignedType } from "./lower-control.js";
 
 /** Build one canonical aggregate-address fact shared by local and loop-carried reuse. */
 export function createAggregateAddressCache(
@@ -86,12 +82,20 @@ export function createAggregateAddressCache(
 export interface FunctionLoweringState {
   /** Source function whose execution storage is being selected. */
   readonly owner: BindingId;
+  /** Exact per-source function facts; every machine context keeps its own mutable state. */
+  readonly sourceFacts?: MachineFunctionSourceFacts;
+  /** Context-local complement values and already declared cache setup. */
+  byteComplements?: ByteComplementRuntime;
+  /** Explicit occurrence schedule; original source positions remain the storage authority. */
+  readonly fixedLoops?: FixedLoopRuntime;
   /** Memoized certified source root; null records the ordinary separate-home path. */
   returnedLocalRoot?: BindingId | null;
   /** Proven vector nesting at this machine variant's entry. */
   readonly interruptDepth: InterruptExecutionContext;
   /** Machine location of each already selected semantic value. */
   readonly values: Map<string, LoweredValue>;
+  /** Opt-in actual capture demands retained until the symbolic function is frozen. */
+  readonly aggregateCaptures?: NonNullable<MachineFunction["observerCaptures"]>[number][];
   /** Source places whose aggregate values are represented by addresses, not packed bytes. */
   readonly aggregatePlaces: Map<string, SemanticPlace>;
   /** Results already constructed in the current function's caller-owned object. */
@@ -107,7 +111,7 @@ export interface FunctionLoweringState {
   /** Values that must survive beyond their immediate production. */
   readonly materializedValues: ReadonlySet<string>;
   /** One-use A/AX results consumed by the next instruction-producing operation. */
-  readonly forwardedRegisterValues: ReadonlySet<string>;
+  readonly forwardedRegisterValues: Set<string>;
   /** Exact sole adjacent indexed additions selected from that access's unsigned proof. */
   readonly byteOrdinalAdditions?: ReadonlySet<string>;
   /** One adjacent fixed byte read delivered by its proved store or bitwise consumer. */
@@ -182,6 +186,177 @@ export interface FunctionLoweringState {
   aggregateInduction: AggregateInductionRuntime | null;
 }
 
+/** Compare unchanged immutable source fields, ignoring only an explicitly owned representation field. */
+function sameSourceFields(left: object, right: object, ignored: string): boolean {
+  const keys = Reflect.ownKeys(left).filter((key) => key !== ignored);
+  return (
+    keys.length === Reflect.ownKeys(right).filter((key) => key !== ignored).length &&
+    keys.every(
+      (key) => Reflect.has(right, key) && Reflect.get(left, key) === Reflect.get(right, key),
+    )
+  );
+}
+
+/**
+ * Reject stale facts before any selected machine operation can consume them.
+ * The only allowed source representation change is zero-page global placement;
+ * source functions, domains, effects, routes and initializer operations stay exact.
+ * @param input Lowering source, its optional precomputed facts and current placement.
+ * @throws {LoweringFailure} If any source, function, loop or lifetime belongs to another input.
+ */
+export function validateMachineSourceFacts(input: MachineLoweringInput): void {
+  const facts = input.sourceFacts;
+  if (facts === undefined) return;
+  if (!validNonLoopBundleTag(facts.nonLoopBundle))
+    throw loweringFailure("Unknown machine non-loop construction bundle", null);
+  const source = facts.program;
+  const current = input.program;
+  const globals = current.semantic.globals;
+  const validGlobals =
+    source.semantic.globals.length === globals.length &&
+    source.semantic.globals.every((global, index) => {
+      const placed = globals[index]!;
+      if (global === placed) return true;
+      return (
+        global.zeropage === true &&
+        sameSourceFields(global, placed, "placement") &&
+        placed.placement?.at != null &&
+        (global.placement?.at == null || global.placement.at === placed.placement.at) &&
+        (global.placement?.align ?? 1) === placed.placement.align &&
+        (global.placement?.noCross ?? null) === placed.placement.noCross &&
+        placed.placement.region === null
+      );
+    });
+  if (
+    !sameSourceFields(source, current, "semantic") ||
+    !sameSourceFields(source.semantic, current.semantic, "globals") ||
+    !validGlobals
+  )
+    throw loweringFailure("Machine source facts do not match the checked source program", null);
+  if (!validObjectStorageBundle(facts.functions, facts.nonLoopBundle !== "direct"))
+    throw loweringFailure(
+      "Machine object recipes do not match the complete selected source bundle",
+      null,
+    );
+  for (const [fn, selected] of facts.functions) {
+    if (
+      !source.semantic.functions.includes(fn) ||
+      selected.function !== fn ||
+      selected.objects.program !== source ||
+      selected.loops.some((loop) => loop.program !== source || loop.function !== fn) ||
+      selected.objects.rangeObservers.some(
+        (loop) => loop.program !== source || !source.semantic.functions.includes(loop.function),
+      ) ||
+      [...selected.lifetimes].some(
+        ([key, lifetime]) =>
+          lifetime.function !== fn.id || !validLocalStorageLifetime(source, key, lifetime),
+      ) ||
+      (selected.storage !== undefined &&
+        !validObjectStorageSelection(selected.storage, selected.objects, fn))
+    )
+      throw loweringFailure(
+        "Machine function facts do not match the checked source function",
+        fn.source,
+      );
+  }
+}
+
+/**
+ * Inventory the existing value-use obligations once before constructing function state.
+ * Same-place aggregate stores do not count as a later retained aggregate use;
+ * this query deliberately preserves the established direct lowering decisions.
+ * @param blocks Actual selected source blocks for one execution context.
+ * @returns Existing materialization, address and single-use facts without any rewrite.
+ */
+export function functionValueUses(
+  blocks: readonly SemanticBlock[],
+): Pick<
+  FunctionLoweringState,
+  "materializedValues" | "singleUseValues" | "retainedAggregateResults" | "addressValues"
+> {
+  const materializedValues = new Set<string>();
+  const valueUseCounts = new Map<string, number>();
+  const aggregateDestinations = new Map(
+    blocks.flatMap((block) =>
+      block.operations.flatMap((operation) =>
+        operation.kind === "aggregate"
+          ? [
+              [
+                operation.result,
+                operation.destination?.kind === "place" ? operation.destination.place : null,
+              ] as const,
+            ]
+          : [],
+      ),
+    ),
+  );
+  const retainedAggregateResults = new Set<string>();
+  const recordUse = (value: string, consumer: SemanticOperation | null): void => {
+    materializedValues.add(value);
+    valueUseCounts.set(value, (valueUseCounts.get(value) ?? 0) + 1);
+    if (!aggregateDestinations.has(value)) return;
+    const destination = aggregateDestinations.get(value);
+    if (
+      consumer?.kind === "store" &&
+      destination !== null &&
+      destination !== undefined &&
+      (consumer.place === destination ||
+        (consumer.place.path.length === 0 &&
+          destination.path.length === 0 &&
+          bindingIdentityKey(consumer.place.root) === bindingIdentityKey(destination.root)))
+    )
+      return;
+    retainedAggregateResults.add(value);
+  };
+  const addressValues = new Set<string>();
+  for (const block of blocks) {
+    for (const operation of block.operations) {
+      const indexedPlace =
+        operation.kind === "load" ||
+        operation.kind === "store" ||
+        operation.kind === "place-address"
+          ? operation.place
+          : operation.kind === "aggregate" && operation.destination?.kind === "place"
+            ? operation.destination.place
+            : null;
+      if (indexedPlace !== null)
+        for (const component of indexedPlace.path) {
+          if (component.kind === "index") {
+            addressValues.add(component.value);
+            recordUse(component.value, operation);
+          }
+        }
+      if (operation.kind === "store") recordUse(operation.value, operation);
+      else if (operation.kind === "convert" || operation.kind === "unary")
+        recordUse(operation.operand, operation);
+      else if (operation.kind === "binary" || operation.kind === "bcd") {
+        recordUse(operation.left, operation);
+        recordUse(operation.right, operation);
+      } else if (operation.kind === "call" || operation.kind === "platform") {
+        for (const argument of operation.arguments) recordUse(argument, operation);
+      } else if (operation.kind === "indirect-call") {
+        recordUse(operation.target, operation);
+        for (const argument of operation.arguments) recordUse(argument, operation);
+      } else if (operation.kind === "memory-read") recordUse(operation.address, operation);
+      else if (operation.kind === "memory-write") {
+        recordUse(operation.address, operation);
+        recordUse(operation.value, operation);
+      } else if (operation.kind === "aggregate") {
+        for (const element of operation.elements) recordUse(element.value, operation);
+        if (operation.fill !== null) recordUse(operation.fill, operation);
+      } else if (operation.kind === "merge") {
+        for (const incoming of operation.incoming) recordUse(incoming.value, operation);
+      }
+    }
+    if (block.terminator.kind === "return" && block.terminator.value !== null)
+      recordUse(block.terminator.value, null);
+  }
+  const singleUseValues = new Set(
+    [...valueUseCounts].filter(([, uses]) => uses === 1).map(([value]) => value),
+  );
+  return { materializedValues, singleUseValues, retainedAggregateResults, addressValues };
+}
+
 /** Use the existing source lifetime for functions and executable initializers alike. */
 function selectedValueLifetime(state: FunctionLoweringState, value: string) {
   const owner = bindingIdentityKey(state.owner);
@@ -195,19 +370,26 @@ function selectedValueLifetime(state: FunctionLoweringState, value: string) {
 }
 
 /** Build a conservative finite lifetime for machine-discovered function storage. */
-function machineLifetime(state: FunctionLoweringState, value: string) {
+function machineLifetime(state: FunctionLoweringState, value: string, precise = true) {
   const semantic = selectedValueLifetime(state, value);
-  if (semantic !== undefined) return semantic;
+  if (precise && semantic !== undefined) return semantic;
   return Object.freeze({
     function: state.owner,
     value,
-    definition: state.allPositions[0] ?? Object.freeze({ block: "entry", operation: 0 }),
+    definition:
+      semantic?.definition ??
+      state.allPositions[0] ??
+      Object.freeze({ block: "entry", operation: 0 }),
     liveAt: state.allPositions,
     callsCrossed: state.callSpans,
   });
 }
 
-/** Add or return one stable machine-discovered request. */
+/**
+ * Add or return one stable machine request. An explicit source value preserves
+ * its original lifetime independently of the request's representation-specific ID.
+ * Function-wide retention is explicit when unproved views may keep the backing alive.
+ */
 export function requestStorage(
   state: FunctionLoweringState,
   idSuffix: string,
@@ -217,6 +399,8 @@ export function requestStorage(
   source: SourceSpan,
   reason: string,
   type: SemanticType | null = null,
+  value: string = idSuffix,
+  lifetime: "source" | "function" = "source",
 ): StorageRequest {
   const id = `machine:${bindingIdentityKey(state.owner)}:${idSuffix}`;
   const existing = state.requests.find((request) => request.id === id);
@@ -226,12 +410,12 @@ export function requestStorage(
     storageClass,
     owner: state.owner,
     binding: null,
-    value: idSuffix,
+    value,
     type,
     bytes,
     alignment: 1,
     region,
-    lifetime: machineLifetime(state, idSuffix),
+    lifetime: machineLifetime(state, value, lifetime === "source"),
     source,
     reason,
   });
@@ -241,6 +425,9 @@ export function requestStorage(
 
 /** Match a certified root once per execution context, before any direct-home fallback. */
 export function isReturnedLocalPlace(place: SemanticPlace, state: FunctionLoweringState): boolean {
+  const selected = state.sourceFacts?.storage?.resultLocal;
+  if (selected != null && bindingIdentityKey(selected) === bindingIdentityKey(place.root))
+    return true;
   if (state.input.program.returnedLocalDestinations === undefined) return false;
   if (state.returnedLocalRoot === undefined) {
     const owner = bindingIdentityKey(state.owner);
@@ -262,7 +449,7 @@ export function aggregateResultPointer(
   source: SourceSpan,
 ): Extract<LoweredValue, { readonly kind: "storage" }> {
   const requestId = `${bindingIdentityKey(owner)}:pointer:aggregate-return-destination`;
-  if (!state.input.placement.homes.some((home) => home.requestId === requestId))
+  if (declaredStorage(state.input, (id) => id === requestId) === undefined)
     throw loweringFailure("Aggregate return destination has no certified pointer home", source);
   return Object.freeze({ kind: "storage", requestId, bytes: 2, signed: false });
 }
@@ -274,6 +461,7 @@ export function loweredPlace(
   signed: boolean,
   state: FunctionLoweringState,
 ): LoweredValue {
+  place = selectedStoragePlace(place, state.sourceFacts?.storage);
   if (isReturnedLocalPlace(place, state)) {
     return aggregateResultPointer(state.owner, state, place.root.span);
   }
@@ -281,14 +469,14 @@ export function loweredPlace(
     return Object.freeze({ kind: "label", label: `asset.${place.asset}`, bytes, signed });
   }
   const bindingKey = bindingIdentityKey(place.root);
-  const home = state.input.placement.homes.find(
-    ({ requestId }) =>
-      requestId.endsWith(`:parameter:${bindingKey}`) || requestId.endsWith(`:local:${bindingKey}`),
+  const home = declaredStorage(
+    state.input,
+    (id) => id.endsWith(`:parameter:${bindingKey}`) || id.endsWith(`:local:${bindingKey}`),
   );
   if (home !== undefined) {
     return Object.freeze({
       kind: "storage",
-      requestId: home.requestId,
+      requestId: home.id,
       bytes,
       signed,
     });
@@ -373,7 +561,9 @@ export function retainMachineValue(
     const ordinal = component?.kind === "index" ? state.values.get(component.value) : undefined;
     const ordinalByte = ordinal?.kind === "zero-extended" ? ordinal.low : ordinal;
     checkedRead =
-      state.input.boundsCheck === true && store?.kind === "store" && component?.kind === "index";
+      state.input.boundsCheck === true &&
+      component?.kind === "index" &&
+      !state.fixedLoops?.indexViews.has(component.value);
     if (
       !state.input.boundsCheck &&
       store?.kind === "store" &&

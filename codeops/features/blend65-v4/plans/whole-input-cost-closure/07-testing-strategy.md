@@ -69,6 +69,12 @@ and justified in RED evidence; no expectation is weakened to force RED.
 | `input-startup-selection.spec.test.ts` | ST-17–ST-20 |
 | `packages/compiler/src/services/input-size-frontier.spec.test.ts` | ST-22–ST-24, ST-29–ST-30 |
 | `input-size-runtime.spec.test.ts` | ST-27; ST-6 wrapped/dummy-bus, ST-8 alternate-domain and ST-12 handler-mutation observations; ST-16 held-link coverage |
+| `input-acquisition-nmi.spec.test.ts` | AR-P11 focused split of the new public-acquisition real-NMI/quality and live-link facet; ST-16/ST-20/ST-27, same expected behavior and existing monitor APIs |
+
+The current inventory has eight new specification files. AR-P11's exact user
+ruling adds only the focused acquisition-NMI file; the seven-file references in
+the historical placement notes below describe their original approval boundary.
+No new behavior, helper family, runner or oracle expectation follows from the split.
 
 ST-25/ST-26 reuse the exact existing three whole-output files amended only by
 AR-P4. The helper exception is separate and defaults to none. Runtime tests reuse

@@ -24,6 +24,41 @@ export interface RawMemoryLoweringContext {
   readonly lowByteRequest?: (source: MemoryReadOperation) => string;
   /** Keep one fixed-address byte in X while a later volatile byte is evaluated. */
   readonly byteRegister?: "a" | "x";
+  /** Retain source associations only for the explicit size observer path. */
+  readonly observerEvidence?: boolean;
+}
+
+/**
+ * The raw producer identifies its own effective-byte members before any deferral.
+ * These associations do not certify bus safety: final checking independently decodes
+ * the actual instruction, including pointer and discarded accesses.
+ */
+function observeRawSequence(
+  sequence: readonly MachineInstruction[],
+  operation: MemoryReadOperation | MemoryWriteOperation,
+  context: RawMemoryLoweringContext,
+): readonly MachineInstruction[] {
+  if (!context.observerEvidence) return Object.freeze(sequence);
+  const recipe =
+    context.values.get(operation.address)?.kind === "constant" ? "raw-fixed" : "raw-indirect";
+  return Object.freeze(
+    sequence.map((instruction, position) =>
+      Object.freeze({
+        ...instruction,
+        observerOrigins: Object.freeze([
+          Object.freeze({
+            kind: "raw" as const,
+            operation,
+            recipe,
+            position,
+            length: sequence.length,
+            byte: instruction.memory.find((effect) => effect.volatile)?.order ?? null,
+            addressInput: context.values.get(operation.address)!,
+          }),
+        ]),
+      }),
+    ),
+  );
 }
 
 /** Create one ordered volatile effect through the selected zero-page pointer. */
@@ -136,7 +171,7 @@ export function lowerMemoryRead(
         ),
       );
     }
-    return Object.freeze(instructions);
+    return observeRawSequence(instructions, operation, context);
   }
   const pointer = context.pointerRequest(operation);
   const instructions = [...setPointer(address, pointer.id, context.cpu, operation.span)];
@@ -192,7 +227,7 @@ export function lowerMemoryRead(
       ),
     );
   }
-  return Object.freeze(instructions);
+  return observeRawSequence(instructions, operation, context);
 }
 
 /** Lower a fixed or runtime volatile write, preserving low-byte-first order and 16-bit wrap. */
@@ -233,7 +268,7 @@ export function lowerMemoryWrite(
         ),
       );
     }
-    return Object.freeze(instructions);
+    return observeRawSequence(instructions, operation, context);
   }
   if (value.kind === "register") {
     throw new Error("Dynamic raw-memory write needs a stable value before address setup");
@@ -268,5 +303,5 @@ export function lowerMemoryWrite(
       ),
     );
   }
-  return Object.freeze(instructions);
+  return observeRawSequence(instructions, operation, context);
 }

@@ -1,8 +1,84 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
-import type { MachineDataObject, MachineFunction } from "./machine-types.js";
+import type {
+  MachineDataObject,
+  MachineFunction,
+  MachineInstruction,
+  MachineMemoryEffect,
+  MachineLoweringInput,
+} from "./machine-types.js";
+import { machineInstruction } from "./lower-control.js";
 import { createC64StartupStateData } from "../layout/startup.js";
 import { typeBytes, bindingLabel, loweringFailure } from "./lower-state.js";
+
+/**
+ * Lower a side-effect-free constant module initializer to inline runtime stores.
+ * @param global Checked declaration with its exact constant runtime bytes.
+ * @param input Selected CPU and the same checked program being lowered.
+ * @param accumulator Known incoming A byte, or null when no constant is known.
+ * @returns Ordered stores and the last constant left in A.
+ * @throws {LoweringFailure} If the constant byte count or initializer entry is inconsistent.
+ * @example lowerConstantInitializer(global, input, null)
+ */
+export function lowerConstantInitializer(
+  global: WholeProgram["semantic"]["globals"][number],
+  input: MachineLoweringInput,
+  accumulator: number | null,
+): {
+  /** Runtime stores in unchanged source-byte order. */
+  readonly instructions: readonly MachineInstruction[];
+  /** Last constant A value, reusable by the following initializer. */
+  readonly accumulator: number | null;
+} {
+  const bytes = global.runtimeInitialBytes;
+  if (bytes === null || global.entry === null || bytes.length !== typeBytes(global.type)) {
+    throw loweringFailure(
+      "Constant runtime initializer bytes do not match the global",
+      global.source,
+    );
+  }
+  const target = bindingLabel("global", global.id);
+  const instructions: MachineInstruction[] = [];
+  let currentAccumulator = accumulator;
+  for (const [offset, value] of bytes.entries()) {
+    if (value !== currentAccumulator) {
+      instructions.push(
+        machineInstruction(
+          input.profile.cpu,
+          "lda",
+          "immediate",
+          Object.freeze({ kind: "immediate", value }),
+          [],
+          global.source,
+        ),
+      );
+      currentAccumulator = value;
+    }
+    const memory = Object.freeze([
+      Object.freeze({
+        kind: "write" as const,
+        address: Object.freeze({ kind: "symbolic" as const, label: target, offset }),
+        width: 1 as const,
+        volatile: false,
+        order: 0,
+      }),
+    ]) satisfies readonly MachineMemoryEffect[];
+    instructions.push(
+      machineInstruction(
+        input.profile.cpu,
+        "sta",
+        "absolute",
+        Object.freeze({ kind: "label", label: target, offset }),
+        memory,
+        global.source,
+      ),
+    );
+  }
+  return Object.freeze({
+    instructions: Object.freeze(instructions),
+    accumulator: currentAccumulator,
+  });
+}
 
 /** Return the machine data objects owned by globals and reachable assets. */
 export function lowerData(

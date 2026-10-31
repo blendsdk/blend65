@@ -184,13 +184,33 @@ export function lowerPlatformOperation(
       }
       state.generatedData.set(data.id, data);
     }
+    const variant =
+      selectedInterruptRoute?.variant.id ??
+      state.input.program.interruptRoutes?.find((route) => route.installation === operation)
+        ?.variant.id ??
+      null;
+    const sequence = state.input.observerEvidence
+      ? Object.freeze(
+          lowered.instructions.map((instruction, position) =>
+            Object.freeze({
+              ...instruction,
+              observerOrigins: Object.freeze([
+                Object.freeze({
+                  kind: "platform" as const,
+                  operation,
+                  recipe: "platform" as const,
+                  variant,
+                  position,
+                  length: lowered.instructions.length,
+                  byte: null,
+                }),
+              ]),
+            }),
+          ),
+        )
+      : lowered.instructions;
     if (operation.result !== null && lowered.result !== null) {
-      const materialized = materializeCondition(
-        lowered.result,
-        lowered.instructions,
-        operation,
-        state,
-      );
+      const materialized = materializeCondition(lowered.result, sequence, operation, state);
       const retained = retainMachineValue(
         operation.result,
         materialized.result,
@@ -202,7 +222,7 @@ export function lowerPlatformOperation(
       state.values.set(operation.result, retained.value);
       return retained.instructions;
     }
-    return lowered.instructions;
+    return sequence;
   } catch (error) {
     throw loweringFailure(
       error instanceof Error ? error.message : "Cannot lower platform operation",

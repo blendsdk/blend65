@@ -7,6 +7,7 @@ import type {
 import { canReceiveByteArgumentInA } from "./lower-call.js";
 import type { MachineBlock } from "./machine-types.js";
 import { typeBytes } from "./lower-state.js";
+export { selectByteWindows } from "./byte-value-availability.js";
 
 /**
  * Keep an already-zero A for a Boolean function's two constant return arms.
@@ -96,6 +97,8 @@ export function selectRegisterForwarding(
   singleUseValues: ReadonlySet<string>,
   ordinalBounds: ReadonlyMap<SemanticOperation, ReadonlyMap<string, bigint>> = new Map(),
   functions: readonly SemanticFunction[] = [],
+  noCode?: ReadonlySet<SemanticOperation>,
+  addressValues?: ReadonlySet<string>,
 ): {
   /** Values whose sole adjacent consumer can use their still-live registers. */
   readonly forwardedRegisterValues: ReadonlySet<string>;
@@ -135,6 +138,7 @@ export function selectRegisterForwarding(
     }
   }
   const hasNoMachineInstruction = (operation: SemanticBlock["operations"][number]): boolean =>
+    noCode?.has(operation) === true ||
     operation.kind === "constant" ||
     (operation.kind === "convert" && constantValues.has(operation.result));
   // Constant expressions carry identities but emit nothing, so they do not break adjacency.
@@ -285,7 +289,7 @@ export function selectRegisterForwarding(
             ["&", "|", "^"].includes(consumer.operator) &&
             typeBytes(consumer.type) === 1 &&
             consumer.left === producer.result &&
-            constantValues.has(consumer.right)) ||
+            (constantValues.has(consumer.right) || addressValues?.has(consumer.right) === true)) ||
           ((byteBitwise || byteComplement) &&
             ((consumer?.kind === "memory-write" &&
               consumer.width === 1 &&

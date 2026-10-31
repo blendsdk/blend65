@@ -92,6 +92,23 @@ function branchingHandlerProgram(levels: number): string {
 }
 
 describe("equivalent interrupt analysis contexts", () => {
+  it("should add held state to the same feasible program route without changing IRQ bytes or overlaps", () => {
+    const selected = selectTargetProfile(PROFILE);
+    if (selected.kind !== "complete") throw new Error("Missing profile");
+    const analysis = analyzeProject(snapshot(branchingProgram(2)));
+    if (analysis.kind !== "complete") throw new Error(JSON.stringify(analysis.diagnostics));
+    const semantic = buildSemanticProgram(analysis);
+    if (semantic.kind !== "complete") throw new Error("Expected semantic program");
+    const closed = closeWholeProgram(semantic.program, selected.profile.interrupts);
+    if (closed.kind !== "complete") throw new Error(JSON.stringify(closed.diagnostics));
+    const ordinary = simultaneousIRQStackPeak(closed.program, [], 1, undefined);
+    const held = simultaneousIRQStackPeak(closed.program, [], 2, undefined, [], 1);
+    expect(held.program).toBe(ordinary.program + 1);
+    expect(held.system).toBe(ordinary.system);
+    expect(held.route).toEqual(ordinary.route);
+    expect(held.irqOverlap).toEqual(ordinary.irqOverlap);
+  });
+
   it.each([4, 8, 10])("keeps body analyses linear for %i balanced branch levels", (levels) => {
     const selected = selectTargetProfile(PROFILE);
     if (selected.kind !== "complete") throw new Error("Missing selected profile");

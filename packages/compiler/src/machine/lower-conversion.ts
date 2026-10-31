@@ -1,5 +1,6 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { ConvertOperation } from "../semantic/operations.js";
+import { declaredStorage } from "../storage/selection.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import type { MachineInstruction } from "./machine-types.js";
 import {
@@ -22,7 +23,7 @@ function retainConvertedValue(
   const requestId = `${bindingIdentityKey(state.owner)}:argument-stage:${operation.result}`;
   if (
     value.kind === "constant" ||
-    !state.input.placement.homes.some((home) => home.requestId === requestId)
+    declaredStorage(state.input, (id) => id === requestId) === undefined
   ) {
     state.values.set(operation.result, value);
     return Object.freeze(instructions);
@@ -121,18 +122,19 @@ export function lowerConversion(
     throw loweringFailure("Unsupported integer conversion", operation.span);
   }
   const plannedStageId = `${bindingIdentityKey(state.owner)}:argument-stage:${operation.result}`;
-  const requestId = state.input.placement.homes.some((home) => home.requestId === plannedStageId)
-    ? plannedStageId
-    : requestStorage(
-        state,
-        `sign-extension:${operation.result}`,
-        "temporary",
-        2,
-        "ram",
-        operation.span,
-        "Retain both bytes of a signed extension",
-        operation.type,
-      ).id;
+  const requestId =
+    declaredStorage(state.input, (id) => id === plannedStageId) !== undefined
+      ? plannedStageId
+      : requestStorage(
+          state,
+          `sign-extension:${operation.result}`,
+          "temporary",
+          2,
+          "ram",
+          operation.span,
+          "Retain both bytes of a signed extension",
+          operation.type,
+        ).id;
   const result: LoweredValue = Object.freeze({ kind: "storage", requestId, bytes: 2, signed });
   appendLoadA(instructions, low, 0, state, operation.span);
   instructions.push(storeA(result, 0, state, operation.span));

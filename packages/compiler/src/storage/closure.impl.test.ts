@@ -3,7 +3,22 @@ import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { SemanticBlock, SemanticFunction, SemanticOperation } from "../semantic/operations.js";
 import type { ValueLifetime, WholeProgram } from "../semantic/whole-program.js";
 import { closeStorage } from "./closure.js";
-import type { StorageInventory, StorageProfile, StorageRequest } from "./storage-types.js";
+import type {
+  StorageInventory,
+  StorageProfile,
+  StorageRequest,
+  StorageBinder,
+} from "./storage-types.js";
+
+/** Supply synthetic platform facts only to test root accounting, not startup instruction legality. */
+function startupBinder(heldBytes: number, transientPeakBytes: number): StorageBinder {
+  return {
+    candidateRequestIds: [],
+    helperCalls: [],
+    startupStack: { heldBytes, transientPeakBytes },
+    discover: () => [],
+  };
+}
 
 const BYTE: SemanticType = Object.freeze({ kind: "scalar", name: "byte" });
 
@@ -465,6 +480,92 @@ describe("static storage closure implementation", () => {
 
     expect(result).toEqual({ kind: "error", reason: "nonconvergent" });
     expect(result).not.toHaveProperty("certificate");
+  });
+
+  it("should add a platform-held byte once across nested calls at the exact capacity boundary", () => {
+    const initial = inventory([fn(binding(730)), fn(binding(731)), fn(binding(732))]);
+    const exact = closeStorage(initial, profile(10), startupBinder(1, 2));
+    expect(exact).toMatchObject({
+      kind: "complete",
+      certificate: {
+        hardwareStackProgramPeak: 5,
+        hardwareStackSystemPeak: 3,
+        hardwareStackPeak: 8,
+      },
+    });
+    expect(closeStorage(initial, profile(9), startupBinder(1, 2))).toMatchObject({
+      kind: "error",
+      reason: "stack",
+      measured: 8,
+      available: 7,
+    });
+  });
+
+  it("should treat the transient peak as absolute rather than adding the held byte twice", () => {
+    const initial = inventory([fn(binding(740))]);
+    expect(closeStorage(initial, profile(), startupBinder(1, 2))).toMatchObject({
+      kind: "complete",
+      certificate: { hardwareStackProgramPeak: 2, hardwareStackPeak: 5 },
+    });
+  });
+
+  it("should keep callable-root competition independent of startup-held state", () => {
+    const main = fn(binding(750));
+    const callable = { ...fn(binding(751)), statusStackPeak: 4 };
+    const base = inventory([main, callable]);
+    const initial = {
+      ...base,
+      program: {
+        ...base.program,
+        roots: [...base.program.roots, { kind: "callable" as const, function: callable.id }],
+        callGraph: [main, callable].map((entry) => ({ function: entry.id, callees: [] })),
+      },
+    };
+    expect(closeStorage(initial, profile(), startupBinder(1, 2))).toMatchObject({
+      kind: "complete",
+      certificate: { hardwareStackProgramPeak: 4, hardwareStackPeak: 7 },
+    });
+  });
+
+  it("should include the held base once below initializer return addresses", () => {
+    const main = fn(binding(760)),
+      first = fn(binding(761)),
+      second = fn(binding(762)),
+      global = binding(763);
+    const base = inventory([main, first, second]);
+    const initial = {
+      ...base,
+      program: {
+        ...base.program,
+        roots: [
+          { kind: "startup" as const },
+          { kind: "initializer" as const, binding: global },
+          { kind: "main" as const, function: main.id },
+        ],
+        callGraph: [
+          { function: main.id, callees: [] },
+          { function: first.id, callees: [second.id] },
+          { function: second.id, callees: [] },
+        ],
+        initializers: [{ binding: global, callees: [first.id], lifetimes: [] }],
+      },
+    };
+    expect(closeStorage(initial, profile(), startupBinder(1, 2))).toMatchObject({
+      kind: "complete",
+      certificate: { hardwareStackProgramPeak: 7, hardwareStackPeak: 10 },
+    });
+  });
+
+  it.each([
+    [-1, 2],
+    [0.5, 2],
+    [2, 1],
+    [Number.NaN, 2],
+    [1, Number.POSITIVE_INFINITY],
+  ])("should reject malformed startup demand held=%s transient=%s", (held, transient) => {
+    expect(
+      closeStorage(inventory([fn(binding(770))]), profile(), startupBinder(held, transient)),
+    ).toEqual({ kind: "error", reason: "nonconvergent" });
   });
 
   it("permits every declared candidate plus one final stability round", () => {

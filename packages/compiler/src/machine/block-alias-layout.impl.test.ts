@@ -28,6 +28,171 @@ function repair(fn: MachineFunction) {
 }
 
 describe("instruction-empty alias layout", () => {
+  it.each([1, 150])("preserves exact bridge ownership and bytes with %i body bytes", (padding) => {
+    const fn: MachineFunction = {
+      id: "observed-bridge",
+      blocks: [
+        { label: "start", instructions: [], terminator: branch("T", "F") },
+        { label: "F", instructions: [], terminator: { kind: "return" } },
+        {
+          label: "T",
+          instructions: Array.from({ length: padding }, nop),
+          terminator: jump("entry"),
+        },
+        { label: "entry", instructions: [nop()], terminator: branch("F", "T") },
+      ],
+    };
+    const observed: MachineFunction = {
+      ...fn,
+      observerBlocks: fn.blocks.map(
+        (block) =>
+          [
+            { id: block.label, operations: [], terminator: { kind: "return", value: null } },
+            [block.label],
+          ] as const,
+      ),
+    };
+    const plain = repair(fn),
+      result = repair(observed);
+    expect(result.function.blocks).toEqual(plain.function.blocks);
+    expect(result.byteLength).toBe(plain.byteLength);
+    expect(plain.function.observerBlocks).toBeUndefined();
+    const owner = observed.observerBlocks!.find(([, labels]) => labels[0] === "entry")!;
+    const parent = result.function.blocks.find((block) => block.label === "entry")!;
+    const edge = parent.terminator;
+    if (edge.kind !== "branch" && edge.kind !== "long-branch")
+      throw new Error("Expected the repaired conditional");
+    const bridge = result.function.blocks.find((block) => block.label === edge.fallthrough)!;
+    expect(result.function.observerBlocks!.find(([source]) => source === owner[0])![1]).toEqual([
+      "entry",
+      bridge.label,
+    ]);
+    expect(owner[1]).toEqual(["entry"]);
+    expect(bridge).toMatchObject({
+      instructions: [],
+      origin: parent.origin! + 1 + (padding === 150 ? 5 : 2),
+      terminator: jump("T"),
+    });
+    expect(edge.opcode).toBe(padding === 150 ? "bne" : "beq");
+    expect(edge.kind === "branch" ? edge.target : edge.jump.target).toBe("F");
+    for (const [source, labels] of observed.observerBlocks!)
+      expect(result.function.observerBlocks!.find(([actual]) => actual === source)![1][0]).toBe(
+        labels[0],
+      );
+    if (padding === 1) {
+      const second = repair(result.function),
+        next = second.function.blocks.find((block) => block.label === "entry")!;
+      if (next.terminator.kind !== "branch") throw new Error("Expected the repeated conditional");
+      const labels = second.function.observerBlocks!.find(([source]) => source === owner[0])![1];
+      expect(labels).toEqual(["entry", next.terminator.fallthrough]);
+      expect(labels).not.toContain(bridge.label);
+      expect(second.function.blocks.some((block) => block.label === bridge.label)).toBe(true);
+      const retired = second.function.blocks.find((block) => block.label === bridge.label)!;
+      expect(retired.instructions).toHaveLength(0);
+      expect(retired.terminator.kind).toBe("fallthrough");
+      expect(retired.origin).toBe(
+        second.function.blocks.find((block) => block.label === "T")!.origin,
+      );
+      expect(second.function.blocks).toEqual(repair(plain.function).function.blocks);
+    }
+  });
+
+  it.each(["missing", "duplicate", "competing", "repeated source", "foreign entry"])(
+    "rejects %s bridge ownership rather than choosing a convenient source",
+    (damage) => {
+      const fn: MachineFunction = {
+        id: "invalid-owner",
+        blocks: [
+          { label: "start", instructions: [], terminator: branch("T", "F") },
+          {
+            label: "F",
+            instructions: [],
+            terminator:
+              damage === "foreign entry" ? jump("entry.fallthrough.0") : { kind: "return" },
+          },
+          { label: "T", instructions: [nop()], terminator: jump("entry") },
+          { label: "entry", instructions: [nop()], terminator: branch("F", "T") },
+        ],
+      };
+      const groups: NonNullable<MachineFunction["observerBlocks"]> = fn.blocks.map(
+        (block) =>
+          [
+            { id: block.label, operations: [], terminator: { kind: "return", value: null } },
+            [block.label],
+          ] as const,
+      );
+      const changed = groups.flatMap(([source, labels], index) =>
+        damage === "missing" && labels[0] === "entry"
+          ? []
+          : [
+              [
+                damage === "repeated source" && index === 3 ? groups[0]![0] : source,
+                damage === "duplicate" && index === 3
+                  ? [...labels, "entry"]
+                  : damage === "competing" && index === 0
+                    ? [...labels, "entry"]
+                    : labels,
+              ] as const,
+            ],
+      );
+      expect(repairMachineBranches({ ...fn, observerBlocks: changed }, 0x2000)).toEqual({
+        kind: "error",
+        reason: "missing-label",
+      });
+    },
+  );
+
+  it("keeps source associations when scheduling inverts a conditional", () => {
+    const fn: MachineFunction = {
+      id: "inverted-owner",
+      blocks: [
+        { label: "start", instructions: [], terminator: branch("T", "F") },
+        { label: "T", instructions: [nop()], terminator: jump("F") },
+        { label: "F", instructions: [nop()], terminator: { kind: "return" } },
+      ],
+      observerBlocks: [
+        [
+          { id: "source", operations: [], terminator: { kind: "return", value: null } },
+          ["start", "T", "F"],
+        ],
+      ],
+    };
+    const result = repair(fn);
+    expect(result.function.blocks[0]!.terminator).toMatchObject({
+      kind: "branch",
+      opcode: "bne",
+      target: "F",
+      fallthrough: "T",
+    });
+    expect(result.function.observerBlocks).toEqual(fn.observerBlocks);
+  });
+
+  it("retains an interior fallthrough which was already a free alias", () => {
+    const fn: MachineFunction = {
+      id: "already-free",
+      blocks: [
+        {
+          label: "entry",
+          instructions: [nop()],
+          terminator: { kind: "fallthrough", target: "alias" },
+        },
+        { label: "alias", instructions: [], terminator: { kind: "fallthrough", target: "tail" } },
+        { label: "tail", instructions: [nop()], terminator: { kind: "return" } },
+      ],
+      observerBlocks: [
+        [
+          { id: "source", operations: [], terminator: { kind: "return", value: null } },
+          ["entry", "alias", "tail"],
+        ],
+      ],
+    };
+    const result = repair(fn);
+    expect(result.function.observerBlocks).toEqual(fn.observerBlocks);
+    expect(result.function.blocks.find((block) => block.label === "alias")!.origin).toBe(
+      result.function.blocks.find((block) => block.label === "tail")!.origin,
+    );
+  });
+
   it("preserves every alias and schedules both guarded arms before their common return", () => {
     const reject = machineInstruction(selectedProfile().cpu, "lda", "immediate", {
       kind: "immediate",
