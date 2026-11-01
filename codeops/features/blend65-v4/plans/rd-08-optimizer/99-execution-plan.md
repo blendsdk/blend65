@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-01 23:55
-> **Progress**: 2/41 tasks (5%)
+> **Last Updated**: 2026-11-01 23:58
+> **Progress**: 8/41 tasks (20%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -49,23 +49,23 @@ it is never repaired by weakening limits or adding a benchmark-specific rule.
 
 **Reference**: [03-01](03-01-facts-and-pipeline.md) §New Types; AR-009.
 
-- [ ] 1.2.1 Implement `OptimizationFacts` and deterministic derivation from existing pure queries — `packages/compiler/src/machine/optimization-facts.ts`
-- [ ] 1.2.2 Verify facts identity, source/profile ownership and deterministic ordering — focused facts tests
+- [x] 1.2.1 Implement `OptimizationFacts` and deterministic derivation from existing pure queries — `packages/compiler/src/machine/optimization-facts.ts` ✅ (completed: 2026-11-01 23:58; immutable facts from existing liveness/object/loop/domain/effect queries)
+- [x] 1.2.2 Verify facts identity, source/profile ownership and deterministic ordering — focused facts tests ✅ (completed: 2026-11-01 23:58; 6/6 facts cases pass)
 
 ### Step 1.3: Ordered rule runner and obligations
 
 **Reference**: [03-01](03-01-facts-and-pipeline.md) §Rule Order; [03-02](03-02-rules-and-obligations.md) §Rule Execution Contract; AR-007/008.
 
-- [ ] 1.3.1 Implement the explicit ordered rule runner, stable rule IDs and closed obligation result — `packages/compiler/src/machine/optimization-rules.ts`
-- [ ] 1.3.2 Implement the foundation rules only: copy/dead cleanup and declaration/fallback checks; no benchmark-specific rule — `packages/compiler/src/machine/optimization-rules.ts`
-- [ ] 1.3.3 Verify declared-site containment, rejected-rule fallback and obligation closure — focused rules tests
+- [x] 1.3.1 Implement the explicit ordered rule runner, stable rule IDs and closed obligation result — `packages/compiler/src/machine/optimization-rules.ts` ✅ (completed: 2026-11-01 23:58; foundation catalogue and validation; no benchmark-specific match)
+- [~] 1.3.2 Implement the foundation rules only: copy/dead cleanup and declaration/fallback checks; no benchmark-specific rule — `packages/compiler/src/machine/optimization-rules.ts` ⏳ (implemented: 2026-11-01 23:58; conservative no-match catalogue and canonical fallback pass; concrete cleanup matches remain before Phase 1 gate)
+- [x] 1.3.3 Verify declared-site containment, rejected-rule fallback and obligation closure — focused rules tests ✅ (completed: 2026-11-01 23:58; 9/9 rules cases pass)
 
 ### Step 1.4: Complete cost vector
 
 **Reference**: [03-03](03-03-cost-modes-and-evidence.md) §Cost Vector; AR-010.
 
-- [ ] 1.4.1 Implement exact/range/symbolic/unknown T and B/R/T comparison helpers — `packages/compiler/src/machine/optimization-cost.ts`
-- [ ] 1.4.2 Verify unknown/incomparable handling, exact ties and mode ordering — focused cost tests
+- [x] 1.4.1 Implement exact/range/symbolic/unknown T and B/R/T comparison helpers — `packages/compiler/src/machine/optimization-cost.ts` ✅ (completed: 2026-11-01 23:58; complete B/R/T ordering, unknown/incomparable and stable selection)
+- [x] 1.4.2 Verify unknown/incomparable handling, exact ties and mode ordering — focused cost tests ✅ (completed: 2026-11-01 23:58; 24/24 cost cases pass)
 
 ### Step 1.5: Lowering and provenance integration
 
