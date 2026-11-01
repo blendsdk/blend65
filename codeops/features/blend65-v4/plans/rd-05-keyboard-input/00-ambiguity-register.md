@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: Blocked — AR-P38 whole-input cost-closure design is unresolved; approved corrections and all current input behavior checks pass, but complete output remains RED
-> **Last Updated**: 2026-10-11 22:18 CEST
+> **Status**: Executing — correctness track resumed; AR-P38 size-output acceptance deferred to RD-08; behavior/native/ABI gates remain
+> **Last Updated**: 2026-11-01 16:31 CET
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract
@@ -3364,3 +3364,16 @@ size-mode whole-output qualification. Original none behavior and every resource,
 timing, source and platform contract remain. Historical execution-cap and
 pre-AR-P33 evidence limits are not reset or re-cleared. Parent progress stays
 38/48 until actual original-file qualification and its pending closeout pass.
+
+### Two-track deferral — 2026-11-01
+
+Status: **⏸ Deferred for size output only; correctness track resumes.** The user
+selected the two-track release boundary: `none` is the v4 correctness baseline,
+`size` stays experimental, and unchanged 963/725 output tests remain optimizer
+targets. The twelve size output cases are now owned by the full
+[RD-08 optimizer plan](../rd-08-optimizer/00-index.md); they stay red and are not
+deleted, skipped or weakened. The 76 original input behavior cases, native
+behavior, ABI, restoration, resource and `none` gates remain in this plan. Tasks
+2.2.2–2.2.6 and 2.2.8 resume for correctness verification; task 2.3.4 verifies
+the correctness suite and records the known RD-08 size reds rather than claiming
+a full green suite.
