@@ -19,7 +19,7 @@ expert or security boundary was changed by the reviewers.
 | RV-001 | MAJOR | `input-library.impl.test.ts` used a non-existent `owner.functionIndex`; owner checks were vacuous | **Fixed:** resolve normal and overlay owner IDs against debug function names; add non-vacuity and stack/resource checks; 2/2 focused tests pass |
 | RV-002 | MINOR | NMI stack comment summed to 10 while assertion is 11 | **Fixed:** comment now includes the startup held-P byte |
 | RV-003 | MINOR | Plan exception list did not name AR-P39 | **Fixed:** AR-P39 recorded in the keyboard register; this review carries the exception record |
-| MC-001 | MAJOR | Four existing `none` startup/stack specification oracles still encode the removed stored-P startup: `startup-register-cost`, `startup-whole-object-borrow`, `cia2-startup-output`, `nmi-stack-evidence` | **Open:** requires exact spec-author oracle approval; no oracle edit made |
+| MC-001 | MAJOR | Four existing `none` startup/stack specification oracles still encoded the removed stored-P startup | **Fixed:** AR-P40 re-derived held-P ledger/state/decoder/stack values; 56/56 tests pass |
 | MC-002 / TP-002 | MINOR | NMI stack comment stale | **Fixed** with RV-002 |
 | SM-001 / TP-001 | MAJOR | No native pressed key/joystick acquisition through `readInputSnapshot` | **Open:** requires an approved native test scope; closeout marked partial |
 | SM-002 / TP-001 | MAJOR | No `none`-mode live returning NMI into the actual `interruptScan` callback; only a `size` case exists | **Open:** requires an approved `none` native test/variant |
@@ -48,6 +48,4 @@ expert or security boundary was changed by the reviewers.
 
 ## Gate result
 
-Task 2.3.1 and 2.3.3 are verified. Task 2.3.2 remains blocked by SM-001/2/3/4
-and TP-001. Task 2.3.4 remains blocked by MC-001 and the native evidence gaps.
-Progress is 46/48; no phase-2 completion or optimized release claim is made.
+Task 2.3.1, 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 remains blocked by SM-001/2/3/4 and TP-001 native coverage. Task 2.3.4 remains blocked by those native evidence gaps. Progress is 46/48; no phase-2 completion or optimized release claim is made.

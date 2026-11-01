@@ -139,7 +139,7 @@ describe("cooperative external NMI and finite stack evidence", () => {
   );
 
   it.each(profiles)(
-    "should count ten live status saves without counting reserved capacity when %s has no hook",
+    "should count ten live status saves plus the held startup byte without counting reserved capacity when %s has no hook",
     async (profile) => {
       const source = mainSource(10);
       await withProfileProject(source, profile, async (project) => {
@@ -147,7 +147,7 @@ describe("cooperative external NMI and finite stack evidence", () => {
         expect(built.kind).toBe("success");
         if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
         const artifacts = await readProfileArtifacts(built);
-        expectFiniteAccounting(artifacts, 10);
+        expectFiniteAccounting(artifacts, 11);
         expectExternalUncertainty(source, artifacts);
       });
     },
@@ -155,9 +155,10 @@ describe("cooperative external NMI and finite stack evidence", () => {
   );
 
   it.each(profiles)(
-    "should preserve the exact finite IRQ warning and 195-byte component when %s overlaps 188 saves",
+    "should preserve the exact finite IRQ warning and 196-byte component when %s overlaps 188 saves",
     async (profile) => {
-      // The IRQ holds three CPU bytes, three firmware saves and one wrapper status save.
+      // Startup holds one status byte; the IRQ holds three CPU bytes, three firmware saves
+      // and one wrapper status save.
       const source = `module Game;
 import { setIRQ, restoreIRQ } from c64.system;
 interrupt function onIRQ(): void {}
@@ -175,11 +176,11 @@ ${"asm_plp();\n".repeat(188)}restoreIRQ();
           .toEqual([
             expect.objectContaining({
               code: "W10180",
-              message: `Maximum simultaneous hardware-stack use is 195 bytes on '${profile}'; usable capacity is 236 (calls 0, interrupt entries 7, explicit pushes 188)`,
+              message: `Maximum simultaneous hardware-stack use is 196 bytes on '${profile}'; usable capacity is 236 (calls 0, interrupt entries 7, explicit pushes 189)`,
             }),
           ]);
         const artifacts = await readProfileArtifacts(built);
-        expectFiniteAccounting(artifacts, 195);
+        expectFiniteAccounting(artifacts, 196);
         const rows = profileRecords(artifacts.memory.stackDomains);
         expect
           .soft(rows.filter((row) => row.id === "interrupt-entry-save"))
@@ -192,9 +193,9 @@ ${"asm_plp();\n".repeat(188)}restoreIRQ();
   );
 
   it.each(profiles)(
-    "should accept the finite capacity boundary with zero headroom when %s holds 236 saves",
+    "should accept the finite capacity boundary with zero headroom when %s holds 235 saves and the held byte",
     async (profile) => {
-      const source = mainSource(236);
+      const source = mainSource(235);
       await withProfileProject(source, profile, async (project) => {
         const built = await buildProject({ project, optimization: "none" });
         expect(built.kind).toBe("success");
@@ -208,9 +209,9 @@ ${"asm_plp();\n".repeat(188)}restoreIRQ();
   );
 
   it.each(profiles)(
-    "should reject the finite component without publishing output when %s holds 237 saves",
+    "should reject the finite component without publishing output when %s holds 236 saves and the held byte",
     async (profile) => {
-      await withProfileProject(mainSource(237), profile, async (project, root) => {
+      await withProfileProject(mainSource(236), profile, async (project, root) => {
         const built = await buildProject({ project, optimization: "none" });
         expect(built.kind).toBe("failure");
         expect(built).not.toHaveProperty("generation");

@@ -107,6 +107,7 @@ function instructions(bytes: number[]) {
     0x4c: [3, 3],
     0x60: [1, 6],
     0x68: [1, 4],
+    0x78: [1, 2],
     0x84: [2, 3],
     0x85: [2, 3],
     0x86: [2, 3],
@@ -129,6 +130,7 @@ function instructions(bytes: number[]) {
     0xad: [3, 4],
     0xae: [3, 4],
     0xba: [1, 2],
+    0xbd: [3, 4],
     0xc8: [1, 2],
     0xca: [1, 2],
     0xd8: [1, 2],
@@ -184,11 +186,12 @@ describe("whole owned objects do not imply a display dependency", () => {
         const vic = (ops: typeof entryOps, opcode: number) =>
           ops.filter((op) => op.opcode === opcode && op.operand === 0xd018).length;
         if (fixture.compact) {
-          // Equal-contract expert: entry 38B/55c + restore 22B/39c, P/CPU0/CPU1/DDRA state.
+          // Equal-contract expert: entry 43B/66c + restore 26B/47c, with held P plus
+          // CPU DDR/CPU port/CIA2 DDRA state.
           // One saved BASIC byte adds LDAzp/STAabs and LDAabs/STAzp: 10B/14c/1 state byte.
-          expect.soft(codeBytes).toBeLessThanOrEqual(60 + 10 * borrowed.length);
-          expect.soft(cycles).toBeLessThanOrEqual(94 + 14 * borrowed.length);
-          expect.soft(state.size).toBe(4 + borrowed.length);
+          expect.soft(codeBytes).toBeLessThanOrEqual(69 + 10 * borrowed.length);
+          expect.soft(cycles).toBeLessThanOrEqual(113 + 14 * borrowed.length);
+          expect.soft(state.size).toBe(3 + borrowed.length);
           expect.soft(vic(entryOps, 0xad)).toBe(0);
           expect.soft(vic(entryOps, 0x8d)).toBe(0);
           expect.soft(vic(restoreOps, 0x8d)).toBe(0);

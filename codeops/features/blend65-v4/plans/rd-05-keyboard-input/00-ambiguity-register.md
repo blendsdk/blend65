@@ -3396,3 +3396,16 @@ only these corrections on 2026-11-01:
 
 No behavior, value, MMIO, resource capacity or complete-output limit was
 weakened. The 12-test NMI-link suite passes after these exact changes.
+
+## AR-P40 — held-P none startup and stack oracle correction (runtime)
+
+Status: **✅ Resolved.** The user approved the bounded spec-author correction for
+the four independent `none` oracles that still encoded stored-P startup:
+`startup-register-cost.spec.test.ts`, `startup-whole-object-borrow.spec.test.ts`,
+`cia2-startup-output.spec.test.ts` and `nmi-stack-evidence.spec.test.ts`.
+The correction re-derived the held-P expert ledger (entry 43B/66c, restore
+26B/47c, base 69B/113c; +10B/14c per borrowed byte), compact state 3+borrowed,
+documented INX/LDA abs,X and the one-byte held stack charge. The finite capacity
+boundary becomes 235 accepted source saves / 236 rejected, with the held byte in
+the 236-byte usable capacity. All 56 tests in the four files pass; no production
+code or other test changed. No oracle was weakened.

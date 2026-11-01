@@ -26,6 +26,7 @@ for (const [code, name, cycles] of [
   [0x18, "CLC", 2],
   [0x38, "SEC", 2],
   [0xea, "NOP", 2],
+  [0xe8, "INX", 2],
   [0x60, "RTS", 6],
 ] as const)
   opcodes.set(code, { name, bytes: 1, cycles });
@@ -44,6 +45,8 @@ for (const [immediate, zeroPage, absolute, name] of [
   opcodes.set(zeroPage, { name, bytes: 2, cycles: 3, access: "read" });
   opcodes.set(absolute, { name, bytes: 3, cycles: 4, access: "read" });
 }
+// LDA absolute,X reads the held status byte from page one; the index never crosses a page.
+opcodes.set(0xbd, { name: "LDA", bytes: 3, cycles: 4, access: "read" });
 for (const [zeroPage, absolute, name] of [
   [0x85, 0x8d, "STA"],
   [0x86, 0x8e, "STX"],
@@ -81,24 +84,40 @@ function decodeStraightLine(bytes: readonly number[], start: number) {
   return result;
 }
 
-// Independent equal-contract expert ledger, with absolute private saves and caller I unchanged.
-// Capture CPU0 in Y; returning firmware preserves it while A copies borrows and then captures CPU1.
-// Snapshot borrowed BASIC bytes before changing mapping or writing any source workspace.
-// Keep freshly captured CPU1 in A for latch setup, then establish direction and I/O visibility before DDRA.
+// Independent equal-contract expert ledger for the held-P compact startup, with absolute
+// private saves and the caller's I preserved by the held status byte.
+// Original P stays on the hardware stack; X carries the CPU DDR while A snapshots borrowed
+// BASIC bytes before any mapping change, then captures the CPU port.
+// Keep the freshly captured CPU port in A for latch setup, then restore DDR direction and
+// I/O visibility before capturing CIA2 DDRA.
 const expertBase = [
-  { intent: "Capture P with PHP, CLD, PLA, STA absolute", bytes: 6, cycles: 13 },
-  { intent: "Capture CPU0 with LDY zero-page and STY absolute", bytes: 5, cycles: 7 },
+  { intent: "Hold P, disable IRQ and clear decimal with PHP, SEI, CLD", bytes: 3, cycles: 7 },
+  { intent: "Capture CPU DDR with LDX zero-page and STX absolute", bytes: 5, cycles: 7 },
   {
     intent:
-      "Capture CPU1 with LDA zero-page/STA absolute, keep A live for AND $f8/ORA $06/STA CPU1",
+      "Capture CPU port with LDA zero-page/STA absolute, keep A live for AND $f8/ORA $06/STA zero-page",
     bytes: 11,
     cycles: 14,
   },
-  { intent: "TYA, ORA immediate $07, store CPU0", bytes: 5, cycles: 7 },
-  { intent: "Capture DDRA, keep A live, AND immediate $fc, store DDRA", bytes: 11, cycles: 14 },
-  { intent: "Restore DDRA with LDA/STA absolute", bytes: 6, cycles: 8 },
-  { intent: "Restore CPU1 then CPU0 with LDA absolute/STA zero-page", bytes: 10, cycles: 14 },
-  { intent: "Restore P and return with LDA absolute, PHA, PLP, RTS", bytes: 6, cycles: 17 },
+  { intent: "Copy CPU DDR back with TXA, ORA immediate $07, store zero-page", bytes: 5, cycles: 7 },
+  {
+    intent: "Capture CIA2 DDRA, keep A live, AND immediate $fc, store DDRA",
+    bytes: 11,
+    cycles: 14,
+  },
+  {
+    intent: "Copy held P for the binary main entry with TSX, INX, LDA $0100,X, PHA, PLP, CLD",
+    bytes: 8,
+    cycles: 17,
+  },
+  { intent: "Mask IRQ before restoring state with SEI", bytes: 1, cycles: 2 },
+  { intent: "Restore DDRA with LDA absolute/STA absolute", bytes: 6, cycles: 8 },
+  { intent: "Restore CPU port then DDR with LDA absolute/STA zero-page", bytes: 10, cycles: 14 },
+  {
+    intent: "Restore P and return with TSX, INX, LDA $0100,X, TXS, PHA, PLP, RTS",
+    bytes: 9,
+    cycles: 23,
+  },
 ] as const;
 const expertBytes = expertBase.reduce((sum, group) => sum + group.bytes, 0);
 const expertCycles = expertBase.reduce((sum, group) => sum + group.cycles, 0);
@@ -181,11 +200,13 @@ describe("compact cooperative startup register and state cost", () => {
         );
         const instructions = [...entryInstructions, ...restoreInstructions];
         expect(restoreInstructions.at(-1)?.name).toBe("RTS");
-        expect(
-          instructions.some(
-            (instruction) => instruction.name === "SEI" || instruction.name === "CLI",
-          ),
-        ).toBe(false);
+        expect(entryInstructions.slice(0, 3).map((instruction) => instruction.name)).toEqual([
+          "PHP",
+          "SEI",
+          "CLD",
+        ]);
+        expect(restoreInstructions[0]?.name).toBe("SEI");
+        expect(instructions.some((instruction) => instruction.name === "CLI")).toBe(false);
         const accesses = (address: number, access: "read" | "write") =>
           instructions.filter(
             (instruction) => instruction.access === access && instruction.operand === address,
@@ -252,14 +273,15 @@ describe("compact cooperative startup register and state cost", () => {
         }
 
         // One borrow costs LDA zero-page/STA absolute plus LDA absolute/STA zero-page: 10 bytes/14 cycles.
-        // Four base save bytes hold P, CPU0, CPU1 and DDRA. Balanced calls/returns preserve incoming SP.
+        // Three base save bytes hold the CPU DDR, CPU port and CIA2 DDRA; P stays on the stack.
+        // Balanced calls/returns preserve incoming SP.
         const ceiling = {
           bytes: expertBytes + 10 * borrowed.size,
           cycles: expertCycles + 14 * borrowed.size,
-          state: 4 + borrowed.size,
+          state: 3 + borrowed.size,
         };
-        expect(expertBytes).toBe(60);
-        expect(expertCycles).toBe(94);
+        expect(expertBytes).toBe(69);
+        expect(expertCycles).toBe(113);
         const actual = {
           bytes: entry.size + restore.size,
           cycles: instructions.reduce((sum, instruction) => sum + instruction.cycles, 0),
