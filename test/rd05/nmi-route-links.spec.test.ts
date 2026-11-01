@@ -33,10 +33,11 @@ function instructions(
   const cpu = spaces.findIndex((space) => space.id === "cpu16" && space.kind === "cpu");
   expect(cpu).toBeGreaterThanOrEqual(0);
   const one = [
-    0x08, 0x28, 0x40, 0x48, 0x58, 0x60, 0x68, 0x78, 0x8a, 0x98, 0x9a, 0xa8, 0xaa, 0xba, 0xd8, 0xea,
+    0x08, 0x28, 0x40, 0x48, 0x58, 0x60, 0x68, 0x78, 0x8a, 0x98, 0x9a, 0xa8, 0xaa, 0xba, 0xd8, 0xe8,
+    0xea,
   ];
   const two = [0x09, 0x29, 0x84, 0x85, 0x86, 0xa0, 0xa2, 0xa4, 0xa5, 0xa6, 0xa9];
-  const three = [0x20, 0x2c, 0x4c, 0x6c, 0x8c, 0x8d, 0x8e, 0xac, 0xad, 0xae];
+  const three = [0x20, 0x2c, 0x4c, 0x6c, 0x8c, 0x8d, 0x8e, 0xac, 0xad, 0xae, 0xbd];
   const load = artifacts.prg.readUInt16LE(0);
   const unique = new Map<number, Instruction>();
   for (const [rangeIndex, range] of profileRecords(artifacts.debug.ranges).entries()) {
@@ -256,7 +257,7 @@ describe("stock-chained NMI immutable linkage", () => {
         profileRecords(artifacts.memory.stackDomains).find(
           (row) => row.id === "bounded-component-capacity",
         ),
-      ).toMatchObject({ peakBytes: 2 });
+      ).toMatchObject({ peakBytes: 3 });
     },
     60_000,
   );
@@ -276,7 +277,7 @@ describe("stock-chained NMI immutable linkage", () => {
         profileRecords(artifacts.memory.stackDomains).find(
           (row) => row.id === "bounded-component-capacity",
         ),
-      ).toMatchObject({ peakBytes: 2 });
+      ).toMatchObject({ peakBytes: 3 });
       expect(
         profileRecords(artifacts.debug.functions).some(
           (fn) => fn.qualifiedName === "src/game.blend::Game.unused",
@@ -295,7 +296,7 @@ describe("stock-chained NMI immutable linkage", () => {
   );
 
   it.each(PROFILES)(
-    "should preserve disjoint main and IRQ links with a ten-byte bounded peak when IRQ installs NMI on %s",
+    "should preserve disjoint main and IRQ links with an eleven-byte bounded peak when IRQ installs NMI on %s",
     async (profile) => {
       const source =
         "module Game; import {setNMI,restoreNMI,setIRQ,restoreIRQ} from c64.system; interrupt function B():void{} interrupt function C():void{} interrupt function onIRQ():void {setNMI(&C);restoreNMI();} function main():void {asm_php();asm_sei();asm_nop();setNMI(&B);setIRQ(&onIRQ);asm_cli();asm_nop();asm_sei();asm_nop();restoreIRQ();restoreNMI();asm_plp();}";
@@ -308,11 +309,11 @@ describe("stock-chained NMI immutable linkage", () => {
       expectOnlyLinkHomes(artifacts, [b.home, c.home, irq.home]);
       const rows = profileRecords(artifacts.memory.stackDomains);
       expect(rows.find((row) => row.id === "bounded-component-capacity")).toMatchObject({
-        peakBytes: 10,
+        peakBytes: 11,
         capacityBytes: 236,
-        headroomBytes: 226,
+        headroomBytes: 225,
       });
-      expect(rows.find((row) => row.id === "program")).toMatchObject({ peakBytes: 1 });
+      expect(rows.find((row) => row.id === "program")).toMatchObject({ peakBytes: 2 });
       expect(rows.find((row) => row.id === "interrupt-entry-save")).toMatchObject({ peakBytes: 9 });
       const bounded = rows.find((row) => row.id === "bounded-component-capacity")!;
       expect((bounded.route as string[])[0]).toBe("bounded-component:generated-program-and-irq");
@@ -328,7 +329,7 @@ describe("stock-chained NMI immutable linkage", () => {
         profileRecords(profileRecord(artifacts.costs.totals).resources).find(
           (resource) => resource.id === "hardwareStack",
         ),
-      ).toMatchObject({ kind: "standard", value: 10 });
+      ).toMatchObject({ kind: "standard", value: 11 });
       for (const row of rows)
         expect(Number(row.peakBytes) + Number(row.headroomBytes)).toBe(row.capacityBytes);
     },

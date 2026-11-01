@@ -3377,3 +3377,22 @@ behavior, ABI, restoration, resource and `none` gates remain in this plan. Tasks
 2.2.2–2.2.6 and 2.2.8 resume for correctness verification; task 2.3.4 verifies
 the correctness suite and records the known RD-08 size reds rather than claiming
 a full green suite.
+
+## AR-P39 — held-P NMI decoder and stack expectations (runtime)
+
+Status: **✅ Resolved.** The approved compact held-P startup emits documented
+`INX` (`0xE8`) and `LDA absolute,X` (`0xBD`) instructions and charges one
+platform stack byte. `test/rd05/nmi-route-links.spec.test.ts` had a stale local
+decoder whitelist and stale stack expectations. The user explicitly approved
+only these corrections on 2026-11-01:
+
+- add `0xE8` to the one-byte whitelist;
+- add `0xBD` to the three-byte whitelist;
+- one/two-handler bounded peak `2 → 3`;
+- complex bounded peak `10 → 11`, headroom `226 → 225`;
+- complex program peak `1 → 2`;
+- complex hardwareStack resource `10 → 11`;
+- title “ten-byte” → “eleven-byte”.
+
+No behavior, value, MMIO, resource capacity or complete-output limit was
+weakened. The 12-test NMI-link suite passes after these exact changes.

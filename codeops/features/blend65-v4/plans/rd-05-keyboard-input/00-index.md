@@ -1,6 +1,6 @@
 # Keyboard and combined-input library
 
-> **Status**: Executing — correctness track; RD-08 size-output acceptance deferred; Phase 1 GREEN; 38/48 verified parent tasks
+> **Status**: Executing — correctness track; RD-08 size-output acceptance deferred; Phase 1 GREEN; 44/48 verified parent tasks
 > **Created**: 2026-10-10
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
@@ -103,7 +103,7 @@ to the remaining1,479/1,438-byte deficits. It corrects total startup/restore
 accounting to659/699 bytes including allocated-ZP preservation; no duty is removed.
 No new borrowed-RAM/word-observer proof is authorized, and the output reviewer
 does not replace the current exhausted design-challenger budget. DEF-16 owns
-the boundary;38/48 and all complete limits remain unchanged.
+the boundary;44/48 and all complete limits remain unchanged.
 Historical pre-AR-P33 oracle
 text is not recoverable; exact historical-exception integrity remains Unknown.
 The user reaffirmed standing approval after the exact two-file packet; no further
