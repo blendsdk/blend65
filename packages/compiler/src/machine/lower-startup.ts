@@ -18,9 +18,14 @@ import {
  * No new effect solver is introduced: missing call, alias or address facts keep
  * the full startup. Declared handlers count even when no installation is reached.
  * @param program Closed source identities and complete-place proof inputs.
+ * @param allowOrdinaryWrites Permit fixed ordinary-RAM writes for a selected size
+ *        candidate; none and the canonical reference keep the stricter choice.
  * @returns Whether every examined source owner is independent of display defaults.
  */
-export function hasDisplayIndependentStartup(program: WholeProgram): boolean {
+export function hasDisplayIndependentStartup(
+  program: WholeProgram,
+  allowOrdinaryWrites = false,
+): boolean {
   const reached = new Set(program.reachableFunctions.map(bindingIdentityKey));
   const bodies = [
     ...program.semantic.functions.filter(
@@ -137,6 +142,7 @@ export function hasDisplayIndependentStartup(program: WholeProgram): boolean {
             literal(operation.address),
             operation.width,
             operation.kind === "memory-write",
+            allowOrdinaryWrites,
           )
         )
           return false;
@@ -151,7 +157,12 @@ export function hasDisplayIndependentStartup(program: WholeProgram): boolean {
  * RAM writes can change an alias or code; CPU/CIA2 bank writes can select new display
  * data. Those remain unknown here. Word accesses include wrap and both bytes.
  */
-function rawAccessIndependent(address: bigint | undefined, width: number, write: boolean): boolean {
+function rawAccessIndependent(
+  address: bigint | undefined,
+  width: number,
+  write: boolean,
+  allowOrdinaryWrites: boolean,
+): boolean {
   if (address === undefined) return false;
   for (let offset = 0; offset < width; offset += 1) {
     const byte = Number(BigInt.asUintN(16, address + BigInt(offset)));
@@ -160,6 +171,10 @@ function rawAccessIndependent(address: bigint | undefined, width: number, write:
     if (byte >= 0xdd00 && byte <= 0xddff && register !== 0 && register !== 2) continue;
     if (byte >= 0xd400 && byte <= 0xd7ff) continue;
     if (!write && ((byte >= 0x4000 && byte <= 0xcfff) || byte >= 0xe000)) continue;
+    // A fixed ordinary-RAM write does not change the VIC/CIA/CPU bank view. The
+    // size candidate still needs its final alias/code observer proof; this only
+    // admits the startup construction axis.
+    if (allowOrdinaryWrites && write && byte >= 0x0200 && byte <= 0xcfff) continue;
     return false;
   }
   return true;

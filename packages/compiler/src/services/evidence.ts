@@ -37,6 +37,79 @@ export type EvidencePreparationResult =
     }
   | { readonly kind: "error"; readonly diagnostic: string };
 
+/** Exact source range retained by one optimizer decision or rejection. */
+export interface SizeCostSourceSite {
+  /** Project-relative source identity. */
+  readonly path: string;
+  /** Inclusive first UTF-8 byte. */
+  readonly startByte: number;
+  /** Inclusive last UTF-8 byte. */
+  readonly endByte: number;
+}
+
+/** One closed B/R/T vector used before and after final publication. */
+export interface SizeCostVector {
+  /** Loaded PRG payload bytes. */
+  readonly programBytes: number;
+  /** Ordered semantic path cycle measurements. */
+  readonly pathCycles: readonly {
+    readonly pathId: string;
+    readonly cycles: { readonly kind: "unknown" };
+  }[];
+  /** Standard physical resources in their fixed comparison order. */
+  readonly resources: readonly {
+    readonly kind: "standard";
+    readonly id: "zeroPage" | "residentRam" | "hardwareStack" | "scratch";
+    readonly value: number;
+  }[];
+}
+
+/** One hard reason that rejects a whole construction candidate. */
+export interface SizeEvidenceRejection {
+  /** Existing diagnostic family used by the costs validator. */
+  readonly kind: string;
+  /** Exact non-empty rejection detail. */
+  readonly detail: string;
+  /** Known source owners; empty when the failure has no source site. */
+  readonly sourceSites: readonly SizeCostSourceSite[];
+}
+
+/** One exact feasible or rejected construction candidate. */
+export interface SizeEvidenceCandidate {
+  /** Stable source/recipe identity. */
+  readonly id: string;
+  /** Closed cost vector or exact hard rejection reasons. */
+  readonly feasibility:
+    | { readonly kind: "feasible"; readonly vector: SizeCostVector }
+    | { readonly kind: "rejected"; readonly reasons: readonly SizeEvidenceRejection[] };
+}
+
+/** One whole-program size decision with its reference baseline and selected candidate. */
+export interface SizeEvidenceDecision {
+  /** Stable decision identity. */
+  readonly id: string;
+  /** Selected source scope. */
+  readonly scope: string;
+  /** Explicit size mode. */
+  readonly mode: "size";
+  /** Source sites which caused the decision. */
+  readonly sourceSites: readonly SizeCostSourceSite[];
+  /** Closed after final shared layout. */
+  readonly closurePoint: "postLayout";
+  /** Canonical reference identity, feasible or rejected. */
+  readonly baselineCandidateId: string;
+  /** Feasible selected candidate identity. */
+  readonly selectedCandidateId: string;
+  /** Every admitted candidate in canonical identity order. */
+  readonly candidates: readonly SizeEvidenceCandidate[];
+  /** Higher-priority components whose comparison was genuinely unavailable. */
+  readonly incomparableComponents: readonly string[];
+  /** Exact-vector tie rule. */
+  readonly tieBreak:
+    | { readonly kind: "none" }
+    | { readonly kind: "stableId"; readonly candidateIds: readonly string[] };
+}
+
 interface EvidencePreparationInput {
   readonly snapshot: ProjectSnapshot;
   readonly program: WholeProgram;
@@ -49,6 +122,8 @@ interface EvidencePreparationInput {
   readonly stagingDirectory: string;
   readonly generationId: string;
   readonly measurements: ServiceMeasurements;
+  /** Exact size selection; absent for none or direct builds. */
+  readonly sizeDecision?: SizeEvidenceDecision;
 }
 
 /** Hash bytes using the common lowercase SHA-256 spelling. */
@@ -137,6 +212,58 @@ function programComponent(kind: CompleteC64Layout["intervals"][number]["kind"]):
   if (kind === "asset") return "asset";
   if (kind === "fill") return "padding";
   return "initializedData";
+}
+
+/** Derive the common B/R/T vector from one actually closed layout and certificate. */
+export function sizeCostVector(
+  layout: CompleteC64Layout,
+  certificate: StorageClosureCertificate,
+): SizeCostVector {
+  const intervals = layout.intervals;
+  const size = (interval: CompleteC64Layout["intervals"][number]) =>
+    interval.end - interval.start + 1;
+  const helperIds = new Set(
+    certificate.helperCalls.flatMap(({ helperRequestIds }) => helperRequestIds),
+  );
+  const zeroPage = intervals
+    .filter(({ start, end }) => start >= 0 && end < 0x100)
+    .reduce((total, interval) => total + size(interval), 0);
+  const residentRam = intervals.reduce((total, interval) => total + size(interval), 0);
+  const scratch = intervals
+    .filter(({ kind, start, end }) => {
+      if (kind !== "sfa" || end >= 0x100) return false;
+      const homes = certificate.homes.filter(
+        (home) => home.address <= end && home.address + home.bytes - 1 >= start,
+      );
+      return homes.length > 0 && homes.every(({ requestId }) => helperIds.has(requestId));
+    })
+    .reduce((total, interval) => total + size(interval), 0);
+  const nmiEntryPeaks = certificate.nmiEntryPeaks ?? [];
+  const hardwareStack = nmiEntryPeaks.reduce(
+    (peak, entry) => Math.max(peak, entry.bytes),
+    certificate.hardwareStackPeak,
+  );
+  return Object.freeze({
+    programBytes: intervals
+      .filter(({ bytes }) => bytes !== null)
+      .reduce((total, interval) => total + size(interval), 0),
+    pathCycles: Object.freeze([
+      Object.freeze({
+        pathId: "program.entry-to-return",
+        cycles: Object.freeze({ kind: "unknown" as const }),
+      }),
+    ]),
+    resources: Object.freeze([
+      Object.freeze({ kind: "standard" as const, id: "zeroPage" as const, value: zeroPage }),
+      Object.freeze({ kind: "standard" as const, id: "residentRam" as const, value: residentRam }),
+      Object.freeze({
+        kind: "standard" as const,
+        id: "hardwareStack" as const,
+        value: hardwareStack,
+      }),
+      Object.freeze({ kind: "standard" as const, id: "scratch" as const, value: scratch }),
+    ]),
+  });
 }
 
 /** Prepare and write the five exact generation sidecars, with build evidence last. */
@@ -344,28 +471,58 @@ export async function prepareEvidence(
   const scratch = intervals
     .filter(({ kind }) => kind === "scratch")
     .reduce((total, interval) => total + (interval.size as number), 0);
+  const finalVector: SizeCostVector = Object.freeze({
+    programBytes: Math.max(0, primaryBytes.byteLength - 2),
+    pathCycles: Object.freeze([
+      Object.freeze({
+        pathId: completePathId,
+        cycles: Object.freeze({ kind: "unknown" as const }),
+      }),
+    ]),
+    resources: Object.freeze([
+      Object.freeze({ kind: "standard" as const, id: "zeroPage" as const, value: zeroPage }),
+      Object.freeze({ kind: "standard" as const, id: "residentRam" as const, value: residentRam }),
+      Object.freeze({
+        kind: "standard" as const,
+        id: "hardwareStack" as const,
+        value: componentStackBytes,
+      }),
+      Object.freeze({ kind: "standard" as const, id: "scratch" as const, value: scratch }),
+    ]),
+  });
+  const decisions =
+    input.sizeDecision === undefined
+      ? Object.freeze([])
+      : Object.freeze([
+          Object.freeze({
+            ...input.sizeDecision,
+            candidates: Object.freeze(
+              input.sizeDecision.candidates.map((candidate) =>
+                candidate.id === input.sizeDecision!.selectedCandidateId &&
+                candidate.feasibility.kind === "feasible"
+                  ? Object.freeze({
+                      ...candidate,
+                      feasibility: Object.freeze({
+                        kind: "feasible" as const,
+                        vector: finalVector,
+                      }),
+                    })
+                  : candidate,
+              ),
+            ),
+          }),
+        ]);
   const costsEvidence = Object.freeze({
     kind: "blend65.costs",
     schemaVersion: 1,
     mode: input.snapshot.manifest.optimization,
     totals: Object.freeze({
-      programBytes: Math.max(0, primaryBytes.byteLength - 2),
-      pathCycles: Object.freeze([
-        Object.freeze({ pathId: completePathId, cycles: unknownMeasurement }),
-      ]),
-      resources: Object.freeze([
-        Object.freeze({ kind: "standard", id: "zeroPage", value: zeroPage }),
-        Object.freeze({ kind: "standard", id: "residentRam", value: residentRam }),
-        Object.freeze({
-          kind: "standard",
-          id: "hardwareStack",
-          value: componentStackBytes,
-        }),
-        Object.freeze({ kind: "standard", id: "scratch", value: scratch }),
-      ]),
+      programBytes: finalVector.programBytes,
+      pathCycles: finalVector.pathCycles,
+      resources: finalVector.resources,
     }),
     entries: Object.freeze([...costEntries, cycleEntry]),
-    decisions: Object.freeze([]),
+    decisions,
   });
   const portableTools = Object.freeze([
     Object.freeze({

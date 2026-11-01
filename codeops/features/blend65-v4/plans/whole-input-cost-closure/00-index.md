@@ -1,6 +1,6 @@
 # Whole-input cost closure
 
-> **Status**: Executing —28/40 verified; task1.2.16 held-P startup and AR-P84 selected-loop integration complete; nexttask1.2.17
+> **Status**: Stopped —29/40 verified; task1.2.17 complete; task1.2.18 closed-cost selection/evidence partial; 963/725 unmet; full RD-08 optimization scope reopened (AR-P85 resolved)
 > **Created**: 2026-10-12
 > **Implements**: blend65-v4/RD-08, blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1

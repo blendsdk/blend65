@@ -453,20 +453,31 @@ function decision(value: unknown, invalid?: EvidenceFieldFailure): boolean {
     return false;
   }
   const candidates = value.candidates as Record<string, unknown>[];
+  const byId = new Map(candidates.map((item) => [String(item.id), item]));
   const feasible = new Map(
     candidates
       .filter((item) => (item.feasibility as Record<string, unknown>).kind === "feasible")
       .map((item) => [String(item.id), item.feasibility as Record<string, unknown>]),
   );
-  if (!feasible.has(value.baselineCandidateId) || !feasible.has(value.selectedCandidateId)) {
+  const baselineCandidate = byId.get(String(value.baselineCandidateId));
+  const selectedFeasible = feasible.get(String(value.selectedCandidateId));
+  if (baselineCandidate === undefined || selectedFeasible === undefined) {
     return false;
   }
-  const baseline = feasible.get(value.baselineCandidateId)!.vector as Record<string, unknown>;
+  const baselineFeasibility = baselineCandidate.feasibility as Record<string, unknown>;
+  if (baselineFeasibility.kind === "rejected") {
+    if (baselineFeasibility.reasons === undefined) return false;
+  } else if (baselineFeasibility.kind !== "feasible") {
+    return false;
+  }
+  const comparisonVector = (
+    baselineFeasibility.kind === "feasible" ? baselineFeasibility.vector : selectedFeasible.vector
+  ) as Record<string, unknown>;
   const admittedComponents = new Set<string>(["B"]);
-  for (const path of baseline.pathCycles as Record<string, unknown>[]) {
+  for (const path of comparisonVector.pathCycles as Record<string, unknown>[]) {
     admittedComponents.add(`T:${String(path.pathId)}`);
   }
-  for (const resource of baseline.resources as Record<string, unknown>[]) {
+  for (const resource of comparisonVector.resources as Record<string, unknown>[]) {
     admittedComponents.add(`R:${String(resource.id)}`);
   }
   if (

@@ -264,6 +264,41 @@ const TYPED_OBSERVER_OPERATIONS = new Set([
   "array-count",
 ]);
 
+/** Prove actual final homes still honor every explicit source placement. */
+function placedSourceFailure(
+  shared: FinalSharedStorage,
+  input: CheckedSourceInput,
+): ObserverFailure | null {
+  const intervals = new Map(shared.layout.intervals.map((interval) => [interval.id, interval]));
+  for (const global of input.program.semantic.globals) {
+    if (global.placement?.at == null) continue;
+    const interval = intervals.get(`global.${bindingIdentityKey(global.id)}`);
+    if (interval === undefined || interval.start !== global.placement.at)
+      return observerFailure(
+        "error",
+        "Final placed global does not match its source address",
+        global.source,
+        bindingIdentityKey(global.id),
+      );
+  }
+  for (const fn of input.program.semantic.functions) {
+    if (fn.placement?.at == null) continue;
+    const selected = shared.layout.program.functions.filter(
+      ({ sourceFunction }) =>
+        sourceFunction !== undefined &&
+        bindingIdentityKey(sourceFunction) === bindingIdentityKey(fn.id),
+    );
+    if (selected.length === 0 || selected.some(({ origin }) => origin !== fn.placement!.at))
+      return observerFailure(
+        "error",
+        "Final placed function does not match its source address",
+        fn.source,
+        bindingIdentityKey(fn.id),
+      );
+  }
+  return null;
+}
+
 /**
  * Prove source containment after the residual gate checks any admitted raw operations.
  * Platform, status, identity exposure and conditional machine windows are not
@@ -307,14 +342,6 @@ function typedSourceFailure(
     return observerFailure(
       "rejected",
       "Complete asynchronous or callable observer proof is unavailable",
-    );
-  if (
-    program.semantic.globals.some((global) => global.zeropage || global.placement != null) ||
-    program.semantic.functions.some((fn) => fn.placement != null)
-  )
-    return observerFailure(
-      "rejected",
-      "Explicit placement needs its complete source/hardware observer proof",
     );
   const functions = new Set(program.reachableFunctions.map(bindingIdentityKey));
   const globals = new Set(program.semantic.globals.map(({ id }) => bindingIdentityKey(id)));
@@ -549,6 +576,8 @@ export function validateSizeObservers(input: FinalObserverInput): ObserverValida
     const visibility = startupVisibilityFailure(input.candidate.shared);
     if (visibility !== null) return visibility;
     const reference = input.reference;
+    const placed = placedSourceFailure(input.candidate.shared, input.checked);
+    if (placed !== null) return placed;
     if (reference.kind === "feasible") {
       if (
         reference.checked.snapshot !== input.checked.snapshot ||
@@ -560,6 +589,8 @@ export function validateSizeObservers(input: FinalObserverInput): ObserverValida
       if (invalid !== null) return invalid;
       const beforeVisibility = startupVisibilityFailure(reference.shared);
       if (beforeVisibility !== null) return beforeVisibility;
+      const beforePlaced = placedSourceFailure(reference.shared, input.checked);
+      if (beforePlaced !== null) return beforePlaced;
       if (input.candidate.lowered === before.lowered && input.candidate.shared === before.shared)
         return Object.freeze({ kind: "complete", candidate: input.candidate });
     } else if (

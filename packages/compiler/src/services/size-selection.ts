@@ -1,16 +1,27 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { C64_STARTUP_STATE_ID, type C64StartupPolicy } from "../layout/startup.js";
 import { bindMachineProgram } from "../machine/bind.js";
+import { deriveByteComplementFacts } from "../machine/byte-value-availability.js";
 import { lowerMachineProgram } from "../machine/lower.js";
+import type { FixedLoopPolicy, MachineSourceFacts } from "../machine/machine-types.js";
+import { hasDisplayIndependentStartup } from "../machine/lower-startup.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, ProjectSnapshot, SourceSpan } from "../project/types.js";
+import { deriveClosedObjectFacts } from "../semantic/closed-object-facts.js";
+import { deriveLocalStorageLifetimes } from "../semantic/local-storage-lifetimes.js";
 import { overlappingIrqRootWarnings } from "../semantic/interrupt-domains.js";
+import {
+  deriveFixedLoopFacts,
+  fixedLoopValueBounds,
+  type SourceLoopNesting,
+} from "../semantic/fixed-loop-facts.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
-import type { SourceLoopNesting } from "../semantic/fixed-loop-facts.js";
 import { allocateStorage } from "../storage/allocate.js";
 import { closeStorage } from "../storage/closure.js";
 import { buildInterference } from "../storage/interference.js";
 import { inventoryStorage } from "../storage/inventory.js";
 import { nmiPrivateStorageRoute } from "../storage/nmi-private-storage.js";
+import { selectClosedObjectStorage } from "../storage/selection.js";
 import type {
   StorageInventory,
   StoragePlacement,
@@ -26,6 +37,9 @@ import {
   sourceZeroPageOverflow,
   storageResourceWarnings,
 } from "./resource-diagnostics.js";
+import { sizeCostVector, type SizeCostVector } from "./evidence.js";
+import { validateSizeObservers } from "./size-observers.js";
+import type { ObserverValidation } from "./size-observers.js";
 import { closeSharedStorage } from "./shared-storage.js";
 import type { SharedStorageResult } from "./shared-storage.js";
 import type { FailureCategory, ServiceFailure } from "./types.js";
@@ -114,6 +128,62 @@ export type CanonicalReferenceOutcome =
   | CanonicalResourceRejection
   | { readonly kind: "failure"; readonly failure: ServiceFailure };
 
+/** Input for the finite whole-program construction frontier. */
+export interface SizeSelectionInput {
+  /** Checked source and its source-only loop context, independent of allocation. */
+  readonly checked: CheckedSourceInput;
+}
+
+/** One admitted whole-program construction recipe before any cost decision. */
+export interface SizeSelectionPlan {
+  /** Stable source and recipe identity derived without executed cost guesses. */
+  readonly id: string;
+  /** Direct canonical bundle or the complete proved Closed bundle. */
+  readonly nonLoopBundle: "direct" | "closed";
+  /** One admitted finite loop policy; Original is the only inactive-axis choice. */
+  readonly loopPolicy: FixedLoopPolicy;
+  /** Full, compact unrolled or compact looped cooperative startup. */
+  readonly startupPolicy: C64StartupPolicy;
+  /** Complete immutable facts and axis choices consumed by the existing lowerer. */
+  readonly sourceFacts: MachineSourceFacts;
+  /** Physical, raw, alias and asynchronous obligations remain for final validation. */
+  readonly pendingObservers: true;
+}
+
+/** One fully closed selected representation, before closed-cost comparison. */
+export interface ClosedSizeCandidate {
+  /** Exact admitted recipe which produced this representation. */
+  readonly plan: SizeSelectionPlan;
+  /** Real selected lowering and provisional storage closure. */
+  readonly pipeline: CanonicalPipeline;
+  /** Final shared layout, re-closed storage and bound machine operations. */
+  readonly shared: Extract<SharedStorageResult, { readonly kind: "complete" }>;
+  /** Exact final observer acceptance, not an inferred exemption. */
+  readonly observers: Extract<ObserverValidation, { readonly kind: "complete" }>;
+  /** Closed B/R/T vector from that final layout and certificate. */
+  readonly cost: SizeCostVector;
+}
+
+/** Complete candidate, a whole-tuple rejection, or a terminal internal failure. */
+export type SizeCandidateResult =
+  | { readonly kind: "complete"; readonly value: ClosedSizeCandidate }
+  | {
+      /** This recipe cannot be selected; the reference or another tuple may still be. */
+      readonly kind: "rejected";
+      readonly plan: SizeSelectionPlan;
+      /** Validator-compatible hard rejection family. */
+      readonly rejectionKind: string;
+      readonly reason: string;
+      readonly source: SourceSpan | null;
+      readonly objectId: string | null;
+    }
+  | {
+      /** Invalid producer state or an incomplete mandatory stage is terminal. */
+      readonly kind: "failure";
+      readonly plan: SizeSelectionPlan;
+      readonly failure: ServiceFailure;
+    };
+
 /** Construct the unchanged public failure without exposing a partial internal result. */
 function terminal(category: FailureCategory, diagnostics: readonly ProjectDiagnostic[]) {
   return Object.freeze({
@@ -162,6 +232,48 @@ export function validStorageDemands(requests: readonly StorageRequest[]): boolea
       request.alignment > 0 &&
       (request.alignment & (request.alignment - 1)) === 0,
   );
+}
+
+/**
+ * Assemble one complete selected pipeline with the established diagnostic order.
+ * This helper performs no allocation or selection; it only packages already bound owners.
+ */
+function completedPipeline(
+  input: CheckedSourceInput,
+  program: WholeProgram,
+  profile: TargetProfile,
+  lowered: CanonicalPipeline["lowered"],
+  certificate: CanonicalPipeline["certificate"],
+  machine: CanonicalPipeline["machine"],
+): CanonicalPipeline {
+  const irqWarnings = overlappingIrqRootWarnings(program, certificate.irqOverlap);
+  const previousWarnings = program.diagnostics ?? [];
+  return Object.freeze({
+    snapshot: input.snapshot,
+    profile,
+    resourceSpans: input.resourceSpans,
+    bindingNames: input.bindingNames,
+    sourceText: input.sourceText,
+    program,
+    lowered,
+    certificate,
+    machine,
+    diagnostics: Object.freeze([
+      ...input.diagnostics,
+      ...previousWarnings,
+      ...irqWarnings.filter(
+        (warning) =>
+          !previousWarnings.some(
+            (previous) =>
+              previous.code === warning.code &&
+              previous.message.split(" has ")[0]?.split(" can ")[0] ===
+                warning.message.split(" has ")[0]?.split(" can ")[0],
+          ),
+      ),
+      ...lowered.diagnostics,
+      ...storageResourceWarnings(program, profile, certificate.certificate, input.resourceSpans),
+    ]),
+  });
 }
 
 /**
@@ -290,41 +402,9 @@ export function closeCanonicalStorage(input: CheckedSourceInput): CanonicalStora
     ]);
   const machine = bindMachineProgram(lowered.program, certificate.certificate);
   if (machine.kind === "error") return incomplete("machine storage binding");
-  const irqWarnings = overlappingIrqRootWarnings(reserved.program, certificate.irqOverlap);
-  const previousWarnings = reserved.program.diagnostics ?? [];
   return Object.freeze({
     kind: "complete",
-    value: Object.freeze({
-      snapshot,
-      profile,
-      resourceSpans,
-      bindingNames: input.bindingNames,
-      sourceText: input.sourceText,
-      program: reserved.program,
-      lowered,
-      certificate,
-      machine,
-      diagnostics: Object.freeze([
-        ...input.diagnostics,
-        ...previousWarnings,
-        ...irqWarnings.filter(
-          (warning) =>
-            !previousWarnings.some(
-              (previous) =>
-                previous.code === warning.code &&
-                previous.message.split(" has ")[0]?.split(" can ")[0] ===
-                  warning.message.split(" has ")[0]?.split(" can ")[0],
-            ),
-        ),
-        ...lowered.diagnostics,
-        ...storageResourceWarnings(
-          reserved.program,
-          profile,
-          certificate.certificate,
-          resourceSpans,
-        ),
-      ]),
-    }),
+    value: completedPipeline(input, reserved.program, profile, lowered, certificate, machine),
   });
 }
 
@@ -333,9 +413,13 @@ export function closeCanonicalStorage(input: CheckedSourceInput): CanonicalStora
  * Only named capacity/placement failures are nonterminal reference rejections;
  * malformed machine state, certificate failures and nonconvergence remain terminal.
  * @param checked Direct storage closure, completed before the driver's cancellation checkpoint.
+ * @param candidate Treat a malformed selected startup recipe as a tuple rejection.
  * @returns A real physical reference or its exact failure and available partial facts.
  */
-export function closeCanonicalReference(checked: CanonicalPipeline): CanonicalReferenceOutcome {
+export function closeCanonicalReference(
+  checked: CanonicalPipeline,
+  candidate = false,
+): CanonicalReferenceOutcome {
   const { profile, resourceSpans, lowered } = checked;
   const facts = {
     inventory: checked.certificate.inventory,
@@ -369,7 +453,8 @@ export function closeCanonicalReference(checked: CanonicalPipeline): CanonicalRe
     // turn an internal error into an optimization opportunity.
     return shared.reason === "resident-range" ||
       shared.reason === "source-placement" ||
-      (shared.reason === "code-conflict" && shared.objectId === "startup.restore")
+      (shared.reason === "code-conflict" && shared.objectId === "startup.restore") ||
+      (candidate && shared.reason === "invalid-data" && shared.objectId === C64_STARTUP_STATE_ID)
       ? rejected("layout", failed.failure, { ...facts, objectId: shared.objectId })
       : failed;
   }
@@ -381,5 +466,276 @@ export function closeCanonicalReference(checked: CanonicalPipeline): CanonicalRe
       ...checked.diagnostics,
       ...layoutResourceWarnings(shared.layout, checked.program, profile, resourceSpans),
     ]),
+  });
+}
+
+/** Source facts derived once for every admitted bundle and loop policy. */
+function deriveSizeSourceFacts(input: CheckedSourceInput) {
+  const loops = deriveFixedLoopFacts(input.program, input.loopNesting);
+  const objects = deriveClosedObjectFacts(
+    input.program,
+    input.profile.storage,
+    fixedLoopValueBounds(input.program, loops),
+  );
+  const lifetimes = deriveLocalStorageLifetimes(input.program);
+  const functions = new Map(
+    input.program.semantic.functions.map((fn) => [
+      fn,
+      Object.freeze({
+        function: fn,
+        objects,
+        loops: loops.filter((loop) => loop.function === fn),
+        lifetimes: new Map([...lifetimes].filter(([, life]) => life.function === fn.id)),
+      }),
+    ]),
+  );
+  return {
+    loops,
+    objects,
+    functions,
+    displayIndependent: hasDisplayIndependentStartup(input.program, true),
+  };
+}
+
+/**
+ * Enumerate only the fixed whole-program recipe frontier. Missing source patterns keep
+ * their ordinary axis choice; no per-site Cartesian product or recursive search is formed.
+ * @param input Checked source with its source-only loop context.
+ * @returns Deterministic Direct/Closed, loop and startup tuples, at most 36 plans.
+ */
+export function sizeSelectionPlans(input: SizeSelectionInput): Iterable<SizeSelectionPlan> {
+  const checked = input.checked;
+  const prepared = deriveSizeSourceFacts(checked);
+  const loopPolicies: readonly FixedLoopPolicy[] =
+    prepared.loops.length === 0
+      ? ["original"]
+      : ["original", "low-byte", "x-first", "y-first", "flat-eight-x-first", "flat-eight-y-first"];
+  const startupPolicies: readonly C64StartupPolicy[] = prepared.displayIndependent
+    ? ["full", "compact-unrolled", "compact-looped"]
+    : ["full"];
+  const closedStorage = selectClosedObjectStorage(prepared.objects);
+  const functionsFor = (bundle: "direct" | "closed") =>
+    new Map(
+      [...prepared.functions].map(([fn, facts]) => {
+        const storage = bundle === "closed" ? closedStorage.get(fn) : undefined;
+        const packet = storage === undefined ? facts : Object.freeze({ ...facts, storage });
+        return [
+          fn,
+          Object.freeze({
+            ...packet,
+            complements: deriveByteComplementFacts(packet, checked.profile),
+          }),
+        ] as const;
+      }),
+    );
+  function* plans(): Generator<SizeSelectionPlan> {
+    for (const nonLoopBundle of ["direct", "closed"] as const) {
+      const functions = functionsFor(nonLoopBundle);
+      for (const loopPolicy of loopPolicies) {
+        for (const startupPolicy of startupPolicies) {
+          yield Object.freeze({
+            id: `${checked.snapshot.inputSha256}:${checked.profile.id}:${nonLoopBundle}:${loopPolicy}:${startupPolicy}`,
+            nonLoopBundle,
+            loopPolicy,
+            startupPolicy,
+            sourceFacts: Object.freeze({
+              program: checked.program,
+              functions,
+              nonLoopBundle,
+              loopPolicy,
+              startupPolicy,
+            }),
+            pendingObservers: true as const,
+          });
+        }
+      }
+    }
+  }
+  return plans();
+}
+
+/** Inputs for closing one admitted construction recipe without selecting it. */
+export interface SizeCandidateInput {
+  /** Checked source shared by the reference and every tuple. */
+  readonly checked: CheckedSourceInput;
+  /** Canonical feasible or resource-rejected reference retained for final observers. */
+  readonly reference: Exclude<CanonicalReferenceOutcome, { readonly kind: "failure" }>;
+  /** Exact admitted recipe to build once. */
+  readonly plan: SizeSelectionPlan;
+}
+
+/** Retain the exact source owner for a selected-tuple resource rejection. */
+/** Map an existing resource stage to the costs validator's hard-reason family. */
+function rejectionKindForStage(stage: CanonicalResourceRejection["stage"]): string {
+  if (stage === "zero-page") return "zeroPage";
+  if (stage === "storage") return "sfa";
+  if (stage === "stack") return "stack";
+  if (stage === "payload") return "memory";
+  if (stage === "layout") return "layout";
+  return "memory";
+}
+
+function candidateRejected(
+  plan: SizeSelectionPlan,
+  rejectionKind: string,
+  reason: string,
+  source: SourceSpan | null,
+  objectId: string | null = null,
+): SizeCandidateResult {
+  return Object.freeze({ kind: "rejected", plan, rejectionKind, reason, source, objectId });
+}
+
+/**
+ * Build and close one admitted recipe through the existing storage, layout and observer
+ * owners. No cost is guessed and no rejected tuple is repaired into another representation.
+ * @param input Checked source, canonical reference and one admitted plan.
+ * @returns The complete closed candidate, one whole-tuple rejection, or a terminal failure.
+ */
+export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResult {
+  const { checked, plan } = input;
+  const zeroPageOverflow = sourceZeroPageOverflow(
+    checked.program,
+    checked.profile,
+    checked.resourceSpans,
+  );
+  if (zeroPageOverflow !== null)
+    return Object.freeze({
+      kind: "failure",
+      plan,
+      failure: terminal("source", [zeroPageOverflow]).failure,
+    });
+  const reserved = reserveZeroPageGlobals(checked.program, checked.profile.storage);
+  if (reserved.kind === "error") {
+    const owner = reserved.conflict;
+    return Object.freeze({
+      kind: "failure",
+      plan,
+      failure: terminal("source", [
+        projectDiagnostic(
+          "E10273",
+          `Cannot place '${owner.name?.split(".").at(-1) ?? "zero-page object"}' — explicit placement constraints conflict with occupied storage or the selected zero-page window; change or remove the explicit constraint`,
+          checked.resourceSpans.get(`placement:${bindingIdentityKey(owner.id)}`) ??
+            checked.resourceSpans.get(bindingIdentityKey(owner.id)) ??
+            owner.source,
+        ),
+      ]).failure,
+    });
+  }
+  const allocationProfile = Object.freeze({
+    ...checked.profile,
+    storage: Object.freeze({ ...reserved.storage, profileId: checked.profile.id }),
+  });
+  const inventory = inventoryStorage(reserved.program);
+  if (!validStorageDemands(inventory.requests))
+    return Object.freeze({
+      kind: "failure",
+      plan,
+      failure: incomplete("static storage allocation").failure,
+    });
+  const lowered = lowerMachineProgram({
+    observerEvidence: true,
+    bindingNames: checked.bindingNames,
+    program: reserved.program,
+    profile: allocationProfile,
+    logicalStorage: inventory,
+    sourceFacts: plan.sourceFacts,
+    boundsCheck: checked.snapshot.manifest.boundsCheck,
+    divisionZeroCheck: checked.snapshot.manifest.divisionZeroCheck,
+    sourceText: checked.sourceText,
+  });
+  if (lowered.kind === "error")
+    return candidateRejected(plan, "semantics", lowered.reason, lowered.source);
+  if (!validStorageDemands(lowered.program.requiredStorage))
+    return Object.freeze({
+      kind: "failure",
+      plan,
+      failure: incomplete("static storage closure").failure,
+    });
+  const certificate = closeStorage(lowered.inventory, reserved.storage, lowered.binder);
+  if (certificate.kind === "error") {
+    if (certificate.reason === "stack" || certificate.reason === "resource")
+      return candidateRejected(
+        plan,
+        certificate.reason === "stack" ? "stack" : "memory",
+        certificate.reason === "stack"
+          ? `hardware stack demand ${certificate.measured ?? "Unknown"} is unavailable`
+          : "selected storage demand does not fit",
+        checked.resourceSpans.get(bindingIdentityKey(checked.program.semantic.main)) ?? null,
+        certificate.requestId ?? null,
+      );
+    return Object.freeze({
+      kind: "failure",
+      plan,
+      failure: incomplete("static storage closure").failure,
+    });
+  }
+  const privateNmi = nmiPrivateStorageRoute(certificate.inventory);
+  if (privateNmi !== null)
+    return candidateRejected(
+      plan,
+      "sfa",
+      "selected private-storage route has unbounded overlap",
+      privateNmi.installation.span,
+    );
+  const machine = bindMachineProgram(lowered.program, certificate.certificate);
+  if (machine.kind === "error")
+    return Object.freeze({
+      kind: "failure",
+      plan,
+      failure: incomplete("machine storage binding").failure,
+    });
+  const pipeline = completedPipeline(
+    checked,
+    reserved.program,
+    checked.profile,
+    lowered,
+    certificate,
+    machine,
+  );
+  const reference = closeCanonicalReference(pipeline, true);
+  if (reference.kind === "failure")
+    return Object.freeze({ kind: "failure", plan, failure: reference.failure });
+  if (reference.kind === "resource-rejected") {
+    const objectId = reference.facts.objectId ?? null;
+    return candidateRejected(
+      plan,
+      rejectionKindForStage(reference.stage),
+      `${reference.stage} resource rejection`,
+      objectId === null ? null : (checked.resourceSpans.get(objectId) ?? null),
+      objectId,
+    );
+  }
+  const settledPipeline = Object.freeze({ ...pipeline, diagnostics: reference.diagnostics });
+  const observers = validateSizeObservers({
+    checked,
+    reference: input.reference,
+    candidate: { lowered: settledPipeline.lowered, shared: reference.shared },
+  });
+  if (observers.kind !== "complete") {
+    if (observers.kind === "error")
+      return Object.freeze({
+        kind: "failure",
+        plan,
+        failure: terminal("compiler", [
+          projectDiagnostic("COMPILER_INCOMPLETE", observers.reason, observers.source),
+        ]).failure,
+      });
+    return candidateRejected(
+      plan,
+      "layout",
+      observers.reason,
+      observers.source,
+      observers.objectId,
+    );
+  }
+  return Object.freeze({
+    kind: "complete",
+    value: Object.freeze({
+      plan,
+      pipeline: settledPipeline,
+      shared: reference.shared,
+      observers,
+      cost: sizeCostVector(reference.shared.layout, reference.shared.certificate.certificate),
+    }),
   });
 }

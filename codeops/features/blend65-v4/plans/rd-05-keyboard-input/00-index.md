@@ -1,6 +1,6 @@
 # Keyboard and combined-input library
 
-> **Status**: Blocked — prerequisite28/40; task1.2.16 held-P/AR-P84 done; #133 tracked by AR-P83; Phase 1 GREEN; 38/48 verified parent tasks
+> **Status**: Blocked — prerequisite stopped at29/40; task1.2.17 done; task1.2.18 partial, AR-P85 resolved to reopen full RD-08; #133 tracked by AR-P83; Phase 1 GREEN; 38/48 verified parent tasks
 > **Created**: 2026-10-10
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1

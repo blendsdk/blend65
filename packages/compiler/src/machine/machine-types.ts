@@ -13,7 +13,7 @@ import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.j
 import type { BindingId, PlacementConstraints } from "../frontend/semantic-types.js";
 import type { ExecutionDomain } from "../semantic/interrupt-domains.js";
 import type { StoragePlacement } from "../storage/storage-types.js";
-import type { C64StartupInput } from "../layout/startup.js";
+import type { C64StartupInput, C64StartupPolicy } from "../layout/startup.js";
 import type { ClosedObjectFacts } from "../semantic/closed-object-facts.js";
 import type { FixedLoopFacts } from "../semantic/fixed-loop-facts.js";
 import type {
@@ -137,6 +137,8 @@ export interface MachineSourceFacts {
   readonly nonLoopBundle?: "direct" | "closed";
   /** Explicit finite loop construction; omission keeps original word lowering. */
   readonly loopPolicy?: FixedLoopPolicy;
+  /** Selected cooperative startup construction; omission preserves the proof-derived default. */
+  readonly startupPolicy?: C64StartupPolicy;
   /** Immutable function keys avoid deriving or scanning source facts per machine variant. */
   readonly functions: ReadonlyMap<SemanticFunction, MachineFunctionSourceFacts>;
 }

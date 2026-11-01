@@ -1,6 +1,6 @@
 import type { TargetProfile } from "../target/profile.js";
 import { selectC64KernalFacts } from "../profile/c64-kernal.js";
-import { machineCost, machineInstruction } from "../machine/lower-control.js";
+import { machineCost, machineInstruction, machineState } from "../machine/lower-control.js";
 import type {
   MachineDataObject,
   MachineFunction,
@@ -49,10 +49,15 @@ const COMPACT_STARTUP_STATE = Object.freeze({
   bytes: 3,
 });
 
+/** Admitted cooperative startup constructions; every compact form needs display independence. */
+export type C64StartupPolicy = "full" | "compact-unrolled" | "compact-looped";
+
 /** Inputs needed to construct the selected cooperative C64 startup. */
 export interface C64StartupInput {
   /** Closed-program proof that no source owner depends on the display defaults. */
   readonly displayIndependent?: boolean;
+  /** Selected construction; omitted keeps the established proof-derived compact default. */
+  readonly startupPolicy?: C64StartupPolicy;
   /** Actual allocated zero-page bytes borrowed from the cooperative BASIC caller. */
   readonly borrowedZeroPage?: readonly number[];
   /** Callable module-initializer labels in proved execution order. */
@@ -103,9 +108,9 @@ function deviceMode(address: number): "zero-page" | "absolute" {
 
 /** Return the resident data object used to restore the caller and C64 after main returns. */
 export function createC64StartupStateData(
-  input: Pick<C64StartupInput, "displayIndependent" | "borrowedZeroPage"> = {},
+  input: Pick<C64StartupInput, "displayIndependent" | "startupPolicy" | "borrowedZeroPage"> = {},
 ): MachineDataObject {
-  const state = input.displayIndependent === true ? COMPACT_STARTUP_STATE : STARTUP_STATE;
+  const state = compactPolicy(input).compact ? COMPACT_STARTUP_STATE : STARTUP_STATE;
   return Object.freeze({
     id: C64_STARTUP_STATE_ID,
     kind: "bss",
@@ -123,6 +128,21 @@ function borrowedBasicBytes(input: Pick<C64StartupInput, "borrowedZeroPage">): r
   return [...new Set(input.borrowedZeroPage)]
     .filter((address) => address >= 3 && address <= 0x8f)
     .sort((left, right) => left - right);
+}
+
+/** Resolve the explicit construction while preserving the established compact default. */
+function compactPolicy(input: Pick<C64StartupInput, "displayIndependent" | "startupPolicy">): {
+  readonly compact: boolean;
+  readonly looped: boolean;
+} {
+  const policy =
+    input.startupPolicy ?? (input.displayIndependent === true ? "compact-unrolled" : "full");
+  if (policy !== "full" && input.displayIndependent !== true)
+    throw new Error("Compact startup requires its display-independence proof");
+  return Object.freeze({
+    compact: policy !== "full",
+    looped: policy === "compact-looped",
+  });
 }
 
 /**
@@ -247,7 +267,16 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
     return Object.freeze({ kind: "error", reason: "Startup requires the selected C64 profile" });
   }
   const cpu = input.profile.cpu;
-  const compact = input.displayIndependent === true;
+  let policy: ReturnType<typeof compactPolicy>;
+  try {
+    policy = compactPolicy(input);
+  } catch (error) {
+    return Object.freeze({
+      kind: "error",
+      reason: error instanceof Error ? error.message : "Invalid startup policy",
+    });
+  }
+  const { compact, looped } = policy;
   const state = compact ? COMPACT_STARTUP_STATE : STARTUP_STATE;
   const borrowed = borrowedBasicBytes(input);
   const machine = input.profile.machine;
@@ -325,8 +354,10 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       entry.push(...saveDevice(cpu, address, offset));
     }
   }
-  for (const [index, address] of borrowed.entries()) {
-    entry.push(...saveDevice(cpu, address, state.bytes + index));
+  if (!looped) {
+    for (const [index, address] of borrowed.entries()) {
+      entry.push(...saveDevice(cpu, address, state.bytes + index));
+    }
   }
   entry.push(
     ...(compact
@@ -446,14 +477,26 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
         [deviceEffect("write", machine.backgroundColor)],
       ),
     );
+  const loopedCapture = looped && borrowed.length > 0;
+  if (loopedCapture) {
+    entry.push(
+      machineInstruction(
+        cpu,
+        "ldx",
+        "immediate",
+        Object.freeze({ kind: "immediate", value: borrowed.length - 1 }),
+      ),
+    );
+  }
   const initializers =
     input.initializers ??
     input.initializerLabels.map((label) => Object.freeze({ kind: "call" as const, label }));
+  const initializerInstructions: MachineInstruction[] = [];
   for (const initializer of initializers) {
     if (initializer.kind === "inline") {
-      entry.push(...initializer.instructions);
+      (loopedCapture ? initializerInstructions : entry).push(...initializer.instructions);
     } else {
-      entry.push(
+      (loopedCapture ? initializerInstructions : entry).push(
         machineInstruction(
           cpu,
           "jsr",
@@ -463,34 +506,32 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       );
     }
   }
-  if (compact) {
-    // Copy the held original P into the live register without removing it.
-    // This restores the caller's I state for main while D stays binary.
-    entry.push(
-      machineInstruction(cpu, "tsx", "implied", null),
-      machineInstruction(cpu, "inx", "implied", null),
-      machineInstruction(
-        cpu,
-        "lda",
-        "absolute-x",
-        Object.freeze({ kind: "absolute", value: 0x0100 }),
-      ),
-      machineInstruction(cpu, "pha", "implied", null),
-      machineInstruction(cpu, "plp", "implied", null),
-      machineInstruction(cpu, "cld", "implied", null),
-    );
-  }
+  const mainEntry = compact
+    ? [
+        // Copy the held original P into the live register without removing it.
+        // This restores the caller's I state for main while D stays binary.
+        machineInstruction(cpu, "tsx", "implied", null),
+        machineInstruction(cpu, "inx", "implied", null),
+        machineInstruction(
+          cpu,
+          "lda",
+          "absolute-x",
+          Object.freeze({ kind: "absolute", value: 0x0100 }),
+        ),
+        machineInstruction(cpu, "pha", "implied", null),
+        machineInstruction(cpu, "plp", "implied", null),
+        machineInstruction(cpu, "cld", "implied", null),
+      ]
+    : [];
+  if (!looped) entry.push(...mainEntry);
 
-  const restore: MachineInstruction[] = compact
+  const restorePrefix: MachineInstruction[] = compact
     ? [machineInstruction(cpu, "sei", "implied", null)]
     : [];
   for (const { address, offset } of preservedDevices.slice(2)) {
-    restore.push(...restoreDevice(cpu, address, offset));
+    restorePrefix.push(...restoreDevice(cpu, address, offset));
   }
-  for (const [index, address] of borrowed.entries()) {
-    restore.push(...restoreDevice(cpu, address, state.bytes + index));
-  }
-  restore.push(
+  const restoreSuffix: MachineInstruction[] = [
     ...restoreDevice(cpu, machine.cia2DataDirection, state.cia2Direction),
     ...restoreDevice(cpu, cpu.portDataAddress, state.cpuPort),
     ...restoreDevice(cpu, cpu.portDirectionAddress, state.cpuDirection),
@@ -522,7 +563,181 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
           stateInstruction(cpu, "ldy", state.y),
           machineInstruction(cpu, "plp", "implied", null),
         ]),
+  ];
+  const borrowedRestores = borrowed.flatMap((address, index) =>
+    restoreDevice(cpu, address, state.bytes + index),
   );
+  const restore: MachineInstruction[] = [
+    ...restorePrefix,
+    ...(looped ? [] : borrowedRestores),
+    ...restoreSuffix,
+  ];
+
+  if (looped && borrowed.length > 0) {
+    const first = borrowed[0]!;
+    if (borrowed.some((address, index) => address !== first + index))
+      return Object.freeze({
+        kind: "error",
+        reason: "Compact looped startup requires one contiguous borrowed range",
+      });
+    restorePrefix.push(
+      machineInstruction(
+        cpu,
+        "ldx",
+        "immediate",
+        Object.freeze({ kind: "immediate", value: borrowed.length - 1 }),
+      ),
+    );
+    restore.splice(0, restore.length, ...restorePrefix, ...restoreSuffix);
+    const captureDone =
+      initializerInstructions.length > 0 ? "startup.entry.initializers" : "startup.entry.main";
+    return Object.freeze({
+      kind: "complete",
+      stackDemand: Object.freeze({ heldBytes: 1, transientPeakBytes: 2 }),
+      stub: Object.freeze({ origin: 0x0801, bytes: BASIC_STUB }),
+      startup: Object.freeze({
+        id: "startup",
+        origin: 0x080d,
+        blocks: Object.freeze([
+          Object.freeze({
+            label: "startup.entry",
+            instructions: Object.freeze(entry),
+            terminator: Object.freeze({ kind: "fallthrough", target: "startup.capture" }),
+          }),
+          Object.freeze({
+            label: "startup.capture",
+            instructions: Object.freeze([
+              machineInstruction(
+                cpu,
+                "lda",
+                "absolute-x",
+                Object.freeze({ kind: "absolute", value: first }),
+                [
+                  Object.freeze({
+                    kind: "read" as const,
+                    address: Object.freeze({ kind: "absolute" as const, value: first }),
+                    width: 1,
+                    volatile: false,
+                    order: 0,
+                  }),
+                ],
+              ),
+              machineInstruction(
+                cpu,
+                "sta",
+                "absolute-x",
+                Object.freeze({ kind: "label", label: C64_STARTUP_STATE_ID, offset: state.bytes }),
+                [
+                  Object.freeze({
+                    kind: "write" as const,
+                    address: Object.freeze({
+                      kind: "symbolic" as const,
+                      label: C64_STARTUP_STATE_ID,
+                      offset: state.bytes,
+                    }),
+                    width: 1,
+                    volatile: false,
+                    order: 0,
+                  }),
+                ],
+              ),
+              machineInstruction(cpu, "dex", "implied", null),
+            ]),
+            terminator: Object.freeze({
+              kind: "branch" as const,
+              opcode: "bpl" as const,
+              target: "startup.capture",
+              fallthrough: captureDone,
+              uses: machineState([], ["n"]),
+              cost: machineCost(cpu, "bpl", "relative"),
+            }),
+          }),
+          ...(initializerInstructions.length > 0
+            ? [
+                Object.freeze({
+                  label: "startup.entry.initializers",
+                  instructions: Object.freeze(initializerInstructions),
+                  terminator: Object.freeze({
+                    kind: "fallthrough" as const,
+                    target: "startup.entry.main",
+                  }),
+                }),
+              ]
+            : []),
+          Object.freeze({
+            label: "startup.entry.main",
+            instructions: Object.freeze(mainEntry),
+            terminator: Object.freeze({ kind: "fallthrough", target: input.mainLabel }),
+          }),
+          Object.freeze({
+            label: "startup.restore",
+            instructions: Object.freeze(restorePrefix),
+            terminator: Object.freeze({
+              kind: "fallthrough",
+              target: "startup.restore.borrow",
+            }),
+          }),
+          Object.freeze({
+            label: "startup.restore.borrow",
+            instructions: Object.freeze([
+              machineInstruction(
+                cpu,
+                "lda",
+                "absolute-x",
+                Object.freeze({ kind: "label", label: C64_STARTUP_STATE_ID, offset: state.bytes }),
+                [
+                  Object.freeze({
+                    kind: "read" as const,
+                    address: Object.freeze({
+                      kind: "symbolic" as const,
+                      label: C64_STARTUP_STATE_ID,
+                      offset: state.bytes,
+                    }),
+                    width: 1,
+                    volatile: false,
+                    order: 0,
+                  }),
+                ],
+              ),
+              machineInstruction(
+                cpu,
+                "sta",
+                "absolute-x",
+                Object.freeze({ kind: "absolute", value: first }),
+                [
+                  Object.freeze({
+                    kind: "write" as const,
+                    address: Object.freeze({ kind: "absolute" as const, value: first }),
+                    width: 1,
+                    volatile: false,
+                    order: 0,
+                  }),
+                ],
+              ),
+              machineInstruction(cpu, "dex", "implied", null),
+            ]),
+            terminator: Object.freeze({
+              kind: "branch" as const,
+              opcode: "bpl" as const,
+              target: "startup.restore.borrow",
+              fallthrough: "startup.restore.tail",
+              uses: machineState([], ["n"]),
+              cost: machineCost(cpu, "bpl", "relative"),
+            }),
+          }),
+          Object.freeze({
+            label: "startup.restore.tail",
+            instructions: Object.freeze(restoreSuffix),
+            terminator: Object.freeze({
+              kind: "return" as const,
+              opcode: "rts" as const,
+              cost: machineCost(cpu, "rts", "implied"),
+            }),
+          }),
+        ]),
+      }),
+    });
+  }
 
   return Object.freeze({
     kind: "complete",

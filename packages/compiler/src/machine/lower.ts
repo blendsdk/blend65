@@ -443,11 +443,22 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
         (global) => [bindingIdentityKey(global.id), global] as const,
       ),
     );
-    const displayIndependent = hasDisplayIndependentStartup(input.program);
+    const strictStartupIndependent = hasDisplayIndependentStartup(input.program);
+    const startupPolicy =
+      input.sourceFacts?.startupPolicy ??
+      (strictStartupIndependent ? ("compact-unrolled" as const) : ("full" as const));
+    const compactStartup = startupPolicy !== "full";
+    if (
+      compactStartup &&
+      !(input.sourceFacts?.startupPolicy !== undefined && input.observerEvidence === true
+        ? hasDisplayIndependentStartup(input.program, true)
+        : strictStartupIndependent)
+    )
+      throw loweringFailure("Compact startup selection lacks its display-independence proof", null);
     const startupInitializers: C64StartupInitializer[] = [];
     // Full display setup ends with A=0. The compact DDRA transaction retains
     // incoming upper direction bits, so its first initializer has no known A.
-    let initializerAccumulator: number | null = displayIndependent ? null : 0;
+    let initializerAccumulator: number | null = compactStartup ? null : 0;
     for (const initializer of input.program.semantic.initializerOrder) {
       const global = globalsByKey.get(bindingIdentityKey(initializer));
       if (global === undefined || global.entry === null) {
@@ -552,7 +563,8 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
       initializerLabels: Object.freeze([]),
       initializers: Object.freeze(startupInitializers),
       mainLabel,
-      displayIndependent,
+      displayIndependent: compactStartup,
+      startupPolicy,
     });
     const startup = createC64Startup({ ...c64Startup, profile: input.profile });
     if (startup.kind === "error") {

@@ -4,7 +4,7 @@ import { selectC64KernalFacts } from "../profile/c64-kernal.js";
 import { repairMachineBranches } from "../machine/block-layout.js";
 import { validateMachineProgram } from "../machine/bind.js";
 import { machineInstruction } from "../machine/lower-control.js";
-import type { MachineFunction, MachineProgram } from "../machine/machine-types.js";
+import type { MachineBlock, MachineFunction, MachineProgram } from "../machine/machine-types.js";
 import {
   align,
   freeSourceStart,
@@ -62,6 +62,44 @@ import {
 } from "./c64-layout-objects.js";
 
 /**
+ * Place one contiguous startup path and reject an out-of-range relative edge.
+ * Extra loop blocks are short by construction; long-branch repair would move bytes
+ * after the path and is intentionally not guessed here.
+ */
+function placeStartupPath(
+  blocks: readonly MachineBlock[],
+  origin: number,
+): readonly MachineBlock[] | null {
+  const labels = new Map<string, number>();
+  let cursor = origin;
+  for (const block of blocks) {
+    const bytes = blockBytes(block);
+    if (bytes === null || labels.has(block.label)) return null;
+    labels.set(block.label, cursor);
+    cursor += bytes;
+  }
+  for (const block of blocks) {
+    const terminator = block.terminator;
+    if (terminator.kind !== "branch") continue;
+    const target = labels.get(terminator.target);
+    const fallthrough = labels.get(terminator.fallthrough);
+    const instructions = block.instructions.reduce((sum, item) => sum + item.cost.bytes, 0);
+    const distance =
+      target === undefined ? 0 : target - (labels.get(block.label)! + instructions + 2);
+    if (target === undefined || fallthrough === undefined || distance < -128 || distance > 127)
+      return null;
+  }
+  let placed = origin;
+  return Object.freeze(
+    blocks.map((block) => {
+      const result = Object.freeze({ ...block, origin: placed });
+      placed += blockBytes(block)!;
+      return result;
+    }),
+  );
+}
+
+/**
  * Place startup/code, data, final SFA homes and VIC-visible sprite data deterministically.
  * @param input Bound program, final certificate and exact selected profile.
  * @returns One conflict-free layout with explicit loaded fill.
@@ -91,25 +129,37 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     bytes: stubBytes,
   });
 
-  const sourceEntry = input.program.startup.blocks.find(({ label }) => label === "startup.entry");
-  const startupRestore = input.program.startup.blocks.find(
-    ({ label }) => label === "startup.restore",
-  );
-  const sourceEntryBytes = sourceEntry === undefined ? null : blockBytes(sourceEntry);
-  const restoreBytes = startupRestore === undefined ? null : blockBytes(startupRestore);
-  if (
-    sourceEntryBytes === null ||
-    restoreBytes === null ||
-    sourceEntry === undefined ||
-    startupRestore === undefined
-  ) {
+  const startupBlocks = input.program.startup.blocks;
+  const entryIndex = startupBlocks.findIndex(({ label }) => label === "startup.entry");
+  const restoreIndex = startupBlocks.findIndex(({ label }) => label === "startup.restore");
+  if (entryIndex !== 0 || restoreIndex <= 0 || restoreIndex >= startupBlocks.length) {
     return Object.freeze({ kind: "error", reason: "invalid-code-size", objectId: null });
   }
-  const mainTarget =
-    sourceEntry.terminator.kind === "fallthrough" ? sourceEntry.terminator.target : null;
+  const entryBlocks = startupBlocks.slice(0, restoreIndex);
+  const restoreBlocks = startupBlocks.slice(restoreIndex);
+  const startupLabels = new Set(startupBlocks.map(({ label }) => label));
+  if (startupLabels.size !== startupBlocks.length) {
+    return Object.freeze({ kind: "error", reason: "invalid-code-size", objectId: null });
+  }
+  const entrySizes = entryBlocks.map(blockBytes);
+  const restoreSizes = restoreBlocks.map(blockBytes);
+  if (entrySizes.some((bytes) => bytes === null) || restoreSizes.some((bytes) => bytes === null)) {
+    return Object.freeze({ kind: "error", reason: "invalid-code-size", objectId: null });
+  }
+  const entryBaseBytes = entrySizes.reduce<number>((sum, bytes) => sum + bytes!, 0);
+  const restoreBytes = restoreSizes.reduce<number>((sum, bytes) => sum + bytes!, 0);
+  const mainTargets = entryBlocks.flatMap(({ terminator }) =>
+    terminator.kind === "fallthrough" && !startupLabels.has(terminator.target)
+      ? [terminator.target]
+      : [],
+  );
+  if (mainTargets.length !== 1) {
+    return Object.freeze({ kind: "error", reason: "invalid-code-size", objectId: null });
+  }
+  const mainTarget = mainTargets[0]!;
   const mainFunction = input.program.functions.find(({ id }) => id === mainTarget);
   const mainBytes = mainFunction === undefined ? null : functionBytes(mainFunction);
-  const entryEnd = input.profile.packager.startupAddress + sourceEntryBytes;
+  const entryEnd = input.profile.packager.startupAddress + entryBaseBytes;
   const entryMain =
     mainFunction === undefined ? null : repairMachineBranches(mainFunction, entryEnd);
   const sfaIntervals = storageIntervals(
@@ -155,21 +205,33 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     ![...fixedData, ...fixedCode.filter(({ id }) => id !== mainTarget)].some((interval) =>
       overlaps(entryEnd, entryEnd + entryMain.byteLength - 1, interval.start, interval.end),
     );
-  const needsMainJump = mainTarget !== null && mainFunction !== undefined && !mainAtEntry;
-  const startupEntry = needsMainJump
-    ? Object.freeze({
-        ...sourceEntry,
-        terminator: Object.freeze({
-          kind: "jump" as const,
-          opcode: "jmp" as const,
-          target: mainTarget!,
-          cost: Object.freeze({ bytes: 3, minCycles: 3, maxCycles: 3 }),
-        }),
-      })
-    : sourceEntry;
-  const entryBytes = blockBytes(startupEntry);
+  const needsMainJump = mainFunction !== undefined && !mainAtEntry;
+  const entryPath = needsMainJump
+    ? entryBlocks.map((block, index) =>
+        index === entryBlocks.length - 1
+          ? Object.freeze({
+              ...block,
+              terminator: Object.freeze({
+                kind: "jump" as const,
+                opcode: "jmp" as const,
+                target: mainTarget,
+                cost: Object.freeze({ bytes: 3, minCycles: 3, maxCycles: 3 }),
+              }),
+            })
+          : block,
+      )
+    : entryBlocks;
+  const entryBytes = entryPath
+    .map(blockBytes)
+    .reduce<
+      number | null
+    >((sum, bytes) => (sum === null || bytes === null ? null : sum + bytes), 0);
   if (entryBytes === null) {
     return Object.freeze({ kind: "error", reason: "invalid-code-size", objectId: null });
+  }
+  const placedEntry = placeStartupPath(entryPath, input.profile.packager.startupAddress);
+  if (placedEntry === null) {
+    return Object.freeze({ kind: "error", reason: "branch-layout", objectId: "startup.entry" });
   }
   const orderedFunctions = [...input.program.functions].sort((left, right) => {
     if (left.id === mainTarget) return -1;
@@ -288,14 +350,14 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   }
   codePieces.push({ start: restoreOrigin, end: restoreOrigin + restoreBytes - 1 });
   const repairedFunctions = orderedFunctions.map((fn) => repairedById.get(fn.id)!);
-  const placedRestore = Object.freeze({ ...startupRestore, origin: restoreOrigin });
+  const placedRestore = placeStartupPath(restoreBlocks, restoreOrigin);
+  if (placedRestore === null) {
+    return Object.freeze({ kind: "error", reason: "branch-layout", objectId: "startup.restore" });
+  }
   const placedStartup = Object.freeze({
     ...input.program.startup,
     origin: input.profile.packager.startupAddress,
-    blocks: Object.freeze([
-      Object.freeze({ ...startupEntry, origin: input.profile.packager.startupAddress }),
-      placedRestore,
-    ]),
+    blocks: Object.freeze([...placedEntry, ...placedRestore]),
   });
   const expectedStartupState = createC64StartupStateData(input.program.c64Startup);
   const suppliedStartupState = input.program.data.find(({ id }) => id === C64_STARTUP_STATE_ID);

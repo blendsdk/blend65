@@ -18,7 +18,13 @@ import { collectSourceLoopNesting } from "../semantic/fixed-loop-facts.js";
 import { selectTargetProfile } from "../target/profile.js";
 import { runAcme } from "../tools/acme.js";
 import { discoverAcme } from "../tools/discovery.js";
-import { prepareEvidence } from "./evidence.js";
+import { prepareEvidence, sizeCostVector } from "./evidence.js";
+import type {
+  SizeCostSourceSite,
+  SizeCostVector,
+  SizeEvidenceCandidate,
+  SizeEvidenceDecision,
+} from "./evidence.js";
 import type {
   BuildOptions,
   BuildResult,
@@ -32,8 +38,18 @@ import type {
 } from "./types.js";
 import { findVice, launchVice, probeVice } from "./vice.js";
 import { resourceSourceSpans } from "./resource-diagnostics.js";
-import { closeCanonicalReference, closeCanonicalStorage } from "./size-selection.js";
-import type { CanonicalPipeline, CheckedSourceInput } from "./size-selection.js";
+import {
+  closeCanonicalReference,
+  closeCanonicalStorage,
+  closeSizeCandidate,
+  sizeSelectionPlans,
+} from "./size-selection.js";
+import type {
+  CanonicalPipeline,
+  CanonicalReferenceOutcome,
+  CheckedSourceInput,
+  ClosedSizeCandidate,
+} from "./size-selection.js";
 
 interface PreparedBuild {
   /** Identity from the same checked snapshot that produced the published generation. */
@@ -257,6 +273,63 @@ async function removeOwnedDirectory(
   }
 }
 
+/** Map one source span to the costs-evidence source-site shape. */
+function costSourceSites(span: SourceSpan | null): readonly SizeCostSourceSite[] {
+  return span === null
+    ? []
+    : Object.freeze([{ path: span.sourceId, startByte: span.start, endByte: span.end }]);
+}
+
+/** Compare B then ordered R, returning zero only for an exact physical tie. */
+function compareSizeCosts(left: SizeCostVector, right: SizeCostVector): number {
+  const bytes = left.programBytes - right.programBytes;
+  if (bytes !== 0) return bytes;
+  for (let index = 0; index < left.resources.length; index += 1) {
+    const difference = left.resources[index]!.value - right.resources[index]!.value;
+    if (difference !== 0) return difference;
+  }
+  return 0;
+}
+
+/** Return whether two complete vectors are exactly equal, including unknown paths. */
+function sameSizeCosts(left: SizeCostVector, right: SizeCostVector): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+/** Map one reference stage to the costs validator's allowed hard-reason family. */
+function referenceRejectionKind(stage: string): string {
+  if (stage === "zero-page") return "zeroPage";
+  if (stage === "storage") return "sfa";
+  if (stage === "stack") return "stack";
+  if (stage === "payload") return "memory";
+  if (stage === "layout") return "layout";
+  return "memory";
+}
+
+/** Convert one rejected canonical reference into an exact rejected candidate. */
+function referenceRejection(
+  reference: Extract<CanonicalReferenceOutcome, { readonly kind: "resource-rejected" }>,
+): SizeEvidenceCandidate {
+  const detail =
+    reference.failure.diagnostics
+      .map(({ message }) => message)
+      .filter((message) => message.length > 0)
+      .join("; ") || `${reference.stage} resource rejection`;
+  return Object.freeze({
+    id: "reference",
+    feasibility: Object.freeze({
+      kind: "rejected" as const,
+      reasons: Object.freeze([
+        Object.freeze({
+          kind: referenceRejectionKind(reference.stage),
+          detail,
+          sourceSites: Object.freeze([]),
+        }),
+      ]),
+    }),
+  });
+}
+
 /** Compile, assemble, reconcile and publish one fresh generation. */
 async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<PreparedBuildResult> {
   const source = await checkSource(options);
@@ -272,17 +345,127 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
   const reference =
     storage.kind === "resource-rejected" ? storage : closeCanonicalReference(storage.value);
   if (reference.kind === "failure") return reference;
+  let selectedPipeline: CanonicalPipeline | null =
+    reference.kind === "feasible" ? reference.checked : null;
+  let selectedShared: ClosedSizeCandidate["shared"] | null =
+    reference.kind === "feasible" ? reference.shared : null;
+  let selectedDiagnostics: readonly ProjectDiagnostic[] | null =
+    reference.kind === "feasible" ? reference.diagnostics : null;
+  let sizeDecision: SizeEvidenceDecision | undefined;
   if (size) {
-    // Candidate construction consumes this checked source and its exact reference
-    // outcome. Until that path closes, do not publish direct output as optimized.
-    return { kind: "failure", failure: incompleteStage("size candidate selection") };
+    const evidenceCandidates: SizeEvidenceCandidate[] = [];
+    const feasible = new Map<
+      string,
+      {
+        readonly pipeline: CanonicalPipeline;
+        readonly shared: ClosedSizeCandidate["shared"];
+        readonly diagnostics: readonly ProjectDiagnostic[];
+        readonly cost: SizeCostVector;
+      }
+    >();
+    if (reference.kind === "feasible") {
+      const cost = sizeCostVector(
+        reference.shared.layout,
+        reference.shared.certificate.certificate,
+      );
+      evidenceCandidates.push(
+        Object.freeze({
+          id: "reference",
+          feasibility: Object.freeze({ kind: "feasible" as const, vector: cost }),
+        }),
+      );
+      feasible.set("reference", {
+        pipeline: reference.checked,
+        shared: reference.shared,
+        diagnostics: reference.diagnostics,
+        cost,
+      });
+    } else {
+      evidenceCandidates.push(referenceRejection(reference));
+    }
+    for (const plan of sizeSelectionPlans({ checked: source.value })) {
+      if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
+      const candidate = closeSizeCandidate({ checked: source.value, reference, plan });
+      if (candidate.kind === "failure") return { kind: "failure", failure: candidate.failure };
+      if (candidate.kind === "complete") {
+        evidenceCandidates.push(
+          Object.freeze({
+            id: plan.id,
+            feasibility: Object.freeze({
+              kind: "feasible" as const,
+              vector: candidate.value.cost,
+            }),
+          }),
+        );
+        feasible.set(plan.id, {
+          pipeline: candidate.value.pipeline,
+          shared: candidate.value.shared,
+          diagnostics: candidate.value.pipeline.diagnostics,
+          cost: candidate.value.cost,
+        });
+      } else {
+        evidenceCandidates.push(
+          Object.freeze({
+            id: plan.id,
+            feasibility: Object.freeze({
+              kind: "rejected" as const,
+              reasons: Object.freeze([
+                Object.freeze({
+                  kind: candidate.rejectionKind,
+                  detail: candidate.reason,
+                  sourceSites: costSourceSites(candidate.source),
+                }),
+              ]),
+            }),
+          }),
+        );
+      }
+    }
+    if (feasible.size === 0) {
+      if (reference.kind === "resource-rejected")
+        return { kind: "failure", failure: reference.failure };
+      return { kind: "failure", failure: incompleteStage("size cost selection") };
+    }
+    const ordered = [...feasible.entries()].sort(
+      ([leftId, left], [rightId, right]) =>
+        compareSizeCosts(left.cost, right.cost) ||
+        Buffer.compare(Buffer.from(leftId), Buffer.from(rightId)),
+    );
+    const chosen = ordered[0]!;
+    const tiedIds = ordered
+      .filter(([, value]) => sameSizeCosts(value.cost, chosen[1].cost))
+      .map(([id]) => id)
+      .sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
+    const main = source.value.program.semantic.main;
+    sizeDecision = Object.freeze({
+      id: "size.whole-program",
+      scope: `${main.span.sourceId}::main`,
+      mode: "size",
+      sourceSites: costSourceSites(main.span),
+      closurePoint: "postLayout",
+      baselineCandidateId: "reference",
+      selectedCandidateId: chosen[0],
+      candidates: Object.freeze(
+        evidenceCandidates.sort((left, right) =>
+          Buffer.compare(Buffer.from(left.id), Buffer.from(right.id)),
+        ),
+      ),
+      incomparableComponents: Object.freeze([]),
+      tieBreak:
+        tiedIds.length > 1
+          ? Object.freeze({ kind: "stableId" as const, candidateIds: Object.freeze(tiedIds) })
+          : Object.freeze({ kind: "none" as const }),
+    });
+    selectedPipeline = chosen[1].pipeline;
+    selectedShared = chosen[1].shared;
+    selectedDiagnostics = chosen[1].diagnostics;
   }
-  if (reference.kind === "resource-rejected")
-    return { kind: "failure", failure: reference.failure };
-  const { snapshot, profile } = reference.checked;
+  if (selectedPipeline === null || selectedShared === null || selectedDiagnostics === null)
+    return { kind: "failure", failure: incompleteStage("size cost selection") };
+  const { snapshot, profile } = selectedPipeline;
   if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
-  const { layout, certificate } = reference.shared;
-  const diagnostics = reference.diagnostics;
+  const { layout, certificate } = selectedShared;
+  const diagnostics = selectedDiagnostics;
   const serialization = serializeAcme({
     layout,
     certificate: certificate.certificate,
@@ -365,7 +548,7 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
   try {
     evidence = await prepareEvidence({
       snapshot,
-      program: reference.checked.program,
+      program: selectedPipeline.program,
       inventory: certificate.inventory,
       certificate: certificate.certificate,
       layout,
@@ -378,6 +561,7 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
         durationMilliseconds: "Unknown",
         peakRssBytes: "Unknown",
       }),
+      ...(sizeDecision === undefined ? {} : { sizeDecision }),
     });
   } catch {
     if (!(await removeOwnedDirectory(stagingDirectory, stagingIdentity))) {
