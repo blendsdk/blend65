@@ -49,6 +49,42 @@ export interface OptimizationFacts {
   readonly mode: "size" | "balanced" | "speed";
 }
 
+/** Input to the one shared fact derivation. */
+export interface OptimizationFactInput {
+  readonly checked: CheckedSourceInput;
+  readonly mode: "size" | "balanced" | "speed";
+}
+
+/** One exact changed source/machine position retained by a rule result. */
+export interface RuleSite {
+  readonly block: string;
+  readonly index: number;
+}
+
+/** One applied rule and all sites it changed. */
+export interface AppliedRule {
+  readonly ruleId: string;
+  readonly functions: readonly SemanticFunction[];
+  readonly changed: readonly RuleSite[];
+  readonly obligations: readonly RuleObligation[];
+}
+
+/** Completed in-producer rule pass, or a terminal invariant failure before sealing. */
+export type RulePipelineResult =
+  | {
+      readonly kind: "complete";
+      readonly producer: "lowering";
+      readonly program: MachineProgram;
+      readonly applied: readonly AppliedRule[];
+      readonly obligations: readonly RuleObligation[];
+    }
+  | { readonly kind: "failure"; readonly reason: string; readonly source: SourceSpan | null };
+
+/** Independent validation of the rule result's sites and obligations. */
+export type RuleValidation =
+  | { readonly kind: "complete"; readonly applied: readonly string[] }
+  | { readonly kind: "error"; readonly reason: string; readonly source: SourceSpan | null };
+
 /** Per-function facts assembled from existing pure queries only. */
 export interface OptimizationFunctionFacts {
   readonly function: SemanticFunction;
@@ -124,6 +160,15 @@ The first version is an explicit list, not a registry:
 
 Rules that change reachability, inventory or SFA demand force a later closure
 iteration; no rule may silently keep a stale request or stale proof.
+
+The foundation rule IDs are exactly:
+
+- `cleanup.copy-forward`
+- `cleanup.dead-instruction`
+- `cleanup.empty-block`
+
+No other rule is active in Phase 1. A later rule family adds its IDs before its
+implementation task is started.
 
 ## Error Handling
 

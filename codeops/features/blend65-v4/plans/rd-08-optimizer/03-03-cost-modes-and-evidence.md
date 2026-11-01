@@ -36,6 +36,71 @@ Unknown or incomparable terms are never zero, a win or a stable-ID tie. A mode
 failure identifies the exact deficit/tradeoff; it never becomes a source
 restriction.
 
+### Cost API
+
+```ts
+/** Exact, bounded, symbolic or honestly unavailable cycle term. */
+export type OptimizationCycleMeasurement =
+  | { readonly kind: "exact"; readonly value: number }
+  | { readonly kind: "range"; readonly minimum: number; readonly maximum: number }
+  | {
+      readonly kind: "symbolic";
+      readonly expression: string;
+      readonly variables: readonly { readonly name: string; readonly minimum: number; readonly maximum: number }[];
+    }
+  | { readonly kind: "unknown" };
+
+/** Complete B/R/T vector used by all modes. */
+export interface OptimizationCostVector {
+  readonly programBytes: number;
+  readonly pathCycles: readonly {
+    readonly pathId: string;
+    readonly cycles: OptimizationCycleMeasurement;
+  }[];
+  readonly resources: readonly {
+    readonly kind: "standard";
+    readonly id: "zeroPage" | "residentRam" | "hardwareStack" | "scratch";
+    readonly value: number;
+  }[];
+}
+
+/** One stable candidate identity and its closed vector. */
+export interface OptimizationCandidate {
+  readonly id: string;
+  readonly cost: OptimizationCostVector;
+}
+
+/** One comparison result; no hidden weights or guessed frequency. */
+export type CostComparison =
+  | { readonly kind: "less" }
+  | { readonly kind: "equal" }
+  | { readonly kind: "greater" }
+  | { readonly kind: "incomparable"; readonly components: readonly string[] };
+
+/** Compare two closed vectors under one mode's exact ordering. */
+export function compareOptimizationCosts(
+  mode: "size" | "speed" | "balanced",
+  left: OptimizationCostVector,
+  right: OptimizationCostVector,
+): CostComparison;
+
+/** Select a candidate, or report that no balanced candidate dominates. */
+export type OptimizationSelection =
+  | {
+      readonly kind: "selected";
+      readonly candidateId: string;
+      readonly tieBreak: "none" | "stableId";
+      readonly incomparableComponents: readonly string[];
+    }
+  | { readonly kind: "none"; readonly incomparableComponents: readonly string[] };
+
+export function selectOptimizationCandidate(
+  mode: "size" | "speed" | "balanced",
+  baseline: OptimizationCandidate,
+  candidates: readonly OptimizationCandidate[],
+): OptimizationSelection;
+```
+
 ## Mode Surface
 
 RD-08 requires exactly `none`, `balanced`, `speed`, `size`; `balanced` is the

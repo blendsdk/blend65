@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-01 16:31
-> **Progress**: 0/41 tasks (0%)
+> **Last Updated**: 2026-11-01 23:55
+> **Progress**: 2/41 tasks (5%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -42,8 +42,8 @@ it is never repaired by weakening limits or adding a benchmark-specific rule.
 
 **Reference**: [07](07-testing-strategy.md) ST-1–ST-7; [03-01](03-01-facts-and-pipeline.md) §Architecture; AR-003/007/008.
 
-- [ ] 1.1.1 [spec-author] Write the foundation specification tests for facts identity, per-rule obligations, provenance and B/R/T — `packages/compiler/src/machine/optimization-*.spec.test.ts`
-- [ ] 1.1.2 [spec-author] Verify the foundation specification tests fail for the expected missing facts/rules; no implementation is present
+- [x] 1.1.1 [spec-author] Write the foundation specification tests for facts identity, per-rule obligations, provenance and B/R/T — `packages/compiler/src/machine/optimization-*.spec.test.ts` ✅ (completed: 2026-11-01 23:55; three independent spec files, 39 cases total, import the planned missing modules; no production code)
+- [x] 1.1.2 [spec-author] Verify the foundation specification tests fail for the expected missing facts/rules; no implementation is present ✅ (completed: 2026-11-01 23:55; 3/3 files RED for missing optimization-facts/rules/cost modules, no tests collected)
 
 ### Step 1.2: Shared facts bundle
 
