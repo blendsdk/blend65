@@ -1,6 +1,6 @@
 # Keyboard and combined-input library
 
-> **Status**: Executing — correctness track; RD-08 size-output acceptance deferred; Phase 1 GREEN; 44/48 verified parent tasks
+> **Status**: Blocked — correctness track; RD-08 size-output acceptance deferred; Phase 1 GREEN; 46/48 verified parent tasks; native/oracle findings open
 > **Created**: 2026-10-10
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1

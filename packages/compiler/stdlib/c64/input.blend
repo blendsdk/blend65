@@ -39,7 +39,7 @@ export enum SnapshotQuality {
   COMPLETE = 0,
   /** A returning NMI reached the scoped scan; raw samples remain available. */
   INTERRUPTED = 1,
-  /** The port configuration prevented sampling; raw bytes are zero placeholders. */
+  /** A CIA1 timer output on a row pin (PBON) prevented sampling; raw bytes are zero placeholders. */
   UNAVAILABLE = 2
 }
 
@@ -438,8 +438,11 @@ interrupt function interruptScan(): void {
  * Timers may run, but timer output on either row pin makes the scan unavailable.
  * A returning scoped NMI makes the retained raw samples INTERRUPTED; the function
  * does not retry or promise simultaneous samples or definite contact states.
- * Restores caller status, exact port directions and prior NMI ownership. It never
- * writes the row latch, timer controls, interrupt-source registers or CIA2.
+ * Restores caller status, exact port directions and prior NMI ownership; it
+ * leaves CIA1 PA at $7F and does not promise a previous PA latch. It requires a
+ * compatible prior port/NMI owner and no competing writer, and is not reentrant
+ * from an active NMI handler. It never writes the row latch, timer controls,
+ * interrupt-source registers or CIA2.
  * @returns One complete saved object; unavailable raw bytes are zero placeholders.
  * @example let saved: InputSnapshot = readInputSnapshot();
  *          let state: InputState = keyState(saved, Key.SPACE);

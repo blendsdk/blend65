@@ -2,8 +2,8 @@
 
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-01 23:18
-> **Progress**: 47/48 tasks (98%)
-> **Status**: Executing — correctness track; 47/48; RD-08 size-output acceptance deferred; one review task remains
+> **Progress**: 46/48 tasks (96%)
+> **Status**: Blocked — correctness track; 46/48; native pressed/live-NMI/STOP evidence and MC-001 oracle rulings required; size output deferred
 > **CodeOps Artifact Schema**: 1
 
 ## Implementation phases
@@ -3549,9 +3549,9 @@ on the non-integration branch. No source workaround, wider proof model, cost
 waiver, frozen/old-oracle edit, RED commit or push.
 
 - [x] 2.3.1 Add `test/rd05/input-library.impl.test.ts` for actual private helper/callback reachability and selected-home closure after GREEN; reuse current typed/build evidence, not a new validator. ✅ (completed: 2026-11-01 23:10; saved/acquisition fixtures build under none; reachable private helpers, callback-only absence of private homes and every non-overlay selected home are checked from public debug/memory evidence; 2/2 pass)
-- [x] 2.3.2 Execute ST-18–ST-23's exact-source four-profile native qualification sequentially; record matrix/joystick/NMI/RESTORE, restoration and correctness resources in `09-closeout.md`; size-output limits remain RD-08 evidence. ✅ (completed: 2026-11-01 23:15; 76 behavior cases, four-profile saved matrix/purity, acquisition 24+8 owner cases and 12 NMI links pass sequentially; 12 size-output reds recorded as RD-08-owned)
+- [!] 2.3.2 Execute ST-18–ST-23's exact-source four-profile native qualification sequentially; record matrix/joystick/NMI/RESTORE, restoration and correctness resources in `09-closeout.md`; size-output limits remain RD-08 evidence. ⏳ (partial evidence: 2026-11-01 23:15; 76 behavior cases, four-profile saved matrix/purity, acquisition 24+8 owner cases and 12 NMI links pass sequentially; 12 size-output reds recorded as RD-08-owned) Blocked: SM-001/2/3/4/TP-001 native pressed/live-NMI/STOP coverage absent; MC-001 oracle approval required.
 - [x] 2.3.3 Update `docs/platform-libraries.md` and complete the scoped deferral-expiry/ownership check in `09-closeout.md`; [01](01-requirements.md). ✅ (completed: 2026-11-01 23:18; platform guide now documents saved snapshots, pure queries, quality/uncertainty, NMI/port restoration and the split RD-08 size boundary; closeout records no orphaned deferral)
-- [ ] 2.3.4 Run the correctness-track verification and independent correctness, semantics/DX, SFA/ABI, platform and host-performance reviews; record the known RD-08 size-output reds, resolve findings through their normal gates, record `10-phase-2-review.md` and update index/progress/roadmap.
+- [!] 2.3.4 Run the correctness-track verification and independent correctness, semantics/DX, SFA/ABI, platform and host-performance reviews; record the known RD-08 size-output reds, resolve findings through their normal gates, record `10-phase-2-review.md` and update index/progress/roadmap. Blocked: MC-001 stale none startup oracles and SM-001/2/3/4/TP-001 native evidence; see 10-phase-2-review.md.
 
 Verify: root install/build/typecheck/full tests, sequential actual VICE cases,
 targeted formatting, whitespace and exact immutable/old-oracle guards. All new

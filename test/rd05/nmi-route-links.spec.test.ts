@@ -323,8 +323,9 @@ describe("stock-chained NMI immutable linkage", () => {
         expect(row).toMatchObject({ peakBytes: 3, capacityBytes: 236, headroomBytes: 233 });
         expect((row!.route as string[]).slice(0, 2)).toEqual(["per-entry:generated-nmi", entry.id]);
       }
-      // Main PHP contributes 1; CPU/firmware/IRQ status contributes 7, and its
-      // NMI transaction contributes 2. Startup and independent NMI peaks are not summed.
+      // Startup held P contributes 1; main PHP contributes 1; CPU/firmware/IRQ
+      // status contributes 7; the nested NMI transaction contributes 2 (total 11).
+      // The transient startup copy and independent NMI peaks are not added.
       expect(
         profileRecords(profileRecord(artifacts.costs.totals).resources).find(
           (resource) => resource.id === "hardwareStack",

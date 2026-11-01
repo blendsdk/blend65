@@ -49,7 +49,7 @@ resample the device and do not perform fresh CIA or VIC I/O.
 
 - `COMPLETE`: all planned samples were taken. This is not an atomic snapshot.
 - `INTERRUPTED`: a returning NMI reached the scoped scan. Raw bytes remain available.
-- `UNAVAILABLE`: CIA1 timer output or port configuration prevented sampling; raw bytes are zero placeholders.
+- `UNAVAILABLE`: CIA1 timer output (PBON on CRA/CRB) prevented sampling; raw bytes are zero placeholders.
 
 Keyboards and joysticks share electrical lines. A key or a driven output pin can
 therefore make a saved joystick bit low even when the switch is open. The query
@@ -67,17 +67,23 @@ The module also exports ordinary bit masks for custom tests:
 | `joystickFireMask` | 16 |
 | `joystickControlsMask` | 31 |
 
-A clear masked joystick bit means pressed. The upper three sampled bits are not
-joystick controls; the read does not discard them.
+A clear masked joystick bit is a low line, not by itself a switch certificate;
+use `joystickState` when the answer must distinguish a pressed switch from
+shared-line ambiguity. The upper three sampled bits are not joystick controls;
+the read does not discard them.
 
 `readInputSnapshot` writes idle columns, captures coherent port directions,
 installs its temporary callback-only NMI route, samples the matrix and both
 connectors, removes its route and restores the saved directions and caller
-status. Timer-driven port output returns `UNAVAILABLE` without a write. The scan
+status. It leaves the CIA1 PA latch at `$7F`; it does not promise to restore a
+previous PA latch. The scan requires a compatible prior port/NMI owner and no
+competing port writer. It is not reentrant from an active NMI handler. Timer-driven port output returns `UNAVAILABLE` without a write. The scan
 does not write the row latch, timer controls, interrupt-source registers or CIA2,
 and it does not retry or keep an undocumented last-good value. Key repeat,
 debounce, retry policy, gameplay decisions and restored-device policy remain
-application-owned.
+application-owned. The generated callback route bounds its own saved frame and
+link; unrestricted external NMI stack, retained-firmware completion and a finite
+external deadline remain **Unknown**, not whole-program guarantees.
 
 The combined API is ordinary Blend65 source in the shipped
 [c64/input.blend](../packages/compiler/stdlib/c64/input.blend). It is included in
@@ -89,6 +95,8 @@ output budget is owned by the separate RD-08 optimizer track.
 
 Current evidence is **VICE-verified / hardware-unverified** on the four profiles
 above. The [keyboard closeout](../codeops/features/blend65-v4/plans/rd-05-keyboard-input/09-closeout.md)
-records the 76 behavior cases, four-profile native matrix/purity, acquisition
-paths and NMI-link results. Physical hardware, Windows/macOS user-release
+records the 76 behavior cases, four-profile saved matrix/purity, acquisition
+paths and NMI-link results. The live returning-NMI quality path, genuine
+STOP/RESTORE and pressed-contact acquisition remain partial/Unknown; see the
+closeout. Physical hardware, Windows/macOS user-release
 qualification and the deferred 963/725 size targets remain later work.
