@@ -2,7 +2,7 @@
 
 > **Document**: 09-closeout.md
 > **Parent**: [Index](00-index.md)
-> **Status**: Verified partial — final review found native coverage gaps; task 2.3.2/2.3.4 blocked
+> **Status**: Stopped at 46/48 — native coverage gaps recorded as open debt; RD-08 optimizer track started
 > **Updated**: 2026-11-01 23:15 CET
 
 ## Scope
@@ -57,7 +57,7 @@ pressed-contact/live-NMI/STOP-RESTORE coverage and physical/user-host qualificat
 The keyboard source/API is implemented and its saved/acquisition behavior evidence
 passes. The native pressed-contact, live returning-NMI, STOP/RESTORE and callback
 order evidence remains partial. Task 2.3.3 updated the platform guide; task 2.3.4
-remains blocked on those native coverage and oracle findings. No publication, push or optimized
+remains blocked on those native coverage findings. The user stopped this track at 46/48 and started RD-08; the gaps remain tracked, not waived. No publication, push or optimized
 release claim follows from this document.
 
 ## Native coverage gaps

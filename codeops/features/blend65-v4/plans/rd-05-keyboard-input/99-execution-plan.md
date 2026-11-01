@@ -3,7 +3,7 @@
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-01 23:18
 > **Progress**: 46/48 tasks (96%)
-> **Status**: Blocked — correctness track; 46/48; native pressed/live-NMI/STOP evidence and MC-001 oracle rulings required; size output deferred
+> **Status**: Stopped at 46/48 — native pressed/live-NMI/STOP coverage is open debt; RD-08 optimizer track started; size output deferred
 > **CodeOps Artifact Schema**: 1
 
 ## Implementation phases

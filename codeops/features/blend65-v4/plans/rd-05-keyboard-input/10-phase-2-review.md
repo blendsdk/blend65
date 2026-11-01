@@ -48,4 +48,4 @@ expert or security boundary was changed by the reviewers.
 
 ## Gate result
 
-Task 2.3.1, 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 remains blocked by SM-001/2/3/4 and TP-001 native coverage. Task 2.3.4 remains blocked by those native evidence gaps. Progress is 46/48; no phase-2 completion or optimized release claim is made.
+Task 2.3.1, 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 and 2.3.4 remain blocked by SM-001/2/3/4 and TP-001 native coverage. On 2026-11-01 the user selected moving to the RD-08 optimizer; the correctness track stops at 46/48 with these gaps recorded as open debt. No phase-2 completion, release or optimized claim is made.
