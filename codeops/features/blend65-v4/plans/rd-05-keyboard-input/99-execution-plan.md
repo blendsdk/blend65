@@ -1,9 +1,9 @@
 # Execution: keyboard and combined input
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-01 23:09
-> **Progress**: 44/48 tasks (92%)
-> **Status**: Executing — correctness track; 44/48; RD-08 size-output acceptance deferred; four closeout tasks remain
+> **Last Updated**: 2026-11-01 23:10
+> **Progress**: 45/48 tasks (94%)
+> **Status**: Executing — correctness track; 45/48; RD-08 size-output acceptance deferred; three closeout tasks remain
 > **CodeOps Artifact Schema**: 1
 
 ## Implementation phases
@@ -3548,7 +3548,7 @@ pending. Progress stays38/48; RD-05 waits on DEF-16. Portfolio cascade is deferr
 on the non-integration branch. No source workaround, wider proof model, cost
 waiver, frozen/old-oracle edit, RED commit or push.
 
-- [ ] 2.3.1 Add `test/rd05/input-library.impl.test.ts` for actual private helper/callback reachability and selected-home closure after GREEN; reuse current typed/build evidence, not a new validator.
+- [x] 2.3.1 Add `test/rd05/input-library.impl.test.ts` for actual private helper/callback reachability and selected-home closure after GREEN; reuse current typed/build evidence, not a new validator. ✅ (completed: 2026-11-01 23:10; saved/acquisition fixtures build under none; reachable private helpers, callback-only absence of private homes and every non-overlay selected home are checked from public debug/memory evidence; 2/2 pass)
 - [ ] 2.3.2 Execute ST-18–ST-23's exact-source four-profile native qualification sequentially; record matrix/joystick/NMI/RESTORE, restoration and correctness resources in `09-closeout.md`; size-output limits remain RD-08 evidence.
 - [ ] 2.3.3 Update `docs/platform-libraries.md` and complete the scoped deferral-expiry/ownership check in `09-closeout.md`; [01](01-requirements.md).
 - [ ] 2.3.4 Run the correctness-track verification and independent correctness, semantics/DX, SFA/ABI, platform and host-performance reviews; record the known RD-08 size-output reds, resolve findings through their normal gates, record `10-phase-2-review.md` and update index/progress/roadmap.
