@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-02 01:20
-> **Progress**: 14/41 tasks (34%)
+> **Last Updated**: 2026-11-02 01:45
+> **Progress**: 16/41 tasks (39%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -93,8 +93,8 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 
 ### Step 2.1: Saved specification tests
 
-- [ ] 2.1.1 [spec-author] Write saved behavior, output, resource and native specification cases — `test/rd08/optimizer-saved-output.spec.test.ts`
-- [ ] 2.1.2 [spec-author] Verify the saved specification cases fail for the expected missing rule/limit; no saved implementation is present
+- [x] 2.1.1 [spec-author] Write saved behavior, output, resource and native specification cases — `test/rd08/optimizer-saved-output.spec.test.ts` ✅ (completed: 2026-11-02 01:45; 17 independent cases on four profiles plus one bounded PAL/6581 native case; behavior/resource/accounting and native guards pass)
+- [x] 2.1.2 [spec-author] Verify the saved specification cases fail for the expected missing rule/limit; no saved implementation is present ✅ (completed: 2026-11-02 01:45; 8 RED: payload1623>725, general1726>745, combined1732>759 and no register-served fixed-eight copy loop on four profiles; 9 pass as behavior/resource/native guards; no limit changed)
 
 ### Step 2.2: Saved rules
 
