@@ -22,7 +22,7 @@ The stopped size slice adds:
 - closed-cost selection and rejected-baseline evidence;
 - 27/27 frontier cases and a 1623-byte saved LowByte candidate.
 - RD-08 compact-startup composition plus cleanup-observer integration now selects a
-  947-byte saved candidate; the stopped slice's 1623-byte LowByte candidate remains
+  923-byte saved candidate; the stopped slice's 1623-byte LowByte candidate remains
   its historical evidence. Cleanup runs on the size reference too, so representation
   wins are never confused with ordinary forwarding. Size mode prefers byte locals and
   non-entry fixed counters in zero page, reaching the expert 14-byte budget.

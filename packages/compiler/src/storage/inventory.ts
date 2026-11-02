@@ -245,6 +245,7 @@ function appendWordReadLowBytes(
   body: Pick<SemanticFunction, "entry" | "blocks">,
   lifetimes: readonly ValueLifetime[],
   requests: StorageRequest[],
+  region: StorageRequest["region"],
   domain?: ExecutionDomain,
   activationRoot?: string,
 ): void {
@@ -289,7 +290,7 @@ function appendWordReadLowBytes(
           type: null,
           bytes: 1,
           alignment: 1,
-          region: "ram",
+          region,
           lifetime,
           source: operation.span,
           reason: "Low byte retained while the high byte is read",
@@ -472,7 +473,12 @@ export function inventoryStorage(
               type: parameter.type,
               bytes: parameter.outerUnsized ? 4 : typeBytes(parameter.type, true),
               alignment: 1,
-              region: "ram",
+              region:
+                typeBytes(parameter.type, true) === 1 &&
+                !parameter.outerUnsized &&
+                ordinaryRegion !== "ram"
+                  ? ordinaryRegion
+                  : "ram",
               lifetime: declaredLifetime(fn, `parameter:${key}`),
               source: parameter.id.span,
               reason: "Static parameter home",
@@ -512,15 +518,9 @@ export function inventoryStorage(
               bytes: typeBytes(local.type),
               alignment: 1,
               // Byte homes save one byte on every access; word homes consume two
-              // scarce zero-page bytes and are left to ordinary RAM first. The
-              // main routine already owns the required call-pointer bytes, so it
-              // keeps its own scratch in RAM until a byte budget admits more.
-              region:
-                typeBytes(local.type) === 1 &&
-                bindingIdentityKey(fn.id) !== bindingIdentityKey(program.semantic.main) &&
-                ordinaryRegion !== "ram"
-                  ? ordinaryRegion
-                  : "ram",
+              // scarce zero-page bytes and are left to ordinary RAM first. Byte
+              // parameters and word-read low bytes follow the same preference.
+              region: typeBytes(local.type) === 1 ? ordinaryRegion : "ram",
               lifetime: declaredLifetime(fn, `local:${key}`),
               source: local.id.span,
               reason: "Static local home",
@@ -529,7 +529,15 @@ export function inventoryStorage(
         }
 
         appendCallStaging(fn.id, fn, lifetimes, requests, domain, activationRoot);
-        appendWordReadLowBytes(fn.id, fn, lifetimes, requests, domain, activationRoot);
+        appendWordReadLowBytes(
+          fn.id,
+          fn,
+          lifetimes,
+          requests,
+          ordinaryRegion,
+          domain,
+          activationRoot,
+        );
       }
     }
   }
@@ -557,6 +565,7 @@ export function inventoryStorage(
       { entry: global.entry, blocks: global.blocks },
       lifetimes,
       requests,
+      ordinaryRegion,
       "main",
     );
   }
