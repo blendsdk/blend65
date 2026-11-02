@@ -136,9 +136,11 @@ function entries(
             owner !== fn &&
             address !== undefined &&
             bytes.has(address) &&
+            // A compact startup prologue may reach main through a later
+            // initialization block, not only block zero. The startup constructor
+            // owns that shape; this check only rejects entries from other functions.
             !(
               fn === program.startup &&
-              block === program.startup.blocks[0] &&
               owner.sourceFunction === input.checked.program.semantic.main &&
               target === owner.id
             )
@@ -191,10 +193,163 @@ function entries(
   return true;
 }
 
+/**
+ * Compact looped startup keeps the caller's P on the stack and only the platform
+ * roots in the state interval. The capture and restore loops are exact, so the
+ * low-byte composition may treat the state interval and held P as immutable.
+ */
+function compactSavedState(input: FinalObserverInput, view: Body["view"]) {
+  const program = view.shared.layout.program;
+  const policy = program.c64Startup?.startupPolicy;
+  if (
+    program.c64Startup?.displayIndependent !== true ||
+    policy !== "compact-looped" ||
+    program.c64Startup.initializerLabels.length !== 0
+  )
+    return null;
+  const block = (label: string) => program.startup.blocks.find((entry) => entry.label === label);
+  const entry = block("startup.entry");
+  const capture = block("startup.capture");
+  const mainEntry = block("startup.entry.main");
+  const restore = block("startup.restore");
+  const restoreBorrow = block("startup.restore.borrow");
+  const restoreTail = block("startup.restore.tail");
+  if (
+    entry === undefined ||
+    capture === undefined ||
+    mainEntry === undefined ||
+    restore === undefined ||
+    restoreBorrow === undefined ||
+    restoreTail === undefined ||
+    restoreTail.terminator.kind !== "return" ||
+    mainEntry.terminator.kind !== "fallthrough"
+  )
+    return null;
+  const state = view.shared.layout.intervals.find((range) => range.id === C64_STARTUP_STATE_ID);
+  if (state === undefined || state.end - state.start < 4) return null;
+  const stateSlot = (
+    instruction: (typeof entry.instructions)[number] | undefined,
+    opcode: string,
+    offset: number,
+  ) =>
+    instruction?.opcode === opcode &&
+    instruction.mode === "absolute" &&
+    instruction.operand?.kind === "label" &&
+    instruction.operand.label === C64_STARTUP_STATE_ID &&
+    (instruction.operand.offset ?? 0) === offset &&
+    instruction.operand.addressByte === undefined &&
+    instruction.operand.transform === undefined;
+  const indexedSlot = (
+    instruction: (typeof entry.instructions)[number] | undefined,
+    opcode: string,
+    address: number | typeof C64_STARTUP_STATE_ID,
+    offset = 0,
+  ) =>
+    instruction?.opcode === opcode &&
+    instruction.mode === "absolute-x" &&
+    (typeof address === "number"
+      ? instruction.operand?.kind === "absolute" && instruction.operand.value === address
+      : instruction.operand?.kind === "label" &&
+        instruction.operand.label === address &&
+        (instruction.operand.offset ?? 0) === offset);
+  // Entry: mask IRQs, clear decimal mode, capture the three platform roots, then
+  // seed the capture loop with the highest borrowed byte.
+  if (
+    entry.instructions[0]?.opcode !== "php" ||
+    entry.instructions[1]?.opcode !== "sei" ||
+    entry.instructions[2]?.opcode !== "cld" ||
+    !stateSlot(entry.instructions[4], "stx", 0) ||
+    !stateSlot(entry.instructions[6], "sta", 1) ||
+    !entry.instructions.some((instruction) => stateSlot(instruction, "sta", 2)) ||
+    entry.terminator.kind !== "fallthrough" ||
+    entry.terminator.target !== "startup.capture"
+  )
+    return null;
+  const captureTail = capture.instructions.slice(-4);
+  if (
+    !indexedSlot(captureTail[0], "lda", 0x0003) ||
+    !indexedSlot(captureTail[1], "sta", C64_STARTUP_STATE_ID, 3) ||
+    captureTail[2]?.opcode !== "dex" ||
+    capture.terminator.kind !== "branch" ||
+    capture.terminator.opcode !== "bpl" ||
+    capture.terminator.target !== "startup.capture"
+  )
+    return null;
+  const mainTail = mainEntry.instructions.slice(-6);
+  if (
+    mainTail.map(({ opcode }) => opcode).join(",") !== "tsx,inx,lda,pha,plp,cld" ||
+    !indexedSlot(mainTail[2], "lda", 0x0100)
+  )
+    return null;
+  const restoreTailInstructions = restoreTail.instructions.slice(-6);
+  if (
+    restore.instructions[0]?.opcode !== "sei" ||
+    restore.terminator.kind !== "fallthrough" ||
+    restore.terminator.target !== "startup.restore.borrow" ||
+    !indexedSlot(restoreBorrow.instructions[0], "lda", C64_STARTUP_STATE_ID, 3) ||
+    !indexedSlot(restoreBorrow.instructions[1], "sta", 0x0003) ||
+    restoreBorrow.instructions[2]?.opcode !== "dex" ||
+    restoreBorrow.terminator.kind !== "branch" ||
+    restoreBorrow.terminator.opcode !== "bpl" ||
+    restoreBorrow.terminator.target !== "startup.restore.borrow" ||
+    restoreTailInstructions.map(({ opcode }) => opcode).join(",") !== "tsx,inx,lda,txs,pha,plp" ||
+    !indexedSlot(restoreTailInstructions[2], "lda", 0x0100)
+  )
+    return null;
+  const writesState = (instruction: MachineInstruction) =>
+    instruction.memory.some(
+      (effect) =>
+        effect.kind === "write" &&
+        effect.address.kind === "symbolic" &&
+        effect.address.label === C64_STARTUP_STATE_ID,
+    );
+  const captures = new Set([...entry.instructions, ...capture.instructions].filter(writesState));
+  for (const fn of [program.startup, ...program.functions])
+    for (const block of fn.blocks)
+      for (const instruction of block.instructions)
+        if (writesState(instruction) && !captures.has(instruction)) return null;
+  let quietY = true;
+  for (const fn of [program.startup, ...program.functions])
+    for (const block of fn.blocks) {
+      let definedY = false;
+      const trap =
+        block.instructions.length === 1 &&
+        block.instructions[0]?.opcode === "sei" &&
+        block.terminator.kind === "jump" &&
+        block.terminator.target === block.label;
+      for (const item of block.instructions) {
+        const decoded = nmosInstructionState(input.checked.profile.cpu, item.opcode, item.mode);
+        if (decoded === null) return null;
+        if (fn !== program.startup && decoded.usesRegisters.includes("y") && !definedY)
+          quietY = false;
+        definedY ||= decoded.definesRegisters.includes("y");
+        if (fn === program.startup) {
+          if (["brk", "rti"].includes(item.opcode)) return null;
+          continue;
+        }
+        if (
+          !trap &&
+          item.opcode !== "jsr" &&
+          (decoded.definesFlags.some((flag) => flag === "d" || flag === "i") ||
+            decoded.usesRegisters.includes("s") ||
+            decoded.definesRegisters.includes("s"))
+        )
+          return null;
+        if (["php", "plp", "pha", "pla", "brk", "rti"].includes(item.opcode)) return null;
+      }
+    }
+  return {
+    quietY,
+    range: { start: state.start, end: state.end },
+    captures,
+  };
+}
+
 /** Early status/register captures are immutable until their exact terminal restoration. */
 function savedState(input: FinalObserverInput, view: Body["view"]) {
-  const program = view.shared.layout.program,
-    entry = program.startup.blocks[0];
+  const program = view.shared.layout.program;
+  if (program.c64Startup?.displayIndependent === true) return compactSavedState(input, view);
+  const entry = program.startup.blocks[0];
   const restore = program.startup.blocks.find((block) => block.label === "startup.restore");
   if (
     entry === undefined ||

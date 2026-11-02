@@ -77,6 +77,17 @@ export function hasDisplayIndependentStartup(
     const definitions = valueDefinitions(blocks);
     const literal = literalResolver(definitions);
     const ordinalBound = ordinalBoundResolver(definitions, literal);
+    const parameterRoots = new Map(
+      ("parameters" in body ? body.parameters : []).map(
+        (parameter) => [bindingIdentityKey(parameter.id), parameter] as const,
+      ),
+    );
+    // A raw address may be a literal base plus a bounded unsigned index. The guard
+    // proof reports the exact inclusive maximum; every possible byte is checked below.
+    const rawAddressBounds = new Map<
+      Extract<SemanticOperation, { readonly kind: "memory-read" | "memory-write" }>,
+      { readonly base: bigint; readonly maximum: bigint }
+    >();
     const guarded = guardedOrdinalBounds(
       body.entry,
       blocks,
@@ -85,11 +96,30 @@ export function hasDisplayIndependentStartup(
       literal,
       ordinalBound,
       (operation) => operation.kind === "memory-write",
+      (operation, bound) => {
+        if (operation.kind !== "memory-read" && operation.kind !== "memory-write") return;
+        const address = definitions.get(operation.address);
+        if (
+          address?.kind !== "binary" ||
+          address.operator !== "+" ||
+          address.integer?.signed !== false
+        )
+          return;
+        const base = literal(address.left) ?? literal(address.right);
+        const maximum = bound(operation.address);
+        if (base !== undefined && maximum !== undefined && maximum >= base)
+          rawAddressBounds.set(operation, { base, maximum });
+      },
     );
     for (const block of blocks) {
       for (const operation of block.operations) {
         if (operation.kind === "place-address") {
           const globalType = globals.get(bindingIdentityKey(operation.place.root));
+          // A const aggregate parameter is a compiler-owned whole object whose type is
+          // fixed at its call sites. Passing it onward borrows the same bytes and cannot
+          // introduce display state; the caller's root is checked in its own body.
+          const parameterRoot = parameterRoots.get(bindingIdentityKey(operation.place.root));
+          const rootType = globalType ?? parameterRoot?.type;
           const argument = argumentsAtCalls.get(operation.result);
           const callee =
             argument === undefined
@@ -102,14 +132,15 @@ export function hasDisplayIndependentStartup(
             operation.place.path.length !== 0 ||
             operation.place.rootType === undefined ||
             (operation.type.kind !== "array" && operation.type.kind !== "struct") ||
-            globalType === undefined ||
+            rootType === undefined ||
+            parameterRoot?.outerUnsized === true ||
             uses.get(operation.result) !== 1 ||
             callee === undefined ||
             callee.entryKind === "interrupt" ||
             !examined.has(bindingIdentityKey(callee.id)) ||
             parameter === undefined ||
             parameter.outerUnsized === true ||
-            semanticTypeKey(globalType) !== semanticTypeKey(operation.type) ||
+            semanticTypeKey(rootType) !== semanticTypeKey(operation.type) ||
             semanticTypeKey(operation.place.rootType) !== semanticTypeKey(operation.type) ||
             semanticTypeKey(parameter.type) !== semanticTypeKey(operation.type)
           )
@@ -136,19 +167,51 @@ export function hasDisplayIndependentStartup(
             operation.capability.startsWith("c64.video."))
         )
           return false;
-        if (
-          (operation.kind === "memory-read" || operation.kind === "memory-write") &&
-          !rawAccessIndependent(
-            literal(operation.address),
-            operation.width,
-            operation.kind === "memory-write",
-            allowOrdinaryWrites,
+        if (operation.kind === "memory-read" || operation.kind === "memory-write") {
+          const address = literal(operation.address);
+          const bounded = rawAddressBounds.get(operation);
+          if (
+            address !== undefined
+              ? !rawAccessIndependent(
+                  address,
+                  operation.width,
+                  operation.kind === "memory-write",
+                  allowOrdinaryWrites,
+                )
+              : bounded === undefined ||
+                !boundedRawAccessIndependent(
+                  bounded.base,
+                  bounded.maximum,
+                  operation.width,
+                  operation.kind === "memory-write",
+                  allowOrdinaryWrites,
+                )
           )
-        )
-          return false;
+            return false;
+        }
       }
     }
   }
+  return true;
+}
+
+/**
+ * Check every byte of a proven address range. The range is accepted only when the
+ * base is literal, the maximum is an inclusive guarded bound and both stay small
+ * enough that exhaustive checking is finite.
+ */
+function boundedRawAccessIndependent(
+  base: bigint,
+  maximum: bigint,
+  width: number,
+  write: boolean,
+  allowOrdinaryWrites: boolean,
+): boolean {
+  if (base < 0n || maximum < base || maximum - base > 255n || width < 1) return false;
+  const last = maximum + BigInt(width) - 1n;
+  if (last > 0xffffn) return false;
+  for (let byte = base; byte <= last; byte += 1n)
+    if (!rawAccessIndependent(byte, 1, write, allowOrdinaryWrites)) return false;
   return true;
 }
 

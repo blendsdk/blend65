@@ -250,3 +250,211 @@ describe("Display-independent startup selection", () => {
     },
   );
 });
+
+const BOOLEAN = { kind: "scalar", name: "boolean" } as const;
+const UNSIGNED16 = { width: 16 as const, signed: false as const, wrap: true };
+const UNSIGNED8 = { width: 8 as const, signed: false as const, wrap: true };
+
+/** Build a guarded unsigned index into a literal base address. */
+function boundedAccess(
+  base: bigint,
+  bound: bigint,
+  write: boolean,
+  width: 1 | 2 = 1,
+): WholeProgram {
+  const index = { sourceId: span.sourceId, span: { ...span, start: 20, end: 21 } };
+  const blocks = [
+    {
+      id: "entry",
+      operations: [
+        {
+          kind: "convert" as const,
+          result: "index",
+          operand: index,
+          conversion: "zero-extend" as const,
+          type: WORD,
+          integer: UNSIGNED16,
+          span,
+        },
+        {
+          kind: "constant" as const,
+          result: "limit",
+          value: bound,
+          type: WORD,
+          integer: UNSIGNED16,
+          span,
+        },
+        {
+          kind: "binary" as const,
+          result: "guard",
+          operator: "<",
+          left: "index",
+          right: "limit",
+          type: BOOLEAN,
+          integer: null,
+          span,
+        },
+      ],
+      terminator: {
+        kind: "branch" as const,
+        condition: "guard",
+        whenTrue: "body",
+        whenFalse: "exit",
+      },
+    },
+    {
+      id: "body",
+      operations: [
+        {
+          kind: "constant" as const,
+          result: "base",
+          value: base,
+          type: WORD,
+          integer: UNSIGNED16,
+          span,
+        },
+        {
+          kind: "binary" as const,
+          result: "address",
+          operator: "+",
+          left: "base",
+          right: "index",
+          type: WORD,
+          integer: UNSIGNED16,
+          span,
+        },
+        ...(write
+          ? [
+              {
+                kind: "memory-write" as const,
+                address: "address",
+                value: "index",
+                width,
+                byteOrder: "low-first" as const,
+                volatile: true as const,
+                span,
+              },
+            ]
+          : [
+              {
+                kind: "memory-read" as const,
+                result: "value",
+                type: BYTE,
+                integer: UNSIGNED8,
+                address: "address",
+                width,
+                byteOrder: "low-first" as const,
+                volatile: true as const,
+                span,
+              },
+            ]),
+      ],
+      terminator: { kind: "return" as const, value: null },
+    },
+    { id: "exit", operations: [], terminator: { kind: "return" as const, value: null } },
+  ];
+  const skeleton = program([]);
+  return {
+    ...skeleton,
+    semantic: {
+      ...skeleton.semantic,
+      functions: [
+        {
+          ...skeleton.semantic.functions[0]!,
+          parameters: [{ id: index, type: BYTE }],
+          blocks,
+        },
+      ],
+    },
+  };
+}
+
+describe("Bounded raw startup independence", () => {
+  it("accepts a guarded read whose whole range stays in ordinary RAM", () => {
+    expect(hasDisplayIndependentStartup(boundedAccess(0xc110n, 8n, false))).toBe(true);
+    expect(hasDisplayIndependentStartup(boundedAccess(0xc110n, 8n, false, 2))).toBe(true);
+  });
+
+  it("rejects a guarded read whose range reaches display registers", () => {
+    expect(hasDisplayIndependentStartup(boundedAccess(0xd000n, 8n, false))).toBe(false);
+    expect(hasDisplayIndependentStartup(boundedAccess(0xcfffn, 2n, false, 2))).toBe(false);
+  });
+
+  it("admits bounded ordinary-RAM writes only through the explicit size choice", () => {
+    expect(hasDisplayIndependentStartup(boundedAccess(0xc103n, 2n, true))).toBe(false);
+    expect(hasDisplayIndependentStartup(boundedAccess(0xc103n, 2n, true), true)).toBe(true);
+    expect(hasDisplayIndependentStartup(boundedAccess(0x0000n, 2n, true), true)).toBe(false);
+  });
+});
+
+describe("Whole aggregate parameter borrow", () => {
+  const array = { kind: "array" as const, element: BYTE, length: 2, size: 2 };
+  const middleId = { sourceId: span.sourceId, span: { ...span, start: 30, end: 31 } };
+  const innerId = { sourceId: span.sourceId, span: { ...span, start: 40, end: 41 } };
+  const parameter = { sourceId: span.sourceId, span: { ...span, start: 50, end: 51 } };
+
+  function parameterBorrow(outerUnsized: boolean): WholeProgram {
+    const base = program([]);
+    const caller = base.semantic.functions[0]!;
+    const middle = {
+      ...caller,
+      id: middleId,
+      parameters: [
+        { id: parameter, type: array, ...(outerUnsized ? { outerUnsized: true as const } : {}) },
+      ],
+      blocks: [
+        {
+          id: "entry",
+          operations: [
+            {
+              kind: "place-address" as const,
+              result: "borrow",
+              place: { root: parameter, rootType: array, path: [] },
+              type: array,
+              integer: null,
+              span,
+            },
+            {
+              kind: "call" as const,
+              result: null,
+              callee: innerId,
+              arguments: ["borrow"],
+              type: VOID,
+              span,
+            },
+          ],
+          terminator: { kind: "return" as const, value: null },
+        },
+      ],
+    };
+    const inner = {
+      ...caller,
+      id: innerId,
+      parameters: [{ id: innerId, type: array }],
+      blocks: [
+        { id: "entry", operations: [], terminator: { kind: "return" as const, value: null } },
+      ],
+    };
+    return {
+      ...base,
+      reachableFunctions: [main, middleId, innerId],
+      callGraph: [
+        { function: main, callees: [middleId] },
+        { function: middleId, callees: [innerId] },
+        { function: innerId, callees: [] },
+      ],
+      semantic: {
+        ...base.semantic,
+        functions: [caller, middle, inner],
+      },
+    };
+  }
+
+  it("accepts a whole const aggregate parameter borrowed at one direct call", () => {
+    expect(hasDisplayIndependentStartup(parameterBorrow(false))).toBe(true);
+  });
+
+  it("rejects an outer-unsized parameter borrow", () => {
+    expect(hasDisplayIndependentStartup(parameterBorrow(true))).toBe(false);
+  });
+});

@@ -84,6 +84,7 @@ export function guardedOrdinalBounds(
   literal: (value: ValueId) => bigint | undefined,
   baseBound: (value: ValueId) => bigint | undefined,
   mayAliasLocals: (operation: SemanticOperation) => boolean,
+  observe?: (operation: SemanticOperation, bound: (value: ValueId) => bigint | undefined) => void,
 ): ReadonlyMap<SemanticOperation, ReadonlyMap<ValueId, bigint>> {
   // Literal/mask proofs already cover straight-line bodies. Do not replay long
   // conversion chains when there is no comparison edge to add a use-site fact.
@@ -130,6 +131,7 @@ export function guardedOrdinalBounds(
   ): GuardFacts => {
     const facts = copyFacts(input);
     for (const operation of block.operations) {
+      observe?.(operation, (value) => boundOf(value, facts));
       if (accesses !== undefined) {
         const ordinals = new Map<ValueId, bigint>();
         if (
