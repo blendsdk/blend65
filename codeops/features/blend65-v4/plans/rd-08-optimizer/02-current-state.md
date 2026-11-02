@@ -22,10 +22,12 @@ The stopped size slice adds:
 - closed-cost selection and rejected-baseline evidence;
 - 27/27 frontier cases and a 1623-byte saved LowByte candidate.
 - RD-08 compact-startup composition plus cleanup-observer integration now selects a
-  914-byte saved candidate; the stopped slice's 1623-byte LowByte candidate remains
+  887-byte saved candidate; the stopped slice's 1623-byte LowByte candidate remains
   its historical evidence. Cleanup runs on the size reference too, so representation
   wins are never confused with ordinary forwarding. Size mode prefers byte locals and
-  non-entry fixed counters in zero page, reaching the expert 14-byte budget.
+  non-entry fixed counters in zero page, reaching the expert 14-byte budget. Cleanup
+  removes reference-proved dead temporary stores from every layout through one
+  shared dead-home fact, so a removal can never split the canonical and selected shapes.
 
 It does not add a reusable optimizer. The current candidate frontier is a fixed
 2 × loop × startup recipe menu. Every family has its own whole-program proof

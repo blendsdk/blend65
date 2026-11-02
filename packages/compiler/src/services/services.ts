@@ -390,8 +390,16 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
     } else {
       evidenceCandidates.push(referenceRejection(reference));
     }
-    const sizeFacts =
+    const baseFacts =
       optimizationFacts ?? deriveOptimizationFacts({ checked: source.value, mode: "size" });
+    // Every tuple receives the reference's exact dead-home set. This keeps the
+    // canonical and selected layouts structurally identical after cleanup.
+    const referenceDeadHomes =
+      reference.kind === "feasible" ? reference.checked.deadHomes : undefined;
+    const sizeFacts =
+      referenceDeadHomes === undefined
+        ? baseFacts
+        : Object.freeze({ ...baseFacts, deadHomes: referenceDeadHomes });
     for (const plan of sizeSelectionPlans({ checked: source.value })) {
       if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
       const candidate = closeSizeCandidate({

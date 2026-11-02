@@ -61,6 +61,31 @@ const DEAD_SAFE = new Set([
   "ldy",
 ]);
 
+/** Instructions whose storage operand reads the addressed bytes. */
+const READS_STORAGE = new Set([
+  "lda",
+  "ldx",
+  "ldy",
+  "adc",
+  "sbc",
+  "and",
+  "ora",
+  "eor",
+  "cmp",
+  "cpx",
+  "cpy",
+  "inc",
+  "dec",
+  "asl",
+  "lsr",
+  "rol",
+  "ror",
+  "bit",
+]);
+
+/** Instructions whose storage operand writes the addressed bytes. */
+const WRITES_STORAGE = new Set(["sta", "stx", "sty"]);
+
 /** One direct home read or written by one instruction. */
 interface StorageAccess {
   readonly requestId: string;
@@ -304,6 +329,117 @@ function deadInstruction(
   return { functions, applied };
 }
 
+/**
+ * Collect every request that any instruction in these functions reads directly,
+ * indirectly through a pointer, or through a declared memory effect.
+ * @param functions Exact machine functions to scan.
+ * @returns Read request identities, never a claim about their values.
+ * @example const reads = readHomes(program.functions);
+ */
+function readHomes(functions: readonly MachineFunction[]): ReadonlySet<string> {
+  const reads = new Set<string>();
+  for (const fn of functions)
+    for (const block of fn.blocks)
+      for (const instruction of block.instructions) {
+        if (instruction.operand?.kind === "storage" && READS_STORAGE.has(instruction.opcode))
+          reads.add(instruction.operand.requestId);
+        // An indirect operand reads its pointer even when the opcode writes memory.
+        if (instruction.operand?.kind === "indirect-y") reads.add(instruction.operand.requestId);
+        for (const effect of instruction.memory)
+          if (effect.address.kind === "storage") reads.add(effect.address.requestId);
+      }
+  return reads;
+}
+
+/**
+ * Collect every private temporary home whose stored value no instruction reads.
+ * This runs on the canonical draft before any representation diverges, so the
+ * resulting set is the same fact for every admitted layout.
+ * @param program Canonical draft machine program with its declared storage.
+ * @returns Exact request identities of unread private mainline temporaries.
+ * @example const homes = deadTemporaryHomes(draft);
+ */
+export function deadTemporaryHomes(program: MachineProgram): ReadonlySet<string> {
+  const functions = [program.startup, ...program.functions];
+  const reads = readHomes(functions);
+  const dead = new Set<string>();
+  for (const fn of functions)
+    for (const block of fn.blocks)
+      for (const instruction of block.instructions) {
+        const store = storageAccess(instruction, "write");
+        if (
+          store !== null &&
+          WRITES_STORAGE.has(instruction.opcode) &&
+          !reads.has(store.requestId) &&
+          privateMainTemporary(program, store.requestId)
+        )
+          dead.add(store.requestId);
+      }
+  return dead;
+}
+
+/**
+ * Remove a store to a temporary that {@link deadTemporaryHomes} proved unread in
+ * the canonical reference. The value stays exactly where the producer left it, so
+ * no consumer, ABI or effect order changes; only an unobservable home write
+ * disappears. A representation that unexpectedly reads the home keeps its store.
+ */
+function deadStore(
+  facts: OptimizationFacts,
+  program: MachineProgram,
+  items: readonly MachineFunction[],
+  semanticFor: (fn: MachineFunction) => SemanticFunction | undefined,
+): { readonly functions: readonly MachineFunction[]; readonly applied: readonly AppliedRule[] } {
+  const deadHomes = facts.deadHomes;
+  if (deadHomes === undefined || deadHomes.size === 0) return { functions: items, applied: [] };
+  const reads = readHomes(items);
+  const applied: AppliedRule[] = [];
+  const functions = items.map((fn) => {
+    const sites: RuleSite[] = [];
+    const spans: SourceSpan[] = [];
+    let savedBytes = 0;
+    const blocks = fn.blocks.map((block) => {
+      const kept = block.instructions.filter((instruction, index) => {
+        const store = storageAccess(instruction, "write");
+        if (
+          store === null ||
+          !WRITES_STORAGE.has(instruction.opcode) ||
+          instruction.observerOrigins !== undefined ||
+          instruction.source === null ||
+          !deadHomes.has(store.requestId) ||
+          reads.has(store.requestId) ||
+          !privateMainTemporary(program, store.requestId)
+        )
+          return true;
+        sites.push(Object.freeze({ block: block.label, index }));
+        spans.push(instruction.source);
+        savedBytes += instruction.cost.bytes;
+        return false;
+      });
+      return Object.freeze({ ...block, instructions: Object.freeze(kept) });
+    });
+    const semantic = semanticFor(fn);
+    if (sites.length === 0 || semantic === undefined) return fn;
+    applied.push(
+      Object.freeze({
+        ruleId: "cleanup.dead-store",
+        functions: Object.freeze([semantic]),
+        changed: Object.freeze(sites),
+        obligations: Object.freeze([
+          Object.freeze({ kind: "source-equivalence", sites: Object.freeze(spans) }),
+          Object.freeze({
+            kind: "cost",
+            before: Object.freeze({ component: "B", value: String(savedBytes) }),
+            after: Object.freeze({ component: "B", value: "0" }),
+          }),
+        ]),
+      }),
+    );
+    return Object.freeze({ ...fn, blocks: Object.freeze(blocks) });
+  });
+  return { functions, applied };
+}
+
 /** Collect every label mentioned by a function's control flow or retained proofs. */
 function referencedLabels(fn: MachineFunction): ReadonlySet<string> {
   const labels = new Set<string>();
@@ -401,12 +537,18 @@ export function applyFoundationCleanup(
       mainline(fn),
   );
   const forward = copyForward(program, eligible, semanticFor);
-  const dead = deadInstruction(forward.functions, semanticFor);
+  const stores = deadStore(facts, program, forward.functions, semanticFor);
+  const dead = deadInstruction(stores.functions, semanticFor);
   const empty = emptyBlock(dead.functions, semanticFor);
   const selected = new Map(empty.functions.map((fn) => [fn.id, fn] as const));
   return Object.freeze({
     functions: Object.freeze(program.functions.map((fn) => selected.get(fn.id) ?? fn)),
-    applied: mergeAppliedRules([...forward.applied, ...dead.applied, ...empty.applied]),
+    applied: mergeAppliedRules([
+      ...forward.applied,
+      ...stores.applied,
+      ...dead.applied,
+      ...empty.applied,
+    ]),
   });
 }
 

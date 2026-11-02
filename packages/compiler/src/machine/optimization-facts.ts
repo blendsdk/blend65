@@ -19,6 +19,12 @@ export interface OptimizationFacts {
   readonly profile: TargetProfile;
   readonly functions: ReadonlyMap<SemanticFunction, OptimizationFunctionFacts>;
   readonly mode: "size" | "balanced" | "speed";
+  /**
+   * Private temporary homes that the canonical reference never reads after its
+   * own forwarding rules run. Every admitted representation uses this same set,
+   * so a removed store can never appear in one layout and survive in another.
+   */
+  readonly deadHomes?: ReadonlySet<string>;
 }
 
 /** Per-function facts assembled from existing pure queries only. */

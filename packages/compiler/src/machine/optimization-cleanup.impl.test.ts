@@ -359,19 +359,24 @@ describe("foundation cleanup", () => {
     );
   });
 
-  it("should leave a candidate with conditional representation proofs canonical", () => {
+  // Conditional representation proofs no longer suppress cleanup: the composed
+  // observers consume the same removals on both layouts. The proofs themselves
+  // must survive untouched so no rule can silently unpin a representation.
+  it("should keep conditional representation proof fields through cleanup", () => {
     const checked = checkedSource(SOURCE);
     const facts = deriveOptimizationFacts({ checked, mode: "size" });
     const before = lower(checked);
     const main = before.functions[0]!;
+    const proofs = Object.freeze([]);
     const guarded = Object.freeze({
       ...before,
-      functions: Object.freeze([Object.freeze({ ...main, fixedLoopProofs: Object.freeze([]) })]),
+      functions: Object.freeze([Object.freeze({ ...main, fixedLoopProofs: proofs })]),
     });
 
     const result = applyOptimizationRules(facts, guarded);
     if (result.kind !== "complete") throw new Error(result.reason);
-    expect(result.applied).toEqual([]);
-    expect(result.program).toBe(guarded);
+    expect(result.applied.map(({ ruleId }) => ruleId)).toEqual(["cleanup.copy-forward"]);
+    expect(reloadPairs(result.program)).toEqual([]);
+    expect(result.program.functions[0]!.fixedLoopProofs).toBe(proofs);
   });
 });

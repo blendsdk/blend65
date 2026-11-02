@@ -3,6 +3,7 @@ import { C64_STARTUP_STATE_ID, type C64StartupPolicy } from "../layout/startup.j
 import { bindMachineProgram } from "../machine/bind.js";
 import { deriveByteComplementFacts } from "../machine/byte-value-availability.js";
 import { lowerMachineProgram } from "../machine/lower.js";
+import { deadTemporaryHomes } from "../machine/optimization-cleanup.js";
 import type { FixedLoopPolicy, MachineSourceFacts } from "../machine/machine-types.js";
 import { deriveOptimizationFacts, type OptimizationFacts } from "../machine/optimization-facts.js";
 import { hasDisplayIndependentStartup } from "../machine/lower-startup.js";
@@ -76,6 +77,8 @@ export interface CanonicalPipeline extends Omit<CheckedSourceInput, "loopNesting
   readonly certificate: Extract<ReturnType<typeof closeStorage>, { readonly kind: "complete" }>;
   /** Machine operations bound against that provisional certificate. */
   readonly machine: Extract<ReturnType<typeof bindMachineProgram>, { readonly kind: "complete" }>;
+  /** Reference-proved private temporary homes whose stores every layout omits. */
+  readonly deadHomes?: ReadonlySet<string>;
 }
 
 /** Only the facts actually produced before a resource rejection; absence means unknown. */
@@ -246,6 +249,7 @@ function completedPipeline(
   lowered: CanonicalPipeline["lowered"],
   certificate: CanonicalPipeline["certificate"],
   machine: CanonicalPipeline["machine"],
+  deadHomes?: ReadonlySet<string>,
 ): CanonicalPipeline {
   const irqWarnings = overlappingIrqRootWarnings(program, certificate.irqOverlap);
   const previousWarnings = program.diagnostics ?? [];
@@ -259,6 +263,7 @@ function completedPipeline(
     lowered,
     certificate,
     machine,
+    ...(deadHomes === undefined ? {} : { deadHomes }),
     diagnostics: Object.freeze([
       ...input.diagnostics,
       ...previousWarnings,
@@ -319,20 +324,36 @@ export function closeCanonicalStorage(
       objectId: provisional.requestId,
     });
   const placement = provisional.placement;
-  const lowered = lowerMachineProgram({
-    ...(snapshot.manifest.optimization === "size" ? { observerEvidence: true } : {}),
-    ...(optimizationFacts === undefined ? {} : { optimizationFacts }),
-    preferZeroPage: input.snapshot.manifest.optimization === "size",
-    bindingNames: input.bindingNames,
-    program: reserved.program,
-    placement,
-    profile: allocationProfile,
-    boundsCheck: snapshot.manifest.boundsCheck,
-    divisionZeroCheck: snapshot.manifest.divisionZeroCheck,
-    sourceText: input.sourceText,
-  });
+  const lower = (facts: OptimizationFacts | undefined) =>
+    lowerMachineProgram({
+      ...(snapshot.manifest.optimization === "size" ? { observerEvidence: true } : {}),
+      ...(facts === undefined ? {} : { optimizationFacts: facts }),
+      preferZeroPage: input.snapshot.manifest.optimization === "size",
+      bindingNames: input.bindingNames,
+      program: reserved.program,
+      placement,
+      profile: allocationProfile,
+      boundsCheck: snapshot.manifest.boundsCheck,
+      divisionZeroCheck: snapshot.manifest.divisionZeroCheck,
+      sourceText: input.sourceText,
+    });
+  let lowered = lower(optimizationFacts);
   if (lowered.kind === "error")
     return terminal("compiler", [projectDiagnostic("COMPILER_LOWERING", lowered.reason, null)]);
+  // The canonical reference decides which private temporary homes no rule keeps
+  // readable. Every admitted representation receives that same set, so removing a
+  // dead store can never make two layouts structurally disagree.
+  let deadHomes: ReadonlySet<string> | undefined;
+  if (optimizationFacts !== undefined) {
+    const dead = deadTemporaryHomes(lowered.program);
+    if (dead.size > 0) {
+      const cleaned = lower(Object.freeze({ ...optimizationFacts, deadHomes: dead }));
+      if (cleaned.kind === "error")
+        return terminal("compiler", [projectDiagnostic("COMPILER_LOWERING", cleaned.reason, null)]);
+      lowered = cleaned;
+      deadHomes = dead;
+    }
+  }
   // The lowering binder returns this exact predeclared array on every discovery
   // round. Validate it before closure can interpret an allocation rejection.
   if (!validStorageDemands(lowered.program.requiredStorage))
@@ -411,7 +432,15 @@ export function closeCanonicalStorage(
   if (machine.kind === "error") return incomplete("machine storage binding");
   return Object.freeze({
     kind: "complete",
-    value: completedPipeline(input, reserved.program, profile, lowered, certificate, machine),
+    value: completedPipeline(
+      input,
+      reserved.program,
+      profile,
+      lowered,
+      certificate,
+      machine,
+      deadHomes,
+    ),
   });
 }
 
@@ -704,6 +733,7 @@ export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResu
     lowered,
     certificate,
     machine,
+    input.optimizationFacts?.deadHomes,
   );
   const reference = closeCanonicalReference(pipeline, true);
   if (reference.kind === "failure")
