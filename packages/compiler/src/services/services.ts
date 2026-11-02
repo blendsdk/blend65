@@ -3,6 +3,7 @@ import { lstat, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { serializeAcme } from "../artifacts/acme-serializer.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { deriveOptimizationFacts } from "../machine/optimization-facts.js";
 import { analyzeProjectWithAssets } from "../frontend/service.js";
 import type { C64KernalProfileId } from "../profile/c64-kernal.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
@@ -383,9 +384,18 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
     } else {
       evidenceCandidates.push(referenceRejection(reference));
     }
+    const optimizationFacts = deriveOptimizationFacts({
+      checked: source.value,
+      mode: "size",
+    });
     for (const plan of sizeSelectionPlans({ checked: source.value })) {
       if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
-      const candidate = closeSizeCandidate({ checked: source.value, reference, plan });
+      const candidate = closeSizeCandidate({
+        checked: source.value,
+        reference,
+        plan,
+        optimizationFacts,
+      });
       if (candidate.kind === "failure") return { kind: "failure", failure: candidate.failure };
       if (candidate.kind === "complete") {
         evidenceCandidates.push(

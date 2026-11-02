@@ -28,6 +28,7 @@ import type { ValueLifetime } from "../semantic/whole-program.js";
 import type { FunctionStorageSelection } from "../storage/selection.js";
 import type { BooleanCallProof } from "./lower-call.js";
 import type { ByteComplementFacts, ByteComplementProof } from "./byte-value-availability.js";
+import type { OptimizationFacts } from "./optimization-facts.js";
 
 /** Symbolic byte identity retained for final reference/candidate observer checks. */
 export interface ByteWindowAddress {
@@ -633,6 +634,8 @@ export interface MachineLoweringInput {
   readonly program: WholeProgram;
   /** Precomputed source facts for a selected attempt; absent on direct none lowering. */
   readonly sourceFacts?: MachineSourceFacts;
+  /** Optimized-candidate facts; absent keeps the canonical direct lowering path inert. */
+  readonly optimizationFacts?: OptimizationFacts;
   /** Actual provisional physical facts, absent during allocation-independent construction. */
   readonly placement?: StoragePlacement;
   /** Complete original logical declarations; selected demand is closed after lowering. */

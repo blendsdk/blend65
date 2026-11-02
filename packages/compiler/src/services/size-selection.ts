@@ -4,6 +4,7 @@ import { bindMachineProgram } from "../machine/bind.js";
 import { deriveByteComplementFacts } from "../machine/byte-value-availability.js";
 import { lowerMachineProgram } from "../machine/lower.js";
 import type { FixedLoopPolicy, MachineSourceFacts } from "../machine/machine-types.js";
+import { deriveOptimizationFacts, type OptimizationFacts } from "../machine/optimization-facts.js";
 import { hasDisplayIndependentStartup } from "../machine/lower-startup.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, ProjectSnapshot, SourceSpan } from "../project/types.js";
@@ -562,6 +563,8 @@ export interface SizeCandidateInput {
   readonly reference: Exclude<CanonicalReferenceOutcome, { readonly kind: "failure" }>;
   /** Exact admitted recipe to build once. */
   readonly plan: SizeSelectionPlan;
+  /** Immutable facts shared by every admitted recipe for this source. */
+  readonly optimizationFacts?: OptimizationFacts;
 }
 
 /** Retain the exact source owner for a selected-tuple resource rejection. */
@@ -639,6 +642,8 @@ export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResu
     profile: allocationProfile,
     logicalStorage: inventory,
     sourceFacts: plan.sourceFacts,
+    optimizationFacts:
+      input.optimizationFacts ?? deriveOptimizationFacts({ checked, mode: "size" }),
     boundsCheck: checked.snapshot.manifest.boundsCheck,
     divisionZeroCheck: checked.snapshot.manifest.divisionZeroCheck,
     sourceText: checked.sourceText,

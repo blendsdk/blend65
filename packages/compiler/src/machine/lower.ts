@@ -49,7 +49,9 @@ import type {
   MachineFunction,
   MachineLoweringInput,
   MachineLoweringResult,
+  MachineProgram,
 } from "./machine-types.js";
+import { applyOptimizationRules, validateRuleObligations } from "./optimization-rules.js";
 import {
   loweringFailure,
   isLoweringFailure,
@@ -571,6 +573,36 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
       throw loweringFailure(startup.reason, null);
     }
 
+    // Optimized candidates run the explicit rule list after function selection and
+    // before storage projection. Direct none lowering passes no facts and stays inert.
+    let optimizedFunctions = selectedFunctions;
+    if (input.optimizationFacts !== undefined) {
+      const draft: MachineProgram = Object.freeze({
+        ...(input.sourceFacts === undefined
+          ? {}
+          : {
+              storageSelection: Object.freeze({
+                originalInventory: initialInventory,
+                sourceFacts: input.sourceFacts,
+                omitted: Object.freeze([]),
+                pendingObservers: true as const,
+              }),
+            }),
+        functions: Object.freeze(selectedFunctions),
+        data: Object.freeze([]),
+        startup: startup.startup,
+        c64Startup,
+        requiredStorage: requests,
+        storageProfileId: input.profile.id,
+        storageProfile: input.profile.storage,
+      });
+      const rules = applyOptimizationRules(input.optimizationFacts, draft);
+      if (rules.kind === "failure") throw loweringFailure(rules.reason, rules.source);
+      const validation = validateRuleObligations(rules);
+      if (validation.kind === "error") throw loweringFailure(validation.reason, validation.source);
+      optimizedFunctions = rules.program.functions;
+    }
+
     const uniqueRequests = new Map<string, StorageRequest>();
     for (const request of requests) {
       const existing = uniqueRequests.get(request.id);
@@ -588,7 +620,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
     const storage = projectMachineStorage(
       input,
       initialInventory,
-      selectedFunctions,
+      optimizedFunctions,
       startup.startup,
       requests,
     );
@@ -637,11 +669,11 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
       inventory: storage.inventory,
       program: Object.freeze({
         ...(storage.evidence === undefined ? {} : { storageSelection: storage.evidence }),
-        functions: Object.freeze(selectedFunctions),
+        functions: Object.freeze(optimizedFunctions),
         data: lowerData(
           input.program,
           generatedData,
-          selectedFunctions,
+          optimizedFunctions,
           startup.startup,
           input.bindingNames,
           createC64StartupStateData(c64Startup),

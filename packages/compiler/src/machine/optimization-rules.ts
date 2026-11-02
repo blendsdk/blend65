@@ -7,6 +7,7 @@ import type { SemanticFunction } from "../semantic/operations.js";
 import type { StorageRange } from "../storage/storage-types.js";
 import type { MachineProgram } from "./machine-types.js";
 import type { OptimizationFacts } from "./optimization-facts.js";
+import { applyFoundationCleanup, cleanupObligations } from "./optimization-cleanup.js";
 
 /** One exact before/after component retained by a cost obligation. */
 export interface CostComponent {
@@ -117,12 +118,21 @@ export function applyOptimizationRules(
       reason: "Optimization facts belong to a different target profile",
       source: null,
     });
+  const cleanup = applyFoundationCleanup(facts, program);
+  if (cleanup.applied.length === 0)
+    return Object.freeze({
+      kind: "complete",
+      producer: "lowering",
+      program,
+      applied: Object.freeze([]),
+      obligations: Object.freeze([]),
+    });
   return Object.freeze({
     kind: "complete",
     producer: "lowering",
-    program,
-    applied: Object.freeze([]),
-    obligations: Object.freeze([]),
+    program: Object.freeze({ ...program, functions: cleanup.functions }),
+    applied: cleanup.applied,
+    obligations: cleanupObligations(cleanup.applied),
   });
 }
 
