@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-02 01:15
-> **Progress**: 13/41 tasks (32%)
+> **Last Updated**: 2026-11-02 01:20
+> **Progress**: 14/41 tasks (34%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -80,7 +80,7 @@ it is never repaired by weakening limits or adding a benchmark-specific rule.
 **Reference**: [03-03](03-03-cost-modes-and-evidence.md) §Evidence; ST-6/ST-13.
 
 - [x] 1.6.1 Emit complete size decisions and selected totals without changing `none` — `services/evidence.ts`, `artifacts/costs-evidence-validator.ts` ✅ (completed: 2026-11-02 01:15; existing size decisions/totals validate on all 27 frontier cases; saved remains 1623/725 and acquisition 2442/963, both unchanged)
-- [ ] 1.6.2 Verify 27/27 frontier, none artifact identity, build, typecheck and owned suites — complete foundation gate
+- [x] 1.6.2 Verify 27/27 frontier, none artifact identity, build, typecheck and owned suites — complete foundation gate ✅ (completed: 2026-11-02 01:20; frontier 27/27, none PRG identity `0417b7da…` against parent `7395d181`, 48 focus cases, compiler build and root typecheck pass; saved 1623/725 and acquisition 2442/963 unchanged)
 
 **Phase 1 gate:** all foundation tests pass; no benchmark-specific rule is active;
 none output is unchanged; if the rule runner cannot preserve provenance, stop.
