@@ -309,7 +309,8 @@ export function closeCanonicalStorage(
     ...profile,
     storage: Object.freeze({ ...reserved.storage, profileId: profile.id }),
   });
-  const inventory = inventoryStorage(reserved.program);
+  const preferZeroPage = input.snapshot.manifest.optimization === "size";
+  const inventory = inventoryStorage(reserved.program, { preferZeroPage });
   if (!validStorageDemands(inventory.requests)) return incomplete("static storage allocation");
   const provisional = allocateStorage(inventory, buildInterference(inventory), reserved.storage);
   if (provisional.kind === "error")
@@ -321,6 +322,7 @@ export function closeCanonicalStorage(
   const lowered = lowerMachineProgram({
     ...(snapshot.manifest.optimization === "size" ? { observerEvidence: true } : {}),
     ...(optimizationFacts === undefined ? {} : { optimizationFacts }),
+    preferZeroPage: input.snapshot.manifest.optimization === "size",
     bindingNames: input.bindingNames,
     program: reserved.program,
     placement,
@@ -632,7 +634,8 @@ export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResu
     ...checked.profile,
     storage: Object.freeze({ ...reserved.storage, profileId: checked.profile.id }),
   });
-  const inventory = inventoryStorage(reserved.program);
+  const preferZeroPage = checked.snapshot.manifest.optimization === "size";
+  const inventory = inventoryStorage(reserved.program, { preferZeroPage });
   if (!validStorageDemands(inventory.requests))
     return Object.freeze({
       kind: "failure",
@@ -648,6 +651,7 @@ export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResu
     sourceFacts: plan.sourceFacts,
     optimizationFacts:
       input.optimizationFacts ?? deriveOptimizationFacts({ checked, mode: "size" }),
+    preferZeroPage: checked.snapshot.manifest.optimization === "size",
     boundsCheck: checked.snapshot.manifest.boundsCheck,
     divisionZeroCheck: checked.snapshot.manifest.divisionZeroCheck,
     sourceText: checked.sourceText,

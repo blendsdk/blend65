@@ -272,7 +272,11 @@ export function prepareFixedCounterStorage(
             `fixed-counter:${bindingIdentityKey(loop.counter)}`,
             "temporary",
             1,
-            "zero-page-preferred",
+            state.input.preferZeroPage === true &&
+              bindingIdentityKey(state.owner) !==
+                bindingIdentityKey(state.input.program.semantic.main)
+              ? "zero-page-preferred"
+              : "ram",
             loop.initialization.span,
             "Byte representation of one proved private word counter",
             COUNTER_BYTE,

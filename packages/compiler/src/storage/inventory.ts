@@ -322,7 +322,18 @@ export function hasHandlerSideIrqInstall(
 }
 
 /** Build the minimum provisional SFA inventory required before machine binding. */
-export function inventoryStorage(program: WholeProgram): StorageInventory {
+export interface InventoryOptions {
+  /** Let ordinary function homes use spare zero-page bytes when the size mode admits it. */
+  readonly preferZeroPage?: boolean;
+}
+
+export function inventoryStorage(
+  program: WholeProgram,
+  options: InventoryOptions = {},
+): StorageInventory {
+  const ordinaryRegion: StorageRequest["region"] = options.preferZeroPage
+    ? "zero-page-preferred"
+    : "ram";
   const requests: StorageRequest[] = [];
   const results: FunctionResultLocation[] = [];
   const functions = new Map(
@@ -500,7 +511,16 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
               type: local.type,
               bytes: typeBytes(local.type),
               alignment: 1,
-              region: "ram",
+              // Byte homes save one byte on every access; word homes consume two
+              // scarce zero-page bytes and are left to ordinary RAM first. The
+              // main routine already owns the required call-pointer bytes, so it
+              // keeps its own scratch in RAM until a byte budget admits more.
+              region:
+                typeBytes(local.type) === 1 &&
+                bindingIdentityKey(fn.id) !== bindingIdentityKey(program.semantic.main) &&
+                ordinaryRegion !== "ram"
+                  ? ordinaryRegion
+                  : "ram",
               lifetime: declaredLifetime(fn, `local:${key}`),
               source: local.id.span,
               reason: "Static local home",

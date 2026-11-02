@@ -640,6 +640,8 @@ export interface MachineLoweringInput {
   readonly placement?: StoragePlacement;
   /** Complete original logical declarations; selected demand is closed after lowering. */
   readonly logicalStorage?: StorageInventory;
+  /** Size mode may place ordinary function homes in spare zero-page bytes. */
+  readonly preferZeroPage?: boolean;
   /** Exact selected target facts. */
   readonly profile: TargetProfile;
   /** Precomputed raw ABI/storage demands, never execution or capture evidence. */

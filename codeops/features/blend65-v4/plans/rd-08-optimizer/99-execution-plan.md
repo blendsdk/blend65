@@ -100,8 +100,8 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 
 **Reference**: [03-02](03-02-rules-and-obligations.md) §Rule Catalogue; RD-08 R8.14–R8.23.
 
-- [~] 2.2.1 Implement selected-loop X/Y/FlatEight and LowByte/complement composition with per-rule obligations — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-02 10:05; LowByte composition selects a 1034-byte saved candidate; X/Y/FlatEight lower to measured 977 bytes but remain rejected by the selected-loop whole-function gate)
-- [ ] 2.2.2 Implement typed store, loop residual, register/flag/word forwarding and address-form rules — `machine/optimization-rules.ts`
+- [~] 2.2.1 Implement selected-loop X/Y/FlatEight and LowByte/complement composition with per-rule obligations — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-02 10:35; LowByte composition selects a 947-byte saved candidate; X/Y/FlatEight remain rejected by the selected-loop whole-function gate)
+- [~] 2.2.2 Implement typed store, loop residual, register/flag/word forwarding and address-form rules — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-02 10:35; size mode now prefers byte local homes and non-entry fixed counters in zero page, matching the expert 14-byte budget and cutting 87 bytes; declared-word and call-staging homes stay in RAM)
 - [ ] 2.2.3 Implement caller-owned aggregate/global return and copy-elision rules for the saved fixture — `storage/selection.ts`, `machine/optimization-rules.ts`
 - [~] 2.2.4 Integrate saved rule obligations with final observers; preserve canonical fallback — `services/size-observers.ts`, `services/size-observer-*` ⏳ (implemented: 2026-11-02 10:05; size reference now runs the same cleanup pipeline as every candidate, and the LowByte direct-global argument path accepts one proved copy-forward reload without weakening exact byte correspondence)
 

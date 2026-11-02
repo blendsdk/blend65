@@ -41,6 +41,8 @@ interface LoweringStorageInput {
   readonly logicalStorage?: StorageInventory | undefined;
   /** Physical facts may be absent until the selected inventory is allocated. */
   readonly placement?: StoragePlacement | undefined;
+  /** Size mode may place ordinary function homes in spare zero-page bytes. */
+  readonly preferZeroPage?: boolean | undefined;
 }
 
 /**
@@ -78,7 +80,9 @@ export function declaredStorageIds(input: LoweringStorageInput): readonly string
 export function logicalStorageForLowering(
   input: LoweringStorageInput & { readonly program: StorageInventory["program"] },
 ): StorageInventory | null {
-  const canonical = inventoryStorage(input.program);
+  const canonical = inventoryStorage(input.program, {
+    preferZeroPage: input.preferZeroPage === true,
+  });
   const logical = input.logicalStorage;
   if (logical === undefined) return input.placement === undefined ? null : canonical;
   return logical.program === input.program &&

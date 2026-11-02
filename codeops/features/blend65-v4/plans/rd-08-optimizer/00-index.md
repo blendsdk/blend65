@@ -11,8 +11,8 @@
 RD-08 is the optional optimization layer above the correct `none` compiler. The
 stopped whole-input slice proved the candidate/evidence mechanics but left
 1623 bytes for saved and 2442 for acquisition against 725/963. Compact-startup
-composition and observer cleanup now select a 1034-byte saved candidate; the
-remaining gap is the query/caller forwarding and address-form tranche. The missing work
+composition, observer cleanup and zero-page preference now select a 947-byte saved
+candidate; the remaining gap is the query/caller register and address-form tranche. The missing work
 is a reusable optimizer, not another fixed recipe family.
 
 This plan builds one immutable optimization-facts bundle and an explicit ordered
