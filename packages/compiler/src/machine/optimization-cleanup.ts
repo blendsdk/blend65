@@ -130,6 +130,27 @@ export function provedProducer(
   );
 }
 
+/**
+ * Whether N and Z are both overwritten before any instruction observes them.
+ * A branch or return observes them; a later producer of both makes the current
+ * pair dead. Other flags are not part of a byte load.
+ */
+function flagsDead(block: MachineFunction["blocks"][number], start: number): boolean {
+  const dead = new Set<string>();
+  for (const instruction of block.instructions.slice(start)) {
+    const uses = instruction.uses.flags.filter((flag) => flag === "n" || flag === "z");
+    if (uses.some((flag) => !dead.has(flag))) return false;
+    for (const flag of instruction.defines.flags) if (flag === "n" || flag === "z") dead.add(flag);
+  }
+  const edge = block.terminator;
+  if (edge.kind === "unreachable") return false;
+  if (edge.kind === "branch" || edge.kind === "long-branch") {
+    const uses = edge.uses.flags.filter((flag) => flag === "n" || flag === "z");
+    if (uses.some((flag) => !dead.has(flag))) return false;
+  }
+  return dead.size === 2;
+}
+
 /** Remove `sta home; lda home` when the stored value and flags are still in place. */
 function copyForward(
   program: MachineProgram,
@@ -168,11 +189,17 @@ function copyForward(
         }
         const load = storageAccess(next, "read");
         const producer = block.instructions[index - 1];
+        // At block entry A still holds whatever the predecessors left, and the
+        // store wrote exactly that byte. A reload there needs no producer when
+        // its N/Z result is dead before any observer; an interior pair still
+        // needs the adjacent producer proof.
+        const entryForwarding =
+          index === 0 && block !== fn.blocks[0] && flagsDead(block, index + 2);
         if (
           load === null ||
           load.requestId !== store.requestId ||
           load.offset !== store.offset ||
-          !provedProducer(producer, register) ||
+          (!entryForwarding && !provedProducer(producer, register)) ||
           !privateMainTemporary(program, store.requestId)
         ) {
           kept.push(instruction);
