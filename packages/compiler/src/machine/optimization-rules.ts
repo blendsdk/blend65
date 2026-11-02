@@ -73,24 +73,18 @@ export const FOUNDATION_RULE_IDS: readonly string[] = Object.freeze([
   "cleanup.empty-block",
 ]);
 
-/** Compare source structure without relying on host object identity. */
-function sourceKey(program: OptimizationFacts["program"]): string {
-  return JSON.stringify(
-    program.semantic.functions
-      .map((fn) => bindingIdentityKey(fn.id))
-      .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0)),
-  );
+/** List machine source owners when the lowered program carries no sealed source facts. */
+function machineSourceKeys(program: MachineProgram): readonly string[] {
+  return program.functions
+    .flatMap((fn) =>
+      fn.sourceFunction === undefined ? [] : [bindingIdentityKey(fn.sourceFunction)],
+    )
+    .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
 }
 
-/** Compare machine source owners when the lowered program carries no sealed source facts. */
-function machineSourceKey(program: MachineProgram): string {
-  return JSON.stringify(
-    program.functions
-      .flatMap((fn) =>
-        fn.sourceFunction === undefined ? [] : [bindingIdentityKey(fn.sourceFunction)],
-      )
-      .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0)),
-  );
+/** List every closed source function identity in one fact bundle. */
+function factSourceKeys(program: OptimizationFacts["program"]): ReadonlySet<string> {
+  return new Set(program.semantic.functions.map((fn) => bindingIdentityKey(fn.id)));
 }
 
 /** Execute the explicit foundation rules; Phase 1 intentionally has no matching rule. */
@@ -105,12 +99,17 @@ export function applyOptimizationRules(
       reason: "Optimization facts belong to a different checked source",
       source: null,
     });
-  if (sealed === undefined && machineSourceKey(program) !== sourceKey(facts.program))
-    return Object.freeze({
-      kind: "failure",
-      reason: "Optimization facts do not cover the lowered machine source",
-      source: null,
-    });
+  // A canonical reference lowers only reachable functions, so every machine source
+  // owner must belong to the facts program; the reverse is not required.
+  if (sealed === undefined) {
+    const covered = factSourceKeys(facts.program);
+    if (!machineSourceKeys(program).every((key) => covered.has(key)))
+      return Object.freeze({
+        kind: "failure",
+        reason: "Optimization facts do not cover the lowered machine source",
+        source: null,
+      });
+  }
   const profileId = program.storageProfileId ?? program.storageProfile?.profileId;
   if (profileId !== undefined && profileId !== facts.profile.id)
     return Object.freeze({

@@ -4,6 +4,7 @@ import type { LoadOperation, SemanticFunction, SemanticOperation } from "../sema
 import { valueDefinitions } from "../semantic/aggregate-place-proof.js";
 import { bindingLabel, BYTE_WINDOW_CHANGED as STATE } from "../machine/lower-control.js";
 import { instructionAccessEnvelope } from "../machine/nmos6510-access.js";
+import { provedProducer } from "../machine/optimization-cleanup.js";
 import type { InstructionAccessEnvelope } from "../machine/nmos6510-access.js";
 import type {
   FixedCounterProof,
@@ -73,6 +74,40 @@ export interface LowByteFunctionChanges {
     SemanticOperation,
     ReadonlyMap<string, bigint>
   >;
+}
+
+/** The register whose byte a load opcode reads. */
+const LOAD_REGISTER = Object.freeze({ lda: "a", ldx: "x", ldy: "y" } as const);
+type LoadOpcode = keyof typeof LOAD_REGISTER;
+/** Store spelling for each byte-carrying register. */
+const STORE_OPCODE = Object.freeze({ a: "sta", x: "stx", y: "sty" } as const);
+
+/**
+ * Accept one retained-value reload that only the canonical reference keeps because
+ * the omitted direct-global delivery separated it from its store. The selected
+ * candidate removed the delivery and forwarded the stored byte directly, which is
+ * the same copy-forward shape the cleanup rule proved inside lowering.
+ */
+function forwardedReload(before: Body, reload: Item, delivery: readonly Item[]): boolean {
+  const register = LOAD_REGISTER[reload.source.opcode as LoadOpcode];
+  if (register === undefined || reload.source.observerOrigins !== undefined) return false;
+  const operand = reload.source.operand;
+  if (operand?.kind !== "storage" || operand.addressByte !== undefined) return false;
+  const declared = before.view.requests.get(operand.requestId);
+  if (declared?.storageClass !== "temporary" || declared.binding !== null) return false;
+  const block = before.items.filter((item) => item.block === reload.block);
+  let index = block.indexOf(reload) - 1;
+  while (index >= 0 && delivery.includes(block[index]!)) index -= 1;
+  const store = block[index];
+  if (store === undefined || store.source.observerOrigins !== undefined) return false;
+  const stored = store.source.operand;
+  return (
+    store.source.opcode === STORE_OPCODE[register] &&
+    stored?.kind === "storage" &&
+    stored.requestId === operand.requestId &&
+    (stored.offset ?? 0) === (operand.offset ?? 0) &&
+    provedProducer(block[index - 1]?.source, register)
+  );
 }
 
 /** Compare symbolic computations before either layout's physical relocation. */
@@ -530,23 +565,39 @@ export function matchLowByteOccurrences(
             (formal) => formal.id === parameter.parameter,
           );
           const argument = definitions.get(call.operation.arguments[formalIndex] ?? "");
+          // The reference keeps a retained-value reload after the omitted delivery;
+          // the selected candidate forwards the stored byte directly because the
+          // delivery no longer overwrites A. Accept only that single proved reload.
+          const forwarded =
+            remaining.length === b.length + 1 && forwardedReload(before, remaining[0]!, delivery);
+          const expected = forwarded ? remaining.slice(1) : remaining;
+          const forwardedItem = forwarded ? remaining[0] : undefined;
+          const head = a.slice(0, -1),
+            suffix = b.slice(0, -1),
+            from: number[] = [];
+          let cursor = 0;
+          for (const item of suffix) {
+            while (cursor < head.length && !same(head[cursor], item)) cursor += 1;
+            if (cursor >= head.length) break;
+            from.push(cursor);
+            cursor += 1;
+          }
           if (
             argument?.kind !== "place-address" ||
             argument.place.path.length !== 0 ||
             argument.place.root !== parameter.origin.place.root ||
             a.at(-1)?.source.opcode !== "jsr" ||
             !same(a.at(-1), b.at(-1)) ||
-            remaining.length !== b.length ||
-            !remaining.every((item, index) => same(item, b[index])) ||
+            expected.length !== b.length ||
+            !expected.every((item, index) => same(item, b[index])) ||
+            from.length !== suffix.length ||
+            head.some(
+              (item, index) =>
+                !from.includes(index) && !delivery.includes(item) && item !== forwardedItem,
+            ) ||
             at !== 1 ||
-            b.length < 3 ||
-            !claim(
-              a.slice(0, -1),
-              b.slice(0, -1),
-              b.slice(0, -1).map((_, index) => index + 4),
-              call.operation,
-              0,
-            )
+            b.length < 2 ||
+            !claim(head, suffix, from, call.operation, 0)
           )
             return "Composed argument suffix or immutable root disagrees";
           removedDemands.add(formal[0]!);

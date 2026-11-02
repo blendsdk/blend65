@@ -284,7 +284,10 @@ function completedPipeline(
  * @param input Immutable checked source, independent of canonical allocation success.
  * @returns Bound direct machine operations, a resource rejection, or a terminal failure.
  */
-export function closeCanonicalStorage(input: CheckedSourceInput): CanonicalStorageOutcome {
+export function closeCanonicalStorage(
+  input: CheckedSourceInput,
+  optimizationFacts?: OptimizationFacts,
+): CanonicalStorageOutcome {
   const { program, profile, resourceSpans, snapshot } = input;
   const zeroPageOverflow = sourceZeroPageOverflow(program, profile, resourceSpans);
   if (zeroPageOverflow !== null)
@@ -317,6 +320,7 @@ export function closeCanonicalStorage(input: CheckedSourceInput): CanonicalStora
   const placement = provisional.placement;
   const lowered = lowerMachineProgram({
     ...(snapshot.manifest.optimization === "size" ? { observerEvidence: true } : {}),
+    ...(optimizationFacts === undefined ? {} : { optimizationFacts }),
     bindingNames: input.bindingNames,
     program: reserved.program,
     placement,

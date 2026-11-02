@@ -335,9 +335,15 @@ function referenceRejection(
 async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<PreparedBuildResult> {
   const source = await checkSource(options);
   if (source.kind === "failure") return source;
-  const storage = closeCanonicalStorage(source.value);
-  if (storage.kind === "failure") return storage;
   const size = source.value.snapshot.manifest.optimization === "size";
+  // The canonical reference is the same rule pipeline's baseline: size candidates
+  // must be compared against an equally cleaned reference, never against an
+  // unoptimized fallback that would make ordinary cleanup look like a representation win.
+  const optimizationFacts = size
+    ? deriveOptimizationFacts({ checked: source.value, mode: "size" })
+    : undefined;
+  const storage = closeCanonicalStorage(source.value, optimizationFacts);
+  if (storage.kind === "failure") return storage;
   if (!size && storage.kind === "resource-rejected")
     return { kind: "failure", failure: storage.failure };
   // Keep the original checkpoint after direct storage proof and before layout.
@@ -384,17 +390,15 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
     } else {
       evidenceCandidates.push(referenceRejection(reference));
     }
-    const optimizationFacts = deriveOptimizationFacts({
-      checked: source.value,
-      mode: "size",
-    });
+    const sizeFacts =
+      optimizationFacts ?? deriveOptimizationFacts({ checked: source.value, mode: "size" });
     for (const plan of sizeSelectionPlans({ checked: source.value })) {
       if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
       const candidate = closeSizeCandidate({
         checked: source.value,
         reference,
         plan,
-        optimizationFacts,
+        optimizationFacts: sizeFacts,
       });
       if (candidate.kind === "failure") return { kind: "failure", failure: candidate.failure };
       if (candidate.kind === "complete") {

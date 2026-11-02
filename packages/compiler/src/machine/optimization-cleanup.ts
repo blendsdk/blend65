@@ -111,8 +111,12 @@ function mainline(fn: MachineFunction): boolean {
   );
 }
 
-/** Whether a producer proves the stored register and its N/Z flags already agree. */
-function provedProducer(
+/**
+ * Whether a producer proves the stored register and its N/Z flags already agree.
+ * Exported for the final observers that must accept the same forwarding in both
+ * the canonical reference and the selected representation.
+ */
+export function provedProducer(
   producer: MachineInstruction | undefined,
   register: StoredRegister,
 ): producer is MachineInstruction {
@@ -342,18 +346,6 @@ function emptyBlock(
   return { functions, applied };
 }
 
-/** Whether any function retains a selected conditional representation proof. */
-function hasConditionalRepresentation(program: MachineProgram): boolean {
-  return program.functions.some(
-    (fn) =>
-      fn.fixedLoopProofs !== undefined ||
-      fn.byteComplementProofs !== undefined ||
-      fn.byteAvailabilityProofs !== undefined ||
-      fn.nativeStoreProofs !== undefined ||
-      fn.booleanCallProofs !== undefined,
-  );
-}
-
 /**
  * Apply the ordered foundation cleanup rules to already lowered machine functions.
  * Every rule proves its changed sites from the shared facts; untouched code keeps its
@@ -366,11 +358,6 @@ export function applyFoundationCleanup(
   facts: OptimizationFacts,
   program: MachineProgram,
 ): FoundationCleanup {
-  // Conditional representations pin exact byte/loop/call intervals. Their composed
-  // observers consume those intervals before rule obligations are integrated, so the
-  // foundation cleanup leaves every such candidate canonical until that consumer exists.
-  if (hasConditionalRepresentation(program))
-    return Object.freeze({ functions: program.functions, applied: Object.freeze([]) });
   const semanticByKey = new Map(
     [...facts.functions.keys()].map(
       (fn: SemanticFunction) => [bindingIdentityKey(fn.id), fn] as const,

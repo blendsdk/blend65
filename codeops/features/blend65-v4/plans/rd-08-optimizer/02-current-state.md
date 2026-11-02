@@ -21,8 +21,10 @@ The stopped size slice adds:
 - final observer validation;
 - closed-cost selection and rejected-baseline evidence;
 - 27/27 frontier cases and a 1623-byte saved LowByte candidate.
-- RD-08 compact-startup composition now selects a 1055-byte saved candidate; the
-  stopped slice's 1623-byte LowByte candidate remains its historical evidence.
+- RD-08 compact-startup composition plus cleanup-observer integration now selects a
+  1034-byte saved candidate; the stopped slice's 1623-byte LowByte candidate remains
+  its historical evidence. Cleanup runs on the size reference too, so representation
+  wins are never confused with ordinary forwarding.
 
 It does not add a reusable optimizer. The current candidate frontier is a fixed
 2 × loop × startup recipe menu. Every family has its own whole-program proof
