@@ -86,8 +86,8 @@ non-vacuous synthetic graphs. No general linter replaces these tests.
   Do not add roles solely because an agent could be created.
 - Layout is nested. Execution checklists own task progress; roadmaps are derived
   summaries. Historical features and archives do not select the next v4 task.
-- Specialist coverage: check due — run analyze-agents. The recorded 2026-10-15
-  inventory predates `codeops/features/blend65-v4/plans/rd-08-optimizer`.
+- Specialist coverage: up to date (2026-11-02). No additional capability gap found;
+  current-plan inventory is recorded in `codeops/specialist-check.json`.
 
 <!-- CODEOPS-PROJECT:END -->
 

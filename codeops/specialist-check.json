@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-15T12:53:28Z",
+  "checkedAt": "2026-11-02T23:27:12Z",
   "plans": [
     "codeops/features/_maintenance/plans/opencode-native-migration",
     "codeops/features/asm-parity/plans/rd-01-parity-measurement-infrastructure",
@@ -54,6 +54,7 @@
     "codeops/features/blend65-v4/plans/rd-05-nmi-cia2",
     "codeops/features/blend65-v4/plans/rd-05-source-library-reachability",
     "codeops/features/blend65-v4/plans/rd-05-vic-collision-reads",
+    "codeops/features/blend65-v4/plans/rd-08-optimizer",
     "codeops/features/blend65-v4/plans/returned-local-destination",
     "codeops/features/blend65-v4/plans/runtime-switch-label-order",
     "codeops/features/blend65-v4/plans/whole-input-cost-closure",
