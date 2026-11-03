@@ -1,6 +1,11 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
-import type { SemanticBlock, SemanticOperation, SemanticPlace } from "../semantic/operations.js";
+import type {
+  SemanticBlock,
+  SemanticFunction,
+  SemanticOperation,
+  SemanticPlace,
+} from "../semantic/operations.js";
 import {
   literalResolver,
   ordinalBoundResolver,
@@ -409,6 +414,40 @@ export function ordinalBoundsForFunction(
       if (operation.kind === "place-address")
         unstableRoots.add(bindingIdentityKey(operation.place.root));
   const windows = [...input.profile.storage.ram, ...input.profile.storage.zeroPage];
+  /**
+   * A direct call keeps a private caller local only when the callee cannot
+   * write raw memory, take an address that could escape, or reach an unknown
+   * callee. Read-only queries over const borrows meet that proof.
+   */
+  const pure = new Map<string, boolean>();
+  const calleeOf = (operation: Extract<SemanticOperation, { readonly kind: "call" }>) =>
+    input.program.semantic.functions.find(
+      (candidate) => bindingIdentityKey(candidate.id) === bindingIdentityKey(operation.callee),
+    );
+  const pureQuery = (fn: SemanticFunction, seen: ReadonlySet<string> = new Set()): boolean => {
+    const key = bindingIdentityKey(fn.id);
+    const cached = pure.get(key);
+    if (cached !== undefined) return cached;
+    if (seen.has(key)) return false;
+    const visiting = new Set([...seen, key]);
+    const result = fn.blocks.every((block) =>
+      block.operations.every((operation) => {
+        if (
+          operation.kind === "memory-write" ||
+          operation.kind === "platform" ||
+          operation.kind === "indirect-call" ||
+          operation.kind === "place-address" ||
+          (operation.kind === "store" && operation.place.path.length > 0)
+        )
+          return false;
+        if (operation.kind !== "call") return true;
+        const callee = calleeOf(operation);
+        return callee !== undefined && pureQuery(callee, visiting);
+      }),
+    );
+    pure.set(key, result);
+    return result;
+  };
   const guarded = guardedOrdinalBounds(
     blocks[0]!.id,
     blocks,
@@ -416,16 +455,24 @@ export function ordinalBoundsForFunction(
     unstableRoots,
     literal,
     bound,
-    (operation) =>
-      operation.kind === "call" ||
-      operation.kind === "indirect-call" ||
-      operation.kind === "platform" ||
-      (operation.kind === "store" && operation.place.path.length > 0) ||
-      (operation.kind === "aggregate" &&
-        operation.destination?.kind === "place" &&
-        operation.destination.place.path.length > 0) ||
-      (operation.kind === "memory-write" &&
-        rawMayObserve(literal(operation.address), operation.width, windows)),
+    (operation) => {
+      if (operation.kind === "call") {
+        // The correctness baseline keeps its conservative call barrier.
+        if (input.observerEvidence !== true) return true;
+        const callee = calleeOf(operation);
+        return callee === undefined || !pureQuery(callee);
+      }
+      return (
+        operation.kind === "indirect-call" ||
+        operation.kind === "platform" ||
+        (operation.kind === "store" && operation.place.path.length > 0) ||
+        (operation.kind === "aggregate" &&
+          operation.destination?.kind === "place" &&
+          operation.destination.place.path.length > 0) ||
+        (operation.kind === "memory-write" &&
+          rawMayObserve(literal(operation.address), operation.width, windows))
+      );
+    },
     undefined,
     input.observerEvidence === true,
   );
