@@ -100,24 +100,24 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 
 **Reference**: [03-02](03-02-rules-and-obligations.md) §Rule Catalogue; RD-08 R8.14–R8.23.
 
-- [x] 2.2.1 Implement selected-loop X/Y/FlatEight and LowByte/complement composition with per-rule obligations — `machine/optimization-rules.ts` ✅ (completed: 2026-11-03 18:40; the `mixed` policy now selects `closed:mixed:compact-looped` at **781 bytes** after the per-loop body-region, continuation and bottom-tested layout proofs. The proof maps the selected body inside a larger function, accounts for the canonical negative bounds expansion as unreachable, proves the held counter register dead at the normal exit, and keeps the canonical five-role proof for straight loops. `none` identity is unchanged)
+- [x] 2.2.1 Implement selected-loop X/Y/FlatEight and LowByte/complement composition with per-rule obligations — `machine/optimization-rules.ts` ✅ (completed: 2026-11-03 18:40; the `mixed` policy now selects `closed:mixed:compact-looped` at **757 bytes** after the per-loop body-region, continuation and bottom-tested layout proofs. The proof maps the selected body inside a larger function, accounts for the canonical negative bounds expansion as unreachable, proves the held counter register dead at the normal exit, and keeps the canonical five-role proof for straight loops. `none` identity is unchanged)
 - [~] 2.2.2 Implement typed store, loop residual, register/flag/word forwarding and address-form rules — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-03 18:40; size mode prefers byte local, parameter and low-read homes plus non-entry fixed counters in zero page. A proved `constantBase + unsignedByteIndex` raw read consumed only by its next read lowers to `ldx index; lda base,x` with no address temporary, and a held counter serves that read without reloading. The `mixed` plan promotes loop-body byte retained values to zero-page-preferred homes and now bottom-tests the proved register loop: preheader, body, update, header, exit; the update falls through, the header uses `bne`, and the redundant `clv` disappears. The exact `Game.main` copy loop is the expert 13-byte form `ldx #0; lda $C110,x; sta saved,x; inx; cpx #8; bne`, taking the selected saved candidate 803→**790** (Game.main 88, zeroPage 12, general 834). An unsigned byte/word/enum guard refinement is limited to observer-evidence size lowering, so `none` output is unchanged. Declared-word and call-staging homes stay in RAM. Dead private temporary stores are removed from the canonical reference and every admitted tuple through one shared dead-home set)
 - [ ] 2.2.3 Implement caller-owned aggregate/global return and copy-elision rules for the saved fixture — `storage/selection.ts`, `machine/optimization-rules.ts`
 - [x] 2.2.4 Integrate saved rule obligations with final observers; preserve canonical fallback — `services/size-observers.ts`, `services/size-observer-*` ✅ (completed: 2026-11-03 18:40; the mixed candidate passes the complete observer path. The field/byte-window correspondence accepts the reference-only negative bounds expansion, the held-counter read proves C/V continuations while the loop exit proves Y dead, the composition accounts for parent-derived initialization and the removed word-update scratch, and it accepts the bottom-tested preheader redirect, the C→Z test swap and the direct `bne` header only after proving the five exact edges and that the header is reachable only from the update. The same five-role and canonical fallback remain for every unproved tuple. The saved behavior, resource, accounting, no-copy and native cases plus all four register-served copy-loop cases pass; only the payload/RAM ceilings remain RED)
 
 #### Measured frontier (2026-11-03)
 
-The selected saved candidate is `closed:mixed:compact-looped` at **781 bytes**
-with zeroPage 12 (general 825, combined 837). The remaining **56-byte** gap is
-now dominated by `keyState` value materialization:
+The selected saved candidate is `closed:mixed:compact-looped` at **757 bytes**
+with zeroPage 12 (general 801, combined 813). The remaining **32-byte** gap is
+now concentrated in `keyState` and `snapshotCompatible`:
 
 | Owner | Ours | Expert | Gap |
 |---|---:|---:|---:|
-| `c64.input.keyState` | 269 | 221 | +48 |
+| `c64.input.keyState` | 257 | 221 | +36 |
 | `c64.input.snapshotCompatible` | 155 | 142 | +13 |
 | `Game.main` | 88 | 78 | +10 |
 | `c64.input.soleGroundSource` | 36 | 32 | +4 |
-| `c64.input.joystickState` | 130 | 138 | −8 |
+| `c64.input.joystickState` | 118 | 138 | −20 |
 | startup | 91 | 102 | −11 |
 
 Landed and measured this session:
@@ -129,15 +129,15 @@ Landed and measured this session:
 | Bottom-tested register loop | 803 → **790** (`Game.main` 88); exact 13-byte copy form | Selected. Preheader→body, update falls through, `cpx #8; bne`; `clv` removed and V proved dead through the calls. The copy-loop case passes on all four profiles. |
 | Unsigned guard refinement | Part of 803→790, limited to observer-evidence size lowering | Selected. `ordinal < 64` now bounds the later `>> 3`, so the shift saturation path disappears. `none` keeps its old proofs and output. |
 | Read-only call keeps local bounds | 790 → **781** (`keyState` 278 → 269) | Selected. A direct callee with no raw write, platform access, indirect call, escaping address or path store cannot observe a private caller local, so the `column < 8` bound survives the `snapshotCompatible` call and the second shift saturation path disappears. |
+| Direct scalar argument delivery | 781 → **757** (`keyState` 269 → 257, `joystickState` 130 → 118) | Selected. A single-read byte stage is retargeted into the callee parameter home and the delivery pair disappears. The retargeted store carries the call span, so the preserved-guard proof keeps the caller's local bounds. Main stays excluded until the typed-pointer caller window accepts the same shape. |
 | Direct raw argument delivery ([#135](https://github.com/blendsdk/blend65/issues/135)) | 863 → 857 at the pre-mixed frontier | Not landed. The remaining `keyState`/`joystickState` argument stores still duplicate a private temporary and the ABI slot. |
 | Branch inversion over an empty jump trampoline | One safe site, 3 bytes | Too small for a new CFG rule. |
 
-The next bounded unit is `keyState` value materialization (+48): the entry
-`ordinal` copy, the row/column homes, the residual store/reload pairs and the
-`soleGroundSource` argument stores. Two observer windows must grow with the
-rule: the typed-read caller prefix and the byte-window producer/copy template
-currently require the canonical stage/delivery sequence. `snapshotCompatible`
-(+13) follows. No limit, oracle, or source rule changes.
+The next bounded unit is `keyState` value materialization (+36): the entry
+`ordinal` copy, the row/column homes and the residual store/reload pairs.
+`snapshotCompatible` (+13) follows. Extending the same delivery rule to `main`
+is worth about 10 bytes but needs the typed-pointer caller window to accept the
+retargeted key/joystick stores. No limit, oracle, or source rule changes.
 
 ### Step 2.3: Saved measurement and gate
 
