@@ -105,6 +105,38 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 - [ ] 2.2.3 Implement caller-owned aggregate/global return and copy-elision rules for the saved fixture — `storage/selection.ts`, `machine/optimization-rules.ts`
 - [~] 2.2.4 Integrate saved rule obligations with final observers; preserve canonical fallback — `services/size-observers.ts`, `services/size-observer-*` ⏳ (implemented: 2026-11-03 01:40; size reference now runs the same cleanup pipeline as every candidate, the LowByte direct-global argument path accepts one proved copy-forward reload, cleanup removes reference-proved dead temporary stores from every layout through one stable fact rather than layout-local liveness, and the raw observer authenticates the proved `raw-indexed` recipe against the exact source index byte and single nonwrapping envelope)
 
+#### Measured frontier (2026-11-03)
+
+The saved candidate is `closed:low-byte:compact-looped` at **863 bytes**. The
+remaining **138-byte** gap is concentrated in source-value materialization and
+loop layout, not in one missing instruction rule:
+
+| Owner | Ours | Expert | Gap |
+|---|---:|---:|---:|
+| `c64.input.keyState` | 289 | 221 | +68 |
+| `c64.input.snapshotCompatible` | 184 | 142 | +42 |
+| `Game.main` | 112 | 78 | +34 |
+| `c64.input.soleGroundSource` | 36 | 32 | +4 |
+| `c64.input.joystickState` | 139 | 138 | +1 |
+| startup | 91 | 102 | −11 |
+
+Levers measured this session; none is landed because each fails a proof or is
+too small to justify a new rule:
+
+| Lever | Measured effect | Disposition |
+|---|---|---|
+| Direct raw argument delivery ([#135](https://github.com/blendsdk/blend65/issues/135)) | 863 → 857, `Game.main` 112 → 106 with observers bypassed | Not landed. The LowByte composed-call proof requires one contiguous call suffix; an early delivered store scatters the candidate's call-span items, and in-place operand changes are outside the existing `unchanged` model. |
+| Per-loop register counters | `y-first` libraries: `snapshotCompatible` 184 → 155, `keyState` 289 → 282; one global `y-first` policy makes `Game.main` 112 → 159. Combining per-function choices is worth about **36 bytes**. | Not selectable today: the loop policy is global and the composition/selected-loop observers assume one policy. Needs per-function policy proof, not a benchmark special case. |
+| Branch inversion over an empty jump trampoline | One safe site, 3 bytes | Too small for a new CFG rule. |
+| Bottom-tested loop layout (move the header after the update so both jumps fall through) | About 6 bytes per affected loop | Requires a selected-loop block-layout proof extension; not started. |
+| First-test elision without reordering | No byte change | The header remains on the backedge; the current elision only redirects the preheader. |
+
+The next bounded unit is a block-local byte value/register plan that removes
+source-value homes and keeps a value live across A-preserving instructions,
+together with the composed-call early-delivery proof. That is larger than a
+peephole and must keep the canonical fallback and every existing observer
+obligation. No limit, oracle, or source rule changes.
+
 ### Step 2.3: Saved measurement and gate
 
 - [ ] 2.3.1 Measure saved 725 on four profiles, complete accounting, behavior and native cases — four-profile VICE
