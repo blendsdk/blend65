@@ -68,6 +68,7 @@ export type RuleValidation =
 
 /** The only rule identities admitted by the foundation pipeline. */
 export const FOUNDATION_RULE_IDS: readonly string[] = Object.freeze([
+  "cleanup.argument-delivery",
   "cleanup.copy-forward",
   "cleanup.dead-store",
   "cleanup.dead-instruction",

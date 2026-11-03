@@ -3,6 +3,7 @@ import type { SourceSpan } from "../project/types.js";
 import type { SemanticFunction } from "../semantic/operations.js";
 import type { MachineFunction, MachineInstruction, MachineProgram } from "./machine-types.js";
 import type { OptimizationFacts } from "./optimization-facts.js";
+import { argumentDelivery } from "./optimization-argument-delivery.js";
 import type { AppliedRule, RuleObligation, RuleSite } from "./optimization-rules.js";
 
 /** Machine registers which can carry one stored source byte. */
@@ -62,7 +63,7 @@ const DEAD_SAFE = new Set([
 ]);
 
 /** Instructions whose storage operand reads the addressed bytes. */
-const READS_STORAGE = new Set([
+export const READS_STORAGE = new Set([
   "lda",
   "ldx",
   "ldy",
@@ -536,7 +537,8 @@ export function applyFoundationCleanup(
       semanticByKey.has(bindingIdentityKey(fn.sourceFunction)) &&
       mainline(fn),
   );
-  const forward = copyForward(program, eligible, semanticFor);
+  const delivery = argumentDelivery(facts, eligible, semanticFor);
+  const forward = copyForward(program, delivery.functions, semanticFor);
   const stores = deadStore(facts, program, forward.functions, semanticFor);
   const dead = deadInstruction(stores.functions, semanticFor);
   const empty = emptyBlock(dead.functions, semanticFor);
@@ -544,6 +546,7 @@ export function applyFoundationCleanup(
   return Object.freeze({
     functions: Object.freeze(program.functions.map((fn) => selected.get(fn.id) ?? fn)),
     applied: mergeAppliedRules([
+      ...delivery.applied,
       ...forward.applied,
       ...stores.applied,
       ...dead.applied,
