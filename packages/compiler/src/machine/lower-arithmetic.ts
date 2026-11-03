@@ -22,7 +22,7 @@ function serveableOrdinalIndex(value: LoweredValue): boolean {
   return (
     index.kind === "storage" ||
     index.kind === "constant" ||
-    (index.kind === "register" && index.registers === "a")
+    (index.kind === "register" && (index.registers === "a" || index.registers === "x"))
   );
 }
 

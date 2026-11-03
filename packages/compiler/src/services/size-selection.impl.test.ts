@@ -186,7 +186,14 @@ function main():void{let target:fn():byte=peek($C110)!=0?&left:&right;poke($C100
     expect(bindMachineProgram(lowered.program, closed.certificate).kind).toBe("complete");
   });
 
-  it.each(["low-byte", "x-first", "y-first", "flat-eight-x-first", "flat-eight-y-first"] as const)(
+  it.each([
+    "low-byte",
+    "x-first",
+    "y-first",
+    "flat-eight-x-first",
+    "flat-eight-y-first",
+    "mixed",
+  ] as const)(
     "should preserve exact source counter and complement recipes under %s without homes",
     (policy) => {
       const fixture =
@@ -411,7 +418,7 @@ function main():void{answer=pair();poke($C100,read(answer));}`);
     expect(bindMachineProgram(lowered.program, closed.certificate).kind).toBe("complete");
   });
 
-  it.each(["low-byte", "x-first", "y-first", "flat-eight-x-first"] as const)(
+  it.each(["low-byte", "x-first", "y-first", "flat-eight-x-first", "mixed"] as const)(
     "should omit only the explicitly replaced counter under %s",
     (policy) => {
       const limit = policy.startsWith("flat-eight") ? 8 : 4;

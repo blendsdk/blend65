@@ -151,7 +151,8 @@ export type FixedLoopPolicy =
   | "x-first"
   | "y-first"
   | "flat-eight-x-first"
-  | "flat-eight-y-first";
+  | "flat-eight-y-first"
+  | "mixed";
 
 /** One emitted occurrence still belongs to the same checked source block and values. */
 export interface FixedLoopOccurrence {

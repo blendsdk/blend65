@@ -101,6 +101,7 @@ export function prepareFixedLoops(
       "y-first",
       "flat-eight-x-first",
       "flat-eight-y-first",
+      "mixed",
     ].includes(policy)
   )
     throw loweringFailure("Unknown fixed-loop construction policy", owner.span);
@@ -261,7 +262,7 @@ export function prepareFixedCounterStorage(
     runtime.registers.set(loop, register);
   for (const loop of runtime.counterFacts) {
     const register = runtime.registers.get(loop) ?? null;
-    if (runtime.policy !== "low-byte" && register === null) continue;
+    if (runtime.policy !== "low-byte" && runtime.policy !== "mixed" && register === null) continue;
     const original = loweredPlace(loop.initialization.place, 2, false, state);
     if (original.kind !== "storage")
       throw loweringFailure("Fixed counter has no source function home", loop.initialization.span);

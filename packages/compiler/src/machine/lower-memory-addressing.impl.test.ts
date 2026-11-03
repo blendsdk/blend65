@@ -214,6 +214,31 @@ describe("proved ordinal-address byte reads", () => {
     });
   });
 
+  it("should keep an X-held ordinal index in place without reloading it", () => {
+    const index: LoweredValue = { kind: "register", registers: "x", bytes: 1, signed: false };
+    const loaded = lowerMemoryRead(read(1), ordinalContext(index));
+    expect(loaded.map(({ opcode }) => opcode)).toEqual(["lda"]);
+    expect(loaded[0]!.mode).toBe("absolute-x");
+    expect(loaded[0]!.operand).toEqual({ kind: "absolute", value: 0xc110 });
+    expect(loaded[0]!.memory).toEqual([
+      {
+        kind: "read",
+        address: { kind: "absolute", value: 0xc110 },
+        width: 1,
+        volatile: true,
+        order: 0,
+      },
+    ]);
+    expect(loaded[0]!.observerOrigins?.[0]).toMatchObject({
+      kind: "raw",
+      recipe: "raw-indexed",
+      position: 0,
+      length: 1,
+      byte: 0,
+      addressInput: index,
+    });
+  });
+
   it("should take an immediate index or a live accumulator index without loading memory", () => {
     const immediate = lowerMemoryRead(
       read(1),

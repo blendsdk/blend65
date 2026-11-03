@@ -298,7 +298,7 @@ function eligible(input: FinalObserverInput, proof: FixedCounterProof): boolean 
       ? facts.loopPolicy !== "low-byte" ||
         proof.requestId === null ||
         proof.firstTestElided !== false
-      : !["x-first", "y-first", "flat-eight-x-first", "flat-eight-y-first"].includes(
+      : !["x-first", "y-first", "flat-eight-x-first", "flat-eight-y-first", "mixed"].includes(
           facts.loopPolicy ?? "",
         ) ||
         proof.requestId !== null ||

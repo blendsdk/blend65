@@ -545,7 +545,15 @@ export function sizeSelectionPlans(input: SizeSelectionInput): Iterable<SizeSele
   const loopPolicies: readonly FixedLoopPolicy[] =
     prepared.loops.length === 0
       ? ["original"]
-      : ["original", "low-byte", "x-first", "y-first", "flat-eight-x-first", "flat-eight-y-first"];
+      : [
+          "original",
+          "low-byte",
+          "x-first",
+          "y-first",
+          "flat-eight-x-first",
+          "flat-eight-y-first",
+          "mixed",
+        ];
   const startupPolicies: readonly C64StartupPolicy[] = prepared.displayIndependent
     ? ["full", "compact-unrolled", "compact-looped"]
     : ["full"];

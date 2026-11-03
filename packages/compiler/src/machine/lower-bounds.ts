@@ -84,7 +84,18 @@ export function selectFixedCounterRegisters(
     );
   for (const loop of facts) {
     const register = result.get(loop);
-    let safe = register !== undefined;
+    /** The raw absolute read needs the dedicated ordinal-addressing proof. */
+    const ordinalRawRead = loop.body.operations.some((operation) => {
+      if (
+        operation.kind !== "load" ||
+        operation.place.path.length !== 0 ||
+        bindingIdentityKey(operation.place.root) !== bindingIdentityKey(loop.counter)
+      )
+        return false;
+      const uses = state.fixedLoops?.consumers.get(operation.result) ?? [];
+      return uses.some((use) => use?.kind === "binary" && state.ordinalRawReads?.has(use.result));
+    });
+    let safe = register !== undefined && !ordinalRawRead;
     if (register === undefined) {
       failed.add(outermost(loop));
       continue;

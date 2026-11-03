@@ -100,7 +100,7 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 
 **Reference**: [03-02](03-02-rules-and-obligations.md) §Rule Catalogue; RD-08 R8.14–R8.23.
 
-- [~] 2.2.1 Implement selected-loop X/Y/FlatEight and LowByte/complement composition with per-rule obligations — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-02 10:35; LowByte composition selects an 887-byte saved candidate; X/Y/FlatEight remain rejected by the selected-loop whole-function gate)
+- [~] 2.2.1 Implement selected-loop X/Y/FlatEight and LowByte/complement composition with per-rule obligations — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-03 12:40; LowByte composition selects the saved candidate. The new `mixed` policy lowers per-loop register counters with a proved byte fallback and reaches 827 bytes with observers bypassed — `Game.main` 112, `keyState` 282, `snapshotCompatible` 155 — after X-held ordinal raw reads no longer reload the counter. The candidate is still rejected by the selected-loop proof for the outer `snapshotCompatible` body region, so no selected output or limit changes yet)
 - [~] 2.2.2 Implement typed store, loop residual, register/flag/word forwarding and address-form rules — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-03 01:40; size mode now prefers byte local, parameter and low-read homes plus non-entry fixed counters in zero page, matching the expert 14-byte budget. A proved `constantBase + unsignedByteIndex` raw read consumed only by its next read lowers to `ldx index; lda base,x` with no address temporary, taking the saved candidate 887→863 bytes and zeroPage 14→12; declared-word and call-staging homes stay in RAM. Dead private temporary stores are removed from the canonical reference and every admitted tuple through one shared dead-home set)
 - [ ] 2.2.3 Implement caller-owned aggregate/global return and copy-elision rules for the saved fixture — `storage/selection.ts`, `machine/optimization-rules.ts`
 - [~] 2.2.4 Integrate saved rule obligations with final observers; preserve canonical fallback — `services/size-observers.ts`, `services/size-observer-*` ⏳ (implemented: 2026-11-03 01:40; size reference now runs the same cleanup pipeline as every candidate, the LowByte direct-global argument path accepts one proved copy-forward reload, cleanup removes reference-proved dead temporary stores from every layout through one stable fact rather than layout-local liveness, and the raw observer authenticates the proved `raw-indexed` recipe against the exact source index byte and single nonwrapping envelope)
@@ -126,16 +126,22 @@ too small to justify a new rule:
 | Lever | Measured effect | Disposition |
 |---|---|---|
 | Direct raw argument delivery ([#135](https://github.com/blendsdk/blend65/issues/135)) | 863 → 857, `Game.main` 112 → 106 with observers bypassed | Not landed. The LowByte composed-call proof requires one contiguous call suffix; an early delivered store scatters the candidate's call-span items, and in-place operand changes are outside the existing `unchanged` model. |
+| Mixed per-loop register/byte policy | 863 → **827** with observers bypassed: `Game.main` 112 (byte copy loop), `keyState` 282, `snapshotCompatible` 155; `none` identity unchanged | Lowering landed behind the explicit `mixed` plan; the selected-loop proof still rejects the outer `snapshotCompatible` body region and its continuation. Not selected until that proof closes. |
 | Per-loop register counters | `y-first` libraries: `snapshotCompatible` 184 → 155, `keyState` 289 → 282; one global `y-first` policy makes `Game.main` 112 → 159. Combining per-function choices is worth about **36 bytes**. | Not selectable today: the loop policy is global and the composition/selected-loop observers assume one policy. Needs per-function policy proof, not a benchmark special case. |
 | Branch inversion over an empty jump trampoline | One safe site, 3 bytes | Too small for a new CFG rule. |
 | Bottom-tested loop layout (move the header after the update so both jumps fall through) | About 6 bytes per affected loop | Requires a selected-loop block-layout proof extension; not started. |
 | First-test elision without reordering | No byte change | The header remains on the backedge; the current elision only redirects the preheader. |
 
-The next bounded unit is a block-local byte value/register plan that removes
-source-value homes and keeps a value live across A-preserving instructions,
-together with the composed-call early-delivery proof. That is larger than a
-peephole and must keep the canonical fallback and every existing observer
-obligation. No limit, oracle, or source rule changes.
+The lowering half of the mixed policy is in place. The next bounded unit is the
+per-loop **body-region and continuation** proof: map the five loop roles inside
+a larger function, treat nested body blocks as one region with no exit except
+the update/return edges, prove the changed counter register and flags are killed
+on the continuation, and preserve the existing five-role proof for straight
+loops. A separate follow-up makes `Game.main`'s copy loop the exact bottom-tested
+expert form (no initial test, no `clv`, `cpx`/`bne` at the update); the current
+mixed lowering uses the correct register-served body but not that final layout.
+The composed-call early-delivery proof from #135 is independent and can follow.
+No limit, oracle, or source rule changes.
 
 ### Step 2.3: Saved measurement and gate
 

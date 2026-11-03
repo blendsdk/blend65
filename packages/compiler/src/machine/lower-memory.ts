@@ -157,7 +157,9 @@ export function lowerMemoryRead(
       throw new Error("Proved ordinal raw address is only selected for byte reads");
     const index = address.index.kind === "zero-extended" ? address.index.low : address.index;
     const instructions: MachineInstruction[] = [];
-    if (index.kind === "register" && index.registers === "a") {
+    if (index.kind === "register" && index.registers === "x") {
+      // The proved fixed counter already holds this exact ordinal in X.
+    } else if (index.kind === "register" && index.registers === "a") {
       instructions.push(
         machineInstruction(context.cpu, "tax", "implied", null, [], operation.span),
       );

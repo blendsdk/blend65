@@ -68,6 +68,17 @@ export function byteComplementNoCode(
   return { noCode, addressValues };
 }
 
+/** Whether a held counter read is the exact index of its next proved raw absolute read. */
+function ordinalRawIndexUse(value: string, state: FunctionLoweringState): boolean {
+  const uses = state.fixedLoops?.consumers.get(value);
+  const target = uses?.length === 1 ? uses[0] : undefined;
+  return (
+    target?.kind === "binary" &&
+    target.operator === "+" &&
+    state.ordinalRawReads?.get(target.result)?.index === value
+  );
+}
+
 /** A transferred counter may stay in A only through this exact code-free conversion/use chain. */
 function immediateCounterUse(
   operation: Extract<SemanticOperation, { readonly kind: "load" }>,
@@ -243,6 +254,11 @@ export function lowerFixedCounterRead(
         )
           state.forwardedRegisterValues.add(target.value);
       }
+    } else if (!staged && counter.register === "x" && ordinalRawIndexUse(operation.result, state)) {
+      // The native absolute-X read consumes this exact ordinal from X; no
+      // snapshot or transfer is needed and the counter stays live.
+      state.forwardedRegisterValues.add(operation.result);
+      low = Object.freeze({ kind: "register", registers: "x", bytes: 1, signed: false });
     } else if (!staged && immediateCounterUse(operation, state, index)) {
       state.forwardedRegisterValues.add(operation.result);
       let current = operation.result;
