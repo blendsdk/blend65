@@ -16,6 +16,16 @@ import {
   typeBytes,
 } from "./lower-state.js";
 
+/** A byte index the native indexed read can load directly into X. */
+function serveableOrdinalIndex(value: LoweredValue): boolean {
+  const index = value.kind === "zero-extended" ? value.low : value;
+  return (
+    index.kind === "storage" ||
+    index.kind === "constant" ||
+    (index.kind === "register" && index.registers === "a")
+  );
+}
+
 /** Lower wrapping add/subtract with explicit carry ownership and low-to-high order. */
 export function lowerArithmetic(
   operation: Extract<SemanticOperation, { readonly kind: "binary" }>,
@@ -25,6 +35,22 @@ export function lowerArithmetic(
 ): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
   const subtract = operation.operator === "-";
   const opcode = subtract ? "sbc" : "adc";
+  const ordinal = subtract ? undefined : state.ordinalRawReads?.get(operation.result);
+  const ordinalIndex = ordinal === undefined ? undefined : state.values.get(ordinal.index);
+  if (ordinal !== undefined && ordinalIndex !== undefined && serveableOrdinalIndex(ordinalIndex)) {
+    // The sole next raw read consumes this proved address directly. Emitting
+    // no addition and no temporary word keeps the native indexed form free.
+    return Object.freeze({
+      instructions: Object.freeze([]),
+      result: Object.freeze({
+        kind: "ordinal-address",
+        base: ordinal.base,
+        index: ordinalIndex,
+        bytes: 2,
+        signed: false,
+      }),
+    });
+  }
   const instructions: MachineInstruction[] = [];
   appendLoadA(instructions, left, 0, state, operation.span);
   instructions.push(

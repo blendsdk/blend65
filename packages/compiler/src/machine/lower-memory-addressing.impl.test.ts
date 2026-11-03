@@ -154,3 +154,93 @@ describe("fixed-address byte selection", () => {
     ]);
   });
 });
+
+/** One proved `constant + byte index` address with no allocated word temporary. */
+function ordinalContext(
+  index: LoweredValue,
+  options: { base?: number; observerEvidence?: boolean } = {},
+): RawMemoryLoweringContext {
+  return {
+    cpu: selectedProfile().cpu,
+    owner: sourceBinding(0),
+    values: new Map<string, LoweredValue>([
+      [
+        "address",
+        {
+          kind: "ordinal-address",
+          base: options.base ?? 0xc110,
+          index,
+          bytes: 2,
+          signed: false,
+        },
+      ],
+    ]),
+    pointerRequest: () => {
+      throw new Error("Ordinal address requested pointer storage");
+    },
+    ...(options.observerEvidence === false ? {} : { observerEvidence: true }),
+  };
+}
+
+describe("proved ordinal-address byte reads", () => {
+  it("should load the retained byte home into X and use one absolute,X read", () => {
+    const index: LoweredValue = { kind: "storage", requestId: "counter", bytes: 1 };
+    const loaded = lowerMemoryRead(read(1), ordinalContext(index));
+    expect(loaded.map(({ opcode }) => opcode)).toEqual(["ldx", "lda"]);
+    expect(loaded.map(({ mode }) => mode)).toEqual(["storage", "absolute-x"]);
+    expect(loaded[1]!.operand).toEqual({ kind: "absolute", value: 0xc110 });
+    expect(loaded.flatMap(({ memory }) => memory)).toEqual([
+      {
+        kind: "read",
+        address: { kind: "absolute", value: 0xc110 },
+        width: 1,
+        volatile: true,
+        order: 0,
+      },
+    ]);
+    expect(loaded[1]!.observerOrigins?.[0]).toMatchObject({
+      kind: "raw",
+      recipe: "raw-indexed",
+      position: 1,
+      length: 2,
+      byte: 0,
+      addressInput: index,
+    });
+    expect(loaded[0]!.observerOrigins?.[0]).toMatchObject({
+      recipe: "raw-indexed",
+      position: 0,
+      byte: null,
+      addressInput: index,
+    });
+  });
+
+  it("should take an immediate index or a live accumulator index without loading memory", () => {
+    const immediate = lowerMemoryRead(
+      read(1),
+      ordinalContext({ kind: "constant", value: 3, bytes: 1 }),
+    );
+    expect(immediate.map(({ opcode }) => opcode)).toEqual(["ldx", "lda"]);
+    expect(immediate[0]!.operand).toEqual({ kind: "immediate", value: 3 });
+
+    const accumulator = lowerMemoryRead(
+      read(1),
+      ordinalContext({ kind: "register", registers: "a", bytes: 1 }),
+    );
+    expect(accumulator.map(({ opcode }) => opcode)).toEqual(["tax", "lda"]);
+    expect(accumulator[1]!.mode).toBe("absolute-x");
+  });
+
+  it("should leave the canonical sequence free of observer associations", () => {
+    const index: LoweredValue = { kind: "storage", requestId: "counter", bytes: 1 };
+    const loaded = lowerMemoryRead(read(1), ordinalContext(index, { observerEvidence: false }));
+    expect(loaded.map(({ opcode }) => opcode)).toEqual(["ldx", "lda"]);
+    expect(loaded.every(({ observerOrigins }) => observerOrigins === undefined)).toBe(true);
+  });
+
+  it("should reject a word read because the rule only proves one byte", () => {
+    const index: LoweredValue = { kind: "storage", requestId: "counter", bytes: 1 };
+    expect(() => lowerMemoryRead(read(2), ordinalContext(index))).toThrow(
+      "Proved ordinal raw address is only selected for byte reads",
+    );
+  });
+});

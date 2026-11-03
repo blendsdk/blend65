@@ -104,6 +104,8 @@ export function selectRegisterForwarding(
   readonly forwardedRegisterValues: ReadonlySet<string>;
   /** Nonwrapping additions consumed only by their next stride-one indexed access. */
   readonly byteOrdinalAdditions: ReadonlySet<string>;
+  /** Proved `constant + byte index` addresses consumed only by their next raw read. */
+  readonly ordinalRawReads: ReadonlyMap<string, { readonly base: number; readonly index: string }>;
   /** Word decimal results constructed directly in their final fixed-address destination. */
   readonly directBcdWrites: ReadonlyMap<string, MemoryWriteOperation>;
   /** Second byte operands read into X to preserve the first operand in A. */
@@ -159,6 +161,7 @@ export function selectRegisterForwarding(
     block.operations[nextMachineOperationIndex(block, index)];
   const forwardedRegisterValues = new Set<string>();
   const byteOrdinalAdditions = new Set<string>();
+  const ordinalRawReads = new Map<string, { readonly base: number; readonly index: string }>();
   const directBcdWrites = new Map<string, MemoryWriteOperation>();
   const subtractRightInX = new Set<string>();
   const wordAddLeftHighInY = new Set<string>();
@@ -244,6 +247,45 @@ export function selectRegisterForwarding(
             // No guard, read, write or call can intervene in the adjacency window.
             byteOrdinalAdditions.add(producer.result);
             forwardedRegisterValues.add(producer.result);
+          }
+        }
+      }
+      if (
+        producer.kind === "binary" &&
+        producer.operator === "+" &&
+        producer.integer?.width === 16 &&
+        producer.integer.signed === false &&
+        singleUseValues.has(producer.result)
+      ) {
+        const consumer = nextMachineOperation(block, index);
+        if (
+          consumer?.kind === "memory-read" &&
+          consumer.width === 1 &&
+          consumer.address === producer.result
+        ) {
+          for (const [baseValue, indexValue] of [
+            [producer.left, producer.right],
+            [producer.right, producer.left],
+          ] as const) {
+            const base = literals.get(baseValue);
+            const maximum = ordinalBounds.get(consumer)?.get(indexValue);
+            if (
+              base !== undefined &&
+              base >= 0x0400n &&
+              base <= 0xffffn &&
+              maximum !== undefined &&
+              maximum >= 0n &&
+              maximum <= 255n &&
+              base + maximum <= 0xcfffn
+            ) {
+              // Ordinary RAM only: the indexed form annotates its anchor byte
+              // and must never stand in for an unproved device access.
+              ordinalRawReads.set(producer.result, {
+                base: Number(base),
+                index: indexValue,
+              });
+              break;
+            }
           }
         }
       }
@@ -665,6 +707,7 @@ export function selectRegisterForwarding(
   return {
     forwardedRegisterValues,
     byteOrdinalAdditions,
+    ordinalRawReads,
     directBcdWrites,
     subtractRightInX,
     wordAddLeftHighInY,

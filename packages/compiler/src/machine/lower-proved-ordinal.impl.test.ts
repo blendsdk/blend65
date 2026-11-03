@@ -178,3 +178,68 @@ describe("proved adjacent ordinal selection", () => {
     expect(requests.find(({ id }) => id.includes("arithmetic:offset"))).toMatchObject({ bytes: 2 });
   });
 });
+
+/** One proved byte read through `constantBase + boundedIndex`. */
+const rawRead: Extract<SemanticOperation, { readonly kind: "memory-read" }> = {
+  kind: "memory-read",
+  result: "raw",
+  address: "address",
+  width: 1,
+  byteOrder: "low-first",
+  volatile: true,
+  type: BYTE,
+  integer: null,
+  span,
+};
+const baseLiteral: Extract<SemanticOperation, { readonly kind: "constant" }> = {
+  ...literal,
+  result: "base",
+  value: 0xc110n,
+};
+/** Select the ordinal raw-read fact for one exact address addition. */
+function selectRawRead(
+  maximum: bigint | null = 7n,
+  singleUse = true,
+  read: Extract<SemanticOperation, { readonly kind: "memory-read" }> = rawRead,
+  base = baseLiteral,
+  between = false,
+) {
+  const sum = { ...addition, result: "address", left: "base", right: "index" };
+  const operations: SemanticOperation[] = [base, sum];
+  if (between) operations.push({ kind: "cpu-control", control: "asm_nop", span });
+  operations.push(read);
+  return selectRegisterForwarding(
+    [semanticBlock("entry", operations, { kind: "return", value: "raw" })],
+    new Set(singleUse ? ["address"] : []),
+    new Map([[read, new Map<string, bigint>(maximum === null ? [] : [["index", maximum]])]]),
+  );
+}
+
+describe("proved ordinal raw addresses", () => {
+  it("selects only a fixed ordinary-RAM base plus one bounded byte index", () => {
+    expect(selectRawRead().ordinalRawReads.get("address")).toEqual({
+      base: 0xc110,
+      index: "index",
+    });
+  });
+
+  it.each([
+    ["an unknown bound", null],
+    ["a bound above one byte", 256n],
+    ["a negative bound", -1n],
+  ])("rejects %s", (_name, maximum) => {
+    expect(selectRawRead(maximum).ordinalRawReads.size).toBe(0);
+  });
+
+  it("rejects an unshared address, a word read, a device base and a wrapping envelope", () => {
+    expect(selectRawRead(7n, false).ordinalRawReads.size).toBe(0);
+    expect(selectRawRead(7n, true, { ...rawRead, width: 2 }).ordinalRawReads.size).toBe(0);
+    expect(
+      selectRawRead(7n, true, rawRead, { ...baseLiteral, value: 0x300n }).ordinalRawReads.size,
+    ).toBe(0);
+    expect(
+      selectRawRead(7n, true, rawRead, { ...baseLiteral, value: 0xcffan }).ordinalRawReads.size,
+    ).toBe(0);
+    expect(selectRawRead(7n, true, rawRead, baseLiteral, true).ordinalRawReads.size).toBe(0);
+  });
+});

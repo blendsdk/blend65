@@ -99,10 +99,18 @@ export function lowerFunction(
     complements === undefined
       ? undefined
       : byteComplementNoCode(complements, input.placement, blocks, input.logicalStorage);
-  const ordinalBounds = ordinalBoundsForFunction(blocks, input, fixedLoops.counterFacts);
+  const loopFacts =
+    input.optimizationFacts === undefined
+      ? []
+      : (sourceFacts?.loops ??
+        (sourceFunction === undefined
+          ? []
+          : (input.optimizationFacts.functions.get(sourceFunction)?.loops ?? [])));
+  const ordinalBounds = ordinalBoundsForFunction(blocks, input, fixedLoops.counterFacts, loopFacts);
   const {
     forwardedRegisterValues,
     byteOrdinalAdditions,
+    ordinalRawReads,
     directBcdWrites,
     subtractRightInX,
     wordAddLeftHighInY,
@@ -140,6 +148,9 @@ export function lowerFunction(
     materializedValues,
     forwardedRegisterValues: new Set(forwardedRegisterValues),
     byteOrdinalAdditions,
+    ...(input.observerEvidence === true && input.optimizationFacts !== undefined
+      ? { ordinalRawReads }
+      : {}),
     directBcdWrites,
     subtractRightInX,
     wordAddLeftHighInY,

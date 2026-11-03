@@ -231,6 +231,52 @@ function rawPointer(
   return home.address;
 }
 
+/** Check the proved byte-index load and its native `absolute,X` access before decoding. */
+function rawIndexed(
+  sequence: readonly MachineInstruction[],
+  origin: MachineObserverOrigin,
+  homes: ReadonlyMap<string, StorageHome>,
+): number | ResidualFailure {
+  const span = origin.operation.span;
+  const input = origin.addressInput;
+  if (input === undefined)
+    return failure("rejected", "Raw indexed read has no retained index representation", span);
+  const index = input.kind === "zero-extended" ? input.low : input;
+  const load = sequence[0];
+  const access = sequence[1];
+  if (sequence.length !== 2)
+    return failure(
+      "error",
+      "Raw indexed read is not one index load and one absolute-X access",
+      span,
+    );
+  if (
+    access?.opcode !== "lda" ||
+    access.mode !== "absolute-x" ||
+    access.operand?.kind !== "absolute"
+  )
+    return failure("error", "Raw indexed read does not end in one native indexed load", span);
+  if (
+    load?.opcode !== "ldx" ||
+    load.mode !== modeForValue(index, 0) ||
+    JSON.stringify(load.operand) !== JSON.stringify(operandForValue(index, 0))
+  )
+    return failure("error", "Raw indexed read does not load its proved source index", span);
+  if (index.kind === "storage") {
+    const home = homes.get(index.requestId);
+    if (
+      (index.offset ?? 0) !== 0 ||
+      home === undefined ||
+      home.bytes < 1 ||
+      !ordinaryRam({ start: home.address, end: home.address })
+    )
+      return failure("error", "Raw indexed read index is not a certified ordinary byte home", span);
+  } else if (index.kind !== "constant") {
+    return failure("rejected", "Raw indexed read index is not a retained byte value", span);
+  }
+  return access.operand.value;
+}
+
 /** A complete final layout and its exact code/data symbol origins. */
 function layoutLabels(
   program: MachineProgram,
@@ -291,6 +337,7 @@ export function checkLayout(
           }
   const homes = new Map(shared.certificate.certificate.homes.map((home) => [home.requestId, home]));
   const pointers = new Map<RawOperation, number>();
+  const indexedBases = new Map<RawOperation, number>();
   const data = shared.layout.intervals.filter(
     ({ kind }) =>
       kind === "sfa" ||
@@ -379,20 +426,43 @@ export function checkLayout(
               "Fixed raw encoding needs an exact source address",
               origin.operation.span,
             );
-          if (origin.recipe === "raw-indirect" && !pointers.has(site.operation)) {
-            if (
-              fn.executionContext?.domain !== "main" ||
-              fn.executionContext.activationRoot !== undefined
-            )
-              return failure(
-                "rejected",
-                "Raw address input requires an unambiguous main construction",
-                origin.operation.span,
-              );
-            const pointer = rawPointer(templates.get(site.operation) ?? [], origin, homes);
-            if (typeof pointer !== "number") return pointer;
-            pointers.set(site.operation, pointer);
-          } else if (origin.recipe !== "raw-fixed" && origin.recipe !== "raw-indirect")
+          if (origin.recipe === "raw-indexed") {
+            if (!indexedBases.has(site.operation)) {
+              if (
+                fn.executionContext?.domain !== "main" ||
+                fn.executionContext.activationRoot !== undefined
+              )
+                return failure(
+                  "rejected",
+                  "Raw indexed read requires an unambiguous main construction",
+                  origin.operation.span,
+                );
+              const base = rawIndexed(templates.get(site.operation) ?? [], origin, homes);
+              if (typeof base !== "number") return base;
+              if (site.ranges.length !== 1 || site.ranges[0]!.start !== base)
+                return failure(
+                  "rejected",
+                  "Raw indexed read needs one nonwrapping source envelope",
+                  origin.operation.span,
+                );
+              indexedBases.set(site.operation, base);
+            }
+          } else if (origin.recipe === "raw-indirect") {
+            if (!pointers.has(site.operation)) {
+              if (
+                fn.executionContext?.domain !== "main" ||
+                fn.executionContext.activationRoot !== undefined
+              )
+                return failure(
+                  "rejected",
+                  "Raw address input requires an unambiguous main construction",
+                  origin.operation.span,
+                );
+              const pointer = rawPointer(templates.get(site.operation) ?? [], origin, homes);
+              if (typeof pointer !== "number") return pointer;
+              pointers.set(site.operation, pointer);
+            }
+          } else if (origin.recipe !== "raw-fixed")
             return failure(
               "error",
               "Raw association has an invalid addressing recipe",
@@ -414,17 +484,25 @@ export function checkLayout(
           const sequence = positions.get(site.operation) ?? [];
           sequence.push(origin.position);
           positions.set(site.operation, sequence);
+          const indexedBase =
+            origin.recipe === "raw-indexed" ? indexedBases.get(site.operation) : undefined;
+          const indexRange =
+            origin.byte === null
+              ? undefined
+              : indexedBase !== undefined
+                ? { start: 0, end: site.ranges.at(-1)!.end - indexedBase }
+                : origin.recipe === "raw-indirect"
+                  ? { start: origin.byte, end: origin.byte }
+                  : undefined;
           const accesses = instructionAccessEnvelope({
             cpu: input.checked.profile.cpu,
             instruction,
             pc,
             labels,
             ...(origin.recipe === "raw-indirect" && origin.byte !== null
-              ? {
-                  pointees: site.ranges,
-                  index: { start: origin.byte, end: origin.byte },
-                }
+              ? { pointees: site.ranges }
               : {}),
+            ...(indexRange === undefined ? {} : { index: indexRange }),
           });
           if (accesses === null)
             return failure(
@@ -474,7 +552,11 @@ export function checkLayout(
               JSON.stringify(access.ranges) !== JSON.stringify(ranges) ||
               (origin.recipe === "raw-indirect" &&
                 (instruction.operand?.kind !== "absolute" ||
-                  instruction.operand.value !== pointers.get(site.operation)))
+                  instruction.operand.value !== pointers.get(site.operation))) ||
+              (origin.recipe === "raw-indexed" &&
+                (instruction.mode !== "absolute-x" ||
+                  instruction.operand?.kind !== "absolute" ||
+                  instruction.operand.value !== indexedBases.get(site.operation)))
             )
               return failure(
                 "error",

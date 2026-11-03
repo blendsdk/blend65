@@ -39,8 +39,14 @@ function observeRawSequence(
   context: RawMemoryLoweringContext,
 ): readonly MachineInstruction[] {
   if (!context.observerEvidence) return Object.freeze(sequence);
+  const address = context.values.get(operation.address);
   const recipe =
-    context.values.get(operation.address)?.kind === "constant" ? "raw-fixed" : "raw-indirect";
+    address?.kind === "constant"
+      ? "raw-fixed"
+      : address?.kind === "ordinal-address"
+        ? "raw-indexed"
+        : "raw-indirect";
+  const addressInput = address?.kind === "ordinal-address" ? address.index : address!;
   return Object.freeze(
     sequence.map((instruction, position) =>
       Object.freeze({
@@ -53,7 +59,7 @@ function observeRawSequence(
             position,
             length: sequence.length,
             byte: instruction.memory.find((effect) => effect.volatile)?.order ?? null,
-            addressInput: context.values.get(operation.address)!,
+            addressInput,
           }),
         ]),
       }),
@@ -145,6 +151,39 @@ export function lowerMemoryRead(
   const address = context.values.get(operation.address);
   if (address === undefined || address.kind === "register" || address.kind === "condition") {
     throw new Error("Raw-memory address has no stable lowered value");
+  }
+  if (address.kind === "ordinal-address") {
+    if (operation.width !== 1)
+      throw new Error("Proved ordinal raw address is only selected for byte reads");
+    const index = address.index.kind === "zero-extended" ? address.index.low : address.index;
+    const instructions: MachineInstruction[] = [];
+    if (index.kind === "register" && index.registers === "a") {
+      instructions.push(
+        machineInstruction(context.cpu, "tax", "implied", null, [], operation.span),
+      );
+    } else {
+      instructions.push(
+        machineInstruction(
+          context.cpu,
+          "ldx",
+          modeForValue(index),
+          operandForValue(index),
+          [],
+          operation.span,
+        ),
+      );
+    }
+    instructions.push(
+      machineInstruction(
+        context.cpu,
+        "lda",
+        "absolute-x",
+        Object.freeze({ kind: "absolute", value: address.base }),
+        [absoluteEffect("read", address.base, 0)],
+        operation.span,
+      ),
+    );
+    return observeRawSequence(instructions, operation, context);
   }
   if (address.kind === "constant") {
     const low = address.value & 0xffff;

@@ -354,10 +354,23 @@ export function ordinalBoundsForFunction(
   blocks: readonly SemanticBlock[],
   input: MachineLoweringInput,
   selectedLoops: readonly FixedLoopFacts[] = [],
+  sourceLoops: readonly FixedLoopFacts[] = [],
 ): ReadonlyMap<SemanticOperation, ReadonlyMap<string, bigint>> {
   const hasIndexedAccess = blocks.some((block) =>
     block.operations.some((operation) =>
       placeUses(operation).some(({ place }) => place.path.some(({ kind }) => kind === "index")),
+    ),
+  );
+  /**
+   * A single-byte raw access may be a proved `constant + ordinal` address.
+   * Its use-site bound must be derived here so the address can stay native
+   * instead of being computed into a temporary word.
+   */
+  const hasRawAddress = blocks.some((block) =>
+    block.operations.some(
+      (operation) =>
+        (operation.kind === "memory-read" || operation.kind === "memory-write") &&
+        operation.width === 1,
     ),
   );
   /** Wider-result shifts retain their existing full-count selection. */
@@ -367,7 +380,11 @@ export function ordinalBoundsForFunction(
     operation.kind === "binary" &&
     (operation.operator === "<<" || operation.operator === ">>") &&
     typeBytes(operation.type) === 1;
-  if (!hasIndexedAccess && !blocks.some(({ operations }) => operations.some(isByteShift)))
+  if (
+    !hasIndexedAccess &&
+    !hasRawAddress &&
+    !blocks.some(({ operations }) => operations.some(isByteShift))
+  )
     return new Map();
   const definitions = valueDefinitions(blocks);
   const literal = literalResolver(definitions);
@@ -375,6 +392,7 @@ export function ordinalBoundsForFunction(
   // solely because a function contains a compile-time shift expression.
   if (
     !hasIndexedAccess &&
+    !hasRawAddress &&
     !blocks.some(({ operations }) =>
       operations.some(
         (operation) => isByteShift(operation) && literal(operation.right) === undefined,
@@ -416,6 +434,13 @@ export function ordinalBoundsForFunction(
       const previous = loopBounds.get(value);
       if (previous === undefined || maximum < previous) loopBounds.set(value, maximum);
     }
+  /** Source-level loop maxima remain valid when a layout keeps the word counter. */
+  const sourceBounds = new Map<string, bigint>();
+  for (const loop of sourceLoops)
+    for (const [value, maximum] of loop.valueBounds) {
+      const previous = sourceBounds.get(value);
+      if (previous === undefined || maximum < previous) sourceBounds.set(value, maximum);
+    }
   /**
    * Both answers bound this exact value at its use. A general byte maximum from
    * a loop must not hide a tighter mask or dominating guard. Without loop facts,
@@ -441,6 +466,27 @@ export function ordinalBoundsForFunction(
             const maximum = maximumAt(operation, component.value);
             if (maximum !== undefined) ordinals.set(component.value, maximum);
           }
+      // A raw address keeps its byte ordinal's use-site bound, so the address
+      // form can be selected only for a proved unsigned index below 256.
+      if (
+        (operation.kind === "memory-read" || operation.kind === "memory-write") &&
+        operation.width === 1
+      ) {
+        const address = definitions.get(operation.address);
+        if (
+          address?.kind === "binary" &&
+          address.operator === "+" &&
+          address.integer?.width === 16 &&
+          address.integer.signed === false
+        )
+          for (const ordinal of [address.right, address.left]) {
+            const maximum = maximumAt(operation, ordinal) ?? sourceBounds.get(ordinal);
+            if (maximum !== undefined) {
+              ordinals.set(ordinal, maximum);
+              break;
+            }
+          }
+      }
       if (ordinals.size > 0) result.set(operation, ordinals);
     }
   return result;

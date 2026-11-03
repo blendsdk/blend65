@@ -2,7 +2,7 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-02 01:45
+> **Last Updated**: 2026-11-03
 > **Progress**: 16/41 tasks (39%)
 > **CodeOps Artifact Schema**: 1
 
@@ -101,9 +101,9 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 **Reference**: [03-02](03-02-rules-and-obligations.md) §Rule Catalogue; RD-08 R8.14–R8.23.
 
 - [~] 2.2.1 Implement selected-loop X/Y/FlatEight and LowByte/complement composition with per-rule obligations — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-02 10:35; LowByte composition selects an 887-byte saved candidate; X/Y/FlatEight remain rejected by the selected-loop whole-function gate)
-- [~] 2.2.2 Implement typed store, loop residual, register/flag/word forwarding and address-form rules — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-02 10:35; size mode now prefers byte local, parameter and low-read homes plus non-entry fixed counters in zero page, matching the expert 14-byte budget and cutting 147 bytes; declared-word and call-staging homes stay in RAM. Dead private temporary stores are removed from the canonical reference and every admitted tuple through one shared dead-home set)
+- [~] 2.2.2 Implement typed store, loop residual, register/flag/word forwarding and address-form rules — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-03 01:40; size mode now prefers byte local, parameter and low-read homes plus non-entry fixed counters in zero page, matching the expert 14-byte budget. A proved `constantBase + unsignedByteIndex` raw read consumed only by its next read lowers to `ldx index; lda base,x` with no address temporary, taking the saved candidate 887→863 bytes and zeroPage 14→12; declared-word and call-staging homes stay in RAM. Dead private temporary stores are removed from the canonical reference and every admitted tuple through one shared dead-home set)
 - [ ] 2.2.3 Implement caller-owned aggregate/global return and copy-elision rules for the saved fixture — `storage/selection.ts`, `machine/optimization-rules.ts`
-- [~] 2.2.4 Integrate saved rule obligations with final observers; preserve canonical fallback — `services/size-observers.ts`, `services/size-observer-*` ⏳ (implemented: 2026-11-02 10:05; size reference now runs the same cleanup pipeline as every candidate, and the LowByte direct-global argument path accepts one proved copy-forward reload, and cleanup removes reference-proved dead temporary stores from every layout through one stable fact rather than layout-local liveness)
+- [~] 2.2.4 Integrate saved rule obligations with final observers; preserve canonical fallback — `services/size-observers.ts`, `services/size-observer-*` ⏳ (implemented: 2026-11-03 01:40; size reference now runs the same cleanup pipeline as every candidate, the LowByte direct-global argument path accepts one proved copy-forward reload, cleanup removes reference-proved dead temporary stores from every layout through one stable fact rather than layout-local liveness, and the raw observer authenticates the proved `raw-indexed` recipe against the exact source index byte and single nonwrapping envelope)
 
 ### Step 2.3: Saved measurement and gate
 

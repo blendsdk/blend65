@@ -316,6 +316,7 @@ export interface MachineObserverOrigin {
   readonly recipe:
     | "raw-fixed"
     | "raw-indirect"
+    | "raw-indexed"
     | "platform"
     | "typed-fixed"
     | "typed-indexed"

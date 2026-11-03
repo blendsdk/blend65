@@ -64,6 +64,21 @@ export type LoweredValue =
       readonly signed: boolean;
     }
   | {
+      /**
+       * A proved `constantBase + unsignedByteIndex` address, retained instead of
+       * being computed into a temporary word.
+       *
+       * Only the volatile raw-memory read that owns this value may consume it: it
+       * emits the native `absolute,X` form. Every other consumer fails loudly in
+       * `modeForValue`, so this value can never be mistaken for the computed sum.
+       */
+      readonly kind: "ordinal-address";
+      readonly base: number;
+      readonly index: LoweredValue;
+      readonly bytes: number;
+      readonly signed: boolean;
+    }
+  | {
       readonly kind: "condition";
       readonly whenTrue: string;
       readonly usesFlag: "n" | "v" | "z" | "c";
