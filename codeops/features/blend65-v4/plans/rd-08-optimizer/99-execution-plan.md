@@ -100,24 +100,22 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 
 **Reference**: [03-02](03-02-rules-and-obligations.md) §Rule Catalogue; RD-08 R8.14–R8.23.
 
-- [x] 2.2.1 Implement selected-loop X/Y/FlatEight and LowByte/complement composition with per-rule obligations — `machine/optimization-rules.ts` ✅ (completed: 2026-11-03 18:40; the `mixed` policy now selects `closed:mixed:compact-looped` at **740 bytes** after the per-loop body-region, continuation and bottom-tested layout proofs. The proof maps the selected body inside a larger function, accounts for the canonical negative bounds expansion as unreachable, proves the held counter register dead at the normal exit, and keeps the canonical five-role proof for straight loops. `none` identity is unchanged)
+- [x] 2.2.1 Implement selected-loop X/Y/FlatEight and LowByte/complement composition with per-rule obligations — `machine/optimization-rules.ts` ✅ (completed: 2026-11-03 18:40; the `mixed` policy now selects `closed:mixed:compact-looped` at **739 bytes** after the per-loop body-region, continuation and bottom-tested layout proofs. The proof maps the selected body inside a larger function, accounts for the canonical negative bounds expansion as unreachable, proves the held counter register dead at the normal exit, and keeps the canonical five-role proof for straight loops. `none` identity is unchanged)
 - [~] 2.2.2 Implement typed store, loop residual, register/flag/word forwarding and address-form rules — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-03 18:40; size mode prefers byte local, parameter and low-read homes plus non-entry fixed counters in zero page. A proved `constantBase + unsignedByteIndex` raw read consumed only by its next read lowers to `ldx index; lda base,x` with no address temporary, and a held counter serves that read without reloading. The `mixed` plan promotes loop-body byte retained values to zero-page-preferred homes and now bottom-tests the proved register loop: preheader, body, update, header, exit; the update falls through, the header uses `bne`, and the redundant `clv` disappears. The exact `Game.main` copy loop is the expert 13-byte form `ldx #0; lda $C110,x; sta saved,x; inx; cpx #8; bne`, taking the selected saved candidate 803→**790** (Game.main 88, zeroPage 12, general 834). An unsigned byte/word/enum guard refinement is limited to observer-evidence size lowering, so `none` output is unchanged. Declared-word and call-staging homes stay in RAM. Dead private temporary stores are removed from the canonical reference and every admitted tuple through one shared dead-home set)
 - [ ] 2.2.3 Implement caller-owned aggregate/global return and copy-elision rules for the saved fixture — `storage/selection.ts`, `machine/optimization-rules.ts`
 - [x] 2.2.4 Integrate saved rule obligations with final observers; preserve canonical fallback — `services/size-observers.ts`, `services/size-observer-*` ✅ (completed: 2026-11-03 18:40; the mixed candidate passes the complete observer path. The field/byte-window correspondence accepts the reference-only negative bounds expansion, the held-counter read proves C/V continuations while the loop exit proves Y dead, the composition accounts for parent-derived initialization and the removed word-update scratch, and it accepts the bottom-tested preheader redirect, the C→Z test swap and the direct `bne` header only after proving the five exact edges and that the header is reachable only from the update. The same five-role and canonical fallback remain for every unproved tuple. The saved behavior, resource, accounting, no-copy and native cases plus all four register-served copy-loop cases pass; only the payload/RAM ceilings remain RED)
 
 #### Measured frontier (2026-11-03)
 
-The selected saved candidate is `closed:mixed:compact-looped` at **740 bytes**
-with zeroPage 13 (general 785, combined 798). The general ceiling counts code,
-the required 24 BSS bytes and SFA data together. With BSS fixed at 24, the code
-must reach **721** for `code + 24 <= 745`; combined then needs
-`general + zeroPage <= 759`, which 721 + 24 + 13 = 758 satisfies. The real
-code target is therefore **721**, i.e. **19 bytes** below the current 740, not
-the nominal 725.
+The selected saved candidate is `closed:mixed:compact-looped` at **739 bytes**
+with zeroPage 13 (general 784, combined 797). Because general counts code plus
+the required 24 BSS bytes, the binding code target is **721** (18 bytes below
+739): 721 + 24 = 745 general and 721 + 24 + 13 = 758 combined. The payload
+ceiling 725 is looser than this code target.
 
 | Owner | Ours | Expert | Gap |
 |---|---:|---:|---:|
-| `c64.input.keyState` | 242 | 221 | +21 |
+| `c64.input.keyState` | 241 | 221 | +20 |
 | `c64.input.snapshotCompatible` | 153 | 142 | +11 |
 | `Game.main` | 88 | 78 | +10 |
 | `c64.input.soleGroundSource` | 36 | 32 | +4 |
@@ -137,7 +135,7 @@ Landed and measured this session:
 | Residual local reload | 757 → **750** (`keyState` 257 → 250) | Selected in the mixed plan only. A private local stored by the previous instruction and reloaded as the block's last item before its branch keeps only the store. The reference keeps the reload for the byte-window producer proof; `unchanged` skips it only when the selected actually omits it. |
 | Parameter-copy propagation | 750 → **746** (`keyState` 250 → 246) | Selected in the mixed plan only. A local initialized from a never-written parameter redirects its direct byte reads to the parameter and removes the copy pair. The observer proves the single local store, the absent parameter store, the copy omission and each redirected read at the same source span. |
 | Forwarded byte-window producer | 746 → **740** (`keyState` 246 → 242, `snapshotCompatible` 155 → 153) | Selected. A local reload feeding an adjacent `cmp`/`cpx`/`cpy`/`eor` is removed when the store's producer defines A and N/Z. The byte-window proof accepts the copy-free producer window: the store address equals the compared home and the preceding producer supplies the byte. |
-| Row-register fold | 0 bytes (not landed) | The fold replaces a later `ldx row` with `tax` at the row store in both layouts, but the caller correspondence cannot yet align the inserted `tax` with the removed `ldx`. That needs a selected-side skip proof; the one-byte win did not justify the extra window, so it was reverted. |
+| Row-register fold | 740 → **739** (`keyState` 242 → 241; low-byte 821 → 817) | Selected. A later `ldx local` becomes `tax` at the store, with no call/X clobber between and dead reload N/Z. The correspondence proves the fold and `unchanged` skips the inserted `tax` with the removed reload; every size layout folds consistently. |
 | Unused stage reclamation | 0 bytes | Not selected. The unreferenced `argument-stage`/`retained-value` requests carry `payloadBytes 0`; removing them changes neither general nor combined RAM. The general gate is code-driven, not padding-driven. |
 | `main` scalar delivery | 0 bytes (not landed) | Blocked by the composed argument-suffix proof: the reference keeps `lda stage; sta parameter` items at the call span that the selected candidate moves to the argument span, so the suffix/immutable-root comparison and the typed-pointer caller trace disagree. Extending those two windows is a distinct unit. |
 | Direct raw argument delivery ([#135](https://github.com/blendsdk/blend65/issues/135)) | 863 → 857 at the pre-mixed frontier | Not landed. The remaining `keyState`/`joystickState` argument stores still duplicate a private temporary and the ABI slot. |
