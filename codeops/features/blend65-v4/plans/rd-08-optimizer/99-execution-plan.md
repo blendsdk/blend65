@@ -141,13 +141,15 @@ Landed and measured this session:
 | Direct raw argument delivery ([#135](https://github.com/blendsdk/blend65/issues/135)) | 863 → 857 at the pre-mixed frontier | Not landed. The remaining `keyState`/`joystickState` argument stores still duplicate a private temporary and the ABI slot. |
 | Branch inversion over an empty jump trampoline | One safe site, 3 bytes | Too small for a new CFG rule. |
 
-The next bounded unit is the **resource closure of unused argument stages**:
-the delivery rule retargets stores but the predeclared request still consumes
-its zero-page/general home, and the general gate is now tighter than the payload
-gate. `keyState` entry/row/column materialization (+29) and
-`snapshotCompatible` (+13) follow. Extending delivery to `main` is worth about
-10 payload bytes but needs the typed-pointer caller window. No limit, oracle,
-or source rule changes.
+The next bounded unit is **not** `main` delivery. Its blocker is now a
+lowering-model issue: the delivery pair must be exposed per argument instead of
+re-scanned from the machine stream, and the joystick snapshot low store is
+either omitted by home reuse or materialized in an earlier block. That is a
+larger change than the remaining bytes justify. The productive path is
+`snapshotCompatible` materialization (+11) and the `keyState` loop/column
+residue (+7): together they cover the 18-byte gap without touching the argument
+delivery model. Unused stage reclamation is not worth pursuing: those requests
+carry zero payload. No limit, oracle, or source rule changes.
 
 ### Step 2.3: Saved measurement and gate
 
