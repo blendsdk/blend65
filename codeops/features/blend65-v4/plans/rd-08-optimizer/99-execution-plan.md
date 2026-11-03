@@ -108,8 +108,12 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 #### Measured frontier (2026-11-03)
 
 The selected saved candidate is `closed:mixed:compact-looped` at **740 bytes**
-with zeroPage 13 (general 785, combined 798). The remaining **15-byte** payload
-gap and the **40-byte** general gap are the binding limits:
+with zeroPage 13 (general 785, combined 798). The general ceiling counts code,
+the required 24 BSS bytes and SFA data together. With BSS fixed at 24, the code
+must reach **721** for `code + 24 <= 745`; combined then needs
+`general + zeroPage <= 759`, which 721 + 24 + 13 = 758 satisfies. The real
+code target is therefore **721**, i.e. **19 bytes** below the current 740, not
+the nominal 725.
 
 | Owner | Ours | Expert | Gap |
 |---|---:|---:|---:|
@@ -133,6 +137,7 @@ Landed and measured this session:
 | Residual local reload | 757 → **750** (`keyState` 257 → 250) | Selected in the mixed plan only. A private local stored by the previous instruction and reloaded as the block's last item before its branch keeps only the store. The reference keeps the reload for the byte-window producer proof; `unchanged` skips it only when the selected actually omits it. |
 | Parameter-copy propagation | 750 → **746** (`keyState` 250 → 246) | Selected in the mixed plan only. A local initialized from a never-written parameter redirects its direct byte reads to the parameter and removes the copy pair. The observer proves the single local store, the absent parameter store, the copy omission and each redirected read at the same source span. |
 | Forwarded byte-window producer | 746 → **740** (`keyState` 246 → 242, `snapshotCompatible` 155 → 153) | Selected. A local reload feeding an adjacent `cmp`/`cpx`/`cpy`/`eor` is removed when the store's producer defines A and N/Z. The byte-window proof accepts the copy-free producer window: the store address equals the compared home and the preceding producer supplies the byte. |
+| Row-register fold | 0 bytes (not landed) | The fold replaces a later `ldx row` with `tax` at the row store in both layouts, but the caller correspondence cannot yet align the inserted `tax` with the removed `ldx`. That needs a selected-side skip proof; the one-byte win did not justify the extra window, so it was reverted. |
 | Unused stage reclamation | 0 bytes | Not selected. The unreferenced `argument-stage`/`retained-value` requests carry `payloadBytes 0`; removing them changes neither general nor combined RAM. The general gate is code-driven, not padding-driven. |
 | `main` scalar delivery | 0 bytes (not landed) | Blocked by the composed argument-suffix proof: the reference keeps `lda stage; sta parameter` items at the call span that the selected candidate moves to the argument span, so the suffix/immutable-root comparison and the typed-pointer caller trace disagree. Extending those two windows is a distinct unit. |
 | Direct raw argument delivery ([#135](https://github.com/blendsdk/blend65/issues/135)) | 863 → 857 at the pre-mixed frontier | Not landed. The remaining `keyState`/`joystickState` argument stores still duplicate a private temporary and the ABI slot. |
