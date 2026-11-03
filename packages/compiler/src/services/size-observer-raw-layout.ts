@@ -6,6 +6,7 @@ import type {
   MachineObserverOrigin,
 } from "../machine/machine-types.js";
 import { instructionAccessEnvelope, wrappedRange } from "../machine/nmos6510-access.js";
+import { valueDefinitions } from "../semantic/aggregate-place-proof.js";
 import { modeForValue, operandForValue } from "../machine/lower-control.js";
 import type { SemanticOperation } from "../semantic/operations.js";
 import type { SourceSpan } from "../project/types.js";
@@ -236,12 +237,30 @@ function rawIndexed(
   sequence: readonly MachineInstruction[],
   origin: MachineObserverOrigin,
   homes: ReadonlyMap<string, StorageHome>,
+  heldCounter = false,
 ): number | ResidualFailure {
   const span = origin.operation.span;
   const input = origin.addressInput;
   if (input === undefined)
     return failure("rejected", "Raw indexed read has no retained index representation", span);
   const index = input.kind === "zero-extended" ? input.low : input;
+  /**
+   * A loop counter proved live in X already holds the exact index. Its read
+   * supplies no separate load instruction, so the sequence is only the access.
+   */
+  if (heldCounter) {
+    const held = sequence[0];
+    if (
+      sequence.length !== 1 ||
+      held?.opcode !== "lda" ||
+      held.mode !== "absolute-x" ||
+      held.operand?.kind !== "absolute" ||
+      index.kind !== "register" ||
+      index.registers !== "x"
+    )
+      return failure("error", "Held-counter raw read is not one native absolute-X access", span);
+    return held.operand.value;
+  }
   const load = sequence[0];
   const access = sequence[1];
   if (sequence.length !== 2)
@@ -326,6 +345,44 @@ export function checkLayout(
   const positions = new Map<RawOperation, number[]>();
   const lengths = new Map<RawOperation, number>();
   const templates = new Map<SemanticOperation, MachineInstruction[]>();
+  /**
+   * A raw indexed read may consume a fixed loop counter already proved in X.
+   * That proof is the symbolic function's own counter certificate: the read is
+   * in the proved loop body and its address uses that counter's source load.
+   */
+  const heldIndexes = new Map<RawOperation, boolean>();
+  const heldIndex = (site: RawSite): boolean => {
+    const cached = heldIndexes.get(site.operation);
+    if (cached !== undefined) return cached;
+    let result = false;
+    const owner = input.checked.program.semantic.functions.find(
+      (fn) => bindingIdentityKey(fn.id) === bindingIdentityKey(site.owner),
+    );
+    const machine = symbolic.functions.find(
+      (fn) =>
+        fn.sourceFunction !== undefined &&
+        bindingIdentityKey(fn.sourceFunction) === bindingIdentityKey(site.owner),
+    );
+    const proof = machine?.fixedCounterProofs?.find(
+      (counter) => counter.representation === "x" && counter.loop.members.has(site.block.id),
+    );
+    if (owner !== undefined && proof !== undefined) {
+      const definitions = valueDefinitions(owner.blocks);
+      const address = definitions.get(site.operation.address);
+      if (address?.kind === "binary" && address.operator === "+") {
+        const load = [address.left, address.right]
+          .map((value) => definitions.get(value))
+          .find(
+            (value) =>
+              value?.kind === "load" &&
+              bindingIdentityKey(value.place.root) === bindingIdentityKey(proof.loop.counter),
+          );
+        result = load?.kind === "load" && proof.reads.some((read) => read.value === load.result);
+      }
+    }
+    heldIndexes.set(site.operation, result);
+    return result;
+  };
   for (const fn of symbolic.functions)
     for (const block of fn.blocks)
       for (const instruction of block.instructions)
@@ -437,7 +494,12 @@ export function checkLayout(
                   "Raw indexed read requires an unambiguous main construction",
                   origin.operation.span,
                 );
-              const base = rawIndexed(templates.get(site.operation) ?? [], origin, homes);
+              const base = rawIndexed(
+                templates.get(site.operation) ?? [],
+                origin,
+                homes,
+                heldIndex(site),
+              );
               if (typeof base !== "number") return base;
               if (site.ranges.length !== 1 || site.ranges[0]!.start !== base)
                 return failure(

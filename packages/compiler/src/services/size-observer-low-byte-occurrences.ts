@@ -612,29 +612,38 @@ export function matchLowByteOccurrences(
           root = resident(before, operation.place.root, operation.place.rootType),
           selectedRoot = resident(after, operation.place.root, operation.place.rootType);
         const value = index?.kind === "index" ? counterFor(index.value) : null;
+        const register = value?.counter.register ?? null;
         const selectedId = value?.counter.selected?.declared.id;
-        const sinks = (pair: Body) =>
+        const sinks = (pair: Body, held: "x" | "y" | null) =>
           parts(pair, [operation]).filter(
             (item) =>
               item.source.opcode === "sta" &&
-              ["indirect-indexed-y", "absolute-y"].includes(item.source.mode),
+              (held === null
+                ? ["indirect-indexed-y", "absolute-y"].includes(item.source.mode)
+                : item.source.mode === `absolute-${held}`),
           );
-        const oldSink = sinks(before),
-          newSink = sinks(after);
+        const oldSink = sinks(before, null),
+          newSink = sinks(after, register);
         if (oldSink.length !== 1 || newSink.length !== 1)
           return "Composed typed store has no unique actual sink";
         const a = before.items.filter(
-            (item) =>
-              item.block === oldSink[0]!.block &&
-              item.index >= oldSink[0]!.index - 9 &&
-              item.index <= oldSink[0]!.index,
-          ),
-          b = after.items.filter(
-            (item) =>
-              item.block === newSink[0]!.block &&
-              item.index >= newSink[0]!.index - 2 &&
-              item.index <= newSink[0]!.index,
-          );
+          (item) =>
+            item.block === oldSink[0]!.block &&
+            item.index >= oldSink[0]!.index - 9 &&
+            item.index <= oldSink[0]!.index,
+        );
+        // A held counter already supplies the index and the raw read above
+        // supplies A, so the store owns only its own instruction. The byte
+        // fallback also owns the index load and value reload above it.
+        const b =
+          register === null
+            ? after.items.filter(
+                (item) =>
+                  item.block === newSink[0]!.block &&
+                  item.index >= newSink[0]!.index - 2 &&
+                  item.index <= newSink[0]!.index,
+              )
+            : [newSink[0]!];
         const pointer = a[3]?.source.operand,
           held = a[8]?.source.operand;
         const label = bindingLabel("global", operation.place.root);
@@ -656,7 +665,7 @@ export function matchLowByteOccurrences(
           element.type.element.name !== "byte" ||
           element.type.length < value.counter.proof.loop.bound ||
           a.length !== 10 ||
-          b.length !== 3 ||
+          (register === null ? b.length !== 3 : b.length !== 1) ||
           pointer?.kind !== "storage" ||
           held?.kind !== "storage" ||
           !storage(a[0], "lda", value.counter.original.declared.id) ||
@@ -679,15 +688,22 @@ export function matchLowByteOccurrences(
           a[9]?.source.opcode !== "sta" ||
           a[9].source.operand?.kind !== "indirect-y" ||
           a[9].source.operand.requestId !== pointer.requestId ||
-          selectedId === undefined ||
-          !storage(b[0], "ldy", selectedId) ||
-          !same(a[8], b[1]) ||
-          b[2]?.source.opcode !== "sta" ||
-          b[2].source.mode !== "absolute-y" ||
-          b[2].source.operand?.kind !== "label" ||
-          b[2].source.operand.label !== label ||
-          (b[2].source.operand.offset ?? 0) !== 0 ||
-          !claim(a, b, [0, 8, 9], operation, STATE.y | STATE.c | STATE.v)
+          (register === null
+            ? selectedId === undefined ||
+              !storage(b[0], "ldy", selectedId) ||
+              !same(a[8], b[1]) ||
+              b[2]?.source.opcode !== "sta" ||
+              b[2].source.mode !== "absolute-y" ||
+              b[2].source.operand?.kind !== "label" ||
+              b[2].source.operand.label !== label ||
+              (b[2].source.operand.offset ?? 0) !== 0 ||
+              !claim(a, b, [0, 8, 9], operation, STATE.y | STATE.c | STATE.v)
+            : b[0]?.source.opcode !== "sta" ||
+              b[0].source.mode !== `absolute-${register}` ||
+              b[0].source.operand?.kind !== "label" ||
+              b[0].source.operand.label !== label ||
+              (b[0].source.operand.offset ?? 0) !== 0 ||
+              !claim(a, b, [9], operation, STATE.y | STATE.c | STATE.v))
         )
           return "Composed main indexed store disagrees";
         const demand = request(before.view, pointer.requestId, 2, source.id);
@@ -726,7 +742,8 @@ export function matchLowByteOccurrences(
           });
           return true;
         };
-        if (!addAccess(before, a[9]!, false) || !addAccess(after, b[2]!, true))
+        const selectedSink = register === null ? b[2]! : b[0]!;
+        if (!addAccess(before, a[9]!, false) || !addAccess(after, selectedSink, true))
           return "Composed store access envelope is unavailable";
       }
     for (const entry of input.candidate.lowered.program.storageSelection!.sourceFacts.functions.values())
@@ -827,6 +844,76 @@ export function matchLowByteOccurrences(
         !["lda", "adc", "sbc", "cmp", "and", "ora", "eor", "ldx", "ldy"].includes(old.source.opcode)
       )
         return "Composed counter has an unaccounted observer";
+      // A held counter serves a raw indexed read directly. The canonical index
+      // load is removed and its N/Z are dead because the raw load reloads A.
+      const rawIndex = old.instruction.observerOrigins?.find(
+        (origin) => origin.kind === "raw" && origin.recipe === "raw-indexed",
+      );
+      if (view.register !== null && rawIndex !== undefined) {
+        const at = before.items.indexOf(old);
+        const next = before.items[at + 1];
+        const nextIndex = next?.instruction.observerOrigins?.find(
+          (origin) => origin.kind === "raw" && origin.recipe === "raw-indexed",
+        );
+        const selectedRead =
+          next === undefined
+            ? []
+            : after.items.filter(
+                (item) =>
+                  item.source.source === next.source.source &&
+                  item.source.opcode === next.source.opcode &&
+                  item.source.mode === next.source.mode &&
+                  JSON.stringify(item.source.operand) === JSON.stringify(next.source.operand),
+              );
+        if (
+          old.source.opcode === `ld${view.register}` &&
+          next !== undefined &&
+          next.block === old.block &&
+          next.index === old.index + 1 &&
+          next.source.source === old.source.source &&
+          next.source.opcode === "lda" &&
+          next.source.mode === `absolute-${view.register}` &&
+          nextIndex?.operation === rawIndex.operation &&
+          nextIndex.position === rawIndex.position + 1 &&
+          selectedRead.length === 1
+        ) {
+          // The canonical raw value is retained only while the byte index load
+          // would clobber A. With a held counter the value stays in A, so the
+          // private retained store and its home disappear with the index load.
+          const retained = before.items[at + 2];
+          const retainedOperand = retained?.source.operand;
+          if (
+            retained !== undefined &&
+            retained.block === old.block &&
+            retained.index === old.index + 2 &&
+            retained.source.source === old.source.source &&
+            retained.source.opcode === "sta" &&
+            retainedOperand?.kind === "storage" &&
+            retainedOperand.addressByte === undefined &&
+            (retainedOperand.offset ?? 0) === 0 &&
+            retainedOperand.requestId.includes(":retained-value:")
+          ) {
+            const references = before.items.filter(
+              (item) =>
+                item.source.operand?.kind === "storage" &&
+                item.source.operand.requestId === retainedOperand.requestId &&
+                !removed.has(item.key),
+            );
+            const demand = request(before.view, retainedOperand.requestId, 1, source.id);
+            if (
+              references.length === 1 &&
+              references[0] === retained &&
+              demand?.declared.storageClass === "temporary" &&
+              !after.view.requests.has(retainedOperand.requestId)
+            ) {
+              removed.add(retained.key);
+              removedDemands.add(demand.declared);
+            } else continue;
+          }
+          removed.add(old.key);
+          continue;
+        }
+      }
       if (view.register !== null || view.selected === null)
         return "Composed held counter read is unaccounted";
       const selected = view.selected;
