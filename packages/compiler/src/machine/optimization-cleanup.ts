@@ -4,6 +4,7 @@ import type { SemanticFunction } from "../semantic/operations.js";
 import type { MachineFunction, MachineInstruction, MachineProgram } from "./machine-types.js";
 import type { OptimizationFacts } from "./optimization-facts.js";
 import { argumentDelivery } from "./optimization-argument-delivery.js";
+import { copyParameterLocals } from "./optimization-copy-propagation.js";
 import type { AppliedRule, RuleObligation, RuleSite } from "./optimization-rules.js";
 
 /** Machine registers which can carry one stored source byte. */
@@ -551,7 +552,12 @@ export function applyFoundationCleanup(
       mainline(fn),
   );
   const delivery = argumentDelivery(facts, eligible, semanticFor);
-  const forward = copyForward(program, delivery.functions, semanticFor);
+  const copies = copyParameterLocals(
+    delivery.functions,
+    semanticFor,
+    program.storageSelection?.sourceFacts.loopPolicy,
+  );
+  const forward = copyForward(program, copies.functions, semanticFor);
   const stores = deadStore(facts, program, forward.functions, semanticFor);
   const dead = deadInstruction(stores.functions, semanticFor);
   const empty = emptyBlock(dead.functions, semanticFor);
@@ -560,6 +566,7 @@ export function applyFoundationCleanup(
     functions: Object.freeze(program.functions.map((fn) => selected.get(fn.id) ?? fn)),
     applied: mergeAppliedRules([
       ...delivery.applied,
+      ...copies.applied,
       ...forward.applied,
       ...stores.applied,
       ...dead.applied,

@@ -598,6 +598,98 @@ export function forwardedLocalReloads(before: Body, after: Body): ReadonlySet<st
   return forwarded;
 }
 
+/** Reference copy pairs and the local-to-parameter read redirect proved by the copy rule. */
+export interface ParameterCopyProof {
+  /** Reference `lda parameter; sta local` occurrences the selected may omit. */
+  readonly copies: ReadonlySet<string>;
+  /** Reference local request to the parameter request that holds the same byte. */
+  readonly redirect: ReadonlyMap<string, string>;
+}
+
+/**
+ * Prove a candidate omitted a direct parameter-to-local copy: the reference has
+ * one adjacent `lda parameter; sta local` pair, the local has exactly that one
+ * store, the parameter is never stored, and every reference local read has a
+ * selected parameter read at the same source span.
+ * @param before Independently bound reference instructions.
+ * @param after Independently bound selected instructions.
+ * @returns Exact copy items to skip and the read operand redirect.
+ * @example copiedParameterLocals(before, after)
+ */
+export function copiedParameterLocals(before: Body, after: Body): ParameterCopyProof {
+  const copies = new Set<string>();
+  const redirect = new Map<string, string>();
+  for (const block of before.actual.blocks) {
+    const items = before.items.filter((item) => item.block === block);
+    for (let index = 1; index < items.length; index += 1) {
+      const load = items[index - 1]!,
+        store = items[index]!;
+      const source = load.source.operand,
+        target = store.source.operand;
+      if (
+        load.source.opcode !== "lda" ||
+        store.source.opcode !== "sta" ||
+        source?.kind !== "storage" ||
+        target?.kind !== "storage" ||
+        !source.requestId.includes(":parameter:") ||
+        !target.requestId.includes(":local:") ||
+        (source.offset ?? 0) !== 0 ||
+        (target.offset ?? 0) !== 0
+      )
+        continue;
+      const local = target.requestId,
+        parameter = source.requestId;
+      const writes = before.items.filter(
+        (item) =>
+          item.source.opcode === "sta" &&
+          item.source.operand?.kind === "storage" &&
+          item.source.operand.requestId === local,
+      );
+      const parameterWrites = before.items.filter(
+        (item) =>
+          item.source.opcode === "sta" &&
+          item.source.operand?.kind === "storage" &&
+          item.source.operand.requestId === parameter,
+      );
+      const localReads = before.items.filter(
+        (item) =>
+          item.source.opcode === "lda" &&
+          item.source.operand?.kind === "storage" &&
+          item.source.operand.requestId === local,
+      );
+      const omitted = after.items.every(
+        (item) =>
+          item.source.source !== store.source.source ||
+          item.source.opcode !== "sta" ||
+          item.source.operand?.kind !== "storage" ||
+          item.source.operand.requestId !== local,
+      );
+      const redirected = localReads.every((item) =>
+        after.items.some(
+          (candidate) =>
+            candidate.source.source === item.source.source &&
+            candidate.source.opcode === "lda" &&
+            candidate.source.operand?.kind === "storage" &&
+            candidate.source.operand.requestId === parameter,
+        ),
+      );
+      if (
+        writes.length === 1 &&
+        writes[0] === store &&
+        parameterWrites.length === 0 &&
+        localReads.length > 0 &&
+        omitted &&
+        redirected
+      ) {
+        copies.add(load.key);
+        copies.add(store.key);
+        redirect.set(local, parameter);
+      }
+    }
+  }
+  return { copies, redirect };
+}
+
 /**
  * Compare all code except explicitly identified occurrence-level changes.
  * @param before Bound reference function.
@@ -621,6 +713,7 @@ export function unchanged(
   redirected?: ReadonlyMap<string, string>,
   swappedTests?: ReadonlySet<string>,
   forwarded?: ReadonlySet<string>,
+  copyProof?: ParameterCopyProof,
 ): boolean {
   if (before.mapping.size !== after.mapping.size) return false;
   for (const [source] of before.mapping) if (!after.mapping.has(source)) return false;
@@ -712,21 +805,33 @@ export function unchanged(
     )
       return false;
     const left = before.items.filter(
-      (item) => item.block === block && !removed.has(item.key) && !forwarded?.has(item.key),
+      (item) =>
+        item.block === block &&
+        !removed.has(item.key) &&
+        !forwarded?.has(item.key) &&
+        !copyProof?.copies.has(item.key),
     );
     const right = after.items.filter((item) => item.block === other);
     if (
       left.length !== right.length ||
-      left.some((item, index) =>
-        replacements.has(item.key)
-          ? replacements.get(item.key) !== right[index]!.key
-          : JSON.stringify([item.source.opcode, item.source.mode, item.source.operand]) !==
-            JSON.stringify([
-              right[index]!.source.opcode,
-              right[index]!.source.mode,
-              right[index]!.source.operand,
-            ]),
-      )
+      left.some((item, index) => {
+        if (replacements.has(item.key)) return replacements.get(item.key) !== right[index]!.key;
+        const operand = item.source.operand,
+          redirected =
+            operand?.kind === "storage" ? copyProof?.redirect.get(operand.requestId) : undefined;
+        const expected =
+          operand?.kind === "storage" && redirected !== undefined
+            ? { ...operand, requestId: redirected }
+            : operand;
+        return (
+          JSON.stringify([item.source.opcode, item.source.mode, expected]) !==
+          JSON.stringify([
+            right[index]?.source.opcode,
+            right[index]?.source.mode,
+            right[index]?.source.operand,
+          ])
+        );
+      })
     )
       return false;
   }
