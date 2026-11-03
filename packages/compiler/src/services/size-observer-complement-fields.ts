@@ -33,6 +33,7 @@ import {
   occupied,
   pointerDead,
   unchanged,
+  forwardedLocalReloads,
   matchFieldCorrespondence,
   matchRecordedFieldCaller,
 } from "./size-observer-complement-field-correspondence.js";
@@ -416,7 +417,18 @@ export function validateFieldComplements(
         redirected.set(view.proof.loop.preheader.id, view.proof.loop.body.id);
         swappedTests.add(view.proof.loop.header.id);
       }
-  if (!unchanged(before, after, removed, replacements, true, redirected, swappedTests))
+  if (
+    !unchanged(
+      before,
+      after,
+      removed,
+      replacements,
+      true,
+      redirected,
+      swappedTests,
+      forwardedLocalReloads(before, after),
+    )
+  )
     return "Original unchanged callee code disagrees";
   const callerOwners = new Set(parameter.calls.map((call) => call.owner));
   const expectedCallsBefore = new Set<string>(),
@@ -623,11 +635,25 @@ export function validateFieldComplements(
     }
     if (!writes(input, oldCaller, [...watched, ...changes.watchesBefore]))
       return "Original caller private writes disagree";
-    const callerRedirected = new Map<string, string>();
+    const callerRedirected = new Map<string, string>(),
+      callerSwaps = new Set<string>();
     for (const view of shared?.counters.values() ?? [])
-      if (view.register !== null && view.proof.firstTestElided === true)
+      if (view.register !== null && view.proof.firstTestElided === true) {
         callerRedirected.set(view.proof.loop.preheader.id, view.proof.loop.body.id);
-    if (!unchanged(oldCaller, newCaller, callerRemoved, callerReplacements, true, callerRedirected))
+        callerSwaps.add(view.proof.loop.header.id);
+      }
+    if (
+      !unchanged(
+        oldCaller,
+        newCaller,
+        callerRemoved,
+        callerReplacements,
+        true,
+        callerRedirected,
+        callerSwaps,
+        forwardedLocalReloads(oldCaller, newCaller),
+      )
+    )
       return "Original caller initialization or remaining argument code disagrees";
     for (const boundary of boundaries) {
       const retained: readonly Item[] = oldCaller.items.filter(

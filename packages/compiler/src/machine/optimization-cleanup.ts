@@ -184,6 +184,11 @@ function copyForward(
   semanticFor: (fn: MachineFunction) => SemanticFunction | undefined,
 ): { readonly functions: readonly MachineFunction[]; readonly applied: readonly AppliedRule[] } {
   const applied: AppliedRule[] = [];
+  // Candidate layouts may forward a private source-local reload; the canonical
+  // reference keeps it, which is the copy-free pair the byte-window proof expects.
+  const policy = program.storageSelection?.sourceFacts.loopPolicy;
+  const routes = program.storageSelection?.sourceFacts.program.interruptRoutes;
+  const localForwarding = policy === "mixed" && routes?.length === 0;
   const functions = items.map((fn) => {
     const sites: RuleSite[] = [];
     const spans: SourceSpan[] = [];
@@ -226,7 +231,15 @@ function copyForward(
           load.requestId !== store.requestId ||
           load.offset !== store.offset ||
           (!entryForwarding && !provedProducer(producer, register)) ||
-          !privateMainTemporary(program, store.requestId)
+          !(
+            privateMainTemporary(program, store.requestId) ||
+            (localForwarding &&
+              store.requestId.includes(":local:") &&
+              // A residual reload ends its block and feeds only the branch;
+              // a producer reload followed by cmp/eor belongs to a byte window.
+              index + 2 === block.instructions.length &&
+              (block.terminator.kind === "branch" || block.terminator.kind === "long-branch"))
+          )
         ) {
           kept.push(instruction);
           continue;

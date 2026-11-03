@@ -1,8 +1,8 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import type { SemanticFunction } from "../semantic/operations.js";
-import type { MachineFunction, MachineInstruction, MachineOperand } from "./machine-types.js";
 import type { OptimizationFacts } from "./optimization-facts.js";
+import type { MachineFunction, MachineInstruction, MachineOperand } from "./machine-types.js";
 import type { AppliedRule, RuleSite } from "./optimization-rules.js";
 import { provedProducer, READS_STORAGE } from "./optimization-cleanup.js";
 

@@ -13,6 +13,7 @@ import { ordinalBoundsForFunction } from "../machine/lower-bounds.js";
 import { operandAddress } from "../machine/nmos6510-access.js";
 import { validateByteWindowObservers } from "./size-observer-byte-windows.js";
 import { stateSafe } from "./size-observer-complement-field-state.js";
+import { provedProducer } from "../machine/optimization-cleanup.js";
 import type { MachineFunctionSourceFacts } from "../machine/machine-types.js";
 import type { SemanticBlock, SemanticFunction } from "../semantic/operations.js";
 import type { StorageHome, StorageRange, StorageRequest } from "../storage/storage-types.js";
@@ -554,6 +555,50 @@ export function pointerDead(pair: Body, id: string, read: Item): boolean {
 }
 
 /**
+ * Find reference-only reloads that the selected candidate forwarded: a private
+ * local stored by the previous instruction, reloaded as the block's last item,
+ * and consumed only by its branch. The producer still holds the byte and flags.
+ * @param before Independently bound reference instructions.
+ * @param after Independently bound selected instructions.
+ * @returns Exact reference item keys the selected layout actually omits.
+ * @example forwardedLocalReloads(before, after)
+ */
+export function forwardedLocalReloads(before: Body, after: Body): ReadonlySet<string> {
+  const forwarded = new Set<string>();
+  for (const block of before.actual.blocks) {
+    const items = before.items.filter((item) => item.block === block);
+    for (let index = 1; index < items.length; index += 1) {
+      const load = items[index]!,
+        store = items[index - 1]!;
+      const stored = store.source.operand,
+        read = load.source.operand;
+      if (
+        store.source.opcode === "sta" &&
+        load.source.opcode === "lda" &&
+        stored?.kind === "storage" &&
+        read?.kind === "storage" &&
+        stored.requestId === read.requestId &&
+        (stored.offset ?? 0) === (read.offset ?? 0) &&
+        stored.requestId.includes(":local:") &&
+        index === items.length - 1 &&
+        (block.terminator.kind === "branch" || block.terminator.kind === "long-branch") &&
+        provedProducer(items[index - 2]?.source, "a") &&
+        store.source.observerOrigins === undefined &&
+        load.source.observerOrigins === undefined &&
+        !after.items.some(
+          (item) =>
+            item.block.label === block.label &&
+            item.source.source === load.source.source &&
+            item.source.opcode === "lda",
+        )
+      )
+        forwarded.add(load.key);
+    }
+  }
+  return forwarded;
+}
+
+/**
  * Compare all code except explicitly identified occurrence-level changes.
  * @param before Bound reference function.
  * @param after Independently bound selected function.
@@ -575,6 +620,7 @@ export function unchanged(
   expandedReference = false,
   redirected?: ReadonlyMap<string, string>,
   swappedTests?: ReadonlySet<string>,
+  forwarded?: ReadonlySet<string>,
 ): boolean {
   if (before.mapping.size !== after.mapping.size) return false;
   for (const [source] of before.mapping) if (!after.mapping.has(source)) return false;
@@ -665,7 +711,9 @@ export function unchanged(
         !(swappedTests?.has(block.label) === true && swapped(a, b)))
     )
       return false;
-    const left = before.items.filter((item) => item.block === block && !removed.has(item.key));
+    const left = before.items.filter(
+      (item) => item.block === block && !removed.has(item.key) && !forwarded?.has(item.key),
+    );
     const right = after.items.filter((item) => item.block === other);
     if (
       left.length !== right.length ||

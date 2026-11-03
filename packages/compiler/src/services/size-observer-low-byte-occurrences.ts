@@ -14,7 +14,10 @@ import type {
 import type { StorageRequest, StorageRange } from "../storage/storage-types.js";
 import { immediate, request, storage } from "./size-observer-complement-field-layout.js";
 import type { Body, Item } from "./size-observer-complement-field-layout.js";
-import { unchanged } from "./size-observer-complement-field-correspondence.js";
+import {
+  forwardedLocalReloads,
+  unchanged,
+} from "./size-observer-complement-field-correspondence.js";
 import { bitSafe } from "./size-observer-complement-field-state.js";
 import { findNamedObjectBacking } from "./size-observer-backing.js";
 import { matchLowByteReadInputs } from "./size-observer-low-byte-read-inputs.js";
@@ -946,7 +949,16 @@ export function matchLowByteOccurrences(
     }
   if (
     source.id === input.checked.program.semantic.main &&
-    !unchanged(before, after, removed, replacements, false, redirected, swappedTests)
+    !unchanged(
+      before,
+      after,
+      removed,
+      replacements,
+      false,
+      redirected,
+      swappedTests,
+      forwardedLocalReloads(before, after),
+    )
   )
     return "Composed main remaining code disagrees";
   const readInputs = matchLowByteReadInputs(input, packet, before, after, counters);
