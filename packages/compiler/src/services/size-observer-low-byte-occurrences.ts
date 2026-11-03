@@ -16,6 +16,7 @@ import { immediate, request, storage } from "./size-observer-complement-field-la
 import type { Body, Item } from "./size-observer-complement-field-layout.js";
 import {
   copiedParameterLocals,
+  foldedRegisterReloads,
   forwardedLocalReloads,
   unchanged,
 } from "./size-observer-complement-field-correspondence.js";
@@ -960,6 +961,7 @@ export function matchLowByteOccurrences(
       swappedTests,
       forwardedLocalReloads(before, after),
       copiedParameterLocals(before, after),
+      foldedRegisterReloads(before, after),
     )
   )
     return "Composed main remaining code disagrees";

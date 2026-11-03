@@ -1,11 +1,21 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import type { SemanticFunction } from "../semantic/operations.js";
+import { machineInstruction } from "./lower-control.js";
 import type { MachineFunction, MachineInstruction, MachineProgram } from "./machine-types.js";
 import type { OptimizationFacts } from "./optimization-facts.js";
 import { argumentDelivery } from "./optimization-argument-delivery.js";
 import { copyParameterLocals } from "./optimization-copy-propagation.js";
 import type { AppliedRule, RuleObligation, RuleSite } from "./optimization-rules.js";
+
+/** One direct byte store or load operand. */
+function storageOperand(
+  instruction: MachineInstruction,
+): Extract<MachineInstruction["operand"], { readonly kind: "storage" }> | undefined {
+  return instruction.operand?.kind === "storage" && instruction.operand.addressByte === undefined
+    ? instruction.operand
+    : undefined;
+}
 
 /** Machine registers which can carry one stored source byte. */
 type StoredRegister = "a" | "x" | "y";
@@ -264,6 +274,105 @@ function copyForward(
     applied.push(
       Object.freeze({
         ruleId: "cleanup.copy-forward",
+        functions: Object.freeze([semantic]),
+        changed: Object.freeze(sites),
+        obligations: Object.freeze([
+          Object.freeze({ kind: "source-equivalence", sites: Object.freeze(spans) }),
+          Object.freeze({
+            kind: "cost",
+            before: Object.freeze({ component: "B", value: String(savedBytes) }),
+            after: Object.freeze({ component: "B", value: "0" }),
+          }),
+        ]),
+      }),
+    );
+    return Object.freeze({ ...fn, blocks: Object.freeze(blocks) });
+  });
+  return { functions, applied };
+}
+
+/**
+ * Fold a later `ldx local` into a `tax` at the store that produced the byte.
+ * The interval must be call-free, must not write X, must not store the local
+ * again, and the load's N/Z must be dead because the next instruction defines
+ * them. Applied to every size layout, so the canonical and selected shapes stay
+ * identical and the shift proof sees the same `cpx` gate.
+ */
+function foldRegisterReloads(
+  program: MachineProgram,
+  cpu: import("../target/nmos6510.js").CpuFacts,
+  items: readonly MachineFunction[],
+  semanticFor: (fn: MachineFunction) => SemanticFunction | undefined,
+): { readonly functions: readonly MachineFunction[]; readonly applied: readonly AppliedRule[] } {
+  if (program.storageSelection === undefined) return { functions: items, applied: [] };
+  const applied: AppliedRule[] = [];
+  const functions = items.map((fn) => {
+    const sites: RuleSite[] = [];
+    const spans: SourceSpan[] = [];
+    let savedBytes = 0;
+    const blocks = fn.blocks.map((block) => {
+      const instructions = [...block.instructions];
+      const remove = new Set<number>();
+      const inserts = new Map<number, MachineInstruction>();
+      for (let at = 0; at < instructions.length; at += 1) {
+        const store = instructions[at]!;
+        if (store.opcode !== "sta") continue;
+        const target = storageOperand(store);
+        if (target === undefined) continue;
+        let load = -1;
+        for (let cursor = at + 1; cursor < instructions.length; cursor += 1) {
+          const instruction = instructions[cursor]!;
+          if (
+            instruction.opcode === "ldx" &&
+            storageOperand(instruction)?.requestId === target.requestId
+          ) {
+            load = cursor;
+            break;
+          }
+          if (instruction.opcode === "jsr" || instruction.defines.registers.includes("x")) break;
+          if (
+            instruction.opcode === "sta" &&
+            storageOperand(instruction)?.requestId === target.requestId
+          )
+            break;
+        }
+        if (load < 0) continue;
+        const after = instructions[load + 1];
+        const flagsDead =
+          after === undefined ||
+          (after.defines.flags.includes("n") && after.defines.flags.includes("z"));
+        if (!flagsDead || remove.has(load) || inserts.has(at)) continue;
+        inserts.set(
+          at,
+          machineInstruction(
+            cpu,
+            "tax",
+            "implied",
+            null,
+            [],
+            store.source ?? instructions[load]!.source ?? null,
+          ),
+        );
+        remove.add(load);
+        sites.push(Object.freeze({ block: block.label, index: at }));
+        spans.push(store.source ?? instructions[load]!.source!);
+        savedBytes += instructions[load]!.cost.bytes - 1;
+      }
+      if (remove.size === 0) return block;
+      const kept: MachineInstruction[] = [];
+      for (let at = 0; at < instructions.length; at += 1) {
+        if (remove.has(at)) continue;
+        kept.push(instructions[at]!);
+        const inserted = inserts.get(at);
+        if (inserted !== undefined) kept.push(inserted);
+      }
+      return Object.freeze({ ...block, instructions: Object.freeze(kept) });
+    });
+    const semantic = semanticFor(fn);
+    if (sites.length === 0 || semantic === undefined) return fn;
+    applied.push(
+      Object.freeze({
+        ruleId: "cleanup.fold-register-reload",
         functions: Object.freeze([semantic]),
         changed: Object.freeze(sites),
         obligations: Object.freeze([
@@ -556,7 +665,8 @@ export function applyFoundationCleanup(
       semanticByKey.has(bindingIdentityKey(fn.sourceFunction)) &&
       mainline(fn),
   );
-  const delivery = argumentDelivery(facts, eligible, semanticFor);
+  const reloads = foldRegisterReloads(program, facts.profile.cpu, eligible, semanticFor);
+  const delivery = argumentDelivery(facts, reloads.functions, semanticFor);
   const copies = copyParameterLocals(
     delivery.functions,
     semanticFor,
@@ -570,6 +680,7 @@ export function applyFoundationCleanup(
   return Object.freeze({
     functions: Object.freeze(program.functions.map((fn) => selected.get(fn.id) ?? fn)),
     applied: mergeAppliedRules([
+      ...reloads.applied,
       ...delivery.applied,
       ...copies.applied,
       ...forward.applied,

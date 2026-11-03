@@ -599,6 +599,82 @@ export function forwardedLocalReloads(before: Body, after: Body): ReadonlySet<st
   return forwarded;
 }
 
+/** Reference `ldx` folds and their selected `tax` replacements. */
+export interface FoldProof {
+  /** Reference reloads the selected folded into the store. */
+  readonly reference: ReadonlySet<string>;
+  /** Selected `tax` instructions the fold inserted. */
+  readonly selected: ReadonlySet<string>;
+}
+
+/**
+ * Prove a selected layout folded a later `ldx local` into a `tax` at the store:
+ * the store is the nearest prior write to the same local with no X clobber or
+ * call between, the load's N/Z are dead because the next instruction defines
+ * them, and the selected has the `tax` but not the reload.
+ * @param before Independently bound reference instructions.
+ * @param after Independently bound selected instructions.
+ * @returns Exact reference and selected items the fold replaces.
+ * @example foldedRegisterReloads(before, after)
+ */
+export function foldedRegisterReloads(before: Body, after: Body): FoldProof {
+  const reference = new Set<string>(),
+    selected = new Set<string>();
+  for (const block of before.actual.blocks) {
+    const items = before.items.filter((item) => item.block === block);
+    for (let index = 0; index < items.length; index += 1) {
+      const load = items[index]!,
+        target = load.source.opcode === "ldx" ? load.source.operand : undefined;
+      if (
+        target?.kind !== "storage" ||
+        (target.offset ?? 0) !== 0 ||
+        load.source.observerOrigins !== undefined
+      )
+        continue;
+      let store: (typeof items)[number] | undefined;
+      for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
+        const item = items[cursor]!;
+        const operand = item.source.operand;
+        if (
+          item.source.opcode === "sta" &&
+          operand?.kind === "storage" &&
+          operand.requestId === target.requestId
+        ) {
+          store = item;
+          break;
+        }
+        if (item.source.opcode === "jsr" || item.source.defines.registers.includes("x")) break;
+      }
+      if (store === undefined) continue;
+      const afterLoad = items[index + 1];
+      if (
+        afterLoad !== undefined &&
+        !(
+          afterLoad.source.defines.flags.includes("n") &&
+          afterLoad.source.defines.flags.includes("z")
+        )
+      )
+        continue;
+      const source = store.source.source ?? load.source.source;
+      const tax = after.items.find(
+        (item) => item.source.opcode === "tax" && item.source.source === source,
+      );
+      const stillLoad = after.items.some(
+        (item) =>
+          item.source.opcode === "ldx" &&
+          item.source.source === load.source.source &&
+          item.source.operand?.kind === "storage" &&
+          item.source.operand.requestId === target.requestId,
+      );
+      if (tax !== undefined && !stillLoad) {
+        reference.add(load.key);
+        selected.add(tax.key);
+      }
+    }
+  }
+  return { reference, selected };
+}
+
 /** Reference copy pairs and the local-to-parameter read redirect proved by the copy rule. */
 export interface ParameterCopyProof {
   /** Reference `lda parameter; sta local` occurrences the selected may omit. */
@@ -715,6 +791,7 @@ export function unchanged(
   swappedTests?: ReadonlySet<string>,
   forwarded?: ReadonlySet<string>,
   copyProof?: ParameterCopyProof,
+  foldProof?: FoldProof,
 ): boolean {
   if (before.mapping.size !== after.mapping.size) return false;
   for (const [source] of before.mapping) if (!after.mapping.has(source)) return false;
@@ -810,9 +887,12 @@ export function unchanged(
         item.block === block &&
         !removed.has(item.key) &&
         !forwarded?.has(item.key) &&
-        !copyProof?.copies.has(item.key),
+        !copyProof?.copies.has(item.key) &&
+        !foldProof?.reference.has(item.key),
     );
-    const right = after.items.filter((item) => item.block === other);
+    const right = after.items.filter(
+      (item) => item.block === other && !foldProof?.selected.has(item.key),
+    );
     if (
       left.length !== right.length ||
       left.some((item, index) => {

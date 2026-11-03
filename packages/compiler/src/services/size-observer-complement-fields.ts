@@ -34,6 +34,7 @@ import {
   pointerDead,
   unchanged,
   copiedParameterLocals,
+  foldedRegisterReloads,
   forwardedLocalReloads,
   matchFieldCorrespondence,
   matchRecordedFieldCaller,
@@ -429,6 +430,7 @@ export function validateFieldComplements(
       swappedTests,
       forwardedLocalReloads(before, after),
       copiedParameterLocals(before, after),
+      foldedRegisterReloads(before, after),
     )
   )
     return "Original unchanged callee code disagrees";
@@ -655,6 +657,7 @@ export function validateFieldComplements(
         callerSwaps,
         forwardedLocalReloads(oldCaller, newCaller),
         copiedParameterLocals(oldCaller, newCaller),
+        foldedRegisterReloads(oldCaller, newCaller),
       )
     )
       return "Original caller initialization or remaining argument code disagrees";
