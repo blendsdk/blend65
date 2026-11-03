@@ -426,6 +426,8 @@ export function ordinalBoundsForFunction(
         operation.destination.place.path.length > 0) ||
       (operation.kind === "memory-write" &&
         rawMayObserve(literal(operation.address), operation.width, windows)),
+    undefined,
+    input.observerEvidence === true,
   );
   const result = new Map<SemanticOperation, ReadonlyMap<string, bigint>>();
   const loopBounds = new Map<string, bigint>();

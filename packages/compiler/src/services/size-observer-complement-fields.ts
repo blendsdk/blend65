@@ -408,7 +408,15 @@ export function validateFieldComplements(
     return "Original reference field or private write disagrees";
   if (!writes(input, after, watchesAfter))
     return "Original selected field or private write disagrees";
-  if (!unchanged(before, after, removed, replacements, true))
+  const redirected = new Map<string, string>(),
+    swappedTests = new Set<string>();
+  if (composed?.source === source && composed.before === before.actual)
+    for (const view of composed.counters.values())
+      if (view.register !== null && view.proof.firstTestElided === true) {
+        redirected.set(view.proof.loop.preheader.id, view.proof.loop.body.id);
+        swappedTests.add(view.proof.loop.header.id);
+      }
+  if (!unchanged(before, after, removed, replacements, true, redirected, swappedTests))
     return "Original unchanged callee code disagrees";
   const callerOwners = new Set(parameter.calls.map((call) => call.owner));
   const expectedCallsBefore = new Set<string>(),
@@ -615,7 +623,11 @@ export function validateFieldComplements(
     }
     if (!writes(input, oldCaller, [...watched, ...changes.watchesBefore]))
       return "Original caller private writes disagree";
-    if (!unchanged(oldCaller, newCaller, callerRemoved, callerReplacements, true))
+    const callerRedirected = new Map<string, string>();
+    for (const view of shared?.counters.values() ?? [])
+      if (view.register !== null && view.proof.firstTestElided === true)
+        callerRedirected.set(view.proof.loop.preheader.id, view.proof.loop.body.id);
+    if (!unchanged(oldCaller, newCaller, callerRemoved, callerReplacements, true, callerRedirected))
       return "Original caller initialization or remaining argument code disagrees";
     for (const boundary of boundaries) {
       const retained: readonly Item[] = oldCaller.items.filter(

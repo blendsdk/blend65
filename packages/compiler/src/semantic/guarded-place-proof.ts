@@ -85,6 +85,7 @@ export function guardedOrdinalBounds(
   baseBound: (value: ValueId) => bigint | undefined,
   mayAliasLocals: (operation: SemanticOperation) => boolean,
   observe?: (operation: SemanticOperation, bound: (value: ValueId) => bigint | undefined) => void,
+  unsignedTypes = false,
 ): ReadonlyMap<SemanticOperation, ReadonlyMap<ValueId, bigint>> {
   // Literal/mask proofs already cover straight-line bodies. Do not replay long
   // conversion chains when there is no comparison edge to add a use-site fact.
@@ -112,7 +113,19 @@ export function guardedOrdinalBounds(
     facts.values.get(value) ?? baseBound(value);
   const unsigned = (value: ValueId): boolean => {
     const operation = definitions.get(value);
-    return operation !== undefined && "integer" in operation && operation.integer?.signed === false;
+    if (operation === undefined) return false;
+    if ("integer" in operation && operation.integer !== null)
+      return operation.integer.signed === false;
+    // Size mode additionally treats byte, word and enum values as unsigned even
+    // when no integer facts are attached. The correctness baseline keeps its
+    // existing proofs, so `none` output is unchanged.
+    if (!unsignedTypes) return false;
+    const type = "type" in operation ? operation.type : undefined;
+    return (
+      type?.kind === "enum" ||
+      (type?.kind === "scalar" &&
+        (type.name === "byte" || type.name === "word" || type.name === "boolean"))
+    );
   };
 
   /** A conversion can propagate a bound only if no possible value changes. */

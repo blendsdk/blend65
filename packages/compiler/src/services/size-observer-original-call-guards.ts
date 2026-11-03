@@ -56,5 +56,7 @@ export function originalCallGuardBounds(
         operation.destination.place.path.length > 0) ||
       (operation.kind === "memory-write" &&
         rawMayObserve(literal(operation.address), operation.width, windows)),
+    undefined,
+    true,
   );
 }

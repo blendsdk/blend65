@@ -22,7 +22,7 @@ import type { MachineFunction, MachineInstruction } from "../machine/machine-typ
 import type { StorageRequest, StorageRange } from "../storage/storage-types.js";
 import { body, side, request } from "./size-observer-complement-field-layout.js";
 import type { Body, Item } from "./size-observer-complement-field-layout.js";
-import { stateSafe } from "./size-observer-complement-field-state.js";
+import { bitSafe, stateSafe } from "./size-observer-complement-field-state.js";
 import { matchLowByteOccurrences } from "./size-observer-low-byte-occurrences.js";
 import type { LowByteFunctionChanges } from "./size-observer-low-byte-occurrences.js";
 import { checkLayout, failure } from "./size-observer-raw-layout.js";
@@ -451,6 +451,59 @@ function savedState(input: FinalObserverInput, view: Body["view"]) {
 }
 
 /**
+ * Prove a first-test-elided counter is a bottom-tested backedge header: the loop
+ * must run at least once, the preheader enters the body, the header is reachable
+ * only from the update, and its `bcc` still selects body or exit.
+ */
+function bottomTested(elided: boolean | undefined, loop: FixedLoopFacts, after: Body): boolean {
+  const entry = after.blocks.get(loop.preheader.id),
+    header = after.blocks.get(loop.header.id),
+    body = after.blocks.get(loop.body.id),
+    update = after.blocks.get(loop.update.id),
+    exit = after.blocks.get(loop.exit.id);
+  /** A forward edge may be emitted as a fallthrough once the layout proves adjacency. */
+  const forward = (block: typeof entry, target: string): boolean =>
+    block !== undefined &&
+    (block.terminator.kind === "jump" || block.terminator.kind === "fallthrough") &&
+    block.terminator.target === target;
+  /** Either the canonical carry test or the bottom-tested equality test. */
+  const testEdge = (block: typeof header) => {
+    const edge = block?.terminator;
+    if (edge?.kind !== "branch") return undefined;
+    const uses =
+      edge.opcode === "bcc"
+        ? edge.uses.flags.length === 1 && edge.uses.flags[0] === "c"
+        : edge.opcode === "bne" &&
+          edge.uses.flags.length === 1 &&
+          edge.uses.flags[0] === "z" &&
+          edge.uses.registers.length === 0;
+    return uses && edge.fallthrough === loop.exit.id ? edge : undefined;
+  };
+  const checks = {
+    elided: elided === true,
+    minimum: loop.tripDomain.minimum > 0,
+    entry: forward(entry, loop.body.id),
+    header: testEdge(header)?.target === loop.body.id,
+    body: forward(body, loop.update.id),
+    update: forward(update, loop.header.id),
+    predecessors:
+      exit !== undefined &&
+      after.actual.blocks
+        .filter((block) => machineSuccessors(block).includes(loop.header.id))
+        .every((block) => block.label === loop.update.id),
+  };
+  return (
+    checks.elided &&
+    checks.minimum &&
+    checks.entry &&
+    checks.header &&
+    checks.body &&
+    checks.update &&
+    checks.predecessors
+  );
+}
+
+/**
  * Close the composed memory-counter class without widening the legacy five-role proof.
  * Source range values and machine changes remain distinct from atomic acceptance.
  * @param input One checked source and actual reference/selected construction pair.
@@ -543,7 +596,7 @@ export function validateComposedLowByte(
         (register === null
           ? proof.representation !== "low-byte" || proof.requestId === null
           : proof.requestId !== null) ||
-        proof.firstTestElided !== false ||
+        (proof.firstTestElided !== false && !bottomTested(proof.firstTestElided, loop, after)) ||
         proof.pendingObservers !== true ||
         ((proof.indexUses?.length ?? 0) !== 0 &&
           (register === null || proof.indexUses?.length !== 1)) ||
@@ -638,19 +691,37 @@ export function validateComposedLowByte(
           update?.length !== 1 ||
           start?.[0] === undefined ||
           exit?.[0] === undefined ||
-          machineHeader?.terminator.kind !== "branch" ||
-          machineHeader.terminator.opcode !== "bcc" ||
-          machineHeader.terminator.target !== start[0] ||
-          machineHeader.terminator.fallthrough !== exit[0] ||
-          JSON.stringify(machineHeader.terminator.uses) !==
-            JSON.stringify({ registers: [], flags: ["c"] })
+          !(
+            machineHeader?.terminator.kind === "branch" &&
+            machineHeader.terminator.target === start[0] &&
+            machineHeader.terminator.fallthrough === exit[0] &&
+            ((machineHeader.terminator.opcode === "bcc" &&
+              JSON.stringify(machineHeader.terminator.uses) ===
+                JSON.stringify({ registers: [], flags: ["c"] })) ||
+              (machineHeader.terminator.opcode === "bne" &&
+                pair === after &&
+                proof.firstTestElided === true &&
+                bottomTested(proof.firstTestElided, loop, after) &&
+                JSON.stringify(machineHeader.terminator.uses) ===
+                  JSON.stringify({ registers: [], flags: ["z"] })))
+          )
         )
           return reject("Composed loop source control edges disagree");
-        for (const name of [entry[0], update[0]]) {
+        // A bottom-tested selected loop enters the body directly; its preheader
+        // no longer reaches the comparison on the first pass. The update still
+        // transfers to the header, and the reference keeps the canonical entry.
+        const bottom =
+          pair === after &&
+          proof.firstTestElided === true &&
+          bottomTested(proof.firstTestElided, loop, after);
+        for (const [name, target] of [
+          [entry[0]!, bottom ? start[0]! : header[0]!],
+          [update[0]!, header[0]!],
+        ] as const) {
           const terminal = pair.symbolic.blocks.find((block) => block.label === name)?.terminator;
           if (
             (terminal?.kind !== "jump" && terminal?.kind !== "fallthrough") ||
-            terminal.target !== header[0]
+            terminal.target !== target
           )
             return reject("Composed loop initialization/update transfer disagrees");
         }
@@ -777,7 +848,15 @@ export function validateComposedLowByte(
         const quietY = status.quietY && actual.start === item.block.instructions.length;
         const mask =
           cut.changed & ~STATE.v & (shared ? ~(STATE.y | STATE.c) : quietY ? ~STATE.y : -1);
-        if (!byteContinuationQuery(current.blocks)(item.block.label, actual.start, mask))
+        // Y/C/V may be dead across proved calls; A/N/Z still need the direct window.
+        const direct = mask & ~(STATE.y | STATE.c | STATE.v);
+        const directSafe =
+          direct === 0 ||
+          byteContinuationQuery(current.blocks)(item.block.label, actual.start, direct);
+        const sharedSafe = [STATE.y, STATE.c, STATE.v].every(
+          (bit) => (mask & bit) === 0 || bitSafe(current, item.block.label, actual.start, bit),
+        );
+        if (!directSafe || !sharedSafe)
           return reject("Composed ordinary continuation state remains observable");
       }
     const checkedRaw = new Set<MachineInstruction>();

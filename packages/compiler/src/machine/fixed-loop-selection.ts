@@ -614,6 +614,48 @@ export function finishFixedLoops(fn: MachineFunction, runtime: FixedLoopRuntime)
     )
       entries.set(loop.preheader.id, loop.body.id);
   }
+  /**
+   * Place the proven body before the comparison so the update can fall through
+   * into it and the header branches straight back. This is legal only when the
+   * loop must run at least once, the five roles are physically adjacent in the
+   * canonical order, and every edge is the exact proved one. The preheader is
+   * redirected to the body, which is the same first-test elision the layout
+   * already models, now also removing the backedge jump.
+   */
+  const bottomTested = new Set<string>();
+  for (const counter of runtime.counters.values()) {
+    const { loop, register } = counter;
+    if (
+      runtime.policy !== "mixed" ||
+      register === null ||
+      loop.tripDomain.minimum <= 0 ||
+      loop.members.size !== 2
+    )
+      continue;
+    const roles = [loop.preheader.id, loop.header.id, loop.body.id, loop.update.id, loop.exit.id];
+    const at = selected.blocks.findIndex((block) => block.label === roles[0]);
+    if (at < 0 || !roles.every((id, index) => selected.blocks[at + index]?.label === id)) continue;
+    const [preheader, header, body, update, exit] = roles.map((id) => byLabel.get(id)!);
+    if (
+      preheader.terminator.kind !== "jump" ||
+      preheader.terminator.target !== header.label ||
+      body.terminator.kind !== "jump" ||
+      body.terminator.target !== update.label ||
+      update.terminator.kind !== "jump" ||
+      update.terminator.target !== header.label ||
+      header.terminator.kind !== "branch" ||
+      header.terminator.opcode !== "bcc" ||
+      header.terminator.target !== body.label ||
+      header.terminator.fallthrough !== exit.label ||
+      header.instructions.length < 1 ||
+      header.instructions.length > 2 ||
+      header.instructions.slice(1).some((instruction) => instruction.opcode !== "clv")
+    )
+      continue;
+    bottomTested.add(preheader.label);
+    entries.set(preheader.label, body.label);
+  }
+
   const proofs: FixedLoopProof[] = [...runtime.expanded].map(([loop]) =>
     Object.freeze({
       loop,
@@ -651,10 +693,42 @@ export function finishFixedLoops(fn: MachineFunction, runtime: FixedLoopRuntime)
       pendingObservers: true,
     }),
   );
+  /** Place each proved bottom-tested loop as preheader, body, update, header, exit. */
+  const blocks = [...selected.blocks];
+  for (const counter of runtime.counters.values()) {
+    const { loop } = counter;
+    if (!bottomTested.has(loop.preheader.id)) continue;
+    const roles = [loop.preheader.id, loop.header.id, loop.body.id, loop.update.id, loop.exit.id];
+    const at = blocks.findIndex((block) => block.label === roles[0]);
+    if (at < 0 || !roles.every((id, index) => blocks[at + index]?.label === id)) continue;
+    const [preheader, header, body, update, exit] = roles.map((id) => byLabel.get(id)!);
+    // The bottom test branches on equality, not carry, and no earlier compare
+    // can leave an overflow bit to preserve. BNE exits at the exact bound.
+    const terminator = header.terminator;
+    if (terminator.kind !== "branch") continue;
+    const tested =
+      terminator.opcode === "bne"
+        ? header
+        : Object.freeze({
+            ...header,
+            instructions: Object.freeze(
+              header.instructions.filter((instruction) => instruction.opcode !== "clv"),
+            ),
+            terminator: Object.freeze({
+              ...terminator,
+              opcode: "bne",
+              uses: Object.freeze({
+                registers: Object.freeze([] as const),
+                flags: Object.freeze(["z"] as const),
+              }),
+            }),
+          });
+    blocks.splice(at, 5, preheader, body, update, tested, exit);
+  }
   return Object.freeze({
     ...selected,
     blocks: Object.freeze(
-      selected.blocks.map((block) => {
+      blocks.map((block) => {
         const target = entries.get(block.label);
         return target === undefined || block.terminator.kind !== "jump"
           ? block

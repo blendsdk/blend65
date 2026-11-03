@@ -937,9 +937,16 @@ export function matchLowByteOccurrences(
       )
         return "Composed counter read substitution is ambiguous";
     }
+  const redirected = new Map<string, string>(),
+    swappedTests = new Set<string>();
+  for (const view of counters.values())
+    if (view.register !== null && view.proof.firstTestElided === true) {
+      redirected.set(view.proof.loop.preheader.id, view.proof.loop.body.id);
+      swappedTests.add(view.proof.loop.header.id);
+    }
   if (
     source.id === input.checked.program.semantic.main &&
-    !unchanged(before, after, removed, replacements)
+    !unchanged(before, after, removed, replacements, false, redirected, swappedTests)
   )
     return "Composed main remaining code disagrees";
   const readInputs = matchLowByteReadInputs(input, packet, before, after, counters);

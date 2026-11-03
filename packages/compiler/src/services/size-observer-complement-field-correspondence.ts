@@ -562,6 +562,8 @@ export function pointerDead(pair: Body, id: string, read: Item): boolean {
  * @param expandedReference Whether the reference wraps a selected body in its
  *   unreachable negative bounds expansion. The expansion is proved dead by the
  *   held-counter control and bounds premises before this comparison runs.
+ * @param redirected Proved forward-edge changes: reference block label to the
+ *   selected target. A bottom-tested loop preheader enters its body directly.
  * @returns Whether source mappings, edges and every remaining instruction correspond.
  * @example unchanged(before, after, removed, replacements)
  */
@@ -571,6 +573,8 @@ export function unchanged(
   removed: ReadonlySet<string>,
   replacements: ReadonlyMap<string, string>,
   expandedReference = false,
+  redirected?: ReadonlyMap<string, string>,
+  swappedTests?: ReadonlySet<string>,
 ): boolean {
   if (before.mapping.size !== after.mapping.size) return false;
   for (const [source] of before.mapping) if (!after.mapping.has(source)) return false;
@@ -631,7 +635,36 @@ export function unchanged(
       continue;
     const a = edge(block, before.blocks),
       b = edge(other, after.blocks);
-    if (a === null || b === null || a !== b) return false;
+    const forward = redirected?.get(block.label);
+    /** The bottom-tested header swaps only the tested flag C -> Z. */
+    const swapped = (left: string, right: string) => {
+      try {
+        const first: unknown = JSON.parse(left),
+          second: unknown = JSON.parse(right);
+        if (
+          !Array.isArray(first) ||
+          !Array.isArray(second) ||
+          first.length !== 3 ||
+          second.length !== 3
+        )
+          return false;
+        const flags = (value: unknown) =>
+          Array.isArray(value) && value.length === 1 && (value[0] === "c" || value[0] === "z");
+        return (
+          flags(first[0]) && flags(second[0]) && first[1] === second[1] && first[2] === second[2]
+        );
+      } catch {
+        return false;
+      }
+    };
+    if (
+      a === null ||
+      b === null ||
+      (a !== b &&
+        (forward === undefined || b !== JSON.stringify(["go", forward])) &&
+        !(swappedTests?.has(block.label) === true && swapped(a, b)))
+    )
+      return false;
     const left = before.items.filter((item) => item.block === block && !removed.has(item.key));
     const right = after.items.filter((item) => item.block === other);
     if (
