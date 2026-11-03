@@ -580,8 +580,9 @@ export function forwardedLocalReloads(before: Body, after: Body): ReadonlySet<st
         stored.requestId === read.requestId &&
         (stored.offset ?? 0) === (read.offset ?? 0) &&
         stored.requestId.includes(":local:") &&
-        index === items.length - 1 &&
-        (block.terminator.kind === "branch" || block.terminator.kind === "long-branch") &&
+        (index === items.length - 1
+          ? block.terminator.kind === "branch" || block.terminator.kind === "long-branch"
+          : ["cmp", "cpx", "cpy", "eor"].includes(items[index + 1]?.source.opcode ?? "")) &&
         provedProducer(items[index - 2]?.source, "a") &&
         store.source.observerOrigins === undefined &&
         load.source.observerOrigins === undefined &&

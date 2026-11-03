@@ -236,10 +236,15 @@ function copyForward(
             privateMainTemporary(program, store.requestId) ||
             (localForwarding &&
               store.requestId.includes(":local:") &&
-              // A residual reload ends its block and feeds only the branch;
-              // a producer reload followed by cmp/eor belongs to a byte window.
-              index + 2 === block.instructions.length &&
-              (block.terminator.kind === "branch" || block.terminator.kind === "long-branch"))
+              // A residual reload ends its block and feeds its branch. A reload
+              // feeding an adjacent compare is the byte-window producer and is
+              // forwarded to that compare instead.
+              ((index + 2 === block.instructions.length &&
+                (block.terminator.kind === "branch" || block.terminator.kind === "long-branch")) ||
+                (["cmp", "cpx", "cpy", "eor"].includes(
+                  block.instructions[index + 2]?.opcode ?? "",
+                ) &&
+                  provedProducer(producer, register))))
           )
         ) {
           kept.push(instruction);

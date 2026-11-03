@@ -5,6 +5,7 @@ import {
   machineSuccessors,
 } from "../machine/lower-control.js";
 import { operandAddress, validRange } from "../machine/nmos6510-access.js";
+import { provedProducer } from "../machine/optimization-cleanup.js";
 import type {
   ByteWindowAddress,
   MachineBlock,
@@ -351,6 +352,16 @@ function byteWindowFailure(input: FinalObserverInput): ObserverFailure | null {
           return reject("Byte window has no complete actual backing identity");
         const load = from.instructions.at(-2),
           compare = from.instructions.at(-1);
+        /** A forwarded local store leaves the compared byte in A for the compare. */
+        const forwardedProducer =
+          load?.opcode === "sta" &&
+          operandAddress({
+            cpu: input.checked.profile.cpu,
+            instruction: load,
+            pc: 0,
+            labels: side.labels,
+          }) === left &&
+          provedProducer(from.instructions.at(-3), "a");
         const loadPC =
           from.origin +
           from.instructions
@@ -359,7 +370,7 @@ function byteWindowFailure(input: FinalObserverInput): ObserverFailure | null {
         const reference = sideIndex === 0;
         const use = to.instructions[reference ? 1 : 0];
         if (
-          !readsByte(input, side, load, "lda", left, loadPC) ||
+          (!forwardedProducer && !readsByte(input, side, load, "lda", left, loadPC)) ||
           !readsByte(
             input,
             side,
