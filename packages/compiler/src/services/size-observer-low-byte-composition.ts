@@ -1,3 +1,4 @@
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import {
   validFixedLoopFacts,
@@ -460,7 +461,11 @@ export function validateComposedLowByte(
   input: FinalObserverInput,
 ): LowByteComposition | ResidualFailure | null {
   const facts = input.candidate.lowered.program.storageSelection?.sourceFacts;
-  if (facts?.loopPolicy !== "low-byte" || facts.nonLoopBundle !== "closed") return null;
+  if (
+    (facts?.loopPolicy !== "low-byte" && facts?.loopPolicy !== "mixed") ||
+    facts.nonLoopBundle !== "closed"
+  )
+    return null;
   const packets = [...facts.functions.values()].filter((packet) =>
     input.checked.program.reachableFunctions.includes(packet.function.id),
   );
@@ -526,6 +531,8 @@ export function validateComposedLowByte(
     const counters = new Map<BindingId, Counter>();
     for (const proof of fn.fixedCounterProofs ?? []) {
       const loop = proof.loop;
+      const register =
+        proof.representation === "x" || proof.representation === "y" ? proof.representation : null;
       if (
         !validFixedLoopFacts(loop) ||
         loop.program !== program ||
@@ -533,11 +540,13 @@ export function validateComposedLowByte(
         !packet.loops.includes(loop) ||
         loops.has(loop) ||
         proof.context !== fn.id ||
-        proof.representation !== "low-byte" ||
-        proof.requestId === null ||
+        (register === null
+          ? proof.representation !== "low-byte" || proof.requestId === null
+          : proof.requestId !== null) ||
         proof.firstTestElided !== false ||
         proof.pendingObservers !== true ||
-        (proof.indexUses?.length ?? 0) !== 0 ||
+        ((proof.indexUses?.length ?? 0) !== 0 &&
+          (register === null || proof.indexUses?.length !== 1)) ||
         loop.parameter ||
         loop.bound < 1 ||
         loop.bound > 8 ||
@@ -552,18 +561,45 @@ export function validateComposedLowByte(
       )
         return reject("Composed counter source/control premises disagree");
       const original = request(beforeView, proof.originalRequestId, 2, source.id),
-        current = request(afterView, proof.requestId, 1, source.id);
+        current = register === null ? request(afterView, proof.requestId!, 1, source.id) : null;
       if (
         original?.declared.storageClass !== "local" ||
         original.declared.binding !== loop.counter ||
-        current?.declared.storageClass !== "temporary" ||
-        current.declared.binding !== null ||
+        (register === null &&
+          (current?.declared.storageClass !== "temporary" ||
+            current.declared.binding !== null ||
+            !occupied(current.declared, source))) ||
         afterView.requests.has(proof.originalRequestId) ||
-        beforeView.requests.has(proof.requestId) ||
-        !occupied(original.declared, source) ||
-        !occupied(current.declared, source)
+        !occupied(original.declared, source)
       )
         return reject("Composed counter declarations or occupancy disagree");
+      // A child loop's parent-derived initialization reads the parent counter
+      // directly from its held register; that read belongs to the child's
+      // control-premise proof, not to this loop's ordinary body reads.
+      const parentInitialized = new Set(
+        packet.loops
+          .filter((child) => {
+            const childProof = fn.fixedCounterProofs?.find((proof) => proof.loop === child);
+            return (
+              child !== loop &&
+              child.initial.kind === "parent-next" &&
+              child.initial.parent !== null &&
+              bindingIdentityKey(child.initial.parent) === bindingIdentityKey(loop.counter) &&
+              (childProof?.representation === "x" || childProof?.representation === "y")
+            );
+          })
+          .flatMap((child) =>
+            source.blocks.flatMap((block) =>
+              block.operations.filter(
+                (op) =>
+                  op.kind === "load" &&
+                  op.place.root === loop.counter &&
+                  op.span.start >= child.initialization.span.start &&
+                  op.span.end <= child.initialization.span.end,
+              ),
+            ),
+          ),
+      );
       const loads = new Set(
         source.blocks.flatMap((block) =>
           block.operations.filter(
@@ -571,7 +607,8 @@ export function validateComposedLowByte(
               op.kind === "load" &&
               op.place.root === loop.counter &&
               block !== loop.header &&
-              block !== loop.update,
+              block !== loop.update &&
+              !parentInitialized.has(op),
           ),
         ),
       );
@@ -618,7 +655,7 @@ export function validateComposedLowByte(
             return reject("Composed loop initialization/update transfer disagrees");
         }
       }
-      counters.set(loop.counter, { proof, original, selected: current, loads });
+      counters.set(loop.counter, { proof, original, selected: current, register, loads });
       loops.add(loop);
     }
     const changes = matchLowByteOccurrences(input, packet, before, after, counters);
@@ -639,11 +676,17 @@ export function validateComposedLowByte(
       return reject("Composed counter has an unrecorded code entry");
   const protectedRanges: StorageRange[] = [];
   for (const [source, changes] of functions) {
-    for (const counter of changes.counters.values())
-      protectedRanges.push(
-        { start: counter.original.home.address, end: counter.original.home.address + 1 },
-        { start: counter.selected.home.address, end: counter.selected.home.address },
-      );
+    for (const counter of changes.counters.values()) {
+      protectedRanges.push({
+        start: counter.original.home.address,
+        end: counter.original.home.address + 1,
+      });
+      if (counter.selected !== null)
+        protectedRanges.push({
+          start: counter.selected.home.address,
+          end: counter.selected.home.address,
+        });
+    }
     for (const demand of changes.removedDemands) {
       if (
         beforeView.requests.get(demand.id) !== demand ||
@@ -817,15 +860,20 @@ export function validateComposedLowByte(
             if (overlaps(range, status.range))
               return reject("Composed code can overwrite saved status/registers");
             for (const counter of changes?.counters.values() ?? []) {
-              const home = index === 0 ? counter.original.home : counter.selected.home;
-              if (!overlaps(range, { start: home.address, end: home.address + home.bytes - 1 }))
+              const home = index === 0 ? counter.original.home : counter.selected?.home;
+              if (
+                home === undefined ||
+                !overlaps(range, { start: home.address, end: home.address + home.bytes - 1 })
+              )
                 continue;
+              const selectedId =
+                index === 0 ? counter.original.declared.id : counter.selected?.declared.id;
               const operand = item.source.operand;
               if (
+                selectedId === undefined ||
                 bus.role !== "data" ||
                 operand?.kind !== "storage" ||
-                operand.requestId !==
-                  (index === 0 ? counter.original.declared.id : counter.selected.declared.id) ||
+                operand.requestId !== selectedId ||
                 ![
                   counter.proof.loop.initialization.span,
                   counter.proof.loop.updateStore.span,

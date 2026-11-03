@@ -596,12 +596,24 @@ export function retainMachineValue(
   ) {
     return Object.freeze({ instructions: instructionsInput, value });
   }
+  const loopValue =
+    register.bytes === 1 &&
+    (state.fixedLoops?.counterFacts.some((loop) =>
+      loop.body.operations.some(
+        (operation) => operation.span.start <= source.start && operation.span.end >= source.end,
+      ),
+    ) ??
+      false);
   const request = requestStorage(
     state,
     `retained-value:${resultId}`,
     "temporary",
     register.bytes,
-    "ram",
+    loopValue &&
+      state.input.preferZeroPage === true &&
+      state.input.sourceFacts?.loopPolicy === "mixed"
+      ? "zero-page-preferred"
+      : "ram",
     source,
     "Semantic value retained across later machine clobbers",
     value.kind === "zero-extended" ? null : type,

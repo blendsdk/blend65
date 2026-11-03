@@ -15,6 +15,7 @@ import type { StorageRequest, StorageRange } from "../storage/storage-types.js";
 import { immediate, request, storage } from "./size-observer-complement-field-layout.js";
 import type { Body, Item } from "./size-observer-complement-field-layout.js";
 import { unchanged } from "./size-observer-complement-field-correspondence.js";
+import { bitSafe } from "./size-observer-complement-field-state.js";
 import { findNamedObjectBacking } from "./size-observer-backing.js";
 import { matchLowByteReadInputs } from "./size-observer-low-byte-read-inputs.js";
 import type { FinalObserverInput } from "./size-observers.js";
@@ -25,7 +26,10 @@ type Home = NonNullable<ReturnType<typeof request>>;
 type Counter = {
   /** Authentic source/producer relationship. */ readonly proof: FixedCounterProof;
   /** Complete original word home. */ readonly original: Home;
-  /** Complete selected byte home. */ readonly selected: Home;
+  /** Complete selected byte home, or null when the selected counter is held in a register. */
+  readonly selected: Home | null;
+  /** Exact selected register for a held counter, or null for a private byte home. */
+  readonly register: "x" | "y" | null;
   /** Exact source loads allowed to consume this counter. */ readonly loads: ReadonlySet<LoadOperation>;
 };
 /** A continuation starts immediately after its last matched real occurrence. */
@@ -208,18 +212,26 @@ export function matchLowByteOccurrences(
   for (const view of counters.values()) {
     const loop = view.proof.loop,
       old = view.original.declared.id,
-      current = view.selected.declared.id;
+      current = view.selected?.declared.id ?? null,
+      register = view.register;
     const a = parts(before, [loop.initialization]),
       b = parts(after, [loop.initialization]);
-    if (
-      a.length !== 4 ||
-      b.length !== 2 ||
-      !same(a[0], b[0]) ||
-      !storage(a[1], "sta", old) ||
-      !storage(a[3], "sta", old, 1) ||
-      !storage(b[1], "sta", current)
-    )
+    const initialStorage =
+      a.length === 4 && storage(a[1], "sta", old) && storage(a[3], "sta", old, 1);
+    const byteInitial =
+      register === null &&
+      b.length === 2 &&
+      same(a[0], b[0]) &&
+      current !== null &&
+      storage(b[1], "sta", current);
+    const heldInitial =
+      register !== null &&
+      (loop.initial.kind === "constant"
+        ? b.length === 1 && immediate(b[0], `ld${register}`, 0)
+        : b.length === 3 && b.every((item) => item.source.source === loop.initialization.span));
+    if (!initialStorage || (!byteInitial && !heldInitial))
       return "Composed counter initialization disagrees";
+    let parentSum: readonly Item[] = [];
     if (loop.initial.kind === "constant") {
       if (loop.initial.value !== 0 || !immediate(a[0], "lda", 0) || !immediate(a[2], "lda", 0))
         return "Composed zero initialization is unresolved";
@@ -235,7 +247,7 @@ export function matchLowByteOccurrences(
         operand?.kind !== "storage" ||
         !storage(a[2], "lda", operand.requestId, 1) ||
         request(before.view, operand.requestId, 2, source.id) === null ||
-        request(after.view, operand.requestId, 2, source.id) === null ||
+        (register === null && request(after.view, operand.requestId, 2, source.id) === null) ||
         loop.initial.domain.minimum !== 1 ||
         loop.initial.domain.maximum > parent.proof.loop.bound
       )
@@ -244,7 +256,6 @@ export function matchLowByteOccurrences(
         next = parts(after, [add]);
       if (
         sum.length !== 7 ||
-        next.length !== 7 ||
         !storage(sum[0], "lda", parent.original.declared.id) ||
         sum[1]?.source.opcode !== "clc" ||
         !immediate(sum[2], "adc", 1) ||
@@ -254,33 +265,83 @@ export function matchLowByteOccurrences(
         !storage(sum[6], "sta", operand.requestId, 1)
       )
         return "Composed parent sum is not the proved word increment";
+      if (register === null) {
+        if (next.length !== 7) return "Composed parent sum is not retained byte by byte";
+      } else {
+        const parentRegister = parent.register;
+        if (
+          parentRegister === null ||
+          parentRegister === register ||
+          b.length !== 3 ||
+          b[0]?.source.opcode !== `t${parentRegister}a` ||
+          b[1]?.source.opcode !== `ta${register}` ||
+          b[2]?.source.opcode !== `in${register}` ||
+          b.some((item) => item.source.source !== loop.initialization.span)
+        )
+          return "Composed parent register transfer disagrees";
+        parentSum = sum;
+      }
     }
     if (
       !claim(
         a,
         b,
-        [0, 1],
+        register === null ? [0, 1] : loop.initial.kind === "constant" ? [0] : [0, 1, 2],
         loop.initialization,
-        loop.initial.kind === "constant" ? 0 : STATE.a | STATE.n | STATE.z,
+        register === null
+          ? loop.initial.kind === "constant"
+            ? 0
+            : STATE.a | STATE.n | STATE.z
+          : loop.initial.kind === "constant"
+            ? STATE.a
+            : STATE.a | STATE.n | STATE.z | STATE.c | STATE.v,
       )
     )
       return "Composed initialization occurrence overlaps";
+    if (parentSum.length > 0) {
+      if (
+        !contiguous(parentSum) ||
+        parentSum.some((item) => removed.has(item.key) || replacements.has(item.key))
+      )
+        return "Composed parent sum overlaps another occurrence";
+      parentSum.forEach((item) => removed.add(item.key));
+    }
     const test = parts(before, [loop.comparison]),
       selectedTest = parts(after, [loop.comparison]);
+    const byteTest =
+      register === null &&
+      test.length === 4 &&
+      current !== null &&
+      storage(test[0], "lda", old) &&
+      immediate(test[1], "cmp", loop.bound) &&
+      storage(test[2], "lda", old, 1) &&
+      immediate(test[3], "sbc", 0) &&
+      [2, 3].includes(selectedTest.length) &&
+      storage(selectedTest[0], "lda", current) &&
+      immediate(selectedTest[1], "cmp", loop.bound) &&
+      (selectedTest.length !== 3 || selectedTest[2]?.source.opcode === "clv");
+    const heldTest =
+      register !== null &&
+      test.length === 4 &&
+      storage(test[0], "lda", old) &&
+      immediate(test[1], "cmp", loop.bound) &&
+      storage(test[2], "lda", old, 1) &&
+      immediate(test[3], "sbc", 0) &&
+      [1, 2].includes(selectedTest.length) &&
+      immediate(selectedTest[0], `cp${register}`, loop.bound) &&
+      (selectedTest.length === 1 || selectedTest[1]?.source.opcode === "clv");
     if (
-      test.length !== 4 ||
-      ![2, 3].includes(selectedTest.length) ||
-      !storage(test[0], "lda", old) ||
-      !immediate(test[1], "cmp", loop.bound) ||
-      !storage(test[2], "lda", old, 1) ||
-      !immediate(test[3], "sbc", 0) ||
-      !storage(selectedTest[0], "lda", current) ||
-      !immediate(selectedTest[1], "cmp", loop.bound) ||
-      (selectedTest.length === 3 && selectedTest[2]?.source.opcode !== "clv") ||
+      (!byteTest && !heldTest) ||
       !claim(
         test,
         selectedTest,
-        selectedTest.length === 3 ? [0, 1, 3] : [0, 1],
+        register === null
+          ? selectedTest.length === 3
+            ? [0, 1, 3]
+            : [0, 1]
+          : selectedTest.length === 1
+            ? [0]
+            : [0, 1],
         loop.comparison,
         STATE.a | STATE.v,
       )
@@ -288,36 +349,174 @@ export function matchLowByteOccurrences(
       return "Composed counter comparison disagrees";
     const step = parts(before, [loop.increment, loop.updateStore]),
       selectedStep = parts(after, [loop.increment, loop.updateStore]);
-    const capture = step[3]?.source.operand;
-    if (
-      step.length !== 11 ||
-      selectedStep.length !== 1 ||
-      capture?.kind !== "storage" ||
-      !storage(step[0], "lda", old) ||
-      step[1]?.source.opcode !== "clc" ||
-      !immediate(step[2], "adc", 1) ||
-      !storage(step[3], "sta", capture.requestId) ||
-      !storage(step[4], "lda", old, 1) ||
-      !immediate(step[5], "adc", 0) ||
-      !storage(step[6], "sta", capture.requestId, 1) ||
-      !storage(step[7], "lda", capture.requestId) ||
-      !storage(step[8], "sta", old) ||
-      !storage(step[9], "lda", capture.requestId, 1) ||
-      !storage(step[10], "sta", old, 1) ||
-      !storage(selectedStep[0], "inc", current) ||
-      !claim(
-        step,
-        selectedStep,
-        [0],
-        loop.updateStore,
-        STATE.a | STATE.n | STATE.z | STATE.c | STATE.v,
+    if (register === null) {
+      const capture = step[3]?.source.operand;
+      if (
+        step.length !== 11 ||
+        selectedStep.length !== 1 ||
+        capture?.kind !== "storage" ||
+        !storage(step[0], "lda", old) ||
+        step[1]?.source.opcode !== "clc" ||
+        !immediate(step[2], "adc", 1) ||
+        !storage(step[3], "sta", capture.requestId) ||
+        !storage(step[4], "lda", old, 1) ||
+        !immediate(step[5], "adc", 0) ||
+        !storage(step[6], "sta", capture.requestId, 1) ||
+        !storage(step[7], "lda", capture.requestId) ||
+        !storage(step[8], "sta", old) ||
+        !storage(step[9], "lda", capture.requestId, 1) ||
+        !storage(step[10], "sta", old, 1) ||
+        current === null ||
+        !storage(selectedStep[0], "inc", current) ||
+        !claim(
+          step,
+          selectedStep,
+          [0],
+          loop.updateStore,
+          STATE.a | STATE.n | STATE.z | STATE.c | STATE.v,
+        )
       )
+        return "Composed counter increment disagrees";
+      const demand = request(before.view, capture.requestId, 2, source.id);
+      if (
+        demand?.declared.storageClass !== "temporary" ||
+        after.view.requests.has(capture.requestId)
+      )
+        return "Composed update scratch is not removed";
+      removedDemands.add(demand.declared);
+    } else {
+      const capture = step[3]?.source.operand;
+      if (
+        step.length !== 11 ||
+        selectedStep.length !== 1 ||
+        selectedStep[0]?.source.opcode !== `in${register}` ||
+        selectedStep[0]?.source.source !== loop.updateStore.span ||
+        capture?.kind !== "storage" ||
+        !storage(step[0], "lda", old) ||
+        step[1]?.source.opcode !== "clc" ||
+        !immediate(step[2], "adc", 1) ||
+        !storage(step[3], "sta", capture.requestId) ||
+        !storage(step[4], "lda", old, 1) ||
+        !immediate(step[5], "adc", 0) ||
+        !storage(step[6], "sta", capture.requestId, 1) ||
+        !storage(step[7], "lda", capture.requestId) ||
+        !storage(step[8], "sta", old) ||
+        !storage(step[9], "lda", capture.requestId, 1) ||
+        !storage(step[10], "sta", old, 1) ||
+        !claim(
+          step,
+          selectedStep,
+          [0],
+          loop.updateStore,
+          STATE.a | STATE.n | STATE.z | STATE.c | STATE.v,
+        )
+      )
+        return "Composed held counter increment disagrees";
+      const demand = request(before.view, capture.requestId, 2, source.id);
+      if (
+        demand?.declared.storageClass !== "temporary" ||
+        after.view.requests.has(capture.requestId)
+      )
+        return "Composed held update scratch is not removed";
+      removedDemands.add(demand.declared);
+    }
+  }
+
+  // The held counter register becomes the source word value. At the normal
+  // loop exit it must be dead before any read; early returns already exclude Y
+  // because the function result is a single byte and Y is not a return value.
+  for (const view of counters.values()) {
+    if (view.register === null) continue;
+    const exit = after.mapping.get(view.proof.loop.exit)?.[0];
+    if (exit === undefined || !bitSafe(after, exit, 0, STATE.y))
+      return "Composed held counter continuation is unproven";
+  }
+
+  // A held counter is already proved inside its loop range, so the canonical
+  // reference's negative bounds check is unreachable. Accept only the exact
+  // high/low check expansion and account for its private counter reads.
+  for (const view of counters.values()) {
+    if (view.register === null) continue;
+    const loop = view.proof.loop;
+    const labels = before.mapping.get(loop.body);
+    const selectedLabels = after.mapping.get(loop.body);
+    if (labels === undefined || selectedLabels === undefined || labels.length === 1) continue;
+    const use = view.proof.indexUses?.[0];
+    const consumer = use?.consumer;
+    const indexPart = consumer?.kind === "load" ? consumer.place.path.at(-1) : undefined;
+    if (
+      labels.length !== 3 ||
+      selectedLabels.length !== 1 ||
+      labels[0] === undefined ||
+      labels[1] === undefined ||
+      labels[2] === undefined ||
+      selectedLabels[0] !== labels[0] ||
+      !labels[1].endsWith(".low") ||
+      !labels[2].endsWith(".pass") ||
+      use === undefined ||
+      consumer?.kind !== "load" ||
+      indexPart?.kind !== "index" ||
+      indexPart.value !== view.proof.reads[0]?.value
     )
-      return "Composed counter increment disagrees";
-    const demand = request(before.view, capture.requestId, 2, source.id);
-    if (demand?.declared.storageClass !== "temporary" || after.view.requests.has(capture.requestId))
-      return "Composed update scratch is not removed";
-    removedDemands.add(demand.declared);
+      return "Composed held counter bounds expansion disagrees";
+    const head = before.blocks.get(labels[0]);
+    const low = before.blocks.get(labels[1]);
+    const pass = before.blocks.get(labels[2]);
+    const headItems = before.items.filter((item) => item.block.label === labels[0]);
+    const lowItems = before.items.filter((item) => item.block.label === labels[1]);
+    const stopLabel = head?.terminator.kind === "branch" ? head.terminator.target : undefined;
+    const stop =
+      stopLabel === undefined
+        ? undefined
+        : before.actual.blocks.find((block) => block.label === stopLabel);
+    let type = consumer.place.rootType,
+      length: number | undefined;
+    for (const part of consumer.place.path) {
+      if (part.kind === "field" && type?.kind === "struct") {
+        const field = type.fields.find((field) => field.name === part.name);
+        if (field === undefined) break;
+        type = field.type;
+      } else if (
+        part.kind === "index" &&
+        type?.kind === "array" &&
+        type.element.kind === "scalar" &&
+        type.element.name === "byte" &&
+        length === undefined
+      ) {
+        length = type.length;
+        type = type.element;
+      } else break;
+    }
+    if (
+      headItems.length !== 1 ||
+      lowItems.length !== 2 ||
+      pass === undefined ||
+      stop === undefined ||
+      !storage(headItems[0], "lda", view.original.declared.id, 1) ||
+      head?.terminator.kind !== "branch" ||
+      head.terminator.opcode !== "bne" ||
+      head.terminator.fallthrough !== labels[1] ||
+      !storage(lowItems[0], "lda", view.original.declared.id) ||
+      !immediate(lowItems[1], "cmp", length ?? -1) ||
+      low?.terminator.kind !== "branch" ||
+      low.terminator.opcode !== "bcs" ||
+      low.terminator.fallthrough !== labels[2] ||
+      low.terminator.target !== stopLabel ||
+      stop.instructions.length !== 1 ||
+      stop.instructions[0]?.opcode !== "sei" ||
+      stop.terminator.kind !== "jump" ||
+      stop.terminator.target !== stopLabel ||
+      length === undefined ||
+      loop.initial.domain.minimum < 0 ||
+      loop.initial.domain.maximum > loop.bound ||
+      loop.bound > length
+    )
+      return "Composed held counter bounds expansion disagrees";
+    for (const item of [...headItems, ...lowItems]) {
+      if (removed.has(item.key) || replacements.has(item.key))
+        return "Composed held counter bounds check overlaps another occurrence";
+      removed.add(item.key);
+    }
   }
 
   /** Resolve an index only from this source load and its authentic selected counter. */
@@ -370,12 +569,16 @@ export function matchLowByteOccurrences(
     );
     const at = after.items.indexOf(current[0]!);
     const previous = after.items[at - 1];
+    const held = value.counter.register;
     if (
       current.length !== 1 ||
       current[0]!.source.opcode !== "lda" ||
-      current[0]!.source.mode !== "absolute-y" ||
-      previous?.block !== current[0]!.block ||
-      !storage(previous, "ldy", value.counter.selected.declared.id) ||
+      (held === null
+        ? current[0]!.source.mode !== "absolute-y" ||
+          previous?.block !== current[0]!.block ||
+          value.counter.selected === null ||
+          !storage(previous, "ldy", value.counter.selected.declared.id)
+        : current[0]!.source.mode !== `absolute-${held}`) ||
       routes.length !== 1
     )
       return "Composed field consumer has no mandatory route";
@@ -393,7 +596,7 @@ export function matchLowByteOccurrences(
       return "Composed field counter prefix is unresolved";
     prefix.forEach((item) => deferredBefore.add(item.key));
     deferredBefore.add(old.key);
-    deferredAfter.add(previous.key);
+    if (held === null) deferredAfter.add(previous.key);
     deferredAfter.add(current[0]!.key);
   }
 
@@ -409,6 +612,7 @@ export function matchLowByteOccurrences(
           root = resident(before, operation.place.root, operation.place.rootType),
           selectedRoot = resident(after, operation.place.root, operation.place.rootType);
         const value = index?.kind === "index" ? counterFor(index.value) : null;
+        const selectedId = value?.counter.selected?.declared.id;
         const sinks = (pair: Body) =>
           parts(pair, [operation]).filter(
             (item) =>
@@ -475,7 +679,8 @@ export function matchLowByteOccurrences(
           a[9]?.source.opcode !== "sta" ||
           a[9].source.operand?.kind !== "indirect-y" ||
           a[9].source.operand.requestId !== pointer.requestId ||
-          !storage(b[0], "ldy", value.counter.selected.declared.id) ||
+          selectedId === undefined ||
+          !storage(b[0], "ldy", selectedId) ||
           !same(a[8], b[1]) ||
           b[2]?.source.opcode !== "sta" ||
           b[2].source.mode !== "absolute-y" ||
@@ -622,6 +827,9 @@ export function matchLowByteOccurrences(
         !["lda", "adc", "sbc", "cmp", "and", "ora", "eor", "ldx", "ldy"].includes(old.source.opcode)
       )
         return "Composed counter has an unaccounted observer";
+      if (view.register !== null || view.selected === null)
+        return "Composed held counter read is unaccounted";
+      const selected = view.selected;
       const candidates = after.items.filter(
         (item) =>
           !usedAfter.has(item.key) &&
@@ -629,7 +837,7 @@ export function matchLowByteOccurrences(
           item.source.source === old.source.source &&
           item.source.opcode === old.source.opcode &&
           ((operand.offset ?? 0) === 0
-            ? storage(item, old.source.opcode, view.selected.declared.id)
+            ? storage(item, old.source.opcode, selected.declared.id)
             : immediate(item, old.source.opcode, 0)),
       );
       const operation = source.blocks

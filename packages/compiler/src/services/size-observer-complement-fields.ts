@@ -408,7 +408,7 @@ export function validateFieldComplements(
     return "Original reference field or private write disagrees";
   if (!writes(input, after, watchesAfter))
     return "Original selected field or private write disagrees";
-  if (!unchanged(before, after, removed, replacements))
+  if (!unchanged(before, after, removed, replacements, true))
     return "Original unchanged callee code disagrees";
   const callerOwners = new Set(parameter.calls.map((call) => call.owner));
   const expectedCallsBefore = new Set<string>(),
@@ -596,19 +596,26 @@ export function validateFieldComplements(
       afterBacking: rootAfter.range,
     });
     if (typeof changes === "string") return changes;
-    // The main delivery can be proved by both owners, but is removed only once.
-    const shared =
-      owner === input.checked.program.semantic.main
-        ? effects.lowByteComposition?.functions.get(caller)
-        : undefined;
+    // The composition may already prove counter or delivery windows in this
+    // caller; a shared occurrence is removed once and never re-paired differently.
+    const shared = effects.lowByteComposition?.functions.get(caller);
     for (const key of changes.removed) {
       if (callerRemoved.has(key) && !shared?.removed.has(key))
         return "Original caller occurrence is multiply accounted";
       callerRemoved.add(key);
     }
+    const callerReplacements = new Map(changes.replacements);
+    for (const key of shared?.removed ?? [])
+      if (!changes.replacements.has(key)) callerRemoved.add(key);
+    for (const [from, to] of shared?.replacements ?? []) {
+      const current = callerReplacements.get(from);
+      if (current !== undefined && current !== to)
+        return "Original caller occurrence is multiply accounted";
+      callerReplacements.set(from, to);
+    }
     if (!writes(input, oldCaller, [...watched, ...changes.watchesBefore]))
       return "Original caller private writes disagree";
-    if (!unchanged(oldCaller, newCaller, callerRemoved, changes.replacements))
+    if (!unchanged(oldCaller, newCaller, callerRemoved, callerReplacements, true))
       return "Original caller initialization or remaining argument code disagrees";
     for (const boundary of boundaries) {
       const retained: readonly Item[] = oldCaller.items.filter(

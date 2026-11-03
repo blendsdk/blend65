@@ -273,8 +273,27 @@ function byteWindowFailure(input: FinalObserverInput): ObserverFailure | null {
     const owner = symbolic.sourceFunction;
     if (owner === undefined || !ordinaryBody(symbolic, owner))
       return observerFailure("rejected", "Byte window source has unresolved ownership");
-    const originalBlocks = new Map(symbolic.blocks.map((block) => [block.label, block]));
+    const referenceSymbolic = input.reference.checked.lowered.program.functions.find(
+      (fn) => fn.sourceFunction === owner,
+    );
+    if (referenceSymbolic === undefined)
+      return observerFailure("rejected", "Byte window reference owner is unresolved");
+    /** The reference keeps a bounds expansion around a body the selected counter proves in range. */
+    const referenceLabel = (label: string) => {
+      const expanded = `${label}.bounds.0.0.pass`;
+      const direct = referenceSymbolic.blocks.find((block) => block.label === label);
+      const pass = referenceSymbolic.blocks.find((block) => block.label === expanded);
+      const checked =
+        direct !== undefined &&
+        direct.terminator.kind === "branch" &&
+        [direct.terminator.target, direct.terminator.fallthrough].some((target) =>
+          target?.includes(".bounds."),
+        );
+      return checked && pass !== undefined ? expanded : label;
+    };
     for (const [sideIndex, side] of sides.entries()) {
+      const sideSymbolic = sideIndex === 0 ? referenceSymbolic : symbolic;
+      const originalBlocks = new Map(sideSymbolic.blocks.map((block) => [block.label, block]));
       const body = side.functions.get(symbolic.id);
       if (
         body === undefined ||
@@ -299,9 +318,11 @@ function byteWindowFailure(input: FinalObserverInput): ObserverFailure | null {
         const reject = (reason: string) => observerFailure("rejected", reason, proof.producer);
         if (proof.function !== owner || proof.domain !== "main")
           return reject("Byte proof belongs to another source context");
-        const from = blocks.get(proof.from),
-          to = blocks.get(proof.to);
-        const original = zeroSuccessors(originalBlocks.get(proof.from)),
+        const fromLabel = sideIndex === 0 ? referenceLabel(proof.from) : proof.from;
+        const toLabel = sideIndex === 0 ? referenceLabel(proof.to) : proof.to;
+        const from = blocks.get(fromLabel),
+          to = blocks.get(toLabel);
+        const original = zeroSuccessors(originalBlocks.get(fromLabel)),
           actual = zeroSuccessors(from);
         const consumerPC = to?.origin;
         if (
@@ -310,7 +331,7 @@ function byteWindowFailure(input: FinalObserverInput): ObserverFailure | null {
           consumerPC === undefined ||
           original === null ||
           actual === null ||
-          !original.includes(proof.to) ||
+          !original.includes(toLabel) ||
           !actual.every(
             (label, index) =>
               blocks.get(label)?.origin !== undefined &&
@@ -364,7 +385,7 @@ function byteWindowFailure(input: FinalObserverInput): ObserverFailure | null {
           const sibling = actual.find((label) => blocks.get(label)?.origin !== consumerPC);
           if (
             sibling === undefined ||
-            !continuation(proof.to, 1, BYTE_WINDOW_CHANGED.c) ||
+            !continuation(toLabel, 1, BYTE_WINDOW_CHANGED.c) ||
             !continuation(
               sibling,
               0,

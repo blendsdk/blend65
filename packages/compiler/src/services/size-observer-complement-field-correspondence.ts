@@ -78,9 +78,10 @@ function initialChanges(
   for (const view of group.counters.values())
     if (
       before.view.requests.get(view.original.declared.id) !== view.original.declared ||
-      after.view.requests.get(view.selected.declared.id) !== view.selected.declared ||
       before.view.homes.get(view.original.home.requestId) !== view.original.home ||
-      after.view.homes.get(view.selected.home.requestId) !== view.selected.home
+      (view.selected !== null &&
+        (after.view.requests.get(view.selected.declared.id) !== view.selected.declared ||
+          after.view.homes.get(view.selected.home.requestId) !== view.selected.home))
     )
       return "Composed field counter view is stale";
   for (const key of group.removed) {
@@ -248,6 +249,7 @@ function typedReads(
     let pairs: (readonly [Item, Item])[] = [],
       removed: Item[] = [];
     let handoff: NonNullable<typeof composed>["delegated"][number] | undefined;
+    let heldCounter = false;
     if (index === undefined) {
       const copied =
         offset === 0 &&
@@ -292,6 +294,7 @@ function typedReads(
             : undefined;
       const view =
         definition?.kind === "load" ? composed?.counters.get(definition.place.root) : undefined;
+      heldCounter = view?.register !== null && view?.register !== undefined;
       if (view !== undefined) {
         handoff = [...pending].find(
           (item) =>
@@ -352,11 +355,26 @@ function typedReads(
         )
           return "Original retained fixed index base disagrees";
         pairs = [...prefix.map((item, n) => [item, q[n]!] as const), [old, current]];
+      } else if (view?.register !== null && view?.register !== undefined) {
+        const register = view.register;
+        if (
+          current.source.mode !== `absolute-${register}` ||
+          current.source.opcode !== "lda" ||
+          operandAddress({
+            cpu: input.checked.profile.cpu,
+            instruction: current.instruction,
+            pc: current.block.origin!,
+            labels: after.view.labels,
+          }) !== backing.start
+        )
+          return "Original retained direct index disagrees";
+        removed = prefix;
+        pairs = [[old, current]];
       } else {
         if (
           current.source.mode !== "absolute-y" ||
           current.source.opcode !== "lda" ||
-          !storage(b[next - 1], "ldy", view?.selected.declared.id ?? counter.id) ||
+          !storage(b[next - 1], "ldy", view?.selected?.declared.id ?? counter.id) ||
           operandAddress({
             cpu: input.checked.profile.cpu,
             instruction: current.instruction,
@@ -372,7 +390,17 @@ function typedReads(
         ];
       }
     }
-    if (!stateSafe(before, old) || !stateSafe(after, current))
+    // A held counter's Y value is the induction variable itself. Its loop
+    // control and dead-at-exit continuation are proved by the counter premises;
+    // only the address-computation flags remain ordinary changed state here.
+    if (
+      !stateSafe(before, old) ||
+      !stateSafe(
+        after,
+        current,
+        heldCounter ? BYTE_WINDOW_CHANGED.c | BYTE_WINDOW_CHANGED.v : undefined,
+      )
+    )
       return "Original retained address exposes changed state";
     if (!claim(changes, removed, pairs)) return "Original retained read is multiply accounted";
     if (handoff !== undefined && !pending.delete(handoff))
@@ -417,9 +445,22 @@ function windows(
       return "Original Boolean occurrence disagrees";
   }
   for (const proof of bytes) {
-    const old = before.items.filter((item) => item.block.label === proof.from),
+    /** The reference may wrap the selected body in its negative bounds expansion. */
+    const referenceLabel = (label: string) => {
+      const expanded = `${label}.bounds.0.0.pass`;
+      const direct = before.actual.blocks.find((block) => block.label === label);
+      const pass = before.actual.blocks.find((block) => block.label === expanded);
+      const checked =
+        direct !== undefined &&
+        direct.terminator.kind === "branch" &&
+        [direct.terminator.target, direct.terminator.fallthrough].some((target) =>
+          target?.includes(".bounds."),
+        );
+      return checked && pass !== undefined ? expanded : label;
+    };
+    const old = before.items.filter((item) => item.block.label === referenceLabel(proof.from)),
       current = after.items.filter((item) => item.block.label === proof.from),
-      use = before.items.filter((item) => item.block.label === proof.to),
+      use = before.items.filter((item) => item.block.label === referenceLabel(proof.to)),
       next = after.items.filter((item) => item.block.label === proof.to);
     if (
       old.at(-1)?.source.source !== proof.producer ||
@@ -518,6 +559,9 @@ export function pointerDead(pair: Body, id: string, read: Item): boolean {
  * @param after Independently bound selected function.
  * @param removed Exact reference occurrence coordinates permitted to disappear.
  * @param replacements Exact reference-to-selected occurrence pairs proved elsewhere.
+ * @param expandedReference Whether the reference wraps a selected body in its
+ *   unreachable negative bounds expansion. The expansion is proved dead by the
+ *   held-counter control and bounds premises before this comparison runs.
  * @returns Whether source mappings, edges and every remaining instruction correspond.
  * @example unchanged(before, after, removed, replacements)
  */
@@ -526,29 +570,45 @@ export function unchanged(
   after: Body,
   removed: ReadonlySet<string>,
   replacements: ReadonlyMap<string, string>,
+  expandedReference = false,
 ): boolean {
-  if (
-    before.symbolic.blocks.length !== after.symbolic.blocks.length ||
-    before.mapping.size !== after.mapping.size
-  )
-    return false;
-  for (const [source, labels] of before.mapping)
-    if (
-      JSON.stringify(
-        labels.filter((label) => before.symbolic.blocks.some((block) => block.label === label)),
-      ) !==
-      JSON.stringify(
-        after.mapping
-          .get(source)
-          ?.filter((label) => after.symbolic.blocks.some((block) => block.label === label)),
-      )
-    )
-      return false;
+  if (before.mapping.size !== after.mapping.size) return false;
+  for (const [source] of before.mapping) if (!after.mapping.has(source)) return false;
+  const used = new Set<string>();
   for (const original of before.symbolic.blocks) {
     const block = before.blocks.get(original.label)!;
-    const other = after.blocks.get(block.label);
-    const next = after.symbolic.blocks.find((item) => item.label === block.label);
+    const base = block.label.replace(/\.bounds\.\d+\.\d+\.(low|pass)$/u, "");
+    const expanded = block.label !== base;
+    const head =
+      block.instructions.length === 1 &&
+      block.terminator.kind === "branch" &&
+      [block.terminator.target, block.terminator.fallthrough].some((target) =>
+        target?.includes(".bounds."),
+      );
+    const trap =
+      block.instructions.length === 1 &&
+      block.instructions[0]?.opcode === "sei" &&
+      block.terminator.kind === "jump" &&
+      block.terminator.target === block.label;
+    let other = after.blocks.get(block.label),
+      next = after.symbolic.blocks.find((item) => item.label === block.label);
+    const otherHead =
+      other !== undefined &&
+      other.instructions.length === 1 &&
+      other.terminator.kind === "branch" &&
+      [other.terminator.target, other.terminator.fallthrough].some((target) =>
+        target?.includes(".bounds."),
+      );
+    if (expandedReference && head && other !== undefined && !otherHead) {
+      other = undefined;
+      next = undefined;
+    }
+    if (other === undefined && expandedReference && block.label.endsWith(".pass")) {
+      other = after.blocks.get(base);
+      next = after.symbolic.blocks.find((item) => item.label === base);
+    } else if (other === undefined && expandedReference && (expanded || head || trap)) continue;
     if (other === undefined || next === undefined) return false;
+    used.add(other.label);
     if (
       original.terminator.kind === "return" &&
       next.terminator.kind === "return" &&
@@ -589,7 +649,7 @@ export function unchanged(
     )
       return false;
   }
-  return true;
+  return after.symbolic.blocks.every((block) => used.has(block.label));
 }
 
 /**

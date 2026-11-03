@@ -1,4 +1,5 @@
-import { byteContinuationQuery, BYTE_WINDOW_CHANGED } from "../machine/lower-control.js";
+import { BYTE_WINDOW_CHANGED, machineSuccessors } from "../machine/lower-control.js";
+import type { MachineFunction, MachineInstruction } from "../machine/machine-types.js";
 import type { Body, Item } from "./size-observer-complement-field-layout.js";
 
 /** Limit this predicate to the Y, carry and overflow differences it was designed to close. */
@@ -8,19 +9,24 @@ const mask = (uses: Item["instruction"]["uses"]) =>
   (uses.flags.includes("v") ? BYTE_WINDOW_CHANGED.v : 0);
 
 /**
- * Prove dormant cyclic bits block-locally, never by interpreting cycle values.
- * This closes only Y/C/V after a matched occurrence. The caller must establish
- * the other state components and the real caller/startup preservation contract.
- * Query-only call/halt summaries never modify emitted code or its cost.
+ * Build one forward must-be-defined liveness check for a single architectural bit.
+ *
+ * A path observes a changed bit when it reads the register/flag before defining
+ * it. Bounded and unbounded loops are handled by the finite state space: a
+ * repeated `(block, start)` state contributes nothing new, so a loop that
+ * neither reads nor writes the bit cannot make the proof fail. Calls are
+ * summarized recursively and never modify emitted code or its cost.
  * @param pair Independently bound source and actual instructions for one construction.
- * @param read Last real occurrence in the matched read or store window.
- * @returns Whether each supported changed bit is killed or unobserved.
- * @example const safe = stateSafe(pair, matchedLoad);
+ * @returns A query that reports whether a continuation reads the bit first.
+ * @example const observes = analyzer(pair); observes(fn, block, 0, bit, new Set())
  */
-export const stateSafe = (pair: Body, read: Item) => {
+const analyzer = (pair: Body) => {
   const functions = pair.view.shared.layout.program.functions;
+  const restore = pair.view.shared.layout.program.startup.blocks.find(
+    (block) => block.label === "startup.restore",
+  );
   /** Only an exact direct entry may supply a callee state proof. */
-  const target = (item: Item["instruction"]) => {
+  const target = (item: MachineInstruction) => {
     const operand = item.operand;
     return operand?.kind === "label" &&
       (operand.offset ?? 0) === 0 &&
@@ -29,79 +35,106 @@ export const stateSafe = (pair: Body, read: Item) => {
       ? functions.find((fn) => fn.id === operand.label)
       : undefined;
   };
-  /** A generated terminal halt consumes no outgoing ordinary ABI state. */
-  const terminal = (block: Item["block"]) =>
-    block.instructions.length === 1 &&
-    block.instructions[0]?.opcode === "sei" &&
-    block.terminator.kind === "jump" &&
-    block.terminator.target === block.label
-      ? { kind: "return" as const }
-      : block.terminator;
-  /** Summarize only proved non-observing calls and exact halts for this one bit. */
-  const queryBlocks = (bit: number) =>
-    new Map(
-      [...pair.blocks].map(([label, block]) => [
-        label,
-        {
-          ...block,
-          // Query-only summaries retain the changed bits across a call. The real
-          // callee must independently kill them before use; output is never changed.
-          instructions: block.instructions.map((item) => {
-            const callee = item.opcode === "jsr" ? target(item) : undefined;
-            return callee !== undefined &&
-              byteContinuationQuery(
-                new Map(callee.blocks.map((b) => [b.label, { ...b, terminator: terminal(b) }])),
-              )(callee.blocks[0]!.label, 0, bit)
-              ? {
-                  ...item,
-                  opcode: "nop",
-                  uses: { registers: [], flags: [] },
-                  defines: { registers: [], flags: [] },
-                }
-              : item;
-          }),
-          terminator: terminal(block),
-        },
-      ]),
-    );
-  return [BYTE_WINDOW_CHANGED.y, BYTE_WINDOW_CHANGED.c, BYTE_WINDOW_CHANGED.v].every((bit) => {
-    if (
-      functions.every((fn) =>
-        fn.blocks.every(
-          (block) =>
-            ((block.terminator.kind !== "branch" && block.terminator.kind !== "long-branch") ||
-              (mask(block.terminator.uses) & bit) === 0) &&
-            block.instructions.every(
-              (item) =>
-                (mask(item.uses) & bit) === 0 &&
-                (item.opcode !== "jsr" || target(item) !== undefined),
-            ),
-        ),
-      )
-    )
-      return true;
-    const blocks = queryBlocks(bit),
-      current = blocks.get(read.block.label)!;
-    if (byteContinuationQuery(blocks)(read.block.label, read.index + 1, bit)) return true;
-    /** Every block must accept an arbitrary incoming changed bit without using it. */
-    const safe = (
-      instructions: readonly Item["instruction"][],
-      term: Item["block"]["terminator"],
-    ) => {
-      let pending: number = bit;
-      for (const item of instructions) {
-        if (pending === 0) return true;
-        if (item.opcode === "jsr" || item.opcode === "jmp" || (mask(item.uses) & pending) !== 0)
-          return false;
-        pending &= ~mask(item.defines);
+  const summaries = new Map<string, boolean>();
+  const identity = (fn: MachineFunction, bit: number) => `${fn.id}\0${bit}`;
+
+  /**
+   * Whether any path reads this bit before defining it, starting at one
+   * instruction occurrence and continuing through the function.
+   */
+  const observes = (
+    fn: MachineFunction,
+    block: string,
+    start: number,
+    bit: number,
+    visiting: ReadonlySet<string>,
+  ): boolean => {
+    const seen = new Set<string>();
+    const pending: { block: string; start: number }[] = [{ block, start }];
+    while (pending.length > 0) {
+      const current = pending.pop()!;
+      const site = `${current.block}\0${current.start}`;
+      if (seen.has(site)) continue;
+      seen.add(site);
+      const body = fn.blocks.find((entry) => entry.label === current.block);
+      if (body === undefined) return true;
+      let live = bit;
+      for (const item of body.instructions.slice(current.start)) {
+        if (live === 0) break;
+        if (item.opcode === "jsr") {
+          const callee = target(item);
+          if (callee === undefined || calleeObserves(callee, bit, visiting)) return true;
+          continue;
+        }
+        if ((mask(item.uses) & live) !== 0) return true;
+        live &= ~mask(item.defines);
       }
-      return (
-        (term.kind !== "branch" && term.kind !== "long-branch") || (mask(term.uses) & pending) === 0
-      );
-    };
-    return (
-      safe(current.instructions.slice(read.index + 1), current.terminator) &&
-      [...blocks.values()].every((block) => safe(block.instructions, block.terminator))
-    );
-  });
+      if (live === 0) continue;
+      const term = body.terminator;
+      if (
+        term.kind === "return" ||
+        (restore !== undefined && term.kind === "jump" && term.target === restore.label)
+      )
+        continue;
+      if ((term.kind === "branch" || term.kind === "long-branch") && (mask(term.uses) & live) !== 0)
+        return true;
+      for (const successor of machineSuccessors(body)) pending.push({ block: successor, start: 0 });
+    }
+    return false;
+  };
+
+  /** Summarize one complete callee for one bit, including its nested calls. */
+  const calleeObserves = (
+    fn: MachineFunction,
+    bit: number,
+    visiting: ReadonlySet<string>,
+  ): boolean => {
+    const key = identity(fn, bit);
+    const cached = summaries.get(key);
+    if (cached !== undefined) return cached;
+    // A recursive cycle that has not observed the bit before re-entering is
+    // assumed safe for this bit; a real observation on the cycle is found on
+    // the concrete path.
+    if (visiting.has(key)) return false;
+    const entry = fn.blocks[0];
+    const result =
+      entry === undefined || observes(fn, entry.label, 0, bit, new Set([...visiting, key]));
+    summaries.set(key, result);
+    return result;
+  };
+
+  return observes;
+};
+
+/**
+ * Whether a changed architectural bit is observed from one continuation point.
+ * @param pair Independently bound source and actual instructions for one construction.
+ * @param block Actual block label where the continuation starts.
+ * @param start First instruction after the matched occurrence.
+ * @param bit One supported changed-bit mask.
+ * @returns True only when no path reads the bit before defining it.
+ * @example bitSafe(after, exitLabel, 0, BYTE_WINDOW_CHANGED.y)
+ */
+export const bitSafe = (pair: Body, block: string, start: number, bit: number) =>
+  !analyzer(pair)(pair.actual, block, start, bit, new Set());
+
+/**
+ * Prove dormant cyclic bits without interpreting cycle values.
+ * @param pair Independently bound source and actual instructions for one construction.
+ * @param read Last real occurrence in the matched read or store window.
+ * @param changedBits Architectural bits whose reference/selected difference remains.
+ * @returns Whether each requested bit is killed or unobserved.
+ * @example const safe = stateSafe(pair, matchedLoad);
+ */
+export const stateSafe = (
+  pair: Body,
+  read: Item,
+  changedBits = BYTE_WINDOW_CHANGED.y | BYTE_WINDOW_CHANGED.c | BYTE_WINDOW_CHANGED.v,
+) => {
+  const observes = analyzer(pair);
+  return [BYTE_WINDOW_CHANGED.y, BYTE_WINDOW_CHANGED.c, BYTE_WINDOW_CHANGED.v].every(
+    (bit) =>
+      (changedBits & bit) === 0 ||
+      !observes(pair.actual, read.block.label, read.index + 1, bit, new Set()),
+  );
 };

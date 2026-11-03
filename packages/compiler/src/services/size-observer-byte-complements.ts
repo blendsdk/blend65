@@ -601,7 +601,9 @@ export function validateByteComplementObservers(
   if (
     input.reference.kind !== "feasible" ||
     facts?.program !== input.checked.program ||
-    (facts.loopPolicy !== "original" && facts.loopPolicy !== "low-byte") ||
+    (facts.loopPolicy !== "original" &&
+      facts.loopPolicy !== "low-byte" &&
+      facts.loopPolicy !== "mixed") ||
     (input.checked.program.interruptRoutes?.length ?? 0) > 0 ||
     input.checked.program.roots.some(({ kind }) => kind === "callable")
   )
@@ -618,7 +620,7 @@ export function validateByteComplementObservers(
     // Low-byte loops may reuse the field matcher, never the cache-only proof.
     const composition = effects.lowByteComposition;
     if (
-      facts.loopPolicy === "low-byte" &&
+      (facts.loopPolicy === "low-byte" || facts.loopPolicy === "mixed") &&
       (!kinds.has("original") ||
         composition === undefined ||
         !composition.functions.has(packet.function) ||
