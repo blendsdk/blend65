@@ -625,15 +625,26 @@ export function finishFixedLoops(fn: MachineFunction, runtime: FixedLoopRuntime)
   const bottomTested = new Set<string>();
   for (const counter of runtime.counters.values()) {
     const { loop, register } = counter;
-    if (
-      runtime.policy !== "mixed" ||
-      register === null ||
-      loop.initial.domain.maximum >= loop.bound
-    )
-      continue;
+    // The first test needs the initial value below the bound, not a full trip:
+    // early returns lower tripDomain.minimum to zero. A constant initial is
+    // exact; otherwise the conservative initial domain must stay below it.
+    const firstTestTrue =
+      loop.initial.kind === "constant"
+        ? loop.initial.value < loop.bound
+        : loop.initial.domain.maximum < loop.bound;
+    if (runtime.policy !== "mixed" || register === null || !firstTestTrue) continue;
     const roles = [loop.preheader.id, loop.header.id, loop.body.id, loop.update.id, loop.exit.id];
     const at = selected.blocks.findIndex((block) => block.label === roles[0]);
-    if (at < 0 || !roles.every((id, index) => selected.blocks[at + index]?.label === id)) continue;
+    if (at < 0 || !roles.every((id, index) => selected.blocks[at + index]?.label === id)) {
+      if (process.env.BLEND65_DEBUG_INNER2 === "1" && loop.comparison.span.start === 6929)
+        console.error(
+          "INNER-CONTIG",
+          at,
+          JSON.stringify(roles.map((id) => id.split(":").slice(-1)[0])),
+          JSON.stringify(selected.blocks.map((b) => b.label.split(":").slice(-1)[0])),
+        );
+      continue;
+    }
     const [preheader, header, body, update, exit] = roles.map((id) => byLabel.get(id)!);
     const incoming = runtime.predecessors.get(loop.header.id) ?? [];
     if (
@@ -662,8 +673,19 @@ export function finishFixedLoops(fn: MachineFunction, runtime: FixedLoopRuntime)
       header.instructions.length < 1 ||
       header.instructions.length > 2 ||
       header.instructions.slice(1).some((instruction) => instruction.opcode !== "clv")
-    )
+    ) {
+      if (process.env.BLEND65_DEBUG_INNER2 === "1" && loop.comparison.span.start === 6929)
+        console.error(
+          "INNER-EDGE",
+          JSON.stringify({
+            pre: preheader.terminator,
+            up: update.terminator,
+            head: header.terminator,
+            n: header.instructions.length,
+          }),
+        );
       continue;
+    }
     bottomTested.add(preheader.label);
     entries.set(preheader.label, body.label);
   }

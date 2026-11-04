@@ -511,7 +511,10 @@ function bottomTested(elided: boolean | undefined, loop: FixedLoopFacts, after: 
   })();
   const checks = {
     elided: elided === true,
-    minimum: loop.initial.domain.maximum < loop.bound,
+    minimum:
+      loop.initial.kind === "constant"
+        ? loop.initial.value < loop.bound
+        : loop.initial.domain.maximum < loop.bound,
     entry: forward(entry, loop.body.id),
     header: testEdge(header)?.target === loop.body.id,
     body: bodyReachesUpdate,

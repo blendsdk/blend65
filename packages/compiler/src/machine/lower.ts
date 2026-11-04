@@ -28,6 +28,7 @@ import type {
 } from "../storage/storage-types.js";
 import { helperLiveRequestQuery } from "../storage/interference.js";
 import { storageInventoryHash } from "../storage/closure.js";
+import { foldShiftHome } from "./optimization-shift-home.js";
 import { hasHandlerSideIrqInstall } from "../storage/inventory.js";
 import { logicalStorageForLowering, projectMachineStorage } from "../storage/selection.js";
 import {
@@ -602,6 +603,13 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
       if (validation.kind === "error") throw loweringFailure(validation.reason, validation.source);
       optimizedFunctions = rules.program.functions;
     }
+    // A byte `home = home << 1` becomes one memory read-modify-write in every
+    // size layout, so the canonical reference and the candidate stay identical.
+    // Observer-evidence lowering is the size mode contract; both the canonical
+    // reference and every candidate carry it, so the fold changes neither side
+    // relative to the other.
+    if (input.observerEvidence === true)
+      optimizedFunctions = foldShiftHome(input.profile.cpu, optimizedFunctions);
 
     const uniqueRequests = new Map<string, StorageRequest>();
     for (const request of requests) {
