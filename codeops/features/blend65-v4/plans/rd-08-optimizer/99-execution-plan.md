@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-03
-> **Progress**: 28/41 tasks (68%)
+> **Progress**: 33/41 tasks (80%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -275,14 +275,14 @@ construction instead of a direct write into the caller's `saved` home.
 
 ### Step 4.1: Mode specification tests
 
-- [ ] 4.1.1 [spec-author] Write balanced/speed selection, tie and incomparable-component cases — `test/rd08/optimizer-selection.spec.test.ts`
-- [ ] 4.1.2 [spec-author] Verify the balanced/speed specification cases fail for the expected missing mode behavior; no mode implementation is present
+- [x] 4.1.1 [spec-author] Write balanced/speed selection, tie and incomparable-component cases — `test/rd08/optimizer-selection.spec.test.ts` ✅ (completed: 2026-11-04; independent 56-case spec covering mode surface, balanced Pareto/no-regression, speed T→R→B, size B→R→T, stable-id ties, unknown/incomparable terms, rejected-baseline tradeoffs and deterministic evidence)
+- [x] 4.1.2 [spec-author] Verify the balanced/speed specification cases fail for the expected missing mode behavior; no mode implementation is present ✅ (completed: 2026-11-04; 12/56 RED initially: CLI/service rejected balanced/speed, balanced omitted the T component, exact balanced ties returned none, and size lost the selected id on a self-tie; no production mode implementation was used to derive the oracle)
 
 ### Step 4.2: Mode implementation
 
-- [ ] 4.2.1 Implement balanced no-regression Pareto and speed T→R→B on the same candidate pipeline — `machine/optimization-cost.ts`, `services/size-selection.ts`
-- [ ] 4.2.2 Wire manifest/build/CLI acceptance for all four modes only after size stability — `project/manifest.ts`, `services/types.ts`, `packages/cli/src/args.ts`, `packages/cli/src/render.ts`
-- [ ] 4.2.3 Verify mode-specific evidence, deterministic selection and none no-decision behavior — selection/evidence tests
+- [x] 4.2.1 Implement balanced no-regression Pareto and speed T→R→B on the same candidate pipeline — `machine/optimization-cost.ts`, `services/size-selection.ts` ✅ (completed: 2026-11-04; the selector implements B/R/T balanced dominance, speed worst-to-best cycles, size B→R→T, exact ties and unknown/incomparable handling; the build pipeline enumerates the shared optimized frontier and retains the reference when no balanced/speed candidate wins)
+- [x] 4.2.2 Wire manifest/build/CLI acceptance for all four modes only after size stability — `project/manifest.ts`, `services/types.ts`, `packages/cli/src/args.ts`, `packages/cli/src/render.ts` ✅ (completed: 2026-11-04; manifest/default balanced, build/run service and CLI accept exactly none/balanced/speed/size; usage lists all four; invalid spellings fail before compilation)
+- [x] 4.2.3 Verify mode-specific evidence, deterministic selection and none no-decision behavior — selection/evidence tests ✅ (completed: 2026-11-04; 56/56 selection spec passes, balanced/speed decisions carry the actual mode, exact tie and incomparable components; none records no decisions; deterministic repeated builds agree)
 
 ---
 
