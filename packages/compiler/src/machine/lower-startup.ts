@@ -41,6 +41,17 @@ export function hasDisplayIndependentStartup(
     program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn]),
   );
   const unstable = new Set(program.semantic.globals.map(({ id }) => bindingIdentityKey(id)));
+  /**
+   * A certified returned-local destination is a caller-owned aggregate whose
+   * address is used only to construct or return its own bytes. That private
+   * capture cannot carry display state into an unrelated owner, so it does not
+   * make the program display-dependent.
+   */
+  const returnedLocals = new Set(
+    (program.returnedLocalDestinations ?? []).map(
+      ({ function: owner, local }) => `${bindingIdentityKey(owner)}\0${bindingIdentityKey(local)}`,
+    ),
+  );
   if (program.semantic.globals.some(({ zeropage, placement }) => !zeropage && placement != null))
     return false;
   for (const body of bodies) {
@@ -114,6 +125,13 @@ export function hasDisplayIndependentStartup(
     for (const block of blocks) {
       for (const operation of block.operations) {
         if (operation.kind === "place-address") {
+          const returnedAddress =
+            operation.place.path.length === 0 &&
+            returnedLocals.has(
+              `${bindingIdentityKey(body.id)}\0${bindingIdentityKey(operation.place.root)}`,
+            );
+          if (returnedAddress) continue;
+          if (operation.captureValue === true) return false;
           const globalType = globals.get(bindingIdentityKey(operation.place.root));
           // A const aggregate parameter is a compiler-owned whole object whose type is
           // fixed at its call sites. Passing it onward borrows the same bytes and cannot
@@ -127,7 +145,6 @@ export function hasDisplayIndependentStartup(
               : functions.get(bindingIdentityKey(argument.call.callee));
           const parameter = argument === undefined ? undefined : callee?.parameters[argument.index];
           if (
-            operation.captureValue === true ||
             operation.place.asset !== undefined ||
             operation.place.path.length !== 0 ||
             operation.place.rootType === undefined ||
@@ -151,7 +168,13 @@ export function hasDisplayIndependentStartup(
         if (operation.kind === "call" && !examined.has(bindingIdentityKey(operation.callee)))
           return false;
         for (const use of placeUses(operation)) {
+          // The returned-local certificate already proves every indexed use of
+          // its own root stays inside the source object.
+          const certifiedReturnedLocal = returnedLocals.has(
+            `${bindingIdentityKey(body.id)}\0${bindingIdentityKey(use.place.root)}`,
+          );
           if (
+            !certifiedReturnedLocal &&
             use.place.path.some(({ kind }) => kind === "index") &&
             placeMayEscapeRoot(
               use,
