@@ -468,12 +468,17 @@ export function checkLayout(
               origin.operation.span,
             );
           const sourceLabels = fn.observerBlocks?.find(([source]) => source === site.block)?.[1];
-          if (sourceLabels === undefined || !sourceLabels.includes(block.label))
+          if (sourceLabels === undefined || !sourceLabels.includes(block.label)) {
+            if (process.env.BLEND65_DEBUG_RAWASSOC === "1")
+              process.stderr.write(
+                `RAWASSOC site=${site.block.id} sameId=${fn.observerBlocks?.find(([source]) => source.id === site.block.id) !== undefined} sameObj=${fn.observerBlocks?.find(([source]) => source.id === site.block.id)?.[0] === site.block} labels=${JSON.stringify(fn.observerBlocks?.find(([source]) => source.id === site.block.id)?.[1])} block=${block.label}\n`,
+              );
             return failure(
               "rejected",
               "Raw byte lacks its actual source-block association",
               origin.operation.span,
             );
+          }
           if (
             origin.recipe === "raw-fixed" &&
             (site.ranges.length !== 1 || site.ranges[0]!.start !== site.ranges[0]!.end)

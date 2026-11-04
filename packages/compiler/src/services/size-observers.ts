@@ -335,9 +335,21 @@ function typedSourceFailure(
     return observerFailure("error", "A source range premise is stale");
   if (objects.rangeObservers.some((loop) => !effects.loops.has(loop)))
     return observerFailure("rejected", "Conditional induction observers remain");
+  /**
+   * A callable root is admissible only when it is itself a selected interrupt
+   * handler. Those handlers were closed by the asynchronous borrow proof, and
+   * the raw/effects proofs validate their own accesses.
+   */
+  const asyncHandlers = new Set(
+    [
+      ...(program.interruptRoutes ?? []).map((route) => route.handler),
+      ...program.roots.flatMap((root) => (root.kind === "interrupt" ? [root.function] : [])),
+    ].map(bindingIdentityKey),
+  );
   if (
-    (program.interruptRoutes?.length ?? 0) > 0 ||
-    program.roots.some(({ kind }) => kind === "callable")
+    program.roots.some(
+      (root) => root.kind === "callable" && !asyncHandlers.has(bindingIdentityKey(root.function)),
+    )
   )
     return observerFailure(
       "rejected",

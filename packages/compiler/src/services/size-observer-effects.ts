@@ -1,5 +1,6 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { MachineBlock, MachineInstruction } from "../machine/machine-types.js";
+import type { StorageRange } from "../storage/storage-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type { FixedLoopFacts } from "../semantic/fixed-loop-facts.js";
 import { fixedLoopValueBounds } from "../semantic/fixed-loop-facts.js";
@@ -715,6 +716,21 @@ export function validateResidualEffects(input: FinalObserverInput): ResidualEffe
       ] as const;
     }),
   );
+  /**
+   * Known C64 device registers share the same exact byte-site discipline as
+   * ordinary RAM: the raw template proof still requires one attributed machine
+   * access per source access, no read-modify-write, and identical sequences in
+   * both layouts. The windows come from the selected machine facts.
+   */
+  const machine = input.checked.profile.machine;
+  const deviceWindows = Object.freeze([
+    Object.freeze({ start: machine.spritePositionBase, end: machine.spriteColorBase + 7 }),
+    Object.freeze({ start: machine.cia1Base, end: machine.cia1Base + 15 }),
+    Object.freeze({ start: machine.cia2Base, end: machine.cia2Base + 15 }),
+  ]);
+  const admittedRaw = (range: StorageRange): boolean =>
+    admittedRawRam(range) ||
+    deviceWindows.some((window) => range.start >= window.start && range.end <= window.end);
   for (const { body, block, operation } of raw) {
     const query = queries.get(body)!;
     const base = rawAccessFootprint(
@@ -730,7 +746,7 @@ export function validateResidualEffects(input: FinalObserverInput): ResidualEffe
       if (
         byteRanges(site, byte).some(
           (range) =>
-            !admittedRawRam(range) ||
+            !admittedRaw(range) ||
             (operation.kind === "memory-write" &&
               range.start < input.checked.profile.machine.spritePointerBase + 8 &&
               range.end >= input.checked.profile.machine.spritePointerBase),
@@ -744,6 +760,27 @@ export function validateResidualEffects(input: FinalObserverInput): ResidualEffe
     }
     sites.push(site);
     operations.add(operation);
+  }
+  /**
+   * Vector-only platform controls, CPU flag/stack controls and callback
+   * addresses have no ordinary data footprint; the raw/async proofs above own
+   * their effects. Publish them as covered source operations so the typed
+   * footprint observer need not treat them as opaque.
+   */
+  // Only raw-owning bodies cross the raw template proof; a conditional-status
+  // callee with no raw site keeps its separate rejection.
+  const rawOwners = new Set(sites.map((site) => bindingIdentityKey(site.owner)));
+  for (const body of bodies) {
+    if (!rawOwners.has(bindingIdentityKey(body.id))) continue;
+    for (const block of body.blocks)
+      for (const operation of block.operations) {
+        if (
+          (operation.kind === "platform" && vectorCapabilities.has(operation.capability)) ||
+          operation.kind === "cpu-control" ||
+          operation.kind === "function-address"
+        )
+          operations.add(operation);
+      }
   }
   const after = checkLayout(
     input,

@@ -12,6 +12,7 @@ import type {
   MachineFunction,
   MachineInstruction,
 } from "../machine/machine-types.js";
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import { failure as observerFailure } from "./size-observer-raw-layout.js";
 import type { ResidualFailure as ObserverFailure } from "./size-observer-raw-layout.js";
@@ -263,10 +264,19 @@ function byteWindowFailure(input: FinalObserverInput): ObserverFailure | null {
     (fn) => (fn.byteAvailabilityProofs?.length ?? 0) > 0,
   );
   if (selected.length === 0) return null;
+  const asyncHandlers = new Set(
+    [
+      ...(input.checked.program.interruptRoutes ?? []).map((route) => route.handler),
+      ...input.checked.program.roots.flatMap((root) =>
+        root.kind === "interrupt" ? [root.function] : [],
+      ),
+    ].map(bindingIdentityKey),
+  );
   if (
     input.reference.kind !== "feasible" ||
-    (input.checked.program.interruptRoutes?.length ?? 0) > 0 ||
-    input.checked.program.roots.some(({ kind }) => kind === "callable")
+    input.checked.program.roots.some(
+      (root) => root.kind === "callable" && !asyncHandlers.has(bindingIdentityKey(root.function)),
+    )
   )
     return observerFailure("rejected", "Byte windows need both actual synchronous constructions");
   const sides = [windowSide(input.reference.shared), windowSide(input.candidate.shared)];

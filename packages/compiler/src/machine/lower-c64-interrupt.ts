@@ -216,6 +216,15 @@ export function createC64InterruptEntry(
           executionContext: body.executionContext,
         }),
     blocks: Object.freeze(blocks),
+    ...(body.observerBlocks === undefined
+      ? {}
+      : {
+          observerBlocks: Object.freeze(
+            body.observerBlocks.map(([source, labels]) =>
+              Object.freeze([source, Object.freeze(labels.map(renamed))] as const),
+            ),
+          ),
+        }),
     ...(body.placement === undefined ? {} : { placement: body.placement }),
     ...(selectedNmi
       ? {

@@ -617,8 +617,10 @@ describe("final Original-field complement observers", () => {
         "function main():void{",
         `function main():void{${prefix}`,
       );
+      // Known device windows are admitted by the raw site proof; the status
+      // barrier and the unqualified ordinary-RAM write still reject.
       expect(validateSizeObservers(effectFixture(source, "size", true, "original")).kind).toBe(
-        prefix === "poke($C100,7);" ? "complete" : "rejected",
+        prefix === "asm_php();asm_plp();" ? "rejected" : "complete",
       );
       expect(validateSizeObservers(effectFixture(source, "none", true)).kind).toBe("complete");
     },

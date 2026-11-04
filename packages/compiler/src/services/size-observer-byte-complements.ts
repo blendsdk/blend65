@@ -1,3 +1,4 @@
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { validByteComplementFacts } from "../machine/byte-value-availability.js";
 import {
   byteContinuationQuery,
@@ -604,8 +605,18 @@ export function validateByteComplementObservers(
     (facts.loopPolicy !== "original" &&
       facts.loopPolicy !== "low-byte" &&
       facts.loopPolicy !== "mixed") ||
-    (input.checked.program.interruptRoutes?.length ?? 0) > 0 ||
-    input.checked.program.roots.some(({ kind }) => kind === "callable")
+    input.checked.program.roots.some(
+      (root) =>
+        root.kind === "callable" &&
+        !new Set(
+          [
+            ...(input.checked.program.interruptRoutes ?? []).map((route) => route.handler),
+            ...input.checked.program.roots.flatMap((entry) =>
+              entry.kind === "interrupt" ? [entry.function] : [],
+            ),
+          ].map(bindingIdentityKey),
+        ).has(bindingIdentityKey(root.function)),
+    )
   )
     return failure("rejected", "Complement cache needs both synchronous Original constructions");
   for (const fn of selected) {

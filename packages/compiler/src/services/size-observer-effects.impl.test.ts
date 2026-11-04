@@ -505,11 +505,23 @@ function main():void{poke($C100,peek($31F8+word(peek($C120)&15)));poke($C101,mar
       expect(result.reason).toContain("overlaps an actual original or selected object");
   });
 
-  it.each([
-    "module Game;function main():void{poke($C100,peek(peekw($C110)));}",
-    "module Game;function main():void{poke($D020,peek($DC00));}",
-  ])("should keep unproved raw or device footprints as whole-tuple rejections", (source) => {
-    const fixture = effectFixture(source, "size", true, "original");
+  it("should keep an unproved raw footprint as a whole-tuple rejection", () => {
+    const fixture = effectFixture(
+      "module Game;function main():void{poke($C100,peek(peekw($C110)));}",
+      "size",
+      true,
+      "original",
+    );
     expect(validateSizeObservers(fixture).kind).toBe("rejected");
+  });
+
+  it("should admit known device windows under the raw site proof", () => {
+    const fixture = effectFixture(
+      "module Game;function main():void{poke($D020,peek($DC00));}",
+      "size",
+      true,
+      "original",
+    );
+    expect(validateSizeObservers(fixture).kind).toBe("complete");
   });
 });
