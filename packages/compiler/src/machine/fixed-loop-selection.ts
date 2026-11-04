@@ -628,25 +628,37 @@ export function finishFixedLoops(fn: MachineFunction, runtime: FixedLoopRuntime)
     if (
       runtime.policy !== "mixed" ||
       register === null ||
-      loop.tripDomain.minimum <= 0 ||
-      loop.members.size !== 2
+      loop.initial.domain.maximum >= loop.bound
     )
       continue;
     const roles = [loop.preheader.id, loop.header.id, loop.body.id, loop.update.id, loop.exit.id];
     const at = selected.blocks.findIndex((block) => block.label === roles[0]);
     if (at < 0 || !roles.every((id, index) => selected.blocks[at + index]?.label === id)) continue;
     const [preheader, header, body, update, exit] = roles.map((id) => byLabel.get(id)!);
+    const incoming = runtime.predecessors.get(loop.header.id) ?? [];
+    if (
+      incoming.length !== 2 ||
+      !incoming.includes(loop.preheader.id) ||
+      !incoming.includes(loop.update.id)
+    )
+      continue;
+    const edge = header.terminator;
+    const canonical =
+      edge.kind === "branch" &&
+      edge.opcode === "bcc" &&
+      edge.target === body.label &&
+      edge.fallthrough === exit.label;
+    const inverted =
+      edge.kind === "branch" &&
+      edge.opcode === "bcs" &&
+      edge.target === exit.label &&
+      edge.fallthrough === body.label;
     if (
       preheader.terminator.kind !== "jump" ||
       preheader.terminator.target !== header.label ||
-      body.terminator.kind !== "jump" ||
-      body.terminator.target !== update.label ||
       update.terminator.kind !== "jump" ||
       update.terminator.target !== header.label ||
-      header.terminator.kind !== "branch" ||
-      header.terminator.opcode !== "bcc" ||
-      header.terminator.target !== body.label ||
-      header.terminator.fallthrough !== exit.label ||
+      (!canonical && !inverted) ||
       header.instructions.length < 1 ||
       header.instructions.length > 2 ||
       header.instructions.slice(1).some((instruction) => instruction.opcode !== "clv")
@@ -706,23 +718,40 @@ export function finishFixedLoops(fn: MachineFunction, runtime: FixedLoopRuntime)
     // can leave an overflow bit to preserve. BNE exits at the exact bound.
     const terminator = header.terminator;
     if (terminator.kind !== "branch") continue;
+    const inverted =
+      terminator.opcode === "bcs" &&
+      body.label === terminator.fallthrough &&
+      exit.label === terminator.target;
     const tested =
       terminator.opcode === "bne"
         ? header
-        : Object.freeze({
-            ...header,
-            instructions: Object.freeze(
-              header.instructions.filter((instruction) => instruction.opcode !== "clv"),
-            ),
-            terminator: Object.freeze({
-              ...terminator,
-              opcode: "bne",
-              uses: Object.freeze({
-                registers: Object.freeze([] as const),
-                flags: Object.freeze(["z"] as const),
+        : inverted
+          ? Object.freeze({
+              ...header,
+              instructions: Object.freeze(
+                header.instructions.filter((instruction) => instruction.opcode !== "clv"),
+              ),
+              terminator: Object.freeze({
+                ...terminator,
+                opcode: "bcc",
+                target: body.label,
+                fallthrough: exit.label,
               }),
-            }),
-          });
+            })
+          : Object.freeze({
+              ...header,
+              instructions: Object.freeze(
+                header.instructions.filter((instruction) => instruction.opcode !== "clv"),
+              ),
+              terminator: Object.freeze({
+                ...terminator,
+                opcode: "bne",
+                uses: Object.freeze({
+                  registers: Object.freeze([] as const),
+                  flags: Object.freeze(["z"] as const),
+                }),
+              }),
+            });
     blocks.splice(at, 5, preheader, body, update, tested, exit);
   }
   return Object.freeze({

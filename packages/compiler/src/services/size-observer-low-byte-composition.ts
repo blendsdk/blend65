@@ -458,7 +458,6 @@ function savedState(input: FinalObserverInput, view: Body["view"]) {
 function bottomTested(elided: boolean | undefined, loop: FixedLoopFacts, after: Body): boolean {
   const entry = after.blocks.get(loop.preheader.id),
     header = after.blocks.get(loop.header.id),
-    body = after.blocks.get(loop.body.id),
     update = after.blocks.get(loop.update.id),
     exit = after.blocks.get(loop.exit.id);
   /** A forward edge may be emitted as a fallthrough once the layout proves adjacency. */
@@ -466,6 +465,23 @@ function bottomTested(elided: boolean | undefined, loop: FixedLoopFacts, after: 
     block !== undefined &&
     (block.terminator.kind === "jump" || block.terminator.kind === "fallthrough") &&
     block.terminator.target === target;
+  /** Resolve empty jump aliases to the block that actually owns the target. */
+  const resolve = (label: string): string => {
+    let current = label;
+    const seen = new Set<string>();
+    while (!seen.has(current)) {
+      seen.add(current);
+      const block = after.blocks.get(current);
+      if (
+        block === undefined ||
+        block.instructions.length !== 0 ||
+        (block.terminator.kind !== "jump" && block.terminator.kind !== "fallthrough")
+      )
+        break;
+      current = block.terminator.target;
+    }
+    return current;
+  };
   /** Either the canonical carry test or the bottom-tested equality test. */
   const testEdge = (block: typeof header) => {
     const edge = block?.terminator;
@@ -477,14 +493,28 @@ function bottomTested(elided: boolean | undefined, loop: FixedLoopFacts, after: 
           edge.uses.flags.length === 1 &&
           edge.uses.flags[0] === "z" &&
           edge.uses.registers.length === 0;
-    return uses && edge.fallthrough === loop.exit.id ? edge : undefined;
+    return uses && edge.fallthrough === resolve(loop.exit.id) ? edge : undefined;
   };
+  /** The body region must reach the update without passing through the header. */
+  const bodyReachesUpdate = (() => {
+    const pending = [loop.body.id];
+    const seen = new Set<string>();
+    while (pending.length > 0) {
+      const label = pending.pop()!;
+      if (label === loop.update.id) return true;
+      if (label === loop.header.id || seen.has(label)) continue;
+      seen.add(label);
+      const block = after.blocks.get(label);
+      if (block !== undefined) pending.push(...machineSuccessors(block));
+    }
+    return false;
+  })();
   const checks = {
     elided: elided === true,
-    minimum: loop.tripDomain.minimum > 0,
+    minimum: loop.initial.domain.maximum < loop.bound,
     entry: forward(entry, loop.body.id),
     header: testEdge(header)?.target === loop.body.id,
-    body: forward(body, loop.update.id),
+    body: bodyReachesUpdate,
     update: forward(update, loop.header.id),
     predecessors:
       exit !== undefined &&
