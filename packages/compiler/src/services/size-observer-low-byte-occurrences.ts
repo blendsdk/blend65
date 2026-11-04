@@ -920,7 +920,7 @@ export function matchLowByteOccurrences(
                   JSON.stringify(item.source.operand) === JSON.stringify(next.source.operand),
               );
         if (
-          old.source.opcode === `ld${view.register}` &&
+          (old.source.opcode === "lda" || old.source.opcode === `ld${view.register}`) &&
           next !== undefined &&
           next.block === old.block &&
           next.index === old.index + 1 &&
@@ -968,8 +968,41 @@ export function matchLowByteOccurrences(
           continue;
         }
       }
-      if (view.register !== null || view.selected === null)
+      if (view.register !== null) {
+        /**
+         * A held counter may serve a direct typed store as its native index.
+         * The canonical index load disappears; the selected store carries the
+         * exact typed origin with the same register.
+         */
+        const indexUse = view.proof.indexUses?.find(
+          (use) => use.consumer.span === old.source.source,
+        );
+        const typedStore =
+          indexUse === undefined
+            ? undefined
+            : after.items.find(
+                (item) =>
+                  item.source.opcode === "sta" &&
+                  item.source.mode === `absolute-${view.register}` &&
+                  item.source.observerOrigins?.some(
+                    (origin) =>
+                      origin.kind === "typed" &&
+                      origin.operation === indexUse.consumer &&
+                      origin.indexRegister === view.register,
+                  ),
+              );
+        if (
+          indexUse !== undefined &&
+          typedStore !== undefined &&
+          (old.source.opcode === "lda" || old.source.opcode === `ld${view.register}`)
+        ) {
+          removed.add(old.key);
+          continue;
+        }
+      }
+      if (view.register !== null || view.selected === null) {
         return "Composed held counter read is unaccounted";
+      }
       const selected = view.selected;
       const candidates = after.items.filter(
         (item) =>

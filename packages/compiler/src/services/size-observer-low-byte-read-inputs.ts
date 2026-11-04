@@ -455,10 +455,30 @@ function typedReadInputs(
     profile: input.checked.profile,
   });
   const result: Access[] = [];
+  /**
+   * A returned-local aggregate construction writes its already-proved bytes
+   * through the hidden destination pointer. Those stores carry the aggregate
+   * operation span and are owned by the aggregate/borrow proof, not by this
+   * typed-read matcher.
+   */
+  const aggregateSpans = new Set(
+    packet.function.blocks
+      .flatMap((block) => block.operations)
+      .filter((operation) => operation.kind === "aggregate")
+      .map(
+        (operation) => `${operation.span.sourceId}\0${operation.span.start}\0${operation.span.end}`,
+      ),
+  );
+  const aggregateStore = (item: Item): boolean =>
+    item.source.source !== null &&
+    aggregateSpans.has(
+      `${item.source.source.sourceId}\0${item.source.source.start}\0${item.source.source.end}`,
+    );
   // Store envelopes, including dummy reads, belong to occurrence matching.
   for (const item of pair.items.filter(
     (item) =>
       item.instruction.mode === "indirect-indexed-y" &&
+      !aggregateStore(item) &&
       !item.source.observerOrigins?.some(
         (origin) => origin.kind === "raw" || origin.operation.kind === "store",
       ),
@@ -475,8 +495,9 @@ function typedReadInputs(
       item.source.opcode !== "lda" ||
       item.source.operand?.kind !== "indirect-y" ||
       (item.source.operand.offset ?? 0) !== 0
-    )
+    ) {
       return "Typed pointer read has no exact source consumer";
+    }
     const operation = origin.operation,
       pointer = item.source.operand.requestId;
     const root = incomingPointer(input, pair, packet.function, operation.place.root);

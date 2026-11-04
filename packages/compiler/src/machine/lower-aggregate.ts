@@ -193,8 +193,7 @@ function directAggregateAccess(
         : counter?.home === retained.low
           ? retained.low
           : retained
-      : state.input.sourceFacts?.loopPolicy === "original" &&
-          root.kind === "label" &&
+      : root.kind === "label" &&
           (isReturnedLocalPlace(place, state) ||
             state.input.program.semantic.functions.some(
               (fn) =>

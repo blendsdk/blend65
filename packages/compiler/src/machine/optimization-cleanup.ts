@@ -198,8 +198,41 @@ function copyForward(
   // Candidate layouts may forward a private source-local reload; the canonical
   // reference keeps it, which is the copy-free pair the byte-window proof expects.
   const policy = program.storageSelection?.sourceFacts.loopPolicy;
-  const routes = program.storageSelection?.sourceFacts.program.interruptRoutes;
-  const localForwarding = policy === "mixed" && routes?.length === 0;
+  const sourceProgram = program.storageSelection?.sourceFacts.program;
+  const routes = sourceProgram?.interruptRoutes;
+  const asyncFunctions = new Set(
+    [
+      ...(routes ?? []).map((route) => route.handler),
+      ...(sourceProgram?.roots ?? []).flatMap((root) =>
+        root.kind === "interrupt" ? [root.function] : [],
+      ),
+    ].map(bindingIdentityKey),
+  );
+  /**
+   * A private local can still be forwarded across an asynchronous route when
+   * no handler closure names its home. The handler bodies are already lowered
+   * into `items`, so a direct operand/memory reference is the conservative
+   * observation test; a handler with no reference cannot see the private byte.
+   */
+  const asyncObserves = (requestId: string): boolean =>
+    items.some(
+      (fn) =>
+        fn.sourceFunction !== undefined &&
+        asyncFunctions.has(bindingIdentityKey(fn.sourceFunction)) &&
+        fn.blocks.some((block) =>
+          block.instructions.some(
+            (instruction) =>
+              (instruction.operand?.kind === "storage" &&
+                instruction.operand.requestId === requestId) ||
+              instruction.memory.some(
+                (effect) =>
+                  (effect.address.kind === "storage" || effect.address.kind === "indirect-y") &&
+                  effect.address.requestId === requestId,
+              ),
+          ),
+        ),
+    );
+  const localForwarding = policy === "mixed";
   const functions = items.map((fn) => {
     const sites: RuleSite[] = [];
     const spans: SourceSpan[] = [];
@@ -245,6 +278,7 @@ function copyForward(
           !(
             privateMainTemporary(program, store.requestId) ||
             (localForwarding &&
+              !asyncObserves(store.requestId) &&
               store.requestId.includes(":local:") &&
               // A residual reload ends its block and feeds its branch. A reload
               // feeding an adjacent compare is the byte-window producer and is

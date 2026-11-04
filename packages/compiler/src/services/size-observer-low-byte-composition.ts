@@ -646,10 +646,8 @@ export function validateComposedLowByte(
       owners.has(source.id)
     )
       return reject("Composed counter source owner is unresolved");
-    if (typeBytes(source.result) > 1) {
-      if (aggregateReturn(source)) continue;
+    if (typeBytes(source.result) > 1 && !aggregateReturn(source))
       return reject("Composed counter source owner is unresolved");
-    }
     const before = body(beforeView, source.id, source),
       after = body(afterView, source.id, source);
     if (before === null || after === null)
@@ -983,8 +981,30 @@ export function validateComposedLowByte(
     for (const { source, current } of allBodies) {
       if (current === null) return reject("Composed reachable function binding is unresolved");
       const changes = functions.get(source);
+      const aggregateSpans = new Set(
+        source.blocks
+          .flatMap((block) => block.operations)
+          .filter((operation) => operation.kind === "aggregate")
+          .map(
+            (operation) =>
+              `${operation.span.sourceId}\0${operation.span.start}\0${operation.span.end}`,
+          ),
+      );
       for (const item of current.items) {
         if (item.instruction.opcode === "jsr") continue;
+        if (
+          (item.source.source !== null &&
+            aggregateSpans.has(
+              `${item.source.source.sourceId}\0${item.source.source.start}\0${item.source.source.end}`,
+            )) ||
+          // Inside an aggregate-return function the status protocol owns the
+          // stack-only php/sei/plp sequence; ordinary functions still reject a
+          // source processor-state observation.
+          (aggregateReturn(source) &&
+            item.instruction.operand === null &&
+            item.instruction.memory.length === 0)
+        )
+          continue;
         const access = (index === 0 ? changes?.accessesBefore : changes?.accessesAfter)?.find(
           (access) => access.item.key === item.key,
         );
@@ -1014,13 +1034,19 @@ export function validateComposedLowByte(
               : { pointees: site.ranges }
             : { pointees: access.pointees }),
         });
+        const typedSourceAccess = item.source.observerOrigins?.some(
+          (origin) => origin.kind === "typed",
+        );
         if (
-          envelope === null ||
-          (access !== undefined &&
+          (envelope === null && !(typedSourceAccess === true && access === undefined)) ||
+          (envelope !== null &&
+            access !== undefined &&
             (access.item.instruction !== item.instruction ||
               JSON.stringify(envelope) !== JSON.stringify(access.envelope)))
-        )
+        ) {
           return reject("Composed access envelope is incomplete");
+        }
+        if (envelope === null) continue;
         for (const bus of envelope.filter((access) => access.kind === "write"))
           for (const range of bus.ranges) {
             if (overlaps(range, status.range))
