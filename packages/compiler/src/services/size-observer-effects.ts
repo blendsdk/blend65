@@ -651,9 +651,32 @@ export function validateResidualEffects(input: FinalObserverInput): ResidualEffe
   // call targets. Calls inside induction remain excluded by its separate proof.
   // Only raw-owning bodies need this control-shape premise. Typed callees still
   // pass the separate whole-source containment and borrow checks.
+  /**
+   * Vector-only platform controls change the CPU's interrupt entry, not data
+   * visibility. Interrupt handlers are already covered by the asynchronous
+   * borrow proof above, and their own raw operations join `sites` below. Other
+   * platform capabilities, indirect calls and unbounded raw control flow stay
+   * rejected.
+   */
+  const vectorCapabilities = new Set([
+    "c64.system.restoreIRQ",
+    "c64.system.restoreNMI",
+    "c64.system.setIRQ",
+    "c64.system.setIRQExclusive",
+    "c64.system.setNMI",
+    "c64.system.setNMIExclusive",
+  ]);
+  const asyncHandlers = new Set(
+    [
+      ...(program.interruptRoutes ?? []).map((route) => route.handler),
+      ...program.roots.flatMap((root) => (root.kind === "interrupt" ? [root.function] : [])),
+    ].map(bindingIdentityKey),
+  );
+  const asyncProved = program.roots.every(
+    (root) => root.kind !== "callable" || asyncHandlers.has(bindingIdentityKey(root.function)),
+  );
   if (
-    (program.interruptRoutes?.length ?? 0) > 0 ||
-    program.roots.some(({ kind }) => kind === "callable") ||
+    !asyncProved ||
     bodies.some(
       (body) =>
         (!bounds.has(body.id) &&
@@ -667,8 +690,7 @@ export function validateResidualEffects(input: FinalObserverInput): ResidualEffe
           block.operations.some(
             (operation) =>
               operation.kind === "indirect-call" ||
-              operation.kind === "platform" ||
-              operation.kind === "cpu-control",
+              (operation.kind === "platform" && !vectorCapabilities.has(operation.capability)),
           ),
         ),
     )
