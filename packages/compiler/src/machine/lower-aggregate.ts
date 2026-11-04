@@ -136,8 +136,6 @@ function directAggregateAccess(
 ): DirectAggregateAccess | null {
   if (
     place.rootType === undefined ||
-    (isReturnedLocalPlace(place, state) &&
-      selectedStoragePlace(place, state.sourceFacts?.storage) === place) ||
     (type.kind !== "scalar" && type.kind !== "enum") ||
     typeBytes(type) > 2
   ) {
@@ -145,7 +143,13 @@ function directAggregateAccess(
   }
   const root = loweredPlace(place, typeBytes(place.rootType), false, state);
   if (root.kind !== "storage" && root.kind !== "label") return null;
-  if (root.kind === "storage" && root.requestId.includes(":parameter:")) return null;
+  // A pointer home names the address, not the object bytes. Returned-local
+  // members that resolve to the caller's direct global use the label path.
+  if (
+    root.kind === "storage" &&
+    (root.requestId.includes(":parameter:") || root.requestId.includes(":pointer:"))
+  )
+    return null;
   const plan = aggregateAddressPlan(place, state, source);
   if (plan.indices.length === 0) {
     return Object.freeze({ kind: "fixed", root, offset: plan.staticOffset });
@@ -176,10 +180,39 @@ function directAggregateAccess(
   }
   const rootKey = state.loadOrigins.get(term.value);
   const counter = rootKey === undefined ? undefined : state.fixedLoops?.counters.get(rootKey);
+  /**
+   * A bounded word ordinal can use its low byte directly. The loop certificate
+   * already proves the high byte is zero, so `absolute-y` addresses the same
+   * byte without materializing a 16-bit pointer.
+   */
+  const ordinalMaximum = state.ordinalBounds?.get(term.value);
   const index =
-    retained?.kind === "zero-extended" && !retained.signed && counter?.home === retained.low
-      ? retained.low
-      : retained;
+    retained?.kind === "zero-extended" && !retained.signed
+      ? retained.low.kind === "storage" && retained.low.bytes === 1 && retained.low.signed !== true
+        ? retained.low
+        : counter?.home === retained.low
+          ? retained.low
+          : retained
+      : state.input.sourceFacts?.loopPolicy === "original" &&
+          root.kind === "label" &&
+          (isReturnedLocalPlace(place, state) ||
+            state.input.program.semantic.functions.some(
+              (fn) =>
+                bindingIdentityKey(fn.id) === bindingIdentityKey(state.owner) &&
+                fn.parameters.some(
+                  (parameter) =>
+                    bindingIdentityKey(parameter.id) === bindingIdentityKey(place.root) &&
+                    (parameter.type.kind === "array" || parameter.type.kind === "struct"),
+                ),
+            )) &&
+          retained?.kind === "storage" &&
+          retained.bytes === 2 &&
+          retained.signed !== true &&
+          ordinalMaximum !== undefined &&
+          ordinalMaximum >= 0n &&
+          ordinalMaximum < 256n
+        ? Object.freeze({ ...retained, bytes: 1 })
+        : retained;
   if (index?.kind !== "storage" || index.bytes !== 1 || index.signed === true) {
     return null;
   }
@@ -414,6 +447,14 @@ export function lowerAggregateStore(
   state: FunctionLoweringState,
 ): readonly MachineInstruction[] {
   const direct = directAggregateAccess(operation.place, operation.type, state, operation.span);
+  if (
+    process.env.BLEND65_DEBUG_STORE === "1" &&
+    operation.span.start > 14600 &&
+    operation.span.start < 16400
+  )
+    process.stderr.write(
+      `STORE span=${operation.span.start} direct=${JSON.stringify(direct)} placeRootType=${operation.place.rootType?.kind ?? "none"} path=${JSON.stringify(operation.place.path)} value=${JSON.stringify(operation.value)}\n`,
+    );
   if (direct !== null) {
     if (valueInput.kind === "condition") {
       throw loweringFailure("Packed aggregate store value was not materialized", operation.span);
