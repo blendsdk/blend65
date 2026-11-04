@@ -826,7 +826,7 @@ export function applyFoundationCleanup(
       mainline(fn),
   );
   const reloads = foldRegisterReloads(program, facts.profile.cpu, eligible, semanticFor);
-  const delivery = argumentDelivery(facts, reloads.functions, semanticFor);
+  const delivery = argumentDelivery(reloads.functions, semanticFor);
   const copies = copyParameterLocals(
     delivery.functions,
     semanticFor,

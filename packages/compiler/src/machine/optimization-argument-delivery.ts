@@ -1,7 +1,5 @@
-import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import type { SemanticFunction } from "../semantic/operations.js";
-import type { OptimizationFacts } from "./optimization-facts.js";
 import type { MachineFunction, MachineInstruction, MachineOperand } from "./machine-types.js";
 import type { AppliedRule, RuleSite } from "./optimization-rules.js";
 import { provedProducer, READS_STORAGE } from "./optimization-cleanup.js";
@@ -10,22 +8,17 @@ import { provedProducer, READS_STORAGE } from "./optimization-cleanup.js";
  * Deliver a byte argument directly from its private stage into the callee's
  * parameter home. The producer store is retargeted and the later
  * `lda stage; sta parameter` pair disappears. Only a one-byte argument whose
- * stage has this single read qualifies, and only outside main so the pointer
- * argument proof keeps its canonical caller shape.
+ * stage has this single read qualifies. The retargeted store keeps the delivery
+ * store's call span so the preserved-guard proof sees a call-time parameter
+ * write; the pointer-delivery windows locate their chain by identity.
  */
 export function argumentDelivery(
-  facts: OptimizationFacts,
   items: readonly MachineFunction[],
   semanticFor: (fn: MachineFunction) => SemanticFunction | undefined,
 ): { readonly functions: readonly MachineFunction[]; readonly applied: readonly AppliedRule[] } {
   const applied: AppliedRule[] = [];
-  const main = facts.program.semantic.main;
   const functions = items.map((fn) => {
-    if (
-      fn.sourceFunction === undefined ||
-      bindingIdentityKey(fn.sourceFunction) === bindingIdentityKey(main)
-    )
-      return fn;
+    if (fn.sourceFunction === undefined) return fn;
     const sites: RuleSite[] = [];
     const spans: SourceSpan[] = [];
     let savedBytes = 0;

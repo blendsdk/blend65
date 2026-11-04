@@ -766,8 +766,46 @@ export function matchLowByteOccurrences(
             parameter.origin.owner !== null
           )
             return "Composed omitted formal is unresolved";
-          const a = parts(before, [call.operation]),
-            b = parts(after, [call.operation]);
+          /**
+           * Scalar arguments delivered directly no longer pass through a private
+           * stage in the selected candidate. They never name the pointer formal,
+           * so keep this window to the pointer delivery and the call.
+           */
+          const scalarFormals = new Set(
+            [...before.view.requests.values()]
+              .filter(
+                (request) =>
+                  request.owner === entry.function.id &&
+                  request.binding !== null &&
+                  request.binding !== parameter.parameter &&
+                  request.bytes === 1,
+              )
+              .map((request) => request.id),
+          );
+          const pointerWindow = (items: readonly Item[]): readonly Item[] => {
+            const kept: Item[] = [];
+            for (const item of items) {
+              const operand = item.source.operand;
+              if (
+                item.source.opcode === "sta" &&
+                operand?.kind === "storage" &&
+                scalarFormals.has(operand.requestId)
+              ) {
+                const previous = kept.at(-1);
+                if (
+                  previous?.source.opcode === "lda" &&
+                  previous.block === item.block &&
+                  previous.index === item.index - 1
+                )
+                  kept.pop();
+                continue;
+              }
+              kept.push(item);
+            }
+            return kept;
+          };
+          const a = pointerWindow(parts(before, [call.operation])),
+            b = pointerWindow(parts(after, [call.operation]));
           const at = a.findIndex((item) => storage(item, "sta", formal[0]!.id));
           const delivery = a.slice(at - 1, at + 3),
             label = bindingLabel("global", parameter.origin.place.root);
@@ -810,6 +848,17 @@ export function matchLowByteOccurrences(
             from.push(cursor);
             cursor += 1;
           }
+          // A selected window holding only the call means every argument was
+          // delivered outside the call span. Only the omitted pointer delivery
+          // remains in the reference window, so remove it without a state cut.
+          const emptyWindow =
+            suffix.length === 0 &&
+            head.length === delivery.length &&
+            head.every((item, index) => item === delivery[index]);
+          const claimed = emptyWindow
+            ? head.every((item) => !removed.has(item.key) && !replacements.has(item.key))
+            : claim(head, suffix, from, call.operation, 0);
+          if (emptyWindow) for (const item of head) removed.add(item.key);
           if (
             argument?.kind !== "place-address" ||
             argument.place.path.length !== 0 ||
@@ -824,8 +873,7 @@ export function matchLowByteOccurrences(
                 !from.includes(index) && !delivery.includes(item) && item !== forwardedItem,
             ) ||
             at !== 1 ||
-            b.length < 2 ||
-            !claim(head, suffix, from, call.operation, 0)
+            !claimed
           )
             return "Composed argument suffix or immutable root disagrees";
           removedDemands.add(formal[0]!);
