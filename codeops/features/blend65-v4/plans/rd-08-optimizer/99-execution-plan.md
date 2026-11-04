@@ -179,10 +179,19 @@ stops the plan; no limit rewrite and no benchmark-specific special case.
 
 > **Reasoning**: max — asynchronous, raw/MMIO and global-return proof boundaries.
 
+**Measured frontier (2026-11-04).** The acquisition specification is RED at the
+shared `size` output: payload **2291**/963, general **2417**/984, zero page
+**27**/14, combined **2444**/998 (the superseded plan figure 2537 predates the
+saved-gate rules; those rules also reduced the acquisition output). The
+generated-stack route limit is 10. The behavior obligations (CIA1 traffic, PBON
+guard, NMI link/flag, endpoints, unknown cycles kept unknown) already pass; the
+gaps are the payload/general/zero-page ceilings and the indirect snapshot
+construction instead of a direct write into the caller's `saved` home.
+
 ### Step 3.1: Acquisition specification tests
 
-- [ ] 3.1.1 [spec-author] Write acquisition/library behavior, NMI/raw/MMIO, output and native cases — `test/rd08/optimizer-acquisition-output.spec.test.ts`
-- [ ] 3.1.2 [spec-author] Verify the acquisition specification cases fail for the expected missing async/raw/return rules; no acquisition implementation is present
+- [x] 3.1.1 [spec-author] Write acquisition/library behavior, NMI/raw/MMIO, output and native cases — `test/rd08/optimizer-acquisition-output.spec.test.ts` ✅ (completed: 2026-11-04; independent implementation-blind spec, four profiles x three cases: 963/984/14/998/10 ceilings with exact accounting, CIA1 14r/15w and PBON 2r/0w obligations, in-place snapshot/global-return, scoped NMI link/flag, and complete interval/view/stack/resource closure)
+- [x] 3.1.2 [spec-author] Verify the acquisition specification cases fail for the expected missing async/raw/return rules; no acquisition implementation is present ✅ (completed: 2026-11-04; 12/12 RED: payload 2291>963, general 2417>984, zero page 27>14, combined 2444>998, and indirect snapshot copy instead of the caller's saved home; non-vacuous behavior/accounting assertions already pass)
 
 ### Step 3.2: Asynchronous and raw obligations
 
