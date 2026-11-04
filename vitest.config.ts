@@ -15,6 +15,7 @@ export default defineConfig({
           ]
         : ["test/**/*.{spec,impl}.test.ts"],
     environment: "node",
+    setupFiles: ["test/setup-matchers.ts"],
     fileParallelism: false,
   },
 });
