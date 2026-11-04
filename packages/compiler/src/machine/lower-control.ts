@@ -661,6 +661,16 @@ export function selectFixedCounterHeaderState(
       BYTE_WINDOW_CHANGED.n |
       BYTE_WINDOW_CHANGED.z |
       (overflowDead ? 0 : BYTE_WINDOW_CHANGED.v);
+    if (process.env.BLEND65_DEBUG_V === "1" && counter.loop.comparison.span.start === 6929)
+      console.error(
+        "V",
+        runtime.policy,
+        label.split(":").slice(-1)[0],
+        quiet,
+        overflowDead,
+        safe(counter.loop.body.id, 0, changed),
+        safe(counter.loop.exit.id, 0, changed),
+      );
     if (safe(counter.loop.body.id, 0, changed) && safe(counter.loop.exit.id, 0, changed))
       admitted.add(label);
     else if (

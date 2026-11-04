@@ -390,6 +390,96 @@ function foldRegisterReloads(
   return { functions, applied };
 }
 
+/**
+ * Remove a block-entry `lda home` that only repeats the byte the sole
+ * predecessor already loaded into A immediately before its branch. A, N/Z and
+ * every other flag at entry are then identical, so the reload is redundant.
+ */
+function entryReloadForward(
+  items: readonly MachineFunction[],
+  semanticFor: (fn: MachineFunction) => SemanticFunction | undefined,
+): { readonly functions: readonly MachineFunction[]; readonly applied: readonly AppliedRule[] } {
+  const applied: AppliedRule[] = [];
+  const functions = items.map((fn) => {
+    const predecessors = new Map<string, string[]>();
+    const add = (target: string, label: string) => {
+      const list = predecessors.get(target) ?? [];
+      list.push(label);
+      predecessors.set(target, list);
+    };
+    for (const block of fn.blocks) {
+      const term = block.terminator;
+      if (term.kind === "branch" || term.kind === "long-branch") {
+        add(term.kind === "branch" ? term.target : term.jump.target, block.label);
+        add(term.fallthrough, block.label);
+      } else if (term.kind === "jump" || term.kind === "fallthrough") {
+        add(term.target, block.label);
+      }
+    }
+    const sites: RuleSite[] = [];
+    const spans: SourceSpan[] = [];
+    let savedBytes = 0;
+    const blocks = fn.blocks.map((block) => {
+      const incoming = predecessors.get(block.label) ?? [];
+      const load = block.instructions[0];
+      const home = load === undefined ? undefined : storageOperand(load);
+      if (
+        incoming.length !== 1 ||
+        incoming[0] === block.label ||
+        load === undefined ||
+        home === undefined ||
+        load.opcode !== "lda" ||
+        load.observerOrigins !== undefined
+      )
+        return block;
+      const producer = fn.blocks.find((candidate) => candidate.label === incoming[0]);
+      const term = producer?.terminator;
+      const previous = producer?.instructions.at(-1);
+      const previousHome = previous === undefined ? undefined : storageOperand(previous);
+      if (
+        producer === undefined ||
+        previous === undefined ||
+        previousHome === undefined ||
+        previous.opcode !== "lda" ||
+        previous.observerOrigins !== undefined ||
+        previousHome.requestId !== home.requestId ||
+        (previousHome.offset ?? 0) !== (home.offset ?? 0) ||
+        term === undefined ||
+        (term.kind !== "branch" && term.kind !== "long-branch")
+      )
+        return block;
+      const target = term.kind === "branch" ? term.target : term.jump.target;
+      if (target !== block.label && term.fallthrough !== block.label) return block;
+      sites.push(Object.freeze({ block: block.label, index: 0 }));
+      if (load.source !== null) spans.push(load.source);
+      savedBytes += load.cost.bytes;
+      return Object.freeze({
+        ...block,
+        instructions: Object.freeze(block.instructions.slice(1)),
+      });
+    });
+    const semantic = semanticFor(fn);
+    if (sites.length === 0 || semantic === undefined) return fn;
+    applied.push(
+      Object.freeze({
+        ruleId: "cleanup.entry-reload",
+        functions: Object.freeze([semantic]),
+        changed: Object.freeze(sites),
+        obligations: Object.freeze([
+          Object.freeze({ kind: "source-equivalence", sites: Object.freeze(spans) }),
+          Object.freeze({
+            kind: "cost",
+            before: Object.freeze({ component: "B", value: String(savedBytes) }),
+            after: Object.freeze({ component: "B", value: "0" }),
+          }),
+        ]),
+      }),
+    );
+    return Object.freeze({ ...fn, blocks: Object.freeze(blocks) });
+  });
+  return { functions, applied };
+}
+
 /** Remove a register/flag write that the immediately following instruction fully overwrites. */
 function deadInstruction(
   items: readonly MachineFunction[],
@@ -672,7 +762,8 @@ export function applyFoundationCleanup(
     semanticFor,
     program.storageSelection?.sourceFacts.loopPolicy,
   );
-  const forward = copyForward(program, copies.functions, semanticFor);
+  const entry = entryReloadForward(copies.functions, semanticFor);
+  const forward = copyForward(program, entry.functions, semanticFor);
   const stores = deadStore(facts, program, forward.functions, semanticFor);
   const dead = deadInstruction(stores.functions, semanticFor);
   const empty = emptyBlock(dead.functions, semanticFor);
@@ -683,6 +774,7 @@ export function applyFoundationCleanup(
       ...reloads.applied,
       ...delivery.applied,
       ...copies.applied,
+      ...entry.applied,
       ...forward.applied,
       ...stores.applied,
       ...dead.applied,
