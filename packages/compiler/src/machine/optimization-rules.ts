@@ -70,6 +70,7 @@ export type RuleValidation =
 export const FOUNDATION_RULE_IDS: readonly string[] = Object.freeze([
   "cleanup.argument-delivery",
   "cleanup.copy-parameter-local",
+  "cleanup.dead-stage-store",
   "cleanup.entry-reload",
   "cleanup.fold-register-reload",
   "cleanup.copy-forward",

@@ -34,6 +34,7 @@ import {
   pointerDead,
   unchanged,
   copiedParameterLocals,
+  deadStageStores,
   foldedRegisterReloads,
   forwardedLocalReloads,
   matchFieldCorrespondence,
@@ -428,7 +429,10 @@ export function validateFieldComplements(
       true,
       redirected,
       swappedTests,
-      forwardedLocalReloads(before, after),
+      new Set([
+        ...forwardedLocalReloads(before, after),
+        ...deadStageStores(before, input.candidate.lowered.program),
+      ]),
       copiedParameterLocals(before, after),
       foldedRegisterReloads(before, after),
     )
@@ -655,7 +659,10 @@ export function validateFieldComplements(
         true,
         callerRedirected,
         callerSwaps,
-        forwardedLocalReloads(oldCaller, newCaller),
+        new Set([
+          ...forwardedLocalReloads(oldCaller, newCaller),
+          ...deadStageStores(oldCaller, input.candidate.lowered.program),
+        ]),
         copiedParameterLocals(oldCaller, newCaller),
         foldedRegisterReloads(oldCaller, newCaller),
       )

@@ -16,6 +16,7 @@ import { immediate, request, storage } from "./size-observer-complement-field-la
 import type { Body, Item } from "./size-observer-complement-field-layout.js";
 import {
   copiedParameterLocals,
+  deadStageStores,
   foldedRegisterReloads,
   forwardedLocalReloads,
   unchanged,
@@ -959,7 +960,10 @@ export function matchLowByteOccurrences(
       false,
       redirected,
       swappedTests,
-      forwardedLocalReloads(before, after),
+      new Set([
+        ...forwardedLocalReloads(before, after),
+        ...deadStageStores(before, input.candidate.lowered.program),
+      ]),
       copiedParameterLocals(before, after),
       foldedRegisterReloads(before, after),
     )

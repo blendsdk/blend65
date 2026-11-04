@@ -28,6 +28,7 @@ import {
   storage,
 } from "./size-observer-complement-field-layout.js";
 import type { Body, Item } from "./size-observer-complement-field-layout.js";
+import type { MachineProgram } from "../machine/machine-types.js";
 
 /** Invocation-local accounting; no collection grants source or producer authority. */
 type Changes = {
@@ -765,6 +766,65 @@ export function copiedParameterLocals(before: Body, after: Body): ParameterCopyP
     }
   }
   return { copies, redirect };
+}
+
+/** Opcodes which read a storage home they also leave in place. */
+const STAGE_READS = new Set([
+  "lda",
+  "ldx",
+  "ldy",
+  "adc",
+  "sbc",
+  "and",
+  "ora",
+  "eor",
+  "cmp",
+  "cpx",
+  "cpy",
+  "asl",
+  "lsr",
+  "rol",
+  "ror",
+  "inc",
+  "dec",
+]);
+
+/**
+ * Prove a reference store to a private compiler-created stage is dead in the
+ * selected program. The stage identity names its class, and no selected
+ * instruction, indirect target or read effect names it, so the store changes no
+ * observable byte the selected program can consume. Interrupt containment is
+ * already required by the rule that removed it.
+ * @param before Independently bound reference instructions.
+ * @param program Complete selected machine program.
+ * @returns Exact reference store items the selected may omit.
+ * @example deadStageStores(before, input.candidate.lowered.program)
+ */
+export function deadStageStores(before: Body, program: MachineProgram): ReadonlySet<string> {
+  const reads = new Set<string>();
+  for (const fn of [program.startup, ...program.functions])
+    for (const block of fn.blocks)
+      for (const instruction of block.instructions) {
+        const operand = instruction.operand;
+        if (operand?.kind === "storage" && STAGE_READS.has(instruction.opcode))
+          reads.add(operand.requestId);
+        if (operand?.kind === "indirect-y") reads.add(operand.requestId);
+        for (const effect of instruction.memory)
+          if (effect.kind === "read" && effect.address.kind === "storage")
+            reads.add(effect.address.requestId);
+      }
+  const dead = new Set<string>();
+  for (const item of before.items) {
+    const operand = item.source.operand;
+    if (item.source.opcode !== "sta" || operand?.kind !== "storage") continue;
+    if (
+      !operand.requestId.includes(":argument-stage:") &&
+      !operand.requestId.includes(":retained-value:")
+    )
+      continue;
+    if (!reads.has(operand.requestId)) dead.add(item.key);
+  }
+  return dead;
 }
 
 /**

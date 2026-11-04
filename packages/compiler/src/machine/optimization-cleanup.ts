@@ -480,6 +480,76 @@ function entryReloadForward(
   return { functions, applied };
 }
 
+/**
+ * Remove a store to a private argument stage that no candidate instruction
+ * reads. Delivery forwarding can leave the stage write behind after its only
+ * reload disappears; with no reader and no interrupt route the write is dead.
+ */
+function deadStageStores(
+  program: MachineProgram,
+  items: readonly MachineFunction[],
+  semanticFor: (fn: MachineFunction) => SemanticFunction | undefined,
+): { readonly functions: readonly MachineFunction[]; readonly applied: readonly AppliedRule[] } {
+  const routes = program.storageSelection?.sourceFacts.program.interruptRoutes;
+  if (routes === undefined || routes.length !== 0) return { functions: items, applied: [] };
+  const reads = readHomes([program.startup, ...items]);
+  const eligible = (requestId: string): boolean =>
+    (requestId.includes(":argument-stage:") || requestId.includes(":retained-value:")) &&
+    !reads.has(requestId);
+  const applied: AppliedRule[] = [];
+  const functions = items.map((fn) => {
+    if (!mainline(fn)) return fn;
+    const sites: RuleSite[] = [];
+    const spans: SourceSpan[] = [];
+    let savedBytes = 0;
+    const blocks = fn.blocks.map((block) => {
+      const remove = new Set<number>();
+      for (let index = 0; index < block.instructions.length; index += 1) {
+        const instruction = block.instructions[index]!;
+        const home = storageOperand(instruction);
+        if (
+          home === undefined ||
+          instruction.opcode !== "sta" ||
+          instruction.observerOrigins !== undefined ||
+          !eligible(home.requestId)
+        )
+          continue;
+        remove.add(index);
+        sites.push(Object.freeze({ block: block.label, index }));
+        if (instruction.source !== null) spans.push(instruction.source);
+        savedBytes += instruction.cost.bytes;
+      }
+      if (remove.size === 0) return block;
+      return Object.freeze({
+        ...block,
+        instructions: Object.freeze(block.instructions.filter((_, at) => !remove.has(at))),
+      });
+    });
+    const semantic = semanticFor(fn);
+    if (sites.length === 0 || semantic === undefined) {
+      // A function with no record still returns its possibly rewritten blocks.
+      return sites.length === 0 ? fn : Object.freeze({ ...fn, blocks: Object.freeze(blocks) });
+    }
+    applied.push(
+      Object.freeze({
+        ruleId: "cleanup.dead-stage-store",
+        functions: Object.freeze([semantic]),
+        changed: Object.freeze(sites),
+        obligations: Object.freeze([
+          Object.freeze({ kind: "source-equivalence", sites: Object.freeze(spans) }),
+          Object.freeze({
+            kind: "cost",
+            before: Object.freeze({ component: "B", value: String(savedBytes) }),
+            after: Object.freeze({ component: "B", value: "0" }),
+          }),
+        ]),
+      }),
+    );
+    return Object.freeze({ ...fn, blocks: Object.freeze(blocks) });
+  });
+  return { functions, applied };
+}
+
 /** Remove a register/flag write that the immediately following instruction fully overwrites. */
 function deadInstruction(
   items: readonly MachineFunction[],
@@ -764,7 +834,8 @@ export function applyFoundationCleanup(
   );
   const entry = entryReloadForward(copies.functions, semanticFor);
   const forward = copyForward(program, entry.functions, semanticFor);
-  const stores = deadStore(facts, program, forward.functions, semanticFor);
+  const stages = deadStageStores(program, forward.functions, semanticFor);
+  const stores = deadStore(facts, program, stages.functions, semanticFor);
   const dead = deadInstruction(stores.functions, semanticFor);
   const empty = emptyBlock(dead.functions, semanticFor);
   const selected = new Map(empty.functions.map((fn) => [fn.id, fn] as const));
@@ -776,6 +847,7 @@ export function applyFoundationCleanup(
       ...copies.applied,
       ...entry.applied,
       ...forward.applied,
+      ...stages.applied,
       ...stores.applied,
       ...dead.applied,
       ...empty.applied,
