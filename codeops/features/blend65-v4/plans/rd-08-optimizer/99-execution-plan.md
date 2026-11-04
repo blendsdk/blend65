@@ -184,10 +184,12 @@ borrow, resident-global destination and returned-local certificate stages. The
 `closed:original` candidate now also passes the source-block identity and
 call-site checks: the fixed-loop runtime carries the canonical checked function
 and maps scheduled copies back to canonical blocks by stable ID, so the strict
-identity boundaries remain intact. It is blocked by the loop physical envelope:
-the returned-local redirect writes the snapshot initializer through the hidden
-destination (`sta (zp),y`) without a typed observer origin, so
-`instructionAccessEnvelope` cannot decode it. `closed:low-byte` and
+identity boundaries remain intact. It is blocked by the loop control-flow
+proof: the returned-local aggregate construction and stack-only instructions now
+pass the physical envelope through the returned-local/stack proofs, but the
+candidate next reports "Original source block has an unproved internal cycle".
+The loop-layout control-flow correspondence for the acquisition's original
+candidate is the remaining piece before a candidate can be selected. `closed:low-byte` and
 `closed:mixed` still report "Composed counters require a synchronous closed
 source", and the x/y/flat-eight policies fail the original-induction policy
 premise. The selected output remains the reference at 2291 bytes. The next unit
