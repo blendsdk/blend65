@@ -685,6 +685,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
           startup.startup,
           input.bindingNames,
           createC64StartupStateData(c64Startup),
+          input.observerEvidence === true,
         ),
         startup: startup.startup,
         c64Startup,

@@ -88,7 +88,16 @@ export function lowerData(
   startup: MachineFunction,
   bindingNames?: ReadonlyMap<string, string>,
   startupState: MachineDataObject = createC64StartupStateData(),
+  dropUnreferencedGlobals = false,
 ): readonly MachineDataObject[] {
+  /** Labels and binding storage the emitted code can actually name. */
+  const referenced = new Set<string>();
+  for (const fn of [...functions, startup])
+    for (const block of fn.blocks)
+      for (const instruction of block.instructions) {
+        if (instruction.operand?.kind === "label") referenced.add(instruction.operand.label);
+        if (instruction.operand?.kind === "storage") referenced.add(instruction.operand.requestId);
+      }
   const spriteAssets = new Set(
     [...functions, startup].flatMap((fn) =>
       fn.blocks.flatMap((block) =>
@@ -104,7 +113,17 @@ export function lowerData(
   const globals = program.semantic.globals
     .filter(
       (global) =>
-        !(global.storage === "constant" && global.type.kind === "scalar" && !global.placement),
+        !(global.storage === "constant" && global.type.kind === "scalar" && !global.placement) &&
+        !(
+          dropUnreferencedGlobals &&
+          global.placement === undefined &&
+          !referenced.has(bindingLabel("global", global.id)) &&
+          ![...referenced].some(
+            (id) =>
+              id.endsWith(`:local:${bindingIdentityKey(global.id)}`) ||
+              id.endsWith(`:parameter:${bindingIdentityKey(global.id)}`),
+          )
+        ),
     )
     .map((global) => {
       const sourceName = bindingNames?.get(bindingIdentityKey(global.id));
