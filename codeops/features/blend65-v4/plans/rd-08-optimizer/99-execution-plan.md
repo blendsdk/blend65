@@ -195,12 +195,28 @@ startup for certified returned-local aggregates; low-`$47` NMI wrapper ordering
 937 bytes. Largest owners: `keyState` 304, `readInputSnapshot` 299,
 `snapshotCompatible` 262, `joystickState` 118, compact startup + restore 91,
 `Game.main` 45, `soleGroundSource` 34, interrupt callback 18, plus 26 bytes of
-NMI fill. Next units, in order: (1) compose the aggregate-return
+NMI fill. Next units, in order: (1) fix the raw observer association for a
+context-specialized main body, then compose the aggregate-return
 `readInputSnapshot` loop with the asynchronous domains so the `mixed` plan can
 serve `keyState`/`snapshotCompatible` (current boundaries: async/vector gate,
 partial induction group, saved-status screen and a cross-body raw association);
 (2) compact constant aggregate fills; (3) re-measure and decide whether the
 remaining gap needs the wider loop/address tranche.
+
+**Negative evidence (2026-11-04).** Three attempted units were measured and
+reverted without changing the selected output:
+
+- Preferring the three-byte NMI adapter over direct low-`$47` placement moved
+  the same body but grew the acquisition payload 1209 -> 1353, so the direct
+  placement remains the better global layout.
+- The snapshot initializer's `rows` member is one eight-byte storage-backed
+  constant array, not eight per-byte constant writes. A per-write constant fill
+  loop therefore does not match it; a future fill rule must consume the nested
+  array's constant bytes.
+- Scoping the composition gate to certified aggregate-return programs still
+  terminates on a raw association from a different source body
+  (`src/game.blend:324:335`). This is the next proof to fix before the mixed plan
+  can be measured.
 
 Earlier acquisition candidate stages: The
 `closed:original` candidate now also passes the source-block identity and
