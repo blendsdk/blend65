@@ -179,17 +179,21 @@ stops the plan; no limit rewrite and no benchmark-specific special case.
 
 > **Reasoning**: max — asynchronous, raw/MMIO and global-return proof boundaries.
 
-**Measured frontier (2026-11-04).** Acquisition candidates now pass the
-asynchronous borrow, resident-global destination and returned-local certificate
-stages. They are rejected by the loop/induction composition, which still assumes
-a synchronous source: `closed:low-byte` and `closed:mixed` report "Composed
-counters require a synchronous closed source", the x/y/flat-eight policies fail
-the original-induction policy premise, and `closed:original` reports that
-`snapshotCompatible`'s entry source block has no emitted continuation (its
-source-block association lookup is missing while the membership counts match).
-The selected output remains the reference at 2291 bytes. The next unit is
-Step 3.3.2: compose the loop/counter and low-byte rules with the asynchronous
-execution domains, and repair the original candidate's source-block association.
+**Measured frontier (2026-11-04).** Acquisition candidates pass the asynchronous
+borrow, resident-global destination and returned-local certificate stages. The
+`closed:original` candidate now also passes the source-block identity and
+call-site checks: the fixed-loop runtime carries the canonical checked function
+and maps scheduled copies back to canonical blocks by stable ID, so the strict
+identity boundaries remain intact. It is blocked by the loop physical envelope:
+the returned-local redirect writes the snapshot initializer through the hidden
+destination (`sta (zp),y`) without a typed observer origin, so
+`instructionAccessEnvelope` cannot decode it. `closed:low-byte` and
+`closed:mixed` still report "Composed counters require a synchronous closed
+source", and the x/y/flat-eight policies fail the original-induction policy
+premise. The selected output remains the reference at 2291 bytes. The next unit
+is Step 3.3.2: give redirected aggregate stores their typed observer origins (or
+resolve the envelope through the returned-local proof), then compose the
+loop/counter rules with the asynchronous domains.
 
 The acquisition specification is RED at the
 shared `size` output: payload **2291**/963, general **2417**/984, zero page
