@@ -504,6 +504,7 @@ export function retainMachineValue(
   type: SemanticType,
   source: SourceSpan,
   state: FunctionLoweringState,
+  options: { readonly zeroPagePreferred?: boolean } = {},
 ): { readonly instructions: readonly MachineInstruction[]; readonly value: LoweredValue } {
   const hasSemanticLifetime = selectedValueLifetime(state, resultId) !== undefined;
   const register = value.kind === "zero-extended" ? value.low : value;
@@ -609,9 +610,12 @@ export function retainMachineValue(
     `retained-value:${resultId}`,
     "temporary",
     register.bytes,
-    loopValue &&
+    (loopValue &&
       state.input.preferZeroPage === true &&
-      state.input.sourceFacts?.loopPolicy === "mixed"
+      state.input.sourceFacts?.loopPolicy === "mixed") ||
+      (options.zeroPagePreferred === true &&
+        state.input.preferZeroPage === true &&
+        register.bytes === 1)
       ? "zero-page-preferred"
       : "ram",
     source,

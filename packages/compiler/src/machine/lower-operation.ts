@@ -45,6 +45,7 @@ import {
   typeBytes,
 } from "./lower-state.js";
 
+import { potentialValueInputs } from "../semantic/value-lifetimes.js";
 import { lowerDirectCall } from "./lower-call.js";
 import { lowerPlatformOperation } from "./lower-platform.js";
 import { declaredStorage } from "../storage/selection.js";
@@ -441,6 +442,34 @@ export function lowerOperation(
         operation.span,
       );
     }
+    const maskMerge = (() => {
+      if (
+        operation.operator !== "&" ||
+        operation.integer === null ||
+        operation.integer.width !== 8 ||
+        block === undefined ||
+        operationIndex === undefined
+      )
+        return false;
+      const consumer = block.operations
+        .slice(operationIndex + 1)
+        .find((next) => potentialValueInputs(next).includes(operation.result));
+      if (consumer?.kind !== "binary" || consumer.operator !== "|") return false;
+      const other = potentialValueInputs(consumer).find((value) => value !== operation.result);
+      const otherAnd = block.operations.find(
+        (next) => next.kind === "binary" && next.operator === "&" && next.result === other,
+      );
+      if (otherAnd?.kind !== "binary") return false;
+      const literal = (value: string) => {
+        const definition = block.operations.find(
+          (next) => "result" in next && next.result === value,
+        );
+        return definition?.kind === "constant" ? String(definition.value) : undefined;
+      };
+      const left = literal(operation.right),
+        right = literal(otherAnd.right);
+      return left !== undefined && left === right;
+    })();
     const retained = canForwardByteArithmetic(operation, block, state, operationIndex)
       ? { instructions: lowered.instructions, value: lowered.result }
       : retainMachineValue(
@@ -450,6 +479,7 @@ export function lowerOperation(
           operation.type,
           operation.span,
           state,
+          { zeroPagePreferred: maskMerge },
         );
     state.values.set(operation.result, retained.value);
     const callSiteCycles = retained.instructions.reduce(

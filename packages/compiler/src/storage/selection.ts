@@ -673,6 +673,15 @@ export function projectMachineStorage(
         facts,
         requests.filter((request) => !removed.has(request.id)),
         accesses,
+      ).filter(
+        (request) =>
+          !(
+            input.observerEvidence === true &&
+            request.storageClass === "temporary" &&
+            request.region === "zero-page-preferred" &&
+            request.persistent !== true &&
+            !accesses.has(request.id)
+          ),
       ),
     ),
     results,
@@ -680,7 +689,19 @@ export function projectMachineStorage(
   return Object.freeze({
     kind: "complete",
     inventory,
-    lateRequests: Object.freeze(late.filter((request) => !removed.has(request.id))),
+    lateRequests: Object.freeze(
+      late.filter(
+        (request) =>
+          !removed.has(request.id) &&
+          !(
+            input.observerEvidence === true &&
+            request.storageClass === "temporary" &&
+            request.region === "zero-page-preferred" &&
+            request.persistent !== true &&
+            !accesses.has(request.id)
+          ),
+      ),
+    ),
     evidence: Object.freeze({
       originalInventory,
       sourceFacts: facts,
