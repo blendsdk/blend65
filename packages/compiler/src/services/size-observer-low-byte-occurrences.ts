@@ -998,6 +998,44 @@ export function matchLowByteOccurrences(
       redirected.set(view.proof.loop.preheader.id, view.proof.loop.body.id);
       swappedTests.add(view.proof.loop.header.id);
     }
+  if (source.id === input.checked.program.semantic.main) {
+    /**
+     * A call to a certified returned-local aggregate delivers the caller's
+     * hidden destination directly instead of materializing a pointer first.
+     * The reference-only delivery window is removed; the call itself remains
+     * the same jsr and the aggregate-return proof owns the destination bytes.
+     */
+    const aggregateCall = source.blocks
+      .flatMap((block) => block.operations)
+      .find(
+        (operation) =>
+          operation.kind === "call" &&
+          (input.checked.program.returnedLocalDestinations ?? []).some(
+            (destination) =>
+              bindingIdentityKey(destination.function) === bindingIdentityKey(operation.callee),
+          ),
+      );
+    if (aggregateCall !== undefined) {
+      const reference = parts(before, [aggregateCall]),
+        selected = parts(after, [aggregateCall]);
+      const referenceCall = reference.at(-1),
+        selectedCall = selected.at(-1);
+      if (
+        reference.length > 1 &&
+        selected.length === 1 &&
+        referenceCall?.source.opcode === "jsr" &&
+        selectedCall?.source.opcode === "jsr" &&
+        !removed.has(referenceCall.key) &&
+        !replacements.has(referenceCall.key) &&
+        reference
+          .slice(0, -1)
+          .every((item) => !removed.has(item.key) && !replacements.has(item.key))
+      ) {
+        for (const item of reference.slice(0, -1)) removed.add(item.key);
+        replacements.set(referenceCall.key, selectedCall.key);
+      }
+    }
+  }
   if (
     source.id === input.checked.program.semantic.main &&
     !unchanged(

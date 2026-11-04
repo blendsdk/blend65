@@ -186,11 +186,20 @@ export function prepareFixedLoops(
         : Object.freeze({ ...block, terminator: Object.freeze({ kind: "jump" as const, target }) }),
     ];
   });
+  // A certified aggregate-return function keeps its own loop canonical so the
+  // scalar counter composition can skip it without losing the two-byte home
+  // that the original-induction proof still requires.
+  const aggregateReturnOwner =
+    fn !== undefined &&
+    (input.program.returnedLocalDestinations ?? []).some(
+      (destination) => bindingIdentityKey(destination.function) === bindingIdentityKey(fn.id),
+    );
   const counterFacts = Object.freeze(
     policy !== undefined &&
       policy !== "original" &&
       domain === "main" &&
-      fn?.entryKind !== "interrupt"
+      fn?.entryKind !== "interrupt" &&
+      !aggregateReturnOwner
       ? facts.filter(
           (loop) =>
             !expanded.has(loop) &&

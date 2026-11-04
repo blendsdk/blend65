@@ -1,5 +1,6 @@
 import { bindingLabel, machineSuccessors as machineTargets } from "../machine/lower-control.js";
 import { operandAddress } from "../machine/nmos6510-access.js";
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type {
   MachineFunction,
@@ -156,7 +157,10 @@ function bound(view: Side, source: MachineInstruction, actual: MachineInstructio
  * @example const callee = body(view, packet.function.id);
  */
 export function body(view: Side, owner: BindingId, source?: SemanticFunction) {
-  const matches = view.functions.filter((fn) => fn.sourceFunction === owner);
+  const ownerKey = bindingIdentityKey(owner);
+  const matches = view.functions.filter(
+    (fn) => fn.sourceFunction !== undefined && bindingIdentityKey(fn.sourceFunction) === ownerKey,
+  );
   const symbolic = matches[0],
     actual =
       symbolic === undefined
@@ -168,7 +172,8 @@ export function body(view: Side, owner: BindingId, source?: SemanticFunction) {
     actual === undefined ||
     [symbolic, actual].some(
       (fn) =>
-        fn.sourceFunction !== owner ||
+        fn.sourceFunction === undefined ||
+        bindingIdentityKey(fn.sourceFunction) !== ownerKey ||
         fn.executionContext?.domain !== "main" ||
         fn.executionContext.activationRoot !== undefined ||
         fn.observerBodies !== undefined ||
@@ -178,8 +183,10 @@ export function body(view: Side, owner: BindingId, source?: SemanticFunction) {
     return null;
   if (
     source !== undefined &&
-    (source.id !== owner ||
-      !view.shared.certificate.inventory.program.semantic.functions.includes(source))
+    (bindingIdentityKey(source.id) !== ownerKey ||
+      !view.shared.certificate.inventory.program.semantic.functions.some(
+        (candidate) => bindingIdentityKey(candidate.id) === bindingIdentityKey(source.id),
+      ))
   )
     return null;
   const blocks = new Map(actual.blocks.map((block) => [block.label, block]));

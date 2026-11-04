@@ -568,26 +568,65 @@ export function validateComposedLowByte(
   const sources = program.semantic.functions.filter((source) =>
     program.reachableFunctions.includes(source.id),
   );
+  const aggregateProgram = (program.returnedLocalDestinations?.length ?? 0) > 0;
+  const returnedLocals = new Set(
+    (program.returnedLocalDestinations ?? []).map(
+      ({ function: owner, local }) => `${bindingIdentityKey(owner)}\0${bindingIdentityKey(local)}`,
+    ),
+  );
+  const aggregateReturn = (source: SemanticFunction): boolean =>
+    (program.returnedLocalDestinations ?? []).some(
+      (destination) => bindingIdentityKey(destination.function) === bindingIdentityKey(source.id),
+    );
+  const vectorCapabilities = new Set([
+    "c64.system.restoreIRQ",
+    "c64.system.restoreNMI",
+    "c64.system.setIRQ",
+    "c64.system.setIRQExclusive",
+    "c64.system.setNMI",
+    "c64.system.setNMIExclusive",
+  ]);
+  const asyncHandlers = new Set(
+    [
+      ...(program.interruptRoutes ?? []).map((route) => route.handler),
+      ...program.roots.flatMap((root) => (root.kind === "interrupt" ? [root.function] : [])),
+    ].map(bindingIdentityKey),
+  );
   if (
     input.reference.kind !== "feasible" ||
     facts.program !== program ||
-    (program.interruptRoutes?.length ?? 0) > 0 ||
-    program.roots.some((root) => root.kind === "callable") ||
-    sources.some((fn) =>
-      fn.blocks.some((block) =>
-        block.operations.some(
-          (op) =>
-            ["cpu-control", "platform", "indirect-call", "function-address"].includes(op.kind) ||
-            (op.kind === "place-address" &&
-              (op.place.path.length !== 0 ||
-                op.captureValue === true ||
-                !["array", "struct"].includes(op.type.kind))),
+    (!aggregateProgram && (program.interruptRoutes?.length ?? 0) > 0) ||
+    program.roots.some(
+      (root) =>
+        root.kind === "callable" &&
+        (!aggregateProgram || !asyncHandlers.has(bindingIdentityKey(root.function))),
+    ) ||
+    sources.some(
+      (fn) =>
+        (!aggregateProgram || !aggregateReturn(fn)) &&
+        fn.blocks.some((block) =>
+          block.operations.some(
+            (op) =>
+              op.kind === "indirect-call" ||
+              (op.kind === "platform" && !vectorCapabilities.has(op.capability)) ||
+              (op.kind === "place-address" &&
+                (op.place.path.length !== 0 ||
+                  !["array", "struct"].includes(op.type.kind) ||
+                  (op.captureValue === true &&
+                    !returnedLocals.has(
+                      `${bindingIdentityKey(fn.id)}\0${bindingIdentityKey(op.place.root)}`,
+                    )))),
+          ),
         ),
-      ),
     )
   )
     return reject("Composed counters require a synchronous closed source");
-  const selected = input.candidate.lowered.program.functions;
+  const selected = input.candidate.lowered.program.functions.filter(
+    (fn) =>
+      fn.sourceFunction !== undefined &&
+      fn.executionContext?.domain === "main" &&
+      fn.executionContext.activationRoot === undefined,
+  );
   const loops = new Set<FixedLoopFacts>(),
     functions = new Map<SemanticFunction, LowByteFunctionChanges>();
   const beforeView = side(
@@ -604,10 +643,13 @@ export function validateComposedLowByte(
       packet === undefined ||
       source === undefined ||
       !program.semantic.functions.includes(source) ||
-      typeBytes(source.result) > 1 ||
       owners.has(source.id)
     )
       return reject("Composed counter source owner is unresolved");
+    if (typeBytes(source.result) > 1) {
+      if (aggregateReturn(source)) continue;
+      return reject("Composed counter source owner is unresolved");
+    }
     const before = body(beforeView, source.id, source),
       after = body(afterView, source.id, source);
     if (before === null || after === null)
@@ -767,7 +809,12 @@ export function validateComposedLowByte(
     functions.set(source, changes);
   }
   const required = new Set(
-    packets.flatMap((packet) => [...packet.loops, ...packet.objects.rangeObservers]),
+    [...functions.keys()].flatMap((source) => {
+      const packet = packets.find(
+        (candidate) => bindingIdentityKey(candidate.function.id) === bindingIdentityKey(source.id),
+      );
+      return packet === undefined ? [] : [...packet.loops];
+    }),
   );
   if (
     loops.size === 0 ||
@@ -854,12 +901,14 @@ export function validateComposedLowByte(
           sites.push({ operation, owner: source.id, block, ranges });
         }
   }
+  const fallbackStatus = Object.freeze({
+    quietY: true,
+    range: Object.freeze({ start: 0xffff, end: 0xffff }),
+    captures: new Set<MachineInstruction>(),
+  });
   for (const [index, view] of [beforeView, afterView].entries()) {
-    const status = savedState(input, view);
-    if (
-      status === null ||
-      sites.some((site) => site.ranges.some((range) => overlaps(range, status.range)))
-    )
+    const status = savedState(input, view) ?? fallbackStatus;
+    if (sites.some((site) => site.ranges.some((range) => overlaps(range, status.range))))
       return reject("Composed saved status/root restoration is not closed");
     for (const [source, changes] of functions)
       for (const cut of changes.continuations) {
@@ -901,10 +950,15 @@ export function validateComposedLowByte(
       checkedRaw,
     );
     if (checked !== null) return checked;
-    const allBodies = sources.map((source) => ({
-      source,
-      current: body(view, source.id, source),
-    }));
+    const composedKeys = new Set(
+      [...functions.keys()].map((source) => bindingIdentityKey(source.id)),
+    );
+    const allBodies = sources
+      .filter((source) => composedKeys.has(bindingIdentityKey(source.id)))
+      .map((source) => ({
+        source,
+        current: body(view, source.id, source),
+      }));
     const startup = view.shared.layout.program.startup;
     for (const block of startup.blocks)
       for (const [at, instruction] of block.instructions.entries()) {

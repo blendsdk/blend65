@@ -630,13 +630,27 @@ export function validateByteComplementObservers(
       return failure("rejected", "Mixed or unknown complement classes remain unproved");
     // Low-byte loops may reuse the field matcher, never the cache-only proof.
     const composition = effects.lowByteComposition;
+    /**
+     * A certified aggregate-return function keeps its own loop on the canonical
+     * induction path, so the composed group intentionally omits that loop. Every
+     * other loop still has to belong to the complete composed group.
+     */
+    const aggregateReturnFunctions = new Set(
+      (input.checked.program.returnedLocalDestinations ?? []).map((destination) =>
+        bindingIdentityKey(destination.function),
+      ),
+    );
+    const missingComposedLoops = [...effects.loops].filter(
+      (loop) =>
+        !composition?.loops.has(loop) &&
+        !aggregateReturnFunctions.has(bindingIdentityKey(loop.function.id)),
+    );
     if (
       (facts.loopPolicy === "low-byte" || facts.loopPolicy === "mixed") &&
       (!kinds.has("original") ||
         composition === undefined ||
         !composition.functions.has(packet.function) ||
-        composition.loops.size !== effects.loops.size ||
-        [...effects.loops].some((loop) => !composition.loops.has(loop)))
+        missingComposedLoops.length !== 0)
     )
       return failure("rejected", "Composed LowByte fields need the complete actual group");
     if (kinds.has("cache") && effects.operations.size !== 0)

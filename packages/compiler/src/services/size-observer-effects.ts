@@ -474,7 +474,11 @@ function originalInduction(
   const facts = input.candidate.lowered.program.storageSelection?.sourceFacts;
   if (facts?.program !== input.checked.program)
     return failure("error", "Conditional induction belongs to another source");
-  if (input.reference.kind !== "feasible" || facts.loopPolicy !== "original")
+  if (
+    input.reference.kind !== "feasible" ||
+    (facts.loopPolicy !== "original" &&
+      (input.checked.program.returnedLocalDestinations?.length ?? 0) === 0)
+  )
     return failure("rejected", "Conditional induction needs actual Original homes in both layouts");
   const counters = new Set<string>();
   // Authenticate the whole dependency group before any sibling maximum is used.
