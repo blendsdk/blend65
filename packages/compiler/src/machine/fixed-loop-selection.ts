@@ -105,12 +105,10 @@ export function prepareFixedLoops(
     ].includes(policy)
   )
     throw loweringFailure("Unknown fixed-loop construction policy", owner.span);
-  const fn =
-    policy === undefined || policy === "original"
-      ? undefined
-      : input.program.semantic.functions.find(
-          (candidate) => bindingIdentityKey(candidate.id) === bindingIdentityKey(owner),
-        );
+  const sourceFunction = input.program.semantic.functions.find(
+    (candidate) => bindingIdentityKey(candidate.id) === bindingIdentityKey(owner),
+  );
+  const fn = policy === undefined || policy === "original" ? undefined : sourceFunction;
   const facts = fn === undefined ? [] : (input.sourceFacts?.functions.get(fn)?.loops ?? []);
   if (facts.some((loop) => !validFixedLoopFacts(loop)))
     throw loweringFailure("Flat-eight facts do not match the checked source template", owner.span);
@@ -233,6 +231,7 @@ export function prepareFixedLoops(
     counterOperations: new Map(),
     counters: new Map(),
     sourceBlocks: new Map(),
+    ...(sourceFunction === undefined ? {} : { sourceFunction }),
     blockIndexes,
     predecessors,
     positions,
@@ -523,15 +522,24 @@ export function finishFixedLoopBlock(
 
 /** Attach conditional loop records without discharging old-home, read or asynchronous A/P obligations. */
 export function finishFixedLoops(fn: MachineFunction, runtime: FixedLoopRuntime): MachineFunction {
-  if (runtime.observerEvidence)
+  if (runtime.observerEvidence) {
+    /**
+     * Scheduling may copy a source block while redirecting or expanding a loop.
+     * Observer evidence uses canonical source identities, so map each scheduled
+     * copy back to the checked function's block with the same stable ID.
+     */
+    const canonical = new Map(
+      (runtime.sourceFunction?.blocks ?? []).map((block) => [block.id, block] as const),
+    );
     fn = Object.freeze({
       ...fn,
       observerBlocks: Object.freeze(
         [...runtime.sourceBlocks].map(([source, labels]) =>
-          Object.freeze([source, labels] as const),
+          Object.freeze([canonical.get(source.id) ?? source, labels] as const),
         ),
       ),
     });
+  }
   if (runtime.policy === undefined || (runtime.expanded.size === 0 && runtime.counters.size === 0))
     return fn;
   for (const [value] of runtime.indexViews)

@@ -256,6 +256,8 @@ export interface FixedLoopRuntime {
   readonly stageIds: ReadonlySet<string>;
   /** Actual blocks emitted for each original source block. */
   readonly sourceBlocks: Map<SemanticBlock, readonly string[]>;
+  /** Canonical source function whose blocks are the stable association keys. */
+  readonly sourceFunction?: SemanticFunction;
   /** Original source order. */
   readonly blockIndexes: ReadonlyMap<string, number>;
   /** Original predecessor edges. */
