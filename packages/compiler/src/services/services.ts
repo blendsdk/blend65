@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { serializeAcme } from "../artifacts/acme-serializer.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { deriveOptimizationFacts } from "../machine/optimization-facts.js";
+import { selectOptimizationCandidate } from "../machine/optimization-cost.js";
 import { analyzeProjectWithAssets } from "../frontend/service.js";
 import type { C64KernalProfileId } from "../profile/c64-kernal.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
@@ -205,7 +206,7 @@ async function checkSource(options: BuildOptions): Promise<CheckedSourceResult> 
       resourceSpans: resourceSourceSpans(analyzed.program),
       profile: selected.profile,
       program: closed.program,
-      ...(selectedSnapshot.manifest.optimization === "size"
+      ...(selectedSnapshot.manifest.optimization !== "none"
         ? { loopNesting: collectSourceLoopNesting(closed.program, analyzed.program) }
         : {}),
       bindingNames: new Map(
@@ -339,16 +340,18 @@ function referenceRejection(
 async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<PreparedBuildResult> {
   const source = await checkSource(options);
   if (source.kind === "failure") return source;
-  const size = source.value.snapshot.manifest.optimization === "size";
-  // The canonical reference is the same rule pipeline's baseline: size candidates
-  // must be compared against an equally cleaned reference, never against an
-  // unoptimized fallback that would make ordinary cleanup look like a representation win.
-  const optimizationFacts = size
-    ? deriveOptimizationFacts({ checked: source.value, mode: "size" })
+  const mode = source.value.snapshot.manifest.optimization;
+  const optimized = mode !== "none";
+  // The canonical reference is the same rule pipeline's baseline: optimized
+  // candidates must be compared against an equally cleaned reference, never
+  // against an unoptimized fallback that would make ordinary cleanup look like a
+  // representation win.
+  const optimizationFacts = optimized
+    ? deriveOptimizationFacts({ checked: source.value, mode })
     : undefined;
   const storage = closeCanonicalStorage(source.value, optimizationFacts);
   if (storage.kind === "failure") return storage;
-  if (!size && storage.kind === "resource-rejected")
+  if (!optimized && storage.kind === "resource-rejected")
     return { kind: "failure", failure: storage.failure };
   // Keep the original checkpoint after direct storage proof and before layout.
   // A cancelled size attempt must not enter the later candidate constructor.
@@ -363,7 +366,7 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
   let selectedDiagnostics: readonly ProjectDiagnostic[] | null =
     reference.kind === "feasible" ? reference.diagnostics : null;
   let sizeDecision: SizeEvidenceDecision | undefined;
-  if (size) {
+  if (optimized) {
     const evidenceCandidates: SizeEvidenceCandidate[] = [];
     const feasible = new Map<
       string,
@@ -394,8 +397,7 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
     } else {
       evidenceCandidates.push(referenceRejection(reference));
     }
-    const baseFacts =
-      optimizationFacts ?? deriveOptimizationFacts({ checked: source.value, mode: "size" });
+    const baseFacts = optimizationFacts ?? deriveOptimizationFacts({ checked: source.value, mode });
     // Every tuple receives the reference's exact dead-home set. This keeps the
     // canonical and selected layouts structurally identical after cleanup.
     const referenceDeadHomes =
@@ -457,16 +459,49 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
         compareSizeCosts(left.cost, right.cost) ||
         Buffer.compare(Buffer.from(leftId), Buffer.from(rightId)),
     );
-    const chosen = ordered[0]!;
-    const tiedIds = ordered
-      .filter(([, value]) => sameSizeCosts(value.cost, chosen[1].cost))
-      .map(([id]) => id)
-      .sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
+    const referenceEntry = feasible.get("reference");
+    let chosen:
+      | readonly [string, typeof feasible extends Map<string, infer V> ? V : never]
+      | undefined;
+    let incomparableComponents: readonly string[] = [];
+    let tiedIds: readonly string[] = [];
+    if (mode === "size") {
+      chosen = ordered[0]!;
+      tiedIds = ordered
+        .filter(([, value]) => sameSizeCosts(value.cost, chosen![1].cost))
+        .map(([id]) => id)
+        .sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
+    } else {
+      const selection =
+        referenceEntry === undefined
+          ? undefined
+          : selectOptimizationCandidate(
+              mode,
+              { id: "reference", cost: referenceEntry.cost },
+              [...feasible.entries()]
+                .filter(([id]) => id !== "reference")
+                .map(([id, value]) => ({ id, cost: value.cost })),
+            );
+      const selectedEntry =
+        selection?.kind === "selected" ? feasible.get(selection.candidateId) : undefined;
+      if (selection?.kind === "selected" && selectedEntry !== undefined)
+        chosen = [selection.candidateId, selectedEntry];
+      else if (referenceEntry !== undefined) chosen = ["reference", referenceEntry];
+      incomparableComponents = selection?.incomparableComponents ?? [];
+      tiedIds =
+        selection?.kind === "selected" && selection.tieBreak === "stableId"
+          ? [selection.candidateId]
+          : [];
+      if (selection?.kind === "selected" && selection.tieBreak === "stableId")
+        incomparableComponents = [];
+    }
+    if (chosen === undefined)
+      return { kind: "failure", failure: incompleteStage("optimization selection") };
     const main = source.value.program.semantic.main;
     sizeDecision = Object.freeze({
-      id: "size.whole-program",
+      id: `${mode}.whole-program`,
       scope: `${main.span.sourceId}::main`,
-      mode: "size",
+      mode,
       sourceSites: costSourceSites(main.span),
       closurePoint: "postLayout",
       baselineCandidateId: "reference",
@@ -476,10 +511,12 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
           Buffer.compare(Buffer.from(left.id), Buffer.from(right.id)),
         ),
       ),
-      incomparableComponents: Object.freeze([]),
+      incomparableComponents: Object.freeze(
+        [...incomparableComponents].sort((left, right) => left.localeCompare(right)),
+      ),
       tieBreak:
         tiedIds.length > 1
-          ? Object.freeze({ kind: "stableId" as const, candidateIds: Object.freeze(tiedIds) })
+          ? Object.freeze({ kind: "stableId" as const, candidateIds: Object.freeze([...tiedIds]) })
           : Object.freeze({ kind: "none" as const }),
     });
     selectedPipeline = chosen[1].pipeline;

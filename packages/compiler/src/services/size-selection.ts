@@ -314,7 +314,7 @@ export function closeCanonicalStorage(
     ...profile,
     storage: Object.freeze({ ...reserved.storage, profileId: profile.id }),
   });
-  const preferZeroPage = input.snapshot.manifest.optimization === "size";
+  const preferZeroPage = input.snapshot.manifest.optimization !== "none";
   const inventory = inventoryStorage(reserved.program, { preferZeroPage });
   if (!validStorageDemands(inventory.requests)) return incomplete("static storage allocation");
   const provisional = allocateStorage(inventory, buildInterference(inventory), reserved.storage);
@@ -326,9 +326,9 @@ export function closeCanonicalStorage(
   const placement = provisional.placement;
   const lower = (facts: OptimizationFacts | undefined) =>
     lowerMachineProgram({
-      ...(snapshot.manifest.optimization === "size" ? { observerEvidence: true } : {}),
+      ...(snapshot.manifest.optimization !== "none" ? { observerEvidence: true } : {}),
       ...(facts === undefined ? {} : { optimizationFacts: facts }),
-      preferZeroPage: input.snapshot.manifest.optimization === "size",
+      preferZeroPage: input.snapshot.manifest.optimization !== "none",
       bindingNames: input.bindingNames,
       program: reserved.program,
       placement,
@@ -671,7 +671,7 @@ export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResu
     ...checked.profile,
     storage: Object.freeze({ ...reserved.storage, profileId: checked.profile.id }),
   });
-  const preferZeroPage = checked.snapshot.manifest.optimization === "size";
+  const preferZeroPage = checked.snapshot.manifest.optimization !== "none";
   const inventory = inventoryStorage(reserved.program, { preferZeroPage });
   if (!validStorageDemands(inventory.requests))
     return Object.freeze({
@@ -687,8 +687,14 @@ export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResu
     logicalStorage: inventory,
     sourceFacts: plan.sourceFacts,
     optimizationFacts:
-      input.optimizationFacts ?? deriveOptimizationFacts({ checked, mode: "size" }),
-    preferZeroPage: checked.snapshot.manifest.optimization === "size",
+      input.optimizationFacts ??
+      deriveOptimizationFacts({
+        checked,
+        mode: checked.snapshot.manifest.optimization === "none"
+          ? "size"
+          : checked.snapshot.manifest.optimization,
+      }),
+    preferZeroPage: checked.snapshot.manifest.optimization !== "none",
     boundsCheck: checked.snapshot.manifest.boundsCheck,
     divisionZeroCheck: checked.snapshot.manifest.divisionZeroCheck,
     sourceText: checked.sourceText,

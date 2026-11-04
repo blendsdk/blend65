@@ -209,7 +209,7 @@ export function compareOptimizationCosts(
               ? []
               : cycles.kind === "incomparable"
                 ? cycles.components
-                : ["T"]),
+                : ["T:cycles"]),
           ],
         };
   }
@@ -325,9 +325,14 @@ export function selectOptimizationCandidate(
         incomparableComponents: [],
       };
     }
+    const pathIds = new Set(all.flatMap(({ cost }) => cost.pathCycles.map(({ pathId }) => pathId)));
     return {
       kind: "none",
-      incomparableComponents: ["B", ...RESOURCE_ORDER.map((id) => `R:${id}`), "T"],
+      incomparableComponents: [
+        "B",
+        ...RESOURCE_ORDER.map((id) => `R:${id}`),
+        ...[...pathIds].map((pathId) => `T:${pathId}`),
+      ].sort(),
     };
   }
   let best = baseline;

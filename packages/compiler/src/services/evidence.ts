@@ -90,8 +90,8 @@ export interface SizeEvidenceDecision {
   readonly id: string;
   /** Selected source scope. */
   readonly scope: string;
-  /** Explicit size mode. */
-  readonly mode: "size";
+  /** Explicit optimized mode. */
+  readonly mode: "balanced" | "speed" | "size";
   /** Source sites which caused the decision. */
   readonly sourceSites: readonly SizeCostSourceSite[];
   /** Closed after final shared layout. */
