@@ -179,7 +179,15 @@ stops the plan; no limit rewrite and no benchmark-specific special case.
 
 > **Reasoning**: max — asynchronous, raw/MMIO and global-return proof boundaries.
 
-**Measured frontier (2026-11-04).** The acquisition specification is RED at the
+**Measured frontier (2026-11-04).** Acquisition candidates are still rejected
+after the new asynchronous-entry proof: the returned-local certificate is empty
+because `proveReturnedLocalDestinations` conservatively returns no certificates
+for any program with a hardware write (the acquisition pokes CIA1). The selected
+output therefore remains the reference at 2291 bytes. The next unit is a
+per-object hardware-publication proof so a resident global whose address never
+reaches hardware can be a direct return destination.
+
+The acquisition specification is RED at the
 shared `size` output: payload **2291**/963, general **2417**/984, zero page
 **27**/14, combined **2444**/998 (the superseded plan figure 2537 predates the
 saved-gate rules; those rules also reduced the acquisition output). The
@@ -197,12 +205,12 @@ construction instead of a direct write into the caller's `saved` home.
 
 **Reference**: [03-02](03-02-rules-and-obligations.md) §Rule Catalogue; RD-08 R8.27–R8.38.
 
-- [ ] 3.2.1 Implement asynchronous borrow/observation obligations using existing route/context facts — `machine/optimization-rules.ts`
+- [~] 3.2.1 Implement asynchronous borrow/observation obligations using existing route/context facts — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-04; the blanket asynchronous borrow rejection is now a real entry proof: only selected interrupt handlers may be address-taken, each handler closure must have no indirect call, its stores reduce to named bindings and its raw writes to literal addresses, all byte-disjoint from every borrowed backing on both layouts, and handler-owned storage joins the live-storage disjointness check. Acquisition candidates now pass this gate and fail at the next proof instead of being rejected wholesale)
 - [ ] 3.2.2 Implement raw, MMIO/platform and callback sequence obligations with exact final layouts — `machine/optimization-rules.ts`
 
 ### Step 3.3: Aggregate and composed rules
 
-- [ ] 3.3.1 Implement global aggregate return and caller-owned destination proof — `storage/selection.ts`, `machine/optimization-rules.ts`
+- [~] 3.3.1 Implement global aggregate return and caller-owned destination proof — `storage/selection.ts`, `machine/optimization-rules.ts` ⏳ (partial: 2026-11-04; the borrow proof accepts an ownerless origin/destination only when the root is a declared global, and `globalReturnedLocalCallers` admits a complete initialized result assigned directly to a resident global when neither the callee closure nor any asynchronous handler names it and no argument aliases it. The certificate is still blocked before that path by `proveReturnedLocalDestinations`'s whole-program `hardwareMayObserve` early return: any program with a hardware write, including the acquisition's CIA1 pokes, produces no returned-local certificates. A per-object hardware-publication proof is the next unit)
 - [ ] 3.3.2 Compose LowByte/loop/byte-window/capture rules with interrupt-domain obligations — `machine/optimization-rules.ts`, `services/size-observers.ts`
 
 ### Step 3.4: Acquisition measurement and gate
