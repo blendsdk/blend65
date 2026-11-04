@@ -107,33 +107,29 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 
 #### Measured frontier (2026-11-03)
 
-The selected saved candidate is `closed:mixed:compact-looped` at **721 bytes**
-with zeroPage 14 (general 755, combined 769). The **payload ceiling now passes**
-(721 <= 725); only the general and combined RAM ceilings remain, 10 bytes over
-each.
+The selected saved candidate is `closed:mixed:compact-looped` at **709 bytes**
+with zeroPage 14 (general 740, combined 754). **The complete saved gate passes
+on all four profiles**: payload 709 <= 725, general 740 <= 745, combined
+754 <= 759, plus behavior, no-copy, resource accounting, the register-served
+copy loop and the bounded native case (17/17 independent specification cases).
 
-The general composition is `code 721 + BSS 30 + live SFA 4 = 755`:
+The general composition is `code 709 + BSS 29 + live SFA 2 = 740`:
 
 | General component | Bytes |
 |---|---:|
-| Code | 721 |
+| Code | 709 |
 | `platform.startup-state` | 16 |
-| saved snapshot + results + one input global | 14 |
-| live SFA retained homes | 4 |
+| saved snapshot + results | 13 |
+| live SFA retained homes | 2 |
 
-The expert trailing general is 20 (platform 7 + snapshot 11 + results 2). Two
-paths reach 745:
-
-| Path | Requirement |
-|---|---|
-| Code only | code <= 711 with the current BSS/SFA |
-| RD-05 platform policy | startup state 16 -> 7 (9 bytes) and SFA 4 -> 0 (4 bytes) |
+The saved gate is met with the conservative 16-byte startup state; no RD-05
+platform-policy change and no limit change were needed.
 
 | Owner | Ours | Expert | Gap |
 |---|---:|---:|---:|
 | `c64.input.keyState` | 238 | 221 | +17 |
 | `c64.input.snapshotCompatible` | 143 | 142 | +1 |
-| `Game.main` | 88 | 78 | +10 |
+| `Game.main` | 73 | 78 | −5 |
 | `c64.input.soleGroundSource` | 34 | 32 | +2 |
 | `c64.input.joystickState` | 118 | 138 | −20 |
 | startup | 91 | 102 | −11 |
@@ -158,24 +154,21 @@ Landed and measured this session:
 | Dead stage store | 724 → **721** | Selected. A store to a private `argument-stage`/`retained-value` home that no selected instruction reads is dead when no interrupt route exists. |
 | Block-entry reload | 726 → **724** (payload ceiling passes) | Selected. A block-entry `lda home` is removed when its only predecessor loaded the same home into A immediately before its branch; A and all flags are identical. |
 | Multi-block bottom-tested loop | 735 → **729** (`snapshotCompatible` 149 → 146, `keyState` 241 → 238) | Selected. The gate uses the initial domain (`initial.max < bound`) because early returns make `tripDomain.minimum` zero. The header accepts the inverted `bcs`/fallthrough-body form, the body region must reach the update without the header, and empty exit aliases are resolved. The 20-member snapshot outer and 8-member keyState loops bottom-test; the inner 6-member loop is not a fixed counter in the mixed candidate. |
-| `main` scalar delivery | 0 bytes (not landed) | The joystickState snapshot call has no low formal store anywhere in its call block: only `sta demand,1` appears, with the retargeted port/control stores interleaved around the pointer loads. The low byte is either materialized in an earlier block or omitted because the reused parameter home already holds the same `#<saved` constant from the preceding keyState call. The pointer proof currently requires both formal stores at the call span and cannot distinguish this shape from a missing delivery. A correct main delivery needs the lowering to expose the delivery pair per argument (not machine re-scanning), plus a proof that a reused low home still holds the same constant. The keyState call itself is fully proved. |
+| `main` scalar delivery | 721 → **709** (`Game.main` 85 → 73, expert 78) | Selected. Two real causes were fixed: the delivery rule applied retargets by the filtered array index instead of the original instruction index, and the composed argument-suffix proof still expected scalar delivery pairs inside the call window. The proof now keeps only the pointer-formal window, excludes scalar-formal delivery stores and their adjacent loads, and accepts an empty selected window when the reference window is solely the omitted pointer delivery. |
 | Direct raw argument delivery ([#135](https://github.com/blendsdk/blend65/issues/135)) | 863 → 857 at the pre-mixed frontier | Not landed. The remaining `keyState`/`joystickState` argument stores still duplicate a private temporary and the ABI slot. |
 | Branch inversion over an empty jump trampoline | One safe site, 3 bytes | Too small for a new CFG rule. |
 
-The next bounded unit is **general SFA reclamation**: drop the unaccessed
-zero-page-preferred and general retained temporaries from both the final
-inventory and the late-request binder (the `v47` pattern), which can recover up
-to 14 general bytes without code changes. The multi-block bottom-tested loops
-and `keyState` residue then cover the remaining code gap. The startup-state
-16-versus-7 difference is RD-05 platform policy and needs a separate owner
-decision if the general gate still misses after the SFA reclamation. No limit,
-oracle, or source rule changes.
+Phase 2 is complete: the saved gate passes with no oracle, limit, source or
+platform-contract change. The next unit is Phase 3.1: an independent
+specification author writes `test/rd08/optimizer-acquisition-output.spec.test.ts`
+from the acquisition requirements and the 963-byte expert oracle, and verifies
+the expected RED state before any acquisition implementation exists.
 
 ### Step 2.3: Saved measurement and gate
 
-- [ ] 2.3.1 Measure saved 725 on four profiles, complete accounting, behavior and native cases — four-profile VICE
-- [ ] 2.3.2 Run the complete owned/root suites and independent output/SFA/platform reviews
-- [ ] 2.3.3 Record the saved result in evidence and roadmap; if 725 is not approached, stop for a scope decision
+- [x] 2.3.1 Measure saved 725 on four profiles, complete accounting, behavior and native cases — four-profile VICE ✅ (completed: 2026-11-04; payload 709/725, general 740/745, combined 754/759; all 17 saved specification cases pass on c64-pal/ntsc × 6581/8580, including behavior, no-copy, resource accounting, the register-served copy loop and the bounded PAL/6581 native case)
+- [~] 2.3.2 Run the complete owned/root suites and independent output/SFA/platform reviews — compiler suite 3419 pass with the same 29 pre-existing failures, build/typecheck/formatting pass; independent specialist reviews pending
+- [x] 2.3.3 Record the saved result in evidence and roadmap; if 725 is not approached, stop for a scope decision ✅ (completed: 2026-11-04; 709 recorded, no limit or oracle change)
 
 **Phase 2 gate:** saved payload ≤725 and preserved behavior/resources. Failure
 stops the plan; no limit rewrite and no benchmark-specific special case.
