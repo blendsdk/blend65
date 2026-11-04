@@ -5,6 +5,7 @@ import { c64InterruptEntryLabel } from "../machine/lower-c64-interrupt.js";
 import { acmeLabelName, acmeLabelNames } from "../artifacts/acme-labels.js";
 import type { EvidenceRecord } from "../artifacts/evidence-types.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { canonicalEvidenceJson } from "../artifacts/evidence-validation.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { ProjectSnapshot, SourceSpan } from "../project/types.js";
 import type { SemanticFunction } from "../semantic/operations.js";
@@ -30,6 +31,8 @@ export interface DerivedDebugRecords {
   readonly locations: readonly EvidenceRecord[];
   /** Reconciled machine ranges. */
   readonly ranges: readonly EvidenceRecord[];
+  /** Actual applied optimization records for the selected mode. */
+  readonly optimizations: readonly EvidenceRecord[];
 }
 
 interface DebugDerivationInput {
@@ -324,6 +327,95 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     indexes.push(index);
     functionRangeIndexes.set(range.functionIndex, indexes);
   });
+  const contextIndexes = new Map<string, number>();
+  for (const [functionIndex, fn] of executionFunctions.entries())
+    for (const machineId of fn.machineIds) contextIndexes.set(machineId, functionIndex);
+  const optimizationByKey = new Map<
+    string,
+    {
+      readonly stage: string;
+      readonly rule: string;
+      readonly result: "retained";
+      readonly sourceSpans: readonly EvidenceRecord[];
+      readonly outputRangeIndexes: Set<number>;
+    }
+  >();
+  const optimizationKey = (span: EvidenceRecord): string =>
+    `${String(span.sourceIndex).padStart(10, "0")}\0${String(span.startByte).padStart(10, "0")}\0${String(span.endByte).padStart(10, "0")}`;
+  const addOptimization = (rule: string, spans: readonly SourceSpan[], context: string): void => {
+    const functionIndex = contextIndexes.get(context);
+    const rangeIndexes =
+      functionIndex === undefined ? undefined : functionRangeIndexes.get(functionIndex);
+    if (rangeIndexes === undefined || rangeIndexes.length === 0 || spans.length === 0) return;
+    const sourceSpans = spans
+      .map((span) => indexedSpan(span, sourceIndexes))
+      .sort((left, right) => optimizationKey(left).localeCompare(optimizationKey(right)));
+    const key = `lowering\0${rule}\0${canonicalEvidenceJson(sourceSpans)}`;
+    const existing = optimizationByKey.get(key);
+    if (existing !== undefined) {
+      for (const range of rangeIndexes) existing.outputRangeIndexes.add(range);
+      return;
+    }
+    optimizationByKey.set(key, {
+      stage: "lowering",
+      rule,
+      result: "retained",
+      sourceSpans: Object.freeze(sourceSpans),
+      outputRangeIndexes: new Set(rangeIndexes),
+    });
+  };
+  if (input.snapshot.manifest.optimization !== "none")
+    for (const fn of input.layout.program.functions) {
+      for (const proof of fn.fixedLoopProofs ?? [])
+        addOptimization(`fixed-loop:${proof.policy}`, [proof.loop.comparison.span], proof.context);
+      for (const proof of fn.fixedCounterProofs ?? [])
+        addOptimization(
+          `fixed-counter:${proof.representation}`,
+          [proof.loop.comparison.span],
+          proof.context,
+        );
+      for (const proof of fn.nativeStoreProofs ?? [])
+        addOptimization("native-store", [proof.consumer.span], proof.context);
+      for (const proof of fn.byteAvailabilityProofs ?? []) {
+        const proofFunction = functionIndexes.get(bindingIdentityKey(proof.function));
+        const context =
+          proofFunction === undefined
+            ? undefined
+            : executionFunctions[proofFunction]?.machineIds[0];
+        if (context !== undefined)
+          addOptimization("byte-window", [proof.producer, proof.consumer], context);
+      }
+    }
+  const optimizationRangeIndexes = new Map<number, number[]>();
+  const optimizations = Object.freeze(
+    [...optimizationByKey.entries()]
+      .sort(([left], [right]) => compareText(left, right))
+      .map(([, record], index) => {
+        const outputRangeIndexes = Object.freeze(
+          [...record.outputRangeIndexes].sort((left, right) => left - right),
+        );
+        for (const rangeIndex of outputRangeIndexes) {
+          const indexes = optimizationRangeIndexes.get(rangeIndex) ?? [];
+          indexes.push(index);
+          optimizationRangeIndexes.set(rangeIndex, indexes);
+        }
+        return Object.freeze({
+          stage: record.stage,
+          rule: record.rule,
+          result: record.result,
+          sourceSpans: record.sourceSpans,
+          outputRangeIndexes,
+        });
+      }),
+  );
+  const rangesWithOptimizations = Object.freeze(
+    ranges.map((range, index) =>
+      Object.freeze({
+        ...range,
+        optimizationIndexes: Object.freeze(optimizationRangeIndexes.get(index) ?? []),
+      }),
+    ),
+  );
 
   const functions = Object.freeze(
     executionFunctions.map((fn, functionIndex) => {
@@ -681,6 +773,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     contexts,
     symbols,
     locations,
-    ranges,
+    ranges: rangesWithOptimizations,
+    optimizations,
   });
 }

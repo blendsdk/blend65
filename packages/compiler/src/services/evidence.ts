@@ -583,7 +583,7 @@ export async function prepareEvidence(
     symbols: debug.symbols,
     locations: debug.locations,
     ranges: debug.ranges,
-    optimizations: Object.freeze([]),
+    optimizations: debug.optimizations,
     loadUnits: Object.freeze([]),
   });
 
