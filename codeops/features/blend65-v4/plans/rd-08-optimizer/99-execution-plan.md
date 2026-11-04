@@ -179,8 +179,18 @@ stops the plan; no limit rewrite and no benchmark-specific special case.
 
 > **Reasoning**: max — asynchronous, raw/MMIO and global-return proof boundaries.
 
-**Measured frontier (2026-11-04).** Acquisition candidates pass the asynchronous
-borrow, resident-global destination and returned-local certificate stages. The
+**Measured frontier (2026-11-04, device/async unlock).** A candidate is now
+selected: `closed:original:full` at payload **1975** (reference 2291), general
+**2072**, zero page **15** (one over the 14 ceiling), combined **2087**, stack
+5/10. The device/MMIO raw site proof admits the profile's VIC/CIA1/CIA2 windows
+under the ordinary byte-site discipline, interrupt-entry wrappers carry their
+source-block associations, and the remaining asynchronous gates admit only
+handler callables plus vector/cpu-control operations. The acquisition
+specification is still RED on the ceilings, and its behavior case reports a raw
+access-list mismatch (actual 45 vs expected 10 items) that must be resolved
+before the candidate can be trusted.
+
+Earlier acquisition candidate stages: The
 `closed:original` candidate now also passes the source-block identity and
 call-site checks: the fixed-loop runtime carries the canonical checked function
 and maps scheduled copies back to canonical blocks by stable ID, so the strict
