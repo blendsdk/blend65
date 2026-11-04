@@ -678,7 +678,6 @@ export function projectMachineStorage(
           !(
             input.observerEvidence === true &&
             request.storageClass === "temporary" &&
-            request.region === "zero-page-preferred" &&
             request.persistent !== true &&
             !accesses.has(request.id)
           ),
@@ -696,7 +695,6 @@ export function projectMachineStorage(
           !(
             input.observerEvidence === true &&
             request.storageClass === "temporary" &&
-            request.region === "zero-page-preferred" &&
             request.persistent !== true &&
             !accesses.has(request.id)
           ),
