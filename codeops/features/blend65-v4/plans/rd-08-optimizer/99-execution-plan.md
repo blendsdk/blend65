@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-03
-> **Progress**: 16/41 tasks (39%)
+> **Progress**: 27/41 tasks (66%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -179,44 +179,24 @@ stops the plan; no limit rewrite and no benchmark-specific special case.
 
 > **Reasoning**: max — asynchronous, raw/MMIO and global-return proof boundaries.
 
-**Measured frontier (2026-11-04, direct-indexed unlock).** The selected
-candidate is `closed:original:compact-looped` at payload **1209** (reference
-2291), general **1256**, combined **1267**, stack 5/10. Zero page now passes:
-the selected candidate owns 12 bytes and the charged ceiling is 14. The
-acquisition specification is **8/12**: all four behavior cases and all four
-resource/interval/stack accounting cases pass on all profiles; only the four
-ceiling cases remain RED (payload 1209/963, general 1256/984, combined
-1267/998). Units landed: returned-local self-member copy elision; compact
-startup for certified returned-local aggregates; low-`$47` NMI wrapper ordering
-(fill 134 -> 26); direct indexed byte access for bounded aggregate ordinals
-(`absolute-y` with the word counter's proved low byte); and the release-oracle
-`toBeOneOf` matcher registration. The remaining gap is 246 payload bytes and
-272 general-RAM bytes; because BSS is 47 bytes, the effective code target is
-937 bytes. Largest owners: `keyState` 304, `readInputSnapshot` 299,
-`snapshotCompatible` 262, `joystickState` 118, compact startup + restore 91,
-`Game.main` 45, `soleGroundSource` 34, interrupt callback 18, plus 26 bytes of
-NMI fill. Next units, in order: (1) fix the raw observer association for a
-context-specialized main body, then compose the aggregate-return
-`readInputSnapshot` loop with the asynchronous domains so the `mixed` plan can
-serve `keyState`/`snapshotCompatible` (current boundaries: async/vector gate,
-partial induction group, saved-status screen and a cross-body raw association);
-(2) compact constant aggregate fills; (3) re-measure and decide whether the
-remaining gap needs the wider loop/address tranche.
+**Measured frontier (2026-11-04, acquisition output gate).** The selected
+candidate is `closed:mixed:compact-looped` at payload **943**, general **976**,
+zero page **14**, combined **990**, stack **6**. The independent acquisition
+specification passes **12/12** on all four profiles: ceiling, behavior (CIA1
+14r/15w, PBON guard, in-place snapshot, scoped NMI) and complete accounting.
+The mixed composition now covers `keyState`, `snapshotCompatible` and the
+aggregate-return `readInputSnapshot` loop; private local reloads forward across
+an asynchronous route when no handler closure names the home, which lets the
+compact startup restore fit the NMI gap and removes the loaded fill. The
+remaining Phase 3 work is the native VICE case
+(`test/rd08/input-acquisition-nmi.spec.test.ts`, currently 4/4 failing with
+`[1,1,1]` against `[]`) and independent reviews. Phases 4-5 are untouched.
 
-**Negative evidence (2026-11-04).** Three attempted units were measured and
-reverted without changing the selected output:
-
-- Preferring the three-byte NMI adapter over direct low-`$47` placement moved
-  the same body but grew the acquisition payload 1209 -> 1353, so the direct
-  placement remains the better global layout.
-- The snapshot initializer's `rows` member is one eight-byte storage-backed
-  constant array, not eight per-byte constant writes. A per-write constant fill
-  loop therefore does not match it; a future fill rule must consume the nested
-  array's constant bytes.
-- Scoping the composition gate to certified aggregate-return programs still
-  terminates on a raw association from a different source body
-  (`src/game.blend:324:335`). This is the next proof to fix before the mixed plan
-  can be measured.
+**Negative evidence (2026-11-04).** Earlier attempts were measured and
+reverted: preferring the three-byte NMI adapter grew payload 1209 -> 1353; a
+per-write constant fill did not match the one eight-byte storage-backed array;
+and the pre-composition raw-owner gap was fixed by keeping all raw sites in the
+composition layout check while examining only composed bodies.
 
 Earlier acquisition candidate stages: The
 `closed:original` candidate now also passes the source-block identity and
@@ -256,18 +236,18 @@ construction instead of a direct write into the caller's `saved` home.
 **Reference**: [03-02](03-02-rules-and-obligations.md) §Rule Catalogue; RD-08 R8.27–R8.38.
 
 - [x] 3.2.1 Implement asynchronous borrow/observation obligations using existing route/context facts — `machine/optimization-rules.ts` ✅ (completed: 2026-11-04; address-taken functions are admitted only when they are selected interrupt handlers; each handler closure is closed over direct calls with no indirect call, stores reduce to named bindings, raw writes must be literal, and every async write must be byte-disjoint from each borrowed backing on both layouts. Async global writes resolve through the emitted data interval because globals have no SFA request. Acquisition candidates now pass this stage)
-- [ ] 3.2.2 Implement raw, MMIO/platform and callback sequence obligations with exact final layouts — `machine/optimization-rules.ts`
+- [x] 3.2.2 Implement raw, MMIO/platform and callback sequence obligations with exact final layouts — `machine/optimization-rules.ts` ✅ (completed: 2026-11-04; device/MMIO raw sites, interrupt-entry source associations, handler-only async gates, raw/async callback sequences and exact final-layout correspondence all pass on the acquisition candidates)
 
 ### Step 3.3: Aggregate and composed rules
 
 - [x] 3.3.1 Implement global aggregate return and caller-owned destination proof — `storage/selection.ts`, `machine/optimization-rules.ts` ✅ (completed: 2026-11-04; `globalReturnedLocalCallers` admits a completely initialized result assigned directly to a resident global when neither the callee closure nor any asynchronous handler names it and no argument aliases it. The borrow proof resolves an ownerless destination as a declared global data interval, and the returned-local escape check now consumes fixed-loop value bounds (`result.rows[column]` below `column < 8`), so `readInputSnapshot` receives its certificate. Borrow observer tests cover the safe global and a global the callee observes)
-- [ ] 3.3.2 Compose LowByte/loop/byte-window/capture rules with interrupt-domain obligations — `machine/optimization-rules.ts`, `services/size-observers.ts`
+- [x] 3.3.2 Compose LowByte/loop/byte-window/capture rules with interrupt-domain obligations — `machine/optimization-rules.ts`, `services/size-observers.ts` ✅ (completed: 2026-11-04; the mixed composition covers the aggregate-return loop, stable source bodies, async-safe local forwarding, direct indexed stores and the main aggregate call window; acquisition lands at 943/976/14/990/6 with 12/12 spec cases)
 
 ### Step 3.4: Acquisition measurement and gate
 
-- [ ] 3.4.1 Measure acquisition 963 on four profiles with complete B/R/T and behavior — four-profile VICE
-- [ ] 3.4.2 Run full compiler/root suites and independent output/SFA/platform reviews
-- [ ] 3.4.3 Record the acquisition result and if 963 is not approached, stop for a scope decision
+- [~] 3.4.1 Measure acquisition 963 on four profiles with complete B/R/T and behavior — four-profile VICE (output spec 12/12 PASSES: 943/963 payload, 976/984 general, 14/14 zero page, 990/998 combined, 6/10 stack; native `input-acquisition-nmi.spec.test.ts` remains 4/4 failing with `[1,1,1]` against `[]` and needs investigation)
+- [~] 3.4.2 Run full compiler/root suites and independent output/SFA/platform reviews (compiler suite 3420 pass with 29 pre-existing failures; root native case and independent reviews pending)
+- [x] 3.4.3 Record the acquisition result and if 963 is not approached, stop for a scope decision ✅ (completed: 2026-11-04; 943/976/14/990/6 recorded, all four profile output/behavior/accounting cases pass, no limit or oracle change)
 
 **Phase 3 gate:** acquisition payload ≤963 and all behavior/resource/NMI/MMIO
 obligations pass. Failure stops the plan; no source restriction or benchmark-name
