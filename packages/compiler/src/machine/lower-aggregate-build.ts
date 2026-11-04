@@ -282,6 +282,22 @@ export function lowerLargeAggregateBuild(
     knownForward: boolean,
     directTargetPointer = false,
   ): void => {
+    /**
+     * A returned-local redirect can make the member source and its destination
+     * the same home. Copying an object onto itself is a no-op; skip it so the
+     * artifact has no self-copy loop or backward jump.
+     */
+    const sameHome =
+      targetOffset === 0 &&
+      ((source.value.kind === "label" &&
+        target.value.kind === "label" &&
+        source.value.label === target.value.label &&
+        source.value.offset === target.value.offset) ||
+        (source.value.kind === "storage" &&
+          target.value.kind === "storage" &&
+          source.value.requestId === target.value.requestId &&
+          (source.value.offset ?? 0) === (target.value.offset ?? 0)));
+    if (sameHome) return;
     const from: PackedHome = source.indirect
       ? Object.freeze({ instructions: Object.freeze([]), value: source.value, indirect: true })
       : copyAddressToPointer(source.value, false, 0, "source", operation, state);
@@ -395,6 +411,26 @@ export function lowerLargeAggregateBuild(
     ) {
       throw loweringFailure("Aggregate member has no complete lowered value", operation.span);
     }
+    /**
+     * A returned-local redirect can make the member value live at exactly the
+     * destination member's offset in the same object. The construction already
+     * wrote those bytes; copying them onto themselves is a no-op and must not
+     * emit a directional copy loop.
+     */
+    const firstPath = place?.path.length === 1 ? place.path[0] : undefined;
+    const memberOffset =
+      place === undefined || firstPath?.kind !== "field" || place.rootType?.kind !== "struct"
+        ? undefined
+        : place.rootType.fields.find((field) => field.name === firstPath.name)?.offset;
+    if (
+      staged.get(valueId) === undefined &&
+      place !== undefined &&
+      targetPlace !== null &&
+      bindingIdentityKey(place.root) === bindingIdentityKey(targetPlace.root) &&
+      targetPlace.path.length === 0 &&
+      memberOffset === start
+    )
+      continue;
     if (bytes >= 8) {
       const knownForward =
         staged.has(valueId) ||
