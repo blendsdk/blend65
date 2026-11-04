@@ -236,6 +236,10 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   const orderedFunctions = [...input.program.functions].sort((left, right) => {
     if (left.id === mainTarget) return -1;
     if (right.id === mainTarget) return 1;
+    // Publish the low-$47 NMI wrapper before ordinary bodies so later first-fit
+    // placement can occupy the alignment gap with real code instead of fill.
+    if (left.nmiPublicationEntry === true && right.nmiPublicationEntry !== true) return -1;
+    if (right.nmiPublicationEntry === true && left.nmiPublicationEntry !== true) return 1;
     return 0;
   });
   const codePieces: { start: number; end: number }[] = [
