@@ -343,8 +343,18 @@ function incomingPointer(
       return null;
     const items = code.items.filter((item) => item.source.source === call.operation.span);
     const at = items.findIndex((item) => storage(item, "sta", demand.declared.id));
+    const invokeLabel = pair.view.functions.find(
+      (entry) =>
+        entry.sourceFunction !== undefined &&
+        bindingIdentityKey(entry.sourceFunction) === bindingIdentityKey(fn.id),
+    )?.id;
     const delivery = items.slice(at - 1, at + 3),
-      invoke = items.at(-1);
+      invoke = items.find(
+        (item) =>
+          item.source.opcode === "jsr" &&
+          item.source.operand?.kind === "label" &&
+          item.source.operand.label === invokeLabel,
+      );
     if (
       delivery.length !== 4 ||
       !contiguous(delivery) ||
@@ -352,8 +362,7 @@ function incomingPointer(
       !storage(delivery[3], "sta", demand.declared.id, 1) ||
       invoke?.source.opcode !== "jsr" ||
       invoke.source.operand?.kind !== "label" ||
-      invoke.source.operand.label !==
-        pair.view.functions.find((entry) => entry.sourceFunction === fn.id)?.id
+      invoke.source.operand.label !== invokeLabel
     )
       return null;
     const literalCopy = definition.place.root === parameter.origin.place.root;
