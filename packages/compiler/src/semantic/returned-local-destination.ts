@@ -443,8 +443,9 @@ export function proveReturnedLocalDestinations(
     program.executionDomains === undefined ||
     program.interruptContextAnalysis === undefined ||
     program.interruptContextAnalysis.diagnostics.length !== 0
-  )
+  ) {
     return Object.freeze([]);
+  }
   const reached = new Set(program.reachableFunctions.map(bindingIdentityKey));
   const functions = new Map(
     program.semantic.functions
@@ -454,6 +455,9 @@ export function proveReturnedLocalDestinations(
   const windows = [...addressSpace.ram, ...addressSpace.zeroPage];
   const platformDisjoint = platformIsDisjoint(addressSpace, profile);
   const unsafe = new Set<string>();
+  /** Raw address ranges by owner; an unknown or non-raw reason stays unsafe. */
+  const rawRangesByOwner = new Map<string, { start: number; end: number }[]>();
+  const nonRawUnsafe = new Set<string>();
   let hardwareMayObserve = false;
   /**
    * Fixed-loop facts bound a counter inside its body even when the
@@ -493,9 +497,19 @@ export function proveReturnedLocalDestinations(
           )
         ) {
           unsafe.add(key);
+          nonRawUnsafe.add(key);
         }
         if (operation.kind === "memory-read" || operation.kind === "memory-write") {
           const address = literal(operation.address);
+          if (address === undefined) nonRawUnsafe.add(key);
+          else {
+            const ranges = rawRangesByOwner.get(key) ?? [];
+            for (let offset = 0; offset < operation.width; offset += 1) {
+              const byte = Number(BigInt.asUintN(16, address + BigInt(offset)));
+              ranges.push({ start: byte, end: byte });
+            }
+            rawRangesByOwner.set(key, ranges);
+          }
           if (rawMayObserve(address, operation.width, windows)) {
             unsafe.add(key);
           }
@@ -515,12 +529,15 @@ export function proveReturnedLocalDestinations(
           (!FIXED_C64_CAPABILITIES.has(operation.capability) || !platformDisjoint)
         ) {
           unsafe.add(key);
+          nonRawUnsafe.add(key);
           hardwareMayObserve = true;
         }
       }
     }
   }
-  if (hardwareMayObserve) return Object.freeze([]);
+  if (hardwareMayObserve) {
+    return Object.freeze([]);
+  }
   const parents = new Map<string, Set<string>>();
   for (const node of program.callGraph) {
     const caller = bindingIdentityKey(node.function);
@@ -540,19 +557,45 @@ export function proveReturnedLocalDestinations(
       pending.push(caller);
     }
   }
-  const unsafeAsync = program.executionDomains.some(
+  const asyncUnsafe = program.executionDomains.some(
     ({ function: id, domains }) =>
       domains.some((domain) => domain !== "main") && unsafe.has(bindingIdentityKey(id)),
   );
-  if (unsafeAsync) return Object.freeze([]);
   const callers = freshReturnedLocalCallers(program);
   const residentCallers = globalReturnedLocalCallers(program);
   const globals = new Set(program.semantic.globals.map(({ id }) => bindingIdentityKey(id)));
+  /**
+   * A resident result destination has a fixed placed range. An asynchronous raw
+   * access that is disjoint from every placed global cannot observe or change
+   * that result. Local result frames have no placed range, so they keep the
+   * conservative async rejection.
+   */
+  const placedGlobals = program.semantic.globals.flatMap((global) => {
+    const at = global.placement?.at;
+    return at == null ? [] : [{ start: at, end: at + semanticTypeSize(global.type) - 1 }];
+  });
+  const asyncRawSafe =
+    placedGlobals.length > 0 &&
+    program.executionDomains.every(({ function: id, domains }) => {
+      const key = bindingIdentityKey(id);
+      if (!domains.some((domain) => domain !== "main") || !unsafe.has(key)) return true;
+      if (nonRawUnsafe.has(key)) return false;
+      const ranges = rawRangesByOwner.get(key) ?? [];
+      if (ranges.length === 0) return false;
+      return ranges.every((range) =>
+        placedGlobals.every((global) => range.end < global.start || range.start > global.end),
+      );
+    });
   const certificates: ReturnedLocalDestination[] = [];
   for (const id of program.reachableFunctions) {
     const key = bindingIdentityKey(id);
     const fn = functions.get(key);
-    if (fn === undefined || unsafe.has(key) || (!callers.has(key) && !residentCallers.has(key)))
+    if (
+      fn === undefined ||
+      unsafe.has(key) ||
+      (!callers.has(key) && !residentCallers.has(key)) ||
+      (asyncUnsafe && (!residentCallers.has(key) || !asyncRawSafe))
+    )
       continue;
     const local = returnedLocalCandidate(fn, (block, value) => {
       let maximum: bigint | undefined;
