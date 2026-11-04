@@ -145,18 +145,19 @@ export function argumentDelivery(
       return Object.freeze({
         ...block,
         instructions: Object.freeze(
-          block.instructions
-            .filter((_, at) => !remove.has(at))
-            .map((instruction, at) => {
-              const change = retarget.get(at);
-              return change === undefined
+          block.instructions.flatMap((instruction, at) => {
+            if (remove.has(at)) return [];
+            const change = retarget.get(at);
+            return [
+              change === undefined
                 ? instruction
                 : Object.freeze({
                     ...instruction,
                     operand: change.operand,
                     ...(change.source === null ? {} : { source: change.source }),
-                  });
-            }),
+                  }),
+            ];
+          }),
         ),
       });
     });
