@@ -306,7 +306,28 @@ function loopRepresentation(
         const sourceAccess = instruction.observerOrigins?.some(
           (origin) => origin.kind === "raw" || origin.kind === "typed",
         );
-        if (!sourceAccess) {
+        /**
+         * A returned-local aggregate construction writes its already-proved
+         * destination bytes through the hidden destination pointer. Those
+         * stores share the aggregate operation's span and contain no arbitrary
+         * machine access; the borrow/returned-local proof owns their backing,
+         * extent and complete initialization.
+         */
+        const aggregateConstruction =
+          instruction.source !== null &&
+          loop.function.blocks.some((candidate) =>
+            candidate.operations.some(
+              (operation) =>
+                operation.kind === "aggregate" &&
+                operation.span.sourceId === instruction.source!.sourceId &&
+                operation.span.start === instruction.source!.start &&
+                operation.span.end === instruction.source!.end,
+            ),
+          );
+        // Implied/stack-only instructions carry no ordinary memory operand; the
+        // stack-evidence proofs own their effects.
+        const stackOnly = instruction.operand === null && instruction.memory.length === 0;
+        if (!sourceAccess && !aggregateConstruction && !stackOnly) {
           const accesses = instructionAccessEnvelope({
             cpu: input.checked.profile.cpu,
             instruction,
