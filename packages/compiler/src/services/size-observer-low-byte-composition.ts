@@ -1037,8 +1037,15 @@ export function validateComposedLowByte(
         const typedSourceAccess = item.source.observerOrigins?.some(
           (origin) => origin.kind === "typed",
         );
+        const platformSourceAccess = item.source.observerOrigins?.some(
+          (origin) => origin.kind === "platform",
+        );
         if (
-          (envelope === null && !(typedSourceAccess === true && access === undefined)) ||
+          (envelope === null &&
+            !(
+              (typedSourceAccess === true || platformSourceAccess === true) &&
+              access === undefined
+            )) ||
           (envelope !== null &&
             access !== undefined &&
             (access.item.instruction !== item.instruction ||

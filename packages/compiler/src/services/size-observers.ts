@@ -264,6 +264,16 @@ const TYPED_OBSERVER_OPERATIONS = new Set([
   "array-count",
 ]);
 
+/** Vector-only platform controls change interrupt entry, not ordinary object data. */
+const VECTOR_PLATFORM_CAPABILITIES = new Set([
+  "c64.system.restoreIRQ",
+  "c64.system.restoreNMI",
+  "c64.system.setIRQ",
+  "c64.system.setIRQExclusive",
+  "c64.system.setNMI",
+  "c64.system.setNMIExclusive",
+]);
+
 /** Prove actual final homes still honor every explicit source placement. */
 function placedSourceFailure(
   shared: FinalSharedStorage,
@@ -346,6 +356,7 @@ function typedSourceFailure(
       ...program.roots.flatMap((root) => (root.kind === "interrupt" ? [root.function] : [])),
     ].map(bindingIdentityKey),
   );
+  const aggregateProgram = (program.returnedLocalDestinations?.length ?? 0) > 0;
   if (
     program.roots.some(
       (root) => root.kind === "callable" && !asyncHandlers.has(bindingIdentityKey(root.function)),
@@ -379,16 +390,29 @@ function typedSourceFailure(
     for (const block of blocks) {
       for (const operation of block.operations) {
         if (
-          (!TYPED_OBSERVER_OPERATIONS.has(operation.kind) && !effects.operations.has(operation)) ||
+          (!TYPED_OBSERVER_OPERATIONS.has(operation.kind) &&
+            !(
+              aggregateProgram &&
+              operation.kind === "platform" &&
+              VECTOR_PLATFORM_CAPABILITIES.has(operation.capability)
+            ) &&
+            !(
+              aggregateProgram &&
+              operation.kind === "function-address" &&
+              asyncHandlers.has(bindingIdentityKey(operation.function))
+            ) &&
+            !(operation.kind === "cpu-control" && operation.control === "asm_nop") &&
+            !effects.operations.has(operation)) ||
           (operation.kind === "call" &&
             (globals.has(bindingIdentityKey(body.id)) ||
               !functions.has(bindingIdentityKey(operation.callee))))
-        )
+        ) {
           return observerFailure(
             "rejected",
             "Source needs a stronger physical observer proof",
             operation.span,
           );
+        }
         for (const use of placeUses(operation))
           if (
             placeMayEscapeRoot(

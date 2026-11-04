@@ -618,7 +618,10 @@ export function matchLowByteOccurrences(
           root = resident(before, operation.place.root, operation.place.rootType),
           selectedRoot = resident(after, operation.place.root, operation.place.rootType);
         const value = index?.kind === "index" ? counterFor(index.value) : null;
-        const register = value?.counter.register ?? null;
+        // A constant-index store is not a composed counter store; it remains
+        // part of the ordinary main-body equivalence window.
+        if (value === null) continue;
+        const register = value.counter.register ?? null;
         const selectedId = value?.counter.selected?.declared.id;
         const sinks = (pair: Body, held: "x" | "y" | null) =>
           parts(pair, [operation]).filter(
@@ -806,9 +809,28 @@ export function matchLowByteOccurrences(
           };
           const a = pointerWindow(parts(before, [call.operation])),
             b = pointerWindow(parts(after, [call.operation]));
+          const callLabel = before.view.functions.find(
+            (entry) =>
+              entry.sourceFunction !== undefined &&
+              bindingIdentityKey(entry.sourceFunction) ===
+                bindingIdentityKey(call.operation.callee),
+          )?.id;
+          const callIndex = (items: readonly Item[]) =>
+            items.findIndex(
+              (item) =>
+                item.source.opcode === "jsr" &&
+                item.source.operand?.kind === "label" &&
+                item.source.operand.label === callLabel,
+            );
           const at = a.findIndex((item) => storage(item, "sta", formal[0]!.id));
           const delivery = a.slice(at - 1, at + 3),
             label = bindingLabel("global", parameter.origin.place.root);
+          const aCall = callIndex(a),
+            bCall = callIndex(b);
+          if (aCall < 0 || bCall < 0 || !same(a[aCall]!, b[bCall]!))
+            return "Composed argument suffix or immutable root disagrees";
+          const aWindow = a.slice(0, aCall + 1),
+            bWindow = b.slice(0, bCall + 1);
           if (
             delivery.length !== 4 ||
             !contiguous(delivery) ||
@@ -826,7 +848,7 @@ export function matchLowByteOccurrences(
             delivery.some((item) => removed.has(item.key) || replacements.has(item.key))
           )
             return "Composed direct-global argument delivery disagrees";
-          const remaining = a.filter((item) => !delivery.includes(item));
+          const remaining = aWindow.filter((item) => !delivery.includes(item));
           const formalIndex = entry.function.parameters.findIndex(
             (formal) => formal.id === parameter.parameter,
           );
@@ -835,11 +857,12 @@ export function matchLowByteOccurrences(
           // the selected candidate forwards the stored byte directly because the
           // delivery no longer overwrites A. Accept only that single proved reload.
           const forwarded =
-            remaining.length === b.length + 1 && forwardedReload(before, remaining[0]!, delivery);
+            remaining.length === bWindow.length + 1 &&
+            forwardedReload(before, remaining[0]!, delivery);
           const expected = forwarded ? remaining.slice(1) : remaining;
           const forwardedItem = forwarded ? remaining[0] : undefined;
-          const head = a.slice(0, -1),
-            suffix = b.slice(0, -1),
+          const head = aWindow.slice(0, -1),
+            suffix = bWindow.slice(0, -1),
             from: number[] = [];
           let cursor = 0;
           for (const item of suffix) {
@@ -863,9 +886,9 @@ export function matchLowByteOccurrences(
             argument?.kind !== "place-address" ||
             argument.place.path.length !== 0 ||
             argument.place.root !== parameter.origin.place.root ||
-            a.at(-1)?.source.opcode !== "jsr" ||
-            !same(a.at(-1), b.at(-1)) ||
-            expected.length !== b.length ||
+            aWindow.at(-1)?.source.opcode !== "jsr" ||
+            !same(aWindow.at(-1), bWindow.at(-1)) ||
+            expected.length !== bWindow.length ||
             !expected.every((item, index) => same(item, b[index])) ||
             from.length !== suffix.length ||
             head.some(
