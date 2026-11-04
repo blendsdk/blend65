@@ -197,11 +197,12 @@ hits. The named-borrow stage now admits the placed global when every
 asynchronous raw access is disjoint from the placed destination; the next
 blockers are `Typed pointer's incoming value is unproved` for the mixed
 candidate's placed snapshot and `Source needs a stronger physical observer
-proof` for the original candidate. The mixed candidate has both a formal
-parameter request and a two-byte pointer request for that snapshot, but
-`incomingPointer` still returns null. Next unit: trace the early return for the
-placed-global parameter backing, close the typed-pointer incoming value, then
-re-run the native case.
+proof` for the original candidate. The mixed candidate now passes the
+typed-pointer incoming value; the call proof locates the `jsr` even when a
+trailing result store shares its source span. The next boundary is
+`Composed typed store has no unique actual sink` for the placed `answers[0] =
+keyState(...)` store. Next unit: close the composed typed-store actual-sink
+proof for a placed array element, then re-run the native case.
 Phases 4-5 are untouched.
 
 **Negative evidence (2026-11-04).** Earlier attempts were measured and
