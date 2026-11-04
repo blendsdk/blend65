@@ -14,9 +14,11 @@ import {
   valueDefinitions,
 } from "./aggregate-place-proof.js";
 import type { AddressSpace } from "./aggregate-place-proof.js";
+import { deriveFixedLoopFacts } from "./fixed-loop-facts.js";
 import type { WholeProgram } from "./whole-program.js";
 import type {
   AggregateOperation,
+  SemanticBlock,
   SemanticFunction,
   SemanticOperation,
   ValueId,
@@ -129,7 +131,10 @@ function objectValueInputs(operation: SemanticOperation): readonly ValueId[] {
  * @param fn One unchanged semantic function.
  * @returns The candidate local identity, or undefined for the existing safe path.
  */
-export function returnedLocalCandidate(fn: SemanticFunction): BindingId | undefined {
+export function returnedLocalCandidate(
+  fn: SemanticFunction,
+  loopMaximum?: (block: SemanticBlock, value: ValueId) => bigint | undefined,
+): BindingId | undefined {
   if (
     fn.entryKind === "interrupt" ||
     (fn.result.kind !== "array" && fn.result.kind !== "struct") ||
@@ -213,7 +218,12 @@ export function returnedLocalCandidate(fn: SemanticFunction): BindingId | undefi
           else if (operation.type.kind === "array" || operation.type.kind === "struct")
             return undefined;
         }
-        if (placeMayEscapeRoot({ ...use, place: { ...use.place, rootType: fn.result } }, bound))
+        if (
+          placeMayEscapeRoot(
+            { ...use, place: { ...use.place, rootType: fn.result } },
+            (value) => loopMaximum?.(block, value) ?? bound(value),
+          )
+        )
           return undefined;
       }
     }
@@ -222,7 +232,6 @@ export function returnedLocalCandidate(fn: SemanticFunction): BindingId | undefi
   }
   return local;
 }
-
 /** Trace only a call's argument definitions; missing input facts cannot prove disjointness. */
 function argumentsMayAlias(
   arguments_: readonly ValueId[],
@@ -446,6 +455,12 @@ export function proveReturnedLocalDestinations(
   const platformDisjoint = platformIsDisjoint(addressSpace, profile);
   const unsafe = new Set<string>();
   let hardwareMayObserve = false;
+  /**
+   * Fixed-loop facts bound a counter inside its body even when the
+   * context-independent resolver sees no mask or literal. This is the same
+   * source-level loop certificate the size lowering consumes.
+   */
+  const fixedLoops = deriveFixedLoopFacts(program);
   const bodies = [
     ...functions.values(),
     ...program.semantic.globals.filter(({ entry }) => entry !== null),
@@ -457,18 +472,33 @@ export function proveReturnedLocalDestinations(
     const definitions = valueDefinitions(blocks);
     const literal = literalResolver(definitions);
     const bound = ordinalBoundResolver(definitions, literal);
+    /** Maximum of a value inside this block from a fixed-loop certificate. */
+    const loopMaximum = (block: SemanticBlock, value: ValueId): bigint | undefined => {
+      let maximum: bigint | undefined;
+      for (const loop of fixedLoops) {
+        if (loop.function !== body || !loop.members.has(block.id)) continue;
+        const candidate = loop.valueBounds.get(value);
+        if (candidate !== undefined && (maximum === undefined || candidate < maximum))
+          maximum = candidate;
+      }
+      return maximum;
+    };
     for (const block of blocks) {
       for (const operation of block.operations) {
         if (
           placeUses(operation).some(
             (use) =>
-              use.place.path.some(({ kind }) => kind === "index") && placeMayEscapeRoot(use, bound),
+              use.place.path.some(({ kind }) => kind === "index") &&
+              placeMayEscapeRoot(use, (value) => loopMaximum(block, value) ?? bound(value)),
           )
-        )
+        ) {
           unsafe.add(key);
+        }
         if (operation.kind === "memory-read" || operation.kind === "memory-write") {
           const address = literal(operation.address);
-          if (rawMayObserve(address, operation.width, windows)) unsafe.add(key);
+          if (rawMayObserve(address, operation.width, windows)) {
+            unsafe.add(key);
+          }
           if (
             operation.kind === "memory-write" &&
             (rawMaySelectHardwareRam(address, operation.width, profile) ||
@@ -524,7 +554,16 @@ export function proveReturnedLocalDestinations(
     const fn = functions.get(key);
     if (fn === undefined || unsafe.has(key) || (!callers.has(key) && !residentCallers.has(key)))
       continue;
-    const local = returnedLocalCandidate(fn);
+    const local = returnedLocalCandidate(fn, (block, value) => {
+      let maximum: bigint | undefined;
+      for (const loop of fixedLoops) {
+        if (loop.function !== fn || !loop.members.has(block.id)) continue;
+        const candidate = loop.valueBounds.get(value);
+        if (candidate !== undefined && (maximum === undefined || candidate < maximum))
+          maximum = candidate;
+      }
+      return maximum;
+    });
     if (local !== undefined && !globals.has(bindingIdentityKey(local)))
       certificates.push(Object.freeze({ function: id, local }));
   }

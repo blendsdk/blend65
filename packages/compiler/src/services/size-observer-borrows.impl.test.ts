@@ -242,7 +242,6 @@ function read(p:const Packet):byte{return p.rows[1];}function main():void{poke($
   );
 
   it.each([
-    ["global destination", "let output:Pair;", "", "output=make();poke($C100,output.a);"],
     ["different destinations", "", "", "let a:Pair=make();let b:Pair=make();poke($C100,a.a+b.b);"],
     [
       "forwarded destination",
@@ -267,6 +266,32 @@ function read(p:const Packet):byte{return p.rows[1];}function main():void{poke($
       `module Game;struct Pair{a:byte;b:byte;}${declarations}
 function make():Pair{let local:Pair={a:7,b:9};return local;}${functions}
 function main():void{${body}}`,
+      "size",
+      false,
+      "original",
+    );
+    expect(validateSizeObservers(input).kind).toBe("rejected");
+  });
+
+  it("should admit a resident global destination the callee never observes", () => {
+    const input = effectFixture(
+      `module Game;struct Pair{a:byte;b:byte;}
+let output:Pair;
+function make():Pair{let local:Pair={a:7,b:9};return local;}
+function main():void{output=make();poke($C100,output.a);}`,
+      "size",
+      false,
+      "original",
+    );
+    expect(validateSizeObservers(input).kind).toBe("complete");
+  });
+
+  it("should reject a resident global destination the callee observes", () => {
+    const input = effectFixture(
+      `module Game;struct Pair{a:byte;b:byte;}
+let output:Pair;
+function make():Pair{let local:Pair={a:7,b:9};poke($C100,output.a);return local;}
+function main():void{output=make();poke($C100,output.a);}`,
       "size",
       false,
       "original",

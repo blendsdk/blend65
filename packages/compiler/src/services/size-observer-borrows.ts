@@ -2,6 +2,7 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SemanticType } from "../frontend/semantic-types.js";
 import { semanticTypesEqual } from "../frontend/semantic-type-relations.js";
 import { literalResolver, valueDefinitions } from "../semantic/aggregate-place-proof.js";
+import { bindingLabel } from "../machine/lower-control.js";
 import { operationValueUses } from "../semantic/lower-control.js";
 import { reachableBlocks } from "../semantic/value-lifetimes.js";
 import { validObjectStorageSelection } from "../storage/selection.js";
@@ -395,7 +396,7 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
           row.domain === "main" &&
           row.activationRoot === undefined,
       );
-      if (data?.request == null || rows.length !== 1) return null;
+      if (data === null || rows.length !== 1) return null;
       const location = rows[0]!.location;
       if (side === 0) {
         if (location.kind !== "storage") return null;
@@ -417,7 +418,9 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
           : location.owner !== null &&
             bindingIdentityKey(location.owner) === bindingIdentityKey(root.owner)) ||
         location.bytes !== root.type.size ||
-        location.backingRequestId !== data.request.id
+        (data.request === null
+          ? location.backingRequestId !== null
+          : location.backingRequestId !== data.request.id)
       )
         return null;
     }
@@ -731,25 +734,21 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
        * writes were already reduced to literal byte ranges.
        */
       for (const binding of asyncWrites) {
-        if (!globals.has(binding))
+        const global = globals.get(binding);
+        if (global === undefined)
           return failure(
             "rejected",
             "Asynchronous entry writes an unproved binding",
             borrow.call.span,
           );
-        const written = shared.certificate.inventory.requests.filter(
-          (request) => request.binding !== null && bindingIdentityKey(request.binding) === binding,
+        // A global is emitted data, not an SFA request; resolve its interval directly.
+        const id = bindingLabel("global", global.id);
+        const intervals = shared.layout.intervals.filter(
+          (interval) =>
+            interval.id === id && ["global", "bss", "immutable"].includes(interval.kind),
         );
-        if (
-          written.length === 0 ||
-          written.some((request) => {
-            const home = homes[side]!.get(request.id);
-            return (
-              home === undefined ||
-              !disjoint(data.range, { start: home.address, end: home.address + home.bytes - 1 })
-            );
-          })
-        )
+        const written = intervals.length === 1 ? intervals[0]! : null;
+        if (written === null || !disjoint(data.range, written))
           return failure(
             "rejected",
             "Borrowed object overlaps an asynchronous write",
