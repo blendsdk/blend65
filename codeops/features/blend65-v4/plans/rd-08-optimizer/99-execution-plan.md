@@ -179,19 +179,17 @@ stops the plan; no limit rewrite and no benchmark-specific special case.
 
 > **Reasoning**: max — asynchronous, raw/MMIO and global-return proof boundaries.
 
-**Measured frontier (2026-11-04).** Acquisition candidates are still rejected
-after the new asynchronous-entry proof. The returned-local certificate is empty
-for a narrower reason than the earlier hardware guess: `hardwareMayObserve` is
-false and the async closure is clean, and `globalReturnedLocalCallers` already
-lists `readInputSnapshot`. The certificate loop skips it because `unsafe.has`
-is true from exactly one indexed access, the looped store `result.rows[column]`
-at `input.blend` 15787. `placeMayEscapeRoot` uses the context-independent
-`ordinalBoundResolver`, which has no bound for the `for (column < 8)` counter;
-the existing guarded ordinal proof also produced no entry for that store in a
-measured attempt. The selected output therefore remains the reference at 2291
-bytes. The next unit is a fixed-loop/index bound for the returned-local escape
-check (prove `column < 8` reaches the store's index conversion), after which the
-resident-global certificate can be produced.
+**Measured frontier (2026-11-04).** Acquisition candidates now pass the
+asynchronous borrow, resident-global destination and returned-local certificate
+stages. They are rejected by the loop/induction composition, which still assumes
+a synchronous source: `closed:low-byte` and `closed:mixed` report "Composed
+counters require a synchronous closed source", the x/y/flat-eight policies fail
+the original-induction policy premise, and `closed:original` reports that
+`snapshotCompatible`'s entry source block has no emitted continuation (its
+source-block association lookup is missing while the membership counts match).
+The selected output remains the reference at 2291 bytes. The next unit is
+Step 3.3.2: compose the loop/counter and low-byte rules with the asynchronous
+execution domains, and repair the original candidate's source-block association.
 
 The acquisition specification is RED at the
 shared `size` output: payload **2291**/963, general **2417**/984, zero page
@@ -211,12 +209,12 @@ construction instead of a direct write into the caller's `saved` home.
 
 **Reference**: [03-02](03-02-rules-and-obligations.md) §Rule Catalogue; RD-08 R8.27–R8.38.
 
-- [~] 3.2.1 Implement asynchronous borrow/observation obligations using existing route/context facts — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-04; the blanket asynchronous borrow rejection is now a real entry proof: only selected interrupt handlers may be address-taken, each handler closure must have no indirect call, its stores reduce to named bindings and its raw writes to literal addresses, all byte-disjoint from every borrowed backing on both layouts, and handler-owned storage joins the live-storage disjointness check. Acquisition candidates now pass this gate and fail at the next proof instead of being rejected wholesale)
+- [x] 3.2.1 Implement asynchronous borrow/observation obligations using existing route/context facts — `machine/optimization-rules.ts` ✅ (completed: 2026-11-04; address-taken functions are admitted only when they are selected interrupt handlers; each handler closure is closed over direct calls with no indirect call, stores reduce to named bindings, raw writes must be literal, and every async write must be byte-disjoint from each borrowed backing on both layouts. Async global writes resolve through the emitted data interval because globals have no SFA request. Acquisition candidates now pass this stage)
 - [ ] 3.2.2 Implement raw, MMIO/platform and callback sequence obligations with exact final layouts — `machine/optimization-rules.ts`
 
 ### Step 3.3: Aggregate and composed rules
 
-- [~] 3.3.1 Implement global aggregate return and caller-owned destination proof — `storage/selection.ts`, `machine/optimization-rules.ts` ⏳ (partial: 2026-11-04; the borrow proof accepts an ownerless origin/destination only when the root is a declared global, and `globalReturnedLocalCallers` admits a complete initialized result assigned directly to a resident global when neither the callee closure nor any asynchronous handler names it and no argument aliases it. The certificate is still blocked before that path by `proveReturnedLocalDestinations`'s whole-program `hardwareMayObserve` early return: any program with a hardware write, including the acquisition's CIA1 pokes, produces no returned-local certificates. A per-object hardware-publication proof is the next unit)
+- [x] 3.3.1 Implement global aggregate return and caller-owned destination proof — `storage/selection.ts`, `machine/optimization-rules.ts` ✅ (completed: 2026-11-04; `globalReturnedLocalCallers` admits a completely initialized result assigned directly to a resident global when neither the callee closure nor any asynchronous handler names it and no argument aliases it. The borrow proof resolves an ownerless destination as a declared global data interval, and the returned-local escape check now consumes fixed-loop value bounds (`result.rows[column]` below `column < 8`), so `readInputSnapshot` receives its certificate. Borrow observer tests cover the safe global and a global the callee observes)
 - [ ] 3.3.2 Compose LowByte/loop/byte-window/capture rules with interrupt-domain obligations — `machine/optimization-rules.ts`, `services/size-observers.ts`
 
 ### Step 3.4: Acquisition measurement and gate
