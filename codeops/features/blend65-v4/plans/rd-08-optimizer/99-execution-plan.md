@@ -108,7 +108,7 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 #### Measured frontier (2026-11-03)
 
 The selected saved candidate is `closed:mixed:compact-looped` at **735 bytes**
-with zeroPage 14 (general 779, combined 793). The memory audit now gives the
+with zeroPage 14 (general 770, combined 784). The memory audit now gives the
 exact general composition:
 
 | General component | Bytes |
@@ -116,15 +116,14 @@ exact general composition:
 | Code | 735 |
 | `platform.startup-state` | 16 |
 | saved snapshot + results + one input global | 14 |
-| SFA zero-payload retained homes | 14 |
+| live SFA retained homes | 5 |
 
-The earlier `code <= 721` target assumed a 24-byte BSS and no SFA reserve. With
-the actual 30-byte BSS and 14 SFA bytes, the binding target is **code <= 701**
-unless the SFA reserve and/or the startup state shrink. The startup state is
-16 bytes here versus the expert 7; that is RD-05 platform policy, not an RD-08
-rule. The SFA reserve is 14 one-byte zero-payload homes, mostly delivery-orphaned
-retained stages; those are reclaimable with the same inventory/binder coupling
-used for `v47`.
+Twelve delivery-orphaned retained stages were reclaimed, taking the SFA reserve
+from 14 to 5. With the actual 30-byte BSS, the binding target is now
+**code <= 710** if the startup state and the 5 live SFA homes stay, or higher if
+the RD-05 startup state shrinks from 16 to the expert 7. The general equation is
+`code + startup-state + 14 fixed + SFA-live <= 745`; combined adds the 14
+zero-page bytes. The startup-state difference is RD-05 platform policy.
 
 | Owner | Ours | Expert | Gap |
 |---|---:|---:|---:|
