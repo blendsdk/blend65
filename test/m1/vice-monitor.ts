@@ -517,7 +517,12 @@ export async function openViceMonitor(port: number, processId: number): Promise<
       body[8] = 0;
       const response = await request(0x12, body, 0x11);
       if (response.body.length < 23) throw new Error("VICE tracepoint response is truncated");
-      return uint32(response.body, 0);
+      const id = uint32(response.body, 0);
+      if (process.env.BLEND65_DEBUG_CHECKPOINTS === "1")
+        process.stderr.write(
+          `VICE-ACCESS address=$${address.toString(16)} operation=${operation} id=${id}\n`,
+        );
+      return id;
     },
     takeCheckpointHits: () => {
       const hits = Object.freeze(checkpointHits);
@@ -532,6 +537,9 @@ export async function openViceMonitor(port: number, processId: number): Promise<
       new DataView(body.buffer).setUint32(0, checkpoint, true);
       const response = await request(0x13, body);
       if (response.body.length !== 0) throw new Error("VICE checkpoint deletion returned data");
+      // VICE can reuse a deleted checkpoint number. Pending hits from the old
+      // checkpoint must not be attributed to a later checkpoint with the same id.
+      checkpointHits = checkpointHits.filter((hit) => hit !== checkpoint);
     },
     readMemory: async (start, end) => readRange(start, end, 0),
     readIo: async (start, end) => readRange(start, end, 3),
