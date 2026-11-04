@@ -179,28 +179,28 @@ stops the plan; no limit rewrite and no benchmark-specific special case.
 
 > **Reasoning**: max — asynchronous, raw/MMIO and global-return proof boundaries.
 
-**Measured frontier (2026-11-04, NMI-fill unlock).** The selected candidate is
-`closed:original:compact-looped` at payload **1260** (reference 2291), general
-**1311**, zero page **15** (one over the 14 ceiling), combined **1326**, stack
-5/10. The four behavior cases pass on all profiles (raw CIA1 traffic, in-place
-snapshot, scoped NMI). Three units unlocked this step: the returned-local
-self-member construction copy is elided; the display-independence proof accepts
-a certified returned-local aggregate address so the cooperative startup can use
-the compact form; and the low-`$47` NMI wrapper is placed before ordinary bodies
-so first-fit placement fills its alignment gap with real code. The loaded fill
-falls 134 -> 26 bytes. The remaining payload gap is 297 bytes. Largest owners:
-`keyState` 319, `readInputSnapshot` 311, `snapshotCompatible` 286,
-`joystickState` 118, compact startup + restore 91, `Game.main` 45,
-`soleGroundSource` 34, interrupt callback 18. The `mixed` acquisition plan would
-remove roughly 224 bytes from `keyState`/`snapshotCompatible`, but it is blocked
-by composition boundaries: the async/vector gate, the aggregate-return
-`readInputSnapshot` loop (skipping it leaves a partial induction group), the
-saved-status screen when the reference startup policy differs, and a raw
-association that belongs to a different source body. Next units, in order:
-(1) compose the aggregate-return loop with the asynchronous domains, or lower its
-in-place member stores as direct `(destination),y` writes with a typed origin;
-(2) reclaim the last zero-page byte; (3) re-measure and decide whether the
-remaining gap needs the wider direct-store/address-form tranche.
+**Measured frontier (2026-11-04, direct-indexed unlock).** The selected
+candidate is `closed:original:compact-looped` at payload **1209** (reference
+2291), general **1256**, combined **1267**, stack 5/10. Zero page now passes:
+the selected candidate owns 12 bytes and the charged ceiling is 14. The
+acquisition specification is **8/12**: all four behavior cases and all four
+resource/interval/stack accounting cases pass on all profiles; only the four
+ceiling cases remain RED (payload 1209/963, general 1256/984, combined
+1267/998). Units landed: returned-local self-member copy elision; compact
+startup for certified returned-local aggregates; low-`$47` NMI wrapper ordering
+(fill 134 -> 26); direct indexed byte access for bounded aggregate ordinals
+(`absolute-y` with the word counter's proved low byte); and the release-oracle
+`toBeOneOf` matcher registration. The remaining gap is 246 payload bytes and
+272 general-RAM bytes; because BSS is 47 bytes, the effective code target is
+937 bytes. Largest owners: `keyState` 304, `readInputSnapshot` 299,
+`snapshotCompatible` 262, `joystickState` 118, compact startup + restore 91,
+`Game.main` 45, `soleGroundSource` 34, interrupt callback 18, plus 26 bytes of
+NMI fill. Next units, in order: (1) compose the aggregate-return
+`readInputSnapshot` loop with the asynchronous domains so the `mixed` plan can
+serve `keyState`/`snapshotCompatible` (current boundaries: async/vector gate,
+partial induction group, saved-status screen and a cross-body raw association);
+(2) compact constant aggregate fills; (3) re-measure and decide whether the
+remaining gap needs the wider loop/address tranche.
 
 Earlier acquisition candidate stages: The
 `closed:original` candidate now also passes the source-block identity and
