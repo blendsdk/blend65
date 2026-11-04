@@ -180,12 +180,18 @@ stops the plan; no limit rewrite and no benchmark-specific special case.
 > **Reasoning**: max — asynchronous, raw/MMIO and global-return proof boundaries.
 
 **Measured frontier (2026-11-04).** Acquisition candidates are still rejected
-after the new asynchronous-entry proof: the returned-local certificate is empty
-because `proveReturnedLocalDestinations` conservatively returns no certificates
-for any program with a hardware write (the acquisition pokes CIA1). The selected
-output therefore remains the reference at 2291 bytes. The next unit is a
-per-object hardware-publication proof so a resident global whose address never
-reaches hardware can be a direct return destination.
+after the new asynchronous-entry proof. The returned-local certificate is empty
+for a narrower reason than the earlier hardware guess: `hardwareMayObserve` is
+false and the async closure is clean, and `globalReturnedLocalCallers` already
+lists `readInputSnapshot`. The certificate loop skips it because `unsafe.has`
+is true from exactly one indexed access, the looped store `result.rows[column]`
+at `input.blend` 15787. `placeMayEscapeRoot` uses the context-independent
+`ordinalBoundResolver`, which has no bound for the `for (column < 8)` counter;
+the existing guarded ordinal proof also produced no entry for that store in a
+measured attempt. The selected output therefore remains the reference at 2291
+bytes. The next unit is a fixed-loop/index bound for the returned-local escape
+check (prove `column < 8` reaches the store's index conversion), after which the
+resident-global certificate can be produced.
 
 The acquisition specification is RED at the
 shared `size` output: payload **2291**/963, general **2417**/984, zero page
