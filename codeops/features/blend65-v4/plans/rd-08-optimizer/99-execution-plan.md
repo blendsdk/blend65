@@ -179,23 +179,24 @@ stops the plan; no limit rewrite and no benchmark-specific special case.
 
 > **Reasoning**: max — asynchronous, raw/MMIO and global-return proof boundaries.
 
-**Measured frontier (2026-11-04, device/async unlock).** A candidate is now
-selected: `closed:original:full` at payload **1975** (reference 2291), general
-**2072**, zero page **15** (one over the 14 ceiling), combined **2087**, stack
-5/10. The device/MMIO raw site proof admits the profile's VIC/CIA1/CIA2 windows
-under the ordinary byte-site discipline, interrupt-entry wrappers carry their
-source-block associations, and the remaining asynchronous gates admit only
-handler callables plus vector/cpu-control operations. The acquisition
-specification is still RED on the ceilings, and its behavior case reports a raw
-access-list mismatch. Diagnosis: the candidate's `readInputSnapshot` contains an
-unreachable bounds-expansion copy loop (`lda ($04),y; sta ($08),y; iny; cpy #$08;
-bne` followed by `jmp block_6`) where both pointers resolve to the same `saved`
-global, so it is a redundant self-copy. The behavior scanner treats the backward
-`jmp block_6` as an eight-trip loop spanning blocks 6-16, multiplying the CIA1
-accesses (45 vs the expected 14-read list). The self-copy is also dead work and
-bytes. Next unit: suppress the redundant returned-local/expansion copy (or omit
-the provably unreachable expansion), which should fix the raw-list scan and the
-direct-construction assertion.
+**Measured frontier (2026-11-04, compact-startup unlock).** The selected
+candidate is `closed:original:compact-looped` at payload **1368** (reference
+2291), general **1419**, zero page **15** (one over the 14 ceiling), combined
+**1434**, stack 5/10. The four behavior cases pass on all profiles (raw CIA1
+traffic, in-place snapshot, scoped NMI). Two units unlocked this step: the
+returned-local self-member construction copy is elided, and the display-
+independence proof accepts a certified returned-local aggregate address so the
+cooperative startup can use the compact form. The remaining payload gap is 405
+bytes. Largest owners: `readInputSnapshot` 311, `keyState` 319,
+`snapshotCompatible` 286, compact startup + restore 91, `Game.main` 45,
+`joystickState` 118, `soleGroundSource` 34, interrupt callback 18, plus a
+134-byte loaded fill that aligns the NMI wrapper to its required low `$47`.
+Next units, in order: (1) order/place the low-`$47` wrapper so useful code fills
+the gap instead of an anonymous fill; (2) compose the aggregate-return
+`readInputSnapshot` loop with the asynchronous domains (its staged counter read
+and saved status/root proof are the current composition boundaries) or lower its
+in-place member stores as direct `(destination),y` writes; (3) reclaim the last
+zero-page byte.
 
 Earlier acquisition candidate stages: The
 `closed:original` candidate now also passes the source-block identity and
