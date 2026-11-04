@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-03
-> **Progress**: 27/41 tasks (66%)
+> **Progress**: 28/41 tasks (68%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -200,13 +200,13 @@ candidate's placed snapshot and `Source needs a stronger physical observer
 proof` for the original candidate. The native workload now selects a size
 candidate (`closed:mixed:full`, 1878 bytes) instead of the reference. The
 placed typed-pointer, constant-index store, call-window jsr, platform stack and
-selected-handler address proofs all pass. The native runtime case still reports
-`[1,1,1]`; the optimized assembly writes the prior link only in main before the
-tracepoint interval, so the remaining hits are being investigated as VICE
-tracepoint identity/access classification rather than generated link traffic.
-Next unit: establish the tracepoint identity/operation semantics and rerun the
-four profiles.
-Phases 4-5 are untouched.
+selected-handler address proofs all pass. The native runtime case now passes on
+all four profiles. The three `[1,1,1]` hits were stale VICE checkpoint events:
+deleting a checkpoint did not discard its pending hits, so a later tracepoint
+with the reused id inherited earlier execution stops. The monitor now removes a
+deleted checkpoint's hits; the optimized size candidate is exercised and the
+returning NMI/live-link/handback behavior passes. Phase 3 is complete except the
+independent reviews in 3.4.2. Phases 4-5 are untouched.
 
 **Negative evidence (2026-11-04).** Earlier attempts were measured and
 reverted: preferring the three-byte NMI adapter grew payload 1209 -> 1353; a
@@ -261,13 +261,11 @@ construction instead of a direct write into the caller's `saved` home.
 
 ### Step 3.4: Acquisition measurement and gate
 
-- [~] 3.4.1 Measure acquisition 963 on four profiles with complete B/R/T and behavior — four-profile VICE (output spec 12/12 PASSES: 943/963 payload, 976/984 general, 14/14 zero page, 990/998 combined, 6/10 stack; native `input-acquisition-nmi.spec.test.ts` remains 4/4 failing with `[1,1,1]` against `[]`. A size candidate is now selected (`closed:mixed:full`, 1878 bytes) after the placed-global, constant-index store, call-window and platform proofs; the native runtime case still reports `[1,1,1]`, with the optimized assembly writing the prior link only before the tracepoint interval. Next unit: establish the VICE tracepoint identity/access semantics)
+- [x] 3.4.1 Measure acquisition 963 on four profiles with complete B/R/T and behavior — four-profile VICE ✅ (completed: 2026-11-04; output spec 12/12 at 943/963 payload, 976/984 general, 14/14 zero page, 990/998 combined, 6/10 stack; native `input-acquisition-nmi.spec.test.ts` passes 4/4 on PAL/NTSC 6581/8580 after the VICE checkpoint-hit lifetime fix)
 - [~] 3.4.2 Run full compiler/root suites and independent output/SFA/platform reviews (compiler suite 3420 pass with 29 pre-existing failures; root native case and independent reviews pending)
 - [x] 3.4.3 Record the acquisition result and if 963 is not approached, stop for a scope decision ✅ (completed: 2026-11-04; 943/976/14/990/6 recorded, all four profile output/behavior/accounting cases pass, no limit or oracle change)
 
-**Phase 3 gate:** acquisition payload ≤963 and all behavior/resource/NMI/MMIO
-obligations pass. Failure stops the plan; no source restriction or benchmark-name
-rule is introduced.
+**Phase 3 gate: PASSES.** Acquisition payload ≤963 and all behavior/resource/NMI/MMIO obligations pass on all four profiles, including the native VICE case. Independent reviews remain in 3.4.2.
 
 ---
 
