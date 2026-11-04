@@ -191,13 +191,14 @@ compact startup restore fit the NMI gap and removes the loaded fill. The
 remaining Phase 3 work is the native VICE case
 (`test/rd08/input-acquisition-nmi.spec.test.ts`, currently 4/4 failing with
 `[1,1,1]` against `[]`) and independent reviews. Diagnosis: that workload places
-its aggregate destination at `place(at: $3200) let saved`, so no size candidate
-is selected; the build runs the reference and the reference link traffic
-produces the three prior-link store hits. The closed candidates report
-`Address transport has no complete named aggregate backing` for the
-`readInputSnapshot` result because the returned-local/fixed-result proof does not
-yet admit a placed global. Next unit: admit placed aggregate globals in the
-fixed-result and returned-local backing proof, then re-run the native case.
+its aggregate destination at `place(at: $3200) let saved`, so the build runs the
+reference and the reference link traffic produces the three prior-link store
+hits. The named-borrow stage now admits the placed global when every
+asynchronous raw access is disjoint from the placed destination; the next
+blockers are `Typed pointer's incoming value is unproved` for the mixed
+candidate's placed snapshot and `Source needs a stronger physical observer
+proof` for the original candidate. Next unit: close the typed-pointer incoming
+value for a placed aggregate destination, then re-run the native case.
 Phases 4-5 are untouched.
 
 **Negative evidence (2026-11-04).** Earlier attempts were measured and
@@ -253,7 +254,7 @@ construction instead of a direct write into the caller's `saved` home.
 
 ### Step 3.4: Acquisition measurement and gate
 
-- [~] 3.4.1 Measure acquisition 963 on four profiles with complete B/R/T and behavior — four-profile VICE (output spec 12/12 PASSES: 943/963 payload, 976/984 general, 14/14 zero page, 990/998 combined, 6/10 stack; native `input-acquisition-nmi.spec.test.ts` remains 4/4 failing with `[1,1,1]` against `[]`. Diagnosis: that source places its destination at `$3200`, so the returned-local/fixed-result proof rejects every size candidate and the reference runs; the prior-link hits are reference behavior. Next unit: admit placed aggregate globals in that proof)
+- [~] 3.4.1 Measure acquisition 963 on four profiles with complete B/R/T and behavior — four-profile VICE (output spec 12/12 PASSES: 943/963 payload, 976/984 general, 14/14 zero page, 990/998 combined, 6/10 stack; native `input-acquisition-nmi.spec.test.ts` remains 4/4 failing with `[1,1,1]` against `[]`. Diagnosis: that source places its destination at `$3200`; the named-borrow stage now admits the placed global with disjoint async raw ranges, and the mixed candidate advances to `Typed pointer's incoming value is unproved`. Next unit: close the typed-pointer incoming value for a placed aggregate destination)
 - [~] 3.4.2 Run full compiler/root suites and independent output/SFA/platform reviews (compiler suite 3420 pass with 29 pre-existing failures; root native case and independent reviews pending)
 - [x] 3.4.3 Record the acquisition result and if 963 is not approached, stop for a scope decision ✅ (completed: 2026-11-04; 943/976/14/990/6 recorded, all four profile output/behavior/accounting cases pass, no limit or oracle change)
 
