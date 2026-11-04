@@ -184,13 +184,14 @@ borrow, resident-global destination and returned-local certificate stages. The
 `closed:original` candidate now also passes the source-block identity and
 call-site checks: the fixed-loop runtime carries the canonical checked function
 and maps scheduled copies back to canonical blocks by stable ID, so the strict
-identity boundaries remain intact. It is blocked by the raw/asynchronous
-gate: the returned-local aggregate construction, stack-only instructions,
-generated construction self-loops and outside-loop typed platform/cpu-control/
-function-address operations now pass the loop proof, but the candidate next
-reports "Raw indirect calls, control flow, platform or asynchronous observations
-remain unproved". The next unit is Step 3.2.2: prove the raw/MMIO access order,
-count and asynchronous visibility with exact final layouts. `closed:low-byte` and
+identity boundaries remain intact. It is blocked by the device-access
+proof: the raw/asynchronous gate now admits proved async handlers and vector-only
+platform controls, and the candidate reaches the raw site model. That model
+admits ordinary RAM only ($0400-$CFFF), so the acquisition's CIA1 accesses
+($DC00/$DC01) report "Raw access needs a device, bank, stack or
+hardware-publication proof". The next unit is the device/MMIO raw site proof:
+known device ranges and widths, exact read/write order and count, volatile
+ordering, and identical per-site sequences in both final layouts. `closed:low-byte` and
 `closed:mixed` still report "Composed counters require a synchronous closed
 source", and the x/y/flat-eight policies fail the original-induction policy
 premise. The selected output remains the reference at 2291 bytes. The next unit
