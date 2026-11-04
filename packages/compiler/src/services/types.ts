@@ -29,8 +29,8 @@ export interface CheckOptions extends ProjectLoadOptions {
 
 /** Build inputs with an optional code-size optimization selection. */
 export interface BuildOptions extends CheckOptions {
-  /** Override the manifest mode with direct lowering or code-size optimization. */
-  readonly optimization?: "none" | "size";
+  /** Override the manifest goal with direct lowering, balanced, speed or size optimization. */
+  readonly optimization?: "none" | "balanced" | "speed" | "size";
   /** Override the manifest's bounds-check setting. */
   readonly boundsCheck?: boolean;
   /** Override the manifest's division-by-zero check setting. */

@@ -118,7 +118,11 @@ function effectiveSnapshot(
   const boundsCheck: unknown = Reflect.get(options, "boundsCheck");
   const divisionZeroCheck: unknown = Reflect.get(options, "divisionZeroCheck");
   if (
-    (optimization !== undefined && optimization !== "none" && optimization !== "size") ||
+    (optimization !== undefined &&
+      optimization !== "none" &&
+      optimization !== "balanced" &&
+      optimization !== "speed" &&
+      optimization !== "size") ||
     (boundsCheck !== undefined && typeof boundsCheck !== "boolean") ||
     (divisionZeroCheck !== undefined && typeof divisionZeroCheck !== "boolean")
   ) {

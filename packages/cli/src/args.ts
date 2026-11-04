@@ -15,8 +15,8 @@ export interface ProjectSelections {
 
 /** Build selections accepted by `build` and `run`. */
 export interface BuildSelections extends ProjectSelections {
-  /** Optional direct-lowering or code-size optimization override. */
-  readonly optimization?: "none" | "size";
+  /** Optional direct-lowering, balanced, speed or size optimization override. */
+  readonly optimization?: "none" | "balanced" | "speed" | "size";
   /** Optional bounds-check override. */
   readonly boundsCheck?: boolean;
   /** Optional division-by-zero-check override. */
@@ -106,6 +106,8 @@ export function parseArguments(argv: readonly string[]): CliArguments | null {
     if (
       values.optimization !== undefined &&
       values.optimization !== "none" &&
+      values.optimization !== "balanced" &&
+      values.optimization !== "speed" &&
       values.optimization !== "size"
     )
       return null;

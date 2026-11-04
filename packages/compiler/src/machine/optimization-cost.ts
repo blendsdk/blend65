@@ -209,7 +209,7 @@ export function compareOptimizationCosts(
               ? []
               : cycles.kind === "incomparable"
                 ? cycles.components
-                : []),
+                : ["T"]),
           ],
         };
   }
@@ -285,9 +285,49 @@ export function selectOptimizationCandidate(
         tieBreak: "none",
         incomparableComponents: [],
       };
+    // Several candidates may each dominate the baseline and tie each other
+    // exactly. That is a complete-cost tie, not a tradeoff.
+    const beatingBaseline = all.filter(
+      (candidate) => candidate !== baseline && dominates(candidate, baseline),
+    );
+    const undominated = beatingBaseline.filter((candidate) =>
+      all.every((other) => other === candidate || !dominates(other, candidate)),
+    );
+    if (
+      undominated.length > 1 &&
+      undominated.every(
+        (candidate) =>
+          compareOptimizationCosts("balanced", undominated[0]!.cost, candidate.cost).kind ===
+          "equal",
+      )
+    ) {
+      const ids = undominated.map(({ id }) => id).sort();
+      return {
+        kind: "selected",
+        candidateId: ids[0]!,
+        tieBreak: "stableId",
+        incomparableComponents: [],
+      };
+    }
+    // Exact complete-cost ties are not a tradeoff; the stable id closes them.
+    if (
+      all.every(
+        (other) =>
+          other === baseline ||
+          compareOptimizationCosts("balanced", baseline.cost, other.cost).kind === "equal",
+      )
+    ) {
+      const ids = all.map(({ id }) => id).sort();
+      return {
+        kind: "selected",
+        candidateId: ids[0]!,
+        tieBreak: ids.length > 1 ? "stableId" : "none",
+        incomparableComponents: [],
+      };
+    }
     return {
       kind: "none",
-      incomparableComponents: ["B", ...RESOURCE_ORDER.map((id) => `R:${id}`)],
+      incomparableComponents: ["B", ...RESOURCE_ORDER.map((id) => `R:${id}`), "T"],
     };
   }
   let best = baseline;
@@ -309,9 +349,14 @@ export function selectOptimizationCandidate(
   }
   if (incomparable.length > 0 && best === baseline)
     return { kind: "none", incomparableComponents: [...new Set(incomparable)].sort() };
-  const exactTied = [best, ...tied.filter((candidate) => candidate !== best)].filter(
-    (candidate) => compareOptimizationCosts(mode, best.cost, candidate.cost).kind === "equal",
-  );
+  const exactTied = [
+    best,
+    ...tied.filter(
+      (candidate) =>
+        candidate !== best &&
+        compareOptimizationCosts(mode, best.cost, candidate.cost).kind === "equal",
+    ),
+  ];
   const sortedIds = [...new Set(exactTied.map(({ id }) => id))].sort();
   return {
     kind: "selected",

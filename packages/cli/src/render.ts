@@ -21,7 +21,7 @@ export function renderUsage(): string {
     "  --target PROFILE\n" +
     "  --entry MODULE\n\n" +
     "Build/run options:\n" +
-    "  --optimization <none|size>\n" +
+    "  --optimization <none|balanced|speed|size>\n" +
     "  --bounds-check <true|false>\n" +
     "  --division-zero-check <true|false>\n"
   );
