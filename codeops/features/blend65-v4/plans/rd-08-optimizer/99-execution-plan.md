@@ -100,23 +100,36 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 
 **Reference**: [03-02](03-02-rules-and-obligations.md) §Rule Catalogue; RD-08 R8.14–R8.23.
 
-- [x] 2.2.1 Implement selected-loop X/Y/FlatEight and LowByte/complement composition with per-rule obligations — `machine/optimization-rules.ts` ✅ (completed: 2026-11-03 18:40; the `mixed` policy now selects `closed:mixed:compact-looped` at **739 bytes** after the per-loop body-region, continuation and bottom-tested layout proofs. The proof maps the selected body inside a larger function, accounts for the canonical negative bounds expansion as unreachable, proves the held counter register dead at the normal exit, and keeps the canonical five-role proof for straight loops. `none` identity is unchanged)
+- [x] 2.2.1 Implement selected-loop X/Y/FlatEight and LowByte/complement composition with per-rule obligations — `machine/optimization-rules.ts` ✅ (completed: 2026-11-03 18:40; the `mixed` policy now selects `closed:mixed:compact-looped` at **735 bytes** after the per-loop body-region, continuation and bottom-tested layout proofs. The proof maps the selected body inside a larger function, accounts for the canonical negative bounds expansion as unreachable, proves the held counter register dead at the normal exit, and keeps the canonical five-role proof for straight loops. `none` identity is unchanged)
 - [~] 2.2.2 Implement typed store, loop residual, register/flag/word forwarding and address-form rules — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-03 18:40; size mode prefers byte local, parameter and low-read homes plus non-entry fixed counters in zero page. A proved `constantBase + unsignedByteIndex` raw read consumed only by its next read lowers to `ldx index; lda base,x` with no address temporary, and a held counter serves that read without reloading. The `mixed` plan promotes loop-body byte retained values to zero-page-preferred homes and now bottom-tests the proved register loop: preheader, body, update, header, exit; the update falls through, the header uses `bne`, and the redundant `clv` disappears. The exact `Game.main` copy loop is the expert 13-byte form `ldx #0; lda $C110,x; sta saved,x; inx; cpx #8; bne`, taking the selected saved candidate 803→**790** (Game.main 88, zeroPage 12, general 834). An unsigned byte/word/enum guard refinement is limited to observer-evidence size lowering, so `none` output is unchanged. Declared-word and call-staging homes stay in RAM. Dead private temporary stores are removed from the canonical reference and every admitted tuple through one shared dead-home set)
 - [ ] 2.2.3 Implement caller-owned aggregate/global return and copy-elision rules for the saved fixture — `storage/selection.ts`, `machine/optimization-rules.ts`
 - [x] 2.2.4 Integrate saved rule obligations with final observers; preserve canonical fallback — `services/size-observers.ts`, `services/size-observer-*` ✅ (completed: 2026-11-03 18:40; the mixed candidate passes the complete observer path. The field/byte-window correspondence accepts the reference-only negative bounds expansion, the held-counter read proves C/V continuations while the loop exit proves Y dead, the composition accounts for parent-derived initialization and the removed word-update scratch, and it accepts the bottom-tested preheader redirect, the C→Z test swap and the direct `bne` header only after proving the five exact edges and that the header is reachable only from the update. The same five-role and canonical fallback remain for every unproved tuple. The saved behavior, resource, accounting, no-copy and native cases plus all four register-served copy-loop cases pass; only the payload/RAM ceilings remain RED)
 
 #### Measured frontier (2026-11-03)
 
-The selected saved candidate is `closed:mixed:compact-looped` at **739 bytes**
-with zeroPage 13 (general 784, combined 797). Because general counts code plus
-the required 24 BSS bytes, the binding code target is **721** (18 bytes below
-739): 721 + 24 = 745 general and 721 + 24 + 13 = 758 combined. The payload
-ceiling 725 is looser than this code target.
+The selected saved candidate is `closed:mixed:compact-looped` at **735 bytes**
+with zeroPage 14 (general 779, combined 793). The memory audit now gives the
+exact general composition:
+
+| General component | Bytes |
+|---|---:|
+| Code | 735 |
+| `platform.startup-state` | 16 |
+| saved snapshot + results + one input global | 14 |
+| SFA zero-payload retained homes | 14 |
+
+The earlier `code <= 721` target assumed a 24-byte BSS and no SFA reserve. With
+the actual 30-byte BSS and 14 SFA bytes, the binding target is **code <= 701**
+unless the SFA reserve and/or the startup state shrink. The startup state is
+16 bytes here versus the expert 7; that is RD-05 platform policy, not an RD-08
+rule. The SFA reserve is 14 one-byte zero-payload homes, mostly delivery-orphaned
+retained stages; those are reclaimable with the same inventory/binder coupling
+used for `v47`.
 
 | Owner | Ours | Expert | Gap |
 |---|---:|---:|---:|
 | `c64.input.keyState` | 241 | 221 | +20 |
-| `c64.input.snapshotCompatible` | 153 | 142 | +11 |
+| `c64.input.snapshotCompatible` | 149 | 142 | +7 |
 | `Game.main` | 88 | 78 | +10 |
 | `c64.input.soleGroundSource` | 36 | 32 | +4 |
 | `c64.input.joystickState` | 118 | 138 | −20 |
@@ -142,15 +155,14 @@ Landed and measured this session:
 | Direct raw argument delivery ([#135](https://github.com/blendsdk/blend65/issues/135)) | 863 → 857 at the pre-mixed frontier | Not landed. The remaining `keyState`/`joystickState` argument stores still duplicate a private temporary and the ABI slot. |
 | Branch inversion over an empty jump trampoline | One safe site, 3 bytes | Too small for a new CFG rule. |
 
-The next bounded unit is **not** `main` delivery. Its blocker is now a
-lowering-model issue: the delivery pair must be exposed per argument instead of
-re-scanned from the machine stream, and the joystick snapshot low store is
-either omitted by home reuse or materialized in an earlier block. That is a
-larger change than the remaining bytes justify. The productive path is
-`snapshotCompatible` materialization (+11) and the `keyState` loop/column
-residue (+7): together they cover the 18-byte gap without touching the argument
-delivery model. Unused stage reclamation is not worth pursuing: those requests
-carry zero payload. No limit, oracle, or source rule changes.
+The next bounded unit is **general SFA reclamation**: drop the unaccessed
+zero-page-preferred and general retained temporaries from both the final
+inventory and the late-request binder (the `v47` pattern), which can recover up
+to 14 general bytes without code changes. The multi-block bottom-tested loops
+and `keyState` residue then cover the remaining code gap. The startup-state
+16-versus-7 difference is RD-05 platform policy and needs a separate owner
+decision if the general gate still misses after the SFA reclamation. No limit,
+oracle, or source rule changes.
 
 ### Step 2.3: Saved measurement and gate
 
