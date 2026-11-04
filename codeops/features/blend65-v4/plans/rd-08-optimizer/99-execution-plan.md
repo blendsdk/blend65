@@ -107,30 +107,34 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 
 #### Measured frontier (2026-11-03)
 
-The selected saved candidate is `closed:mixed:compact-looped` at **729 bytes**
-with zeroPage 14 (general 764, combined 778). The memory audit now gives the
-exact general composition:
+The selected saved candidate is `closed:mixed:compact-looped` at **724 bytes**
+with zeroPage 14 (general 759, combined 773). The **payload ceiling now passes**
+(724 <= 725); only the general and combined RAM ceilings remain, 14 bytes over
+each.
+
+The general composition is `code 724 + BSS 30 + live SFA 5 = 759`:
 
 | General component | Bytes |
 |---|---:|
-| Code | 729 |
+| Code | 724 |
 | `platform.startup-state` | 16 |
 | saved snapshot + results + one input global | 14 |
 | live SFA retained homes | 5 |
 
-Twelve delivery-orphaned retained stages were reclaimed, taking the SFA reserve
-from 14 to 5. With the actual 30-byte BSS, the binding target is now
-**code <= 710** if the startup state and the 5 live SFA homes stay, or higher if
-the RD-05 startup state shrinks from 16 to the expert 7. The general equation is
-`code + startup-state + 14 fixed + SFA-live <= 745`; combined adds the 14
-zero-page bytes. The startup-state difference is RD-05 platform policy.
+The expert trailing general is 20 (platform 7 + snapshot 11 + results 2). Two
+paths reach 745:
+
+| Path | Requirement |
+|---|---|
+| Code only | code <= 710 with the current BSS/SFA |
+| RD-05 platform policy | startup state 16 -> 7 (9 bytes) and SFA 5 -> 0 (5 bytes) |
 
 | Owner | Ours | Expert | Gap |
 |---|---:|---:|---:|
 | `c64.input.keyState` | 238 | 221 | +17 |
-| `c64.input.snapshotCompatible` | 146 | 142 | +4 |
+| `c64.input.snapshotCompatible` | 143 | 142 | +1 |
 | `Game.main` | 88 | 78 | +10 |
-| `c64.input.soleGroundSource` | 36 | 32 | +4 |
+| `c64.input.soleGroundSource` | 34 | 32 | +2 |
 | `c64.input.joystickState` | 118 | 138 | −20 |
 | startup | 91 | 102 | −11 |
 
@@ -150,6 +154,8 @@ Landed and measured this session:
 | Row-register fold | 740 → **739** (`keyState` 242 → 241; low-byte 821 → 817) | Selected. A later `ldx local` becomes `tax` at the store, with no call/X clobber between and dead reload N/Z. The correspondence proves the fold and `unchanged` skips the inserted `tax` with the removed reload; every size layout folds consistently. |
 | Ordinal home reclaim + snapshot temps | 735 measured, not selected | Keeping the ordinal request but moving its unused home to RAM preserves the typed-read guard, and the `(a & m) \| (b & m)` mask-merge promotion saves 4 payload bytes (739 → 735). But the same pattern also promotes the keyState pair, and zeroPage reaches 15 against the 14-byte ceiling. The snapshot pair cannot be separated from the keyState pair without a benchmark-specific discriminator. A guard-safe zero-page slot or a structural discriminator is required before this lands. |
 | Unused stage reclamation | 0 bytes | Not selected. The unreferenced `argument-stage`/`retained-value` requests carry `payloadBytes 0`; removing them changes neither general nor combined RAM. The general gate is code-driven, not padding-driven. |
+| Byte self-shift fold | 729 → **726** | Selected. `lda home; asl|lsr|rol|ror; sta home` becomes one memory read-modify-write when A is dead; the fold runs in every size lowering so the reference and candidate stay identical. |
+| Block-entry reload | 726 → **724** (payload ceiling passes) | Selected. A block-entry `lda home` is removed when its only predecessor loaded the same home into A immediately before its branch; A and all flags are identical. |
 | Multi-block bottom-tested loop | 735 → **729** (`snapshotCompatible` 149 → 146, `keyState` 241 → 238) | Selected. The gate uses the initial domain (`initial.max < bound`) because early returns make `tripDomain.minimum` zero. The header accepts the inverted `bcs`/fallthrough-body form, the body region must reach the update without the header, and empty exit aliases are resolved. The 20-member snapshot outer and 8-member keyState loops bottom-test; the inner 6-member loop is not a fixed counter in the mixed candidate. |
 | `main` scalar delivery | 0 bytes (not landed) | The joystickState snapshot call has no low formal store anywhere in its call block: only `sta demand,1` appears, with the retargeted port/control stores interleaved around the pointer loads. The low byte is either materialized in an earlier block or omitted because the reused parameter home already holds the same `#<saved` constant from the preceding keyState call. The pointer proof currently requires both formal stores at the call span and cannot distinguish this shape from a missing delivery. A correct main delivery needs the lowering to expose the delivery pair per argument (not machine re-scanning), plus a proof that a reused low home still holds the same constant. The keyState call itself is fully proved. |
 | Direct raw argument delivery ([#135](https://github.com/blendsdk/blend65/issues/135)) | 863 → 857 at the pre-mixed frontier | Not landed. The remaining `keyState`/`joystickState` argument stores still duplicate a private temporary and the ABI slot. |
