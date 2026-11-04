@@ -179,24 +179,28 @@ stops the plan; no limit rewrite and no benchmark-specific special case.
 
 > **Reasoning**: max — asynchronous, raw/MMIO and global-return proof boundaries.
 
-**Measured frontier (2026-11-04, compact-startup unlock).** The selected
-candidate is `closed:original:compact-looped` at payload **1368** (reference
-2291), general **1419**, zero page **15** (one over the 14 ceiling), combined
-**1434**, stack 5/10. The four behavior cases pass on all profiles (raw CIA1
-traffic, in-place snapshot, scoped NMI). Two units unlocked this step: the
-returned-local self-member construction copy is elided, and the display-
-independence proof accepts a certified returned-local aggregate address so the
-cooperative startup can use the compact form. The remaining payload gap is 405
-bytes. Largest owners: `readInputSnapshot` 311, `keyState` 319,
-`snapshotCompatible` 286, compact startup + restore 91, `Game.main` 45,
-`joystickState` 118, `soleGroundSource` 34, interrupt callback 18, plus a
-134-byte loaded fill that aligns the NMI wrapper to its required low `$47`.
-Next units, in order: (1) order/place the low-`$47` wrapper so useful code fills
-the gap instead of an anonymous fill; (2) compose the aggregate-return
-`readInputSnapshot` loop with the asynchronous domains (its staged counter read
-and saved status/root proof are the current composition boundaries) or lower its
-in-place member stores as direct `(destination),y` writes; (3) reclaim the last
-zero-page byte.
+**Measured frontier (2026-11-04, NMI-fill unlock).** The selected candidate is
+`closed:original:compact-looped` at payload **1260** (reference 2291), general
+**1311**, zero page **15** (one over the 14 ceiling), combined **1326**, stack
+5/10. The four behavior cases pass on all profiles (raw CIA1 traffic, in-place
+snapshot, scoped NMI). Three units unlocked this step: the returned-local
+self-member construction copy is elided; the display-independence proof accepts
+a certified returned-local aggregate address so the cooperative startup can use
+the compact form; and the low-`$47` NMI wrapper is placed before ordinary bodies
+so first-fit placement fills its alignment gap with real code. The loaded fill
+falls 134 -> 26 bytes. The remaining payload gap is 297 bytes. Largest owners:
+`keyState` 319, `readInputSnapshot` 311, `snapshotCompatible` 286,
+`joystickState` 118, compact startup + restore 91, `Game.main` 45,
+`soleGroundSource` 34, interrupt callback 18. The `mixed` acquisition plan would
+remove roughly 224 bytes from `keyState`/`snapshotCompatible`, but it is blocked
+by composition boundaries: the async/vector gate, the aggregate-return
+`readInputSnapshot` loop (skipping it leaves a partial induction group), the
+saved-status screen when the reference startup policy differs, and a raw
+association that belongs to a different source body. Next units, in order:
+(1) compose the aggregate-return loop with the asynchronous domains, or lower its
+in-place member stores as direct `(destination),y` writes with a typed origin;
+(2) reclaim the last zero-page byte; (3) re-measure and decide whether the
+remaining gap needs the wider direct-store/address-form tranche.
 
 Earlier acquisition candidate stages: The
 `closed:original` candidate now also passes the source-block identity and
