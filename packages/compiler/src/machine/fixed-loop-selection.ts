@@ -198,8 +198,10 @@ export function prepareFixedLoops(
             loop.outsideAccesses.length === 0 &&
             loop.bound <= 8 &&
             loop.initial.domain.maximum <= 8 &&
+            // Context specialization may copy the role blocks; their stable
+            // source IDs are the scheduling identity, not object identity.
             [loop.preheader, loop.header, loop.body, loop.update, loop.exit].every((block) =>
-              blocks.includes(block),
+              blockIndexes.has(block.id),
             ) &&
             [...loop.members].every((id) => blockIndexes.has(id)),
         )
