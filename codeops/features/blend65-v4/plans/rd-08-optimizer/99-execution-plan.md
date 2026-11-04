@@ -187,8 +187,15 @@ under the ordinary byte-site discipline, interrupt-entry wrappers carry their
 source-block associations, and the remaining asynchronous gates admit only
 handler callables plus vector/cpu-control operations. The acquisition
 specification is still RED on the ceilings, and its behavior case reports a raw
-access-list mismatch (actual 45 vs expected 10 items) that must be resolved
-before the candidate can be trusted.
+access-list mismatch. Diagnosis: the candidate's `readInputSnapshot` contains an
+unreachable bounds-expansion copy loop (`lda ($04),y; sta ($08),y; iny; cpy #$08;
+bne` followed by `jmp block_6`) where both pointers resolve to the same `saved`
+global, so it is a redundant self-copy. The behavior scanner treats the backward
+`jmp block_6` as an eight-trip loop spanning blocks 6-16, multiplying the CIA1
+accesses (45 vs the expected 14-read list). The self-copy is also dead work and
+bytes. Next unit: suppress the redundant returned-local/expansion copy (or omit
+the provably unreachable expansion), which should fix the raw-list scan and the
+direct-construction assertion.
 
 Earlier acquisition candidate stages: The
 `closed:original` candidate now also passes the source-block identity and
