@@ -1,6 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SemanticType } from "../frontend/semantic-types.js";
 import { semanticTypesEqual } from "../frontend/semantic-type-relations.js";
+import { literalResolver, valueDefinitions } from "../semantic/aggregate-place-proof.js";
 import { operationValueUses } from "../semantic/lower-control.js";
 import { reachableBlocks } from "../semantic/value-lifetimes.js";
 import { validObjectStorageSelection } from "../storage/selection.js";
@@ -107,6 +108,10 @@ function crosses(request: StorageRequest, call: CallOperation): boolean {
 export function validateNamedBorrows(input: FinalObserverInput): BorrowValidation {
   const operations = new Set<SemanticOperation>();
   const parameters = new Set<string>();
+  /** Source bindings written by an asynchronous handler closure. */
+  const asyncWrites = new Set<string>();
+  /** Literal raw bytes written by an asynchronous handler closure. */
+  const asyncRawWrites: { start: number; end: number }[] = [];
   const facts = input.candidate.lowered.program.storageSelection?.sourceFacts;
   const reached = new Set(input.checked.program.reachableFunctions.map(bindingIdentityKey));
   const functions = input.checked.program.semantic.functions.filter((fn) =>
@@ -126,11 +131,68 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
       "rejected",
       "Named borrowing needs active Closed recipes and both actual layouts",
     );
+  /**
+   * An address-taken function is admissible only when it is itself a selected
+   * interrupt handler. Any other callable root could run at an arbitrary point
+   * and would invalidate the loan without an entry contract.
+   */
+  const asyncHandlers = new Set(
+    [
+      ...(input.checked.program.interruptRoutes ?? []).map((route) => route.handler),
+      ...input.checked.program.roots.flatMap((root) =>
+        root.kind === "interrupt" ? [root.function] : [],
+      ),
+    ].map(bindingIdentityKey),
+  );
   if (
-    (input.checked.program.interruptRoutes?.length ?? 0) > 0 ||
-    input.checked.program.roots.some(({ kind }) => kind === "callable")
+    input.checked.program.roots.some(
+      (root) => root.kind === "callable" && !asyncHandlers.has(bindingIdentityKey(root.function)),
+    )
   )
     return failure("rejected", "Borrowed backing needs a complete asynchronous entry proof");
+  if (asyncHandlers.size > 0) {
+    /**
+     * Close the handlers' direct-call descendants. An indirect call has no
+     * entry contract. Every ordinary-RAM write must be a literal or a named
+     * binding so the loan can be compared byte-for-byte with it; typed platform
+     * sinks stay device/vector accesses outside the compiler's RAM allocation.
+     */
+    const active = new Set(asyncHandlers);
+    for (let size = -1; size !== active.size; ) {
+      size = active.size;
+      for (const edge of input.checked.program.callGraph)
+        if (active.has(bindingIdentityKey(edge.function)))
+          edge.callees.forEach((callee) => active.add(bindingIdentityKey(callee)));
+    }
+    for (const fn of input.checked.program.semantic.functions) {
+      if (!active.has(bindingIdentityKey(fn.id))) continue;
+      const blocks = reachableBlocks(fn.entry, fn.blocks);
+      const definitions = valueDefinitions(blocks),
+        literal = literalResolver(definitions);
+      for (const block of blocks)
+        for (const operation of block.operations) {
+          if (operation.kind === "indirect-call" || operation.kind === "memory-write") {
+            if (operation.kind === "indirect-call")
+              return failure("rejected", "Asynchronous entry has an indirect call", operation.span);
+            const address = literal(operation.address);
+            if (address === undefined || address < 0n || address > 0xffffn)
+              return failure(
+                "rejected",
+                "Asynchronous entry has an unproved raw write",
+                operation.span,
+              );
+            asyncRawWrites.push({
+              start: Number(address),
+              end: Number(address) + operation.width - 1,
+            });
+          } else if (operation.kind === "store") {
+            asyncWrites.add(bindingIdentityKey(operation.place.root));
+          } else if (operation.kind === "aggregate" && operation.destination?.kind === "place") {
+            asyncWrites.add(bindingIdentityKey(operation.destination.place.root));
+          }
+        }
+    }
+  }
   const layouts = [input.reference.shared, input.candidate.shared];
   const homes = layouts.map(
     (shared) => new Map(shared.certificate.certificate.homes.map((home) => [home.requestId, home])),
@@ -291,6 +353,7 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
     const operation = site.operation;
     const selection = packets.get(site.fn)?.storage;
     const result = selection?.result;
+
     if (
       operation.kind !== "place-address" ||
       (operation.type.kind !== "array" && operation.type.kind !== "struct") ||
@@ -303,7 +366,11 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
       !semanticTypesEqual(operation.type, site.fn.result) ||
       !semanticTypesEqual(result.origin.type, operation.type) ||
       result.calls.length === 0 ||
-      result.origin.owner === null ||
+      // A caller-owned destination has an owner. A resident global has none;
+      // it is admitted only when the origin really is a declared global, so an
+      // unowned local can never be treated as a resident backing.
+      (result.origin.owner === null &&
+        !globals.has(bindingIdentityKey(result.origin.place.root))) ||
       result.origin.place.path.length !== 0
     )
       return null;
@@ -344,9 +411,11 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
           return null;
       } else if (
         location.kind !== "fixed-object" ||
-        location.owner === null ||
         bindingIdentityKey(location.objectBindingId) !== rootKey(root) ||
-        bindingIdentityKey(location.owner) !== bindingIdentityKey(root.owner!) ||
+        !(root.owner === null
+          ? location.owner === null && globals.has(rootKey(root))
+          : location.owner !== null &&
+            bindingIdentityKey(location.owner) === bindingIdentityKey(root.owner)) ||
         location.bytes !== root.type.size ||
         location.backingRequestId !== data.request.id
       )
@@ -370,9 +439,10 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
       const target = resolve(fn, destination.place, root.type);
       if (
         target === null ||
-        target.owner === null ||
         !sameRoot(root, target) ||
-        bindingIdentityKey(target.owner) !== bindingIdentityKey(fn.id)
+        (target.owner === null
+          ? !globals.has(rootKey(root))
+          : bindingIdentityKey(target.owner) !== bindingIdentityKey(fn.id))
       )
         return null;
       calls.push({
@@ -385,19 +455,19 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
     }
     return root;
   };
-
   for (const constructor of constructors) {
     const operation = constructor.operation;
     if (operation.kind !== "place-address") continue;
     if (operation.captureValue === true) continue;
     const returned = returnedRoot(constructor);
     const root = returned ?? resolve(constructor.fn, operation.place, operation.type);
-    if (root === null)
+    if (root === null) {
       return failure(
         "rejected",
         "Address transport has no complete named aggregate backing",
         operation.span,
       );
+    }
     if (layouts.some((_, side) => backing(root, side) === null))
       return failure(
         "rejected",
@@ -637,6 +707,7 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
           !(
             owners.has(bindingIdentityKey(request.owner)) ||
             helperIds.has(request.id) ||
+            asyncHandlers.has(bindingIdentityKey(request.owner)) ||
             (directOwner && occupied(request, borrow.site, lifetimePositions))
           )
         )
@@ -654,6 +725,44 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
             request.id,
           );
       }
+      /**
+       * Every asynchronous write must be byte-disjoint from the borrowed object.
+       * Named bindings resolve through the same layout backing as the loan; raw
+       * writes were already reduced to literal byte ranges.
+       */
+      for (const binding of asyncWrites) {
+        if (!globals.has(binding))
+          return failure(
+            "rejected",
+            "Asynchronous entry writes an unproved binding",
+            borrow.call.span,
+          );
+        const written = shared.certificate.inventory.requests.filter(
+          (request) => request.binding !== null && bindingIdentityKey(request.binding) === binding,
+        );
+        if (
+          written.length === 0 ||
+          written.some((request) => {
+            const home = homes[side]!.get(request.id);
+            return (
+              home === undefined ||
+              !disjoint(data.range, { start: home.address, end: home.address + home.bytes - 1 })
+            );
+          })
+        )
+          return failure(
+            "rejected",
+            "Borrowed object overlaps an asynchronous write",
+            borrow.call.span,
+          );
+      }
+      for (const range of asyncRawWrites)
+        if (!disjoint(data.range, range))
+          return failure(
+            "rejected",
+            "Borrowed object overlaps an asynchronous raw write",
+            borrow.call.span,
+          );
     }
     if (borrow.parameter !== null) parameters.add(borrow.parameter);
   }

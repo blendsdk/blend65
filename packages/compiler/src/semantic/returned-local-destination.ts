@@ -321,6 +321,96 @@ export function freshReturnedLocalCallers(program: WholeProgram): ReadonlySet<st
 }
 
 /**
+ * Require every reachable call to assign the aggregate result directly to a
+ * resident global that the callee and every asynchronous handler leave alone.
+ * The returned local is still completely initialized by
+ * {@link returnedLocalCandidate}; redirecting it only changes where those
+ * already-planned bytes are written. A callee that names the global, an aliasing
+ * argument, or an asynchronous observation is excluded.
+ * @param program Closed source roots, bodies and actual call targets.
+ * @returns Function identities whose every call writes a safe resident global.
+ */
+export function globalReturnedLocalCallers(program: WholeProgram): ReadonlySet<string> {
+  const reached = new Set(program.reachableFunctions.map(bindingIdentityKey));
+  const globals = new Map(
+    program.semantic.globals.map((global) => [bindingIdentityKey(global.id), global] as const),
+  );
+  const functions = new Map(
+    program.semantic.functions
+      .filter(({ id }) => reached.has(bindingIdentityKey(id)))
+      .map((fn) => [bindingIdentityKey(fn.id), fn] as const),
+  );
+  const graph = new Map(
+    program.callGraph.map(
+      (node) => [bindingIdentityKey(node.function), node.callees.map(bindingIdentityKey)] as const,
+    ),
+  );
+  const closure = (roots: readonly string[]): ReadonlySet<string> => {
+    const active = new Set(roots);
+    for (let size = -1; size !== active.size; ) {
+      size = active.size;
+      for (const [caller, callees] of graph)
+        if (active.has(caller)) callees.forEach((callee) => active.add(callee));
+    }
+    return active;
+  };
+  const asyncClosure = closure([
+    ...(program.interruptRoutes ?? []).map((route) => bindingIdentityKey(route.handler)),
+    ...program.roots.flatMap((root) =>
+      root.kind === "interrupt" ? [bindingIdentityKey(root.function)] : [],
+    ),
+  ]);
+  /** Whether any function in the set names the resident global. */
+  const observes = (active: ReadonlySet<string>, root: string): boolean => {
+    for (const fn of functions.values()) {
+      if (!active.has(bindingIdentityKey(fn.id))) continue;
+      for (const block of reachableBlocks(fn.entry, fn.blocks))
+        for (const operation of block.operations)
+          if (placeUses(operation).some(({ place }) => bindingIdentityKey(place.root) === root))
+            return true;
+    }
+    return false;
+  };
+  const called = new Set<string>(),
+    rejected = new Set<string>();
+  const bodies = [
+    ...functions.values(),
+    ...program.semantic.globals.filter(({ entry }) => entry !== null),
+  ];
+  for (const body of bodies) {
+    if (body.entry === null) continue;
+    const blocks = reachableBlocks(body.entry, body.blocks);
+    const definitions = valueDefinitions(blocks);
+    for (const block of blocks)
+      for (const operation of block.operations) {
+        if (operation.kind !== "call" || operation.result === null) continue;
+        const key = bindingIdentityKey(operation.callee);
+        const destination = operation.aggregateDestination;
+        if (
+          destination?.kind !== "place" ||
+          destination.place.path.length !== 0 ||
+          destination.place.asset !== undefined ||
+          destination.place.rootType === undefined ||
+          !semanticTypesEqual(destination.place.rootType, operation.type) ||
+          !globals.has(bindingIdentityKey(destination.place.root))
+        ) {
+          rejected.add(key);
+          continue;
+        }
+        called.add(key);
+        const root = bindingIdentityKey(destination.place.root);
+        if (
+          argumentsMayAlias(operation.arguments, root, definitions) ||
+          observes(closure([key]), root) ||
+          observes(asyncClosure, root)
+        )
+          rejected.add(key);
+      }
+  }
+  return new Set([...called].filter((key) => !rejected.has(key)));
+}
+
+/**
  * Prepare one immutable whole-function binding using existing closed call/domain facts.
  * Unknown raw addresses, incomplete accesses and hardware-RAM publication retain
  * the old path. Hardware configuration persists beyond the configuring call, so
@@ -426,12 +516,14 @@ export function proveReturnedLocalDestinations(
   );
   if (unsafeAsync) return Object.freeze([]);
   const callers = freshReturnedLocalCallers(program);
+  const residentCallers = globalReturnedLocalCallers(program);
   const globals = new Set(program.semantic.globals.map(({ id }) => bindingIdentityKey(id)));
   const certificates: ReturnedLocalDestination[] = [];
   for (const id of program.reachableFunctions) {
     const key = bindingIdentityKey(id);
     const fn = functions.get(key);
-    if (fn === undefined || unsafe.has(key) || !callers.has(key)) continue;
+    if (fn === undefined || unsafe.has(key) || (!callers.has(key) && !residentCallers.has(key)))
+      continue;
     const local = returnedLocalCandidate(fn);
     if (local !== undefined && !globals.has(bindingIdentityKey(local)))
       certificates.push(Object.freeze({ function: id, local }));
