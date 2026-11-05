@@ -759,8 +759,26 @@ export function finishFixedLoops(fn: MachineFunction, runtime: FixedLoopRuntime)
       terminator.opcode === "bcs" &&
       body.label === terminator.fallthrough &&
       exit.label === terminator.target;
+    // Dropping `clv` is legal only for a register counter whose repetitions
+    // never observe V. Reuse the same source-body test the header selector uses:
+    // no call and no instruction/terminator may read V anywhere in the loop.
+    const vQuiet = loop.function.blocks
+      .filter((block) => loop.members.has(block.id))
+      .flatMap((block) => runtime.sourceBlocks.get(block) ?? [])
+      .map((label) => byLabel.get(label))
+      .every(
+        (body) =>
+          body !== undefined &&
+          body.instructions.every(
+            (instruction) => instruction.opcode !== "jsr" && !instruction.uses.flags.includes("v"),
+          ) &&
+          !(
+            (body.terminator.kind === "branch" || body.terminator.kind === "long-branch") &&
+            body.terminator.uses.flags.includes("v")
+          ),
+      );
     const testedHeader =
-      counter.register === null
+      counter.register === null || !vQuiet
         ? header
         : Object.freeze({
             ...header,
