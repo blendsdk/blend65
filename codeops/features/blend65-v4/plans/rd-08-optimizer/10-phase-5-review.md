@@ -21,7 +21,7 @@
 | `none` identity | **2163 bytes**, SHA-256 `0417b7da…` | `optimizer-exact-output.impl.test.ts` |
 | Exact optimized identity | saved 709 / acquisition 943, full PRG SHA-256 pinned | `optimizer-exact-output.impl.test.ts` |
 | Publication / ACME / frontier | **40 / 40** | `publication.spec.test.ts`, `acme.spec.test.ts`, `input-size-frontier.spec.test.ts` |
-| Compiler suite | **3438 pass**, same 29 pre-existing failures | `yarn workspace @blend65/compiler test` |
+| Compiler suite | **3468 pass, 2 skipped, 0 failed** | `yarn workspace @blend65/compiler test` |
 | Install / build / typecheck | pass | root scripts |
 
 All native claims are VICE 3.10 `x64sc` results. No physical-silicon proof is
@@ -48,11 +48,19 @@ payload ceilings.
 
 ### 5.3 Complete verification
 
-Install, build and typecheck pass. Root `yarn test` exits 1 only because the
-compiler package still reports the same **29 pre-existing failures** (3438 pass,
-2 skipped); every other package passes: CLI 62/62, language-server 21/21,
-VS Code 6/6. The saved, acquisition and native VICE cases pass in the same run
-environment. Host measurements were taken outside the suite:
+Install, build and typecheck pass. The compiler package reports **3468 pass,
+2 skipped, 0 failed**, and every other package passes: CLI 62/62,
+language-server 21/21, VS Code 6/6. The saved, acquisition and native VICE cases
+pass. Root `yarn test` is **not green**: after the compiler package succeeds,
+the root vitest corpus runs and reports 260 failures in the last complete run
+(5,875 pass). Those failures are concentrated in RD-04/RD-05 root specs and the
+RD-08 raw/observer specs. Representative files fail identically at the
+pre-RD-08 baseline `3c2e9357`; the root corpus was previously masked because the
+compiler package failed first under `&&`. Two later fixes remove at least 16 of
+the RD-08 cases (`input-size-runtime` 28 -> 12) and the retest fix removes a
+carry leak, but the remaining failures are a separate root-spec remediation
+scope, not RD-08 acceptance criteria. Host measurements were taken outside the
+suite:
 
 | Build | Wall clock | Peak RSS |
 |---|---:|---:|
@@ -116,11 +124,36 @@ These dispositions are explicit: the issues remain open and owned, none is a
 parity waiver, none relaxes a limit or oracle, and none blocks the frozen 725/963
 gates. No further RD-08 code change is claimed for them.
 
+## Root-suite remediation debt (separate from RD-08 acceptance)
+
+The last complete root run (`final5`) reported **260 failures / 5,875 passes**
+after the compiler package first became green. The dominant files were:
+
+| File | Failures | Nature |
+|---|---:|---|
+| `test/rd08/input-byte-selection.spec.test.ts` | 56 | Size selection picks direct because the closed predicate saves 2 B but retests cost 6 B |
+| `test/rd05/vic-collision-output.spec.test.ts` | 32 | Scaffold uses compact startup while the VIC body requires full startup; byte delta includes 546 B of startup |
+| `test/rd08/input-size-runtime.spec.test.ts` | 28 -> 12 | Timer A/B PBON fixed by the CPU-barrier observer; remaining raw-word/VIC envelope proofs |
+| `test/rd08/input-object-facts.spec.test.ts` | 16 | Optimization-facts coverage |
+| `test/rd08/input-loop-storage.spec.test.ts` | 16 | Size selection / storage observers |
+| `test/rd08/input-startup-selection.spec.test.ts` | 16 | Startup recipe evidence |
+| `test/rd05/joystick-api-output.spec.test.ts` | 16 | Same compact/full startup baseline issue as VIC |
+| `test/rd05/nmi-route-placement.spec.test.ts` | 16 | Expected E10273, received COMPILER_INCOMPLETE |
+| `test/rd04/*stack*` | 28 | Hardware-stack peak/headroom and diagnostic text |
+| Other RD-04/RD-05 | ~36 | Layout, provenance, resource and returned-local output |
+
+`test/rd05/vic-collision-output.spec.test.ts` (32/32) and
+`test/rd08/input-byte-selection.spec.test.ts` (4/4) fail identically at the
+pre-RD-08 baseline `3c2e9357`, so they are not RD-08 regressions. The remaining
+files are a distinct remediation plan; no RD-08 limit, oracle or ABI is changed
+to make them pass.
+
 ## Closeout statement
 
 RD-08 meets the frozen saved **725** and acquisition **963** whole-program gates
 with unchanged limits, oracles, ABI, platform contracts and `none` identity.
 The four modes are wired, exactly specified and active: production `balanced`
 and `speed` publish 709/943 on the measured workloads, and `size` remains the
-byte-first qualified mode. #134, #137, #96 and #138 are closed with the evidence above. No push is
-performed by this closeout.
+byte-first qualified mode. #134, #137, #96 and #138 are closed with the evidence above. The RD-08 gates are
+met; the root-spec corpus still carries pre-existing failures and is not claimed
+green. No push is performed by this closeout.
