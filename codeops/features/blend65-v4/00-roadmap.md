@@ -3,8 +3,8 @@
 > **Feature-Set**: Blend65 v4
 > **Status**: In Progress
 > **Created**: 2026-09-10
-> **Last Updated**: 2026-11-03
-> **Progress**: 4 / 10 (40%)
+> **Last Updated**: 2026-11-05
+> **Progress**: 5 / 10 (50%)
 > **Execution Prerequisite**: Phase 0 complete; see
 > [bootstrap and session handoff](00-phase-0-handoff.md)
 > **CodeOps Artifact Schema**: 1
@@ -12,10 +12,11 @@
 ## Current program boundary
 
 The v4 correctness track and the optimizer track are separate. The default `none`
-compiler is the release baseline; `size` remains experimental until the full RD-08
-optimizer is measured and qualified. The unchanged 963/725 output tests stay as
-RD-08 optimizer targets, not as the v4 correctness release gate. No oracle, source
-contract, behavior assertion or limit is waived or deleted.
+compiler is the release baseline. RD-08 is complete: `size` passes the unchanged
+963/725 gates, and all four modes are wired. Production `balanced` still retains
+the validated baseline while semantic path cycles are unknown (#136); `size` is
+the qualified optimizer. No oracle, source contract, behavior assertion or limit
+is waived or deleted.
 
 ## Legend
 
@@ -66,7 +67,7 @@ contract, behavior assertion or limit is waived or deleted.
 | T-17 | Deferred-read host adjacency cost (PE-001) | — | [Finding](plans/rd-05-keyboard-input/08-phase-1-review.md#independent-reviews) | Backlog | ⬜ | 2026-10-10 | Introduced MINOR host-only scans in eligible volatile-byte retention add O(R(F+B+N)) work and quadratic producer-prefix inspections for repeated fixed peek-to-poke copies. No measured latency/RSS failure or emitted behavior/cost defect. RD-05 owns a bounded consumer-index/fact handoff in existing forwarding/retention and its state wiring before RD closeout; no general cache, pass or framework. Separate from T-13's baseline prefix cloning. Not fixed or waived by keyboard Phase 1. |
 | RD-06 | Native Assets, Compile-Time Composition, and Resident Layout | [RD-06](requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md) | — | RD Preflighted | 🔎 | 2026-09-20 | depends on RD-04, RD-05; owns deferred SpritePad 3.80 producer evidence and native import |
 | RD-07 | Loadable Assets and D64 Delivery | [RD-07](requirements/RD-07-loadable-assets-and-d64-delivery.md) | — | RD Preflighted | 🔎 | 2026-09-11 | depends on RD-04, RD-05, RD-06 |
-| RD-08 | Optimization and Expert Output | [RD-08](requirements/RD-08-optimization-and-expert-output.md) | [Full optimizer plan](plans/rd-08-optimizer/00-index.md) | Executing | 🔄 | 2026-11-04 | Full optimizer plan executing: 33/41 tasks. **Phase 2 saved gate PASSES** on all four profiles: payload 709/725, general 740/745, combined 754/759, zeroPage 14/14, and all 17 saved specification cases pass (behavior, no-copy, resource accounting, register-served copy loop, bounded native). `closed:mixed:compact-looped` is selected at 709 bytes. `none` stays at 2163 bytes with unchanged hash 0417b7da. **Phase 3 acquisition output gate PASSES** on all four profiles: payload 943/963, general 976/984, zero page 14/14, combined 990/998, stack 6/10, and all 12 acquisition specification cases pass (ceilings, behavior, accounting). The mixed composition covers `keyState`, `snapshotCompatible` and the aggregate-return `readInputSnapshot` loop; the NMI fill is gone. **Phase 3 is complete:** the native `input-acquisition-nmi.spec.test.ts` passes 4/4 on PAL/NTSC 6581/8580 after the VICE monitor stopped attributing deleted checkpoints' pending hits to reused ids. The optimized size candidate is selected for the placed `$3200` workload and the returning NMI/live-link/handback behavior passes. **Phase 4 balanced/speed is complete:** the independent 56-case selection spec passes, exact balanced/speed/size selection rules are implemented, and manifest/build/CLI accept all four modes with balanced as the default. Phase 5 qualification, independent reviews and closeout remain. No limit, oracle, ABI, platform or push change. |
+| RD-08 | Optimization and Expert Output | [RD-08](requirements/RD-08-optimization-and-expert-output.md) | [Full optimizer plan](plans/rd-08-optimizer/00-index.md) | Done | ✅ | 2026-11-05 | Full optimizer plan complete at **41/41** tasks. **Saved gate PASSES**: 709/725 payload, 740/745 general, 754/759 combined, zeroPage 14/14; 17/17 cases. **Acquisition gate PASSES**: 943/963 payload, 976/984 general, 14/14 zeroPage, 990/998 combined, 6/10 stack; 12/12 output cases and native 4/4 on PAL/NTSC 6581/8580 (VICE-verified / hardware-unverified). `none` stays 2163 bytes with unchanged SHA-256 `0417b7da…`; exact saved/acquisition/`none` PRG identities are pinned by `optimizer-exact-output.impl.test.ts`. The 56-case mode specification passes; all four modes are wired with balanced as default. Six independent reviews completed; critical/major correctness findings fixed (validated baseline publication, X/A liveness, rule obligations, async aggregate writes, non-vacuous startup-state proof, screen-matrix startup admission, V-quiet clv). Remaining non-blocking debt: production cycle bounds/balanced-speed selection #136, local input-routine parity #134/#137, NMI adapter-vs-fill #96, frontier/observer host scaling #138. Root `yarn test` retains only the same 29 pre-existing compiler failures. No limit, oracle, ABI, platform or push change. |
 | ↳ Bound precedence | Preserve tighter use-site maxima alongside selected-loop facts | — | [Issue #134](https://github.com/blendsdk/blend65/issues/134) | Executing | 🔄 | 2026-10-29 | AR74boundedremedyverifiedwithin652/585lines;32shift/26ACME/124VICEandsixreviews clear. Removes12B/+5localnominalcy(+3BbranchrepairLowByteOFF),none/Originalunchanged;issue staysopen,fullphase/frontierunqualified. |
 | ↳ Predicate-proved return | Omit redundant comparisons on proved terminal edges | — | [Issue #133](https://github.com/blendsdk/blend65/issues/133) | RD-08 Backlog | ⬜ | 2026-10-28 | Inherited MAJOR bridge-through-return19→8nominalcy,same3B/PRG252/general270+ZP2. Actualgeneratedpathassembled/VICEverified;replacementanalytical,allreservesretained. Exactproducerremedyunapproved,no parity waiver. |
 | ↳ Input recipe mixtures | Wider per-site choices and independent-region composition | — | [Admission boundary](plans/whole-input-cost-closure/03-03-closure-and-modes.md#finite-alternatives-and-termination) | RD-08 Backlog | ⬜ | 2026-10-12 | PF-003's approved fixed whole-program recipes keep the early slice small. Full RD-08 owns wider admission; revisit when an independently measured winning candidate or required production workload needs it, before full optimization closeout. Existing per-site identities/proof/lowering/closure seams remain; no regional engine is authorized or assumed necessary. Original input limits are not deferred here. |

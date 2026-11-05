@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-03
-> **Progress**: 40/41 tasks (98%)
+> **Progress**: 41/41 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -292,7 +292,7 @@ construction instead of a direct write into the caller's `saved` home.
 
 - [x] 5.1 Populate debug optimization/rematerialization records for actual applied rules — `services/evidence-records.ts`, `artifacts/debug-evidence-records.ts` ✅ (completed: 2026-11-05; fixed-loop, fixed-counter, native-store and byte-window proofs emit ordered source spans and final output ranges with exact reverse indexes; acquisition has five records, none is empty)
 - [x] 5.2 Complete reproducibility, ACME reconciliation and last-good publication tests — evidence/publication suites ✅ (completed: 2026-11-05; publication/ACME/frontier 40/40, exact PRG hashes pinned for saved size/none and acquisition size)
-- [ ] 5.3 Run complete install/build/typecheck/test, targeted specs, four-profile VICE and host performance/RSS checks — verification gate
+- [x] 5.3 Run complete install/build/typecheck/test, targeted specs, four-profile VICE and host performance/RSS checks — verification gate ✅ (completed: 2026-11-05; install/build/typecheck pass; root `yarn test` has only the same 29 pre-existing compiler failures with 3438 pass, CLI 62/62, language-server 21/21, VS Code 6/6; saved/acquisition/native VICE pass; observed saved size 36.8 s/289.6 MB, saved balanced 36.7 s/285.9 MB, acquisition size 42.4 s/280.6 MB)
 - [x] 5.4 Obtain independent correctness, semantics/DX, SFA/ABI, platform, machine-code and performance reviews; resolve findings and close the plan ✅ (completed: 2026-11-05; six reviews recorded in 10-phase-5-review.md, critical/major correctness findings fixed, remaining local-parity/cycle/NMI/host debt filed as #96, #134, #136, #137 and #138)
 
 **Final gate:** all acceptance criteria pass; 963/725 are met or the plan is

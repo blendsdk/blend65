@@ -1,7 +1,7 @@
 # Full RD-08 Optimizer Implementation Plan
 
 > **Feature**: A shared optimization pipeline that makes the correct `none` compiler produce smaller, still-equivalent C64 output, with `size` reaching the saved 725 and acquisition 963 workloads.
-> **Status**: Complete — 41/41 tasks (final root/Host RSS verification recorded in Phase 5 review)
+> **Status**: Complete — 41/41 tasks; saved and acquisition gates pass; VICE-verified / hardware-unverified
 > **Created**: 2026-11-01 16:31
 > **Implements**: `blend65-v4/RD-08`
 > **CodeOps Artifact Schema**: 1

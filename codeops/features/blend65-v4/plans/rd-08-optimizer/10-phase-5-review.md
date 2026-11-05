@@ -47,10 +47,21 @@ payload ceilings.
 
 ### 5.3 Complete verification
 
-Install, build, typecheck, the owned compiler suite, saved/adquisition/native
-VICE cases and the exact-output test pass. Host time/RSS remains a tracked
-measurement gap: the service currently records `peakRssBytes: "Unknown"`, and
-the frontier/observer scaling debt is tracked in #138.
+Install, build and typecheck pass. Root `yarn test` exits 1 only because the
+compiler package still reports the same **29 pre-existing failures** (3438 pass,
+2 skipped); every other package passes: CLI 62/62, language-server 21/21,
+VS Code 6/6. The saved, acquisition and native VICE cases pass in the same run
+environment. Host measurements were taken outside the suite:
+
+| Build | Wall clock | Peak RSS |
+|---|---:|---:|
+| Saved `size` | 36.8 s | 289.6 MB |
+| Saved `balanced` | 36.7 s | 285.9 MB |
+| Acquisition `size` | 42.4 s | 280.6 MB |
+
+These are observational Node-host numbers, not release wall-clock gates. The
+service still records `peakRssBytes: "Unknown"`; frontier/observer scaling debt
+is tracked in #138.
 
 ### 5.4 Independent reviews
 
@@ -84,7 +95,11 @@ performance. Findings and dispositions are below.
 - Local `keyState`/`snapshotCompatible`/`soleGroundSource` parity remains open
   (#137, #134); the whole-program saved gate passes.
 - NMI adapter-versus-fill selection remains unpriced (#96).
-- Host peak RSS is not recorded (#138); no wall-clock or RSS claim is made.
+- The service field `peakRssBytes` remains `"Unknown"`; the host numbers above
+  are external observations, and frontier/observer scaling debt remains #138.
+- Default `balanced` publishes the validated canonical baseline (1603 bytes on
+  the saved fixture) because production T is unknown; `size` is the qualified
+  optimizer until #136 lands.
 - All native results are VICE-verified, hardware-unverified.
 
 ## Closeout statement
