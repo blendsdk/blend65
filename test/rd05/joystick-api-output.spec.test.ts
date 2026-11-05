@@ -51,10 +51,11 @@ ${placement}function main(): void { ${body} }
 
 /**
  * Build a scaffold and measured slice in the same display-dependent startup class.
- * The common VIC access cancels out of the complete-program byte delta.
+ * The common initializer cancels out of the complete-program byte delta and
+ * stays outside the measured main function's cycle budget.
  */
 function sourceForBuild(imports: readonly string[], body: string) {
-  return source(imports, `${body}\n  poke($D020, peek($D020));`);
+  return source(imports, body, "let displayProbe: byte = peek($D020);");
 }
 
 /** Fail on missing or malformed evidence instead of treating unavailable values as zero. */
@@ -571,8 +572,7 @@ describe.each(PROFILES)("joystick public API and assembled output on %s", (profi
         if (use !== "retained") {
           expect(actual.sfa).toBe(baseline.sfa);
           // The operation body is followed by the common three-cycle restoration transfer.
-          // The common display-dependent startup probe is LDA/STA (8 cycles).
-          mainCycleCeiling(artifacts, (use === "discarded" ? 4 : 8) + 3 + 8);
+          mainCycleCeiling(artifacts, (use === "discarded" ? 4 : 8) + 3);
         } else {
           // LDA/STA/STA costs 9 bytes and 12 cycles, plus the common JMP's 3 bytes/3 cycles.
           recordExpertComparison(artifacts, profile, `retained ${name}`, {

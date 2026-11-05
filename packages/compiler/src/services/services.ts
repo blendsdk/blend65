@@ -23,7 +23,8 @@ import { collectSourceLoopNesting } from "../semantic/fixed-loop-facts.js";
 import { selectTargetProfile } from "../target/profile.js";
 import { runAcme } from "../tools/acme.js";
 import { discoverAcme } from "../tools/discovery.js";
-import { prepareEvidence } from "./evidence.js";
+import { prepareEvidence, sizeCostVector } from "./evidence.js";
+import { validateSizeObservers } from "./size-observers.js";
 import type {
   SizeCostSourceSite,
   SizeCostVector,
@@ -346,6 +347,10 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
   const reference =
     storage.kind === "resource-rejected" ? storage : closeCanonicalReference(storage.value);
   if (reference.kind === "failure") return reference;
+  // Unoptimized builds have no later frontier that can repair a rejected
+  // physical layout. Preserve its source-associated resource diagnostic.
+  if (!optimized && reference.kind === "resource-rejected")
+    return { kind: "failure", failure: reference.failure };
   let selectedPipeline: CanonicalPipeline | null =
     reference.kind === "feasible" ? reference.checked : null;
   let selectedShared: ClosedSizeCandidate["shared"] | null =
@@ -424,15 +429,43 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
         );
       }
     }
+    // An unsupported transformation must not reject otherwise legal source.
+    // Reuse the exact canonical objects only after their final observer checks;
+    // reconstructed recipes cannot claim this identity proof. This fallback is
+    // deliberately absent whenever a transformed recipe is already feasible.
+    if (feasible.size === 0 && reference.kind === "feasible") {
+      const observers = validateSizeObservers({
+        checked: source.value,
+        reference,
+        candidate: { lowered: reference.checked.lowered, shared: reference.shared },
+      });
+      if (observers.kind !== "complete")
+        return {
+          kind: "failure",
+          failure: failure("compiler", [
+            projectDiagnostic("COMPILER_INCOMPLETE", observers.reason, observers.source),
+          ]),
+        };
+      const id = `${source.value.snapshot.inputSha256}:${source.value.profile.id}:canonical`;
+      const cost = sizeCostVector(
+        reference.shared.layout,
+        reference.shared.certificate.certificate,
+      );
+      feasible.set(id, {
+        pipeline: reference.checked,
+        shared: reference.shared,
+        diagnostics: reference.diagnostics,
+        cost,
+      });
+      evidenceCandidates.push({ id, feasibility: { kind: "feasible", vector: cost } });
+    }
     if (feasible.size === 0) {
       if (reference.kind === "resource-rejected")
         return { kind: "failure", failure: reference.failure };
       return { kind: "failure", failure: incompleteStage("size cost selection") };
     }
-    // The canonical direct reference is not publishable in an optimized mode:
-    // rules change its machine code, so it must pass the same final-observer gate
-    // as a candidate. The Closed Original/full recipe is its validated form and
-    // is therefore the baseline that balanced/speed may retain.
+    // Prefer Closed Original/full as the validated baseline. Exact canonical
+    // reuse enters this set only through the empty-frontier validation above.
     const fallbackBaseline = [...feasible.keys()].sort((left, right) =>
       Buffer.compare(Buffer.from(left), Buffer.from(right)),
     )[0]!;
