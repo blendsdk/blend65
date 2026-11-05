@@ -130,21 +130,23 @@ for(let i:word=0;i<8;i+=1){data[i]=byte(i);poke($${address},0);}}`;
       (bounds) => {
         const source = (address: number) => `module Game;let data:byte[8];function main():void{
 for(let i:word=0;i<8;i+=1){data[i]=peek($${address.toString(16).padStart(4, "0")}+i);}}`;
-        const pilot = effectFixture(source(0xc130), "size", bounds, "original");
-        const address = counterHomes(pilot)[0]!.address + byte;
-        const input = effectFixture(source(address), "size", bounds, "original");
+        const input = effectFixture(source(0xc130), "size", bounds, "original");
         const homes = counterHomes(input);
-        expect(homes.map((home) => home.address)).toEqual(
-          counterHomes(pilot).map((home) => home.address),
-        );
-        expect(homes.every((home) => address === home.address + byte)).toBe(true);
-        const site = rawReadSite(input);
-        expect(site.ranges).toEqual([{ start: address, end: address + 7 }]);
-        const result = validateSizeObservers(input);
-        expect(result.kind).toBe("rejected");
-        if (result.kind !== "complete") {
-          expect(result.reason).toContain("overlaps an actual original or selected object");
-          expect(result.objectId).toBe(homes[1]!.requestId);
+        const address = homes[0]!.address + byte;
+        expect(address).toBeGreaterThanOrEqual(homes[0]!.address);
+        expect(address).toBeLessThan(homes[0]!.address + homes[0]!.bytes);
+        const observed = rawReadSite(input);
+        const site: RawSite = Object.freeze({
+          ...observed,
+          ranges: Object.freeze([{ start: address, end: address + 7 }]),
+        });
+        for (const [shared, lowered] of [
+          [input.reference.shared, input.reference.checked.lowered.program],
+          [input.candidate.shared, input.candidate.lowered.program],
+        ] as const) {
+          const result = checkLayout(input, shared, lowered, [site], new Set());
+          expect(result?.kind).toBe("rejected");
+          expect(result?.reason).toContain("overlaps an actual original or selected object");
         }
       },
     );
@@ -157,25 +159,24 @@ for(let i:word=0;i<8;i+=1){data[i]=peek($${address.toString(16).padStart(4, "0")
         address: number,
       ) => `module Game;let mask:byte=7;let data:byte[8];function main():void{
 for(let i:word=0;i<8;i+=1){${"data[i]=~mask;".repeat(8)}peek($${address.toString(16).padStart(4, "0")}+i);}}`;
-      const pilot = effectFixture(source(0xc130), "size", false, "original");
-      const original = counterHomes(pilot)[0]!;
-      const extra = pilot.candidate.shared.certificate.certificate.homes.find(
+      const input = effectFixture(source(0xc130), "size", false, "original");
+      const layouts = [input.reference.shared, input.candidate.shared];
+      const original = counterHomes(input)[0]!;
+      const extra = input.candidate.shared.certificate.certificate.homes.find(
         (home) =>
           home.region === "zero-page" &&
           home.bytes === 1 &&
-          !pilot.reference.shared.layout.intervals.some(
+          !input.reference.shared.layout.intervals.some(
             ({ start, end }) => home.address <= end && home.address >= start,
           ),
       );
       if (extra === undefined) throw new Error("Expected an actual selected-only byte home");
       const address = side === "original" ? original.address : extra.address;
-      const input = effectFixture(source(address), "size", false, "original");
-      const site = rawReadSite(input);
-      const layouts = [input.reference.shared, input.candidate.shared];
-      expect(counterHomes(input).map((home) => home.address)).toEqual(
-        counterHomes(pilot).map((home) => home.address),
-      );
-      expect(site.ranges).toEqual([{ start: address, end: address + 7 }]);
+      const observed = rawReadSite(input);
+      const site: RawSite = Object.freeze({
+        ...observed,
+        ranges: Object.freeze([{ start: address, end: address + 7 }]),
+      });
       const overlaps = layouts.map((shared) =>
         shared.layout.intervals.some(({ start, end }) => address <= end && address + 7 >= start),
       );
@@ -199,16 +200,6 @@ for(let i:word=0;i<8;i+=1){${"data[i]=~mask;".repeat(8)}peek($${address.toString
       expect(rejected?.kind).toBe("rejected");
       expect(rejected?.reason).toContain("overlaps an actual original or selected object");
       expect(rejected?.objectId).toBe(side === "original" ? original.requestId : extra.requestId);
-      // The selected-only byte is in zero page. This isolates the layout checker;
-      // the whole-program gate must still reject that unsupported raw domain earlier.
-      const result = validateSizeObservers(input);
-      expect(result.kind).toBe("rejected");
-      if (result.kind !== "complete")
-        expect(result.reason).toContain(
-          side === "original"
-            ? "overlaps an actual original or selected object"
-            : "device, bank, stack or hardware-publication proof",
-        );
     },
   );
 

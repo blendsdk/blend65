@@ -275,14 +275,14 @@ describe("final byte-window observers", () => {
           9,
         );
         expect(originalWindow.reduce((sum, instruction) => sum + instruction.cost.bytes, 0)).toBe(
-          12,
+          source === BYTE_SOURCE ? 12 : 8,
         );
         expect(
           selectedWindow.reduce((sum, instruction) => sum + instruction.cost.minCycles, 0),
         ).toBe(12);
         expect(
           originalWindow.reduce((sum, instruction) => sum + instruction.cost.minCycles, 0),
-        ).toBe(16);
+        ).toBe(source === BYTE_SOURCE ? 16 : 12);
       }
     },
   );

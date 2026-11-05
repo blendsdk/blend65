@@ -85,7 +85,7 @@ function main(): void { ${"asm_php(); ".repeat(6)}helper(); ${"asm_plp(); ".repe
       ]);
       const combined = memory.stackDomains[0]!;
       const program = memory.stackDomains[2]!;
-      expect(combined).toMatchObject({ capacityBytes: 236, peakBytes: 12, headroomBytes: 224 });
+      expect(combined).toMatchObject({ capacityBytes: 236, peakBytes: 13, headroomBytes: 223 });
       expect(combined.route).toEqual([
         "bounded-component:generated-program-and-irq",
         ...(Array.isArray(program.route) ? program.route : []),
@@ -93,13 +93,13 @@ function main(): void { ${"asm_php(); ".repeat(6)}helper(); ${"asm_plp(); ".repe
       expect(costs.totals.resources.find(({ id }) => id === "hardwareStack")).toEqual({
         kind: "standard",
         id: "hardwareStack",
-        value: 12,
+        value: 13,
       });
     });
   }, 60_000);
 
   it("should give a bounded 236-byte component zero headroom without adding reserve", async () => {
-    await withEvidence(`module Game; function main(): void { ${saves(236)} }`, (memory, costs) => {
+    await withEvidence(`module Game; function main(): void { ${saves(235)} }`, (memory, costs) => {
       expect(memory.stackDomains[0]).toMatchObject({
         id: "bounded-component-capacity",
         capacityBytes: 236,

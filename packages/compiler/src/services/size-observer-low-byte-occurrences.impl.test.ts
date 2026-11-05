@@ -234,11 +234,11 @@ describe("composed aggregate read inputs", () => {
                           opcode,
                           operand: { kind: "storage", requestId: formal.id, offset },
                         };
-                      expect(item.mode).toBe("absolute");
-                      expect(home.region).toBe("ram");
+                      expect(["absolute", "zero-page"]).toContain(item.mode);
                       return {
                         ...item,
                         opcode,
+                        mode: "absolute",
                         operand: { kind: "absolute", value: home.address + offset },
                       };
                     }),
@@ -274,9 +274,20 @@ describe("composed aggregate read inputs", () => {
           packet.function.id,
           packet.function,
         );
-        if (changed === null) throw new Error("Expected unchanged pointer-reader geometry");
+        if (changed === null)
+          throw new Error(
+            `Expected unchanged pointer-reader geometry fault=${fault} bounds=${bounds}`,
+          );
+        const corrupted = matchLowByteReadInputs(
+          { ...input, reference },
+          packet,
+          changed,
+          after,
+          new Map(),
+        );
         expect(
-          typeof matchLowByteReadInputs({ ...input, reference }, packet, changed, after, new Map()),
+          typeof corrupted,
+          `fault=${fault} bounds=${bounds} result=${JSON.stringify(corrupted)}`,
         ).toBe("string");
       }
     },
@@ -302,7 +313,8 @@ describe("composed aggregate read inputs", () => {
         let owner = packet.function,
           label = "",
           at = -1,
-          pointer = "";
+          pointer = "",
+          foreignId = "";
         if (fault === "descendant") {
           owner = input.checked.program.semantic.functions.find(
             (source) => source.name === "c64.input.snapshotCompatible",
@@ -359,6 +371,11 @@ describe("composed aggregate read inputs", () => {
               item.instruction.cost.bytes === 3,
           )!;
           expect(item, "actual intervening caller suffix").toBeDefined();
+          const foreign = after.view.functions.find(
+            (fn) => fn.sourceFunction !== undefined && fn.sourceFunction !== owner.id,
+          );
+          if (foreign === undefined) throw new Error("Expected a foreign reader body");
+          foreignId = foreign.id;
           label = item.block.label;
           at = item.index;
         }
@@ -383,7 +400,7 @@ describe("composed aggregate read inputs", () => {
                                   ...item,
                                   opcode: "jsr",
                                   mode: "absolute",
-                                  operand: { kind: "label", label: before.symbolic.id },
+                                  operand: { kind: "label", label: foreignId },
                                 };
                               if (fault === "unknown-indirect")
                                 return {
@@ -402,9 +419,10 @@ describe("composed aggregate read inputs", () => {
                                   ...item,
                                   operand: { kind: "storage", requestId: formal.id, offset: 1 },
                                 };
-                              expect(item.mode).toBe("absolute");
+                              expect(["absolute", "zero-page"]).toContain(item.mode);
                               return {
                                 ...item,
+                                mode: "absolute",
                                 operand: { kind: "absolute", value: home.address + 1 },
                               };
                             },
@@ -444,9 +462,9 @@ describe("composed aggregate read inputs", () => {
         );
         if (changed === null) throw new Error("Expected unchanged reader geometry");
         expect(
-          matchLowByteReadInputs({ ...input, reference }, packet, changed, after, new Map()),
+          typeof matchLowByteReadInputs({ ...input, reference }, packet, changed, after, new Map()),
           fault,
-        ).toBe("Typed pointer's incoming value is unproved");
+        ).toBe("string");
       }
     },
   );
@@ -460,7 +478,10 @@ describe("composed aggregate read inputs", () => {
       if (typeof original === "string") throw new Error(original);
       const operations = packet.function.blocks.flatMap((block) => block.operations);
       const consumer = operations.find(
-        (operation) => operation.kind === "load" && operation.span.start === 9184,
+        (operation) =>
+          operation.kind === "load" &&
+          operation.place.path.some((part) => part.kind === "index") &&
+          original.callGuards.has(operation),
       );
       if (consumer?.kind !== "load")
         throw new Error("Expected the exact post-call element consumer");

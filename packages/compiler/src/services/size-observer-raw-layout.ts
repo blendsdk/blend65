@@ -221,7 +221,7 @@ function rawPointer(
       restored?.opcode !== "lda" ||
       JSON.stringify(restored.operand) !== JSON.stringify(low) ||
       buffer === undefined ||
-      buffer.region !== "ram"
+      (buffer.region !== "ram" && buffer.region !== "zero-page")
     )
       return failure(
         "error",

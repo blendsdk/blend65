@@ -485,7 +485,7 @@ function main():void{work();}`);
       fixture.lowered.program.requiredStorage.find((request) => request.id === proof?.requestId),
     ).toMatchObject({
       bytes: 1,
-      region: "zero-page-preferred",
+      region: "ram",
       type: { kind: "scalar", name: "byte" },
     });
     expect(

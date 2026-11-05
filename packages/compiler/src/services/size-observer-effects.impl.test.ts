@@ -49,6 +49,28 @@ function executable(program: MachineProgram) {
   }));
 }
 
+/** Compare source-function instruction shape without physical layout addresses. */
+function codeShape(program: MachineProgram) {
+  return program.functions.map((fn) => ({
+    id: fn.id,
+    blocks: fn.blocks.map((block) => ({
+      label: block.label,
+      instructions: block.instructions.map((instruction) => ({
+        opcode: instruction.opcode,
+        uses: instruction.uses,
+        defines: instruction.defines,
+        memory: instruction.memory.map((effect) => ({
+          kind: effect.kind,
+          width: effect.width,
+          volatile: effect.volatile,
+          addressKind: effect.address.kind,
+        })),
+      })),
+      terminator: block.terminator.kind,
+    })),
+  }));
+}
+
 describe("source-associated raw and platform access evidence", () => {
   it("should bind new access-bound Maps into the existing producer evidence", () => {
     const fixture = effectFixture(
@@ -285,8 +307,10 @@ function main():void{data[peek($C111)&7]=peek($C112);poke($C100,read(data,peek($
         expect(origins[0]!.byte).toBe(0);
       }
     }
-    expect(executable(fixture.reference.shared.layout.program)).toEqual(
-      executable(effectFixture(source, "none").reference.shared.layout.program),
+    // Startup policy and physical addresses are separate axes; typed object
+    // accesses must not change the source-function instruction shape.
+    expect(codeShape(fixture.reference.shared.layout.program)).toEqual(
+      codeShape(effectFixture(source, "none").reference.shared.layout.program),
     );
   });
 

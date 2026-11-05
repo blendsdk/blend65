@@ -203,8 +203,8 @@ describe("final selected LowByte observers", () => {
           expect(before.blocks[3]!.instructions).toHaveLength(11);
           expect(after.blocks[3]!.instructions.map(({ opcode }) => opcode)).toEqual(["inc"]);
           expect(after.blocks[3]!.instructions[0]).toMatchObject({
-            mode: "zero-page",
-            cost: { bytes: 2, minCycles: 5, maxCycles: 5 },
+            mode: "absolute",
+            cost: { bytes: 3, minCycles: 6, maxCycles: 6 },
           });
           expect(before.homes.get(proof.originalRequestId)?.bytes).toBe(2);
           expect(after.homes.get(proof.requestId!)?.bytes).toBe(1);

@@ -493,7 +493,7 @@ describe("call ABI and scalar retention", () => {
         expect.objectContaining({
           id: "platform.startup-state",
           kind: "bss",
-          bytes: new Array<number>(4).fill(0),
+          bytes: new Array<number>(3).fill(0),
         }),
       ]);
     },

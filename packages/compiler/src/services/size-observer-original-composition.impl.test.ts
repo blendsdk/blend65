@@ -501,11 +501,17 @@ describe("Original induction composition", () => {
         `module Game;let data:byte[8]=[;0];function main():void{for(let i:word=0;i<8;i+=1){for(let j:word=i+1;j<8;j+=1){data[j]=peek($${base.toString(16).padStart(4, "0")}+${index === 0 ? "i" : "j"});}}}`;
       const pilot = effectFixture(source(0xc130), "size", false, "original");
       expect(validateSizeObservers(pilot).kind).toBe("complete");
-      const base = homes(pilot, pilot.reference.shared)[index]!.home.address;
-      const input = effectFixture(source(base), "size", false, "original");
-      expect(homes(input, input.reference.shared).map(({ home }) => home.address)).toEqual(
-        homes(pilot, pilot.reference.shared).map(({ home }) => home.address),
-      );
+      let base = homes(pilot, pilot.reference.shared)[index]!.home.address;
+      let input = effectFixture(source(base), "size", false, "original");
+      // The source constant changes the layout, so iterate to the fixed point
+      // where the raw base is the actual selected counter home.
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const home = homes(input, input.reference.shared)[index]!.home.address;
+        if (home === base) break;
+        base = home;
+        input = effectFixture(source(base), "size", false, "original");
+      }
+      expect(homes(input, input.reference.shared)[index]!.home.address).toBe(base);
       const rejected = validateSizeObservers(input);
       expect(rejected.kind).toBe("rejected");
       if (rejected.kind !== "complete")
