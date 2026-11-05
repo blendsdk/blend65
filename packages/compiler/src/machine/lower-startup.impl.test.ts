@@ -194,6 +194,20 @@ describe("Display-independent startup selection", () => {
     },
   );
 
+  it.each([0x0200n, 0x0300n, 0xc100n, 0xcfffn])(
+    "accepts a fixed ordinary-RAM write at %s for the size startup axis",
+    (address) => {
+      expect(hasDisplayIndependentStartup(program(access(address, true)), true)).toBe(true);
+    },
+  );
+
+  it.each([0x0400n, 0x0428n, 0x07e7n, 0x07ffn, 0xd800n])(
+    "retains full startup for the display-visible write at %s",
+    (address) => {
+      expect(hasDisplayIndependentStartup(program(access(address, true)), true)).toBe(false);
+    },
+  );
+
   it.each([0xcfffn, 0xffffn, 0xdcffn])("checks the second byte of word reads at %s", (address) => {
     expect(hasDisplayIndependentStartup(program(access(address, false, 2)))).toBe(false);
   });

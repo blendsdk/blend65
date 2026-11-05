@@ -73,6 +73,24 @@ type DirectAggregateAccess =
     };
 
 /** Retain the actual typed construction without inventing a numeric pointer or widening its bound. */
+/** Prove the scaled byte index of one direct indexed access from existing ordinal bounds. */
+function directIndexMaximum(
+  operation: Extract<SemanticOperation, { readonly kind: "load" | "store" }>,
+  direct: DirectAggregateAccess | null,
+  state: FunctionLoweringState,
+): number | undefined {
+  if (direct?.kind !== "indexed" || state.ordinalBounds === undefined || direct.stride < 1)
+    return undefined;
+  const values = operation.place.path.flatMap((path) =>
+    path.kind === "index" ? [path.value] : [],
+  );
+  if (values.length !== 1) return undefined;
+  const maximum = state.ordinalBounds.get(values[0]!);
+  if (maximum === undefined || maximum < 0n) return undefined;
+  const scaled = maximum * BigInt(direct.stride);
+  return scaled <= 0xffn ? Number(scaled) : undefined;
+}
+
 function observeTypedAccess(
   instruction: MachineInstruction,
   operation: Extract<SemanticOperation, { readonly kind: "load" | "store" }>,
@@ -80,6 +98,7 @@ function observeTypedAccess(
   byte: number,
   direct: DirectAggregateAccess | null,
   displacement = 0,
+  indexValueMaximum?: number,
 ): MachineInstruction {
   if (!state.input.observerEvidence) return instruction;
   const origin: MachineObserverOrigin = {
@@ -100,6 +119,7 @@ function observeTypedAccess(
     displacement: direct?.offset ?? displacement,
     stride: direct?.kind === "indexed" ? direct.stride : 0,
     ...(state.ordinalBounds === undefined ? {} : { indexBounds: state.ordinalBounds }),
+    ...(indexValueMaximum === undefined ? {} : { indexValueMaximum }),
   };
   return Object.freeze({ ...instruction, observerOrigins: Object.freeze([Object.freeze(origin)]) });
 }
@@ -351,7 +371,17 @@ export function lowerAggregateLoad(
         [],
         operation.span,
       );
-      instructions.push(observeTypedAccess(access, operation, state, offset, direct));
+      instructions.push(
+        observeTypedAccess(
+          access,
+          operation,
+          state,
+          offset,
+          direct,
+          0,
+          directIndexMaximum(operation, direct, state),
+        ),
+      );
       if (resultRequest !== null)
         instructions.push(
           storeA(
@@ -501,7 +531,17 @@ export function lowerAggregateStore(
         [],
         operation.span,
       );
-      instructions.push(observeTypedAccess(access, operation, state, offset, direct));
+      instructions.push(
+        observeTypedAccess(
+          access,
+          operation,
+          state,
+          offset,
+          direct,
+          0,
+          directIndexMaximum(operation, direct, state),
+        ),
+      );
     }
     return Object.freeze(instructions);
   }

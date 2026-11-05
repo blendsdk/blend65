@@ -156,6 +156,13 @@ export function validateRuleObligations(result: RulePipelineResult): RuleValidat
       reason: "A rule identity was applied more than once",
       source: null,
     });
+  const expectedObligations = cleanupObligations(result.applied);
+  if (JSON.stringify(result.obligations) !== JSON.stringify(expectedObligations))
+    return Object.freeze({
+      kind: "error",
+      reason: "Rule obligations do not match the applied rule set",
+      source: null,
+    });
   for (const rule of result.applied) {
     if (!FOUNDATION_RULE_IDS.includes(rule.ruleId))
       return Object.freeze({
@@ -169,6 +176,36 @@ export function validateRuleObligations(result: RulePipelineResult): RuleValidat
         reason: `Rule ${rule.ruleId} has no declared changes`,
         source: null,
       });
+    // Every applied rule must carry the source-equivalence sites it changed and
+    // every site must belong to one of the rule's declared source functions.
+    const equivalence = rule.obligations.filter(
+      (obligation) => obligation.kind === "source-equivalence",
+    );
+    const sourceIds = new Set(rule.functions.map((fn) => fn.source.sourceId));
+    if (
+      equivalence.length === 0 ||
+      equivalence.some(
+        (obligation) =>
+          obligation.kind !== "source-equivalence" ||
+          obligation.sites.length === 0 ||
+          obligation.sites.some((site) => !sourceIds.has(site.sourceId)),
+      )
+    )
+      return Object.freeze({
+        kind: "error",
+        reason: `Rule ${rule.ruleId} has no complete source-equivalence obligation`,
+        source: null,
+      });
+    for (const obligation of rule.obligations)
+      if (
+        obligation.kind === "cost" &&
+        (!/^\d+$/u.test(obligation.before.value) || !/^\d+$/u.test(obligation.after.value))
+      )
+        return Object.freeze({
+          kind: "error",
+          reason: `Rule ${rule.ruleId} has a non-numeric cost obligation`,
+          source: null,
+        });
   }
   return Object.freeze({ kind: "complete", applied: Object.freeze(ids) });
 }

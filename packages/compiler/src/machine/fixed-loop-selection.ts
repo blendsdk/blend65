@@ -749,23 +749,31 @@ export function finishFixedLoops(fn: MachineFunction, runtime: FixedLoopRuntime)
     const at = blocks.findIndex((block) => block.label === roles[0]);
     if (at < 0 || !roles.every((id, index) => blocks[at + index]?.label === id)) continue;
     const [preheader, header, body, update, exit] = roles.map((id) => byLabel.get(id)!);
-    // The bottom test branches on equality, not carry, and no earlier compare
-    // can leave an overflow bit to preserve. BNE exits at the exact bound.
+    // The bottom test branches on equality, not carry. Only a register-indexed
+    // counter carries the exact finite template whose continuation proof shows V
+    // is unobserved through repetitions, so only that shape may drop the clear.
+    // A low-byte counter keeps `clv`, preserving the original V state exactly.
     const terminator = header.terminator;
     if (terminator.kind !== "branch") continue;
     const inverted =
       terminator.opcode === "bcs" &&
       body.label === terminator.fallthrough &&
       exit.label === terminator.target;
+    const testedHeader =
+      counter.register === null
+        ? header
+        : Object.freeze({
+            ...header,
+            instructions: Object.freeze(
+              header.instructions.filter((instruction) => instruction.opcode !== "clv"),
+            ),
+          });
     const tested =
       terminator.opcode === "bne"
-        ? header
+        ? testedHeader
         : inverted
           ? Object.freeze({
-              ...header,
-              instructions: Object.freeze(
-                header.instructions.filter((instruction) => instruction.opcode !== "clv"),
-              ),
+              ...testedHeader,
               terminator: Object.freeze({
                 ...terminator,
                 opcode: "bcc",
@@ -774,10 +782,7 @@ export function finishFixedLoops(fn: MachineFunction, runtime: FixedLoopRuntime)
               }),
             })
           : Object.freeze({
-              ...header,
-              instructions: Object.freeze(
-                header.instructions.filter((instruction) => instruction.opcode !== "clv"),
-              ),
+              ...testedHeader,
               terminator: Object.freeze({
                 ...terminator,
                 opcode: "bne",

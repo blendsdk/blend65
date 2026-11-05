@@ -194,6 +194,53 @@ function entries(
   return true;
 }
 
+/** True when one instruction writes the compiler-owned startup state interval. */
+function writesStartupState(instruction: MachineInstruction): boolean {
+  return instruction.memory.some(
+    (effect) =>
+      effect.kind === "write" &&
+      effect.address.kind === "symbolic" &&
+      effect.address.label === C64_STARTUP_STATE_ID,
+  );
+}
+
+/**
+ * Derive the actual saved-state range, its real capture writes and a proved
+ * `quietY` from the final program. The startup object is compiler-generated; the
+ * range and capture set come from the actual layout. `quietY` is only true when
+ * every non-startup body defines Y before reading it on every linear path checked
+ * here, so an unrecognized startup shape cannot turn it into an assumption.
+ */
+function startupStateFacts(
+  input: FinalObserverInput,
+  view: Body["view"],
+): {
+  readonly range: StorageRange;
+  readonly captures: ReadonlySet<MachineInstruction>;
+  readonly quietY: boolean;
+} | null {
+  const program = view.shared.layout.program;
+  const state = view.shared.layout.intervals.find((range) => range.id === C64_STARTUP_STATE_ID);
+  if (state === undefined || state.end < state.start) return null;
+  const captures = new Set(
+    program.startup.blocks.flatMap((block) => block.instructions).filter(writesStartupState),
+  );
+  let quietY = true;
+  for (const fn of program.functions) {
+    for (const block of fn.blocks) {
+      let definedY = false;
+      for (const item of block.instructions) {
+        const decoded = nmosInstructionState(input.checked.profile.cpu, item.opcode, item.mode);
+        if (decoded === null) return null;
+        if (decoded.usesRegisters.includes("y") && !definedY) quietY = false;
+        definedY ||= decoded.definesRegisters.includes("y");
+        if (["brk", "rti"].includes(item.opcode)) return null;
+      }
+    }
+  }
+  return { range: { start: state.start, end: state.end }, captures, quietY };
+}
+
 /**
  * Compact looped startup keeps the caller's P on the stack and only the platform
  * roots in the state interval. The capture and restore loops are exact, so the
@@ -899,14 +946,16 @@ export function validateComposedLowByte(
           sites.push({ operation, owner: source.id, block, ranges });
         }
   }
-  const fallbackStatus = Object.freeze({
-    quietY: true,
-    range: Object.freeze({ start: 0xffff, end: 0xffff }),
-    captures: new Set<MachineInstruction>(),
-  });
   for (const [index, view] of [beforeView, afterView].entries()) {
-    const status = savedState(input, view) ?? fallbackStatus;
-    if (sites.some((site) => site.ranges.some((range) => overlaps(range, status.range))))
+    // The startup object is compiler-generated, so its actual saved range and
+    // capture writes are facts of the final layout. A recognized compact/full
+    // shape may additionally prove quietY; otherwise quietY is derived from the
+    // program itself and is never silently assumed true.
+    const stateFacts = startupStateFacts(input, view);
+    if (stateFacts === null) return reject("Composed startup state is not derivable");
+    const status = savedState(input, view);
+    const quietY = status?.quietY ?? stateFacts.quietY;
+    if (sites.some((site) => site.ranges.some((range) => overlaps(range, stateFacts.range))))
       return reject("Composed saved status/root restoration is not closed");
     for (const [source, changes] of functions)
       for (const cut of changes.continuations) {
@@ -925,9 +974,9 @@ export function validateComposedLowByte(
         // Quiet Y requires a terminal cut: every successor/callee defines Y before
         // reading it, and the checked root restores its pre-execution saved value.
         const shared = (cut.changed & STATE.y) !== 0 && stateSafe(current, item);
-        const quietY = status.quietY && actual.start === item.block.instructions.length;
+        const quietYCut = quietY && actual.start === item.block.instructions.length;
         const mask =
-          cut.changed & ~STATE.v & (shared ? ~(STATE.y | STATE.c) : quietY ? ~STATE.y : -1);
+          cut.changed & ~STATE.v & (shared ? ~(STATE.y | STATE.c) : quietYCut ? ~STATE.y : -1);
         // Y/C/V may be dead across proved calls; A/N/Z still need the direct window.
         const direct = mask & ~(STATE.y | STATE.c | STATE.v);
         const directSafe =
@@ -960,7 +1009,7 @@ export function validateComposedLowByte(
     const startup = view.shared.layout.program.startup;
     for (const block of startup.blocks)
       for (const [at, instruction] of block.instructions.entries()) {
-        if (status.captures.has(instruction)) continue;
+        if (stateFacts.captures.has(instruction)) continue;
         const pc =
           block.origin! +
           block.instructions.slice(0, at).reduce((sum, item) => sum + item.cost.bytes, 0);
@@ -973,7 +1022,7 @@ export function validateComposedLowByte(
         if (
           envelope?.some(
             (bus) =>
-              bus.kind === "write" && bus.ranges.some((range) => overlaps(range, status.range)),
+              bus.kind === "write" && bus.ranges.some((range) => overlaps(range, stateFacts.range)),
           )
         )
           return reject("Composed startup overwrites an early saved value");
@@ -1018,6 +1067,11 @@ export function validateComposedLowByte(
           raw?.kind === "raw" ? sites.find((site) => site.operation === raw.operation) : undefined;
         const rawIndex =
           raw?.kind === "raw" && raw.byte !== null ? { start: raw.byte, end: raw.byte } : undefined;
+        const typedIndexMaximum = item.source.observerOrigins?.find(
+          (origin) => origin.kind === "typed" && origin.indexValueMaximum !== undefined,
+        )?.indexValueMaximum;
+        const typedIndex =
+          typedIndexMaximum === undefined ? undefined : { start: 0, end: typedIndexMaximum };
         const envelope = instructionAccessEnvelope({
           cpu: input.checked.profile.cpu,
           instruction: item.instruction,
@@ -1025,7 +1079,9 @@ export function validateComposedLowByte(
           labels: view.labels,
           ...(access?.index === undefined
             ? rawIndex === undefined
-              ? {}
+              ? typedIndex === undefined
+                ? {}
+                : { index: typedIndex }
               : { index: rawIndex }
             : { index: access.index }),
           ...(access?.pointees === undefined
@@ -1056,7 +1112,7 @@ export function validateComposedLowByte(
         if (envelope === null) continue;
         for (const bus of envelope.filter((access) => access.kind === "write"))
           for (const range of bus.ranges) {
-            if (overlaps(range, status.range))
+            if (overlaps(range, stateFacts.range))
               return reject("Composed code can overwrite saved status/registers");
             for (const counter of changes?.counters.values() ?? []) {
               const home = index === 0 ? counter.original.home : counter.selected?.home;

@@ -190,6 +190,14 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
             asyncWrites.add(bindingIdentityKey(operation.place.root));
           } else if (operation.kind === "aggregate" && operation.destination?.kind === "place") {
             asyncWrites.add(bindingIdentityKey(operation.destination.place.root));
+          } else if (
+            operation.kind === "call" &&
+            operation.aggregateDestination?.kind === "place"
+          ) {
+            // A returned-local aggregate call writes the caller-owned place through
+            // its hidden destination. An asynchronous handler performing that call
+            // must therefore count as an asynchronous writer of the place root.
+            asyncWrites.add(bindingIdentityKey(operation.aggregateDestination.place.root));
           }
         }
     }

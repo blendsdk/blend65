@@ -4,7 +4,10 @@ import { join } from "node:path";
 import { serializeAcme } from "../artifacts/acme-serializer.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { deriveOptimizationFacts } from "../machine/optimization-facts.js";
-import { selectOptimizationCandidate } from "../machine/optimization-cost.js";
+import {
+  compareOptimizationCosts,
+  selectOptimizationCandidate,
+} from "../machine/optimization-cost.js";
 import { analyzeProjectWithAssets } from "../frontend/service.js";
 import type { C64KernalProfileId } from "../profile/c64-kernal.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
@@ -20,7 +23,7 @@ import { collectSourceLoopNesting } from "../semantic/fixed-loop-facts.js";
 import { selectTargetProfile } from "../target/profile.js";
 import { runAcme } from "../tools/acme.js";
 import { discoverAcme } from "../tools/discovery.js";
-import { prepareEvidence, sizeCostVector } from "./evidence.js";
+import { prepareEvidence } from "./evidence.js";
 import type {
   SizeCostSourceSite,
   SizeCostVector,
@@ -286,22 +289,6 @@ function costSourceSites(span: SourceSpan | null): readonly SizeCostSourceSite[]
     : Object.freeze([{ path: span.sourceId, startByte: span.start, endByte: span.end }]);
 }
 
-/** Compare B then ordered R, returning zero only for an exact physical tie. */
-function compareSizeCosts(left: SizeCostVector, right: SizeCostVector): number {
-  const bytes = left.programBytes - right.programBytes;
-  if (bytes !== 0) return bytes;
-  for (let index = 0; index < left.resources.length; index += 1) {
-    const difference = left.resources[index]!.value - right.resources[index]!.value;
-    if (difference !== 0) return difference;
-  }
-  return 0;
-}
-
-/** Return whether two complete vectors are exactly equal, including unknown paths. */
-function sameSizeCosts(left: SizeCostVector, right: SizeCostVector): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
 /** Map one reference stage to the costs validator's allowed hard-reason family. */
 function referenceRejectionKind(stage: string): string {
   if (stage === "zero-page") return "zeroPage";
@@ -377,26 +364,7 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
         readonly cost: SizeCostVector;
       }
     >();
-    if (reference.kind === "feasible") {
-      const cost = sizeCostVector(
-        reference.shared.layout,
-        reference.shared.certificate.certificate,
-      );
-      evidenceCandidates.push(
-        Object.freeze({
-          id: "reference",
-          feasibility: Object.freeze({ kind: "feasible" as const, vector: cost }),
-        }),
-      );
-      feasible.set("reference", {
-        pipeline: reference.checked,
-        shared: reference.shared,
-        diagnostics: reference.diagnostics,
-        cost,
-      });
-    } else {
-      evidenceCandidates.push(referenceRejection(reference));
-    }
+    if (reference.kind !== "feasible") evidenceCandidates.push(referenceRejection(reference));
     const baseFacts = optimizationFacts ?? deriveOptimizationFacts({ checked: source.value, mode });
     // Every tuple receives the reference's exact dead-home set. This keeps the
     // canonical and selected layouts structurally identical after cleanup.
@@ -406,6 +374,7 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
       referenceDeadHomes === undefined
         ? baseFacts
         : Object.freeze({ ...baseFacts, deadHomes: referenceDeadHomes });
+    let baselineRecipe: string | undefined;
     for (const plan of sizeSelectionPlans({ checked: source.value })) {
       if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
       const candidate = closeSizeCandidate({
@@ -431,6 +400,12 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
           diagnostics: candidate.value.pipeline.diagnostics,
           cost: candidate.value.cost,
         });
+        if (
+          plan.nonLoopBundle === "closed" &&
+          plan.loopPolicy === "original" &&
+          plan.startupPolicy === "full"
+        )
+          baselineRecipe = plan.id;
       } else {
         evidenceCandidates.push(
           Object.freeze({
@@ -454,49 +429,47 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
         return { kind: "failure", failure: reference.failure };
       return { kind: "failure", failure: incompleteStage("size cost selection") };
     }
-    const ordered = [...feasible.entries()].sort(
-      ([leftId, left], [rightId, right]) =>
-        compareSizeCosts(left.cost, right.cost) ||
-        Buffer.compare(Buffer.from(leftId), Buffer.from(rightId)),
+    // The canonical direct reference is not publishable in an optimized mode:
+    // rules change its machine code, so it must pass the same final-observer gate
+    // as a candidate. The Closed Original/full recipe is its validated form and
+    // is therefore the baseline that balanced/speed may retain.
+    const fallbackBaseline = [...feasible.keys()].sort((left, right) =>
+      Buffer.compare(Buffer.from(left), Buffer.from(right)),
+    )[0]!;
+    const baselineId =
+      baselineRecipe !== undefined && feasible.has(baselineRecipe)
+        ? baselineRecipe
+        : fallbackBaseline;
+    const baselineEntry = feasible.get(baselineId)!;
+    // The evidence baseline is the actual canonical reference shape. When that
+    // shape is resource-rejected it stays the recorded baseline even though the
+    // selector must start from the validated Closed Original/full recipe.
+    const recordedBaselineId = reference.kind === "feasible" ? baselineId : "reference";
+    const selection = selectOptimizationCandidate(
+      mode,
+      { id: baselineId, cost: baselineEntry.cost },
+      [...feasible.entries()]
+        .filter(([id]) => id !== baselineId)
+        .map(([id, value]) => ({ id, cost: value.cost })),
     );
-    const referenceEntry = feasible.get("reference");
-    let chosen:
-      | readonly [string, typeof feasible extends Map<string, infer V> ? V : never]
-      | undefined;
-    let incomparableComponents: readonly string[] = [];
-    let tiedIds: readonly string[] = [];
-    if (mode === "size") {
-      chosen = ordered[0]!;
-      tiedIds = ordered
-        .filter(([, value]) => sameSizeCosts(value.cost, chosen![1].cost))
-        .map(([id]) => id)
-        .sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
-    } else {
-      const selection =
-        referenceEntry === undefined
-          ? undefined
-          : selectOptimizationCandidate(
-              mode,
-              { id: "reference", cost: referenceEntry.cost },
-              [...feasible.entries()]
-                .filter(([id]) => id !== "reference")
-                .map(([id, value]) => ({ id, cost: value.cost })),
-            );
-      const selectedEntry =
-        selection?.kind === "selected" ? feasible.get(selection.candidateId) : undefined;
-      if (selection?.kind === "selected" && selectedEntry !== undefined)
-        chosen = [selection.candidateId, selectedEntry];
-      else if (referenceEntry !== undefined) chosen = ["reference", referenceEntry];
-      incomparableComponents = selection?.incomparableComponents ?? [];
-      tiedIds =
-        selection?.kind === "selected" && selection.tieBreak === "stableId"
-          ? [selection.candidateId]
-          : [];
-      if (selection?.kind === "selected" && selection.tieBreak === "stableId")
-        incomparableComponents = [];
-    }
-    if (chosen === undefined)
-      return { kind: "failure", failure: incompleteStage("optimization selection") };
+    const selectedEntry =
+      selection.kind === "selected" ? feasible.get(selection.candidateId) : undefined;
+    const chosen =
+      selection.kind === "selected" && selectedEntry !== undefined
+        ? ([selection.candidateId, selectedEntry] as const)
+        : ([baselineId, baselineEntry] as const);
+    const incomparableComponents =
+      selection.kind === "selected" ? [] : selection.incomparableComponents;
+    const tiedIds =
+      selection.kind === "selected" && selection.tieBreak === "stableId"
+        ? [...feasible.entries()]
+            .filter(
+              ([, value]) =>
+                compareOptimizationCosts(mode, baselineEntry.cost, value.cost).kind === "equal",
+            )
+            .map(([id]) => id)
+            .sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)))
+        : [];
     const main = source.value.program.semantic.main;
     sizeDecision = Object.freeze({
       id: `${mode}.whole-program`,
@@ -504,7 +477,7 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
       mode,
       sourceSites: costSourceSites(main.span),
       closurePoint: "postLayout",
-      baselineCandidateId: "reference",
+      baselineCandidateId: recordedBaselineId,
       selectedCandidateId: chosen[0],
       candidates: Object.freeze(
         evidenceCandidates.sort((left, right) =>

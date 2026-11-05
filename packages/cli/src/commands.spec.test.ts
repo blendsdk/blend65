@@ -275,7 +275,7 @@ describe("command options and cancellation", () => {
     ["build", "--unknown", "value"],
     ["build", "--project"],
     ["build", "--project", "one", "--project", "two"],
-    ["build", "--optimization", "speed"],
+    ["build", "--optimization", "fast"],
     ["build", "--bounds-check", "yes"],
     ["run", "--division-zero-check", "0"],
   ])("should reject invalid arguments %#", async (...argv) => {

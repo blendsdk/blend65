@@ -644,16 +644,26 @@ export function foldedRegisterReloads(before: Body, after: Body): FoldProof {
           store = item;
           break;
         }
-        if (item.source.opcode === "jsr" || item.source.defines.registers.includes("x")) break;
+        if (
+          item.source.opcode === "jsr" ||
+          item.source.defines.registers.includes("x") ||
+          item.source.uses.registers.includes("x")
+        )
+          break;
       }
       if (store === undefined) continue;
       const afterLoad = items[index + 1];
+      const terminatorFlags =
+        load.block.terminator.kind === "branch" || load.block.terminator.kind === "long-branch"
+          ? load.block.terminator.uses.flags
+          : [];
       if (
-        afterLoad !== undefined &&
-        !(
-          afterLoad.source.defines.flags.includes("n") &&
-          afterLoad.source.defines.flags.includes("z")
-        )
+        afterLoad === undefined
+          ? terminatorFlags.some((flag) => flag === "n" || flag === "z")
+          : !(
+              afterLoad.source.defines.flags.includes("n") &&
+              afterLoad.source.defines.flags.includes("z")
+            )
       )
         continue;
       const source = store.source.source ?? load.source.source;

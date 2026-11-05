@@ -39,8 +39,11 @@ function aDead(
   next.add(label);
   for (let index = start; index < block.instructions.length; index += 1) {
     const instruction = block.instructions[index]!;
-    if (instruction.defines.registers.includes("a")) return true;
+    // Read-before-write: an instruction such as `adc` both reads and writes A.
+    // The original value feeds that read, so the fold is legal only after the
+    // last A read. A pure write still proves the old A is dead from here.
     if (instruction.uses.registers.includes("a")) return false;
+    if (instruction.defines.registers.includes("a")) return true;
   }
   const terminator = block.terminator;
   if (terminator.kind === "branch" || terminator.kind === "long-branch")

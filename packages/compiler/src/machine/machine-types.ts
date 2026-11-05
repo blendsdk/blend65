@@ -342,6 +342,8 @@ export interface MachineObserverOrigin {
   readonly stride?: number;
   /** Existing use-site unsigned maxima; conditional loop premises still need final closure. */
   readonly indexBounds?: ReadonlyMap<string, bigint>;
+  /** Proved maximum of the scaled byte index actually held by `indexRegister`. */
+  readonly indexValueMaximum?: number;
   /** Evaluated source address value before binding; never the generated raw pointer's home. */
   readonly addressInput?: LoweredValue;
 }

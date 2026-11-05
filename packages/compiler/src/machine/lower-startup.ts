@@ -257,10 +257,20 @@ function rawAccessIndependent(
     if (byte >= 0xdd00 && byte <= 0xddff && register !== 0 && register !== 2) continue;
     if (byte >= 0xd400 && byte <= 0xd7ff) continue;
     if (!write && ((byte >= 0x4000 && byte <= 0xcfff) || byte >= 0xe000)) continue;
-    // A fixed ordinary-RAM write does not change the VIC/CIA/CPU bank view. The
-    // size candidate still needs its final alias/code observer proof; this only
-    // admits the startup construction axis.
-    if (allowOrdinaryWrites && write && byte >= 0x0200 && byte <= 0xcfff) continue;
+    // A fixed ordinary-RAM write does not change the VIC/CIA/CPU bank view, but
+    // the default screen matrix at $0400-$07FF is live display state: writing it
+    // changes what the user sees without any VIC register write. The compact
+    // startup may not inherit that display dependency, so keep the screen matrix
+    // under the strict rule. The size candidate still needs its final alias/code
+    // observer proof for every other admitted byte.
+    if (
+      allowOrdinaryWrites &&
+      write &&
+      byte >= 0x0200 &&
+      byte <= 0xcfff &&
+      !(byte >= 0x0400 && byte <= 0x07ff)
+    )
+      continue;
     return false;
   }
   return true;

@@ -363,7 +363,12 @@ function foldRegisterReloads(
             load = cursor;
             break;
           }
-          if (instruction.opcode === "jsr" || instruction.defines.registers.includes("x")) break;
+          if (
+            instruction.opcode === "jsr" ||
+            instruction.defines.registers.includes("x") ||
+            instruction.uses.registers.includes("x")
+          )
+            break;
           if (
             instruction.opcode === "sta" &&
             storageOperand(instruction)?.requestId === target.requestId
@@ -372,9 +377,14 @@ function foldRegisterReloads(
         }
         if (load < 0) continue;
         const after = instructions[load + 1];
+        const terminatorFlags =
+          block.terminator.kind === "branch" || block.terminator.kind === "long-branch"
+            ? block.terminator.uses.flags
+            : [];
         const flagsDead =
-          after === undefined ||
-          (after.defines.flags.includes("n") && after.defines.flags.includes("z"));
+          after === undefined
+            ? !terminatorFlags.some((flag) => flag === "n" || flag === "z")
+            : after.defines.flags.includes("n") && after.defines.flags.includes("z");
         if (!flagsDead || remove.has(load) || inserts.has(at)) continue;
         inserts.set(
           at,
