@@ -49,6 +49,14 @@ ${placement}function main(): void { ${body} }
 `;
 }
 
+/**
+ * Build a scaffold and measured slice in the same display-dependent startup class.
+ * The common VIC access cancels out of the complete-program byte delta.
+ */
+function sourceForBuild(imports: readonly string[], body: string) {
+  return source(imports, `${body}\n  poke($D020, peek($D020));`);
+}
+
 /** Fail on missing or malformed evidence instead of treating unavailable values as zero. */
 function integer(value: unknown): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0)
@@ -514,14 +522,14 @@ describe.each(PROFILES)("joystick public API and assembled output on %s", (profi
   for (const { name, address } of PORTS) {
     for (const use of ["discarded", "stored", "retained"] as const) {
       it(`should preserve a ${use} ${name} sample and account for its bytes and resources`, async () => {
-        const empty = await buildProfileSource(source([], ""), profile);
+        const empty = await buildProfileSource(sourceForBuild([], ""), profile);
         const body =
           use === "discarded"
             ? `${name}();`
             : use === "stored"
               ? `poke($0400, ${name}());`
               : `let sample: byte = ${name}(); poke($0400, sample); poke($0401, sample);`;
-        const artifacts = await buildProfileSource(source([name], body), profile);
+        const artifacts = await buildProfileSource(sourceForBuild([name], body), profile);
         const expected = [
           0xad,
           address & 255,
@@ -563,7 +571,8 @@ describe.each(PROFILES)("joystick public API and assembled output on %s", (profi
         if (use !== "retained") {
           expect(actual.sfa).toBe(baseline.sfa);
           // The operation body is followed by the common three-cycle restoration transfer.
-          mainCycleCeiling(artifacts, (use === "discarded" ? 4 : 8) + 3);
+          // The common display-dependent startup probe is LDA/STA (8 cycles).
+          mainCycleCeiling(artifacts, (use === "discarded" ? 4 : 8) + 3 + 8);
         } else {
           // LDA/STA/STA costs 9 bytes and 12 cycles, plus the common JMP's 3 bytes/3 cycles.
           recordExpertComparison(artifacts, profile, `retained ${name}`, {

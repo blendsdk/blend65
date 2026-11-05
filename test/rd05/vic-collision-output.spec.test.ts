@@ -29,6 +29,9 @@ function main(): void {
   asm_nop();
   ${body}
   asm_nop();
+  // Keep the scaffold and every measured slice in the same display-dependent
+  // startup class; this common access cancels out of the byte delta.
+  poke($D020, peek($D020));
 }`;
 }
 
