@@ -183,8 +183,11 @@ const BASIC_ROM_WINDOW: StorageRange = Object.freeze({ start: 0xa000, end: 0xbff
  * Keep every actual startup block and saved byte visible across the restored CPU banking.
  * The current constructor needs no more permissive transition proof. Unknown topology or
  * missing final facts are never repaired here, and canonical reuse has no exemption.
+ * @param shared Actual final shared-storage tuple, including placed startup code and state.
+ * @returns A physical-visibility rejection, inconsistent-evidence error, or null when visible.
+ * @example const failure = startupVisibilityFailure(shared);
  */
-function startupVisibilityFailure(shared: FinalSharedStorage): ObserverFailure | null {
+export function startupVisibilityFailure(shared: FinalSharedStorage): ObserverFailure | null {
   const layout = shared.layout;
   const overlapsBasic = (range: StorageRange) =>
     range.start <= BASIC_ROM_WINDOW.end && range.end >= BASIC_ROM_WINDOW.start;

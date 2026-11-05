@@ -640,6 +640,8 @@ export interface MachineLoweringInput {
   readonly program: WholeProgram;
   /** Precomputed source facts for a selected attempt; absent on direct none lowering. */
   readonly sourceFacts?: MachineSourceFacts;
+  /** Existing constructor selected by a canonical resource retry; recipe facts take precedence. */
+  readonly startupPolicy?: C64StartupPolicy;
   /** Optimized-candidate facts; absent keeps the canonical direct lowering path inert. */
   readonly optimizationFacts?: OptimizationFacts;
   /** Actual provisional physical facts, absent during allocation-independent construction. */

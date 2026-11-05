@@ -99,7 +99,7 @@ function main(): void { ${"asm_php(); ".repeat(6)}helper(); ${"asm_plp(); ".repe
   }, 60_000);
 
   it("should give a bounded 236-byte component zero headroom without adding reserve", async () => {
-    await withEvidence(`module Game; function main(): void { ${saves(235)} }`, (memory, costs) => {
+    await withEvidence(`module Game; function main(): void { ${saves(236)} }`, (memory, costs) => {
       expect(memory.stackDomains[0]).toMatchObject({
         id: "bounded-component-capacity",
         capacityBytes: 236,

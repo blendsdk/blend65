@@ -128,6 +128,44 @@ describe("C64 startup binding", () => {
     expect(full.startup.blocks[1]!.instructions[0]?.opcode).toBe("lda");
   });
 
+  it("stores status without a held byte or stack reset and charges the complete fragments", () => {
+    const input = {
+      initializerLabels: [],
+      mainLabel: "main",
+      displayIndependent: true,
+      startupPolicy: "compact-stored" as const,
+      profile: profile(),
+    };
+    const result = createC64Startup(input);
+    if (result.kind !== "complete") throw new Error("Expected stored-status startup");
+    expect(result.stackDemand).toEqual({ heldBytes: 0, transientPeakBytes: 1 });
+    expect(createC64StartupStateData(input).bytes).toHaveLength(7);
+    expect(startupBytes(result.startup)).toBe(86);
+    const instructions = result.startup.blocks.flatMap((block) => block.instructions);
+    const cycles = instructions.reduce((sum, instruction) => sum + instruction.cost.minCycles, 6);
+    expect(cycles).toBe(135);
+    expect(instructions.some(({ opcode }) => opcode === "txs" || opcode === "tsx")).toBe(false);
+    expect(result.startup.blocks[0]!.instructions.slice(0, 8).map(({ opcode }) => opcode)).toEqual([
+      "sta",
+      "stx",
+      "sty",
+      "php",
+      "sei",
+      "pla",
+      "sta",
+      "cld",
+    ]);
+    expect(result.startup.blocks[1]!.instructions.slice(-6).map(({ opcode }) => opcode)).toEqual([
+      "lda",
+      "pha",
+      "lda",
+      "ldx",
+      "ldy",
+      "plp",
+    ]);
+    expect(createC64Startup({ ...input, displayIndependent: false }).kind).toBe("error");
+  });
+
   it.each([true, false])("snapshots the actual unique BASIC bytes, compact=%s", (compact) => {
     const original = configuredProgram(compact);
     const source = {

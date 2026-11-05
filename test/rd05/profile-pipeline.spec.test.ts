@@ -10,6 +10,7 @@ import {
   readProfileArtifacts,
   withProfileProject,
 } from "./profile-fixture.js";
+import { libraryBytes, libraryStartup } from "./source-library-fixture.js";
 
 const profiles = [
   "c64-pal-prg-kernal-6581",
@@ -229,18 +230,32 @@ describe.each(profiles)("real terminal admission on %s", (target) => {
     );
     const code = executableLines(actual.assembly);
     for (const opcode of ["php", "cld", "plp", "rts"]) expect(code).toContain(opcode);
-    expect(code).not.toContain("sei");
+    expect(libraryBytes(actual, libraryStartup(actual, "startup.entry"), 3)).toEqual([
+      0x08, 0x78, 0xd8,
+    ]);
+    expect(libraryBytes(actual, libraryStartup(actual, "startup.restore"), 1)).toEqual([0x78]);
     expect(code).not.toContain("cli");
-    for (const address of [0x0000, 0x0001, 0xdd02, 0xd018, 0xd015]) {
+    for (const address of [0x0000, 0x0001, 0xdd02]) {
       const operand = `(?:\\+[12] )?\\$0*${address.toString(16)}`;
       expect(
-        code.some((line) => new RegExp(`^lda ${operand}$`, "u").test(line)),
+        code.filter((line) => new RegExp(`^(?:lda|ldx|ldy) ${operand}$`, "u").test(line)),
         `read ${address.toString(16)}`,
-      ).toBe(true);
+      ).toHaveLength(1);
       expect(
-        code.some((line) => new RegExp(`^sta ${operand}$`, "u").test(line)),
+        code.filter((line) => new RegExp(`^sta ${operand}$`, "u").test(line)),
         `write ${address.toString(16)}`,
-      ).toBe(true);
+      ).toHaveLength(2);
+    }
+    // Empty source needs no display or CIA2 port-A access, even for preservation.
+    for (const address of [
+      ...Array.from({ length: 0x2f }, (_, index) => 0xd000 + index),
+      ...Array.from({ length: 8 }, (_, index) => 0x07f8 + index),
+      0xdd00,
+    ]) {
+      expect(
+        code.some((line) => new RegExp(`\\$0*${address.toString(16)}\\b`, "u").test(line)),
+        `no device traffic at ${address.toString(16)}`,
+      ).toBe(false);
     }
     expect(code.some((line) => /^(?:lda|sta) (?:\+[12] )?\$0*dd00$/u.test(line))).toBe(false);
     expect(code.some((line) => /\$d4[0-1][0-9a-f]/u.test(line))).toBe(false);
@@ -260,13 +275,17 @@ describe.each(profiles)("real terminal admission on %s", (target) => {
       "module Game; place(at: $3000) const DATA: byte[3] = [13, 29, 47]; function main(): void {}",
       target,
     );
-    const empty = await buildProfileSource(emptySource, target);
+    // Match placement so the comparison keeps the same startup eligibility.
+    const control = await buildProfileSource(
+      "module Game; place(at: $3000) let DATA: byte[3]; function main(): void {}",
+      target,
+    );
     expectEvidence(initialized, target);
     expect([...initialized.prg.subarray(2 + 0x3000 - 0x0801, 2 + 0x3003 - 0x0801)]).toEqual([
       13, 29, 47,
     ]);
     expect(initialized.prg.length - 2).toBeLessThanOrEqual(51199);
-    expect(executableLines(initialized.assembly)).toEqual(executableLines(empty.assembly));
+    expect(executableLines(initialized.assembly)).toEqual(executableLines(control.assembly));
     const intervals = profileRecords(initialized.memory.intervals);
     expect(intervals.some(({ start, end }) => start === 0x3000 && end === 0x3003)).toBe(true);
     for (const interval of intervals) {
@@ -275,9 +294,9 @@ describe.each(profiles)("real terminal admission on %s", (target) => {
       if (Number(interval.start) >= 0x0801)
         expect(Number(interval.end)).toBeLessThanOrEqual(0xd000);
     }
-    expect(initialized.memory.stackDomains).toEqual(empty.memory.stackDomains);
+    expect(initialized.memory.stackDomains).toEqual(control.memory.stackDomains);
     expect(profileRecord(initialized.costs.totals).pathCycles).toEqual(
-      profileRecord(empty.costs.totals).pathCycles,
+      profileRecord(control.costs.totals).pathCycles,
     );
   }, 60_000);
 });

@@ -9,48 +9,16 @@ import type {
 } from "../machine/machine-types.js";
 import type { StorageHome, StartupStackDemand } from "../storage/storage-types.js";
 import type { MachineProgram } from "../machine/machine-types.js";
+import {
+  C64_STARTUP_STATE_ID,
+  createStartupStatus,
+  startupStateLayout,
+  startupStateInstruction as stateInstruction,
+} from "./startup-status.js";
+import type { C64StartupPolicy } from "./startup-status.js";
 
-/** Stable identity of the platform-owned cooperative-startup save area. */
-export const C64_STARTUP_STATE_ID = "platform.startup-state";
-
-const STARTUP_STATE = Object.freeze({
-  a: 0,
-  x: 1,
-  y: 2,
-  status: 3,
-  stack: 4,
-  cpuDirection: 5,
-  cpuPort: 6,
-  cia2Direction: 7,
-  vicMemory: 8,
-  spriteEnable: 9,
-  spriteXHigh: 10,
-  spriteYExpand: 11,
-  spritePriority: 12,
-  spriteMulticolor: 13,
-  spriteXExpand: 14,
-  border: 15,
-  background: 16,
-  spritePositions: 17,
-  spriteColors: 33,
-  spritePointers: 41,
-  bytes: 49,
-});
-
-/**
- * Balanced display-independent programs hold the original P on the hardware
- * stack. Only the three mapping bytes survive in the platform save area.
- */
-const COMPACT_STARTUP_STATE = Object.freeze({
-  ...STARTUP_STATE,
-  cpuDirection: 0,
-  cpuPort: 1,
-  cia2Direction: 2,
-  bytes: 3,
-});
-
-/** Admitted cooperative startup constructions; every compact form needs display independence. */
-export type C64StartupPolicy = "full" | "compact-unrolled" | "compact-looped";
+export { C64_STARTUP_STATE_ID } from "./startup-status.js";
+export type { C64StartupPolicy } from "./startup-status.js";
 
 /** Inputs needed to construct the selected cooperative C64 startup. */
 export interface C64StartupInput {
@@ -110,7 +78,7 @@ function deviceMode(address: number): "zero-page" | "absolute" {
 export function createC64StartupStateData(
   input: Pick<C64StartupInput, "displayIndependent" | "startupPolicy" | "borrowedZeroPage"> = {},
 ): MachineDataObject {
-  const state = compactPolicy(input).compact ? COMPACT_STARTUP_STATE : STARTUP_STATE;
+  const state = startupStateLayout(compactPolicy(input).policy);
   return Object.freeze({
     id: C64_STARTUP_STATE_ID,
     kind: "bss",
@@ -132,6 +100,7 @@ function borrowedBasicBytes(input: Pick<C64StartupInput, "borrowedZeroPage">): r
 
 /** Resolve the explicit construction while preserving the established compact default. */
 function compactPolicy(input: Pick<C64StartupInput, "displayIndependent" | "startupPolicy">): {
+  readonly policy: C64StartupPolicy;
   readonly compact: boolean;
   readonly looped: boolean;
 } {
@@ -140,6 +109,7 @@ function compactPolicy(input: Pick<C64StartupInput, "displayIndependent" | "star
   if (policy !== "full" && input.displayIndependent !== true)
     throw new Error("Compact startup requires its display-independence proof");
   return Object.freeze({
+    policy,
     compact: policy !== "full",
     looped: policy === "compact-looped",
   });
@@ -193,32 +163,6 @@ export function bindC64StartupState(
       ),
     ),
   });
-}
-
-/** One non-volatile access to the startup save area. */
-function stateEffect(kind: "read" | "write", offset: number): MachineMemoryEffect {
-  return Object.freeze({
-    kind,
-    address: Object.freeze({ kind: "symbolic", label: C64_STARTUP_STATE_ID, offset }),
-    width: 1,
-    volatile: false,
-    order: 0,
-  });
-}
-
-/** Load or store one byte in the startup save area. */
-function stateInstruction(
-  cpu: TargetProfile["cpu"],
-  opcode: "lda" | "ldx" | "ldy" | "sta" | "stx" | "sty",
-  offset: number,
-): MachineInstruction {
-  return machineInstruction(
-    cpu,
-    opcode,
-    "absolute",
-    Object.freeze({ kind: "label", label: C64_STARTUP_STATE_ID, offset }),
-    [stateEffect(opcode.startsWith("st") ? "write" : "read", offset)],
-  );
 }
 
 /** Save one byte from a named device register. */
@@ -277,7 +221,8 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
     });
   }
   const { compact, looped } = policy;
-  const state = compact ? COMPACT_STARTUP_STATE : STARTUP_STATE;
+  const status = createStartupStatus(cpu, policy.policy);
+  const { state } = status;
   const borrowed = borrowedBasicBytes(input);
   const machine = input.profile.machine;
   const preservedDevices = Object.freeze([
@@ -315,27 +260,7 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
           ),
         ]),
   ]);
-  const entry: MachineInstruction[] = [
-    ...(compact
-      ? []
-      : [
-          stateInstruction(cpu, "sta", state.a),
-          stateInstruction(cpu, "stx", state.x),
-          stateInstruction(cpu, "sty", state.y),
-        ]),
-    // Compact startup keeps the original status byte on the stack. The entry
-    // masks IRQs while it captures platform state and clears decimal mode.
-    machineInstruction(cpu, "php", "implied", null),
-    ...(compact
-      ? [machineInstruction(cpu, "sei", "implied", null)]
-      : [
-          machineInstruction(cpu, "pla", "implied", null),
-          stateInstruction(cpu, "sta", state.status),
-          machineInstruction(cpu, "tsx", "implied", null),
-          stateInstruction(cpu, "stx", state.stack),
-        ]),
-    machineInstruction(cpu, "cld", "implied", null),
-  ];
+  const entry: MachineInstruction[] = [...status.entry];
   if (compact) {
     // Borrowed-byte captures use A only. Keep the direction in X until mapping,
     // then capture the port last so its fresh A value needs no memory reload.
@@ -488,6 +413,7 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       ),
     );
   }
+  entry.push(...status.beforeInitializers);
   const initializers =
     input.initializers ??
     input.initializerLabels.map((label) => Object.freeze({ kind: "call" as const, label }));
@@ -506,23 +432,7 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       );
     }
   }
-  const mainEntry = compact
-    ? [
-        // Copy the held original P into the live register without removing it.
-        // This restores the caller's I state for main while D stays binary.
-        machineInstruction(cpu, "tsx", "implied", null),
-        machineInstruction(cpu, "inx", "implied", null),
-        machineInstruction(
-          cpu,
-          "lda",
-          "absolute-x",
-          Object.freeze({ kind: "absolute", value: 0x0100 }),
-        ),
-        machineInstruction(cpu, "pha", "implied", null),
-        machineInstruction(cpu, "plp", "implied", null),
-        machineInstruction(cpu, "cld", "implied", null),
-      ]
-    : [];
+  const mainEntry = status.beforeMain;
   if (!looped) entry.push(...mainEntry);
 
   const restorePrefix: MachineInstruction[] = compact
@@ -535,34 +445,7 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
     ...restoreDevice(cpu, machine.cia2DataDirection, state.cia2Direction),
     ...restoreDevice(cpu, cpu.portDataAddress, state.cpuPort),
     ...restoreDevice(cpu, cpu.portDirectionAddress, state.cpuDirection),
-    // Mask IRQs before the first owned device or memory transaction. Compact
-    // restore reads the held byte, removes it with TXS, then pushes a copy for
-    // the final PLP. Nothing after PLP changes flags, so the original status is
-    // returned exactly; the full path keeps its explicit copy.
-    ...(compact
-      ? [
-          machineInstruction(cpu, "tsx", "implied", null),
-          machineInstruction(cpu, "inx", "implied", null),
-          machineInstruction(
-            cpu,
-            "lda",
-            "absolute-x",
-            Object.freeze({ kind: "absolute", value: 0x0100 }),
-          ),
-          machineInstruction(cpu, "txs", "implied", null),
-          machineInstruction(cpu, "pha", "implied", null),
-          machineInstruction(cpu, "plp", "implied", null),
-        ]
-      : [
-          stateInstruction(cpu, "ldx", state.stack),
-          machineInstruction(cpu, "txs", "implied", null),
-          stateInstruction(cpu, "lda", state.status),
-          machineInstruction(cpu, "pha", "implied", null),
-          stateInstruction(cpu, "lda", state.a),
-          stateInstruction(cpu, "ldx", state.x),
-          stateInstruction(cpu, "ldy", state.y),
-          machineInstruction(cpu, "plp", "implied", null),
-        ]),
+    ...status.restore,
   ];
   const borrowedRestores = borrowed.flatMap((address, index) =>
     restoreDevice(cpu, address, state.bytes + index),
@@ -741,9 +624,7 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
 
   return Object.freeze({
     kind: "complete",
-    stackDemand: Object.freeze(
-      compact ? { heldBytes: 1, transientPeakBytes: 2 } : { heldBytes: 0, transientPeakBytes: 1 },
-    ),
+    stackDemand: status.stackDemand,
     stub: Object.freeze({ origin: 0x0801, bytes: BASIC_STUB }),
     startup: Object.freeze({
       id: "startup",

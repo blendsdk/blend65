@@ -30,6 +30,7 @@ import type {
   StorageRequest,
 } from "../storage/storage-types.js";
 import type { TargetProfile } from "../target/profile.js";
+import { C64_RESOURCE_BUDGETS } from "../target/c64-kernal.js";
 import {
   embeddedPayloadOverflow,
   layoutResourceWarnings,
@@ -40,7 +41,7 @@ import {
   storageResourceWarnings,
 } from "./resource-diagnostics.js";
 import { sizeCostVector, type SizeCostVector } from "./evidence.js";
-import { validateSizeObservers } from "./size-observers.js";
+import { startupVisibilityFailure, validateSizeObservers } from "./size-observers.js";
 import type { ObserverValidation } from "./size-observers.js";
 import { closeSharedStorage } from "./shared-storage.js";
 import type { SharedStorageResult } from "./shared-storage.js";
@@ -69,6 +70,10 @@ export interface CheckedSourceInput {
 
 /** Successful direct lowering and storage binding, before platform layout. */
 export interface CanonicalPipeline extends Omit<CheckedSourceInput, "loopNesting"> {
+  /** Exact checked input before this construction added machine/resource observations. */
+  readonly checkedSource: CheckedSourceInput;
+  /** Explicit retry constructor, whose return visibility must pass before it replaces the default. */
+  readonly requestedStartupPolicy?: C64StartupPolicy;
   /** Source and selected-machine observations in their established service order. */
   readonly diagnostics: readonly ProjectDiagnostic[];
   /** Original symbolic machine operations and their finite storage discovery owner. */
@@ -250,10 +255,13 @@ function completedPipeline(
   certificate: CanonicalPipeline["certificate"],
   machine: CanonicalPipeline["machine"],
   deadHomes?: ReadonlySet<string>,
+  startupPolicy?: C64StartupPolicy,
 ): CanonicalPipeline {
   const irqWarnings = overlappingIrqRootWarnings(program, certificate.irqOverlap);
   const previousWarnings = program.diagnostics ?? [];
   return Object.freeze({
+    checkedSource: input,
+    ...(startupPolicy === undefined ? {} : { requestedStartupPolicy: startupPolicy }),
     snapshot: input.snapshot,
     profile,
     resourceSpans: input.resourceSpans,
@@ -287,11 +295,14 @@ function completedPipeline(
  * Resource failures remain distinguishable from incomplete lowering, unsafe routes and
  * invalid certificates. Direct callers return the retained failure unchanged.
  * @param input Immutable checked source, independent of canonical allocation success.
+ * @param optimizationFacts Optional rules shared by the optimized reference and its candidates.
+ * @param startupPolicy Explicit existing constructor for a resource-driven retry.
  * @returns Bound direct machine operations, a resource rejection, or a terminal failure.
  */
 export function closeCanonicalStorage(
   input: CheckedSourceInput,
   optimizationFacts?: OptimizationFacts,
+  startupPolicy?: C64StartupPolicy,
 ): CanonicalStorageOutcome {
   const { program, profile, resourceSpans, snapshot } = input;
   const zeroPageOverflow = sourceZeroPageOverflow(program, profile, resourceSpans);
@@ -326,6 +337,7 @@ export function closeCanonicalStorage(
   const placement = provisional.placement;
   const lower = (facts: OptimizationFacts | undefined) =>
     lowerMachineProgram({
+      ...(startupPolicy === undefined ? {} : { startupPolicy }),
       ...(snapshot.manifest.optimization !== "none" ? { observerEvidence: true } : {}),
       ...(facts === undefined ? {} : { optimizationFacts: facts }),
       preferZeroPage: input.snapshot.manifest.optimization !== "none",
@@ -359,6 +371,30 @@ export function closeCanonicalStorage(
   if (!validStorageDemands(lowered.program.requiredStorage))
     return incomplete("static storage closure");
   const certificate = closeStorage(inventory, reserved.storage, lowered.binder);
+  if (
+    startupPolicy === undefined &&
+    snapshot.manifest.optimization === "none" &&
+    (lowered.binder.startupStack?.heldBytes ?? 0) > 0 &&
+    certificate.kind === "error" &&
+    certificate.reason === "stack" &&
+    certificate.measured !== undefined &&
+    Number.isFinite(certificate.measured)
+  ) {
+    // A compiler-held status byte must not reject source that fits the existing
+    // stored-status constructor. Re-lower the whole tuple, including initializers,
+    // rather than removing that byte from an otherwise unchanged certificate.
+    const stored = closeCanonicalStorage(input, optimizationFacts, "compact-stored");
+    if (stored.kind === "failure") return stored;
+    if (
+      (stored.kind === "complete" &&
+        stored.value.certificate.certificate.hardwareStackPeak < certificate.measured) ||
+      (stored.kind === "resource-rejected" &&
+        stored.stage === "stack" &&
+        stored.facts.measured !== undefined &&
+        stored.facts.measured < certificate.measured)
+    )
+      return stored;
+  }
   if (certificate.kind === "error") {
     if (certificate.reason === "stack" && certificate.measured !== undefined) {
       if (!Number.isFinite(certificate.measured)) {
@@ -440,6 +476,7 @@ export function closeCanonicalStorage(
       certificate,
       machine,
       deadHomes,
+      startupPolicy,
     ),
   });
 }
@@ -457,6 +494,26 @@ export function closeCanonicalReference(
   candidate = false,
 ): CanonicalReferenceOutcome {
   const { profile, resourceSpans, lowered } = checked;
+  if (
+    !candidate &&
+    checked.snapshot.manifest.optimization === "none" &&
+    (lowered.binder.startupStack?.heldBytes ?? 0) > 0 &&
+    checked.certificate.certificate.hardwareStackPeak >= C64_RESOURCE_BUDGETS.stackWarning
+  ) {
+    // Prefer a lower stack peak near the advisory boundary, but only if the
+    // larger constructor also fits the real resident layout. A RAM-tight program
+    // keeps its feasible compact tuple and its truthful held-byte warning.
+    const stored = closeCanonicalStorage(checked.checkedSource, undefined, "compact-stored");
+    if (stored.kind === "failure") return stored;
+    if (
+      stored.kind === "complete" &&
+      stored.value.certificate.certificate.hardwareStackPeak <
+        checked.certificate.certificate.hardwareStackPeak
+    ) {
+      const reference = closeCanonicalReference(stored.value);
+      if (reference.kind !== "resource-rejected") return reference;
+    }
+  }
   const facts = {
     inventory: checked.certificate.inventory,
     placement: checked.certificate.placement,
@@ -493,6 +550,17 @@ export function closeCanonicalReference(
       (candidate && shared.reason === "invalid-data" && shared.objectId === C64_STARTUP_STATE_ID)
       ? rejected("layout", failed.failure, { ...facts, objectId: shared.objectId })
       : failed;
+  }
+  if (checked.requestedStartupPolicy !== undefined) {
+    const visibility = startupVisibilityFailure(shared);
+    if (visibility !== null) {
+      const failed = terminal("compiler", [
+        projectDiagnostic("COMPILER_LAYOUT", visibility.reason, visibility.source),
+      ]);
+      return visibility.kind === "error"
+        ? failed
+        : rejected("layout", failed.failure, { ...facts, objectId: visibility.objectId });
+    }
   }
   return Object.freeze({
     kind: "feasible",
@@ -690,9 +758,10 @@ export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResu
       input.optimizationFacts ??
       deriveOptimizationFacts({
         checked,
-        mode: checked.snapshot.manifest.optimization === "none"
-          ? "size"
-          : checked.snapshot.manifest.optimization,
+        mode:
+          checked.snapshot.manifest.optimization === "none"
+            ? "size"
+            : checked.snapshot.manifest.optimization,
       }),
     preferZeroPage: checked.snapshot.manifest.optimization !== "none",
     boundsCheck: checked.snapshot.manifest.boundsCheck,

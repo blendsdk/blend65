@@ -449,6 +449,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
     const strictStartupIndependent = hasDisplayIndependentStartup(input.program);
     const startupPolicy =
       input.sourceFacts?.startupPolicy ??
+      input.startupPolicy ??
       (strictStartupIndependent ? ("compact-unrolled" as const) : ("full" as const));
     const compactStartup = startupPolicy !== "full";
     if (
