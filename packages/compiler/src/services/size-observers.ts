@@ -309,6 +309,18 @@ function placedSourceFailure(
   return null;
 }
 
+/** Source CPU controls are non-observing only when no flag-sensitive proof owns the candidate. */
+function cpuControlAdmitted(input: FinalObserverInput): boolean {
+  return input.candidate.lowered.program.functions.every(
+    (fn) =>
+      (fn.byteAvailabilityProofs?.length ?? 0) === 0 &&
+      (fn.byteComplementProofs?.length ?? 0) === 0 &&
+      (fn.booleanCallProofs?.length ?? 0) === 0 &&
+      (fn.fixedCounterProofs?.length ?? 0) === 0 &&
+      (fn.fixedLoopProofs?.length ?? 0) === 0,
+  );
+}
+
 /**
  * Prove source containment after the residual gate checks any admitted raw operations.
  * Platform, status, identity exposure and conditional machine windows are not
@@ -401,7 +413,11 @@ function typedSourceFailure(
               operation.kind === "function-address" &&
               asyncHandlers.has(bindingIdentityKey(operation.function))
             ) &&
-            !(operation.kind === "cpu-control" && operation.control === "asm_nop") &&
+            !(
+              operation.kind === "cpu-control" &&
+              (operation.control === "asm_nop" ||
+                (block.id === body.entry && cpuControlAdmitted(input)))
+            ) &&
             !effects.operations.has(operation)) ||
           (operation.kind === "call" &&
             (globals.has(bindingIdentityKey(body.id)) ||
