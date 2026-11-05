@@ -60,17 +60,33 @@ function booleanWindowFailure(input: FinalObserverInput): ObserverFailure | null
       blocks.get(left)?.origin === blocks.get(right)?.origin;
     for (const proof of proofs) {
       const removed = proof.removed[0];
-      const comparison =
+      const removedComparison =
         proof.removed.length === 1 &&
         removed?.opcode === "cmp" &&
         removed.mode === "immediate" &&
         removed.operand?.kind === "immediate" &&
         removed.operand.value === 0 &&
         removed.memory.length === 0;
+      const added = proof.added[0];
+      // A retest re-establishes N/Z from the returned Boolean value. CMP #0 is
+      // used only when both continuations prove carry dead; AND #$FF is the
+      // carry-preserving fallback and therefore needs no C continuation proof.
+      const addedTest =
+        added !== undefined &&
+        added.mode === "immediate" &&
+        added.operand?.kind === "immediate" &&
+        added.memory.length === 0 &&
+        ((added.opcode === "cmp" && added.operand.value === 0) ||
+          (added.opcode === "and" && added.operand.value === 0xff));
+      const retest =
+        proof.kind === "retest" &&
+        proof.removed.length === 0 &&
+        proof.added.length === 1 &&
+        addedTest;
+      const comparison = removedComparison || (retest && added?.opcode === "cmp");
       if (
         proof.function !== owner ||
-        proof.kind !== "certified" ||
-        proof.added.length !== 0 ||
+        !((proof.kind === "certified" && proof.added.length === 0) || retest) ||
         (proof.removed.length !== 0 && !comparison)
       )
         return observerFailure(
@@ -81,7 +97,7 @@ function booleanWindowFailure(input: FinalObserverInput): ObserverFailure | null
       const block = blocks.get(proof.block);
       const original = symbolic.blocks.find((block) => block.label === proof.block)?.terminator;
       const edge = block?.terminator;
-      const call = block?.instructions.at(-1);
+      const call = retest ? block?.instructions.at(-2) : block?.instructions.at(-1);
       const callee = final.get(proof.callee);
       if (
         block === undefined ||
@@ -116,13 +132,18 @@ function booleanWindowFailure(input: FinalObserverInput): ObserverFailure | null
           "Boolean final branch does not preserve its source successors",
           proof.call.span,
         );
-      if (!exits.has(callee.id)) exits.set(callee.id, deriveBooleanExitFacts(callee) !== null);
-      if (!exits.get(callee.id))
-        return observerFailure(
-          "rejected",
-          "Actual Boolean callee does not establish every returned flag",
-          proof.call.span,
-        );
+      // A retest explicitly rebuilds N/Z after the call, so it does not depend on
+      // the callee's all-exit flag certificate. The final lowering recheck only
+      // enforces that certificate for `certified` proofs.
+      if (proof.kind === "certified") {
+        if (!exits.has(callee.id)) exits.set(callee.id, deriveBooleanExitFacts(callee) !== null);
+        if (!exits.get(callee.id))
+          return observerFailure(
+            "rejected",
+            "Actual Boolean callee does not establish every returned flag",
+            proof.call.span,
+          );
+      }
       if (
         comparison &&
         (!continuation(target, 0, BYTE_WINDOW_CHANGED.c) ||

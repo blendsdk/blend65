@@ -340,6 +340,29 @@ describe("selected Boolean call flags", () => {
     });
   });
 
+  it("should preserve carry with AND #$FF when a continuation reads it", () => {
+    const f = callFixture(false, []);
+    const callee = {
+      ...f.callee,
+      blocks: [returned("entry", [instruction("lda", 1), instruction("plp")])],
+    };
+    const observed = {
+      ...f.caller,
+      blocks: f.caller.blocks.map((block) =>
+        block.label === "yes" || block.label === "no"
+          ? { ...block, instructions: [instruction("adc", 0), ...block.instructions] }
+          : block,
+      ),
+    };
+    const selected = selectBooleanCallFlags([observed, callee], f.owners)[0]!;
+    expect(selected.blocks[0]?.instructions.map((item) => item.opcode)).toEqual(["jsr", "and"]);
+    expect(selected.blocks[0]?.instructions[1]).toMatchObject({
+      opcode: "and",
+      mode: "immediate",
+      operand: { kind: "immediate", value: 0xff },
+    });
+  });
+
   it("should use the complete lowering handoff only for an explicit Closed bundle", () => {
     const main = semanticFunction(100, "Main", [], VOID, [
       semanticBlock("main", [], { kind: "return", value: null }),

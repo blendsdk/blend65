@@ -536,18 +536,34 @@ export function selectBooleanCallFlags(
       if (suffix.some((item) => item.memory.some((effect) => effect.volatile))) return block;
       const certified = proof !== undefined && validBooleanExitFacts(proof, callee);
       if (!certified && (suffix.length !== 0 || candidate.negated)) return block;
+      // A retest must not leak a changed carry into either continuation. Prefer the
+      // canonical CMP #0 test when C is dead on both edges; otherwise AND #$FF sets
+      // N/Z from the same returned A and leaves C and V untouched.
+      const carrySafe = (target: string) => safePrefix(target, 0, BYTE_WINDOW_CHANGED.c);
+      const retestPreservesCarry = !carrySafe(edge.target) || !carrySafe(edge.fallthrough);
       const added = certified
         ? []
-        : [
-            machineInstruction(
-              cpu,
-              "cmp",
-              "immediate",
-              { kind: "immediate", value: 0 },
-              [],
-              candidate.call.span,
-            ),
-          ];
+        : retestPreservesCarry
+          ? [
+              machineInstruction(
+                cpu,
+                "and",
+                "immediate",
+                { kind: "immediate", value: 0xff },
+                [],
+                candidate.call.span,
+              ),
+            ]
+          : [
+              machineInstruction(
+                cpu,
+                "cmp",
+                "immediate",
+                { kind: "immediate", value: 0 },
+                [],
+                candidate.call.span,
+              ),
+            ];
       const captured =
         suffix.length === 2 &&
         suffix[0]?.opcode === "sta" &&
