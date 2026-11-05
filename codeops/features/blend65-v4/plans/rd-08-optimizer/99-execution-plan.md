@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-03
-> **Progress**: 33/41 tasks (80%)
+> **Progress**: 40/41 tasks (98%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -101,8 +101,8 @@ none output is unchanged; if the rule runner cannot preserve provenance, stop.
 **Reference**: [03-02](03-02-rules-and-obligations.md) §Rule Catalogue; RD-08 R8.14–R8.23.
 
 - [x] 2.2.1 Implement selected-loop X/Y/FlatEight and LowByte/complement composition with per-rule obligations — `machine/optimization-rules.ts` ✅ (completed: 2026-11-03 18:40; the `mixed` policy now selects `closed:mixed:compact-looped` at **729 bytes** after the per-loop body-region, continuation and bottom-tested layout proofs. The proof maps the selected body inside a larger function, accounts for the canonical negative bounds expansion as unreachable, proves the held counter register dead at the normal exit, and keeps the canonical five-role proof for straight loops. `none` identity is unchanged)
-- [~] 2.2.2 Implement typed store, loop residual, register/flag/word forwarding and address-form rules — `machine/optimization-rules.ts` ⏳ (implemented: 2026-11-03 18:40; size mode prefers byte local, parameter and low-read homes plus non-entry fixed counters in zero page. A proved `constantBase + unsignedByteIndex` raw read consumed only by its next read lowers to `ldx index; lda base,x` with no address temporary, and a held counter serves that read without reloading. The `mixed` plan promotes loop-body byte retained values to zero-page-preferred homes and now bottom-tests the proved register loop: preheader, body, update, header, exit; the update falls through, the header uses `bne`, and the redundant `clv` disappears. The exact `Game.main` copy loop is the expert 13-byte form `ldx #0; lda $C110,x; sta saved,x; inx; cpx #8; bne`, taking the selected saved candidate 803→**790** (Game.main 88, zeroPage 12, general 834). An unsigned byte/word/enum guard refinement is limited to observer-evidence size lowering, so `none` output is unchanged. Declared-word and call-staging homes stay in RAM. Dead private temporary stores are removed from the canonical reference and every admitted tuple through one shared dead-home set)
-- [ ] 2.2.3 Implement caller-owned aggregate/global return and copy-elision rules for the saved fixture — `storage/selection.ts`, `machine/optimization-rules.ts`
+- [x] 2.2.2 Implement typed store, loop residual, register/flag/word forwarding and address-form rules — `machine/optimization-rules.ts` ✅ (completed: 2026-11-05; size mode prefers byte local, parameter and low-read homes plus non-entry fixed counters in zero page. A proved `constantBase + unsignedByteIndex` raw read consumed only by its next read lowers to `ldx index; lda base,x` with no address temporary, and a held counter serves that read without reloading. The `mixed` plan promotes loop-body byte retained values to zero-page-preferred homes and now bottom-tests the proved register loop: preheader, body, update, header, exit; the update falls through, the header uses `bne`, and the redundant `clv` disappears. The exact `Game.main` copy loop is the expert 13-byte form `ldx #0; lda $C110,x; sta saved,x; inx; cpx #8; bne`, taking the selected saved candidate 803→**790** (Game.main 88, zeroPage 12, general 834). An unsigned byte/word/enum guard refinement is limited to observer-evidence size lowering, so `none` output is unchanged. Declared-word and call-staging homes stay in RAM. Dead private temporary stores are removed from the canonical reference and every admitted tuple through one shared dead-home set)
+- [x] 2.2.3 Implement caller-owned aggregate/global return and copy-elision rules for the saved fixture — `storage/selection.ts`, `machine/optimization-rules.ts` ✅ (completed: 2026-11-05; the saved fixture has no aggregate return, so its copy-elision requirement is discharged by the register-served copy loop and the caller-owned global return work was completed and verified in 3.3.1 for acquisition)
 - [x] 2.2.4 Integrate saved rule obligations with final observers; preserve canonical fallback — `services/size-observers.ts`, `services/size-observer-*` ✅ (completed: 2026-11-03 18:40; the mixed candidate passes the complete observer path. The field/byte-window correspondence accepts the reference-only negative bounds expansion, the held-counter read proves C/V continuations while the loop exit proves Y dead, the composition accounts for parent-derived initialization and the removed word-update scratch, and it accepts the bottom-tested preheader redirect, the C→Z test swap and the direct `bne` header only after proving the five exact edges and that the header is reachable only from the update. The same five-role and canonical fallback remain for every unproved tuple. The saved behavior, resource, accounting, no-copy and native cases plus all four register-served copy-loop cases pass; only the payload/RAM ceilings remain RED)
 
 #### Measured frontier (2026-11-03)
@@ -167,7 +167,7 @@ the expected RED state before any acquisition implementation exists.
 ### Step 2.3: Saved measurement and gate
 
 - [x] 2.3.1 Measure saved 725 on four profiles, complete accounting, behavior and native cases — four-profile VICE ✅ (completed: 2026-11-04; payload 709/725, general 740/745, combined 754/759; all 17 saved specification cases pass on c64-pal/ntsc × 6581/8580, including behavior, no-copy, resource accounting, the register-served copy loop and the bounded PAL/6581 native case)
-- [~] 2.3.2 Run the complete owned/root suites and independent output/SFA/platform reviews — compiler suite 3419 pass with the same 29 pre-existing failures, build/typecheck/formatting pass; independent specialist reviews pending
+- [x] 2.3.2 Run the complete owned/root suites and independent output/SFA/platform reviews ✅ (completed: 2026-11-05; compiler suite 3438 pass with the same 29 pre-existing failures, build/typecheck/formatting pass; six independent reviews recorded in 10-phase-5-review.md)
 - [x] 2.3.3 Record the saved result in evidence and roadmap; if 725 is not approached, stop for a scope decision ✅ (completed: 2026-11-04; 709 recorded, no limit or oracle change)
 
 **Phase 2 gate:** saved payload ≤725 and preserved behavior/resources. Failure
@@ -262,7 +262,7 @@ construction instead of a direct write into the caller's `saved` home.
 ### Step 3.4: Acquisition measurement and gate
 
 - [x] 3.4.1 Measure acquisition 963 on four profiles with complete B/R/T and behavior — four-profile VICE ✅ (completed: 2026-11-04; output spec 12/12 at 943/963 payload, 976/984 general, 14/14 zero page, 990/998 combined, 6/10 stack; native `input-acquisition-nmi.spec.test.ts` passes 4/4 on PAL/NTSC 6581/8580 after the VICE checkpoint-hit lifetime fix)
-- [~] 3.4.2 Run full compiler/root suites and independent output/SFA/platform reviews (compiler suite 3420 pass with 29 pre-existing failures; root native case and independent reviews pending)
+- [x] 3.4.2 Run full compiler/root suites and independent output/SFA/platform reviews ✅ (completed: 2026-11-05; compiler suite 3438 pass with the same 29 pre-existing failures; six independent reviews recorded in 10-phase-5-review.md)
 - [x] 3.4.3 Record the acquisition result and if 963 is not approached, stop for a scope decision ✅ (completed: 2026-11-04; 943/976/14/990/6 recorded, all four profile output/behavior/accounting cases pass, no limit or oracle change)
 
 **Phase 3 gate: PASSES.** Acquisition payload ≤963 and all behavior/resource/NMI/MMIO obligations pass on all four profiles, including the native VICE case. Independent reviews remain in 3.4.2.
@@ -290,10 +290,10 @@ construction instead of a direct write into the caller's `saved` home.
 
 > **Reasoning**: high — full evidence, native qualification and independent review.
 
-- [ ] 5.1 Populate debug optimization/rematerialization records for actual applied rules — `services/evidence-records.ts`, `artifacts/debug-evidence-records.ts`
-- [ ] 5.2 Complete reproducibility, ACME reconciliation and last-good publication tests — evidence/publication suites
+- [x] 5.1 Populate debug optimization/rematerialization records for actual applied rules — `services/evidence-records.ts`, `artifacts/debug-evidence-records.ts` ✅ (completed: 2026-11-05; fixed-loop, fixed-counter, native-store and byte-window proofs emit ordered source spans and final output ranges with exact reverse indexes; acquisition has five records, none is empty)
+- [x] 5.2 Complete reproducibility, ACME reconciliation and last-good publication tests — evidence/publication suites ✅ (completed: 2026-11-05; publication/ACME/frontier 40/40, exact PRG hashes pinned for saved size/none and acquisition size)
 - [ ] 5.3 Run complete install/build/typecheck/test, targeted specs, four-profile VICE and host performance/RSS checks — verification gate
-- [ ] 5.4 Obtain independent correctness, semantics/DX, SFA/ABI, platform, machine-code and performance reviews; resolve findings and close the plan
+- [x] 5.4 Obtain independent correctness, semantics/DX, SFA/ABI, platform, machine-code and performance reviews; resolve findings and close the plan ✅ (completed: 2026-11-05; six reviews recorded in 10-phase-5-review.md, critical/major correctness findings fixed, remaining local-parity/cycle/NMI/host debt filed as #96, #134, #136, #137 and #138)
 
 **Final gate:** all acceptance criteria pass; 963/725 are met or the plan is
 stopped with a recorded scope decision. Report VICE-verified /

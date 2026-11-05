@@ -19,6 +19,13 @@ describe("measured optimizer output identity", () => {
     const source = await fixture("input-saved-caller.blend");
     const size = await buildProfileSource(source, PROFILE, "size");
     expect(size.prg.length - 2, "saved size payload").toBe(709);
+    // The optimized baseline is a validated candidate recipe, never the raw
+    // canonical reference that bypasses the final-observer gate.
+    const decision = (size.costs.decisions as readonly Record<string, unknown>[])[0]!;
+    expect(decision.baselineCandidateId).not.toBe("reference");
+    const candidates = decision.candidates as readonly Record<string, unknown>[];
+    const baseline = candidates.find((candidate) => candidate.id === decision.baselineCandidateId)!;
+    expect((baseline.feasibility as Record<string, unknown>).kind).toBe("feasible");
     expect(digest(size.prg), "saved size PRG").toBe(
       "2bd0caf0d7bdbbf2edec32f1ab81770bdc5d6b3cad3227358c3c0b459f6e2c47",
     );

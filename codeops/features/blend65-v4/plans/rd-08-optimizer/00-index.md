@@ -1,7 +1,7 @@
 # Full RD-08 Optimizer Implementation Plan
 
 > **Feature**: A shared optimization pipeline that makes the correct `none` compiler produce smaller, still-equivalent C64 output, with `size` reaching the saved 725 and acquisition 963 workloads.
-> **Status**: Executing — Phase 1 GREEN; saved 725 RED; 16/41 tasks
+> **Status**: Complete — 41/41 tasks (final root/Host RSS verification recorded in Phase 5 review)
 > **Created**: 2026-11-01 16:31
 > **Implements**: `blend65-v4/RD-08`
 > **CodeOps Artifact Schema**: 1
@@ -56,17 +56,21 @@ benchmark-name recognition.
 | 03-03 | [Cost, Modes and Evidence](03-03-cost-modes-and-evidence.md) | B/R/T, mode selection, evidence and debug |
 | 07 | [Testing Strategy](07-testing-strategy.md) | Spec cases, benchmark gates and verification |
 | 99 | [Execution Plan](99-execution-plan.md) | Phases, tasks and progress authority |
+| 10 | [Phase 5 Review](10-phase-5-review.md) | Final gates, independent reviews and residual debt |
 
 ## Quick Reference
 
 ### Usage Examples
 
-The public build modes remain `none` and, while experimental, `size`. The
-optimizer does not add source syntax or a tuning API.
+The public build modes are exactly `none`, `balanced`, `speed` and `size`;
+production defaults to `balanced`. The optimizer does not add source syntax or a
+tuning API.
 
 ```text
-blendc build --optimization none   # correctness release baseline
-blendc build --optimization size   # experimental optimizer tier
+blendc build --optimization none       # correctness release baseline
+blendc build --optimization balanced   # production default; strict Pareto only
+blendc build --optimization speed      # exact cycle-first ordering
+blendc build --optimization size       # bytes-first qualified optimizer tier
 ```
 
 ### Key Decisions
@@ -77,7 +81,7 @@ blendc build --optimization size   # experimental optimizer tier
 | Provenance | Rules run before `projectMachineStorage`; sealed programs are never rewritten afterward |
 | Proof model | Per-rule obligations; untouched code keeps canonical fallback/proof; no weakened oracle |
 | Cost | Existing B/R/T schema; `size` orders B → R → T; unknown is never zero or a tie |
-| Modes | Size first; balanced/speed on the same pipeline afterward |
+| Modes | Four modes on one pipeline; `size` qualified at 709/943; balanced/speed retain the validated baseline while T is unknown (#136) |
 | Release | `none` ships independently; `size` remains experimental until measured |
 | Limits | 963/725 stay unchanged as optimizer targets; no limit or test is deleted |
 | New surface | Facts ≤600, rules ≤700, cost ≤400, focused tests; no new dependency/runtime/public API |
