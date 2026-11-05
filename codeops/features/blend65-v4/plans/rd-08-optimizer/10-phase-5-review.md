@@ -107,10 +107,10 @@ performance. Findings and dispositions are below.
 
 | Issue | Disposition |
 |---|---|
-| #134 | **Open, owned post-RD-08 debt.** The 12-byte `keyState` saturation guard is a measured local-parity defect, not a saved/acquisition gate failure. Fixing it changes bound precedence and requires a fresh output/observer/native round; it must not be hidden by a whole-program ceiling. |
-| #137 | **Open, owned post-RD-08 debt.** Remaining local-routine parity after #134 (`keyState` residual, `snapshotCompatible` +1 B, `soleGroundSource` +2 B). The whole-program saved gate passes at 709/725; per-routine pins are required before any local-parity claim. |
-| #96 | **Open, owned post-RD-08 debt.** NMI adapter-versus-direct-fill is a layout choice with a bounded B−3 bytes/+3 cycles tradeoff. The native four-profile case passes and no current gate depends on it. |
-| #138 | **Open, owned post-RD-08 debt.** Host frontier/observer/debug scaling is non-functional. Observational saved/acquisition timings and RSS are recorded; no release wall-clock gate exists. |
+| #134 | **Closed resolved.** `lower-bounds.ts maximumAt` already takes the smaller of the operation-local and selected-loop maximum for the same value. `lower-variable-shift.impl.test.ts` proves the 7n local bound wins over the 255n loop fact for both shift and typed-index consumers, and the saved-query saturation guard is omitted. Focused suite 22/22 (10 skipped). |
+| #137 | **Closed as non-equal-contract.** The expert fixtures assume a borrowed pointer ABI; the selected saved output specializes `keyState` to the resident global with direct absolute/absolute-Y access and a scalar key. The valid equal-contract comparison is the complete saved program, which passes 709/725 with 17/17 cases. Reopen only with matched-ABI fixtures. |
+| #96 | **Closed as measured non-win.** Preferring the adapter over direct low-`$47` placement grew acquisition payload 1209 -> 1353 in the recorded experiment; direct placement was retained. Native NMI passes 4/4. Reopen only with a measured layout where the adapter reduces complete payload without an NMI regression. |
+| #138 | **Open, owned post-RD-08 host-scaling debt.** Observational saved/acquisition timings and RSS are recorded (36.8 s/289.6 MB, 42.4 s/280.6 MB); the cycle walk is bounded to 200,000 memoized states. No release wall-clock or RSS gate exists and no limit/oracle is relaxed. |
 
 These dispositions are explicit: the issues remain open and owned, none is a
 parity waiver, none relaxes a limit or oracle, and none blocks the frozen 725/963
@@ -122,6 +122,6 @@ RD-08 meets the frozen saved **725** and acquisition **963** whole-program gates
 with unchanged limits, oracles, ABI, platform contracts and `none` identity.
 The four modes are wired, exactly specified and active: production `balanced`
 and `speed` publish 709/943 on the measured workloads, and `size` remains the
-byte-first qualified mode. Remaining local-parity, NMI layout and host-scaling
-debt is recorded in #96, #134, #137 and #138. No push is performed by this
-closeout.
+byte-first qualified mode. #134, #137 and #96 are closed with the evidence
+above; only host-scaling #138 remains open as post-RD-08 debt. No push is
+performed by this closeout.
