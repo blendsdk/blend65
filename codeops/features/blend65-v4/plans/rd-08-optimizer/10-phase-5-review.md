@@ -17,6 +17,7 @@
 | Acquisition stack routes | **6 / 10** | same |
 | Native acquisition NMI | **4 / 4** profiles pass | `input-acquisition-nmi.spec.test.ts` on PAL/NTSC 6581/8580 |
 | Mode selection | **56 / 56** | `optimizer-selection.spec.test.ts` |
+| Balanced/speed output | **709** saved, **943** acquisition | size-quality baseline; speed selects the cycle winner; exact-output test |
 | `none` identity | **2163 bytes**, SHA-256 `0417b7da…` | `optimizer-exact-output.impl.test.ts` |
 | Exact optimized identity | saved 709 / acquisition 943, full PRG SHA-256 pinned | `optimizer-exact-output.impl.test.ts` |
 | Publication / ACME / frontier | **40 / 40** | `publication.spec.test.ts`, `acme.spec.test.ts`, `input-size-frontier.spec.test.ts` |
@@ -74,7 +75,7 @@ performance. Findings and dispositions are below.
 | ID | Severity | Finding | Disposition |
 |---|---|---|---|
 | RV-001 | Critical | An optimized reference could be published without `validateSizeObservers` | **Fixed.** Optimized modes select only validated candidate recipes. The raw canonical reference is never published; the Closed Original/full recipe is the retained baseline, and a resource-rejected canonical reference remains the recorded baseline with its exact rejection. |
-| RV-002 / SM-001 | Major | Balanced/speed retain the baseline because production T is always `unknown` | **Tracked #136.** This is compliant with the exact unknown rule but leaves the modes inert on real programs. A semantic-path cycle model is the smallest path to a real win. |
+| RV-002 / SM-001 | Major | Balanced/speed retain the baseline because production T is always `unknown` | **Fixed.** A proof-carrying entry-to-return cycle analysis produces exact/range terms from instruction costs, direct calls and checked loop trips. Balanced/speed start from the validated size-quality recipe; speed selects the cycle winner and the production default publishes 709/943. Unknown or crossing ranges still retain the baseline. |
 | RV-003 / SM-002 / SM-003 / SM-004 | Major | Size used a different selector/tie path; infeasible baseline handling was inconsistent | **Fixed.** All modes use the same exact selector; size orders B→R→T; exact ties use stable IDs; an infeasible canonical baseline is recorded as rejected while selection starts from the validated Closed Original/full recipe. |
 | RV-004 / SM-005 / MC-001 | Major | `foldRegisterReloads` ignored X reads; `foldShiftHome` treated a read/write instruction as defining A before reading it | **Fixed.** X reads break the fold; the observer correspondence mirrors it; shift-home checks uses before defines and has a focused test for all shifts and successor reads. |
 | RV-005 / SM-007 | Major | Applied-rule obligations were not checked for completeness or ownership | **Fixed.** Validation now requires obligations to match the applied rules, every rule to carry non-empty source-equivalence sites owned by its declared functions, and numeric cost values. |
@@ -90,22 +91,37 @@ performance. Findings and dispositions are below.
 
 ## Residual limits
 
-- Balanced/speed production selection is exact but inert while T is `unknown`
-  (#136). `size` is the qualified production optimizer.
+- Balanced/speed use the size-quality recipe as their production baseline. They
+  retain it on a true cross-range tradeoff and never publish the larger canonical
+  recipe merely because it is the unoptimized shape.
 - Local `keyState`/`snapshotCompatible`/`soleGroundSource` parity remains open
   (#137, #134); the whole-program saved gate passes.
 - NMI adapter-versus-fill selection remains unpriced (#96).
 - The service field `peakRssBytes` remains `"Unknown"`; the host numbers above
   are external observations, and frontier/observer scaling debt remains #138.
-- Default `balanced` publishes the validated canonical baseline (1603 bytes on
-  the saved fixture) because production T is unknown; `size` is the qualified
-  optimizer until #136 lands.
+- Default `balanced` publishes the validated 709/943 size-quality baseline.
+  `speed` selects the worst-case cycle winner on both measured workloads.
 - All native results are VICE-verified, hardware-unverified.
+
+## Explicit disposition of remaining issues
+
+| Issue | Disposition |
+|---|---|
+| #134 | **Open, owned post-RD-08 debt.** The 12-byte `keyState` saturation guard is a measured local-parity defect, not a saved/acquisition gate failure. Fixing it changes bound precedence and requires a fresh output/observer/native round; it must not be hidden by a whole-program ceiling. |
+| #137 | **Open, owned post-RD-08 debt.** Remaining local-routine parity after #134 (`keyState` residual, `snapshotCompatible` +1 B, `soleGroundSource` +2 B). The whole-program saved gate passes at 709/725; per-routine pins are required before any local-parity claim. |
+| #96 | **Open, owned post-RD-08 debt.** NMI adapter-versus-direct-fill is a layout choice with a bounded B−3 bytes/+3 cycles tradeoff. The native four-profile case passes and no current gate depends on it. |
+| #138 | **Open, owned post-RD-08 debt.** Host frontier/observer/debug scaling is non-functional. Observational saved/acquisition timings and RSS are recorded; no release wall-clock gate exists. |
+
+These dispositions are explicit: the issues remain open and owned, none is a
+parity waiver, none relaxes a limit or oracle, and none blocks the frozen 725/963
+gates. No further RD-08 code change is claimed for them.
 
 ## Closeout statement
 
 RD-08 meets the frozen saved **725** and acquisition **963** whole-program gates
 with unchanged limits, oracles, ABI, platform contracts and `none` identity.
-The four modes are wired and exactly specified. Remaining local-parity, cycle
-cost, NMI layout and host-scaling debt is recorded in #96, #134, #136, #137 and
-#138. No push is performed by this closeout.
+The four modes are wired, exactly specified and active: production `balanced`
+and `speed` publish 709/943 on the measured workloads, and `size` remains the
+byte-first qualified mode. Remaining local-parity, NMI layout and host-scaling
+debt is recorded in #96, #134, #137 and #138. No push is performed by this
+closeout.

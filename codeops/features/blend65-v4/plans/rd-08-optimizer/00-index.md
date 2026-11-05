@@ -1,7 +1,7 @@
 # Full RD-08 Optimizer Implementation Plan
 
 > **Feature**: A shared optimization pipeline that makes the correct `none` compiler produce smaller, still-equivalent C64 output, with `size` reaching the saved 725 and acquisition 963 workloads.
-> **Status**: Complete — 41/41 tasks; saved and acquisition gates pass; VICE-verified / hardware-unverified
+> **Status**: Complete — 41/41 tasks; saved/acquisition gates pass; balanced/speed active; VICE-verified / hardware-unverified
 > **Created**: 2026-11-01 16:31
 > **Implements**: `blend65-v4/RD-08`
 > **CodeOps Artifact Schema**: 1
@@ -81,7 +81,7 @@ blendc build --optimization size       # bytes-first qualified optimizer tier
 | Provenance | Rules run before `projectMachineStorage`; sealed programs are never rewritten afterward |
 | Proof model | Per-rule obligations; untouched code keeps canonical fallback/proof; no weakened oracle |
 | Cost | Existing B/R/T schema; `size` orders B → R → T; unknown is never zero or a tie |
-| Modes | Four modes on one pipeline; `size` qualified at 709/943; balanced/speed retain the validated baseline while T is unknown (#136) |
+| Modes | Four modes on one pipeline; `size` 709/943; balanced/speed start from the validated size-quality recipe and use proof-carrying cycle ranges |
 | Release | `none` ships independently; `size` remains experimental until measured |
 | Limits | 963/725 stay unchanged as optimizer targets; no limit or test is deleted |
 | New surface | Facts ≤600, rules ≤700, cost ≤400, focused tests; no new dependency/runtime/public API |
