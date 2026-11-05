@@ -124,10 +124,24 @@ These dispositions are explicit: the issues remain open and owned, none is a
 parity waiver, none relaxes a limit or oracle, and none blocks the frozen 725/963
 gates. No further RD-08 code change is claimed for them.
 
-## Root-suite remediation debt (separate from RD-08 acceptance)
+## Root-suite remediation (authorized, in progress)
 
 The last complete root run (`final5`) reported **260 failures / 5,875 passes**
-after the compiler package first became green. The dominant files were:
+after the compiler package first became green. The user authorized a separate
+root-spec remediation plan. Progress since that run:
+
+- VIC collision output **32 -> 0** and joystick API output **16 -> 0** by keeping
+  the scaffold and measured slice in the same display-dependent startup class.
+- `input-size-runtime` **28 -> 12** by admitting unconditional source CPU
+  barriers (timer A/B PBON cases pass) and keeping the byte/Boolean/conditional
+  barriers strict.
+- Module initializers now join optimization-fact coverage, removing the
+  `Optimization facts do not cover the lowered machine source` failure class.
+- Boolean retests now preserve carry with `AND #$FF` when a continuation reads
+  it, instead of leaking `CMP #0`'s carry.
+
+The known remaining count is therefore **at most 196** (a fresh full recount is
+pending). The dominant files were:
 
 | File | Failures | Nature |
 |---|---:|---|
@@ -142,11 +156,11 @@ after the compiler package first became green. The dominant files were:
 | `test/rd04/*stack*` | 28 | Hardware-stack peak/headroom and diagnostic text |
 | Other RD-04/RD-05 | ~36 | Layout, provenance, resource and returned-local output |
 
-`test/rd05/vic-collision-output.spec.test.ts` (32/32) and
+`test/rd05/vic-collision-output.spec.test.ts` (then 32/32) and
 `test/rd08/input-byte-selection.spec.test.ts` (4/4) fail identically at the
 pre-RD-08 baseline `3c2e9357`, so they are not RD-08 regressions. The remaining
-files are a distinct remediation plan; no RD-08 limit, oracle or ABI is changed
-to make them pass.
+files are the authorized root-spec remediation plan; no RD-08 limit, oracle or
+ABI is changed to make them pass.
 
 ## Closeout statement
 
@@ -155,5 +169,5 @@ with unchanged limits, oracles, ABI, platform contracts and `none` identity.
 The four modes are wired, exactly specified and active: production `balanced`
 and `speed` publish 709/943 on the measured workloads, and `size` remains the
 byte-first qualified mode. #134, #137, #96 and #138 are closed with the evidence above. The RD-08 gates are
-met; the root-spec corpus still carries pre-existing failures and is not claimed
-green. No push is performed by this closeout.
+met. The root-spec corpus is under a separate authorized remediation and is not
+yet claimed green. No push is performed by this closeout.
