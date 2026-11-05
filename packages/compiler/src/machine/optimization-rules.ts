@@ -90,7 +90,14 @@ function machineSourceKeys(program: MachineProgram): readonly string[] {
 
 /** List every closed source function identity in one fact bundle. */
 function factSourceKeys(program: OptimizationFacts["program"]): ReadonlySet<string> {
-  return new Set(program.semantic.functions.map((fn) => bindingIdentityKey(fn.id)));
+  return new Set([
+    ...program.semantic.functions.map((fn) => bindingIdentityKey(fn.id)),
+    // A module initializer lowers as a machine source owner but is not in
+    // `semantic.functions`; it is still part of the same checked source.
+    ...program.semantic.globals.flatMap((global) =>
+      global.entry === null ? [] : [bindingIdentityKey(global.id)],
+    ),
+  ]);
 }
 
 /** Execute the explicit foundation rules; Phase 1 intentionally has no matching rule. */
@@ -109,12 +116,13 @@ export function applyOptimizationRules(
   // owner must belong to the facts program; the reverse is not required.
   if (sealed === undefined) {
     const covered = factSourceKeys(facts.program);
-    if (!machineSourceKeys(program).every((key) => covered.has(key)))
+    if (!machineSourceKeys(program).every((key) => covered.has(key))) {
       return Object.freeze({
         kind: "failure",
         reason: "Optimization facts do not cover the lowered machine source",
         source: null,
       });
+    }
   }
   const profileId = program.storageProfileId ?? program.storageProfile?.profileId;
   if (profileId !== undefined && profileId !== facts.profile.id)
