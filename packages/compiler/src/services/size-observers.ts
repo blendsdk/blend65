@@ -591,6 +591,31 @@ function typedFootprintFailure(
   return null;
 }
 
+/** Reference-side prechecks are invariant across every candidate in one build. */
+const referencePrechecks = new WeakMap<
+  FinalSharedStorage,
+  { readonly checked: CheckedSourceInput; readonly failure: ObserverFailure | null }
+>();
+
+/** Run or reuse the invariant reference storage/visibility/placement prechecks. */
+function referencePrecheck(
+  reference: Extract<CanonicalReferenceOutcome, { readonly kind: "feasible" }>,
+  checked: CheckedSourceInput,
+): ObserverFailure | null {
+  const shared = reference.shared;
+  const cached = referencePrechecks.get(shared);
+  if (cached !== undefined && cached.checked === checked) return cached.failure;
+  const failure =
+    finalStorageFailure(
+      { lowered: reference.checked.lowered, shared: reference.shared },
+      checked,
+    ) ??
+    startupVisibilityFailure(reference.shared) ??
+    placedSourceFailure(reference.shared, checked);
+  referencePrechecks.set(shared, Object.freeze({ checked, failure }));
+  return failure;
+}
+
 /**
  * Close observers atomically after actual shared placement; never allocate or repair a tuple.
  * Initial classes cover contained typed storage and independently checked fixed-RAM
@@ -621,12 +646,8 @@ export function validateSizeObservers(input: FinalObserverInput): ObserverValida
       )
         return observerFailure("error", "Reference and candidate do not share the checked source");
       const before = { lowered: reference.checked.lowered, shared: reference.shared };
-      const invalid = finalStorageFailure(before, input.checked);
-      if (invalid !== null) return invalid;
-      const beforeVisibility = startupVisibilityFailure(reference.shared);
-      if (beforeVisibility !== null) return beforeVisibility;
-      const beforePlaced = placedSourceFailure(reference.shared, input.checked);
-      if (beforePlaced !== null) return beforePlaced;
+      const referenceFailure = referencePrecheck(reference, input.checked);
+      if (referenceFailure !== null) return referenceFailure;
       if (input.candidate.lowered === before.lowered && input.candidate.shared === before.shared)
         return Object.freeze({ kind: "complete", candidate: input.candidate });
     } else if (

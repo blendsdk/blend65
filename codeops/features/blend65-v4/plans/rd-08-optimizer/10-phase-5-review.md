@@ -110,7 +110,7 @@ performance. Findings and dispositions are below.
 | #134 | **Closed resolved.** `lower-bounds.ts maximumAt` already takes the smaller of the operation-local and selected-loop maximum for the same value. `lower-variable-shift.impl.test.ts` proves the 7n local bound wins over the 255n loop fact for both shift and typed-index consumers, and the saved-query saturation guard is omitted. Focused suite 22/22 (10 skipped). |
 | #137 | **Closed as non-equal-contract.** The expert fixtures assume a borrowed pointer ABI; the selected saved output specializes `keyState` to the resident global with direct absolute/absolute-Y access and a scalar key. The valid equal-contract comparison is the complete saved program, which passes 709/725 with 17/17 cases. Reopen only with matched-ABI fixtures. |
 | #96 | **Closed as measured non-win.** Preferring the adapter over direct low-`$47` placement grew acquisition payload 1209 -> 1353 in the recorded experiment; direct placement was retained. Native NMI passes 4/4. Reopen only with a measured layout where the adapter reduces complete payload without an NMI regression. |
-| #138 | **Open, owned post-RD-08 host-scaling debt.** Observational saved/acquisition timings and RSS are recorded (36.8 s/289.6 MB, 42.4 s/280.6 MB); the cycle walk is bounded to 200,000 memoized states. No release wall-clock or RSS gate exists and no limit/oracle is relaxed. |
+| #138 | **Closed resolved.** Reference storage/visibility/placement prechecks are memoized per build, losing candidate trees are released immediately after selection, and the debug reverse index remains one pass. Measured saved size 36.94 s/289.0 MB -> **29.02 s/269.2 MB**; acquisition size 43.51 s/273.0 MB -> **33.81 s/272.3 MB**; saved balanced 29.27 s/273.5 MB. The finite 2×7×3 frontier remains bounded; no output, limit or oracle changed. |
 
 These dispositions are explicit: the issues remain open and owned, none is a
 parity waiver, none relaxes a limit or oracle, and none blocks the frozen 725/963
@@ -122,6 +122,5 @@ RD-08 meets the frozen saved **725** and acquisition **963** whole-program gates
 with unchanged limits, oracles, ABI, platform contracts and `none` identity.
 The four modes are wired, exactly specified and active: production `balanced`
 and `speed` publish 709/943 on the measured workloads, and `size` remains the
-byte-first qualified mode. #134, #137 and #96 are closed with the evidence
-above; only host-scaling #138 remains open as post-RD-08 debt. No push is
+byte-first qualified mode. #134, #137, #96 and #138 are closed with the evidence above. No push is
 performed by this closeout.

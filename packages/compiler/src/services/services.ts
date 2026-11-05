@@ -513,6 +513,9 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
     selectedPipeline = chosen[1].pipeline;
     selectedShared = chosen[1].shared;
     selectedDiagnostics = chosen[1].diagnostics;
+    // Only the selected tuple is published; release every losing tree before
+    // artifact assembly and evidence preparation begin.
+    feasible.clear();
   }
   if (selectedPipeline === null || selectedShared === null || selectedDiagnostics === null)
     return { kind: "failure", failure: incompleteStage("size cost selection") };
