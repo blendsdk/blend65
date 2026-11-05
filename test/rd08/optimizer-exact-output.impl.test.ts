@@ -36,6 +36,19 @@ describe("measured optimizer output identity", () => {
     );
   }, 180_000);
 
+  it("selects the size-quality baseline in balanced and speed", async () => {
+    const saved = await fixture("input-saved-caller.blend");
+    for (const mode of ["balanced", "speed"] as const) {
+      const artifacts = await buildProfileSource(saved, PROFILE, mode);
+      expect(artifacts.prg.length - 2, `saved ${mode} payload`).toBe(709);
+    }
+    const acquisition = await fixture("input-caller.blend");
+    for (const mode of ["balanced", "speed"] as const) {
+      const artifacts = await buildProfileSource(acquisition, PROFILE, mode);
+      expect(artifacts.prg.length - 2, `acquisition ${mode} payload`).toBe(943);
+    }
+  }, 600_000);
+
   it("pins the acquisition size artifact byte-for-byte", async () => {
     const source = await fixture("input-caller.blend");
     const size = await buildProfileSource(source, PROFILE, "size");

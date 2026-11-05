@@ -440,16 +440,34 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
       baselineRecipe !== undefined && feasible.has(baselineRecipe)
         ? baselineRecipe
         : fallbackBaseline;
-    const baselineEntry = feasible.get(baselineId)!;
-    // The evidence baseline is the actual canonical reference shape. When that
-    // shape is resource-rejected it stays the recorded baseline even though the
-    // selector must start from the validated Closed Original/full recipe.
-    const recordedBaselineId = reference.kind === "feasible" ? baselineId : "reference";
+    // The size-quality recipe is the production baseline for balanced/speed:
+    // it is a validated candidate, so the default mode never publishes a larger
+    // canonical recipe merely because the canonical shape is a Pareto tradeoff.
+    // Size itself still compares against the Closed Original/full canonical.
+    const sizeWinnerId = [...feasible.entries()].sort(([leftId, left], [rightId, right]) => {
+      const bytes = left.cost.programBytes - right.cost.programBytes;
+      if (bytes !== 0) return bytes;
+      for (let index = 0; index < left.cost.resources.length; index += 1) {
+        const difference = left.cost.resources[index]!.value - right.cost.resources[index]!.value;
+        if (difference !== 0) return difference;
+      }
+      return Buffer.compare(Buffer.from(leftId), Buffer.from(rightId));
+    })[0]![0];
+    const selectionBaselineId = mode === "size" ? baselineId : sizeWinnerId;
+    const baselineEntry = feasible.get(selectionBaselineId)!;
+    // The evidence baseline is the actual canonical reference shape for size.
+    // Balanced/speed record the validated size-quality recipe they start from.
+    const recordedBaselineId =
+      mode !== "size"
+        ? selectionBaselineId
+        : reference.kind === "feasible"
+          ? baselineId
+          : "reference";
     const selection = selectOptimizationCandidate(
       mode,
-      { id: baselineId, cost: baselineEntry.cost },
+      { id: selectionBaselineId, cost: baselineEntry.cost },
       [...feasible.entries()]
-        .filter(([id]) => id !== baselineId)
+        .filter(([id]) => id !== selectionBaselineId)
         .map(([id, value]) => ({ id, cost: value.cost })),
     );
     const selectedEntry =
@@ -457,7 +475,7 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
     const chosen =
       selection.kind === "selected" && selectedEntry !== undefined
         ? ([selection.candidateId, selectedEntry] as const)
-        : ([baselineId, baselineEntry] as const);
+        : ([selectionBaselineId, baselineEntry] as const);
     const incomparableComponents =
       selection.kind === "selected" ? [] : selection.incomparableComponents;
     const tiedIds =
@@ -465,7 +483,7 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
         ? [...feasible.entries()]
             .filter(
               ([, value]) =>
-                compareOptimizationCosts(mode, baselineEntry.cost, value.cost).kind === "equal",
+                compareOptimizationCosts(mode, chosen[1].cost, value.cost).kind === "equal",
             )
             .map(([id]) => id)
             .sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)))

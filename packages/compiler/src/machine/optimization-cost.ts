@@ -78,7 +78,10 @@ function bounds(
   return null;
 }
 
-/** Compare two measurements, treating an unknown or overlapping term as incomparable. */
+/**
+ * Compare two measurements. Unknown terms and crossing ranges are incomparable;
+ * a range that is no worse at both its best and worst bound is a real win.
+ */
 function compareMeasurement(
   left: OptimizationCycleMeasurement,
   right: OptimizationCycleMeasurement,
@@ -102,13 +105,13 @@ function compareMeasurement(
     leftBounds.minimum === rightBounds.minimum
   )
     return 0;
-  if (
-    left.kind === "range" &&
-    right.kind === "range" &&
-    left.minimum === right.minimum &&
-    left.maximum === right.maximum
-  )
-    return 0;
+  const leftNoWorse =
+    leftBounds.minimum <= rightBounds.minimum && leftBounds.maximum <= rightBounds.maximum;
+  const rightNoWorse =
+    rightBounds.minimum <= leftBounds.minimum && rightBounds.maximum <= leftBounds.maximum;
+  if (leftNoWorse && rightNoWorse) return 0;
+  if (leftNoWorse) return -1;
+  if (rightNoWorse) return 1;
   return null;
 }
 

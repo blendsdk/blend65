@@ -112,7 +112,7 @@ export async function readProfileArtifacts(built: BuildSuccess) {
 export async function buildProfileSource(
   source: string,
   target: string,
-  optimization: "none" | "size" = "none",
+  optimization: "none" | "balanced" | "speed" | "size" = "none",
 ) {
   return withProfileProject(source, target, async (project) => {
     const built = await buildProject({ project, optimization });

@@ -20,6 +20,8 @@ import type { StorageClosureCertificate, StorageInventory } from "../storage/sto
 import type { TargetProfile } from "../target/profile.js";
 import type { PublishedFileExpectation } from "../publication/publication.js";
 import type { ServiceMeasurements } from "./types.js";
+import type { OptimizationCycleMeasurement } from "../machine/optimization-cost.js";
+import { deriveEntryPathCycles } from "./entry-path-cycles.js";
 import { assetSymbolName, deriveDebugRecords } from "./evidence-records.js";
 import { deriveMemoryIntervals, sfaClosureHash } from "./memory-evidence-records.js";
 
@@ -54,7 +56,7 @@ export interface SizeCostVector {
   /** Ordered semantic path cycle measurements. */
   readonly pathCycles: readonly {
     readonly pathId: string;
-    readonly cycles: { readonly kind: "unknown" };
+    readonly cycles: OptimizationCycleMeasurement;
   }[];
   /** Standard physical resources in their fixed comparison order. */
   readonly resources: readonly {
@@ -250,7 +252,7 @@ export function sizeCostVector(
     pathCycles: Object.freeze([
       Object.freeze({
         pathId: "program.entry-to-return",
-        cycles: Object.freeze({ kind: "unknown" as const }),
+        cycles: deriveEntryPathCycles(layout.program),
       }),
     ]),
     resources: Object.freeze([
@@ -446,12 +448,13 @@ export async function prepareEvidence(
     });
   const completePathId = "program.entry-to-return";
   const unknownMeasurement = Object.freeze({ kind: "unknown" as const });
+  const finalPathCycles = sizeCostVector(input.layout, input.certificate).pathCycles;
   const cycleEntry = Object.freeze({
     kind: "cycles",
     id: `cycles:${completePathId}`,
     owner: Object.freeze({ kind: "compiler", id: "pipeline" }),
     pathId: completePathId,
-    cycles: unknownMeasurement,
+    cycles: finalPathCycles[0]?.cycles ?? unknownMeasurement,
     traffic: Object.freeze([
       Object.freeze({
         kind: "read",
@@ -473,12 +476,7 @@ export async function prepareEvidence(
     .reduce((total, interval) => total + (interval.size as number), 0);
   const finalVector: SizeCostVector = Object.freeze({
     programBytes: Math.max(0, primaryBytes.byteLength - 2),
-    pathCycles: Object.freeze([
-      Object.freeze({
-        pathId: completePathId,
-        cycles: Object.freeze({ kind: "unknown" as const }),
-      }),
-    ]),
+    pathCycles: finalPathCycles,
     resources: Object.freeze([
       Object.freeze({ kind: "standard" as const, id: "zeroPage" as const, value: zeroPage }),
       Object.freeze({ kind: "standard" as const, id: "residentRam" as const, value: residentRam }),
