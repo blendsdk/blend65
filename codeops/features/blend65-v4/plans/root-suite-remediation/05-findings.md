@@ -10,8 +10,72 @@
 | SM-002 | profile | MAJOR | mutually-exclusive-startup-oracles | fixed |
 | SM-003 | retained-observers | MAJOR | initializer-capture-category | approved fix pending |
 | SM-004 | retained-observers | MAJOR | physical-PC-as-execution-order | approved fix pending |
+| RV-002 | parameter-debug | MINOR | entry-only-regression-coverage | fixed |
+| SF-001 | parameter-debug | MAJOR | entry-alias-revisit | fixed |
+| SF-002 | retained-observers | MAJOR | capture-to-call-retention-gap | fixed; final re-entry remedy execution-qualified |
+| TP-002 | retained-observers | MAJOR | CPU-space-is-not-private-RAM | fixed; independent fix review clear |
+| TP-003 | retained-observers | MAJOR | uncounted-volatile-memory-read | fixed; independent fix review clear |
+| PE-001 | Boolean-proof | MINOR | unused-final-graph-reproof | report-only |
+| OR-001 | startup-retry | MAJOR | obsolete-236-save-rejection | fixed by AR-P10; 20/20 + 11/11 pass |
+| WC-001 | word-counter | MAJOR | nested-accumulator-containment | fixed; SM-001/RV-001–003 addressed; semantics confirms SM-001; root40/40 |
+| DBG-001 | word-counter | MAJOR | narrowed-counter-source-symbols | fixed; debug33/33 and pinned3/3; RV-003 fix pending confirmation |
 
 ## Review and verification evidence
+
+## AR-P3 oracle conflict and narrowed retry
+
+The last complete root inventory exposed 24 failed NMI stack-evidence cases.
+The AR-P3 warning-boundary retry selected stored-status startup for IRQ-overlap
+and capacity-boundary fixtures whose unchanged oracles require the held-byte
+compact constructor. The retry is now restricted to programs with no
+asynchronous/address-taken roots and to compact peaks strictly below usable
+capacity, so the IRQ188 and 235-save cases return to compact startup. Rebuilding
+the package and rerunning the file gives **16 pass / 4 fail**.
+
+The remaining four failures are a genuine oracle conflict, not a producer bug:
+the old 236-save case requires E10238 failure, while the approved new
+236-save pressure case requires success at peak236 through stored-status
+startup. The same nested-PHP source cannot satisfy both. AR-P10 was approved:
+only the old rejection moved to237 saves, retaining the failure/no-publication
+gate at capacity+1. The focused NMI stack file now passes **20/20**; the AR-P3
+pressure and stored-status files pass **11/11**, and the targeted compiler
+startup/closure set passes **47/47**.
+
+## Word-counter containment and debug evidence
+
+The root fixture runs with `boundsCheck:false`, confirmed in its actual
+`.build.json`; emitted runtime guards are therefore absent. The final observer
+now proves the exact nested-loop accumulator shape and publishes a use-site
+maximum, without changing source acceptance or the emitted low-byte candidate.
+The proof is restricted to one constant initialization outside both loops, all
+`local += 1` updates in one inner body, outer constant0/unit-step/exact trip8,
+inner parent-next/unit-step/trip max7, and `K*B*(B-1)/2` updates. Extra writes,
+address exposure or any other shape keep the existing containment rejection.
+Focused accumulator cases pass **4/4**; the unchanged root file passes **40/40**
+on four profiles in none/size.
+
+Narrowed counters are byte/register representations with no source local in the
+selected inventory. `evidence-records.ts` now emits the original source local
+with its word type/width and a rematerializable location targeting the selected
+counter symbol, so the debug schema remains truthful and `memoryBytes` is below2.
+Source locations use the proof's actual execution context and its original
+lifetime ranges; an unrepresentable register-held source symbol is omitted rather
+than attached to another function context. Targeted evidence tests pass **33/33**;
+the exact saved/acquisition/none identity suite passes **3/3** after this fix.
+
+Independent review found the execution-multiplicity gap SM-001/RV-001: the loop
+facts do not prove lexical outermost nesting, so an unrecognized enclosing loop
+could repeat the triangular count. The proof now requires the outer preheader
+chain to start at the function entry through top-level recognized loop exits,
+exactly one semantic predecessor when it is not the entry, the inner preheader
+to be the outer body, and the accumulator initialization to be the outer
+preheader or entry. The repeated-inner counterexample is a passing rejection
+regression. RV-002 now skips unrelated source comparisons instead of rejecting
+them; RV-003 uses the actual execution-context index and source live ranges.
+Focused cases pass **5/5**, root **40/40**, pinned identities **3/3**, evidence
+**33/33** and build passes. Independent semantics review confirms SM-001 fixed;
+the bounded correctness fix re-review clears RV-001/002/003. The unit is committed
+locally as `a974998f`; no push and no full-root claim.
 
 - Independent correctness review of `62e96209..8003d203` found no production
   correctness finding in its bounded lens, but found the joystick scaffold's
@@ -193,5 +257,139 @@ authoring resumes with mandatory positive and corrupt-evidence negative cases;
 neither finding is marked fixed before qualification. Source fixtures, compiler
 producers, returned-local budgets and unrelated oracles remain unchanged.
 
+## Unused-parameter debug correction (uncommitted)
+
+Baseline3fc0bcd9. A minimal four-mode public-service regression establishes three
+optimized ARTIFACT_EVIDENCE failures and one none baseline pass before the fix.
+Declaration-only unused byte parameters retain real ABI values at entry even
+when return shaping removes the source operation used by their artificial entry
+lifetime. The first draft anchors that exact narrow case to a real entry range;
+all other positive-home/no-range failures remain terminal. Four-mode tests and
+the eight unchanged `input-loop-storage` surviving-value native cases pass.
+
+Independent correctness review finds no production defect but asks for exact
+entry-address/single-range and exclusion tests (RV-002). Independent SFA review
+finds SF-001: an empty semantic entry can alias a loop header; after a local reuses
+the unused parameter home, a backedge revisits the same PC/context and makes an
+unconditional available-value record false. This necessary internal correction
+is accepted, not waived; it introduces no new schema or storage representation.
+
+Actual optimized source witness confirms unused parameter/local both at `$02`,
+with the source entry aliased to the first loop-header instruction. The fix now
+separates real range anchoring from availability: a proved single-visit machine
+entry can expose its ABI home; a revisitable/unproved entry reports the existing
+`unavailable/notRepresentable` state, never a false value or source rejection.
+Unknown transfers fail the availability proof; the original missing-range guard
+remains. The loop/backedge regression is meaningfully RED before this fix;
+straight-line/used/longer-lifetime coverage is strengthened. Fresh implementation
+tests pass8/8. One independent SFA fix re-review closes SF-001 with no findings;
+the correctness reviewer closes RV-002 after checking exact assembled-entry and
+exclusion assertions. Targeted formatting passes. The fresh unchanged 40-case
+loop/storage suite passes36, including all eight surviving-value native cases
+after the revisit guard; its four word-counter optimization gates remain open.
+No parameter-debug commit is made yet; the fresh complete root command includes
+the complete compiler checkpoint. The earlier compiler experiment failure is not
+rewritten as a pass; that experiment was removed byte-exactly.
+
+## AR-P5 final review and remaining proof gaps
+
+The approved amendments pass60/60 after author-owned formatting and local
+synthetic-fixture deduplication: initializer26, retained-call26, unchanged
+initializer-lifetime8. Both formatted files are below700 lines (686/530), with
+all source fixtures and original profile/helper/ABI/effect assertions preserved.
+Independent correctness review clears the exact exception against the complete
+first-file baseline and second-file diff supplied inline. The reviewer's native
+external-directory denial was respected; no filesystem retry was made.
+
+SFA review finds SF-002: capture and post-return checks leave argument staging
+between them unchecked. A real marshal store retargeted to the saved caller home
+would be accepted while debug parameter homes remain disjoint. The independent
+author adds the precise corruption negative; its positive passes and mutated
+store is meaningfully RED (`expected function to throw`). Repair stays within
+AR-P5's existing capture/each-call/argument-preservation obligation, using the
+smallest bounded local check rather than a general control-flow framework.
+
+Platform review (its local TP-001/002 map here to TP-002/003) identifies two more
+observer gaps: CPU address-space membership alone admits `$0001` as a private
+home, and whitelisted BIT/CMP memory forms can hide an extra volatile input read.
+Accept both necessary corrections under AR-P5's required private-home and exact
+effect-count conditions. The independent author is adding exact same-width
+CPU-port-home and duplicate-read negatives before tightening the observer. No
+production or source-fixture defect is inferred, and no resource gate is waived.
+
+Fresh remaining directed inventory: three files report84pass/32fail. Byte
+selection20, word-counter storage4 and returned-local8 remain. All eight
+surviving-value cases now pass after the final entry-revisit guard. No fresh
+complete-root result or root-green claim is made.
+
 Reviewers ran no shell commands. The primary execution owner supplied command
 results. Their agreement is not runtime or physical-hardware proof.
+
+## AR-P5 final correction evidence
+
+Final directed command passes66/66: initializer28, retained-call30, unchanged
+initializer-lifetime8. Prettier passes; the two protected files have699/698 lines.
+Source fixtures, profiles, modes, helper-sharing, parameter/local separation,
+transitive lifetime and volatile-count checks are retained. The independent
+platform fix review closes TP-002/TP-003 after inspecting the actual RAM-ledger
+and memory-read rejection guards plus their two meaningful RED corruptions.
+
+The first SFA fix review retained SF-002: one static capture instruction can
+execute again after A changes. Its exact re-entry negative is meaningfully RED.
+The author's final remedy protects every byte of the actual source-entry/read/
+capture prefix against external direct jumps, signed branches, fallthrough and
+direct JSR targets, rejecting unknown indirect edges. Only the proved capture
+may write the saved home; unresolved writes are rejected. Every source-body
+entry reaches that capture before any helper, and every selected call retains
+the independent post-return continuation check. Platform forwarding variants
+are distinguished by their published source-body context, never by lowest PC
+or unsupported-opcode skipping. The marshal positive and re-entry fixtures end
+with explicit RTI; their outputs and corruption assertions are unchanged.
+All66 pass after this remedy. No third whole-unit SFA review was requested;
+the primary closes the specific re-entry obligation against the reviewer's
+stated remedy, meaningful RED and final positive/negative execution evidence.
+
+## Boolean producer qualification
+
+The focused existing-proof extension passes12 private-home/dependency cases
+and five independent final-physical reconstruction cases. Existing Boolean and
+byte-window suites also pass. Embedded BNE/BRK corruptions are meaningfully RED
+before the unsupported-transfer guard. Four unchanged native byte-pair cases
+pass on PAL/NTSC6581/8580, each covering all65,536 pairs, exact CMP/AND prefix
+and independent short-circuit effects. Closed now measures2535 bytes, down
+from2541 and equal to Direct2535; the unchanged comparator selects Closed.
+Zero page2, resident3118, stack4 and scratch0 remain unchanged; T is Unknown.
+No capture/merge traffic or storage home is removed by this proof correction.
+
+The complete exact-output suite passes3/3 after that guard: saved709,
+acquisition943, balanced/speed baseline and none2163/hash remain pinned.
+Independent correctness, SFA/ABI and CPU/output reviews find no defect in their
+bounded lenses. The CPU review confirms the removed AND#$FF is2bytes/2cycles
+per reached site but does not claim whole-routine expert parity. PE-001 remains
+MINOR/report-only: final graph reproof is unnecessary when no certified call
+is consumed; its analytical64x32-instruction witness adds2,048 transfers.
+No measured latency failure or emitted-code defect follows.
+
+## Sequential complement correction in qualification
+
+The existing cache producer already handles two fixed sequential loops, but its
+final validator demanded one source loop. The necessary correction stays inside
+that existing correspondence proof: per-loop source/body chains, first-loop
+unavoidable setup, one stable source/cache, exact unchanged instructions/control,
+all destination/store anchors and whole-function source/cache write protection.
+No producer, recipe, source fixture or resource oracle changes. Both bounds
+settings are meaningfully RED before correction. New five-case positive/later-
+loop-corruption coverage plus all33 existing guards pass38/38. Actual PAL root
+source now selects Closed1574 versus Direct1575, ZP3 versus2 and resident1895
+versus1896; both stack2/scratch0. Native, pinned identities and independent
+reviews for this separate correction remain pending.
+
+Install, build, typecheck and touched compiler/AR-P5 formatting pass at the
+Boolean checkpoint. The running complete root command began before the later
+sequential-cache correction; it supplies an inventory, not frozen final-tree
+qualification. A fresh final command is still required before closeout.
+
+Workflow evidence boundary: the primary accidentally read historical release
+and semantic-reference preambles while refreshing guidance. They are not used
+as compiler authority or blind qualification evidence. Reviewers receive only
+bounded normative excerpts and release identity, not historical evaluator answers.

@@ -10,11 +10,22 @@
 | AR-P3 | Technical (complexity escalation) / stored-status startup scope | MC-001 shows that the two permitted constructors cannot jointly satisfy zero-held-stack and expert-output obligations. One display-independent stored-status construction, selected only by the existing `none` pressure retry, with at most one focused status helper. Preserve strict independence proof, A/X/Y/P/SP, banking, initializer effects, actual borrowed-byte protection, full closure, final visibility and feasible compact fallback. Do not expand optimizer recipes, language/API, runtime, SFA storage, dependencies or passes. Independently author cost/behavior tests. Exact fresh-oracle exception: only the `50600` buffer-length literal in `test/rd04/stack-startup-pressure.spec.test.ts` may change after measured sizing, solely to retain the same compact-fits/stored-status-does-not condition; every assertion and all old oracles/limits/hashes remain unchanged. | Approved — user: “i Approve this bounded AR-P3 scope, Qualify the fix, finish root remediation, then RD-05” on2026-11-05; specification-first execution resumed; replaces AR-P1's two-constructor restriction only within this exact scope |
 | AR-P4 | Runtime / exact profile-oracle contradiction | The same empty Game program, profile and `none` mode cannot simultaneously require and forbid SEI/VIC traffic. Independent semantics review and design challenge confirm the conflict. Only the exact `test/rd05/profile-pipeline.spec.test.ts` amendments below; no producer change, other oracle, limit or hash amendment. | Approved — user selected “Approve AR-P4 (Recommended)” in the exact one-file scope question on2026-11-05; independent authoring and qualification resume |
 | AR-P5 | Runtime / exact retained-value observer authority | Independent semantics review and design challenge identify two representation/order assumptions, supported by actual PAL artifacts. Only the two named observer amendments below, with mandatory non-vacuous capture/interference/path checks and corruption negatives. No production/source-fixture/resource/other-oracle change. | Approved — user selected “Approve AR-P5 (Recommended)” in the exact two-file scope question on2026-11-06; independent authoring resumed; qualification pending |
+| AR-P10 | Runtime / exact stack-capacity oracle conflict | The approved AR-P3 overflow retry makes the old `test/rd05/nmi-stack-evidence.spec.test.ts` 236-save rejection obsolete: the new approved `test/rd04/stack-startup-pressure.spec.test.ts` requires that same 236-save source to succeed with peak236. Both cannot hold. Only the named old rejection case may move from236 to237 saves, preserving the E10238 failure and no-publication assertions at the true capacity+1 boundary; the235-save compact case, the188-save IRQ case and every other oracle stay unchanged. No producer change beyond AR-P3. | Approved — user selected “Amend to 237 (Recommended)” on2026-11-06; focused NMI stack20/20 and AR-P3 pressure/stored-status11/11 pass |
+
+The returned-local continuation now has a separate full-plan complexity owner:
+[canonical fixed-object ABI, AR-P6](../canonical-fixed-object-abi/00-ambiguity-register.md).
+This mini-plan does not own or infer approval of that larger mechanism.
 
 The user-authorized startup-scaffold exception does not grant general permission
 to rewrite stack, selection, cost or behavior expectations. The one inadvertently
 raised joystick cycle assertion is restored to its original ceiling; its common
 display probe is now in an initializer outside the measured main function.
+
+AR-P3's warning-boundary retry is now limited to programs with no asynchronous or
+address-taken roots and to compact peaks strictly below usable capacity. This
+preserves the old IRQ-overlap and 235-save compact cases; it is a qualification
+boundary, not permission to amend any oracle. The remaining 236-save conflict is
+owned by the pending AR-P10 decision above.
 
 ## AR-P3 visible scope gate
 
