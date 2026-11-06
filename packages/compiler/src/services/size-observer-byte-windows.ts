@@ -1,7 +1,7 @@
 import {
   byteContinuationQuery,
   BYTE_WINDOW_CHANGED,
-  deriveBooleanExitFacts,
+  deriveBooleanExitGraph,
   machineSuccessors,
 } from "../machine/lower-control.js";
 import { operandAddress, validRange } from "../machine/nmos6510-access.js";
@@ -44,7 +44,7 @@ function ordinaryBody(
  */
 function booleanWindowFailure(input: FinalObserverInput): ObserverFailure | null {
   const final = new Map(input.candidate.shared.layout.program.functions.map((fn) => [fn.id, fn]));
-  const exits = new Map<string, boolean>();
+  let exits: ReturnType<typeof deriveBooleanExitGraph> | undefined;
   for (const symbolic of input.candidate.lowered.program.functions) {
     const proofs = symbolic.booleanCallProofs ?? [];
     if (proofs.length === 0) continue;
@@ -136,8 +136,8 @@ function booleanWindowFailure(input: FinalObserverInput): ObserverFailure | null
       // the callee's all-exit flag certificate. The final lowering recheck only
       // enforces that certificate for `certified` proofs.
       if (proof.kind === "certified") {
-        if (!exits.has(callee.id)) exits.set(callee.id, deriveBooleanExitFacts(callee) !== null);
-        if (!exits.get(callee.id))
+        exits ??= physicalBooleanFacts(input);
+        if (!exits.has(callee.id))
           return observerFailure(
             "rejected",
             "Actual Boolean callee does not establish every returned flag",
@@ -238,6 +238,79 @@ function resolvedByte(
     ((value >= 2 && value <= 0xff) || (value >= 0x200 && value <= 0xcfff))
     ? value
     : null;
+}
+
+/**
+ * Rebuild returned-Boolean facts from actual final bodies and certified private homes.
+ * Each numeric slot is admitted only through its original owner/request and the
+ * exact corresponding bound instruction. Aliased requests then share that slot's
+ * state, so a later store cannot leave a stale fact under another symbolic name.
+ */
+function physicalBooleanFacts(input: FinalObserverInput) {
+  const side = windowSide(input.candidate.shared);
+  const sources = new Set(
+    input.checked.program.semantic.functions
+      .filter((source) => source.result.kind === "scalar" && source.result.name === "boolean")
+      .map((source) => source.id),
+  );
+  const functions = [...side.functions.values()].filter(
+    (fn) =>
+      fn.sourceFunction !== undefined &&
+      sources.has(fn.sourceFunction) &&
+      ordinaryBody(fn, fn.sourceFunction),
+  );
+  const symbols = new Map(input.candidate.lowered.program.functions.map((fn) => [fn.id, fn]));
+  const identities = new Map<MachineInstruction, string>();
+  for (const fn of functions) {
+    const owner = fn.sourceFunction!;
+    const original = symbols.get(fn.id);
+    if (!ordinaryBody(original, owner)) continue;
+    const blocks = new Map(original.blocks.map((block) => [block.label, block]));
+    for (const block of fn.blocks) {
+      const symbolic = blocks.get(block.label);
+      if (symbolic?.instructions.length !== block.instructions.length) continue;
+      let pc = block.origin;
+      for (const [index, instruction] of block.instructions.entries()) {
+        const source = symbolic.instructions[index]!;
+        const operand = source.operand;
+        const request =
+          operand?.kind === "storage" ? side.requests.get(operand.requestId) : undefined;
+        if (
+          pc !== undefined &&
+          source.opcode === instruction.opcode &&
+          source.source === instruction.source &&
+          source.mode === "storage" &&
+          operand?.kind === "storage" &&
+          operand.addressByte === undefined &&
+          (operand.offset ?? 0) === 0 &&
+          request?.owner === owner &&
+          request.bytes === 1 &&
+          ["temporary", "local"].includes(request.storageClass) &&
+          request.persistent !== true &&
+          !source.memory.some(({ volatile }) => volatile) &&
+          !instruction.memory.some(({ volatile }) => volatile) &&
+          ["zero-page", "absolute"].includes(instruction.mode)
+        ) {
+          const address = resolvedByte({ kind: "home", id: request.id, offset: 0 }, side, owner);
+          if (
+            address !== null &&
+            operandAddress({
+              cpu: input.checked.profile.cpu,
+              instruction,
+              pc,
+              labels: side.labels,
+            }) === address
+          )
+            identities.set(instruction, `${fn.id}\0${address}`);
+        }
+        if (pc !== undefined) pc += instruction.cost.bytes;
+      }
+    }
+  }
+  return deriveBooleanExitGraph(
+    functions,
+    (_fn, instruction) => identities.get(instruction) ?? null,
+  );
 }
 
 /** Effective equality successors, independent of short inversion or inverse-branch-over-JMP repair. */

@@ -555,7 +555,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
     machineFunctions.push(...nmiEntries.functions);
     const selectedFunctions =
       input.sourceFacts?.nonLoopBundle === "closed"
-        ? selectBooleanCallFlags(machineFunctions, booleanOwners, input.profile.cpu)
+        ? selectBooleanCallFlags(machineFunctions, booleanOwners, input.profile.cpu, requests)
         : machineFunctions;
 
     const mainFunction = functionsByKey.get(bindingIdentityKey(input.program.semantic.main));

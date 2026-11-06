@@ -4,7 +4,7 @@ import type { BindingId } from "../frontend/semantic-types.js";
 import type { CpuFacts } from "../target/nmos6510.js";
 import { selectedStoragePlace } from "../storage/selection.js";
 import {
-  deriveBooleanExitFacts,
+  deriveBooleanExitGraph,
   machineInstruction,
   validBooleanExitFacts,
   type LoweredValue,
@@ -13,6 +13,7 @@ import { byteContinuationQuery, BYTE_WINDOW_CHANGED } from "./lower-control.js";
 import { prepareAggregateCallResult } from "./lower-aggregate-return.js";
 import type { MachineFunction, MachineInstruction, MachineOperand } from "./machine-types.js";
 import type { FunctionStorageSelection } from "../storage/selection.js";
+import type { StorageRequest } from "../storage/storage-types.js";
 import {
   loweringFailure,
   appendLoadA,
@@ -446,16 +447,42 @@ export function selectBooleanCallFlags(
   functions: readonly MachineFunction[],
   owners: ReadonlyMap<string, SemanticFunction>,
   cpu: CpuFacts,
+  requests: readonly StorageRequest[] = [],
 ): readonly MachineFunction[] {
   const byId = new Map(functions.map((fn) => [fn.id, fn]));
-  const facts = new Map(
-    functions.flatMap((fn) => {
+  const demands = new Map(requests.map((request) => [request.id, request]));
+  /** Only actual one-byte requests owned by this ordinary selected body supply memory facts. */
+  const privateByte = (fn: MachineFunction, instruction: MachineInstruction): string | null => {
+    const operand = instruction.operand;
+    const source = owners.get(fn.id);
+    if (
+      fn.executionContext?.domain !== "main" ||
+      fn.executionContext.activationRoot !== undefined ||
+      source === undefined ||
+      instruction.mode !== "storage" ||
+      operand?.kind !== "storage" ||
+      operand.addressByte !== undefined ||
+      (operand.offset ?? 0) !== 0 ||
+      instruction.memory.some(({ volatile }) => volatile)
+    )
+      return null;
+    const request = demands.get(operand.requestId);
+    return request?.owner === source.id &&
+      request.bytes === 1 &&
+      ["temporary", "local"].includes(request.storageClass) &&
+      request.persistent !== true &&
+      (request.domain === undefined || request.domain === "main") &&
+      request.activationRoot === undefined
+      ? request.id
+      : null;
+  };
+  /** The source return type limits admission; each selected body still proves its own machine facts. */
+  const booleanBodies = (bodies: readonly MachineFunction[]) =>
+    bodies.filter((fn) => {
       const source = owners.get(fn.id);
-      if (source?.result.kind !== "scalar" || source.result.name !== "boolean") return [];
-      const proof = deriveBooleanExitFacts(fn);
-      return proof === null ? [] : [[fn.id, proof] as const];
-    }),
-  );
+      return source?.result.kind === "scalar" && source.result.name === "boolean";
+    });
+  const facts = deriveBooleanExitGraph(booleanBodies(functions), privateByte);
   const selected = functions.map((fn) => {
     const source = owners.get(fn.id);
     if (source === undefined) return fn;
@@ -534,7 +561,7 @@ export function selectBooleanCallFlags(
         return block;
       const suffix = block.instructions.slice(callIndex + 1);
       if (suffix.some((item) => item.memory.some((effect) => effect.volatile))) return block;
-      const certified = proof !== undefined && validBooleanExitFacts(proof, callee);
+      const certified = proof !== undefined && validBooleanExitFacts(proof, callee, byId);
       if (!certified && (suffix.length !== 0 || candidate.negated)) return block;
       // A retest must not leak a changed carry into either continuation. Prefer the
       // canonical CMP #0 test when C is dead on both edges; otherwise AND #$FF sets
@@ -616,6 +643,7 @@ export function selectBooleanCallFlags(
   });
   // Recheck actual final callees after all local selections, independent of source order.
   const finalById = new Map(selected.map((fn) => [fn.id, fn]));
+  const finalFacts = deriveBooleanExitGraph(booleanBodies(selected), privateByte);
   const required = new Set(
     selected.flatMap((fn) =>
       (fn.booleanCallProofs ?? [])
@@ -625,7 +653,7 @@ export function selectBooleanCallFlags(
   );
   for (const id of required) {
     const fn = finalById.get(id);
-    if (fn === undefined || deriveBooleanExitFacts(fn) === null)
+    if (fn === undefined || !finalFacts.has(id))
       throw loweringFailure("Selected Boolean callee lost its all-exit flag proof", null);
   }
   return Object.freeze(selected);
