@@ -251,53 +251,57 @@ function sourceSites(packet: MachineFunctionSourceFacts, effects: Effects) {
   if (
     proofs === undefined ||
     loop === undefined ||
-    packet.loops.length !== 1 ||
-    !effects.loops.has(loop) ||
     loop.preheader.id !== packet.function.entry ||
-    loop.tripDomain.minimum <= 0 ||
-    loop.parent !== null ||
+    packet.loops.some(
+      (item) => !effects.loops.has(item) || item.tripDomain.minimum <= 0 || item.parent !== null,
+    ) ||
     packet.function.parameters.length !== 0 ||
     packet.function.blocks.some(
-      (block) => ![loop.preheader, loop.header, loop.body, loop.update, loop.exit].includes(block),
+      (block) =>
+        !packet.loops.some((item) =>
+          [item.preheader, item.header, item.body, item.update, item.exit].includes(block),
+        ),
     )
   )
     return null;
   const sites = [];
-  const operations = loop.body.operations;
-  for (let index = 0; index < operations.length; index += 4) {
-    const ordinal = operations[index],
-      load = operations[index + 1],
-      unary = operations[index + 2],
-      store = operations[index + 3];
-    if (
-      ordinal?.kind !== "load" ||
-      ordinal.place.root !== loop.counter ||
-      ordinal.place.path.length !== 0 ||
-      load?.kind !== "load" ||
-      load.place.path.length !== 0 ||
-      unary?.kind !== "unary" ||
-      store?.kind !== "store" ||
-      store.value !== unary.result ||
-      store.type.kind !== "scalar" ||
-      store.type.name !== "byte" ||
-      store.place.path.length !== 1 ||
-      store.place.path[0]?.kind !== "index" ||
-      store.place.path[0].value !== ordinal.result
-    )
-      return null;
-    const recipe = proofs.replacements.get(unary);
-    if (
-      recipe?.kind !== "cache" ||
-      recipe.load !== load ||
-      recipe.input !== load ||
-      unary.operand !== load.result ||
-      !recipe.defer ||
-      recipe.preservedLeft !== null ||
-      recipe.preheader !== loop.preheader.id ||
-      recipe.admittingCounter !== loop.counter
-    )
-      return null;
-    sites.push({ unary, recipe, store, loop });
+  for (const current of packet.loops) {
+    const operations = current.body.operations;
+    for (let index = 0; index < operations.length; index += 4) {
+      const ordinal = operations[index],
+        load = operations[index + 1],
+        unary = operations[index + 2],
+        store = operations[index + 3];
+      if (
+        ordinal?.kind !== "load" ||
+        ordinal.place.root !== current.counter ||
+        ordinal.place.path.length !== 0 ||
+        load?.kind !== "load" ||
+        load.place.path.length !== 0 ||
+        unary?.kind !== "unary" ||
+        store?.kind !== "store" ||
+        store.value !== unary.result ||
+        store.type.kind !== "scalar" ||
+        store.type.name !== "byte" ||
+        store.place.path.length !== 1 ||
+        store.place.path[0]?.kind !== "index" ||
+        store.place.path[0].value !== ordinal.result
+      )
+        return null;
+      const recipe = proofs.replacements.get(unary);
+      if (
+        recipe?.kind !== "cache" ||
+        recipe.load !== load ||
+        recipe.input !== load ||
+        unary.operand !== load.result ||
+        !recipe.defer ||
+        recipe.preservedLeft !== null ||
+        recipe.preheader !== loop.preheader.id ||
+        recipe.admittingCounter !== loop.counter
+      )
+        return null;
+      sites.push({ unary, recipe, store, loop: current });
+    }
   }
   return sites.length >= 2 && sites.length === proofs.replacements.size ? sites : null;
 }
@@ -454,9 +458,18 @@ function group(
     !read(after, setup[2], "sta", cache.address)
   )
     return "Complement cache initialization is unresolved";
-  const beforeBody = sequence(before, first.loop.body),
-    afterBody = sequence(after, first.loop.body);
-  if (beforeBody === null || afterBody === null)
+  const chains = new Map(
+    [...new Set(sites.map((site) => site.loop))].map((loop) => [
+      loop,
+      {
+        before: sequence(before, loop.body),
+        after: sequence(after, loop.body),
+        start: 0,
+        removed: 0,
+      },
+    ]),
+  );
+  if ([...chains.values()].some((chain) => chain.before === null || chain.after === null))
     return "Complement use chain has an alternate entry or control path";
   const omitted = new Set<string>(),
     substitutions = new Map<string, string>();
@@ -470,10 +483,13 @@ function group(
   const changed = BYTE_WINDOW_CHANGED.a | BYTE_WINDOW_CHANGED.n | BYTE_WINDOW_CHANGED.z;
   if (!selectedPrefix(entry.label, entry.instructions.length, changed))
     return "Complement initialization exposes changed accumulator or flags";
-  let start = 0;
   // Exact store-operation anchors delimit each source computation. The final
   // remainder comparison forbids unexplained changes between these anchors.
   for (const site of sites) {
+    const chain = chains.get(site.loop)!;
+    const beforeBody = chain.before!,
+      afterBody = chain.after!,
+      start = chain.start;
     const anchor = (items: NonNullable<typeof beforeBody>) =>
       items.filter(({ instruction }) =>
         instruction.observerOrigins?.some(
@@ -526,7 +542,7 @@ function group(
       return "Complement reference capture or selected delivery disagrees";
     if (!sourcePrefix(triple[2]!.block.label, triple[2]!.index + 1, changed))
       return "Complement removed computation exposes accumulator or flags";
-    const next = afterBody[start - omitted.size];
+    const next = afterBody[start - chain.removed];
     if (next === undefined || !selectedPrefix(next.block.label, next.index, changed))
       return "Complement selected continuation exposes accumulator or flags";
     for (const item of triple) omitted.add(point(item.block, item.index));
@@ -534,10 +550,11 @@ function group(
     watchedBefore.set(captured.address, new Set([point(triple[2]!.block, triple[2]!.index)]));
     targetsBefore.set(point(oldStore[0]!.block, oldStore[0]!.index), destinationBefore.interval);
     targetsAfter.set(point(newStore[0]!.block, newStore[0]!.index), destinationAfter.interval);
-    start = end + 1;
+    chain.start = end + 1;
+    chain.removed += triple.length;
   }
   if (
-    start !== beforeBody.length ||
+    [...chains.values()].some((chain) => chain.start !== chain.before!.length) ||
     !writes(input, before, watchedBefore, targetsBefore) ||
     !writes(input, after, watchedAfter, targetsAfter)
   )
