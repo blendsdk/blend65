@@ -439,6 +439,7 @@ function typedSourceFailure(
               (value) =>
                 effects.originalCallGuards?.get(operation)?.get(value) ??
                 guarded.get(operation)?.get(value) ??
+                effects.originalAccessGuards?.get(operation)?.get(value) ??
                 bound(value),
             )
           )

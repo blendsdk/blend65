@@ -24,6 +24,7 @@ import {
 import { bitSafe } from "./size-observer-complement-field-state.js";
 import { findNamedObjectBacking } from "./size-observer-backing.js";
 import { matchLowByteReadInputs } from "./size-observer-low-byte-read-inputs.js";
+import { deriveRuntimeStoreGuards } from "./size-observer-runtime-store-guards.js";
 import type { FinalObserverInput } from "./size-observers.js";
 
 /** Both existing declarations and homes, prepared by the group storage check. */
@@ -84,6 +85,8 @@ export interface LowByteFunctionChanges {
     SemanticOperation,
     ReadonlyMap<string, bigint>
   >;
+  /** Actual runtime bounds guards for private byte indexes, keyed by the exact store. */
+  readonly accessGuards: ReadonlyMap<SemanticOperation, ReadonlyMap<string, bigint>>;
 }
 
 /** The register whose byte a load opcode reads. */
@@ -1115,6 +1118,8 @@ export function matchLowByteOccurrences(
   if (typeof readInputs === "string") return readInputs;
   accessesBefore.push(...readInputs.before);
   accessesAfter.push(...readInputs.after);
+  const accessGuards = deriveRuntimeStoreGuards(input, source, before, after);
+  if (typeof accessGuards === "string") return accessGuards;
   return {
     source,
     before: before.actual,
@@ -1128,5 +1133,6 @@ export function matchLowByteOccurrences(
     accessesBefore,
     accessesAfter,
     callGuards: readInputs.callGuards,
+    accessGuards,
   };
 }

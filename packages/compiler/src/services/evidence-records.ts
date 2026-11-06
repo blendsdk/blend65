@@ -1,5 +1,10 @@
 import type { CompleteC64Layout } from "../artifacts/acme-validate.js";
-import { machineFunctionSegments, sameSpan } from "./debug-machine-ranges.js";
+import {
+  machineFunctionSegments,
+  sameSpan,
+  singleVisitMachineEntry,
+  unusedByteParameterAtEntry,
+} from "./debug-machine-ranges.js";
 import { capturedByteLocations, privateHomeAvailability } from "./debug-storage-locations.js";
 import { c64InterruptEntryLabel } from "../machine/lower-c64-interrupt.js";
 import { acmeLabelName, acmeLabelNames } from "../artifacts/acme-labels.js";
@@ -504,6 +509,8 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     readonly contextIndex?: number;
     readonly liveRangeIndexes: readonly number[];
     readonly availability: EvidenceRecord;
+    /** Selected counter symbol this source word rematerializes from, when narrowed. */
+    readonly rematerializeTarget?: string;
   }[] = [];
   for (const fn of semanticFunctions) {
     const functionIndex = functionIndexes.get(bindingIdentityKey(fn.id));
@@ -672,6 +679,24 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
         if (range.semanticBlock === undefined || range.semanticOperation === null) return false;
         return livePositions.has(`${range.semanticBlock}\0${range.semanticOperation}`);
       });
+      const machine = machineFunctions.get(sourceFunction.machineIds[variantIndex]!);
+      let entryNotRepresentable = false;
+      if (
+        liveRangeIndexes.length === 0 &&
+        machine !== undefined &&
+        unusedByteParameterAtEntry(request, sourceFunction.body)
+      ) {
+        const entryRange = functionRanges.find(
+          (rangeIndex) => rangeDrafts[rangeIndex]!.start === machine.origin,
+        );
+        if (entryRange !== undefined) {
+          liveRangeIndexes.push(entryRange);
+          // A loop header can share the entry PC after an empty block disappears.
+          // Without iteration-sensitive locations, its original parameter value
+          // cannot be advertised again after another local reuses the home.
+          entryNotRepresentable = !singleVisitMachineEntry(machine);
+        }
+      }
       // A zero-byte declaration emits no instruction and owns no live bytes.
       // Keep its source/context marker without inventing a machine range.
       if (home.bytes > 0 && liveRangeIndexes.length === 0) {
@@ -696,9 +721,10 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
         availability:
           home.bytes === 0
             ? Object.freeze({ kind: "optimizedAway", rule: "zero-byte position marker" })
-            : privateHomeAvailability(home),
+            : entryNotRepresentable
+              ? Object.freeze({ kind: "unavailable", reason: "notRepresentable" })
+              : privateHomeAvailability(home),
       };
-      const machine = machineFunctions.get(sourceFunction.machineIds[variantIndex]!);
       const capture =
         machine === undefined
           ? null
@@ -718,6 +744,67 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
         }
     }
   }
+  /**
+   * A narrowed counter keeps its source local symbol even when the selected
+   * representation is a byte temporary. The source type/width stays word/2;
+   * the location rematerializes the zero-extended low byte from that temporary.
+   */
+  for (const fn of input.layout.program.functions)
+    for (const proof of fn.fixedCounterProofs ?? []) {
+      const original = input.layout.program.storageSelection?.originalInventory.requests.find(
+        (request) => request.id === proof.originalRequestId,
+      );
+      if (original === undefined || original.binding === null) continue;
+      const functionIndex = functionIndexes.get(bindingIdentityKey(proof.loop.function.id));
+      if (functionIndex === undefined) continue;
+      const ownerName = String(functions[functionIndex]!.qualifiedName);
+      const targetName =
+        proof.requestId === null ? undefined : `${ownerName}::${proof.requestId}`;
+      const target =
+        targetName === undefined
+          ? undefined
+          : symbolDrafts.find(
+              (draft) => draft.qualifiedName === targetName && draft.kind === "temporary",
+            );
+      const sourceContext = executionFunctions[functionIndex];
+      const variantIndex = sourceContext?.machineIds.indexOf(proof.context) ?? -1;
+      const contextIndex =
+        variantIndex >= 0 ? contextOffsets[functionIndex]! + variantIndex : target?.contextIndex;
+      if (contextIndex === undefined) continue;
+      const livePositions = new Set(
+        original.lifetime.liveAt.map(({ block, operation }) => `${block}\0${operation}`),
+      );
+      const sourceRanges = (functionRangeIndexes.get(functionIndex) ?? []).filter((index) => {
+        const range = rangeDrafts[index]!;
+        return (
+          range.contextIndex === contextIndex &&
+          range.semanticBlock !== undefined &&
+          range.semanticOperation !== null &&
+          livePositions.has(`${range.semanticBlock}\0${range.semanticOperation}`)
+        );
+      });
+      const liveRangeIndexes =
+        sourceRanges.length > 0 ? sourceRanges : (target?.liveRangeIndexes ?? []);
+      if (liveRangeIndexes.length === 0) continue;
+      const originSpan = original.source ?? original.binding.span;
+      const type = original.type ?? ({ kind: "scalar", name: "byte" } as const);
+      symbolDrafts.push({
+        name: bindingIdentityKey(original.binding),
+        qualifiedName: `${ownerName}::${original.id}`,
+        kind: "local",
+        type: typeText(type),
+        byteWidth: original.bytes,
+        shape: typeShape(type),
+        scope: ownerName,
+        origin: Object.freeze({ kind: "source", span: indexedSpan(originSpan, sourceIndexes) }),
+        linkage: "internal",
+        labels: Object.freeze([]),
+        contextIndex,
+        liveRangeIndexes: Object.freeze(liveRangeIndexes),
+        availability: Object.freeze({ kind: "unavailable", reason: "notMaterialized" }),
+        ...(targetName === undefined ? {} : { rematerializeTarget: targetName }),
+      });
+    }
   symbolDrafts.sort(
     (left, right) =>
       compareText(
@@ -755,14 +842,29 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     ),
   );
   const locations = Object.freeze(
-    symbolDrafts.map((symbol) =>
-      Object.freeze({
+    symbolDrafts.map((symbol) => {
+      const targetName =
+        "rematerializeTarget" in symbol ? symbol.rematerializeTarget : undefined;
+      const targetIndex =
+        targetName === undefined
+          ? undefined
+          : uniqueSymbols.findIndex(
+              (entry) => entry.qualifiedName === targetName && entry.kind === "temporary",
+            );
+      return Object.freeze({
         symbolIndex: symbolIndexes.get(symbolKey(symbol))!,
         liveRangeIndexes: symbol.liveRangeIndexes,
-        availability: symbol.availability,
+        availability:
+          targetIndex === undefined || targetIndex < 0
+            ? symbol.availability
+            : Object.freeze({
+                kind: "rematerializable" as const,
+                rule: "fixed counter zero-extended low byte",
+                operandSymbolIndexes: Object.freeze([targetIndex]),
+              }),
         ...(symbol.contextIndex === undefined ? {} : { contextIndex: symbol.contextIndex }),
-      }),
-    ),
+      });
+    }),
   );
 
   return Object.freeze({

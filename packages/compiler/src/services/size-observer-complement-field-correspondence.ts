@@ -285,6 +285,7 @@ function typedReads(
       const maximum =
         effects.originalCallGuards?.get(operation)?.get(index) ??
         guarded.get(operation)?.get(index) ??
+        effects.originalAccessGuards?.get(operation)?.get(index) ??
         effects.bounds.get(source.id)?.get(index) ??
         ordinary(index);
       const definition = definitions.get(index),

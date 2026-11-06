@@ -604,9 +604,7 @@ export function validateComposedLowByte(
   );
   if (
     !packets.some(
-      (packet) =>
-        (packet.storage?.parameters.size ?? 0) > 0 &&
-        packet.loops.some((loop) => loop.parent !== null),
+      (packet) => packet.loops.some((loop) => loop.parent !== null),
     )
   )
     return null;

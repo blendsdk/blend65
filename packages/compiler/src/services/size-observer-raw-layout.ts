@@ -49,6 +49,8 @@ export type ResidualEffectsResult =
       readonly bounds: ReadonlyMap<BindingId, ReadonlyMap<string, bigint>>;
       /** Original use-site hypotheses; remaining atomic typed/state/physical gates must still pass. */
       readonly originalCallGuards?: ReadonlyMap<SemanticOperation, ReadonlyMap<string, bigint>>;
+      /** Actual runtime bounds guards for private byte indexes, when composed lowering emitted them. */
+      readonly originalAccessGuards?: ReadonlyMap<SemanticOperation, ReadonlyMap<string, bigint>>;
       /** Exact composed counter changes; field consumers still close independently. */
       readonly lowByteComposition?: LowByteComposition;
     }

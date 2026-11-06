@@ -615,6 +615,7 @@ export function validateResidualEffects(input: FinalObserverInput): ResidualEffe
   const remaining =
     selected.size === 0 ? loops : new Set([...loops].filter((loop) => !selected.has(loop)));
   const originalCallGuards = new Map<SemanticOperation, ReadonlyMap<string, bigint>>();
+  const originalAccessGuards = new Map<SemanticOperation, ReadonlyMap<string, bigint>>();
   for (const [owner, changes] of composition?.functions ?? [])
     for (const [operation, values] of changes.callGuards) {
       if (
@@ -626,6 +627,21 @@ export function validateResidualEffects(input: FinalObserverInput): ResidualEffe
       )
         return failure("rejected", "Composed read guards have conflicting or foreign ownership");
       originalCallGuards.set(operation, values);
+    }
+  for (const [owner, changes] of composition?.functions ?? [])
+    for (const [operation, values] of changes.accessGuards) {
+      if (
+        changes.source !== owner ||
+        !owner.blocks.some((block) => block.operations.includes(operation)) ||
+        originalAccessGuards.has(operation) ||
+        values.size === 0 ||
+        [...values.values()].some((maximum) => maximum < 0n)
+      )
+        return failure(
+          "rejected",
+          "Composed runtime access guards have conflicting or foreign ownership",
+        );
+      originalAccessGuards.set(operation, values);
     }
   const induction = originalInduction(input, remaining, borrows, originalCallGuards);
   if (induction !== null) return induction;
@@ -641,6 +657,7 @@ export function validateResidualEffects(input: FinalObserverInput): ResidualEffe
       loops,
       bounds,
       originalCallGuards,
+      originalAccessGuards,
       ...(composition === null ? {} : { lowByteComposition: composition }),
     });
   if (!RAW_RAM_PROFILES.has(input.checked.profile.id))
@@ -810,6 +827,7 @@ export function validateResidualEffects(input: FinalObserverInput): ResidualEffe
       loops,
       bounds,
       originalCallGuards,
+      originalAccessGuards,
       ...(composition === null ? {} : { lowByteComposition: composition }),
     })
   );
