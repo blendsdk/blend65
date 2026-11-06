@@ -209,9 +209,11 @@ ${"asm_plp();\n".repeat(188)}restoreIRQ();
   );
 
   it.each(profiles)(
-    "should reject the finite component without publishing output when %s holds 236 saves and the held byte",
+    "should reject the finite component without publishing output when %s holds 237 saves and the held byte",
     async (profile) => {
-      await withProfileProject(mainSource(236), profile, async (project, root) => {
+      // The stored-status retry keeps 236 source saves legal; 237 is the first
+      // depth that exceeds the true 236-byte usable capacity.
+      await withProfileProject(mainSource(237), profile, async (project, root) => {
         const built = await buildProject({ project, optimization: "none" });
         expect(built.kind).toBe("failure");
         expect(built).not.toHaveProperty("generation");

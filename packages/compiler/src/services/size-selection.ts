@@ -48,6 +48,19 @@ import type { SharedStorageResult } from "./shared-storage.js";
 import type { FailureCategory, ServiceFailure } from "./types.js";
 import { reserveZeroPageGlobals } from "./zero-page-globals.js";
 
+/**
+ * Keep stored-status startup out of programs with asynchronous or address-taken roots.
+ * Those paths can begin after the constructor stores its live state, and the held-byte
+ * constructor retains the already-qualified behavior instead of relying on unproved
+ * asynchronous visibility. Ordinary main-only programs remain eligible.
+ */
+function asynchronousStartupRisk(program: WholeProgram): boolean {
+  return (
+    (program.interruptRoutes?.length ?? 0) > 0 ||
+    program.roots.some((root) => root.kind === "interrupt" || root.kind === "callable")
+  );
+}
+
 /** Checked source retained independently of any successful machine allocation. */
 export interface CheckedSourceInput {
   /** Complete immutable source identity, including the selected invocation options. */
@@ -374,6 +387,7 @@ export function closeCanonicalStorage(
   if (
     startupPolicy === undefined &&
     snapshot.manifest.optimization === "none" &&
+    !asynchronousStartupRisk(program) &&
     (lowered.binder.startupStack?.heldBytes ?? 0) > 0 &&
     certificate.kind === "error" &&
     certificate.reason === "stack" &&
@@ -383,6 +397,7 @@ export function closeCanonicalStorage(
     // A compiler-held status byte must not reject source that fits the existing
     // stored-status constructor. Re-lower the whole tuple, including initializers,
     // rather than removing that byte from an otherwise unchanged certificate.
+    // Asynchronous and address-taken roots keep the proven held-byte constructor.
     const stored = closeCanonicalStorage(input, optimizationFacts, "compact-stored");
     if (stored.kind === "failure") return stored;
     if (
@@ -494,15 +509,22 @@ export function closeCanonicalReference(
   candidate = false,
 ): CanonicalReferenceOutcome {
   const { profile, resourceSpans, lowered } = checked;
+  const stackCapacity =
+    (profile.storage.hardwareStackCapacity ?? 0x100) -
+    (profile.storage.hardwareStackReserve ?? 0);
   if (
     !candidate &&
     checked.snapshot.manifest.optimization === "none" &&
+    !asynchronousStartupRisk(checked.program) &&
     (lowered.binder.startupStack?.heldBytes ?? 0) > 0 &&
-    checked.certificate.certificate.hardwareStackPeak >= C64_RESOURCE_BUDGETS.stackWarning
+    checked.certificate.certificate.hardwareStackPeak >= C64_RESOURCE_BUDGETS.stackWarning &&
+    checked.certificate.certificate.hardwareStackPeak < stackCapacity
   ) {
     // Prefer a lower stack peak near the advisory boundary, but only if the
     // larger constructor also fits the real resident layout. A RAM-tight program
-    // keeps its feasible compact tuple and its truthful held-byte warning.
+    // keeps its feasible compact tuple and its truthful held-byte warning. At
+    // the exact capacity boundary the compact tuple stays selected; only actual
+    // overflow below may force the stored construction.
     const stored = closeCanonicalStorage(checked.checkedSource, undefined, "compact-stored");
     if (stored.kind === "failure") return stored;
     if (
