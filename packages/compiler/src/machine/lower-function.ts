@@ -106,7 +106,18 @@ export function lowerFunction(
         (sourceFunction === undefined
           ? []
           : (input.optimizationFacts.functions.get(sourceFunction)?.loops ?? [])));
-  const ordinalBounds = ordinalBoundsForFunction(blocks, input, fixedLoops.counterFacts, loopFacts);
+  /**
+   * Metadata-only construction keeps the prior conservative bounds query while
+   * still collecting authentic observer annotations for the final proof.
+   */
+  const boundsInput =
+    input.metadataOnly === true ? Object.freeze({ ...input, observerEvidence: false }) : input;
+  const ordinalBounds = ordinalBoundsForFunction(
+    blocks,
+    boundsInput,
+    fixedLoops.counterFacts,
+    loopFacts,
+  );
   const {
     forwardedRegisterValues,
     byteOrdinalAdditions,

@@ -619,7 +619,12 @@ export function aggregateDestination(
   const fixed = freshAggregateHome(operation, state);
   if (fixed !== null && operation.destination?.kind === "place") {
     result = fixed;
-    state.aggregatePlaces.set(operation.result, operation.destination.place);
+    state.aggregatePlaces.set(
+      operation.result,
+      state.input.sourceFacts?.objectOnly === true
+        ? selectedStoragePlace(operation.destination.place, state.sourceFacts?.storage)
+        : operation.destination.place,
+    );
   } else if (operation.destination?.kind === "caller") {
     const selected = state.sourceFacts?.storage?.result;
     result =
@@ -633,12 +638,19 @@ export function aggregateDestination(
     operation.destination.place.path.length === 0
   ) {
     const place = operation.destination.place;
-    const home = loweredPlace(place, operation.type.size, false, state);
+    const objectOnly = state.input.sourceFacts?.objectOnly === true;
+    const selected = selectedStoragePlace(place, state.sourceFacts?.storage);
+    const replaced = objectOnly && isReturnedLocalPlace(place, state) && selected !== place;
+    const home = loweredPlace(
+      objectOnly && replaced ? selected : place,
+      operation.type.size,
+      false,
+      state,
+    );
     if (
       home.kind === "storage" &&
       (home.requestId.includes(":parameter:") ||
-        (isReturnedLocalPlace(place, state) &&
-          selectedStoragePlace(place, state.sourceFacts?.storage) === place))
+        (!replaced && isReturnedLocalPlace(place, state) && selected === place))
     ) {
       const address = lowerAggregateAddress(
         place,
@@ -652,7 +664,7 @@ export function aggregateDestination(
     } else {
       result = home;
     }
-    state.aggregatePlaces.set(operation.result, place);
+    state.aggregatePlaces.set(operation.result, objectOnly && replaced ? selected : place);
   } else if (operation.destination?.kind === "place") {
     const place = operation.destination.place;
     const address = lowerAggregateAddress(
@@ -698,17 +710,21 @@ function freshAggregateHome(
   const destination = operation.destination;
   if (destination?.kind !== "place" || destination.freshConstant !== true) return null;
   const place = destination.place;
-  if (place.rootType === undefined || place.asset !== undefined) return null;
+  const selectedPlace =
+    state.input.sourceFacts?.objectOnly === true
+      ? selectedStoragePlace(place, state.sourceFacts?.storage)
+      : place;
+  if (selectedPlace.rootType === undefined || selectedPlace.asset !== undefined) return null;
   const bytes = typeBytes(operation.type);
-  const rootBytes = typeBytes(place.rootType);
-  const root = loweredPlace(place, rootBytes, false, state);
+  const rootBytes = typeBytes(selectedPlace.rootType);
+  const root = loweredPlace(selectedPlace, rootBytes, false, state);
   if (
     root.kind !== "storage" ||
-    !root.requestId.endsWith(`:local:${bindingIdentityKey(place.root)}`)
+    !root.requestId.endsWith(`:local:${bindingIdentityKey(selectedPlace.root)}`)
   )
     return null;
   const home = declaredStorage(state.input, (id) => id === root.requestId);
-  const plan = aggregateAddressPlan(place, state, operation.span);
+  const plan = aggregateAddressPlan(selectedPlace, state, operation.span);
   if (
     !plan.fixedInBounds ||
     plan.staticOffset + bytes > rootBytes ||

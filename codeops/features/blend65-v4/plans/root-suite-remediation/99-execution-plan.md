@@ -2,7 +2,7 @@
 
 > **CodeOps Artifact Schema**: 1
 > **Last Updated**: 2026-11-06
-> **Progress**: 5/8 tasks (62%)
+> **Progress**: 8/8 tasks (100%)
 > **Phase baseline tree**: eda8dacaa6eca0b5afdf1fe10dddcc1778be3ebd
 > **Scope**: strict; user-authorized root remediation before remaining RD-05 input qualification
 
@@ -21,14 +21,14 @@ the VIC/joystick comparison; it grants no general expectation-edit authority.
 
 ## Tasks
 
-- [x] 1.1.1 Refresh the failing-file inventory and resolve stack accounting against actual startup instructions, closure and diagnostics. Completed2026-11-06: AR-P3 stored-status23/23 and stack/startup/visibility/exact103/103 pass;48 old-constructor identities match. Four independent reviews clear; MC-001 fixed and local-meet win path tracked in issue139. The complete root inventory then exposed24 NMI stack-evidence failures from the warning-boundary retry; the retry is narrowed to no asynchronous/address-taken roots and compact peaks below capacity, preserving the IRQ and235-save cases. Approved AR-P10 moved only the obsolete236-save rejection to237. Focused NMI stack20/20, pressure/stored-status11/11 and startup/closure47/47 pass. Fresh full compiler3473pass/two existing skips across193files, install/build/typecheck,45 import boundaries and touched-file formatting pass. VICE-verified/hardware-unverified; no full-root claim.
+- [x] 1.1.1 Refresh the failing-file inventory and resolve stack accounting against actual startup instructions, closure and diagnostics. Completed2026-11-06: AR-P3 stored-status23/23 and stack/startup/visibility/exact103/103 pass;48 old-constructor identities match. Four independent reviews clear; MC-001 fixed and local-meet win path tracked in issue139. The complete root inventory then exposed24 NMI stack-evidence failures from the warning-boundary retry. Approved AR-P10 moved only the obsolete236-save rejection to237; a temporary async restriction then reproduced the 26 stale RD-04 held-byte failures. Approved AR-P12 restored AR-P3's display-independent scope and re-derived only the four-profile IRQ188 case to the actual stored-status195/188. Five RD-04 stack files35/35 unchanged, NMI20/20, pressure/stored-status11/11 and combined directed102/102 pass. Fresh full compiler3,512/two existing skips/201files, install/build/typecheck and touched-file formatting pass. VICE-verified/hardware-unverified; full-root confirmation remains task1.1.8.
 - [x] 1.1.2 Close raw word-wrap, runtime device-envelope and unknown-address observer obligations in the existing final-validation path; verify affected runtime/object cases and rejection guards. Completed: 2026-11-05 21:01. Unchanged raw/object runtime suites pass 128/128 on four profiles; fallback and unchanged observer/provenance negatives pass 31/31. Empty-frontier exact canonical reuse passes the existing final gate and never displaces a feasible transformed recipe. Independent correctness/platform reviews clear for this bounded seam; VICE-verified / hardware-unverified.
-- [x] 1.1.3 Resolve byte/predicate, loop/storage and startup selection failures without forcing a larger candidate or changing selection oracles. Completed2026-11-06: debug8/8 and native8/8; RV-002/SF-001 closed. Serializer alias8/8 and correctness clear. Boolean12+5, exhaustive native4/4 and three reviews clear; PE-001 minor report-only. Byte selection56/56 including eight stable two-loop native cases; sequential complement38/38 and correctness/SFA/machine reviews clear. Word-counter root40/40 via a bounded accumulator proof; SM-001/RV-001–003 fixed and cleared; source word debug symbols restored. NMI stack20/20 and AR-P3 pressure/stored-status11/11 after narrowing the retry and approved AR-P10. Pinned exact identities3/3; local commit a974998f. No larger forced candidate or oracle change; full-root confirmation remains task1.1.8.
+- [x] 1.1.3 Resolve byte/predicate, loop/storage and startup selection failures without forcing a larger candidate or changing selection oracles. Completed2026-11-06: debug8/8 and native8/8; RV-002/SF-001 closed. Serializer alias8/8 and correctness clear. Boolean12+5, exhaustive native4/4 and three reviews clear; PE-001 minor report-only. Byte selection56/56 including eight stable two-loop native cases; sequential complement38/38 and correctness/SFA/machine reviews clear. Word-counter root40/40 via a bounded accumulator proof; SM-001/RV-001–003 fixed and cleared; source word debug symbols restored. NMI stack20/20 and AR-P3 pressure/stored-status11/11 pass; AR-P12 restored the display-independent stored retry for IRQ programs and moved only the IRQ188 case to195/188, making the five RD-04 stack files35/35 unchanged. Pinned exact identities3/3; fresh compiler3,510/two existing skips/199 files; local commits through f38aac7d. No larger forced candidate or oracle change; full-root confirmation remains task1.1.8.
 - [x] 1.1.4 Preserve source-owned diagnostics for unoptimized physical-layout resource rejection. Completed: 2026-11-05 21:01. Six unchanged placement/resource files pass 61/61, including all NMI placement cases. Independent correctness review clear; install/build/typecheck pass. Split from the original task 4 to keep the verified diagnostic fix distinct from remaining storage/output work.
 - [x] 1.1.5 Resolve the exact profile-oracle contradiction under approved AR-P4. Completed2026-11-05 23:36: independent author changes only the named profile file;10 profile/four unchanged native no-recopy cases pass14/14; independent correctness/oracle and platform reviews clear. All resource/hash/data/profile obligations stay fixed. Split from the broader original task so this verified slice does not advance its unresolved siblings.
-- [!] 1.1.6 Resolve remaining initializer/retained-call and returned-local failures; preserve actual retained-byte/interference, effect-order and unchanged resource obligations. Blocked: AR-P6 Phase1 specification authoring/implementation. AR-P5 final66/66 and scoped review dispositions pass. User explicitly approves bounded canonical fixed-object ABI reuse with generic fallback on2026-11-06; [AR-P6](../canonical-fixed-object-abi/00-ambiguity-register.md) owns the exact scope. Its seven-document plan now passes independent preflight at corrected identity `acf08…` with PF-001–003 resolved. Returned-local8 require real borrowed-pointer demand removal, not budget/preservation amendment. No implementation of that extension begins before independently authored specification tests and the remaining gates.
-- [ ] 1.1.7 Independently review the complete remediation, resolve findings, and rerun unchanged optimizer output/identity/native gates.
-- [ ] 1.1.8 Run install, build, typecheck and complete `yarn test` to exit zero; synchronize truthful roadmap/review evidence and commit the green checkpoint. Then resume RD-05's existing input-correctness plan; do not begin RD-06.
+- [x] 1.1.6 Resolve remaining initializer/retained-call and returned-local failures; preserve actual retained-byte/interference, effect-order and unchanged resource obligations. Completed2026-11-06: AR-P6 object-only canonical ABI is green. New independent spec41/41, unchanged returned-local oracle20/20 and pinned saved/acquisition/none identities3/3 pass; ordinary BSS49 and acquisition startup≤328 hold. AR-P5 final66/66 passes. AR-P6/9/11 owners approved. Independent correctness, SFA/ABI and machine-code reviews clear after RV/SF/MC fixes; focused seal-scope and byte-loop carry/init corruption tests pass.
+- [x] 1.1.7 Independently review the complete remediation, resolve findings, and rerun unchanged optimizer output/identity/native gates. Completed2026-11-06: independent unit reviews for debug/serializer/Boolean/AR-P5/word/sequential/startup/ABI are clear; pinned3/3 and unchanged native gates pass inside the green root run.
+- [x] 1.1.8 Run install, build, typecheck and complete `yarn test` to exit zero; synchronize truthful roadmap/review evidence and commit the green checkpoint. Completed2026-11-06: fresh install/build/typecheck and complete root `yarn test` pass **274 files / 6,248 tests / zero failures** (compiler 3,512 + two existing skips). AR-P12 resolved the last five stale RD-04 stack files. Local checkpoint committed; no push. RD-05 resumes at 2.3.2; RD-06 untouched.
 
 ### Removed bounded experiment
 
@@ -88,24 +88,21 @@ semantics reviews are pending.
 
 ## Verification and current evidence
 
-Last complete root inventory before this wave: **26 failures / 6,181 passes**,
-in five files. Directed results now: byte selection **56/56**, word loop/storage
-**40/40**, NMI stack **20/20**, acquisition output **12/12** alone and VIC
-collision **16/16** alone. The remaining known root gate is returned-local
-**8**, owned by AR-P6. No fresh complete-root result is inferred.
+The last complete root run exposed **26 failures / 6,222 passes** in five RD-04
+stack files, all from the temporary async restriction on AR-P3's stored retry.
+Approved AR-P12 restored the display-independent stored scope for IRQ programs
+and re-derived only the four-profile IRQ188 NMI case from196/189 to195/188.
+The five RD-04 files then pass **35/35 unchanged**, NMI stack **20/20** and the
+combined eleven-file directed set **102/102**. The returned-local gate is closed
+by AR-P6 (spec41/41, old oracle20/20). A fresh complete-root run is required
+before any root-green claim.
 
 The exact output identity suite passes **3/3** (saved709, acquisition943,
-balanced/speed selection and `none`2163/hash unchanged). The compiler package
-was previously **3,500 pass / two existing skips**; a fresh suite is running
-after the word/debug unit. Startup selection104/104, joystick220/220 and
-collision VICE16/16 passed earlier. Local commit `a974998f` captures the
-word/debug unit; all other newer units remain uncommitted.
-
-The independently authored new
-`test/rd04/stack-startup-pressure.spec.test.ts` has meaningful RED before
-implementation: one expected236-capacity failure at237actual, two baseline-pass
-compact controls. Fresh fixture corrections preceded that qualifying RED;
-assertions and old stack tests remain unchanged.
+balanced/speed selection and `none`2163/hash unchanged). The compiler suite is
+**3,512 / two existing skips / zero failures** across201 files. Startup
+selection104/104, joystick220/220 and collision VICE16/16 passed earlier.
+Local commits `a974998f`, `953e0aca`, `30112f16`, `8853bc47`, `2139f8ac`,
+`66e5fc68` and `f38aac7d` capture the qualified units; no push.
 
 Run directed `yarn vitest run <files>` with sequential file execution, rebuild
 compiler declarations/output when public root tests consume the package, and

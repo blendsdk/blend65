@@ -106,6 +106,8 @@ export interface FunctionStorageSelection {
     readonly content: string;
     /** Existing complete derived recipe map, shared rather than copied into a registry. */
     readonly entries: ReadonlyMap<SemanticFunction, FunctionStorageSelection>;
+    /** Derivation scope; canonical object-only recipes cannot masquerade as Closed. */
+    readonly scope: "closed" | "canonical-object";
   };
   /** Exact immutable source function whose generic entry is being represented. */
   readonly function: SemanticFunction;
@@ -288,10 +290,12 @@ function resultLocal(
  * This does not prove final RAM/bus/alias visibility, remove inventory entries or
  * permit publication. The whole candidate must discharge the retained facts first.
  * @param facts Exact source object origins, source effects and pending range observers.
+ * @param restrictToReturnedLocals Keep only proved returned-local results and the same-object borrowers they authenticate.
  * @returns Per-function recipes for the closed bundle; an absent match keeps generic ABI.
  */
 export function selectClosedObjectStorage(
   facts: ClosedObjectFacts,
+  restrictToReturnedLocals = false,
 ): ReadonlyMap<SemanticFunction, FunctionStorageSelection> {
   const pending = new Map<
     SemanticFunction,
@@ -305,13 +309,45 @@ export function selectClosedObjectStorage(
     parameters.set(key, parameter);
     byFunction.set(parameter.function, parameters);
   }
+  const returned = new Set(
+    (facts.program.returnedLocalDestinations ?? []).map(
+      ({ function: fn, local }) => `${bindingIdentityKey(fn)}\0${bindingIdentityKey(local)}`,
+    ),
+  );
+  const eligibleRoots = new Set<string>();
+  if (restrictToReturnedLocals)
+    for (const fn of facts.program.semantic.functions) {
+      const candidate = facts.earlyResults.has(bindingIdentityKey(fn.id))
+        ? facts.results.get(bindingIdentityKey(fn.id))
+        : undefined;
+      const local = candidate === undefined ? undefined : resultLocal(candidate, facts);
+      if (
+        candidate !== undefined &&
+        local != null &&
+        returned.has(`${bindingIdentityKey(fn.id)}\0${bindingIdentityKey(local)}`)
+      )
+        eligibleRoots.add(bindingIdentityKey(candidate.origin.place.root));
+    }
   for (const fn of facts.program.semantic.functions) {
-    const parameters = byFunction.get(fn) ?? new Map<string, ClosedParameterObject>();
+    const allParameters = byFunction.get(fn) ?? new Map<string, ClosedParameterObject>();
+    const parameters = restrictToReturnedLocals
+      ? new Map(
+          [...allParameters].filter(([, parameter]) =>
+            eligibleRoots.has(bindingIdentityKey(parameter.origin.place.root)),
+          ),
+        )
+      : allParameters;
     const candidate = facts.earlyResults.has(bindingIdentityKey(fn.id))
       ? facts.results.get(bindingIdentityKey(fn.id))
       : undefined;
     const local = candidate === undefined ? undefined : resultLocal(candidate, facts);
-    const selected = candidate !== undefined && local !== undefined ? candidate : null;
+    const eligibleResult =
+      candidate !== undefined &&
+      local !== undefined &&
+      (!restrictToReturnedLocals ||
+        (local !== null &&
+          returned.has(`${bindingIdentityKey(fn.id)}\0${bindingIdentityKey(local)}`)));
+    const selected = eligibleResult ? candidate : null;
     if (parameters.size === 0 && selected === null) continue;
     if (selected !== null && local != null)
       resultRoots.set(bindingIdentityKey(local), selected.origin);
@@ -340,6 +376,7 @@ export function selectClosedObjectStorage(
           facts,
           content: selectionContent(selection),
           entries: result,
+          scope: restrictToReturnedLocals ? "canonical-object" : "closed",
         }),
       }),
     );
@@ -355,11 +392,13 @@ export function validNonLoopBundleTag(value: unknown): boolean {
  * Require a complete derived bundle so a missing caller cannot leave stale replacements.
  * @param functions Actual per-source function packets installed for this attempt.
  * @param allowSelection False for the explicit Direct bundle, which keeps canonical object ABI.
+ * @param scope Required derivation scope for object-only or Closed consumption.
  * @returns Whether all installed object recipes belong to the same complete admitted bundle.
  */
 export function validObjectStorageBundle(
   functions: ReadonlyMap<SemanticFunction, { readonly storage?: FunctionStorageSelection }>,
   allowSelection = true,
+  scope?: "closed" | "canonical-object",
 ): boolean {
   const selected = [...functions].flatMap(([fn, entry]) =>
     entry.storage === undefined ? [] : [[fn, entry.storage] as const],
@@ -369,7 +408,11 @@ export function validObjectStorageBundle(
   return expected === undefined
     ? selected.length === 0
     : expected.size === selected.length &&
-        selected.every(([fn, entry]) => expected.get(fn) === entry);
+        selected.every(
+          ([fn, entry]) =>
+            expected.get(fn) === entry &&
+            (scope === undefined || entry[STORAGE_SELECTION_SEAL]?.scope === scope),
+        );
 }
 
 /** Confirm that a selected recipe still references its original source facts and function. */
@@ -597,7 +640,7 @@ export function projectMachineStorage(
     }
   }
   let results = canonical.results;
-  if (facts.nonLoopBundle === "closed") {
+  if (facts.nonLoopBundle === "closed" || facts.objectOnly === true) {
     for (const [source, packet] of facts.functions) {
       const selection = packet.storage;
       if (selection === undefined) continue;
@@ -644,6 +687,47 @@ export function projectMachineStorage(
       results = Object.freeze(projected);
     }
   }
+  /**
+   * A metadata-only object construction may remove only the temporaries and
+   * addresses generated by the selected returned-local construction itself.
+   * This is explicit replacement evidence, never a generic unused-temporary sweep.
+   */
+  if (facts.objectOnly === true) {
+    for (const [source, packet] of facts.functions) {
+      const selection = packet.storage;
+      if (selection?.resultLocal == null) continue;
+      const resultKey = bindingIdentityKey(selection.resultLocal);
+      const spans = source.blocks.flatMap((block) =>
+        block.operations.flatMap((operation) =>
+          operation.kind === "aggregate" &&
+          operation.destination?.kind === "place" &&
+          bindingIdentityKey(operation.destination.place.root) === resultKey
+            ? [operation.span]
+            : [],
+        ),
+      );
+      if (spans.length === 0) continue;
+      const owner = bindingIdentityKey(source.id);
+      for (const request of requests) {
+        if (
+          bindingIdentityKey(request.owner) !== owner ||
+          request.source === null ||
+          request.persistent
+        )
+          continue;
+        const span = request.source;
+        if (
+          spans.some(
+            (candidate) =>
+              span.sourceId === candidate.sourceId &&
+              span.start >= candidate.start &&
+              span.end <= candidate.end,
+          )
+        )
+          permitted.add(request.id);
+      }
+    }
+  }
   const omitted = Object.freeze(
     requests.filter(
       (request) =>
@@ -677,6 +761,7 @@ export function projectMachineStorage(
         (request) =>
           !(
             input.observerEvidence === true &&
+            input.metadataOnly !== true &&
             request.storageClass === "temporary" &&
             request.persistent !== true &&
             !accesses.has(request.id)
@@ -694,6 +779,7 @@ export function projectMachineStorage(
           !removed.has(request.id) &&
           !(
             input.observerEvidence === true &&
+            input.metadataOnly !== true &&
             request.storageClass === "temporary" &&
             request.persistent !== true &&
             !accesses.has(request.id)

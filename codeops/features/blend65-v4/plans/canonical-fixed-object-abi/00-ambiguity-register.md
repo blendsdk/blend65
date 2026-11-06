@@ -21,6 +21,7 @@ standalone plan and its review gates must precede any implementation.
 | AR-P7 | Technical integration | Keep Direct/Original lowering; carry complete sealed object-only facts, reclose actual demand and validate against the real generic construction. No optimizer activation or unrelated parameter selection. | Technical execution of AR-P6 under the repository's compiler/plan decision directive | ✅ Resolved |
 | AR-P8 | Verification and compatibility | Public interfaces, old oracles and pinned artifacts stay fixed. Independent specification-first cases, complete verification, local green commits and no automatic push. | Approved root goal, AR-P6 and repository verification commands | ✅ Resolved |
 | AR-P9 | Technical (complexity amendment), runtime | Apply PF-001–003: metadata-only scope in existing owners; add only `services/size-observer-effects.ts` for bounded unchanged-control/MMIO correspondence; require existing semantics review. All prior exclusions remain. | User selected “Approve amendment (Recommended)” on2026-11-06 in the exact owner/proof question | ✅ Resolved |
+| AR-P11 | Technical (scope amendment), runtime | Add only existing owners `services/services.ts` for the canonical object-attempt service hook and `machine/lower-aggregate.ts` for direct fixed-result/nested construction. No new pass, runtime, dependency, public interface, oracle/ceiling/hash or general mechanism is authorized. | User selected “Approve two owners (Recommended)” on2026-11-06 after the implementation proved the two seams necessary; ABI spec41/41, unchanged returned-local20/20 and pinned3/3 pass | ✅ Resolved |
 
 ## AR-P6 visible complexity packet
 
@@ -72,10 +73,12 @@ leaves the eight gates blocked; weakening preservation or costs is not viable.
 `machine/lower-call.ts`, `machine/lower-function.ts`, `machine/lower.ts`,
 `services/size-selection.ts`, `services/size-observer-borrows.ts` and
 `services/size-observers.ts`, plus the AR-P9-approved
-`services/size-observer-effects.ts`, only where this representation crosses those
-owners. Reuse existing projections and consumers; no second alias solver.
-Necessary focused specification/implementation regressions use existing test
-tiers. Further owners or material mechanisms reopen this gate.
+`services/size-observer-effects.ts` and the AR-P11-approved
+`services/services.ts` and `machine/lower-aggregate.ts`, only where this
+representation crosses those owners. Reuse existing projections and consumers;
+no second alias solver. Necessary focused specification/implementation
+regressions use existing test tiers. Further owners or material mechanisms
+reopen this gate.
 
 **Excluded:** full Closed optimization in `none`; unrelated by-reference
 specialization; fixture-name/source-hash eligibility; new pass, IR, runtime,

@@ -127,7 +127,10 @@ export function validateNamedBorrows(input: FinalObserverInput): BorrowValidatio
   if (constructors.length === 0) return Object.freeze({ kind: "complete", operations, parameters });
   if (facts?.program !== input.checked.program)
     return failure("error", "Borrow facts belong to another checked source");
-  if (facts.nonLoopBundle !== "closed" || input.reference.kind !== "feasible")
+  if (
+    (facts.objectOnly !== true && facts.nonLoopBundle !== "closed") ||
+    input.reference.kind !== "feasible"
+  )
     return failure(
       "rejected",
       "Named borrowing needs active Closed recipes and both actual layouts",

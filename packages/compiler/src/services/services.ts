@@ -45,6 +45,7 @@ import type {
 import { findVice, launchVice, probeVice } from "./vice.js";
 import { resourceSourceSpans } from "./resource-diagnostics.js";
 import {
+  closeCanonicalObjectStorage,
   closeCanonicalReference,
   closeCanonicalStorage,
   closeSizeCandidate,
@@ -357,6 +358,47 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
     reference.kind === "feasible" ? reference.shared : null;
   let selectedDiagnostics: readonly ProjectDiagnostic[] | null =
     reference.kind === "feasible" ? reference.diagnostics : null;
+  /**
+   * Canonical `none` may replace the generic hidden-result pointer only for the
+   * restricted returned-local group. The published generic reference remains the
+   * fallback and identity baseline; the object attempt is compared against a
+   * metadata-only copy of that same generic construction.
+   */
+  if (!optimized && reference.kind === "feasible") {
+    const object = closeCanonicalObjectStorage(source.value);
+    if (object?.kind === "failure") return object;
+    if (object?.kind === "complete") {
+      const annotatedStorage = closeCanonicalStorage(source.value, undefined, undefined, true);
+      if (annotatedStorage.kind === "failure") return annotatedStorage;
+      if (annotatedStorage.kind === "complete") {
+        const annotatedReference = closeCanonicalReference(annotatedStorage.value);
+        if (annotatedReference.kind === "failure") return annotatedReference;
+        if (annotatedReference.kind === "feasible") {
+          const objectReference = closeCanonicalReference(object.value, true);
+          if (objectReference.kind === "failure") return objectReference;
+          if (objectReference.kind === "feasible") {
+            const observers = validateSizeObservers({
+              checked: source.value,
+              reference: annotatedReference,
+              candidate: { lowered: object.value.lowered, shared: objectReference.shared },
+            });
+            if (observers.kind === "error")
+              return {
+                kind: "failure",
+                failure: failure("compiler", [
+                  projectDiagnostic("COMPILER_INCOMPLETE", observers.reason, observers.source),
+                ]),
+              };
+            if (observers.kind === "complete") {
+              selectedPipeline = object.value;
+              selectedShared = objectReference.shared;
+              selectedDiagnostics = objectReference.diagnostics;
+            }
+          }
+        }
+      }
+    }
+  }
   let sizeDecision: SizeEvidenceDecision | undefined;
   if (optimized) {
     const evidenceCandidates: SizeEvidenceCandidate[] = [];

@@ -211,6 +211,15 @@ export function validateMachineSourceFacts(input: MachineLoweringInput): void {
   if (facts === undefined) return;
   if (!validNonLoopBundleTag(facts.nonLoopBundle))
     throw loweringFailure("Unknown machine non-loop construction bundle", null);
+  if (
+    facts.objectOnly === true &&
+    (facts.nonLoopBundle !== undefined ||
+      facts.loopPolicy !== undefined ||
+      facts.startupPolicy !== undefined ||
+      ![...facts.functions.values()].some((entry) => entry.storage !== undefined) ||
+      [...facts.functions.values()].some((entry) => entry.complements !== undefined))
+  )
+    throw loweringFailure("Canonical object facts cannot activate a construction bundle", null);
   const source = facts.program;
   const current = input.program;
   const globals = current.semantic.globals;
@@ -235,7 +244,17 @@ export function validateMachineSourceFacts(input: MachineLoweringInput): void {
     !validGlobals
   )
     throw loweringFailure("Machine source facts do not match the checked source program", null);
-  if (!validObjectStorageBundle(facts.functions, facts.nonLoopBundle !== "direct"))
+  if (
+    !validObjectStorageBundle(
+      facts.functions,
+      facts.nonLoopBundle !== "direct",
+      facts.objectOnly === true
+        ? "canonical-object"
+        : facts.nonLoopBundle === "closed"
+          ? "closed"
+          : undefined,
+    )
+  )
     throw loweringFailure(
       "Machine object recipes do not match the complete selected source bundle",
       null,

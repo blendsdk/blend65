@@ -8,8 +8,8 @@
 | MC-001 | stack | MAJOR | stored-status-constructor | fixed |
 | MC-002 | stack | MINOR | entry-path-cycle-composition | report-only |
 | SM-002 | profile | MAJOR | mutually-exclusive-startup-oracles | fixed |
-| SM-003 | retained-observers | MAJOR | initializer-capture-category | approved fix pending |
-| SM-004 | retained-observers | MAJOR | physical-PC-as-execution-order | approved fix pending |
+| SM-003 | retained-observers | MAJOR | initializer-capture-category | fixed in AR-P5; group66/66 |
+| SM-004 | retained-observers | MAJOR | physical-PC-as-execution-order | fixed in AR-P5; group66/66 |
 | RV-002 | parameter-debug | MINOR | entry-only-regression-coverage | fixed |
 | SF-001 | parameter-debug | MAJOR | entry-alias-revisit | fixed |
 | SF-002 | retained-observers | MAJOR | capture-to-call-retention-gap | fixed; final re-entry remedy execution-qualified |
@@ -18,28 +18,54 @@
 | PE-001 | Boolean-proof | MINOR | unused-final-graph-reproof | report-only |
 | OR-001 | startup-retry | MAJOR | obsolete-236-save-rejection | fixed by AR-P10; 20/20 + 11/11 pass |
 | WC-001 | word-counter | MAJOR | nested-accumulator-containment | fixed; SM-001/RV-001–003 addressed; semantics confirms SM-001; root40/40 |
-| DBG-001 | word-counter | MAJOR | narrowed-counter-source-symbols | fixed; debug33/33 and pinned3/3; RV-003 fix pending confirmation |
+| DBG-001 | word-counter | MAJOR | narrowed-counter-source-symbols | fixed; debug33/33 and pinned3/3; RV-003 re-review clear |
+| OR-002 | startup-retry | MAJOR | IRQ-held-byte-oracle-conflict | fixed by AR-P12; five RD-04 files35/35 unchanged, NMI20/20 |
+
+## Canonical fixed-object ABI directed qualification
+
+The approved object-only canonical representation now activates only for proved
+returned-local groups and same-object borrowers. It retains the generic build as
+fallback, compares against a metadata-only copy of that generic construction,
+projects only replaced result/parameter demand with no actual access, and
+constructs the fixed result and nested literal directly into caller backing.
+The acquisition byte loop is admitted only through a bounded unchanged-control
+proof in both actual layouts; optimized candidates are outside that scope.
+
+Directed results: new independent spec **41/41**, unchanged returned-local oracle
+**20/20**, exact saved/acquisition/`none` identities **3/3**, focused seal-scope
+and byte-loop carry/initialization corruption tests pass. Old ordinary BSS49
+and acquisition startup≤328 now hold. AR-P11 approved the two existing service/
+aggregate owners required by the implementation. Independent correctness
+(RV-001–004), SFA/ABI (SF-001–003) and machine-code (MC-001) fix reviews are
+clear. Install/build/typecheck pass. The first complete root run then exposed
+only the 26 stale RD-04 held-byte expectations; approved AR-P12 restored the
+display-independent stored scope and re-derived the single IRQ188 NMI case to
+195/188. Five RD-04 files35/35 unchanged and the combined directed set102/102
+pass. The fresh complete root run passes **274 files / 6,248 tests / zero
+failures** (compiler 3,512 + two existing skips). T-18 and DEF-17 are closed;
+no oracle, limit, hash or hardware claim changed.
 
 ## Review and verification evidence
 
-## AR-P3 oracle conflict and narrowed retry
+## AR-P3 stored-status scope and AR-P12 IRQ correction
 
-The last complete root inventory exposed 24 failed NMI stack-evidence cases.
-The AR-P3 warning-boundary retry selected stored-status startup for IRQ-overlap
-and capacity-boundary fixtures whose unchanged oracles require the held-byte
-compact constructor. The retry is now restricted to programs with no
-asynchronous/address-taken roots and to compact peaks strictly below usable
-capacity, so the IRQ188 and 235-save cases return to compact startup. Rebuilding
-the package and rerunning the file gives **16 pass / 4 fail**.
+The first AR-P3 implementation applied the stored-status retry to every
+display-independent `none` program at the warning boundary. The complete root
+inventory then exposed stale NMI expectations, and the retry was temporarily
+restricted to programs without asynchronous or address-taken roots. That
+restriction returned the held byte to all five RD-04 stack files and reproduced
+their 26 stale-ledger failures, while the stored form is safe for IRQ programs:
+its state lives in compiler-owned resident storage and is restored before main.
 
-The remaining four failures are a genuine oracle conflict, not a producer bug:
-the old 236-save case requires E10238 failure, while the approved new
-236-save pressure case requires success at peak236 through stored-status
-startup. The same nested-PHP source cannot satisfy both. AR-P10 was approved:
-only the old rejection moved to237 saves, retaining the failure/no-publication
-gate at capacity+1. The focused NMI stack file now passes **20/20**; the AR-P3
-pressure and stored-status files pass **11/11**, and the targeted compiler
-startup/closure set passes **47/47**.
+AR-P12 was approved. The retry now follows the approved AR-P3 scope again:
+display-independent `none` programs at/above the 188-byte warning boundary,
+regardless of asynchronous roots. The five RD-04 stack files pass **35/35
+unchanged** (the held-byte failures disappear). Only the four-profile IRQ
+188-save NMI case moved, from the compact held-P ledger 196/189 to the actual
+stored-status **195/188**; interrupt-entry saves, external-NMI uncertainty and
+finite accounting remain exact. AR-P10's 236→237 rejection move stays. The
+combined directed set passes **102/102**. This removes no oracle and lowers the
+true reported peak by one byte.
 
 ## Word-counter containment and debug evidence
 

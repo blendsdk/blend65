@@ -1,11 +1,15 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
-import type { MachineBlock, MachineInstruction } from "../machine/machine-types.js";
+import type {
+  MachineBlock,
+  MachineFunction,
+  MachineInstruction,
+} from "../machine/machine-types.js";
 import type { StorageRange } from "../storage/storage-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type { FixedLoopFacts } from "../semantic/fixed-loop-facts.js";
 import { fixedLoopValueBounds } from "../semantic/fixed-loop-facts.js";
 import { instructionAccessEnvelope } from "../machine/nmos6510-access.js";
-import { machineSuccessors as targets } from "../machine/lower-control.js";
+import { machineSuccessors as targets, semanticSuccessors } from "../machine/lower-control.js";
 import {
   literalResolver,
   ordinalBoundResolver,
@@ -15,7 +19,7 @@ import {
   placeUses,
   placeMayEscapeRoot,
 } from "../semantic/aggregate-place-proof.js";
-import type { SemanticOperation, SemanticBlock } from "../semantic/operations.js";
+import type { SemanticOperation, SemanticBlock, SemanticFunction } from "../semantic/operations.js";
 import { admittedRawRam, byteRanges, checkLayout, failure } from "./size-observer-raw-layout.js";
 import type {
   RawOperation,
@@ -574,6 +578,257 @@ function originalInduction(
 }
 
 /**
+ * Prove one canonical byte loop's control is identical in both actual layouts.
+ * The loop is not a word FixedLoopFact: its counter is a private byte and the
+ * raw MMIO sites stay inside the body. Only the counter/condition/update spans
+ * and the loop terminators are compared; the raw template proof separately
+ * authenticates every device access. Returns null when no such loop is present.
+ */
+function unchangedByteLoopAdmission(
+  input: FinalObserverInput,
+  body: SemanticFunction,
+): "admitted" | string | null {
+  const definitions = valueDefinitions(body.blocks);
+  const literal = literalResolver(definitions);
+  const successors = new Map(
+    body.blocks.map((block) => [block.id, semanticSuccessors(block.terminator)] as const),
+  );
+  const key = (binding: BindingId) => bindingIdentityKey(binding);
+  const instructionKey = (instruction: MachineInstruction) =>
+    JSON.stringify([instruction.opcode, instruction.mode, instruction.operand]);
+  const sameSource = (
+    left: { readonly sourceId: string; readonly start: number; readonly end: number } | null,
+    right: { readonly sourceId: string; readonly start: number; readonly end: number },
+  ) =>
+    left !== null &&
+    left.sourceId === right.sourceId &&
+    left.start === right.start &&
+    left.end === right.end;
+  const labels = (fn: MachineFunction, block: SemanticBlock) =>
+    fn.observerBlocks?.find(([source]) => source.id === block.id)?.[1] ?? [];
+  const matches: {
+    readonly preheader: SemanticBlock;
+    readonly header: SemanticBlock;
+    readonly body: SemanticBlock;
+    readonly update: SemanticBlock;
+    readonly initialization: Extract<SemanticOperation, { readonly kind: "store" }>;
+    readonly comparison: Extract<SemanticOperation, { readonly kind: "binary" }>;
+    readonly updateStore: Extract<SemanticOperation, { readonly kind: "store" }>;
+    readonly increment: Extract<SemanticOperation, { readonly kind: "binary" }>;
+  }[] = [];
+  for (const header of body.blocks) {
+    const terminator = header.terminator;
+    if (terminator.kind !== "branch") continue;
+    const comparison = definitions.get(terminator.condition);
+    if (comparison?.kind !== "binary" || comparison.operator !== "<") continue;
+    const counterLoad = definitions.get(comparison.left);
+    const bound = literal(comparison.right);
+    if (
+      counterLoad?.kind !== "load" ||
+      counterLoad.place.path.length !== 0 ||
+      counterLoad.type.kind !== "scalar" ||
+      counterLoad.type.name !== "byte" ||
+      bound === undefined ||
+      bound <= 0n
+    )
+      continue;
+    const counter = counterLoad.place.root;
+    const bodyBlock = body.blocks.find((block) => block.id === terminator.whenTrue);
+    const exit = body.blocks.find((block) => block.id === terminator.whenFalse);
+    if (bodyBlock === undefined || exit === undefined) continue;
+    const bodySuccessors = successors.get(bodyBlock.id) ?? [];
+    if (bodySuccessors.length !== 1) continue;
+    const update = body.blocks.find((block) => block.id === bodySuccessors[0]);
+    const updateSuccessors = update === undefined ? [] : (successors.get(update.id) ?? []);
+    if (update === undefined || updateSuccessors.length !== 1 || updateSuccessors[0] !== header.id)
+      continue;
+    const headerPredecessors = body.blocks.filter(
+      (block) => block !== update && (successors.get(block.id) ?? []).includes(header.id),
+    );
+    if (headerPredecessors.length !== 1) continue;
+    const preheader = headerPredecessors[0]!;
+    const initialization = preheader.operations.find(
+      (operation): operation is Extract<SemanticOperation, { readonly kind: "store" }> =>
+        operation.kind === "store" &&
+        operation.place.path.length === 0 &&
+        key(operation.place.root) === key(counter),
+    );
+    if (initialization === undefined || literal(initialization.value) !== 0n) continue;
+    const updateStore = update.operations.find(
+      (operation): operation is Extract<SemanticOperation, { readonly kind: "store" }> =>
+        operation.kind === "store" &&
+        operation.place.path.length === 0 &&
+        key(operation.place.root) === key(counter),
+    );
+    if (updateStore === undefined) continue;
+    const increment = definitions.get(updateStore.value);
+    if (increment?.kind !== "binary" || increment.operator !== "+") continue;
+    const counterWrites = [header, bodyBlock, update].flatMap((block) =>
+      block.operations.filter(
+        (operation) =>
+          operation.kind === "store" &&
+          operation.place.path.length === 0 &&
+          key(operation.place.root) === key(counter),
+      ),
+    );
+    if (counterWrites.length !== 1 || counterWrites[0] !== updateStore) continue;
+    const self = (operation: SemanticOperation | undefined) =>
+      operation?.kind === "load" &&
+      operation.place.path.length === 0 &&
+      key(operation.place.root) === key(counter);
+    if (
+      !(
+        (self(definitions.get(increment.left)) && literal(increment.right) === 1n) ||
+        (self(definitions.get(increment.right)) && literal(increment.left) === 1n)
+      )
+    )
+      continue;
+    if (
+      !bodyBlock.operations.some(
+        (operation) => operation.kind === "memory-read" || operation.kind === "memory-write",
+      ) &&
+      !update.operations.some(
+        (operation) => operation.kind === "memory-read" || operation.kind === "memory-write",
+      )
+    )
+      continue;
+    const bodyPredecessors = body.blocks.filter((block) =>
+      (successors.get(block.id) ?? []).includes(bodyBlock.id),
+    );
+    const updatePredecessors = body.blocks.filter((block) =>
+      (successors.get(block.id) ?? []).includes(update.id),
+    );
+    if (
+      bodyPredecessors.length !== 1 ||
+      bodyPredecessors[0] !== header ||
+      updatePredecessors.length !== 1 ||
+      updatePredecessors[0] !== bodyBlock
+    )
+      continue;
+    matches.push({
+      preheader,
+      header,
+      body: bodyBlock,
+      update,
+      initialization,
+      comparison,
+      updateStore,
+      increment,
+    });
+  }
+  if (matches.length !== 1) return null;
+  const match = matches[0]!;
+  if (input.reference.kind !== "feasible") return null;
+  const findBody = (functions: readonly MachineFunction[]) =>
+    functions.find(
+      (fn) => fn.sourceFunction !== undefined && key(fn.sourceFunction) === key(body.id),
+    );
+  const referenceSymbolic = findBody(input.reference.checked.lowered.program.functions);
+  const candidateSymbolic = findBody(input.candidate.lowered.program.functions);
+  const referenceLayout = findBody(input.reference.shared.layout.program.functions);
+  const candidateLayout = findBody(input.candidate.shared.layout.program.functions);
+  if (
+    referenceSymbolic === undefined ||
+    candidateSymbolic === undefined ||
+    referenceLayout === undefined ||
+    candidateLayout === undefined
+  )
+    return null;
+  const sourceByLabel = (fn: MachineFunction) => {
+    const sources = new Map<string, string>();
+    for (const [source, labels] of fn.observerBlocks ?? [])
+      for (const label of labels) sources.set(label, source.id);
+    return sources;
+  };
+  const referenceSources = sourceByLabel(referenceLayout),
+    candidateSources = sourceByLabel(candidateLayout);
+  const machineTerminator = (block: MachineBlock, sources: ReadonlyMap<string, string>) => {
+    const terminator = block.terminator;
+    const target = (label: string) => sources.get(label) ?? label;
+    if (terminator.kind === "branch")
+      return JSON.stringify([
+        "branch",
+        terminator.opcode,
+        target(terminator.target),
+        target(terminator.fallthrough),
+      ]);
+    if (terminator.kind === "long-branch")
+      return JSON.stringify([
+        "long-branch",
+        terminator.opcode,
+        target(terminator.fallthrough),
+        target(terminator.jump.target),
+      ]);
+    if (terminator.kind === "jump" || terminator.kind === "fallthrough")
+      return JSON.stringify([terminator.kind, target(terminator.target)]);
+    return JSON.stringify([terminator.kind]);
+  };
+  const instructionShape = (instruction: MachineInstruction) =>
+    JSON.stringify([instruction.opcode, instruction.mode, instruction.operand?.kind]);
+  for (const block of [match.preheader, match.header, match.body, match.update]) {
+    const referenceLabels = labels(referenceLayout, block),
+      candidateLabels = labels(candidateLayout, block);
+    if (referenceLabels.length !== 1 || candidateLabels.length !== 1)
+      return "Byte-loop source block has no unique actual correspondence";
+    const referenceBlock = referenceLayout.blocks.find(
+      (entry) => entry.label === referenceLabels[0],
+    );
+    const candidateBlock = candidateLayout.blocks.find(
+      (entry) => entry.label === candidateLabels[0],
+    );
+    if (referenceBlock === undefined || candidateBlock === undefined)
+      return "Byte-loop source block has no actual machine block";
+    if (
+      machineTerminator(referenceBlock, referenceSources) !==
+      machineTerminator(candidateBlock, candidateSources)
+    )
+      return "Byte-loop control differs between final actual layouts";
+    const fullBlock = block === match.header || block === match.update;
+    if (!fullBlock && block !== match.preheader) continue;
+    const initWindow = (machine: MachineBlock) => {
+      const matched = machine.instructions.flatMap((instruction, index) =>
+        sameSource(instruction.source, match.initialization.span) ? [index] : [],
+      );
+      return matched.length === 0
+        ? []
+        : machine.instructions.slice(matched[0], matched.at(-1)! + 1);
+    };
+    const before = fullBlock
+      ? referenceBlock.instructions.map(instructionShape)
+      : initWindow(referenceBlock).map(instructionShape);
+    const after = fullBlock
+      ? candidateBlock.instructions.map(instructionShape)
+      : initWindow(candidateBlock).map(instructionShape);
+    if (before.length === 0 || JSON.stringify(before) !== JSON.stringify(after))
+      return "Byte-loop control instructions differ between final actual layouts";
+    const referenceSymbolicLabels = labels(referenceSymbolic, block),
+      candidateSymbolicLabels = labels(candidateSymbolic, block);
+    if (referenceSymbolicLabels.length !== 1 || candidateSymbolicLabels.length !== 1)
+      return "Byte-loop source block has no unique symbolic correspondence";
+    const referenceSymbolicBlock = referenceSymbolic.blocks.find(
+      (entry) => entry.label === referenceSymbolicLabels[0],
+    );
+    const candidateSymbolicBlock = candidateSymbolic.blocks.find(
+      (entry) => entry.label === candidateSymbolicLabels[0],
+    );
+    if (referenceSymbolicBlock === undefined || candidateSymbolicBlock === undefined)
+      return "Byte-loop source block has no symbolic machine block";
+    const beforeSymbolic = fullBlock
+      ? referenceSymbolicBlock.instructions.map(instructionKey)
+      : initWindow(referenceSymbolicBlock).map(instructionKey);
+    const afterSymbolic = fullBlock
+      ? candidateSymbolicBlock.instructions.map(instructionKey)
+      : initWindow(candidateSymbolicBlock).map(instructionKey);
+    if (
+      beforeSymbolic.length === 0 ||
+      JSON.stringify(beforeSymbolic) !== JSON.stringify(afterSymbolic)
+    )
+      return "Byte-loop symbolic control differs between actual layouts";
+  }
+  return "admitted";
+}
+
+/**
  * Discharge fixed or source-bounded, template-checked ordinary-RAM accesses in both layouts.
  * A successful result covers these raw members and the specifically discharged Original
  * induction premises. The caller must still validate all remaining typed, state and interrupt
@@ -649,6 +904,32 @@ export function validateResidualEffects(input: FinalObserverInput): ResidualEffe
   const bounds = new Map<BindingId, ReadonlyMap<string, bigint>>(
     [...fixedLoopValueBounds(program, [...loops]).owners].map(([fn, values]) => [fn.id, values]),
   );
+  const admittedByteLoops = new Set<BindingId>();
+  /**
+   * A canonical byte loop can own raw MMIO without a word FixedLoopFact.
+   * Admit it only in the object-only canonical scope and only after the same
+   * counter/condition/update spans and loop terminators are identical in both
+   * final layouts. This publishes no synthetic counter range; the raw template
+   * proof below still authenticates every device access.
+   */
+  if (facts?.objectOnly === true)
+    for (const body of bodies) {
+      const fn = program.semantic.functions.find((candidate) => candidate === body);
+      if (fn === undefined || bounds.has(fn.id)) continue;
+      const rawOwner = fn.blocks.some((block) =>
+        block.operations.some(
+          (operation) => operation.kind === "memory-read" || operation.kind === "memory-write",
+        ),
+      );
+      if (!rawOwner || (fn.blocks.length === 1 && fn.blocks[0]?.terminator.kind === "return"))
+        continue;
+      const admission = unchangedByteLoopAdmission(input, fn);
+      if (admission === "admitted") {
+        admittedByteLoops.add(fn.id);
+        continue;
+      }
+      if (typeof admission === "string") return failure("rejected", admission, fn.source);
+    }
   if (raw.length === 0)
     return Object.freeze({
       kind: "complete",
@@ -702,6 +983,7 @@ export function validateResidualEffects(input: FinalObserverInput): ResidualEffe
     bodies.some(
       (body) =>
         (!bounds.has(body.id) &&
+          !admittedByteLoops.has(body.id) &&
           body.blocks.some((block) =>
             block.operations.some(
               (operation) => operation.kind === "memory-read" || operation.kind === "memory-write",

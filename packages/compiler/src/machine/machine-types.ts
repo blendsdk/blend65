@@ -140,6 +140,8 @@ export interface MachineSourceFacts {
   readonly loopPolicy?: FixedLoopPolicy;
   /** Selected cooperative startup construction; omission preserves the proof-derived default. */
   readonly startupPolicy?: C64StartupPolicy;
+  /** Object-only canonical ABI scope; never activates complement, loop or optimizer admission. */
+  readonly objectOnly?: true;
   /** Immutable function keys avoid deriving or scanning source facts per machine variant. */
   readonly functions: ReadonlyMap<SemanticFunction, MachineFunctionSourceFacts>;
 }
@@ -634,6 +636,8 @@ export interface MachineProgram {
 export interface MachineLoweringInput {
   /** Retain internal source/access evidence for size reference/candidate closure; none omits it. */
   readonly observerEvidence?: boolean;
+  /** Collect authentic observer metadata without enabling folding, removal or stronger bounds. */
+  readonly metadataOnly?: true;
   /** Source binding identities mapped to display names; never used for semantic lookup. */
   readonly bindingNames?: ReadonlyMap<string, string>;
   /** Closed reachable semantic program. */

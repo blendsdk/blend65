@@ -48,19 +48,6 @@ import type { SharedStorageResult } from "./shared-storage.js";
 import type { FailureCategory, ServiceFailure } from "./types.js";
 import { reserveZeroPageGlobals } from "./zero-page-globals.js";
 
-/**
- * Keep stored-status startup out of programs with asynchronous or address-taken roots.
- * Those paths can begin after the constructor stores its live state, and the held-byte
- * constructor retains the already-qualified behavior instead of relying on unproved
- * asynchronous visibility. Ordinary main-only programs remain eligible.
- */
-function asynchronousStartupRisk(program: WholeProgram): boolean {
-  return (
-    (program.interruptRoutes?.length ?? 0) > 0 ||
-    program.roots.some((root) => root.kind === "interrupt" || root.kind === "callable")
-  );
-}
-
 /** Checked source retained independently of any successful machine allocation. */
 export interface CheckedSourceInput {
   /** Complete immutable source identity, including the selected invocation options. */
@@ -310,12 +297,14 @@ function completedPipeline(
  * @param input Immutable checked source, independent of canonical allocation success.
  * @param optimizationFacts Optional rules shared by the optimized reference and its candidates.
  * @param startupPolicy Explicit existing constructor for a resource-driven retry.
+ * @param metadataOnly Collect authentic observer metadata without changing operation selection.
  * @returns Bound direct machine operations, a resource rejection, or a terminal failure.
  */
 export function closeCanonicalStorage(
   input: CheckedSourceInput,
   optimizationFacts?: OptimizationFacts,
   startupPolicy?: C64StartupPolicy,
+  metadataOnly = false,
 ): CanonicalStorageOutcome {
   const { program, profile, resourceSpans, snapshot } = input;
   const zeroPageOverflow = sourceZeroPageOverflow(program, profile, resourceSpans);
@@ -351,7 +340,10 @@ export function closeCanonicalStorage(
   const lower = (facts: OptimizationFacts | undefined) =>
     lowerMachineProgram({
       ...(startupPolicy === undefined ? {} : { startupPolicy }),
-      ...(snapshot.manifest.optimization !== "none" ? { observerEvidence: true } : {}),
+      ...(snapshot.manifest.optimization !== "none" || metadataOnly
+        ? { observerEvidence: true }
+        : {}),
+      ...(metadataOnly ? { metadataOnly: true as const } : {}),
       ...(facts === undefined ? {} : { optimizationFacts: facts }),
       preferZeroPage: input.snapshot.manifest.optimization !== "none",
       bindingNames: input.bindingNames,
@@ -387,7 +379,6 @@ export function closeCanonicalStorage(
   if (
     startupPolicy === undefined &&
     snapshot.manifest.optimization === "none" &&
-    !asynchronousStartupRisk(program) &&
     (lowered.binder.startupStack?.heldBytes ?? 0) > 0 &&
     certificate.kind === "error" &&
     certificate.reason === "stack" &&
@@ -397,8 +388,8 @@ export function closeCanonicalStorage(
     // A compiler-held status byte must not reject source that fits the existing
     // stored-status constructor. Re-lower the whole tuple, including initializers,
     // rather than removing that byte from an otherwise unchanged certificate.
-    // Asynchronous and address-taken roots keep the proven held-byte constructor.
-    const stored = closeCanonicalStorage(input, optimizationFacts, "compact-stored");
+    // The retry keeps every closure, visibility and resource category exact.
+    const stored = closeCanonicalStorage(input, optimizationFacts, "compact-stored", metadataOnly);
     if (stored.kind === "failure") return stored;
     if (
       (stored.kind === "complete" &&
@@ -510,12 +501,10 @@ export function closeCanonicalReference(
 ): CanonicalReferenceOutcome {
   const { profile, resourceSpans, lowered } = checked;
   const stackCapacity =
-    (profile.storage.hardwareStackCapacity ?? 0x100) -
-    (profile.storage.hardwareStackReserve ?? 0);
+    (profile.storage.hardwareStackCapacity ?? 0x100) - (profile.storage.hardwareStackReserve ?? 0);
   if (
     !candidate &&
     checked.snapshot.manifest.optimization === "none" &&
-    !asynchronousStartupRisk(checked.program) &&
     (lowered.binder.startupStack?.heldBytes ?? 0) > 0 &&
     checked.certificate.certificate.hardwareStackPeak >= C64_RESOURCE_BUDGETS.stackWarning &&
     checked.certificate.certificate.hardwareStackPeak < stackCapacity
@@ -592,6 +581,90 @@ export function closeCanonicalReference(
       ...checked.diagnostics,
       ...layoutResourceWarnings(shared.layout, checked.program, profile, resourceSpans),
     ]),
+  });
+}
+
+/**
+ * Build the restricted canonical object representation for already-proved returned locals.
+ * This is an optional construction: no eligible group returns null and keeps the generic
+ * reference. The whole tuple is closed and bound, but final observer comparison is the
+ * service's responsibility before it may replace the canonical output.
+ * @param input Exact checked source shared with the feasible generic reference.
+ * @returns Complete object-only pipeline, a resource rejection, a terminal failure or null.
+ */
+export function closeCanonicalObjectStorage(
+  input: CheckedSourceInput,
+): CanonicalStorageOutcome | null {
+  const prepared = deriveSizeSourceFacts(input);
+  const selections = selectClosedObjectStorage(prepared.objects, true);
+  if (selections.size === 0) return null;
+  const reserved = reserveZeroPageGlobals(input.program, input.profile.storage);
+  // The generic reference already proved placement; an impossible object-only
+  // reservation is not a second source diagnostic.
+  if (reserved.kind === "error") return null;
+  const allocationProfile = Object.freeze({
+    ...input.profile,
+    storage: Object.freeze({ ...reserved.storage, profileId: input.profile.id }),
+  });
+  const inventory = inventoryStorage(reserved.program, { preferZeroPage: false });
+  if (!validStorageDemands(inventory.requests)) return null;
+  const functions = new Map(
+    [...prepared.functions].map(([fn, facts]) => {
+      const storage = selections.get(fn);
+      return [fn, storage === undefined ? facts : Object.freeze({ ...facts, storage })] as const;
+    }),
+  );
+  const sourceFacts: MachineSourceFacts = Object.freeze({
+    program: input.program,
+    functions,
+    objectOnly: true,
+  });
+  const lowered = lowerMachineProgram({
+    observerEvidence: true,
+    metadataOnly: true,
+    bindingNames: input.bindingNames,
+    program: reserved.program,
+    profile: allocationProfile,
+    logicalStorage: inventory,
+    sourceFacts,
+    preferZeroPage: false,
+    boundsCheck: input.snapshot.manifest.boundsCheck,
+    divisionZeroCheck: input.snapshot.manifest.divisionZeroCheck,
+    sourceText: input.sourceText,
+  });
+  if (lowered.kind === "error")
+    return Object.freeze({
+      kind: "failure",
+      failure: terminal("compiler", [projectDiagnostic("COMPILER_LOWERING", lowered.reason, null)])
+        .failure,
+    });
+  if (!validStorageDemands(lowered.program.requiredStorage))
+    return Object.freeze({
+      kind: "failure",
+      failure: incomplete("static storage closure").failure,
+    });
+  const certificate = closeStorage(lowered.inventory, reserved.storage, lowered.binder);
+  if (certificate.kind === "error") {
+    if (certificate.reason === "stack" || certificate.reason === "resource")
+      return rejected(
+        certificate.reason === "stack" ? "stack" : "storage",
+        incomplete("static storage closure").failure,
+        { inventory: lowered.inventory, lowered },
+      );
+    return Object.freeze({
+      kind: "failure",
+      failure: incomplete("static storage closure").failure,
+    });
+  }
+  const machine = bindMachineProgram(lowered.program, certificate.certificate);
+  if (machine.kind === "error")
+    return Object.freeze({
+      kind: "failure",
+      failure: incomplete("machine storage binding").failure,
+    });
+  return Object.freeze({
+    kind: "complete",
+    value: completedPipeline(input, reserved.program, input.profile, lowered, certificate, machine),
   });
 }
 

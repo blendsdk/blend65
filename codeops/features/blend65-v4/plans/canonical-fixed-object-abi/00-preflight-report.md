@@ -164,6 +164,18 @@ The corrected plan identity is `acf08…`; the pre-amendment `148a…` scan rema
 the evidence baseline. This pass authorizes independent specification authoring
 and the gated implementation phases; it is not an implementation or runtime result.
 
+## Post-preflight AR-P11 owner amendment
+
+The directed implementation proved two existing owners necessary for the
+approved behavior: `services/services.ts` for the canonical object-attempt hook
+and fallback comparison, and `machine/lower-aggregate.ts` for direct fixed-result
+and nested-literal construction. The user approved exactly these two owners under
+AR-P11; no new pass, runtime, dependency, public interface, oracle, ceiling or
+hash is authorized. The original design and preflight findings remain valid.
+Directed evidence after the amendment: new ABI spec41/41, unchanged
+returned-local oracle20/20 and pinned identities3/3. Independent implementation
+reviews and full root verification remain pending.
+
 ## Hardening and evidence limits
 
 Independent challenger `ses_e517f5c94ffenLwhzX3KRIeljd` refutes none of the

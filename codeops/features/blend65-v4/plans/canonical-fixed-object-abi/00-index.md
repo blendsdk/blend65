@@ -1,7 +1,7 @@
 # Canonical fixed-object ABI implementation plan
 
 > **Feature**: Proof-backed returned-object calling convention in canonical lowering
-> **Status**: Plan Preflighted — independent specification authoring next
+> **Status**: Done — complete root suite green; T-18/DEF-17 closed
 > **Created**: 2026-11-06
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1

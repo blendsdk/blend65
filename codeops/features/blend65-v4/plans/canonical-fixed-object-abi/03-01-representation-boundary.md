@@ -57,6 +57,8 @@ generic representation. Add no pinning, heap, stack frame or dispatcher.
 Retain the real generic construction through existing canonical reference
 closure. At that service owner, attempt only eligible object representation;
 do not enumerate optimizer candidates or change optimized canonical references.
+The existing `services/services.ts` hook and `machine/lower-aggregate.ts` direct
+fixed-result/nested construction are the AR-P11-approved seams for this attempt.
 The attempt cannot recurse into itself. Preserve startup-pressure retry and
 all visibility/fallback duties.
 

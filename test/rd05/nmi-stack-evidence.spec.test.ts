@@ -155,10 +155,10 @@ describe("cooperative external NMI and finite stack evidence", () => {
   );
 
   it.each(profiles)(
-    "should preserve the exact finite IRQ warning and 196-byte component when %s overlaps 188 saves",
+    "should preserve the exact finite IRQ warning and 195-byte component when %s overlaps 188 saves",
     async (profile) => {
-      // Startup holds one status byte; the IRQ holds three CPU bytes, three firmware saves
-      // and one wrapper status save.
+      // The stored-status retry removes the held startup byte at the warning boundary;
+      // the IRQ holds three CPU bytes, three firmware saves and one wrapper status save.
       const source = `module Game;
 import { setIRQ, restoreIRQ } from c64.system;
 interrupt function onIRQ(): void {}
@@ -176,11 +176,11 @@ ${"asm_plp();\n".repeat(188)}restoreIRQ();
           .toEqual([
             expect.objectContaining({
               code: "W10180",
-              message: `Maximum simultaneous hardware-stack use is 196 bytes on '${profile}'; usable capacity is 236 (calls 0, interrupt entries 7, explicit pushes 189)`,
+              message: `Maximum simultaneous hardware-stack use is 195 bytes on '${profile}'; usable capacity is 236 (calls 0, interrupt entries 7, explicit pushes 188)`,
             }),
           ]);
         const artifacts = await readProfileArtifacts(built);
-        expectFiniteAccounting(artifacts, 196);
+        expectFiniteAccounting(artifacts, 195);
         const rows = profileRecords(artifacts.memory.stackDomains);
         expect
           .soft(rows.filter((row) => row.id === "interrupt-entry-save"))

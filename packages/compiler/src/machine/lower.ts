@@ -609,7 +609,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
     // Observer-evidence lowering is the size mode contract; both the canonical
     // reference and every candidate carry it, so the fold changes neither side
     // relative to the other.
-    if (input.observerEvidence === true)
+    if (input.observerEvidence === true && input.metadataOnly !== true)
       optimizedFunctions = foldShiftHome(input.profile.cpu, optimizedFunctions);
 
     const uniqueRequests = new Map<string, StorageRequest>();
@@ -686,7 +686,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
           startup.startup,
           input.bindingNames,
           createC64StartupStateData(c64Startup),
-          input.observerEvidence === true,
+          input.observerEvidence === true && input.metadataOnly !== true,
         ),
         startup: startup.startup,
         c64Startup,
