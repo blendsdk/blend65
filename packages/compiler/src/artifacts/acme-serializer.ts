@@ -113,6 +113,11 @@ function operandText(
 function mnemonic(instruction: MachineInstruction): string {
   // JMP has no zero-page encoding, so ACME cannot narrow its selected address form.
   if (instruction.opcode === "jmp") return instruction.opcode;
+  // Indexed indirect forms have only a one-byte pointer operand on NMOS 6502.
+  // Their parentheses/index already fix the addressing mode; a width suffix
+  // adds no constraint and obscures the ordinary assembly spelling.
+  if (instruction.mode === "indexed-indirect-x" || instruction.mode === "indirect-indexed-y")
+    return instruction.opcode;
   // A numeric address above zero page is unambiguous and needs no width suffix.
   if (
     instruction.mode === "absolute" &&
@@ -124,9 +129,7 @@ function mnemonic(instruction: MachineInstruction): string {
   if (
     instruction.mode === "zero-page" ||
     instruction.mode === "zero-page-x" ||
-    instruction.mode === "zero-page-y" ||
-    instruction.mode === "indexed-indirect-x" ||
-    instruction.mode === "indirect-indexed-y"
+    instruction.mode === "zero-page-y"
   ) {
     return `${instruction.opcode}+1`;
   }
