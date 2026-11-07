@@ -1,4 +1,4 @@
-# RD-06 Producer Evidence Handoff — SpritePad 3.80 / CharPad 3.88
+# RD-06 Producer Evidence Handoff — SpritePad 3.80 / CharPad 3.88 / GoatTracker 2.77
 
 > **Purpose**: take this file to the Windows machine that has SpritePad C64 Pro 3.80
 > and CharPad C64 Pro 3.88. It lists exactly what to save, export, record and
@@ -134,6 +134,33 @@ Get-ChildItem -Recurse -File | Get-FileHash -Algorithm SHA256 |
 
 Keep the originals unchanged. Do not open and re-save them after hashing.
 
+## Part G — GoatTracker 2.77 (callable-audio adapter evidence)
+
+GoatTracker is a separate adapter family, not a native asset format. Provide:
+
+| File | What it must contain |
+|---|---|
+| `GT277-MUSIC-ONLY-<name>.prg` | Exact exported player + tune with music only, no `-Dx` SFX |
+| `GT277-SFX-<name>.prg` | Exact exported player + tune with the `-Dx` SFX feature enabled |
+| `GT277-<name>.sng` | The exact source tune used for each export |
+| `GT277-<name>.txt` | Export command, selected features, subtune/effect names, player/data load addresses |
+| `version-evidence\` | Screenshot of the GoatTracker 2.77 about/version window |
+
+Also record the exact archive name and SHA-256, every member hash used, the selected
+export options, player entry addresses, writable/self-modifying/ZP/stack/RAM/MMIO
+ranges, video/SID topology, cadence, IRQ/CIA ownership and every code/data cost.
+The adapter cannot be qualified from a filename, a header alone or a different
+GoatTracker release. Missing fields remain `Unknown`; they are not guessed.
+
+## Part H — Owner and completion
+
+For every family, name the person who supplied and approved the evidence, the date,
+and the exact completion state in `provenance.txt`. The RD-06 gate is complete only
+when the manifest entry, hashes, retention approval and expected selector outputs
+all exist. The project owner supplies the producer/player evidence; the compiler
+implementation owner creates the manifest, independent expected values and negative
+derivations.
+
 ## Part F — Transfer back
 
 1. Zip the `rd06-evidence` folder.
@@ -144,17 +171,18 @@ The Linux side will verify the SHA-256 values, producer versions, SPD v5/CTM v9
 structure and exact end-of-file, then build the fixture manifest, independent
 expected outputs, malformed/adjacent-version cases and the native tests.
 
-## Minimum to start planning
+## Minimum to start fixture intake
 
 One `MIN` project per family, plus its version screenshot and retention approval,
-is enough to start the RD-06 fixture gate. The full `ALL`, `WIDE`, optional or
-display × color × tile matrix must be complete before that family's decoder
-implementation gate passes.
+is enough to start fixture intake and record the manifest entry. It is **not** enough
+to start decoder planning or implementation. The full `ALL`, `WIDE`, optional or
+display × color × tile matrix must be complete before that family's decoder planning
+and implementation gate passes (RD-06 AR-51).
 
 ## Do not
 
 - Do not hand-convert the files or create them with another tool.
 - Do not use a comparative parser or a guessed schema.
-- Do not run SpritePad or CharPad from the Linux build or CI.
+- Do not run SpritePad, CharPad or GoatTracker from the Linux build or CI.
 - Do not relabel a different producer version as 3.80 or 3.88.
 - Do not edit the producer-saved bytes after saving.
