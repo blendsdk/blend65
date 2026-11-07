@@ -77,4 +77,4 @@ physical hardware remains unverified.
 
 ## Gate result
 
-Task 2.3.1, the 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 is complete: NV-001..006 are fixed, the original suite passes 24/24 and the independent coexistence suite passes 36/36. Task 2.3.4 remains. Task 2.3.4 remains blocked on the corrected native evidence and finding disposition. Progress is **46/48**. No phase-2 completion, release or optimized claim is made.
+Task 2.3.1, the 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 is complete: NV-001..006 are fixed, the original suite passes 24/24 and the independent coexistence suite passes 36/36. Task 2.3.4 (independent reviews and closeout) remains ready. Progress is **47/48**. No phase-2 completion, release or optimized claim is made.
