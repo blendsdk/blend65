@@ -175,7 +175,7 @@ async function viceExecutable(): Promise<string | null> {
 }
 
 /** Resolve and validate the exact ROM set shipped beside the admitted executable. */
-async function runtimeIdentity(): Promise<ViceRuntimeIdentity | null> {
+export async function viceRuntimeIdentity(): Promise<ViceRuntimeIdentity | null> {
   const executable = await viceExecutable();
   if (executable === null) return null;
   const romDirectory = join(dirname(dirname(executable)), "share", "vice", "C64");
@@ -196,7 +196,7 @@ async function runtimeIdentity(): Promise<ViceRuntimeIdentity | null> {
 }
 
 /** Reserve and immediately release one loopback port for the owned monitor. */
-async function freshLoopbackPort(): Promise<number> {
+export async function viceLoopbackPort(): Promise<number> {
   const net = await import("node:net");
   const server = net.createServer();
   await new Promise<void>((resolveListen, reject) => {
@@ -210,6 +210,75 @@ async function freshLoopbackPort(): Promise<number> {
   );
   if (port === null) throw new Error("Could not reserve a loopback port for VICE");
   return port;
+}
+
+/** Exact VICE command-line options shared by direct and debugger-wrapped launches. */
+export interface ViceLaunchOptions {
+  /** Exact cooperative machine identity. */
+  readonly profileId: C64KernalProfileId;
+  /** Bounded emulator run; large padded images need extra disk-loading cycles. */
+  readonly maximumCycles: number;
+  /** Loopback port owned by the binary monitor. */
+  readonly monitorPort: number;
+  /** Select simulation when true, no device when false; omit to keep the default. */
+  readonly enableJoystick1?: boolean;
+  /** Keep the simulated second joystick unless false selects no device. */
+  readonly enableJoystick2: boolean;
+}
+
+/**
+ * Build the exact VICE 3.10 argument vector for one attested profile.
+ *
+ * The debugger-wrapped native qualification uses the same vector as an ordinary
+ * launch so that the machine identity, ROM selection, monitor endpoint and
+ * autostart behavior cannot drift between the two paths.
+ * @param identity Attested executable and ROM identities.
+ * @param prgPath Exact published program to autoload.
+ * @param options Validated profile, cycle bound and monitor settings.
+ * @returns Arguments excluding the executable path.
+ */
+export function viceLaunchArguments(
+  identity: ViceRuntimeIdentity,
+  prgPath: string,
+  options: ViceLaunchOptions,
+): readonly string[] {
+  const pal =
+    options.profileId === "c64-pal-prg-kernal-6581" ||
+    options.profileId === "c64-pal-prg-kernal-8580";
+  const ntsc =
+    options.profileId === "c64-ntsc-prg-kernal-6581" ||
+    options.profileId === "c64-ntsc-prg-kernal-8580";
+  if (!pal && !ntsc) throw new RangeError("VICE requires an exact cooperative C64 profile");
+  const romArguments = ROMS.flatMap((rom, index) => [rom.option, identity.roms[index]!.path]);
+  return Object.freeze([
+    "-default",
+    "-model",
+    pal ? "c64" : "ntsc",
+    pal ? "-pal" : "-ntsc",
+    "-VICIImodel",
+    pal ? "6569" : "6567",
+    "-sidmodel",
+    options.profileId.endsWith("6581") ? "0" : "1",
+    "-ciamodel",
+    "0",
+    // Model presets can reset ROM selections, so the attested files must be selected last.
+    ...romArguments,
+    "-console",
+    "+sound",
+    "+warp",
+    "-binarymonitor",
+    "-binarymonitoraddress",
+    `127.0.0.1:${options.monitorPort}`,
+    "-controlport2device",
+    options.enableJoystick2 ? "37" : "0",
+    ...(options.enableJoystick1 === undefined
+      ? []
+      : ["-controlport1device", options.enableJoystick1 ? "37" : "0"]),
+    "-limitcycles",
+    String(options.maximumCycles),
+    "-autostart",
+    prgPath,
+  ]);
 }
 
 /** Wait for one child exit without leaking a timer or listener. */
@@ -257,42 +326,21 @@ export async function startVice(
   const pal = profileId === "c64-pal-prg-kernal-6581" || profileId === "c64-pal-prg-kernal-8580";
   const ntsc = profileId === "c64-ntsc-prg-kernal-6581" || profileId === "c64-ntsc-prg-kernal-8580";
   if (!pal && !ntsc) throw new RangeError("VICE requires an exact cooperative C64 profile");
-  const identity = await runtimeIdentity();
+  const identity = await viceRuntimeIdentity();
   if (identity === null) {
     return Object.freeze({
       kind: "unknown",
       reason: "the pinned VICE 3.10 runtime is unavailable",
     });
   }
-  const port = await freshLoopbackPort();
-  const romArguments = ROMS.flatMap((rom, index) => [rom.option, identity.roms[index]!.path]);
-  const arguments_ = [
-    "-default",
-    "-model",
-    pal ? "c64" : "ntsc",
-    pal ? "-pal" : "-ntsc",
-    "-VICIImodel",
-    pal ? "6569" : "6567",
-    "-sidmodel",
-    profileId.endsWith("6581") ? "0" : "1",
-    "-ciamodel",
-    "0",
-    // Model presets can reset ROM selections, so the attested files must be selected last.
-    ...romArguments,
-    "-console",
-    "+sound",
-    "+warp",
-    "-binarymonitor",
-    "-binarymonitoraddress",
-    `127.0.0.1:${port}`,
-    "-controlport2device",
-    enableJoystick2 ? "37" : "0",
-    ...(enableJoystick1 === undefined ? [] : ["-controlport1device", enableJoystick1 ? "37" : "0"]),
-    "-limitcycles",
-    String(maximumCycles),
-    "-autostart",
-    prgPath,
-  ];
+  const port = await viceLoopbackPort();
+  const arguments_ = viceLaunchArguments(identity, prgPath, {
+    profileId,
+    maximumCycles,
+    monitorPort: port,
+    enableJoystick1,
+    enableJoystick2,
+  });
   const child = spawn(identity.executable, arguments_, {
     detached: true,
     stdio: "ignore",

@@ -2,8 +2,8 @@
 
 > **Document**: 09-closeout.md
 > **Parent**: [Index](00-index.md)
-> **Status**: Stopped at 46/48 — native coverage gaps recorded as open debt; RD-08 optimizer track started
-> **Updated**: 2026-11-01 23:15 CET
+> **Status**: Native evidence complete at 47/48 — independent phase-2 reviews and closeout remain
+> **Updated**: 2026-11-07 CET
 
 ## Scope
 
@@ -17,15 +17,38 @@ change is included.
 
 | Evidence | Result |
 |---|---|
+| Held keyboard matrix | 64 coordinates × 4 profiles = **256 native scans**; exact driven-column raw rows and COMPLETE quality through `readInputSnapshot` |
+| Simulated joystick states | 32 states × both ports × 4 profiles = **256 native scans**; exact raw joystick bytes and COMPLETE quality through `readInputSnapshot` |
+| Live returning RESTORE | **4 native cases**; the actual `interruptScan` callback runs, the stock predecessor returns, quality is INTERRUPTED, retained rows stay readable and both named queries are UNCERTAIN |
+| Callback marker order | **4 native traces**; the handler's CIA1 PA=$7F store is immediately followed by the interruption marker store |
+| False-STOP witness | **4 native cases** with Cursor U/D held; the returning RESTORE does not reach the stock TIMB $FE66 path |
+| Genuine STOP | **4 native cases** with STOP held; the RESTORE reaches the stock TIMB $FE66 path |
 | Saved/acquisition behavior suite | 76/76 cases pass under `none` |
 | Saved matrix and native observation cases | Pass on all four profiles for saved software data; 4,356 observations / 322,344 answers |
 | Saved query purity | 4/4 profile cases pass; saved bytes retained, no fresh scanner resources |
 | Acquisition normal/timer/unavailable paths | 24/24 cases pass with released contacts; 14 reads/15 writes, timer and PBON contracts retained |
 | Acquisition predecessor ownership | 8/8 cases pass; chained and exclusive routes preserved |
-| NMI immutable links | 12/12 static link cases pass after the approved held-P decoder/stack expectation correction; live `none` callback quality is still Unknown |
+| NMI immutable links | 12/12 static link cases pass after the approved held-P decoder/stack correction; the live `none` callback quality now passes the returning native case |
 | Restoration / ABI / accounting | Pass in the inspected behavior/native cases; external NMI stack/ROM/deadline remain Unknown |
 | Input-library implementation closure | 2/2 new checks pass: private helper/callback reachability and owner-mapped selected private homes |
 
+The new [native specification](../../../../../test/rd05/input-native-qualification.spec.test.ts)
+runs **20 directed tests / 524 native scans** on all four profiles in one
+sequential VICE/GDB pass. The debugger calls the unmodified VICE
+`keyboard_event_playback` and `machine_set_restore_key` on the emulation thread at
+`kbuf_feed`; no ROM bytes, CPU frames, CIA pins or source bytes are patched.
+Matrix injection uses the 16-entry VICE PA→PB mask. The runtime is the pinned VICE
+3.10 executable SHA-256 `f148b33869c634964a75bcf3055f7415a6e87ef5984b66ecd486541a51c3fd74`
+with the attested KERNAL/BASIC/chargen ROMs and `none` optimization.
+
+Verification command:
+
+```text
+yarn vitest run test/rd05/input-native-qualification.spec.test.ts
+```
+
+Result: **20/20 pass in 122 s**. The existing `joystick-vice.spec.test.ts`
+regression also passes **32/32** after the shared VICE launch/monitor refactor.
 All VICE runs were sequential. The result is **VICE-verified /
 hardware-unverified** on the four cooperative profiles; physical hardware and
 other host classes remain later work.
@@ -49,24 +72,23 @@ their closure. This correctness track does not claim complete-size GREEN.
 The former whole-input prerequisite is stopped at 29/40. Its cost/observer
 findings remain historical evidence; the new RD-08 plan owns the saved 725 and
 acquisition 963 milestones. No deferral names a future slice of this keyboard
-plan as its landing place. The only deferred items are the size-output limits, native
-pressed-contact/live-NMI/STOP-RESTORE coverage and physical/user-host qualification.
+plan as its landing place. The only remaining deferred items are the size-output limits,
+external NMI stack/ROM/deadline guarantees and physical/user-host qualification.
+Native pressed-contact, live-NMI and STOP/RESTORE coverage is no longer deferred.
 
 ## Completion boundary
 
-The keyboard source/API is implemented and its saved/acquisition behavior evidence
-passes. The native pressed-contact, live returning-NMI, STOP/RESTORE and callback
-order evidence remains partial. Task 2.3.3 updated the platform guide; task 2.3.4
-remains blocked on those native coverage findings. The user stopped this track at 46/48 and started RD-08; the gaps remain tracked, not waived. No publication, push or optimized
-release claim follows from this document.
+Task 2.3.2 is complete: native pressed-key and joystick acquisition, live
+returning NMI, false-STOP and genuine STOP evidence pass on all four profiles.
+Task 2.3.3 updated the platform guide. Task 2.3.4 (independent phase-2 reviews,
+finding disposition and closeout) remains. Progress is **47/48**. No publication,
+push or optimized release claim follows from this document.
 
-## Native coverage gaps
+## Remaining boundaries
 
-- No current test presses a real matrix key or joystick and calls `readInputSnapshot()`.
-- No `none` test injects a returning NMI into the actual `interruptScan` callback.
-- No current test exercises genuine STOP/RESTORE or a changing-key false STOP.
-- The callback marker order and interrupted raw rows are not independently traced.
-- External NMI stack, retained-firmware completion and finite deadlines remain Unknown.
-
-These are covered by the review findings and require an approved native test/oracle
-scope before task 2.3.2/2.3.4 can close.
+- External NMI aggregate stack, retained-firmware completion and finite deadlines
+  remain Unknown; SM-004 records that unproved boundary.
+- Physical hardware and other host classes remain RD-10.
+- The size-output limits and their 12 reds remain RD-08 evidence; they are not
+  correctness assertions and are not waived.
+- The new native specifications still require the independent 2.3.4 reviews.

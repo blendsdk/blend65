@@ -58,6 +58,8 @@ export interface ViceCpuRegisters {
   readonly y: number;
   /** Processor status register. */
   readonly p: number;
+  /** Program counter. */
+  readonly pc: number;
   /** Hardware stack pointer. */
   readonly sp: number;
 }
@@ -72,6 +74,10 @@ export interface ViceMonitor {
   readonly setExecuteCheckpoint: (address: number) => Promise<number>;
   /** Add one non-stopping byte access tracepoint and return its monitor identity. */
   readonly setAccessTracepoint: (address: number, operation: "load" | "store") => Promise<number>;
+  /** Add one stopping store checkpoint and return its monitor identity; the caller deletes it. */
+  readonly setStoreCheckpoint: (address: number) => Promise<number>;
+  /** Feed ordinary PETSCII text to the emulated keyboard buffer; empty text is a valid trigger. */
+  readonly feedKeyboard: (text: Uint8Array) => Promise<void>;
   /** Take and clear checkpoint identities hit since the previous call. */
   readonly takeCheckpointHits: () => readonly number[];
   /** Delete one checkpoint created by this client. */
@@ -524,6 +530,31 @@ export async function openViceMonitor(port: number, processId: number): Promise<
         );
       return id;
     },
+    setStoreCheckpoint: async (address) => {
+      if (!Number.isInteger(address) || address < 0 || address > 0xffff) {
+        throw new RangeError("VICE store checkpoint address must be a 16-bit integer");
+      }
+      const body = new Uint8Array(9);
+      const view = new DataView(body.buffer);
+      view.setUint16(0, address, true);
+      view.setUint16(2, address, true);
+      body[4] = 1;
+      body[5] = 1;
+      body[6] = 2;
+      body[7] = 0;
+      body[8] = 0;
+      const response = await request(0x12, body, 0x11);
+      if (response.body.length < 23) throw new Error("VICE store checkpoint response is truncated");
+      return uint32(response.body, 0);
+    },
+    feedKeyboard: async (text) => {
+      if (text.length > 0xff) throw new RangeError("VICE keyboard feed is limited to 255 bytes");
+      const body = new Uint8Array(1 + text.length);
+      body[0] = text.length;
+      body.set(text, 1);
+      const response = await request(0x72, body);
+      if (response.body.length !== 0) throw new Error("VICE keyboard feed returned data");
+    },
     takeCheckpointHits: () => {
       const hits = Object.freeze(checkpointHits);
       checkpointHits = [];
@@ -644,12 +675,17 @@ export async function openViceMonitor(port: number, processId: number): Promise<
         if (value > 0xff) throw new Error("VICE returned a non-byte CPU register value");
         return value;
       };
+      const word = (id: number): number => {
+        if (!registers.has(id)) throw new Error("VICE register response is incomplete");
+        return registers.get(id)!;
+      };
       if (offset !== response.body.length)
         throw new Error("VICE register response has trailing data");
       return Object.freeze({
         a: byte(registerId(["A"])),
         x: byte(registerId(["X"])),
         y: byte(registerId(["Y"])),
+        pc: word(registerId(["PC"])),
         sp: byte(registerId(["SP"])),
         p: byte(registerId(["FL", "P"])),
       });
