@@ -2,7 +2,7 @@
 
 > **Document**: 10-phase-2-review.md
 > **Parent**: [Index](00-index.md)
-> **Status**: Native evidence complete at 47/48 — final re-review dispositions recorded; closeout pending exact oracle-edit approval
+> **Status**: Complete — all review findings resolved or explicitly bounded; phase closed at 48/48
 > **Reviewed**: 2026-11-01 23:31 CET; native reviews 2026-11-07
 > **Baseline**: HEAD `91a1dee3` plus reviewed working tree
 
@@ -111,12 +111,14 @@ fixed except the reserved oracle-edit authority:
 | CL-003 | MAJOR | CIA2 reads before the PA store or after the marker escaped the marker-scoped assertion. | **Fixed:** a stopping `$DD0D` load checkpoint attributes every read PC; ROM/stock and the generated predecessor are allowed, the library callback is rejected. A predicate negative control is included. |
 | CL-004 | MAJOR | The final-idle case did not check retained raw rows or joystick bytes. | **Fixed:** final idle now requires rows `$7F,$FF×7` and joysticks `$FF`. |
 | CL-005 | MINOR | Residual stale/contradictory statements remained in the review and closeout. | **Fixed:** historical statements are labelled and the independence claim matches the disclosure. |
-| CL-006 | CRITICAL | Editing `test/rd05/input-native-qualification.spec.test.ts` after its first review requires exact user oracle-edit authority. | **Open blocker:** the exact path and allowed changes need the user's approval before the phase can close. |
+| CL-006 | CRITICAL | Editing `test/rd05/input-native-qualification.spec.test.ts` after its first review requires exact user oracle-edit authority. | **Fixed:** the user approved the exact path and the reviewed native-evidence corrections on 2026-11-07; no pre-existing oracle, limit, pin or hash changed. |
 
 Verification after the fixes: the independent coexistence suite passes **44/44**
 and the original native suite **24/24** sequentially on all four profiles, with
-no leftover emulator. The cleanup regression passes **2/2**.
+no leftover emulator. The cleanup regression passes **2/2**. The final
+host-performance review returned **no findings**; the earlier root checkpoint
+passes **277 files / 6,318 tests** plus all package suites.
 
 ## Gate result
 
-Task 2.3.1, the 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 is complete: NV-001..006 and RR/CL findings are resolved or explicitly bounded, the original suite passes 24/24 and the independent coexistence suite passes 44/44. Task 2.3.4 is blocked only on exact user oracle-edit authority for the task-local native specification file. Progress is **47/48**. No phase-2 completion, release or optimized claim is made.
+Task 2.3.1, the 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 is complete: NV-001..006 and RR/CL findings are resolved or explicitly bounded, the original suite passes 24/24 and the independent coexistence suite passes 44/44. Task 2.3.4 is complete after five independent review lenses, two review rounds, the exact user oracle approval and the full root checkpoint. Progress is **48/48**; RD-05 is done. The result is VICE-verified / hardware-unverified, with RD-08 and RD-10 boundaries stated in the closeout. No release or optimized claim is made.

@@ -1,6 +1,6 @@
 # Keyboard and combined-input library
 
-> **Status**: Native evidence complete at 47/48 — NV-001..006 fixed; independent phase-2 reviews and closeout remain; size output deferred
+> **Status**: Complete — 48/48; five review lenses, root checkpoint and exact oracle approval recorded; size output owned by RD-08
 > **Created**: 2026-10-10
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1

@@ -1,7 +1,7 @@
 # Keyboard and combined input — planning decisions
 
-> **Status**: Executing — correctness track resumed; AR-P38 size-output acceptance deferred to RD-08; behavior/native/ABI gates remain
-> **Last Updated**: 2026-11-01 16:31 CET
+> **Status**: Closed — keyboard plan complete at 48/48; AR-P38 size-output acceptance remains owned by RD-08; behavior/native/ABI gates closed
+> **Last Updated**: 2026-11-07
 > **CodeOps Artifact Schema**: 1
 
 ## Planning scope contract

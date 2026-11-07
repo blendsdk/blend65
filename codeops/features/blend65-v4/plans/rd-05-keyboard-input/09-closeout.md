@@ -2,7 +2,7 @@
 
 > **Document**: 09-closeout.md
 > **Parent**: [Index](00-index.md)
-> **Status**: Native evidence complete at 47/48 — closeout pending exact oracle-edit approval
+> **Status**: Complete — 48/48; all review findings resolved or explicitly bounded
 > **Updated**: 2026-11-07 CET
 
 ## Scope
@@ -83,9 +83,27 @@ their closure. This correctness track does not claim complete-size GREEN.
 The former whole-input prerequisite is stopped at 29/40. Its cost/observer
 findings remain historical evidence; the new RD-08 plan owns the saved 725 and
 acquisition 963 milestones. No deferral names a future slice of this keyboard
-plan as its landing place. The only remaining deferred items are the size-output limits,
-external NMI stack/ROM/deadline guarantees and physical/user-host qualification.
-Native pressed-contact, live-NMI and STOP/RESTORE coverage is no longer deferred.
+plan as its landing place.
+
+The walk covered:
+
+- the keyboard ambiguity register: AR-P38 size-output acceptance remains owned by
+  RD-08; no other deferred decision names this closed slice;
+- the RD-05 Won't Have list: native assets/composition → RD-06, D64/loading →
+  RD-07, balanced/speed/size optimization → RD-08, complete tooling → RD-09,
+  C64U/REU/turbo/other targets and physical hardware → RD-10 (C64U remains the
+  owned next feature);
+- `spec/future-considerations.md`: no reconsideration trigger fired, and the
+  future-target constraints remain portability inputs only;
+- the expressiveness ledger: no newly due keyboard restriction is recorded; the
+  remaining input limits are the explicit size/output and physical/host
+  boundaries.
+
+No newly due deferral was found and no deferral was orphaned. The remaining
+deferred items are the size-output limits (RD-08), external NMI stack/ROM/deadline
+guarantees (Unknown, bounded in this closeout) and physical/user-host
+qualification (RD-10). Native pressed-contact, live-NMI, final-idle, overlap and
+STOP/RESTORE coverage is no longer deferred.
 
 ## Completion boundary
 
@@ -93,10 +111,10 @@ Task 2.3.2 is complete. The isolated and mixed key/joystick cases, the
 independent publication/sample/removal/final-idle/overlap schedules,
 callback-marker value/order, retained rows, GDB subtree cleanup with pid-reuse
 guards, false-STOP/STOP-path cases and the A/X/Y/P/SP/byte-exact frame
-transition all pass. Task 2.3.3 is complete. Task 2.3.4 is blocked only on exact
-user oracle-edit authority for the task-local native specification file.
-Progress is **47/48**. No publication, push or optimized release claim follows
-from this document.
+transition all pass. Task 2.3.3 is complete. Task 2.3.4 is complete after five
+independent review lenses, two review rounds, the exact user oracle approval and
+the full root checkpoint. Progress is **48/48**; RD-05 is done. No publication,
+push or optimized release claim follows from this document.
 
 ## Independent review findings (2026-11-07)
 
@@ -136,10 +154,13 @@ and returned these additional findings. All are resolved or explicitly bounded:
 | CL-003 | MAJOR | CIA2 reads before PA or after the marker escaped the scoped assertion. | **Fixed:** stopping `$DD0D` checkpoint plus read-PC attribution; negative control included. |
 | CL-004 | MAJOR | Final idle did not check retained raw rows/joysticks. | **Fixed:** rows `$7F,$FF×7`, joysticks `$FF`. |
 | CL-005 | MINOR | Residual contradictory status text. | **Fixed.** |
-| CL-006 | CRITICAL | Exact user oracle-edit authority for the task-local native `*.spec.test.ts` file. | **Open blocker:** the exact path and allowed changes need user approval before closeout. |
+| CL-006 | CRITICAL | Exact user oracle-edit authority for the task-local native `*.spec.test.ts` file. | **Fixed:** the user approved the exact path and the reviewed native-evidence corrections on 2026-11-07; no pre-existing oracle, limit, pin or hash changed. |
 
 Post-fix verification: independent coexistence **44/44**, original native **24/24**,
 cleanup regression **2/2**; all native runs sequential with no leftover emulator.
+The host-performance review returned **no findings**. The full root checkpoint
+passes **277 files / 6,318 tests**, plus compiler 3,512 pass / 2 existing skips,
+CLI 62, language-server 21 and VS Code 6.
 
 ## Remaining boundaries
 
@@ -148,4 +169,4 @@ cleanup regression **2/2**; all native runs sequential with no leftover emulator
 - Physical hardware and other host classes remain RD-10.
 - The size-output limits and their 12 reds remain RD-08 evidence; they are not
   correctness assertions and are not waived.
-- The final native specifications await the task 2.3.4 closing re-review.
+- The final native specifications passed the five review lenses and the full root checkpoint; no review item remains open.
