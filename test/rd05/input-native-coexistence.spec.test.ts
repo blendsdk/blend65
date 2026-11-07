@@ -1,7 +1,7 @@
 import { buildProject } from "@blend65/compiler";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { ViceMonitor } from "../m1/vice-monitor.js";
+import type { ViceCpuRegisters, ViceMonitor } from "../m1/vice-monitor.js";
 import {
   applyGdbInjection,
   prepareGdbInjection,
@@ -129,6 +129,18 @@ async function nmiVector(monitor: ViceMonitor): Promise<number> {
   return low | (high << 8);
 }
 
+/** Read the hardware frame as status, PC low, PC high, with page-one SP wrapping. */
+async function readHardwareFrame(monitor: ViceMonitor, sp: number): Promise<number[]> {
+  const stack: number[] = [];
+  for (const offset of [1, 2, 3]) {
+    const address = 0x0100 | ((sp + offset) & 0xff);
+    const value = (await monitor.readMemory(address, address))[0];
+    if (value === undefined) throw new Error("Missing interrupted stack byte");
+    stack.push(value);
+  }
+  return stack;
+}
+
 /** Arm the stop promise first, and retain checkpoint identities for ordered evidence. */
 async function advance(monitor: ViceMonitor) {
   const stopped = monitor.waitForStop(30_000);
@@ -231,6 +243,7 @@ async function exercise(
       let callbackInFlight = false;
       let pulses = 0;
       let callbacks = 0;
+      let frameChecks = 0;
       let markerWrites = 0;
       let priorEntries = 0;
       let stockEntries = 0;
@@ -238,11 +251,13 @@ async function exercise(
       let ownerReturned = false;
       let reachedStop = false;
       let reachedAccepted = false;
+      let interruptedFrame: { registers: ViceCpuRegisters; stack: readonly number[] } | undefined;
       const paWrites: number[] = [];
       const events: string[] = [];
 
       /** Feed a real hardware edge at the current stopped instruction boundary. */
       async function pulse(): Promise<void> {
+        expect(interruptedFrame, "previous scanner entry reached its predecessor").toBeUndefined();
         await prepareGdbInjection(session, {
           matrix: contacts(schedule, true),
           restore: 1,
@@ -258,10 +273,48 @@ async function exercise(
           expect(hits.includes(cia2ReadTrace), context).toBe(false);
         }
         if (scannerCheckpoint !== undefined && hits.includes(scannerCheckpoint)) {
+          expect(interruptedFrame, "no unmatched scanner-entry frame").toBeUndefined();
+          // Hardware NMI entry is complete, but the generated wrapper has not
+          // started. Capture its actual incoming hardware frame;
+          // the wrapper PC and current I cannot reconstruct the pushed PC/status.
+          const registers = await monitor.readCpuRegisters();
+          const stack = await readHardwareFrame(monitor, registers.sp);
+          const pushedStatus = stack[0];
+          if (pushedStatus === undefined) throw new Error("Missing NMI status byte");
+          expect(pushedStatus & 0x30, "NMI stacks B clear and bit 5 set").toBe(0x20);
+          interruptedFrame = { registers, stack };
           callbacks++;
           callbackInFlight = true;
         }
         if (hits.includes(priorCheckpoint)) {
+          if (callbackInFlight) {
+            const atPrior = await monitor.readCpuRegisters();
+            const interrupted = interruptedFrame;
+            if (interrupted === undefined) {
+              throw new Error(`Predecessor entry without its scanner-entry frame: ${context}`);
+            }
+            expect(atPrior.a, context).toBe(interrupted.registers.a);
+            expect(atPrior.x, context).toBe(interrupted.registers.x);
+            expect(atPrior.y, context).toBe(interrupted.registers.y);
+            // Compare N/V/D/Z/C. I is set on NMI entry; B and the unused bit are
+            // synthesized status bits, not independent processor-state flags.
+            expect(atPrior.p & 0xcb, context).toBe(interrupted.registers.p & 0xcb);
+            expect(atPrior.p & 0x04, context).toBe(0x04);
+            // All generated saves must be gone. The same hardware frame seen
+            // at wrapper entry must remain byte-for-byte at the same SP.
+            expect(atPrior.sp, `only the hardware frame remains: ${context}`).toBe(
+              interrupted.registers.sp,
+            );
+            expect(await readHardwareFrame(monitor, atPrior.sp), context).toEqual(
+              interrupted.stack,
+            );
+            interruptedFrame = undefined;
+            frameChecks++;
+          } else {
+            // Direct stock-owner events have no generated scanner entry at
+            // which to capture a frame. Their existing route checks still apply.
+            expect(interruptedFrame, context).toBeUndefined();
+          }
           priorEntries++;
           callbackInFlight = false;
         }
@@ -333,7 +386,9 @@ async function exercise(
               expect(paWrites.slice(-2), context).toEqual([0x7f, 0x7f]);
             }
             removed = true;
-            if (schedule === "during removal") await pulse();
+            if (schedule === "during removal") {
+              await pulse();
+            }
           } else {
             const permitted = callerRestored ? [prior, 0xfe47] : [prior, scanner];
             expect(permitted, context).toContain(vector);
@@ -352,7 +407,9 @@ async function exercise(
           expect(removed, context).toBe(true);
           expect(await nmiVector(monitor), context).toBe(prior);
           expect(await monitor.readIo(0xdc02, 0xdc03), context).toEqual(originalDirections);
-          if (schedule === "after direction restoration") await pulse();
+          if (schedule === "after direction restoration") {
+            await pulse();
+          }
           callerRestored = true;
         }
         if (hits.includes(ownerCheckpoint)) {
@@ -392,10 +449,15 @@ async function exercise(
           : 0;
       expect(pulses, context).toBe(expectedPulses);
       expect(callbacks, context).toBe(expectedCallbacks);
+      expect(frameChecks, context).toBe(expectedCallbacks);
       expect(markerWrites, context).toBe(expectedCallbacks);
       expect(priorEntries, "each event reaches the actual predecessor exactly once").toBe(
         expectedPulses,
       );
+      expect(
+        interruptedFrame,
+        "every scanner entry has a checked predecessor frame",
+      ).toBeUndefined();
       expect(stockEntries, context).toBe(expectedPulses);
       expect(reachedStop, context).toBe(schedule === "genuine STOP");
       if (schedule !== "genuine STOP") {

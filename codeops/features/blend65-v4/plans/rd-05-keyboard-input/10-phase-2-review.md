@@ -2,7 +2,7 @@
 
 > **Document**: 10-phase-2-review.md
 > **Parent**: [Index](00-index.md)
-> **Status**: Native evidence partial at 46/48 — independent review found six gaps; task 2.3.2/2.3.4 remain
+> **Status**: Native evidence complete at 47/48 — task 2.3.4 reviews and closeout remain
 > **Reviewed**: 2026-11-01 23:31 CET; native review 2026-11-07
 > **Baseline**: HEAD `91a1dee3` plus reviewed working tree
 
@@ -62,7 +62,7 @@ did **not** accept it as full ST-18–ST-23 closure. They found six merged gaps:
 |---|---|---|---|
 | NV-001 | MAJOR | False-STOP witness is at vector publication (PA=$7F), not the hazardous active-column PA=$FE condition. | **Fixed:** active-column Cursor U/D + RESTORE returns without TIMB on all four profiles. |
 | NV-002 | MINOR | Marker trace selects the initial `scanInterrupted=0` clear, not the callback marker=1 store. | **Fixed:** trace starts after publication; a marker store checkpoint proves value 1 and the preceding PA=$7F store. |
-| NV-003 | MAJOR | Interrupted rows use `some(value !== 0)`; no exact row vector or A/X/Y/P/SP/live-stack frame check. | **Partial:** publication-time rows now match exact expected vectors; the A/X/Y/P/SP/live-stack frame check remains open. |
+| NV-003 | MAJOR | Interrupted rows use `some(value !== 0)`; no exact row vector or A/X/Y/P/SP/live-stack frame check. | **Fixed:** exact row vectors plus A/X/Y/P/SP and byte-exact hardware-frame checks pass at every scanner-to-prior transition. |
 | NV-004 | MAJOR | GDB cleanup may leave the VICE inferior in a separate process group. | **Fixed:** the attested VICE inferior is tracked and its termination is verified independently of GDB. |
 | NV-005 | MAJOR | ST-18 mixed keyboard/joystick ghosting and ST-19/20/21 publication/sample/removal/overlap schedules are absent. | **Fixed:** the independent coexistence spec passes 36/36 across the missing schedules. |
 | NV-006 | MAJOR | The implementation agent authored the native oracle; an independent `spec-test-author` companion is required. | **Fixed:** `test/rd05/input-native-coexistence.spec.test.ts` was authored by the independent spec-test-author; no implementation internals or forbidden native test were read. |
@@ -77,4 +77,4 @@ physical hardware remains unverified.
 
 ## Gate result
 
-Task 2.3.1, the 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 remains partial: NV-001, NV-002, NV-004, NV-005 and NV-006 are fixed. Only the NV-003 interrupted-frame A/X/Y/P/SP check remains. Task 2.3.4 remains blocked on the corrected native evidence and finding disposition. Progress is **46/48**. No phase-2 completion, release or optimized claim is made.
+Task 2.3.1, the 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 is complete: NV-001..006 are fixed, the original suite passes 24/24 and the independent coexistence suite passes 36/36. Task 2.3.4 remains. Task 2.3.4 remains blocked on the corrected native evidence and finding disposition. Progress is **46/48**. No phase-2 completion, release or optimized claim is made.
