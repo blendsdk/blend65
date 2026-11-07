@@ -22,15 +22,15 @@ expert or security boundary was changed by the reviewers.
 | MC-001 | MAJOR | Four existing `none` startup/stack specification oracles still encoded the removed stored-P startup | **Fixed:** AR-P40 re-derived held-P ledger/state/decoder/stack values; 56/56 tests pass |
 | MC-002 / TP-002 | MINOR | NMI stack comment stale | **Fixed** with RV-002 |
 | SM-001 / TP-001 | MAJOR | No native pressed key/joystick acquisition through `readInputSnapshot` | **Partial:** 64 isolated matrix coordinates and 32×2 isolated joystick states pass; mixed keyboard/joystick ghosting is not yet covered (NV-005) |
-| SM-002 / TP-001 | MAJOR | No `none`-mode live returning NMI into the actual `interruptScan` callback; only a `size` case exists | **Partial:** publication-time returning RESTORE runs the actual callback on all four profiles; active-column and publication/removal schedules remain open (NV-001/005) |
-| SM-003 | MAJOR | No genuine STOP/RESTORE or false-STOP case for the installed library | **Open:** genuine STOP reaches TIMB, but the false-STOP case triggers at publication when PA=$7F, not at the hazardous PA=$FE active column (NV-001) |
+| SM-002 / TP-001 | MAJOR | No `none`-mode live returning NMI into the actual `interruptScan` callback; only a `size` case exists | **Partial:** publication-time and active-column returning RESTORE run the actual callback on all four profiles; removal/overlap schedules remain open (NV-005) |
+| SM-003 | MAJOR | No genuine STOP/RESTORE or false-STOP case for the installed library | **Fixed:** genuine STOP reaches TIMB; the active-column PA=$FE false-STOP witness returns without TIMB on all four profiles |
 | SM-004 / SF-001 | MAJOR/MINOR | External NMI aggregate stack, retained-ROM completion and finite deadline were not carried into the closeout | **Fixed in docs:** closeout and guide now state the unproved boundaries; no whole-program guarantee claimed |
 | SM-005 | MINOR | Active-NMI re-entry restriction not documented | **Fixed in docs:** guide/source state the compatible-owner, no-competing-writer and non-reentrancy boundary |
 | SM-006 / TP-004 | MINOR | `UNAVAILABLE` described as general port configuration instead of PBON timer output | **Fixed in docs/source:** PBON wording and ownership precondition |
 | SM-007 | MINOR | PA latch/status restoration wording too broad | **Fixed in docs/source:** `$7F` handback and direction/status scope stated |
 | SM-008 | MINOR | Raw joystick mask wording implied switch certainty | **Fixed in docs:** low line vs `joystickState` certainty |
 | SF-002 | MINOR | New impl test did not check stack/resource accounting | **Fixed:** stack arithmetic and standard resource records now checked |
-| SF-004 / TP-003 | MINOR | Callback marker trace does not prove PA-before-marker or retained interrupted rows | **Open:** the selected marker is the initial `scanInterrupted=0` clear; exact rows/frame are not checked (NV-002/003) |
+| SF-004 / TP-003 | MINOR | Callback marker trace does not prove PA-before-marker or retained interrupted rows | **Partial:** callback marker=1 and PA-before-marker plus exact rows now pass; the interrupted-frame A/X/Y/P/SP check remains open (NV-003) |
 | SF-005 | MINOR | “non-overlay selected homes” wording exceeded the test | **Fixed:** closeout now says owner-mapped selected private homes |
 | PE-001 | MINOR | New build-based impl tests used Vitest’s 5-second default timeout | **Fixed:** both cases use `120_000` ms |
 
@@ -50,17 +50,17 @@ expert or security boundary was changed by the reviewers.
 
 The implementation-authored suite
 [`test/rd05/input-native-qualification.spec.test.ts`](../../../../../test/rd05/input-native-qualification.spec.test.ts)
-passes **20/20 directed tests / 524 native scans** on the four cooperative
+passes **24/24 directed tests / 528 native scans** on the four cooperative
 profiles. It is supporting evidence for isolated held keys, isolated joystick
-states, the publication-time returning RESTORE, the initial marker and the stock
-STOP path.
+states, the publication-time and active-column returning RESTORE, the callback marker
+and the stock STOP path.
 
 Independent correctness, semantics/DX and SFA/ABI reviews of commit `5b12ee97`
 did **not** accept it as full ST-18–ST-23 closure. They found six merged gaps:
 
 | ID | Severity | Finding | Status |
 |---|---|---|---|
-| NV-001 | MAJOR | False-STOP witness is at vector publication (PA=$7F), not the hazardous active-column PA=$FE condition. | Open |
+| NV-001 | MAJOR | False-STOP witness is at vector publication (PA=$7F), not the hazardous active-column PA=$FE condition. | **Fixed:** active-column Cursor U/D + RESTORE returns without TIMB on all four profiles. |
 | NV-002 | MINOR | Marker trace selects the initial `scanInterrupted=0` clear, not the callback marker=1 store. | **Fixed:** trace starts after publication; a marker store checkpoint proves value 1 and the preceding PA=$7F store. |
 | NV-003 | MAJOR | Interrupted rows use `some(value !== 0)`; no exact row vector or A/X/Y/P/SP/live-stack frame check. | **Partial:** publication-time rows now match exact expected vectors; the A/X/Y/P/SP/live-stack frame check remains open. |
 | NV-004 | MAJOR | GDB cleanup may leave the VICE inferior in a separate process group. | **Fixed:** the attested VICE inferior is tracked and its termination is verified independently of GDB. |
@@ -77,4 +77,4 @@ physical hardware remains unverified.
 
 ## Gate result
 
-Task 2.3.1, the 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 remains partial: the independent native review found NV-001..006 and the suite is not the required independent oracle. Task 2.3.4 remains blocked on the corrected native evidence and finding disposition. Progress is **46/48**. No phase-2 completion, release or optimized claim is made.
+Task 2.3.1, the 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 remains partial: NV-001, NV-002 and NV-004 are fixed, but the NV-003 interrupted-frame check, NV-005 mixed-ghosting/removal/overlap schedules and NV-006 independent oracle remain. Task 2.3.4 remains blocked on the corrected native evidence and finding disposition. Progress is **46/48**. No phase-2 completion, release or optimized claim is made.

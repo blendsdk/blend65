@@ -76,6 +76,8 @@ export interface ViceMonitor {
   readonly setAccessTracepoint: (address: number, operation: "load" | "store") => Promise<number>;
   /** Add one stopping store checkpoint and return its monitor identity; the caller deletes it. */
   readonly setStoreCheckpoint: (address: number) => Promise<number>;
+  /** Attach one monitor condition expression to an existing checkpoint. */
+  readonly setCheckpointCondition: (checkpoint: number, expression: string) => Promise<void>;
   /** Feed ordinary PETSCII text to the emulated keyboard buffer; empty text is a valid trigger. */
   readonly feedKeyboard: (text: Uint8Array) => Promise<void>;
   /** Take and clear checkpoint identities hit since the previous call. */
@@ -546,6 +548,19 @@ export async function openViceMonitor(port: number, processId: number): Promise<
       const response = await request(0x12, body, 0x11);
       if (response.body.length < 23) throw new Error("VICE store checkpoint response is truncated");
       return uint32(response.body, 0);
+    },
+    setCheckpointCondition: async (checkpoint, expression) => {
+      if (!Number.isInteger(checkpoint) || checkpoint < 0 || checkpoint > 0xffffffff)
+        throw new RangeError("VICE checkpoint identity is invalid");
+      const encoded = Buffer.from(expression, "ascii");
+      if (encoded.length === 0 || encoded.length > 0xff)
+        throw new RangeError("VICE checkpoint condition must contain 1..255 ASCII bytes");
+      const body = new Uint8Array(5 + encoded.length);
+      new DataView(body.buffer).setUint32(0, checkpoint, true);
+      body[4] = encoded.length;
+      body.set(encoded, 5);
+      const response = await request(0x22, body);
+      if (response.body.length !== 0) throw new Error("VICE checkpoint condition returned data");
     },
     feedKeyboard: async (text) => {
       if (text.length > 0xff) throw new RangeError("VICE keyboard feed is limited to 255 bytes");

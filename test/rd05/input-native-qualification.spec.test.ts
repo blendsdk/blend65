@@ -233,18 +233,28 @@ describe.sequential.each(sourceLibraryProfiles)(
         name: "a returning RESTORE",
         matrix: new Array<number>(16).fill(0),
         rows: new Array<number>(8).fill(0xff),
+        schedule: "publication",
         expected: "after",
       },
       {
         name: "a false-STOP witness",
         matrix: keyboardMatrix(0, 7),
         rows: [0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
+        schedule: "publication",
+        expected: "after",
+      },
+      {
+        name: "an active-column false-STOP witness",
+        matrix: keyboardMatrix(0, 7),
+        rows: [0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
+        schedule: "active-column",
         expected: "after",
       },
       {
         name: "a genuine STOP",
         matrix: keyboardMatrix(7, 7),
         rows: null,
+        schedule: "publication",
         expected: "timb",
       },
     ] as const;
@@ -284,13 +294,24 @@ describe.sequential.each(sourceLibraryProfiles)(
               session.monitor.takeCheckpointHits();
               await prepareGdbInjection(session, { matrix: scenario.matrix });
               await applyGdbInjection(session);
-              const storeId = await session.monitor.setStoreCheckpoint(NMI_VECTOR_HIGH);
-              const vectorStop = session.monitor.waitForStop(30_000);
-              await session.monitor.resume();
-              const vectorPc = await vectorStop;
-              await session.monitor.deleteCheckpoint(storeId);
-              // The store checkpoint stops after the high-byte store, so the vector is installed.
-              expect(vectorPc).toBeLessThan(0xc000);
+              if (scenario.schedule === "active-column") {
+                // Hold Cursor U/D, stop after the column-0 PA=$FE store and before its row read.
+                const columnCheckpoint = await session.monitor.setStoreCheckpoint(0xdc00);
+                await session.monitor.setCheckpointCondition(columnCheckpoint, "A == $fe");
+                const columnStop = session.monitor.waitForStop(30_000);
+                await session.monitor.resume();
+                const columnPc = await columnStop;
+                await session.monitor.deleteCheckpoint(columnCheckpoint);
+                expect(columnPc).toBeLessThan(0xc000);
+              } else {
+                const storeId = await session.monitor.setStoreCheckpoint(NMI_VECTOR_HIGH);
+                const vectorStop = session.monitor.waitForStop(30_000);
+                await session.monitor.resume();
+                const vectorPc = await vectorStop;
+                await session.monitor.deleteCheckpoint(storeId);
+                // The store checkpoint stops after the high-byte store, so the vector is installed.
+                expect(vectorPc).toBeLessThan(0xc000);
+              }
               // Ignore acquisition setup stores; only callback stores are evidence.
               session.monitor.takeCheckpointHits();
               const markerCheckpoint = await session.monitor.setStoreCheckpoint(marker);

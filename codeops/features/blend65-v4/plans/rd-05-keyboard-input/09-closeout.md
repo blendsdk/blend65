@@ -22,7 +22,7 @@ change is included.
 | Live returning RESTORE at publication | **4 native cases**; the actual `interruptScan` callback runs, the stock predecessor returns, quality is INTERRUPTED and the retained publication-time rows match exact vectors. The hazardous active-column schedule and interrupted-frame check remain open (NV-001/003) |
 | Callback marker order | **4 native traces** after publication; the callback marker=1 is isolated and preceded by the PA=$7F store (NV-002 fixed) |
 | GDB cleanup | The attested VICE inferior is tracked through procfs and its termination is verified independently of GDB (NV-004 fixed) |
-| False-STOP witness | **4 native cases at vector publication**, when PA is already $7F; this does not exercise the hazardous PA=$FE active-column condition, so SM-003 remains **open** (NV-001) |
+| False-STOP witness | **8 native cases**: publication-time and active-column PA=$FE Cursor U/D + RESTORE both return without TIMB on all four profiles; SM-003 is fixed (NV-001) |
 | Genuine STOP | **4 native cases**; STOP reaches the stock TIMB $FE66 path. This is path-entry evidence, not completed warm-start proof |
 | Saved/acquisition behavior suite | 76/76 cases pass under `none` |
 | Saved matrix and native observation cases | Pass on all four profiles for saved software data; 4,356 observations / 322,344 answers |
@@ -34,7 +34,7 @@ change is included.
 | Input-library implementation closure | 2/2 new checks pass: private helper/callback reachability and owner-mapped selected private homes |
 
 The new [native specification](../../../../../test/rd05/input-native-qualification.spec.test.ts)
-runs **20 directed tests / 524 native scans** on all four profiles in one
+runs **24 directed tests / 528 native scans** on all four profiles in one
 sequential VICE/GDB pass. This is supporting evidence, not the independent
 specification oracle required by the task: NV-006 records that the implementation
 agent authored it. The debugger calls the unmodified VICE
@@ -50,7 +50,7 @@ Verification command:
 yarn vitest run test/rd05/input-native-qualification.spec.test.ts
 ```
 
-Result: **20/20 pass in 122 s**. The existing `joystick-vice.spec.test.ts`
+Result: **24/24 pass**. The existing `joystick-vice.spec.test.ts`
 regression also passes **32/32** after the shared VICE launch/monitor refactor.
 The independent reviewers did not accept the suite as full ST-18–ST-21 closure;
 NV-001..006 remain open.
@@ -83,10 +83,11 @@ Native pressed-contact, live-NMI and STOP/RESTORE coverage is no longer deferred
 
 ## Completion boundary
 
-Task 2.3.2 remains **partial**. The isolated key/joystick, publication-time
-returning RESTORE and STOP-path cases pass, but the active-column false-STOP,
-callback-marker value/order, exact interrupted rows/frame, GDB inferior cleanup,
-mixed ghosting and publication/sample/removal/overlap schedules are not supplied.
+Task 2.3.2 remains **partial**. The isolated key/joystick, publication-time and
+active-column returning RESTORE, callback-marker value/order, exact publication
+rows, GDB inferior cleanup and false-STOP/STOP-path cases pass. The interrupted
+A/X/Y/P/SP frame check, mixed keyboard/joystick ghosting and the remaining
+publication/removal/overlap schedules are not supplied.
 The implementation agent also authored the current oracle, so an independent
 `spec-test-author` companion is required. Task 2.3.3 is complete. Task 2.3.4 is
 blocked. Progress is **46/48**. No publication, push or optimized release claim
@@ -100,7 +101,7 @@ production-code defects, and they block task 2.3.2 closure.
 
 | ID | Severity | Finding | Disposition |
 |---|---|---|---|
-| NV-001 | MAJOR | The false-STOP witness triggers RESTORE at vector publication, when PA is already $7F; it never exercises the hazardous PA=$FE active-column condition. | Open: active-column/changing-key schedule. |
+| NV-001 | MAJOR | The false-STOP witness triggers RESTORE at vector publication, when PA is already $7F; it never exercises the hazardous PA=$FE active-column condition. | **Fixed:** active-column Cursor U/D + RESTORE returns without TIMB on all four profiles. |
 | NV-002 | MINOR | The marker trace selects the initial `scanInterrupted=0` clear, not the callback's marker=1 store. | **Fixed:** trace starts after publication; marker value 1 and the preceding PA=$7F store are asserted. |
 | NV-003 | MAJOR | Interrupted raw rows use `some(value !== 0)` and no A/X/Y/P/SP/live-stack comparison proves frame restoration. | **Partial:** exact publication-time row vectors now pass; the interrupted-frame check remains open. |
 | NV-004 | MAJOR | GDB cleanup may leave the VICE inferior in a separate process group. | **Fixed:** the attested VICE inferior is tracked and its termination is verified independently of GDB. |
