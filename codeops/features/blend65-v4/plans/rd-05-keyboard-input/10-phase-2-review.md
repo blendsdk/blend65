@@ -2,7 +2,7 @@
 
 > **Document**: 10-phase-2-review.md
 > **Parent**: [Index](00-index.md)
-> **Status**: Native evidence complete at 47/48 — final re-review and closeout remain
+> **Status**: Native evidence complete at 47/48 — final re-review dispositions recorded; closeout pending exact oracle-edit approval
 > **Reviewed**: 2026-11-01 23:31 CET; native reviews 2026-11-07
 > **Baseline**: HEAD `91a1dee3` plus reviewed working tree
 
@@ -41,8 +41,9 @@ expert or security boundary was changed by the reviewers.
 - AR-P39’s `0xE8`/`0xBD` decoder additions and held-P stack values are exact,
   documented NMOS instruction sizes and stricter stack accounting. They do not
   weaken an oracle.
-- No finding was waived. Native pressed-input, live `none` NMI, STOP/RESTORE and
-  callback-order evidence are still absent.
+- No finding was waived. The earlier absence of native pressed-input, live `none` NMI,
+  STOP/RESTORE and callback-order evidence was closed by the 2026-11-07 native
+  evidence and its two review rounds.
 - The four stale `none` startup/stack oracles are independent specification files;
   they cannot be edited without exact approval.
 
@@ -65,7 +66,7 @@ did **not** accept it as full ST-18–ST-23 closure. They found six merged gaps:
 | NV-003 | MAJOR | Interrupted rows use `some(value !== 0)`; no exact row vector or A/X/Y/P/SP/live-stack frame check. | **Fixed:** exact row vectors plus A/X/Y/P/SP and byte-exact hardware-frame checks pass at every scanner-to-prior transition. |
 | NV-004 | MAJOR | GDB cleanup may leave the VICE inferior in a separate process group. | **Fixed:** the attested VICE inferior is tracked and its termination is verified independently of GDB. |
 | NV-005 | MAJOR | ST-18 mixed keyboard/joystick ghosting and ST-19/20/21 publication/sample/removal/overlap schedules are absent. | **Fixed:** the independent coexistence spec passes **44/44**, including the final-idle window and genuinely overlapping generated entries. |
-| NV-006 | MAJOR | The implementation agent authored the native oracle; an independent `spec-test-author` companion is required. | **Fixed:** `test/rd05/input-native-coexistence.spec.test.ts` was authored by the independent spec-test-author; no implementation internals or forbidden native test were read. |
+| NV-006 | MAJOR | The implementation agent authored the native oracle; an independent `spec-test-author` companion is required. | **Fixed:** `test/rd05/input-native-coexistence.spec.test.ts` was authored by the independent spec-test-author. One incidental read of the implementation-authored file was disclosed; no expectation was copied. |
 
 The run uses the existing GDB/VICE procedure: the debugger calls the unmodified
 VICE `keyboard_event_playback` and `machine_set_restore_key` on the emulation
@@ -97,6 +98,25 @@ conventions. No expectation was copied; the new expectations derive from
 ST-19/ST-21, the acquisition contract and the public monitor contract. The
 primary did not author the independent cases.
 
+## Closing re-review round (2026-11-07)
+
+The closing correctness, semantics/DX, SFA/ABI and platform reviews accepted the
+final-idle and overlap schedules, then returned these executable gaps. All are
+fixed except the reserved oracle-edit authority:
+
+| ID | Severity | Finding | Disposition |
+|---|---|---|---|
+| CL-001 | MAJOR | `waitForOwnedExit` received a single-use iterator; later polls saw an empty list and treated a TERM-ignoring child as exited. | **Fixed:** the identities are materialized once; a directed TERM-ignoring-child regression passes. |
+| CL-002 | MAJOR | The inferior start time was captured at cleanup, so a pid reused after setup could be adopted. | **Fixed:** the identity is captured at discovery and revalidated before traversal and every signal; a wrong-start-time process is not adopted. |
+| CL-003 | MAJOR | CIA2 reads before the PA store or after the marker escaped the marker-scoped assertion. | **Fixed:** a stopping `$DD0D` load checkpoint attributes every read PC; ROM/stock and the generated predecessor are allowed, the library callback is rejected. A predicate negative control is included. |
+| CL-004 | MAJOR | The final-idle case did not check retained raw rows or joystick bytes. | **Fixed:** final idle now requires rows `$7F,$FF×7` and joysticks `$FF`. |
+| CL-005 | MINOR | Residual stale/contradictory statements remained in the review and closeout. | **Fixed:** historical statements are labelled and the independence claim matches the disclosure. |
+| CL-006 | CRITICAL | Editing `test/rd05/input-native-qualification.spec.test.ts` after its first review requires exact user oracle-edit authority. | **Open blocker:** the exact path and allowed changes need the user's approval before the phase can close. |
+
+Verification after the fixes: the independent coexistence suite passes **44/44**
+and the original native suite **24/24** sequentially on all four profiles, with
+no leftover emulator. The cleanup regression passes **2/2**.
+
 ## Gate result
 
-Task 2.3.1, the 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 is complete: NV-001..006 and RR-001..005 are resolved or explicitly bounded, the original suite passes 24/24 and the independent coexistence suite passes 44/44. Task 2.3.4 final re-review and closeout remain. Progress is **47/48**. No phase-2 completion, release or optimized claim is made.
+Task 2.3.1, the 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 is complete: NV-001..006 and RR/CL findings are resolved or explicitly bounded, the original suite passes 24/24 and the independent coexistence suite passes 44/44. Task 2.3.4 is blocked only on exact user oracle-edit authority for the task-local native specification file. Progress is **47/48**. No phase-2 completion, release or optimized claim is made.

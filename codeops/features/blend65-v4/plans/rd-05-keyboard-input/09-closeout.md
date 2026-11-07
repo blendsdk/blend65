@@ -2,7 +2,7 @@
 
 > **Document**: 09-closeout.md
 > **Parent**: [Index](00-index.md)
-> **Status**: Native evidence complete at 47/48 — final re-review and closeout remain
+> **Status**: Native evidence complete at 47/48 — closeout pending exact oracle-edit approval
 > **Updated**: 2026-11-07 CET
 
 ## Scope
@@ -19,10 +19,10 @@ change is included.
 |---|---|
 | Held keyboard matrix | 64 isolated coordinates × 4 profiles = **256 native scans**; exact driven-column raw rows and COMPLETE quality. Mixed contacts and ghosting are covered by the independent coexistence suite |
 | Simulated joystick states | 32 isolated states × both ports × 4 profiles = **256 native scans**; exact raw joystick bytes and COMPLETE quality. Mixed keyboard/joystick ghosting is covered independently |
-| Live returning RESTORE | **12 native cases** at publication, active column and final idle; the actual `interruptScan` callback runs, the stock predecessor returns, quality is INTERRUPTED, exact rows match and every scanner-to-prior transition preserves A/X/Y/P/SP and the three hardware-frame bytes (NV-001/003/005 fixed) |
+| Live returning RESTORE | **12 native cases** at publication, active column and final idle; the actual `interruptScan` callback runs, the stock predecessor returns, quality is INTERRUPTED, final-idle rows `$7F,$FF×7` and joysticks `$FF` match, and every scanner-to-prior transition preserves A/X/Y/P/SP and the three hardware-frame bytes (NV-001/003/005, CL-004 fixed) |
 | Callback marker order | **4 native traces** after publication; the callback marker=1 is isolated and preceded by the PA=$7F store (NV-002 fixed) |
-| Independent coexistence suite | **44/44** on four profiles: mixed key+joystick ghosting, before/after publication, column sample, changing cursor, during removal, after direction restoration, final idle, genuinely overlapping generated entries, genuine STOP and sequential generated predecessor; vectors, PA/marker order, LIFO prior entries, zero callback-body CIA2 ICR reads, A/X/Y/P/SP and byte-exact hardware frames are checked |
-| GDB cleanup | The attested VICE inferior is found through procfs even when monitor setup fails, the whole subtree is recorded, every signal is guarded by the kernel start time against pid reuse, and termination is verified independently of GDB (NV-004, RR-001/002 fixed) |
+| Independent coexistence suite | **44/44** on four profiles: mixed key+joystick ghosting, before/after publication, column sample, changing cursor, during removal, after direction restoration, final idle, genuinely overlapping generated entries, genuine STOP and sequential generated predecessor; vectors, PA/marker order, LIFO prior entries, CIA2 read-PC attribution, A/X/Y/P/SP and byte-exact hardware frames are checked |
+| GDB cleanup | The attested VICE inferior identity is captured at discovery, found through procfs even when monitor setup fails, the whole subtree is recorded, every listed identity is polled and escalated, every signal is guarded by the kernel start time, and termination is verified independently of GDB; the 2/2 TERM-ignoring and reused-pid regression passes (NV-004, RR-001/002, CL-001/002 fixed) |
 | False-STOP witness | **8 native cases**: publication-time and active-column PA=$FE Cursor U/D + RESTORE both return without TIMB on all four profiles; SM-003 is fixed (NV-001) |
 | Genuine STOP | **4 native cases**; STOP reaches the stock TIMB $FE66 path. This is path-entry evidence, not completed warm-start proof |
 | Saved/acquisition behavior suite | 76/76 cases pass under `none` |
@@ -91,11 +91,12 @@ Native pressed-contact, live-NMI and STOP/RESTORE coverage is no longer deferred
 
 Task 2.3.2 is complete. The isolated and mixed key/joystick cases, the
 independent publication/sample/removal/final-idle/overlap schedules,
-callback-marker value/order, exact rows, GDB subtree cleanup with pid-reuse
+callback-marker value/order, retained rows, GDB subtree cleanup with pid-reuse
 guards, false-STOP/STOP-path cases and the A/X/Y/P/SP/byte-exact frame
-transition all pass. Task 2.3.3 is complete. Task 2.3.4 final re-review and
-closeout remain. Progress is **47/48**. No publication, push or optimized
-release claim follows from this document.
+transition all pass. Task 2.3.3 is complete. Task 2.3.4 is blocked only on exact
+user oracle-edit authority for the task-local native specification file.
+Progress is **47/48**. No publication, push or optimized release claim follows
+from this document.
 
 ## Independent review findings (2026-11-07)
 
@@ -125,6 +126,20 @@ and returned these additional findings. All are resolved or explicitly bounded:
 | RR-004 | MINOR | Review/closeout statements contradicted their current dispositions. | **Fixed:** historical findings are labelled and current dispositions are synchronized. |
 | RR-005 | CRITICAL | A `*.spec.test.ts` file changed without a recorded oracle-edit exception. | **Bounded:** it is a task-local native artifact created in `5b12ee97` for this still-open task, reviewed before acceptance; no pre-existing oracle changed. |
 | TP-001 | MAJOR | The mixed-contact witness uses the eight-line I/O simulator, not an ordinary five-line joystick. | **Bounded:** only the five driven bits and named-query ambiguity are claimed; upper-line and physical behavior remain hardware-unverified in RD-10. |
+
+## Closing re-review (2026-11-07)
+
+| ID | Severity | Finding | Disposition |
+|---|---|---|---|
+| CL-001 | MAJOR | Single-use iterator made cleanup polls vacuously successful. | **Fixed:** identities materialized once; TERM-ignoring-child regression passes. |
+| CL-002 | MAJOR | Inferior start time captured at cleanup could adopt a reused pid. | **Fixed:** identity captured at discovery and revalidated before every signal. |
+| CL-003 | MAJOR | CIA2 reads before PA or after the marker escaped the scoped assertion. | **Fixed:** stopping `$DD0D` checkpoint plus read-PC attribution; negative control included. |
+| CL-004 | MAJOR | Final idle did not check retained raw rows/joysticks. | **Fixed:** rows `$7F,$FF×7`, joysticks `$FF`. |
+| CL-005 | MINOR | Residual contradictory status text. | **Fixed.** |
+| CL-006 | CRITICAL | Exact user oracle-edit authority for the task-local native `*.spec.test.ts` file. | **Open blocker:** the exact path and allowed changes need user approval before closeout. |
+
+Post-fix verification: independent coexistence **44/44**, original native **24/24**,
+cleanup regression **2/2**; all native runs sequential with no leftover emulator.
 
 ## Remaining boundaries
 

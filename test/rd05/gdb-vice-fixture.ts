@@ -39,8 +39,8 @@ export interface StartedGdbVice {
   readonly monitor: ViceMonitor;
   /** Exact executable and ROM identity used by the emulator. */
   readonly identity: ViceRuntimeIdentity;
-  /** Attested VICE inferior process, which GDB may place in its own process group. */
-  readonly inferiorPid: number;
+  /** Attested VICE inferior identity, including the kernel start time. */
+  readonly inferior: OwnedProcess;
   /** Paths used by this run. */
   readonly paths: GdbVicePaths;
 }
@@ -93,7 +93,7 @@ function waitForExit(child: ChildProcess, timeoutMs: number): Promise<boolean> {
 }
 
 /** One process identity that cannot be confused with a later reuse of the same pid. */
-interface OwnedProcess {
+export interface OwnedProcess {
   /** Linux process identity. */
   readonly pid: number;
   /** Kernel start time, which changes when the pid is reused. */
@@ -176,11 +176,12 @@ async function isZombie(processId: number): Promise<boolean> {
 }
 
 /** Signal one process only while its recorded identity still matches. */
-async function signalOwned(process: OwnedProcess, signal: NodeJS.Signals): Promise<void> {
-  const current = await processStartTime(process.pid);
-  if (current === null || current !== process.startTime) return;
+async function signalOwned(owned: OwnedProcess, signal: NodeJS.Signals): Promise<void> {
+  const current = await processStartTime(owned.pid);
+  if (current === null || current !== owned.startTime) return;
   try {
-    process.kill(process.pid, signal);
+    // `owned` must not be named `process`: that would shadow Node's global.
+    process.kill(owned.pid, signal);
   } catch {
     // A concurrently exited owned process needs no signal.
   }
@@ -191,13 +192,17 @@ async function waitForOwnedExit(
   processes: Iterable<OwnedProcess>,
   timeoutMs: number,
 ): Promise<boolean> {
+  // A generator would be exhausted by the first poll, making later polls
+  // vacuously successful. Materialize the identities once.
+  const list = [...processes];
+  if (list.length === 0) return true;
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const states = await Promise.all([...processes].map(processTerminated));
+    const states = await Promise.all(list.map(processTerminated));
     if (states.every(Boolean)) return true;
     await new Promise<void>((resolve) => setTimeout(resolve, 20));
   }
-  const states = await Promise.all([...processes].map(processTerminated));
+  const states = await Promise.all(list.map(processTerminated));
   return states.every(Boolean);
 }
 
@@ -253,7 +258,7 @@ export async function startGdbVice(
     child.once("error", reject);
   });
   let monitor: ViceMonitor | undefined;
-  let inferiorPid: number | undefined;
+  let inferior: OwnedProcess | undefined;
   try {
     const processId = child.pid;
     if (processId === undefined) throw new Error("Spawned debugger has no process identity");
@@ -261,16 +266,19 @@ export async function startGdbVice(
     const version = await monitor.viceInfo();
     if (version[0] !== 3 || version[1] !== 10 || version.slice(2).some((part) => part !== 0))
       throw new Error(`VICE ${version.join(".")} is not VICE 3.10`);
-    inferiorPid = await findInferior(processId, identity.executable);
+    const inferiorPid = await findInferior(processId, identity.executable);
     if (inferiorPid === undefined)
       throw new Error("The debugger did not expose its attested VICE inferior");
-    return Object.freeze({ gdb: child, monitor, identity, inferiorPid, paths });
+    const startTime = await processStartTime(inferiorPid);
+    if (startTime === null) throw new Error("The attested VICE inferior disappeared during setup");
+    inferior = { pid: inferiorPid, startTime };
+    return Object.freeze({ gdb: child, monitor, identity, inferior, paths });
   } catch (error) {
     try {
       await stopGdbVice({
         gdb: child,
         monitor,
-        inferiorPid,
+        inferior,
         executable: identity.executable,
       });
     } catch (cleanupError) {
@@ -320,7 +328,7 @@ export async function applyGdbInjection(session: StartedGdbVice): Promise<void> 
 export async function stopGdbVice(session: {
   readonly gdb: ChildProcess;
   readonly monitor?: ViceMonitor | undefined;
-  readonly inferiorPid?: number | undefined;
+  readonly inferior?: OwnedProcess | undefined;
   readonly executable?: string | undefined;
 }): Promise<void> {
   session.monitor?.close();
@@ -330,17 +338,26 @@ export async function stopGdbVice(session: {
   const gdbIdentity: OwnedProcess | undefined =
     gdbPid !== undefined && gdbStart !== null ? { pid: gdbPid, startTime: gdbStart } : undefined;
 
-  // The inferior identity is normally recorded at startup, but a failed monitor
-  // connection must still find the emulator that the debugger already launched.
-  let inferiorPid = session.inferiorPid;
-  if (inferiorPid === undefined && session.executable !== undefined && gdbPid !== undefined) {
-    inferiorPid = await findInferior(gdbPid, session.executable);
+  // The inferior identity is normally recorded at startup. A failed monitor
+  // connection must still find the emulator that the debugger already launched,
+  // and the identity is captured at discovery rather than at cleanup so a pid
+  // reused before cleanup cannot be adopted.
+  let inferior = session.inferior;
+  if (inferior === undefined && session.executable !== undefined && gdbPid !== undefined) {
+    const inferiorPid = await findInferior(gdbPid, session.executable);
+    if (inferiorPid !== undefined) {
+      const startTime = await processStartTime(inferiorPid);
+      if (startTime !== null) inferior = { pid: inferiorPid, startTime };
+    }
   }
 
   const owned = new Map<number, OwnedProcess>();
   try {
-    if (inferiorPid !== undefined) {
-      await collectOwned(inferiorPid, owned);
+    if (inferior !== undefined) {
+      // Only the exact process observed at discovery is owned. A different
+      // start time means the original exited and the pid was reused.
+      const current = await processStartTime(inferior.pid);
+      if (current === inferior.startTime) await collectOwned(inferior.pid, owned);
     } else if (gdbPid !== undefined) {
       // Without an attested inferior, still own every debugger descendant.
       for (const child of await childPids(gdbPid)) await collectOwned(child, owned);

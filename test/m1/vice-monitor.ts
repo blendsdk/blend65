@@ -76,6 +76,8 @@ export interface ViceMonitor {
   readonly setAccessTracepoint: (address: number, operation: "load" | "store") => Promise<number>;
   /** Add one stopping store checkpoint and return its monitor identity; the caller deletes it. */
   readonly setStoreCheckpoint: (address: number) => Promise<number>;
+  /** Add one stopping load checkpoint and return its monitor identity; the caller deletes it. */
+  readonly setLoadCheckpoint: (address: number) => Promise<number>;
   /** Attach one monitor condition expression to an existing checkpoint. */
   readonly setCheckpointCondition: (checkpoint: number, expression: string) => Promise<void>;
   /** Feed ordinary PETSCII text to the emulated keyboard buffer; empty text is a valid trigger. */
@@ -547,6 +549,23 @@ export async function openViceMonitor(port: number, processId: number): Promise<
       body[8] = 0;
       const response = await request(0x12, body, 0x11);
       if (response.body.length < 23) throw new Error("VICE store checkpoint response is truncated");
+      return uint32(response.body, 0);
+    },
+    setLoadCheckpoint: async (address) => {
+      if (!Number.isInteger(address) || address < 0 || address > 0xffff) {
+        throw new RangeError("VICE load checkpoint address must be a 16-bit integer");
+      }
+      const body = new Uint8Array(9);
+      const view = new DataView(body.buffer);
+      view.setUint16(0, address, true);
+      view.setUint16(2, address, true);
+      body[4] = 1;
+      body[5] = 1;
+      body[6] = 1;
+      body[7] = 0;
+      body[8] = 0;
+      const response = await request(0x12, body, 0x11);
+      if (response.body.length < 23) throw new Error("VICE load checkpoint response is truncated");
       return uint32(response.body, 0);
     },
     setCheckpointCondition: async (checkpoint, expression) => {

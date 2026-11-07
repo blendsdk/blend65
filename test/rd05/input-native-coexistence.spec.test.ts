@@ -67,6 +67,18 @@ function sourceFor(schedule: Schedule): string {
         "keyState(saved, Key.CURSOR_UP_DOWN) == InputState.UNCERTAIN",
         "joystickState(saved, JoystickPort.PORT_1, JoystickControl.UP) == InputState.UNCERTAIN",
         "joystickState(saved, JoystickPort.PORT_2, JoystickControl.UP) == InputState.UNCERTAIN",
+        ...(schedule === "final idle"
+          ? [
+              // The scan samples all eight columns before the final idle
+              // handoff. The held cursor lines pull the column-0 row byte low
+              // while every later column reads the pulled-up lines high. No
+              // joystick device exists here, so both port bytes stay high.
+              "saved.rows[0] == $7f",
+              ...Array.from({ length: 7 }, (_, index) => `saved.rows[${index + 1}] == $ff`),
+              "saved.joystick1 == $ff",
+              "saved.joystick2 == $ff",
+            ]
+          : []),
       ]
     : schedule === "mixed contacts"
       ? [
@@ -130,6 +142,21 @@ export function main(): void {
  * column 7 and once as the separate final idle handoff after the sample.
  */
 const ONE_LOW_COLUMN_MASKS = new Set([0xfe, 0xfd, 0xfb, 0xf7, 0xef, 0xdf, 0xbf, 0x7f]);
+
+/** A generated predecessor body is a tiny interrupt routine, far smaller than this window. */
+const PREDECESSOR_WINDOW = 0x40;
+
+/**
+ * Decide whether a CIA2 ICR read at `pc` comes from a permitted owner.
+ *
+ * The stock interrupt path reads ICR from the ROM handler at or above
+ * `$C000`, and the caller's own generated predecessor may read it inside its
+ * short body. Any other address belongs to generated library code, where the
+ * installed scan must not touch CIA2.
+ */
+function allowsCia2Read(pc: number, prior: number): boolean {
+  return pc >= 0xc000 || (pc >= prior && pc < prior + PREDECESSOR_WINDOW);
+}
 
 /** Decode the complete published vector; a torn target must never be accepted. */
 async function nmiVector(monitor: ViceMonitor): Promise<number> {
@@ -205,8 +232,10 @@ async function exercise(
       },
       schedule === "mixed contacts",
     );
+    const monitor = session.monitor;
+    // Cleanup deletes this load checkpoint even when a loop assertion fails.
+    let cia2ReadCheckpoint: number | undefined;
     try {
-      const monitor = session.monitor;
       // Retain the attested input/machine/ROM identity in a failing native assertion.
       const context = JSON.stringify({ profile, schedule, identity: session.identity });
       const startup = libraryStartup(artifacts, "startup.entry");
@@ -221,6 +250,13 @@ async function exercise(
       const prior = await nmiVector(monitor);
       if (schedule === "generated predecessor") expect(prior, context).not.toBe(0xfe47);
       else expect(prior, context).toBe(0xfe47);
+      // The published interruption marker is the scanner-owned address exposed
+      // by the artifacts, and it sits below the ROM with the generated library.
+      const scannerAddress = marker;
+      // Control the decision before trusting it: a scanner address below the
+      // ROM must be rejected, while the predecessor itself must be accepted.
+      expect(allowsCia2Read(scannerAddress, prior), context).toBe(false);
+      expect(allowsCia2Read(prior, prior), context).toBe(true);
       const originalDirections = await monitor.readIo(0xdc02, 0xdc03);
       await prepareGdbInjection(session, { matrix: contacts(schedule) });
       await applyGdbInjection(session);
@@ -244,7 +280,7 @@ async function exercise(
       const stockCheckpoint =
         prior === 0xfe47 ? priorCheckpoint : await monitor.setExecuteCheckpoint(0xfe47);
       const stopCheckpoint = await monitor.setExecuteCheckpoint(0xfe66);
-      const cia2ReadTrace = await monitor.setAccessTracepoint(0xdd0d, "load");
+      cia2ReadCheckpoint = await monitor.setLoadCheckpoint(0xdd0d);
       const afterCheckpoint = await monitor.setExecuteCheckpoint(afterScan);
       const ownerCheckpoint = await monitor.setExecuteCheckpoint(ownerRemoved);
       const acceptedCheckpoint = await monitor.setExecuteCheckpoint(accepted);
@@ -300,6 +336,16 @@ async function exercise(
       // The bound protects the test driver, not the source or firmware deadline.
       for (let stops = 0; stops < 256; stops++) {
         const { pc, hits } = await advance(monitor);
+        if (cia2ReadCheckpoint !== undefined && hits.includes(cia2ReadCheckpoint)) {
+          // Every ICR read stops the machine, so this covers reads before
+          // the idle PA store, between that store and the marker, and after
+          // the marker. Only the ROM handler and the caller's own
+          // predecessor may read it; the generated scan must not.
+          expect(
+            allowsCia2Read(pc, prior),
+            `CIA2 ICR read from unexpected code at $${pc.toString(16).padStart(4, "0")}: ${context}`,
+          ).toBe(true);
+        }
         if (scannerCheckpoint !== undefined && hits.includes(scannerCheckpoint)) {
           if (schedule === "overlapping entries") {
             // The first entry starts with nothing pending; the second must
@@ -428,11 +474,6 @@ async function exercise(
           if (value === 1) {
             expect(interruptedFrames.length, context).toBeGreaterThan(0);
             expect(events.at(-1), context).toBe(`PA:${0x7f}`);
-            // The callback body ends at this marker store: it writes idle PA,
-            // then the marker, then chains to the prior owner. A real
-            // predecessor may legitimately read CIA2 ICR, so the check is
-            // scoped to the callback's own work observed up to this stop.
-            expect(hits.includes(cia2ReadTrace), context).toBe(false);
             markerPublished = true;
             markerWrites++;
             if (schedule === "overlapping entries" && pulses === 1) {
@@ -566,7 +607,11 @@ async function exercise(
         );
       }
     } finally {
-      await stopGdbVice(session);
+      try {
+        if (cia2ReadCheckpoint !== undefined) await monitor.deleteCheckpoint(cia2ReadCheckpoint);
+      } finally {
+        await stopGdbVice(session);
+      }
     }
   });
 }
