@@ -2,7 +2,7 @@
 
 > **Document**: 09-closeout.md
 > **Parent**: [Index](00-index.md)
-> **Status**: Native evidence complete at 47/48 — independent phase-2 reviews and closeout remain
+> **Status**: Native evidence partial at 46/48 — independent review found six gaps; task 2.3.2 remains open
 > **Updated**: 2026-11-07 CET
 
 ## Scope
@@ -17,12 +17,12 @@ change is included.
 
 | Evidence | Result |
 |---|---|
-| Held keyboard matrix | 64 coordinates × 4 profiles = **256 native scans**; exact driven-column raw rows and COMPLETE quality through `readInputSnapshot` |
-| Simulated joystick states | 32 states × both ports × 4 profiles = **256 native scans**; exact raw joystick bytes and COMPLETE quality through `readInputSnapshot` |
-| Live returning RESTORE | **4 native cases**; the actual `interruptScan` callback runs, the stock predecessor returns, quality is INTERRUPTED, retained rows stay readable and both named queries are UNCERTAIN |
-| Callback marker order | **4 native traces**; the handler's CIA1 PA=$7F store is immediately followed by the interruption marker store |
-| False-STOP witness | **4 native cases** with Cursor U/D held; the returning RESTORE does not reach the stock TIMB $FE66 path |
-| Genuine STOP | **4 native cases** with STOP held; the RESTORE reaches the stock TIMB $FE66 path |
+| Held keyboard matrix | 64 isolated coordinates × 4 profiles = **256 native scans**; exact driven-column raw rows and COMPLETE quality. Mixed keyboard/joystick ghosting is **not yet covered** (NV-005) |
+| Simulated joystick states | 32 isolated states × both ports × 4 profiles = **256 native scans**; exact raw joystick bytes and COMPLETE quality. Mixed contact/ghosting is **not yet covered** (NV-005) |
+| Live returning RESTORE at publication | **4 native cases**; the actual `interruptScan` callback runs, the stock predecessor returns and quality is INTERRUPTED. The hazardous active-column/changing-key schedule, exact retained rows and interrupted-frame restoration are **not yet established** (NV-001/003) |
+| Callback marker order | **4 native traces**, but the selected marker is the initial `scanInterrupted=0` clear; the callback marker=1 value/order is **not yet isolated** (NV-002) |
+| False-STOP witness | **4 native cases at vector publication**, when PA is already $7F; this does not exercise the hazardous PA=$FE active-column condition, so SM-003 remains **open** (NV-001) |
+| Genuine STOP | **4 native cases**; STOP reaches the stock TIMB $FE66 path. This is path-entry evidence, not completed warm-start proof |
 | Saved/acquisition behavior suite | 76/76 cases pass under `none` |
 | Saved matrix and native observation cases | Pass on all four profiles for saved software data; 4,356 observations / 322,344 answers |
 | Saved query purity | 4/4 profile cases pass; saved bytes retained, no fresh scanner resources |
@@ -34,7 +34,9 @@ change is included.
 
 The new [native specification](../../../../../test/rd05/input-native-qualification.spec.test.ts)
 runs **20 directed tests / 524 native scans** on all four profiles in one
-sequential VICE/GDB pass. The debugger calls the unmodified VICE
+sequential VICE/GDB pass. This is supporting evidence, not the independent
+specification oracle required by the task: NV-006 records that the implementation
+agent authored it. The debugger calls the unmodified VICE
 `keyboard_event_playback` and `machine_set_restore_key` on the emulation thread at
 `kbuf_feed`; no ROM bytes, CPU frames, CIA pins or source bytes are patched.
 Matrix injection uses the 16-entry VICE PA→PB mask. The runtime is the pinned VICE
@@ -49,6 +51,8 @@ yarn vitest run test/rd05/input-native-qualification.spec.test.ts
 
 Result: **20/20 pass in 122 s**. The existing `joystick-vice.spec.test.ts`
 regression also passes **32/32** after the shared VICE launch/monitor refactor.
+The independent reviewers did not accept the suite as full ST-18–ST-21 closure;
+NV-001..006 remain open.
 All VICE runs were sequential. The result is **VICE-verified /
 hardware-unverified** on the four cooperative profiles; physical hardware and
 other host classes remain later work.
@@ -78,11 +82,29 @@ Native pressed-contact, live-NMI and STOP/RESTORE coverage is no longer deferred
 
 ## Completion boundary
 
-Task 2.3.2 is complete: native pressed-key and joystick acquisition, live
-returning NMI, false-STOP and genuine STOP evidence pass on all four profiles.
-Task 2.3.3 updated the platform guide. Task 2.3.4 (independent phase-2 reviews,
-finding disposition and closeout) remains. Progress is **47/48**. No publication,
-push or optimized release claim follows from this document.
+Task 2.3.2 remains **partial**. The isolated key/joystick, publication-time
+returning RESTORE and STOP-path cases pass, but the active-column false-STOP,
+callback-marker value/order, exact interrupted rows/frame, GDB inferior cleanup,
+mixed ghosting and publication/sample/removal/overlap schedules are not supplied.
+The implementation agent also authored the current oracle, so an independent
+`spec-test-author` companion is required. Task 2.3.3 is complete. Task 2.3.4 is
+blocked. Progress is **46/48**. No publication, push or optimized release claim
+follows from this document.
+
+## Independent review findings (2026-11-07)
+
+The independent correctness, semantics and SFA/ABI reviews of `5b12ee97` returned
+six merged findings. They are evidence/qualification gaps, not demonstrated
+production-code defects, and they block task 2.3.2 closure.
+
+| ID | Severity | Finding | Disposition |
+|---|---|---|---|
+| NV-001 | MAJOR | The false-STOP witness triggers RESTORE at vector publication, when PA is already $7F; it never exercises the hazardous PA=$FE active-column condition. | Open: active-column/changing-key schedule. |
+| NV-002 | MINOR | The marker trace selects the initial `scanInterrupted=0` clear, not the callback's marker=1 store. | Open: isolate callback events and assert values/order. |
+| NV-003 | MAJOR | Interrupted raw rows use `some(value !== 0)` and no A/X/Y/P/SP/live-stack comparison proves frame restoration. | Open: exact rows and interrupted-frame check. |
+| NV-004 | MAJOR | GDB cleanup may leave the VICE inferior in a separate process group. | Open: track and verify inferior termination. |
+| NV-005 | MAJOR | ST-18 mixed keyboard/joystick ghosting and ST-19/20/21 publication/sample/removal/overlap schedules are absent. | Open: add the schedules or keep 2.3.2 partial. |
+| NV-006 | MAJOR | The primary implementation agent authored the native oracle, contrary to the implementation-blind independent-author contract. | Open: independent `spec-test-author` companion. |
 
 ## Remaining boundaries
 

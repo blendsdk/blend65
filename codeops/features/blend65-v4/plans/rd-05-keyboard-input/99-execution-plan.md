@@ -2,8 +2,8 @@
 
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-07
-> **Progress**: 47/48 tasks (98%)
-> **Status**: Native evidence complete at 47/48 — independent phase-2 reviews and closeout remain; size output deferred
+> **Progress**: 46/48 tasks (96%)
+> **Status**: Native evidence partial at 46/48 — independent review found six gaps; size output deferred
 > **CodeOps Artifact Schema**: 1
 
 ## Implementation phases
@@ -3549,9 +3549,9 @@ on the non-integration branch. No source workaround, wider proof model, cost
 waiver, frozen/old-oracle edit, RED commit or push.
 
 - [x] 2.3.1 Add `test/rd05/input-library.impl.test.ts` for actual private helper/callback reachability and selected-home closure after GREEN; reuse current typed/build evidence, not a new validator. ✅ (completed: 2026-11-01 23:10; saved/acquisition fixtures build under none; reachable private helpers, callback-only absence of private homes and every non-overlay selected home are checked from public debug/memory evidence; 2/2 pass)
-- [x] 2.3.2 Execute ST-18–ST-23's exact-source four-profile native qualification sequentially; record matrix/joystick/NMI/RESTORE, restoration and correctness resources in `09-closeout.md`; size-output limits remain RD-08 evidence. ✅ (completed: 2026-11-07; `test/rd05/input-native-qualification.spec.test.ts` passes 20/20 directed tests / 524 native scans sequentially on four profiles: 64 held matrix coordinates (256 scans) with exact rows and COMPLETE, 32×2 joystick states (256 scans) with exact bytes and COMPLETE, four live returning RESTORE cases with INTERRUPTED/UNCERTAIN, four PA-before-marker traces, four false-STOP witnesses without TIMB and four genuine STOP cases at TIMB $FE66. The GDB/VICE `keyboard_event_playback`/`machine_set_restore_key` procedure runs on the emulation thread; no ROM/CPU/CIA-pin/source patch. Pinned VICE 3.10; joystick-vice regression 32/32. The 12 size-output reds remain RD-08-owned. VICE-verified/hardware-unverified.)
+- [!] 2.3.2 Execute ST-18–ST-23's exact-source four-profile native qualification sequentially; record matrix/joystick/NMI/RESTORE, restoration and correctness resources in `09-closeout.md`; size-output limits remain RD-08 evidence. Partial: `test/rd05/input-native-qualification.spec.test.ts` passes 20/20 / 524 scans for isolated keys, joysticks, the publication-time returning RESTORE, the initial marker and STOP path. Independent review found NV-001..006: the false-STOP witness is not at the hazardous active column; the marker trace selects the initial clear; interrupted rows/frame are not exactly checked; GDB cleanup can leave the inferior; mixed ghosting and publication/sample/removal/overlap schedules are absent; and the implementation agent authored the oracle. 2.3.2 remains open.
 - [x] 2.3.3 Update `docs/platform-libraries.md` and complete the scoped deferral-expiry/ownership check in `09-closeout.md`; [01](01-requirements.md). ✅ (completed: 2026-11-01 23:18; platform guide now documents saved snapshots, pure queries, quality/uncertainty, NMI/port restoration and the split RD-08 size boundary; closeout records no orphaned deferral)
-- [ ] 2.3.4 Run the correctness-track verification and independent correctness, semantics/DX, SFA/ABI, platform and host-performance reviews; record the known RD-08 size-output reds, resolve findings through their normal gates, record `10-phase-2-review.md` and update index/progress/roadmap. Ready: native 2.3.2 evidence is complete; SM-001/2/3 and SF-004 are fixed, MC-001 was resolved by AR-P40. See 10-phase-2-review.md.
+- [!] 2.3.4 Run the correctness-track verification and independent correctness, semantics/DX, SFA/ABI, platform and host-performance reviews; record the known RD-08 size-output reds, resolve findings through their normal gates, record `10-phase-2-review.md` and update index/progress/roadmap. Blocked: the independent native review found NV-001..006 and task 2.3.2 remains partial; MC-001 was resolved by AR-P40. See 10-phase-2-review.md.
 
 Verify: root install/build/typecheck/full tests, sequential actual VICE cases,
 targeted formatting, whitespace and exact immutable/old-oracle guards. All new

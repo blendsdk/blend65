@@ -2,8 +2,8 @@
 
 > **Document**: 10-phase-2-review.md
 > **Parent**: [Index](00-index.md)
-> **Status**: Native evidence complete at 47/48 — task 2.3.4 reviews and closeout remain
-> **Reviewed**: 2026-11-01 23:31 CET; native evidence 2026-11-07
+> **Status**: Native evidence partial at 46/48 — independent review found six gaps; task 2.3.2/2.3.4 remain
+> **Reviewed**: 2026-11-01 23:31 CET; native review 2026-11-07
 > **Baseline**: HEAD `91a1dee3` plus reviewed working tree
 
 ## Reviewers
@@ -21,16 +21,16 @@ expert or security boundary was changed by the reviewers.
 | RV-003 | MINOR | Plan exception list did not name AR-P39 | **Fixed:** AR-P39 recorded in the keyboard register; this review carries the exception record |
 | MC-001 | MAJOR | Four existing `none` startup/stack specification oracles still encoded the removed stored-P startup | **Fixed:** AR-P40 re-derived held-P ledger/state/decoder/stack values; 56/56 tests pass |
 | MC-002 / TP-002 | MINOR | NMI stack comment stale | **Fixed** with RV-002 |
-| SM-001 / TP-001 | MAJOR | No native pressed key/joystick acquisition through `readInputSnapshot` | **Fixed:** 64 held matrix coordinates and 32×2 joystick states pass on all four profiles; exact raw bytes and COMPLETE quality |
-| SM-002 / TP-001 | MAJOR | No `none`-mode live returning NMI into the actual `interruptScan` callback; only a `size` case exists | **Fixed:** live returning RESTORE runs the actual callback on all four profiles; quality INTERRUPTED and named queries UNCERTAIN |
-| SM-003 | MAJOR | No genuine STOP/RESTORE or false-STOP case for the installed library | **Fixed:** false-STOP witness returns without TIMB; genuine STOP reaches the stock TIMB $FE66 path on all four profiles |
+| SM-001 / TP-001 | MAJOR | No native pressed key/joystick acquisition through `readInputSnapshot` | **Partial:** 64 isolated matrix coordinates and 32×2 isolated joystick states pass; mixed keyboard/joystick ghosting is not yet covered (NV-005) |
+| SM-002 / TP-001 | MAJOR | No `none`-mode live returning NMI into the actual `interruptScan` callback; only a `size` case exists | **Partial:** publication-time returning RESTORE runs the actual callback on all four profiles; active-column and publication/removal schedules remain open (NV-001/005) |
+| SM-003 | MAJOR | No genuine STOP/RESTORE or false-STOP case for the installed library | **Open:** genuine STOP reaches TIMB, but the false-STOP case triggers at publication when PA=$7F, not at the hazardous PA=$FE active column (NV-001) |
 | SM-004 / SF-001 | MAJOR/MINOR | External NMI aggregate stack, retained-ROM completion and finite deadline were not carried into the closeout | **Fixed in docs:** closeout and guide now state the unproved boundaries; no whole-program guarantee claimed |
 | SM-005 | MINOR | Active-NMI re-entry restriction not documented | **Fixed in docs:** guide/source state the compatible-owner, no-competing-writer and non-reentrancy boundary |
 | SM-006 / TP-004 | MINOR | `UNAVAILABLE` described as general port configuration instead of PBON timer output | **Fixed in docs/source:** PBON wording and ownership precondition |
 | SM-007 | MINOR | PA latch/status restoration wording too broad | **Fixed in docs/source:** `$7F` handback and direction/status scope stated |
 | SM-008 | MINOR | Raw joystick mask wording implied switch certainty | **Fixed in docs:** low line vs `joystickState` certainty |
 | SF-002 | MINOR | New impl test did not check stack/resource accounting | **Fixed:** stack arithmetic and standard resource records now checked |
-| SF-004 / TP-003 | MINOR | Callback marker trace does not prove PA-before-marker or retained interrupted rows | **Fixed:** native trace shows the PA=$7F store immediately before the marker; rows stay readable and queries UNCERTAIN |
+| SF-004 / TP-003 | MINOR | Callback marker trace does not prove PA-before-marker or retained interrupted rows | **Open:** the selected marker is the initial `scanInterrupted=0` clear; exact rows/frame are not checked (NV-002/003) |
 | SF-005 | MINOR | “non-overlay selected homes” wording exceeded the test | **Fixed:** closeout now says owner-mapped selected private homes |
 | PE-001 | MINOR | New build-based impl tests used Vitest’s 5-second default timeout | **Fixed:** both cases use `120_000` ms |
 
@@ -46,22 +46,35 @@ expert or security boundary was changed by the reviewers.
 - The four stale `none` startup/stack oracles are independent specification files;
   they cannot be edited without exact approval.
 
-## Native evidence (2026-11-07)
+## Native evidence review (2026-11-07)
 
+The implementation-authored suite
 [`test/rd05/input-native-qualification.spec.test.ts`](../../../../../test/rd05/input-native-qualification.spec.test.ts)
 passes **20/20 directed tests / 524 native scans** on the four cooperative
-profiles. The suite covers all 64 held matrix coordinates, 32 states for each
-joystick port, the live returning `interruptScan` callback, the PA-before-marker
-trace, the false-STOP witness and the genuine STOP path.
+profiles. It is supporting evidence for isolated held keys, isolated joystick
+states, the publication-time returning RESTORE, the initial marker and the stock
+STOP path.
+
+Independent correctness, semantics/DX and SFA/ABI reviews of commit `5b12ee97`
+did **not** accept it as full ST-18–ST-23 closure. They found six merged gaps:
+
+| ID | Severity | Finding | Status |
+|---|---|---|---|
+| NV-001 | MAJOR | False-STOP witness is at vector publication (PA=$7F), not the hazardous active-column PA=$FE condition. | Open |
+| NV-002 | MINOR | Marker trace selects the initial `scanInterrupted=0` clear, not the callback marker=1 store. | Open |
+| NV-003 | MAJOR | Interrupted rows use `some(value !== 0)`; no exact row vector or A/X/Y/P/SP/live-stack frame check. | Open |
+| NV-004 | MAJOR | GDB cleanup may leave the VICE inferior in a separate process group. | Open |
+| NV-005 | MAJOR | ST-18 mixed keyboard/joystick ghosting and ST-19/20/21 publication/sample/removal/overlap schedules are absent. | Open |
+| NV-006 | MAJOR | The implementation agent authored the native oracle; an independent `spec-test-author` companion is required. | Open |
 
 The run uses the existing GDB/VICE procedure: the debugger calls the unmodified
 VICE `keyboard_event_playback` and `machine_set_restore_key` on the emulation
 thread at `kbuf_feed`. No ROM bytes, CPU frames, CIA pins or source bytes are
-patched. The pinned VICE 3.10 identity and all four profile identities are the
-same as the ordinary native suite. The implementation review of these new specs
-is task 2.3.4; this review section records the evidence, not an independent
-verdict on it.
+patched. VICE is pinned to 3.10 with executable SHA-256
+`f148b33869c634964a75bcf3055f7415a6e87ef5984b66ecd486541a51c3fd74`.
+External NMI stack, retained-firmware completion and deadlines remain Unknown;
+physical hardware remains unverified.
 
 ## Gate result
 
-Task 2.3.1, the 2.3.2 oracle correction, 2.3.3 and the full native 2.3.2 qualification are verified. Task 2.3.4 remains: independent correctness, semantics/DX, SFA/ABI, platform and host-performance reviews, finding disposition and closeout. Progress is **47/48**. No phase-2 completion, release or optimized claim is made.
+Task 2.3.1, the 2.3.2 oracle correction and 2.3.3 are verified. Task 2.3.2 remains partial: the independent native review found NV-001..006 and the suite is not the required independent oracle. Task 2.3.4 remains blocked on the corrected native evidence and finding disposition. Progress is **46/48**. No phase-2 completion, release or optimized claim is made.

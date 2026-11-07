@@ -1,6 +1,6 @@
 # Keyboard and combined-input library
 
-> **Status**: Native evidence complete at 47/48 — independent phase-2 reviews and closeout remain; size output deferred
+> **Status**: Native evidence partial at 46/48 — independent review found six gaps; task2.3.2/2.3.4 remain open; size output deferred
 > **Created**: 2026-10-10
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
