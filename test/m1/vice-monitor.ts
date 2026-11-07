@@ -58,8 +58,6 @@ export interface ViceCpuRegisters {
   readonly y: number;
   /** Processor status register. */
   readonly p: number;
-  /** Program counter. */
-  readonly pc: number;
   /** Hardware stack pointer. */
   readonly sp: number;
 }
@@ -709,17 +707,12 @@ export async function openViceMonitor(port: number, processId: number): Promise<
         if (value > 0xff) throw new Error("VICE returned a non-byte CPU register value");
         return value;
       };
-      const word = (id: number): number => {
-        if (!registers.has(id)) throw new Error("VICE register response is incomplete");
-        return registers.get(id)!;
-      };
       if (offset !== response.body.length)
         throw new Error("VICE register response has trailing data");
       return Object.freeze({
         a: byte(registerId(["A"])),
         x: byte(registerId(["X"])),
         y: byte(registerId(["Y"])),
-        pc: word(registerId(["PC"])),
         sp: byte(registerId(["SP"])),
         p: byte(registerId(["FL", "P"])),
       });
