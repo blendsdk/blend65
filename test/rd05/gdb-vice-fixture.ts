@@ -92,6 +92,28 @@ function waitForExit(child: ChildProcess, timeoutMs: number): Promise<boolean> {
   });
 }
 
+/** One process identity that cannot be confused with a later reuse of the same pid. */
+interface OwnedProcess {
+  /** Linux process identity. */
+  readonly pid: number;
+  /** Kernel start time, which changes when the pid is reused. */
+  readonly startTime: string;
+}
+
+/** Read the kernel start time that distinguishes this pid from a later reuse. */
+async function processStartTime(processId: number): Promise<string | null> {
+  try {
+    const stat = await readFile(`/proc/${processId}/stat`, "utf8");
+    const close = stat.lastIndexOf(")");
+    if (close < 0) return null;
+    const fields = stat.slice(close + 2).split(" ");
+    // Field 3 is state; the kernel start time is field 22.
+    return fields[19] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Return the direct children of one Linux process from procfs. */
 async function childPids(processId: number): Promise<readonly number[]> {
   try {
@@ -127,33 +149,56 @@ async function findInferior(processId: number, executable: string): Promise<numb
   return undefined;
 }
 
-/** Collect one process and its descendants for owned cleanup. */
-async function processTree(processId: number, result: Set<number>): Promise<void> {
+/** Collect one process subtree with identities before any signal is sent. */
+async function collectOwned(processId: number, result: Map<number, OwnedProcess>): Promise<void> {
   if (result.has(processId)) return;
-  result.add(processId);
-  for (const child of await childPids(processId)) await processTree(child, result);
+  const startTime = await processStartTime(processId);
+  if (startTime === null) return;
+  result.set(processId, { pid: processId, startTime });
+  for (const child of await childPids(processId)) await collectOwned(child, result);
 }
 
 /** Treat a zombie as terminated, since its pid can no longer execute or own the monitor. */
-async function processTerminated(processId: number): Promise<boolean> {
+async function processTerminated(process: OwnedProcess): Promise<boolean> {
+  const startTime = await processStartTime(process.pid);
+  return startTime === null || startTime !== process.startTime || (await isZombie(process.pid));
+}
+
+/** Report whether the current process at this pid is a zombie. */
+async function isZombie(processId: number): Promise<boolean> {
   try {
     const stat = await readFile(`/proc/${processId}/stat`, "utf8");
     const close = stat.lastIndexOf(")");
-    const state = close >= 0 ? stat.slice(close + 2).split(" ", 1)[0] : undefined;
-    return state === "Z";
+    return close >= 0 && stat.slice(close + 2).split(" ", 1)[0] === "Z";
   } catch {
     return true;
   }
 }
 
-/** Poll one process termination for a bounded interval. */
-async function waitForProcessExit(processId: number, timeoutMs: number): Promise<boolean> {
+/** Signal one process only while its recorded identity still matches. */
+async function signalOwned(process: OwnedProcess, signal: NodeJS.Signals): Promise<void> {
+  const current = await processStartTime(process.pid);
+  if (current === null || current !== process.startTime) return;
+  try {
+    process.kill(process.pid, signal);
+  } catch {
+    // A concurrently exited owned process needs no signal.
+  }
+}
+
+/** Poll every owned process for termination for a bounded interval. */
+async function waitForOwnedExit(
+  processes: Iterable<OwnedProcess>,
+  timeoutMs: number,
+): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    if (await processTerminated(processId)) return true;
+    const states = await Promise.all([...processes].map(processTerminated));
+    if (states.every(Boolean)) return true;
     await new Promise<void>((resolve) => setTimeout(resolve, 20));
   }
-  return processTerminated(processId);
+  const states = await Promise.all([...processes].map(processTerminated));
+  return states.every(Boolean);
 }
 
 /**
@@ -222,7 +267,12 @@ export async function startGdbVice(
     return Object.freeze({ gdb: child, monitor, identity, inferiorPid, paths });
   } catch (error) {
     try {
-      await stopGdbVice({ gdb: child, monitor, inferiorPid });
+      await stopGdbVice({
+        gdb: child,
+        monitor,
+        inferiorPid,
+        executable: identity.executable,
+      });
     } catch (cleanupError) {
       throw new AggregateError(
         [error, cleanupError],
@@ -259,57 +309,88 @@ export async function applyGdbInjection(session: StartedGdbVice): Promise<void> 
 }
 
 /**
- * Close the monitor and terminate only the debugger's owned detached process group.
- * @param session Active debugger-wrapped emulator.
+ * Close the monitor and terminate the debugger's owned processes.
+ *
+ * The attested emulator is found through procfs even when monitor setup failed,
+ * every signal is guarded by the recorded kernel start time so a reused pid is
+ * never adopted, and termination is verified for the whole owned subtree rather
+ * than only its root. Debugger cleanup is always attempted.
+ * @param session Active or partially started debugger-wrapped emulator.
  */
 export async function stopGdbVice(session: {
   readonly gdb: ChildProcess;
   readonly monitor?: ViceMonitor | undefined;
   readonly inferiorPid?: number | undefined;
+  readonly executable?: string | undefined;
 }): Promise<void> {
   session.monitor?.close();
-  const inferiorPid = session.inferiorPid;
-  if (inferiorPid !== undefined) {
-    const tree = new Set<number>();
-    await processTree(inferiorPid, tree);
-    for (const pid of [...tree].reverse()) {
-      try {
-        process.kill(pid, "SIGTERM");
-      } catch {
-        // An already exited owned process needs no signal.
+  const errors: unknown[] = [];
+  const gdbPid = session.gdb.pid;
+  const gdbStart = gdbPid === undefined ? null : await processStartTime(gdbPid);
+  const gdbIdentity: OwnedProcess | undefined =
+    gdbPid !== undefined && gdbStart !== null ? { pid: gdbPid, startTime: gdbStart } : undefined;
+
+  // The inferior identity is normally recorded at startup, but a failed monitor
+  // connection must still find the emulator that the debugger already launched.
+  let inferiorPid = session.inferiorPid;
+  if (inferiorPid === undefined && session.executable !== undefined && gdbPid !== undefined) {
+    inferiorPid = await findInferior(gdbPid, session.executable);
+  }
+
+  const owned = new Map<number, OwnedProcess>();
+  try {
+    if (inferiorPid !== undefined) {
+      await collectOwned(inferiorPid, owned);
+    } else if (gdbPid !== undefined) {
+      // Without an attested inferior, still own every debugger descendant.
+      for (const child of await childPids(gdbPid)) await collectOwned(child, owned);
+    }
+    if (owned.size > 0) {
+      for (const process of [...owned.values()].reverse()) await signalOwned(process, "SIGTERM");
+      if (!(await waitForOwnedExit(owned.values(), 2_000))) {
+        // Re-collect surviving subtrees so children spawned before a parent exits
+        // are included; every signal still requires the recorded identity.
+        const survivors = new Map<number, OwnedProcess>();
+        for (const process of owned.values()) {
+          if (await processTerminated(process)) continue;
+          survivors.set(process.pid, process);
+          for (const child of await childPids(process.pid)) await collectOwned(child, survivors);
+        }
+        for (const process of [...survivors.values()].reverse())
+          await signalOwned(process, "SIGKILL");
+        if (!(await waitForOwnedExit([...owned.values(), ...survivors.values()], 2_000)))
+          throw new Error("Debugger-wrapped VICE inferior subtree did not terminate");
       }
     }
-    if (!(await waitForProcessExit(inferiorPid, 2_000))) {
-      const remaining = new Set<number>();
-      await processTree(inferiorPid, remaining);
-      for (const pid of [...remaining].reverse()) {
-        try {
-          process.kill(pid, "SIGKILL");
-        } catch {
-          // An already exited owned process needs no signal.
+  } catch (error) {
+    errors.push(error);
+  }
+
+  try {
+    if (gdbPid !== undefined && !(await waitForExit(session.gdb, 100))) {
+      if (gdbIdentity !== undefined) await signalOwned(gdbIdentity, "SIGTERM");
+      if (!(await waitForExit(session.gdb, 2_000))) {
+        // A process-group signal is safe only while the debugger identity is current.
+        const current = await processStartTime(gdbPid);
+        if (gdbIdentity !== undefined && current === gdbIdentity.startTime) {
+          try {
+            process.kill(-gdbPid, "SIGTERM");
+          } catch {
+            // A concurrently exited process group needs no signal.
+          }
+        }
+        if (!(await waitForExit(session.gdb, 2_000))) {
+          if (gdbIdentity !== undefined) await signalOwned(gdbIdentity, "SIGKILL");
+          if (!(await waitForExit(session.gdb, 2_000)))
+            throw new Error("Debugger process did not terminate");
         }
       }
-      if (!(await waitForProcessExit(inferiorPid, 2_000)))
-        throw new Error("Debugger-wrapped VICE inferior did not terminate");
     }
+  } catch (error) {
+    errors.push(error);
   }
-  const processId = session.gdb.pid;
-  if (processId === undefined) {
-    await waitForExit(session.gdb, 100);
-    return;
-  }
-  if (await waitForExit(session.gdb, 100)) return;
-  try {
-    process.kill(-processId, "SIGTERM");
-  } catch {
-    // A concurrently exited process group needs no signal.
-  }
-  if (await waitForExit(session.gdb, 2_000)) return;
-  try {
-    process.kill(-processId, "SIGKILL");
-  } catch {
-    // A concurrently exited process group needs no signal.
-  }
-  if (!(await waitForExit(session.gdb, 2_000)))
-    throw new Error("Debugger process group did not terminate");
+
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1)
+    throw new AggregateError(errors, "Owned native qualification processes did not terminate");
 }

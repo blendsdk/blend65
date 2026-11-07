@@ -20,6 +20,8 @@ type Schedule =
   | "changing cursor at column sample"
   | "during removal"
   | "after direction restoration"
+  | "final idle"
+  | "overlapping entries"
   | "genuine STOP"
   | "generated predecessor";
 
@@ -53,6 +55,8 @@ function sourceFor(schedule: Schedule): string {
     "after publication",
     "column sample",
     "changing cursor at column sample",
+    "final idle",
+    "overlapping entries",
     "genuine STOP",
     "generated predecessor",
   ].includes(schedule);
@@ -118,6 +122,14 @@ export function main(): void {
 }
 `;
 }
+
+/**
+ * PA values the scan writes to drive its eight column masks: each keeps exactly
+ * one column-select line low. The last value, `$7F`, also serves as the idle
+ * handoff because every column reads high, so the scan writes it twice: once as
+ * column 7 and once as the separate final idle handoff after the sample.
+ */
+const ONE_LOW_COLUMN_MASKS = new Set([0xfe, 0xfd, 0xfb, 0xf7, 0xef, 0xdf, 0xbf, 0x7f]);
 
 /** Decode the complete published vector; a torn target must never be accepted. */
 async function nmiVector(monitor: ViceMonitor): Promise<number> {
@@ -213,9 +225,11 @@ async function exercise(
       await prepareGdbInjection(session, { matrix: contacts(schedule) });
       await applyGdbInjection(session);
       if (schedule === "mixed contacts") {
-        // Both real simulated connectors ground UP. Their specified upper zero
-        // bits and the three held contacts give $1C on both baseline ports and
-        // every driven row, including the open DELETE position.
+        // Both VICE I/O-simulation connectors ground UP. This device drives all
+        // eight joyport lines, so its raw byte holds the upper lines low rather
+        // than the pull-up-high state of an ordinary five-line joystick. The
+        // five driven bits and the named-query ambiguity are the contract
+        // evidence; full-byte upper-line behavior stays hardware-unverified.
         await monitor.setJoystick1(0x1e);
         await monitor.setJoystick2(0x1e);
       }
@@ -240,24 +254,41 @@ async function exercise(
       let scannerCheckpoint: number | undefined;
       let removed = false;
       let callerRestored = false;
-      let callbackInFlight = false;
       let pulses = 0;
       let callbacks = 0;
       let frameChecks = 0;
       let markerWrites = 0;
+      let markerPublished = false;
       let priorEntries = 0;
       let stockEntries = 0;
       let scanReturned = false;
       let ownerReturned = false;
       let reachedStop = false;
       let reachedAccepted = false;
-      let interruptedFrame: { registers: ViceCpuRegisters; stack: readonly number[] } | undefined;
+      let finalIdleHandoff = false;
+      // The scan's idle PA value appears twice after the scoped vector is
+      // installed: first as column 7's low value, then as the library's
+      // separate final idle handoff. Count only writes made while the scoped
+      // route is installed and still current.
+      let idleHandoffs = 0;
+      // Every generated scanner entry owns one hardware frame until it reaches
+      // the prior owner. A second genuine RESTORE can nest inside the first
+      // entry, so pending frames form a LIFO stack instead of a single slot.
+      const interruptedFrames: { registers: ViceCpuRegisters; stack: readonly number[] }[] = [];
       const paWrites: number[] = [];
       const events: string[] = [];
 
       /** Feed a real hardware edge at the current stopped instruction boundary. */
-      async function pulse(): Promise<void> {
-        expect(interruptedFrame, "previous scanner entry reached its predecessor").toBeUndefined();
+      async function pulse(overlapping = false): Promise<void> {
+        if (overlapping) {
+          // The outer generated entry is paused inside its callback and has not
+          // chained to the prior owner yet. A second edge here must nest.
+          expect(interruptedFrames, "the outer scanner entry is still active").toHaveLength(1);
+        } else {
+          expect(interruptedFrames, "previous scanner entry reached its predecessor").toHaveLength(
+            0,
+          );
+        }
         await prepareGdbInjection(session, {
           matrix: contacts(schedule, true),
           restore: 1,
@@ -269,11 +300,15 @@ async function exercise(
       // The bound protects the test driver, not the source or firmware deadline.
       for (let stops = 0; stops < 256; stops++) {
         const { pc, hits } = await advance(monitor);
-        if (callbackInFlight) {
-          expect(hits.includes(cia2ReadTrace), context).toBe(false);
-        }
         if (scannerCheckpoint !== undefined && hits.includes(scannerCheckpoint)) {
-          expect(interruptedFrame, "no unmatched scanner-entry frame").toBeUndefined();
+          if (schedule === "overlapping entries") {
+            // The first entry starts with nothing pending; the second must
+            // still nest inside the first. An entry that arrives only after
+            // the outer entry reached the prior owner would not be an overlap.
+            expect(interruptedFrames.length, context).toBe(callbacks === 1 ? 1 : 0);
+          } else {
+            expect(interruptedFrames, "no unmatched scanner-entry frame").toHaveLength(0);
+          }
           // Hardware NMI entry is complete, but the generated wrapper has not
           // started. Capture its actual incoming hardware frame;
           // the wrapper PC and current I cannot reconstruct the pushed PC/status.
@@ -282,17 +317,27 @@ async function exercise(
           const pushedStatus = stack[0];
           if (pushedStatus === undefined) throw new Error("Missing NMI status byte");
           expect(pushedStatus & 0x30, "NMI stacks B clear and bit 5 set").toBe(0x20);
-          interruptedFrame = { registers, stack };
+          const outer = interruptedFrames.at(-1);
+          if (outer !== undefined) {
+            // A nested entry pushes below the outer frame and must leave it
+            // byte-for-byte intact. This is the observable proof that the
+            // generated route re-enters without private activation storage.
+            expect(
+              (outer.registers.sp - registers.sp) & 0xff,
+              "the inner entry nests below the outer hardware frame",
+            ).toBeGreaterThan(0);
+            expect(
+              await readHardwareFrame(monitor, outer.registers.sp),
+              "the outer hardware frame survives the inner entry",
+            ).toEqual(outer.stack);
+          }
+          interruptedFrames.push({ registers, stack });
           callbacks++;
-          callbackInFlight = true;
         }
         if (hits.includes(priorCheckpoint)) {
-          if (callbackInFlight) {
+          const interrupted = interruptedFrames.pop();
+          if (interrupted !== undefined) {
             const atPrior = await monitor.readCpuRegisters();
-            const interrupted = interruptedFrame;
-            if (interrupted === undefined) {
-              throw new Error(`Predecessor entry without its scanner-entry frame: ${context}`);
-            }
             expect(atPrior.a, context).toBe(interrupted.registers.a);
             expect(atPrior.x, context).toBe(interrupted.registers.x);
             expect(atPrior.y, context).toBe(interrupted.registers.y);
@@ -308,15 +353,13 @@ async function exercise(
             expect(await readHardwareFrame(monitor, atPrior.sp), context).toEqual(
               interrupted.stack,
             );
-            interruptedFrame = undefined;
             frameChecks++;
           } else {
             // Direct stock-owner events have no generated scanner entry at
             // which to capture a frame. Their existing route checks still apply.
-            expect(interruptedFrame, context).toBeUndefined();
+            expect(interruptedFrames, context).toHaveLength(0);
           }
           priorEntries++;
-          callbackInFlight = false;
         }
         if (hits.includes(stockCheckpoint)) stockEntries++;
 
@@ -325,9 +368,34 @@ async function exercise(
           if (pa === undefined) throw new Error("Missing PA observation");
           paWrites.push(pa);
           events.push(`PA:${pa}`);
+          // Track idle handoff writes made after the scoped vector was
+          // installed. The column-7 store and the library's separate final
+          // idle store both write the same value.
+          if (pa === 0x7f && scanner !== undefined) idleHandoffs++;
           if (schedule === "before publication" && pulses === 0 && scanner === undefined) {
             expect(pa, context).toBe(0x7f);
             expect(await nmiVector(monitor), context).toBe(prior);
+            await pulse();
+          }
+          if (
+            schedule === "final idle" &&
+            pa === 0x7f &&
+            scanner !== undefined &&
+            !removed &&
+            pulses === 0 &&
+            idleHandoffs === 2
+          ) {
+            // This is the second $7F store after publication. The first was
+            // column 7's own low value; this one is the library's separate
+            // final idle handoff, after all eight columns were driven. A
+            // returning NMI here must still be seen by the installed callback
+            // and still make the snapshot interrupted.
+            expect(
+              new Set(paWrites.filter((value) => ONE_LOW_COLUMN_MASKS.has(value))),
+              context,
+            ).toEqual(ONE_LOW_COLUMN_MASKS);
+            expect(await nmiVector(monitor), context).toBe(scanner);
+            finalIdleHandoff = true;
             await pulse();
           }
           const sampleSchedule = [
@@ -358,11 +426,26 @@ async function exercise(
         if (hits.includes(markerCheckpoint)) {
           const value = (await monitor.readMemory(marker, marker))[0];
           if (value === 1) {
-            expect(callbackInFlight, context).toBe(true);
+            expect(interruptedFrames.length, context).toBeGreaterThan(0);
             expect(events.at(-1), context).toBe(`PA:${0x7f}`);
+            // The callback body ends at this marker store: it writes idle PA,
+            // then the marker, then chains to the prior owner. A real
+            // predecessor may legitimately read CIA2 ICR, so the check is
+            // scoped to the callback's own work observed up to this stop.
+            expect(hits.includes(cia2ReadTrace), context).toBe(false);
+            markerPublished = true;
             markerWrites++;
+            if (schedule === "overlapping entries" && pulses === 1) {
+              // The first generated entry has written PA then marker and has
+              // not chained to the prior owner yet. A second genuine RESTORE
+              // here overlaps that entry instead of following it.
+              await pulse(true);
+            }
           } else {
             expect(value, context).toBe(0);
+            expect(markerPublished, "the interruption marker is monotonic while installed").toBe(
+              false,
+            );
             expect(scanner, context).toBeUndefined();
           }
           events.push(`marker:${value}`);
@@ -373,7 +456,11 @@ async function exercise(
           if (scanner === undefined && vector !== prior) {
             scanner = vector;
             scannerCheckpoint = await monitor.setExecuteCheckpoint(scanner);
-            if (schedule === "after publication" || schedule === "generated predecessor") {
+            if (
+              schedule === "after publication" ||
+              schedule === "generated predecessor" ||
+              schedule === "overlapping entries"
+            ) {
               await pulse();
             }
           } else if (scanner !== undefined && !removed && vector === prior) {
@@ -382,7 +469,13 @@ async function exercise(
             // With simulated joysticks, PA pin reads include external grounds
             // and cannot reveal the output latch. The no-joystick schedules
             // independently observe these two handoff writes.
-            if (schedule !== "mixed contacts") {
+            if (schedule === "final idle") {
+              // The prior owner legitimately runs between the scan's own handoff
+              // and route removal here, so a later firmware PA write must not be
+              // mistaken for the scan's handoff. The handoff itself was observed
+              // with the scoped route still installed at the final idle write.
+              expect(finalIdleHandoff, context).toBe(true);
+            } else if (schedule !== "mixed contacts") {
               expect(paWrites.slice(-2), context).toEqual([0x7f, 0x7f]);
             }
             removed = true;
@@ -436,15 +529,20 @@ async function exercise(
       }
 
       const expectedPulses =
-        schedule === "mixed contacts" ? 0 : schedule === "generated predecessor" ? 2 : 1;
+        schedule === "mixed contacts"
+          ? 0
+          : schedule === "generated predecessor" || schedule === "overlapping entries"
+            ? 2
+            : 1;
       const expectedCallbacks = [
         "after publication",
         "column sample",
         "changing cursor at column sample",
+        "final idle",
         "genuine STOP",
       ].includes(schedule)
         ? 1
-        : schedule === "generated predecessor"
+        : schedule === "generated predecessor" || schedule === "overlapping entries"
           ? 2
           : 0;
       expect(pulses, context).toBe(expectedPulses);
@@ -454,10 +552,9 @@ async function exercise(
       expect(priorEntries, "each event reaches the actual predecessor exactly once").toBe(
         expectedPulses,
       );
-      expect(
-        interruptedFrame,
-        "every scanner entry has a checked predecessor frame",
-      ).toBeUndefined();
+      expect(interruptedFrames, "every scanner entry has a checked predecessor frame").toHaveLength(
+        0,
+      );
       expect(stockEntries, context).toBe(expectedPulses);
       expect(reachedStop, context).toBe(schedule === "genuine STOP");
       if (schedule !== "genuine STOP") {
@@ -485,6 +582,8 @@ describe.sequential("native combined input and NMI coexistence", () => {
         "changing cursor at column sample",
         "during removal",
         "after direction restoration",
+        "final idle",
+        "overlapping entries",
         "genuine STOP",
         "generated predecessor",
       ];
