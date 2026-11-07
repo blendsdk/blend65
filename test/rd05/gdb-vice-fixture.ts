@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { closeSync, openSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
+import { readFile, readlink, realpath, writeFile } from "node:fs/promises";
 import type { TypedProgram } from "@blend65/compiler/frontend";
 import { openViceMonitor, type ViceMonitor } from "../m1/vice-monitor.js";
 import {
@@ -39,6 +39,8 @@ export interface StartedGdbVice {
   readonly monitor: ViceMonitor;
   /** Exact executable and ROM identity used by the emulator. */
   readonly identity: ViceRuntimeIdentity;
+  /** Attested VICE inferior process, which GDB may place in its own process group. */
+  readonly inferiorPid: number;
   /** Paths used by this run. */
   readonly paths: GdbVicePaths;
 }
@@ -88,6 +90,70 @@ function waitForExit(child: ChildProcess, timeoutMs: number): Promise<boolean> {
     }, timeoutMs);
     child.once("exit", onExit);
   });
+}
+
+/** Return the direct children of one Linux process from procfs. */
+async function childPids(processId: number): Promise<readonly number[]> {
+  try {
+    const text = await readFile(`/proc/${processId}/task/${processId}/children`, "utf8");
+    return text
+      .trim()
+      .split(/\s+/u)
+      .flatMap((token) => {
+        const pid = Number.parseInt(token, 10);
+        return Number.isInteger(pid) && pid > 0 ? [pid] : [];
+      });
+  } catch {
+    return [];
+  }
+}
+
+/** Resolve one process executable without following an exited pid into a reused identity. */
+async function processExecutable(processId: number): Promise<string | null> {
+  try {
+    return await realpath(await readlink(`/proc/${processId}/exe`));
+  } catch {
+    return null;
+  }
+}
+
+/** Find the attested emulator descendant of the debugger process. */
+async function findInferior(processId: number, executable: string): Promise<number | undefined> {
+  for (const child of await childPids(processId)) {
+    if ((await processExecutable(child)) === executable) return child;
+    const found = await findInferior(child, executable);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+/** Collect one process and its descendants for owned cleanup. */
+async function processTree(processId: number, result: Set<number>): Promise<void> {
+  if (result.has(processId)) return;
+  result.add(processId);
+  for (const child of await childPids(processId)) await processTree(child, result);
+}
+
+/** Treat a zombie as terminated, since its pid can no longer execute or own the monitor. */
+async function processTerminated(processId: number): Promise<boolean> {
+  try {
+    const stat = await readFile(`/proc/${processId}/stat`, "utf8");
+    const close = stat.lastIndexOf(")");
+    const state = close >= 0 ? stat.slice(close + 2).split(" ", 1)[0] : undefined;
+    return state === "Z";
+  } catch {
+    return true;
+  }
+}
+
+/** Poll one process termination for a bounded interval. */
+async function waitForProcessExit(processId: number, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await processTerminated(processId)) return true;
+    await new Promise<void>((resolve) => setTimeout(resolve, 20));
+  }
+  return processTerminated(processId);
 }
 
 /**
@@ -142,6 +208,7 @@ export async function startGdbVice(
     child.once("error", reject);
   });
   let monitor: ViceMonitor | undefined;
+  let inferiorPid: number | undefined;
   try {
     const processId = child.pid;
     if (processId === undefined) throw new Error("Spawned debugger has no process identity");
@@ -149,10 +216,13 @@ export async function startGdbVice(
     const version = await monitor.viceInfo();
     if (version[0] !== 3 || version[1] !== 10 || version.slice(2).some((part) => part !== 0))
       throw new Error(`VICE ${version.join(".")} is not VICE 3.10`);
-    return Object.freeze({ gdb: child, monitor, identity, paths });
+    inferiorPid = await findInferior(processId, identity.executable);
+    if (inferiorPid === undefined)
+      throw new Error("The debugger did not expose its attested VICE inferior");
+    return Object.freeze({ gdb: child, monitor, identity, inferiorPid, paths });
   } catch (error) {
     try {
-      await stopGdbVice({ gdb: child, monitor });
+      await stopGdbVice({ gdb: child, monitor, inferiorPid });
     } catch (cleanupError) {
       throw new AggregateError(
         [error, cleanupError],
@@ -195,8 +265,34 @@ export async function applyGdbInjection(session: StartedGdbVice): Promise<void> 
 export async function stopGdbVice(session: {
   readonly gdb: ChildProcess;
   readonly monitor?: ViceMonitor | undefined;
+  readonly inferiorPid?: number | undefined;
 }): Promise<void> {
   session.monitor?.close();
+  const inferiorPid = session.inferiorPid;
+  if (inferiorPid !== undefined) {
+    const tree = new Set<number>();
+    await processTree(inferiorPid, tree);
+    for (const pid of [...tree].reverse()) {
+      try {
+        process.kill(pid, "SIGTERM");
+      } catch {
+        // An already exited owned process needs no signal.
+      }
+    }
+    if (!(await waitForProcessExit(inferiorPid, 2_000))) {
+      const remaining = new Set<number>();
+      await processTree(inferiorPid, remaining);
+      for (const pid of [...remaining].reverse()) {
+        try {
+          process.kill(pid, "SIGKILL");
+        } catch {
+          // An already exited owned process needs no signal.
+        }
+      }
+      if (!(await waitForProcessExit(inferiorPid, 2_000)))
+        throw new Error("Debugger-wrapped VICE inferior did not terminate");
+    }
+  }
   const processId = session.gdb.pid;
   if (processId === undefined) {
     await waitForExit(session.gdb, 100);

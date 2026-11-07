@@ -232,16 +232,19 @@ describe.sequential.each(sourceLibraryProfiles)(
       {
         name: "a returning RESTORE",
         matrix: new Array<number>(16).fill(0),
+        rows: new Array<number>(8).fill(0xff),
         expected: "after",
       },
       {
         name: "a false-STOP witness",
         matrix: keyboardMatrix(0, 7),
+        rows: [0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
         expected: "after",
       },
       {
         name: "a genuine STOP",
         matrix: keyboardMatrix(7, 7),
+        rows: null,
         expected: "timb",
       },
     ] as const;
@@ -288,8 +291,24 @@ describe.sequential.each(sourceLibraryProfiles)(
               await session.monitor.deleteCheckpoint(storeId);
               // The store checkpoint stops after the high-byte store, so the vector is installed.
               expect(vectorPc).toBeLessThan(0xc000);
+              // Ignore acquisition setup stores; only callback stores are evidence.
+              session.monitor.takeCheckpointHits();
+              const markerCheckpoint = await session.monitor.setStoreCheckpoint(marker);
               await prepareGdbInjection(session, { matrix: scenario.matrix, restore: 1 });
               await applyGdbInjection(session);
+              const markerWait = session.monitor.waitForStop(30_000);
+              await session.monitor.resume();
+              const markerPc = await markerWait;
+              expect(markerPc).toBeLessThan(0xc000);
+              expect([...(await session.monitor.readMemory(marker, marker))]).toEqual([1]);
+              await session.monitor.deleteCheckpoint(markerCheckpoint);
+              const events = session.monitor.takeCheckpointHits().flatMap((id) => {
+                const name = trace.get(id);
+                return name === undefined ? [] : [name];
+              });
+              const markerIndex = events.indexOf("marker");
+              expect(markerIndex).toBeGreaterThan(0);
+              expect(events[markerIndex - 1]).toBe("PA");
               const stopWait = session.monitor.waitForStop(30_000);
               await session.monitor.resume();
               let stopPc: number;
@@ -299,18 +318,11 @@ describe.sequential.each(sourceLibraryProfiles)(
                 console.info("live NMI wait failed", await session.monitor.readCpuRegisters());
                 throw error;
               }
-              const events = session.monitor.takeCheckpointHits().flatMap((id) => {
-                const name = trace.get(id);
-                return name === undefined ? [] : [name];
-              });
-              const markerIndex = events.indexOf("marker");
-              expect(markerIndex).toBeGreaterThan(0);
-              expect(events[markerIndex - 1]).toBe("PA");
               if (scenario.expected === "after") {
                 expect(stopPc).toBe(after);
                 const bytes = await session.monitor.readMemory(RAW, RAW + NMI_STRIDE - 1);
                 expect(bytes[10]).toBe(1);
-                expect(bytes.slice(0, 8).some((value) => value !== 0)).toBe(true);
+                expect([...bytes.slice(0, 8)]).toEqual(scenario.rows);
                 expect(bytes[11]).toBe(2);
                 expect(bytes[12]).toBe(2);
               } else {

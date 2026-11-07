@@ -61,9 +61,9 @@ did **not** accept it as full ST-18–ST-23 closure. They found six merged gaps:
 | ID | Severity | Finding | Status |
 |---|---|---|---|
 | NV-001 | MAJOR | False-STOP witness is at vector publication (PA=$7F), not the hazardous active-column PA=$FE condition. | Open |
-| NV-002 | MINOR | Marker trace selects the initial `scanInterrupted=0` clear, not the callback marker=1 store. | Open |
-| NV-003 | MAJOR | Interrupted rows use `some(value !== 0)`; no exact row vector or A/X/Y/P/SP/live-stack frame check. | Open |
-| NV-004 | MAJOR | GDB cleanup may leave the VICE inferior in a separate process group. | Open |
+| NV-002 | MINOR | Marker trace selects the initial `scanInterrupted=0` clear, not the callback marker=1 store. | **Fixed:** trace starts after publication; a marker store checkpoint proves value 1 and the preceding PA=$7F store. |
+| NV-003 | MAJOR | Interrupted rows use `some(value !== 0)`; no exact row vector or A/X/Y/P/SP/live-stack frame check. | **Partial:** publication-time rows now match exact expected vectors; the A/X/Y/P/SP/live-stack frame check remains open. |
+| NV-004 | MAJOR | GDB cleanup may leave the VICE inferior in a separate process group. | **Fixed:** the attested VICE inferior is tracked and its termination is verified independently of GDB. |
 | NV-005 | MAJOR | ST-18 mixed keyboard/joystick ghosting and ST-19/20/21 publication/sample/removal/overlap schedules are absent. | Open |
 | NV-006 | MAJOR | The implementation agent authored the native oracle; an independent `spec-test-author` companion is required. | Open |
 
