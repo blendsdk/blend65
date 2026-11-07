@@ -1,6 +1,6 @@
 # Keyboard and combined-input library
 
-> **Status**: Native evidence partial at 46/48 — NV-001/002/004 fixed; NV-003 frame, NV-005 schedules and NV-006 independent oracle open; size output deferred
+> **Status**: Native evidence partial at 46/48 — NV-001/002/004/005/006 fixed; only NV-003 interrupted-frame check open; size output deferred
 > **Created**: 2026-10-10
 > **Implements**: blend65-v4/RD-05
 > **CodeOps Artifact Schema**: 1
