@@ -10,13 +10,12 @@
 
 - R6.1–R6.7: closed handler baseline, platform-owned dispatch, validation before values, literal
   source behavior, exact typed constants, requested-only emission, and resolved-identity aliasing.
-- R6.8–R6.12: SpritePad SPD v5 validation, native records, optional selector surface, placement,
-  and authentic producer evidence. Decoder execution is gated by AR-1.
-- R6.13–R6.19: CharPad CTM v9 validation, exact selectors, canonical widths, packed-12, native
-  placement, and authentic producer evidence. Decoder execution is gated by AR-1.
-- R6.20–R6.26: PSID v1–v4 subset, load/entry metadata, compatibility sets, callable-audio split,
-  GoatTracker 2.77 contract, source-owned audio policy, and independent audio evidence. The
-  GoatTracker binding is gated by AR-2.
+- R6.8–R6.12: SpritePad SPD v5 validation, native records, optional selector surface and placement,
+  using the official 3.80 vendor manual and selected real SPD v5 examples.
+- R6.13–R6.19: CharPad CTM v9 validation, exact selectors, canonical widths, packed-12 and native
+  placement, using the official 3.80 vendor manual and selected real CTM v9 examples.
+- R6.20–R6.23: PSID v1–v4 subset, load/entry metadata, compatibility sets and the callable-audio
+  split. The generic audio seam and empty contract map remain; GoatTracker is a follow-up.
 - R6.27–R6.31: classic Koala, four selectors, high-bit preservation, explicit display transfer, and
   strict raw fallback.
 - R6.32–R6.37: ordinary `comptime function` composition, deterministic phase separation, explicit
@@ -29,14 +28,15 @@
   frontend asset metadata, and host observations.
 - W10150 remains the frozen Specification 4 percentage warning; RD-06 adds no new percentage warning
   (AR-52).
+- The vendor manuals and examples are available at
+  `/home/gevik/workdir/github/blend65.ri/apps`; no further manual producer matrix is required.
 
 ### Deferred / out of this plan
 
-- SpritePad and CharPad decoder implementation: blocked until the exact producer evidence checklist
-  in [00-rd-06-producer-evidence-handoff.md](../../00-rd-06-producer-evidence-handoff.md) is complete
-  (AR-1, AR-37, AR-50).
-- GoatTracker 2.77 binding: blocked until exact archive/member hashes, exports, settings and ABI
-  evidence are supplied (AR-2, AR-44).
+- The full SpritePad/CharPad `MIN`/`ALL`/`WIDE`/optional matrix: replaced by selected real vendor
+  examples plus synthetic coverage derived from the official manuals (AR-54–AR-57).
+- GoatTracker 2.77 binding: moved to a follow-up feature; RD-06 closes with the generic audio seam
+  and empty contract map (AR-2, AR-58).
 - `loadable const`, D64 packaging, loaders, decompression, overlays, streaming, and nonresident
   delivery: RD-07 owns them (AR-3). Native loadable input fails closed with E10204 and a precise
   resident-only-profile message in RD-06; the restriction is recorded in the expressiveness ledger.
@@ -50,7 +50,7 @@
 
 | Decision | Chosen | AR Ref |
 | --- | --- | --- |
-| Evidence-absent sequencing | Full plan; producer/player families blocked | AR-1, AR-2 |
+| Evidence availability | Vendor manuals + selected real examples; local-only files, synthetic fixtures | AR-1, AR-54–AR-57 |
 | Native `loadable const` | E10204 + expressiveness ledger, RD-07 boundary | AR-3 |
 | Handler module boundary | Core contract plus `assets/c64/` | AR-4, AR-49 |
 | VIC bank scope | Selected bank 0, `c64.vic.bank0` region | AR-5 |
@@ -64,7 +64,10 @@
 | Audio overlap | Static domain overlap | AR-13 |
 | Memory views | CPU, VIC bank 0, Color RAM | AR-14 |
 | Fixture manifest | One JSON manifest | AR-15 |
-| Planning-before-evidence | AR-51 boundary; no byte-level decoder design or task before the checkpoint | AR-51 |
+| Producer schema authority | Official vendor manuals + selected real examples; local-only files | AR-54–AR-57 |
+| CharPad version | Installed 3.80 Pro with CTM v9; RD pin amended to 3.80+ | AR-55 |
+| Real fixture retention | Local-only; commit manifest + synthetic fixtures | AR-56 |
+| GoatTracker | Moved out of RD-06 to a follow-up | AR-58 |
 | W10150 | Keep the frozen Specification 4 warning; R6.47 means no new percentage warning | AR-52 |
 | Reserved native extensions | Fail closed with E10204 before raw fallback | AR-53 |
 
@@ -72,13 +75,15 @@
 
 The RD owns its acceptance criteria. This plan adds only these plan-local completion criteria:
 
-1. Every unblocked phase completes with its specification tests written before implementation, a
+1. Every active phase completes with its specification tests written before implementation, a
    verified red phase, a green phase, implementation tests, and the project verification commands.
-2. Every blocked phase carries a visible gate, an owner, and the exact evidence required to unblock
-   it; no blocked phase is reported as verified or partially verified.
-3. The complete unblocked RD-06 boundary suite runs once after the unblocked paths and layout
-   integrate; the final producer-inclusive suite runs after Phases 8–10 pass.
-4. The closeout records every remaining blocker honestly and can reach an explicit `Blocked` state
-   without pretending that missing producer or player evidence is verified.
+2. SpritePad and CharPad evidence is recorded from the official vendor manuals and local real
+   examples; no guessed schema or comparative parser is used.
+3. The complete RD-06 boundary suite runs once after all active phases integrate; the final
+   closeout runs after Phase 10.2.
+4. If the vendor example path is unavailable on a later host, the closeout records that fact
+   honestly and does not claim producer verification; it may use the committed synthetic fixtures
+   but must say so.
 5. The roadmap and status text show `Plan Preflighted` until execution starts and `Done` only when
-   every RD-06 acceptance criterion, including the blocked producer/player evidence, passes.
+   every active RD-06 acceptance criterion passes. GoatTracker AC-19/AC-20 are moved to the
+   follow-up feature (AR-58) and are not reported as RD-06 verification.

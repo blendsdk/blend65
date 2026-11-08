@@ -2,29 +2,26 @@
 
 > **Document**: 03-02-spritepad-charpad.md
 > **Parent**: [Index](00-index.md)
-> **Status**: Design gated by producer evidence (AR-1, AR-37, AR-50)
 
 ## Overview
 
 This component owns the two producer-application project handlers: SpritePad C64 Pro 3.80 with SPD
-v5 and CharPad C64 Pro 3.88 with CTM v9. It validates the complete project, exposes exactly the
-approved typed selector surface, preserves native records, and attaches placement constraints. It
-does not flatten, recolor, repack, or invent missing components.
+v5 and CharPad C64 Pro 3.80 with CTM v9. The licensed applications and their official manuals are
+available at `/home/gevik/workdir/github/blend65.ri/apps`. The manuals are the exact schema
+authority; the installed examples are real producer acceptance data. No schema is guessed and no
+comparative parser is used.
 
-**Hard gate:** RD-06 R6.1, R6.12 and R6.19 require the authentic producer-saved fixture set, settings,
-provenance, retention approval and SHA-256 values before decoder planning or implementation. AR-51
-records the planning boundary: this document fixes only the seam, selector contract and validation
-doctrine; it does not invent the byte-level schema, flags, block order, record layout or
-optional-component conditions. The checklist is
-[00-rd-06-producer-evidence-handoff.md](../../00-rd-06-producer-evidence-handoff.md). A single `MIN`
-file starts fixture intake, not decoder planning.
+The real examples are local-only evidence because the EULA does not grant redistribution of the
+bundled files. The repository carries a producer-evidence manifest with paths, versions and
+SHA-256 values plus synthetic fixtures generated from the official manuals (AR-54–AR-57).
 
 ## Architecture
 
 ### Current architecture
 
 No SpritePad or CharPad code exists. `.spd` and `.ctm` reach the generic native stub and return
-E10204; `.ctm` without a selector returns E10132. No producer fixture exists in the repository.
+E10204; `.ctm` without a selector returns E10132. The application folders and their manuals were
+not previously available to the compiler.
 
 ### Proposed changes
 
@@ -32,148 +29,163 @@ Both handlers implement `AssetHandler` from
 [03-01](03-01-asset-handler-core.md#new-types-and-interfaces):
 
 ```text
-C64 profile
+frontend profile
   spd -> spritepad 3.80
-  ctm -> charpad 3.88
+  ctm -> charpad 3.80
 ```
 
 Each handler is a pure byte parser over the already-read input. It produces a complete result or one
-E10204 failure; it never returns partial selectors. The handler owns:
+E10204 failure; it never returns partial selectors. The handler owns signature/version, complete
+structure, exact EOF, every declared count/index/flag/component, the selector inventory, typed
+outputs, output SHA-256 and handler-derived constraints. It does not own a final address, a VIC
+register field, a runtime copy, a renderer, or a game policy.
 
-- signature and accepted version;
-- complete structure and exact EOF;
-- every declared count, index, flag, conditional block and component length;
-- the selector inventory for the parsed file;
-- typed output values and their SHA-256;
-- handler-derived placement/visibility constraints;
-- no producer provenance in runtime values; producer metadata is fixture-manifest and report data.
+### Authoritative manuals
 
-The handler does not own a final address, a VIC register field, a runtime copy, a renderer, or a
-game policy.
+| Format | Vendor manual | SHA-256 |
+| --- | --- | --- |
+| SPD v5 | `apps/SpritePad C64 3.80 Pro/Help/File Format - SPD (V5).htm` | `8c28898ed1c0451290721ebbf686a86e501014f597aaf7e191a00fc13b1ee4a6` |
+| CTM v9 | `apps/CharPad C64 3.80 Pro/Help/File Format - CTM (V9).htm` | `cbf1503202ad90232e8944c6975099dcc176b9348e5c467c7f4d433446897346` |
+
+The manuals are not copied into the repository; the manifest records their paths and hashes.
+The installed producer versions are SpritePad C64 Pro 3.80 and CharPad C64 Pro 3.80. CTM v9 is the
+format contract (introduced in CharPad 3.5); the RD pin is amended from 3.88 to 3.80+ with CTM v9
+(AR-55).
 
 ## Implementation Details
 
-### Shared parser contract
+### SpritePad SPD v5
 
-| Rule | Requirement | AR Ref |
+Header, 20 bytes:
+
+| Offset | Field | Rule |
 | --- | --- | --- |
-| Input bound | 1 MiB maximum; reject before allocation when exceeded | AR-12 |
-| Signature/version | Exact magic and accepted version only | AR-17 |
-| Counts | Overflow-safe arithmetic; every count bounded by the remaining bytes | AR-12 |
-| Structure | Every block/record boundary and conditional rule validated | AR-17 |
-| Exact EOF | Trailing bytes are E10204 | AR-17 |
-| Selectors | Enumerated from the validated file; absent names are E10133 | AR-17 |
-| Outputs | Exact scalar or fixed immutable array; no speculative companion output | AR-25 |
-| Identity | Handler/version/path/input hash/selector/representation/output hash | AR-9 |
-| Placement | Handler constraints only; no address guessed in the parser | AR-29 |
+| `$00-$02` | ID | ASCII `SPD` |
+| `$03` | Version | `5` only |
+| `$04` | Flags | bit2 tile animations, bit1 sprite animations, bit0 tiles |
+| `$05-$06` | SPQ | Sprite quantity, 16-bit little-endian |
+| `$07-$08` | TLQ | Tile quantity, 16-bit little-endian |
+| `$09` | ANSPQ-1 | Sprite animation quantity minus one (1–256) |
+| `$0A` | ANTLQ-1 | Tile animation quantity minus one (1–256) |
+| `$0B` | TWID | Tile width 1–8 |
+| `$0C` | THEI | Tile height 1–8 |
+| `$0D-$0F` | Colors | Background, multicolor 1, multicolor 2 (0–15 each) |
+| `$10-$11` | SPOVDIST | Signed 16-bit little-endian sprite overlay distance |
+| `$12-$13` | TLOVDIST | Signed 16-bit little-endian tile overlay distance |
 
-### SpritePad SPD v5 selector contract
+Data follows in this exact order:
 
-| Selector | Result | Availability |
+1. `SPQ * 64` sprite bytes. Each 64-byte record is 63 bitmap bytes plus one packed attribute byte.
+2. If tiles: `TLQ * TWID * THEI * 2` tile bytes, then `TLQ` tile attributes, then `TLQ` tile tags,
+   then `TLQ` zero-terminated ASCII tile names (0–32 characters plus terminator).
+3. If sprite animations: `ANSPQ * 2` starts, `ANSPQ * 2` ends, `ANSPQ` timers, `ANSPQ` flags.
+4. If tile animations: `ANTLQ * 2` starts, `ANTLQ * 2` ends, `ANTLQ` timers, `ANTLQ` flags.
+5. Exact EOF after the last declared block.
+
+Attribute meanings:
+
+- Sprite: `MYXVCCCC` — multicolor, Y-expand, X-expand, overlay flag, color.
+- Tile: `---V----` — overlay flag.
+- Animation: `---P----` — ping-pong flag.
+
+The parser validates every count, index, flag, record boundary, name terminator and exact EOF.
+Tile names are compile-time metadata only; they are not emitted as runtime strings. `"sprites"`
+preserves each 64-byte record; `"sprite_attributes"` extracts record byte 63 into its own table.
+Overlay distances are emitted as raw 16-bit `word` values preserving the manual's two's-complement
+bits; consumers may interpret them as signed offsets.
+
+### CharPad CTM v9
+
+Header, 19 bytes:
+
+| Offset | Field | Rule |
 | --- | --- | --- |
-| `sprites` | `const byte[]`, 64 native bytes per sprite; default | Always |
-| `count` | `word` | Always |
-| `background_color`, `multicolor_1`, `multicolor_2` | `byte` | Always |
-| `sprite_attributes` | `const byte[]`, one packed attribute per sprite | Always; derived from record byte 63 |
-| `tile_count` | `word` | Tile layer present |
-| `tile_width`, `tile_height` | `byte` | Tile layer present |
-| `tiles` | `const word[]`, native row-major sprite indices | Tile layer present |
-| `tile_attributes`, `tile_tags` | `const byte[]` | Component present |
-| `sprite_overlay_distance`, `tile_overlay_distance` | `word` | Component present |
-| `sprite_animation_count` | `word` | Sprite-animation component present |
-| `sprite_animation_starts`, `sprite_animation_ends` | `const word[]` | Component present |
-| `sprite_animation_timers`, `sprite_animation_flags` | `const byte[]` | Component present |
-| `tile_animation_count` | `word` | Tile-animation component present |
-| `tile_animation_starts`, `tile_animation_ends` | `const word[]` | Component present |
-| `tile_animation_timers`, `tile_animation_flags` | `const byte[]` | Component present |
+| `$00-$02` | ID | ASCII `CTM` |
+| `$03` | Version | `9` only |
+| `$04` | DISP_MODE | 0 Text HR, 1 Text MC, 2 Text EC, 3 Bitmap HR, 4 Bitmap MC |
+| `$05` | COLR_METH | 0 Per-project, 1 Per-tile, 2 Per-char |
+| `$06` | KEYMAP + FLAGS | High nibble key map 0–10; low nibble bit0 TILESYS |
+| `$07-$08` | FGRID_WID | Map flexi-grid width, 16-bit little-endian |
+| `$09-$0A` | FGRID_HEI | Map flexi-grid height, 16-bit little-endian |
+| `$0B` | FGRID_CONFIG | Flexi-grid configuration |
+| `$0C-$0F` | VCOLR_BG0..3 | VIC background colors 0–15 |
+| `$10-$12` | MTRXCOLRS_BASE | `CmLo`, `SmLo`, `SmHi` for per-project color |
 
-`"sprites"` carries 64-byte alignment and VIC-bank visibility. `"sprite_attributes"` is a separately
-emitted derived table and is never implicit. There is no file-wide multicolor, base-block or offset
-selector (AR-19, AR-45).
+Blocks follow in this exact order, each introduced by `$DA` and a second byte with high nibble `$B`:
 
-### CharPad CTM v9 selector contract
+1. Character set: `$DA,$B0`, character count minus one (16-bit), `8 * count` character bytes.
+2. Character materials: `$DA,$B1`, one byte per character.
+3. Character colors (only per-char): `$DA,$Bn`, 1–3 bytes per character depending on display mode.
+4. Tile set (only TILESYS): `$DA,$Bn`, tile count minus one, tile width, tile height,
+   `2 * width * height * count` tile bytes.
+5. Tile colors (only TILESYS and per-tile): `$DA,$Bn`, 1–3 bytes per tile.
+6. Tile tags (only TILESYS): `$DA,$Bn`, one byte per tile.
+7. Tile names (only TILESYS): `$DA,$Bn`, zero-terminated ASCII strings, one per tile.
+8. Map: `$DA,$Bn`, map width, map height, `2 * width * height` map bytes.
+9. Exact EOF after the map block.
 
-| Selector | Result | Availability |
-| --- | --- | --- |
-| `charset` | `const byte[]`, 8 bytes per character; 2-KiB aligned, VIC-visible | Always |
-| `tiles` | Smallest-lossless `byte[]` or `word[]`, row-major character indices | Tile mode only |
-| `map` | Smallest-lossless `byte[]` or `word[]`, row-major tile or character indices | Always |
-| `tiles_word`, `map_word` | Forced little-endian `word[]` | `tiles_word` tile mode only |
-| `tiles_packed12`, `map_packed12` | `byte[]` packed-12 form | Layer exists and every index ≤ 4095 |
-| `tiles_low`, `tiles_high` | Independent `byte[]` planes | Tile mode only |
-| `map_low`, `map_high` | Independent `byte[]` planes | Always |
-| `colors` | Native `byte[]` for the file's color method | Always |
-| `color_method` | `byte` | Always |
-| `map_width`, `map_height` | `word` | Always |
-| `tile_width`, `tile_height` | `byte`; `1` without tile mode | Always |
-| `tile_mode` | `boolean` | Always |
+The block numbers increment by one for each block actually present; the parser validates the upper
+nibble and the known order, not a hardcoded lower nibble. Character, tile and map data are
+little-endian 16-bit cells in left-to-right/top-to-bottom order.
 
-Canonical width is `byte[]` when the maximum referenced index is at most 255, otherwise `word[]`.
-A declared mismatch is E10144 and reports the required type. Packed-12 emits `N` low bytes then
-`ceil(N/2)` high-nibble bytes; `$123,$456,$789` becomes `$23,$56,$89,$41,$07` (AR-20, AR-46).
-There is no default selector; omission is E10132.
+`"colors"` yields the exact native color block for the file's color method: the three header bytes
+for per-project, the tile color block for per-tile, or the character color block for per-char. The
+number of bytes per item is determined by the display mode. `"color_method"` tells the consumer how
+to interpret the bytes. No derived Color RAM or flattened screen data is invented.
 
-### Producer evidence requirements
+### Selector availability
 
-The handler implementation may start only when the relevant checkpoint is complete:
+- SpritePad `"sprites"` is the default. `"sprite_attributes"`, colors, counts and tile/animation
+  components are available only when the flags and validated counts make them present.
+- CharPad has no default selector; omission is E10132. `"tiles"`, `"tiles_word"`,
+  `"tiles_packed12"`, `"tiles_low"` and `"tiles_high"` require tile mode. `"map"` and its
+  representations always exist. `"colors"` and `"color_method"` always exist. `"tile_width"`,
+  `"tile_height"` and `"tile_mode"` always exist and yield `1`, `1` and `false` without a tile layer.
 
-| Family | Required evidence |
-| --- | --- |
-| SpritePad | `SPD380-MIN-V5`, `SPD380-ALL-V5`, `SPD380-WIDE-V5`, meaningful `SPD380-OPTIONALS-V5-*`, version screenshot, settings, provenance, retention approval, SHA-256, expected selector outputs, derived v4/v6 and malformed cases |
-| CharPad | `CTM388-MIN-V9`, `CTM388-ALL-V9`, `CTM388-WIDE-V9`, every meaningful display × color × tile-mode fixture, version screenshot, settings, provenance, retention approval, SHA-256, expected selector outputs, derived v8/v10 and block-malformed cases |
+### Evidence fixtures
 
-The fixture manifest records every value required by AR-15 and RD-06 R6.49. The Linux build and CI
-never invoke SpritePad or CharPad. A different producer version is never relabelled. The RD-04
-retained `assets/bad.spd` fixture (`01 02 03`) and its exact E10204 message/span oracle are part of
-the SpritePad specification task; the stub message is replaced by the real structural failure.
+The following real producer examples are used as local acceptance evidence. They are not committed
+to the repository because the EULA does not grant redistribution of the bundled files.
 
-### Derived outputs
+| Fixture | Path | Bytes | SHA-256 |
+| --- | --- | --- | --- |
+| SPD v5 sprite sheet | `SpritePad C64 3.80 Pro/Examples (SPD5)/Sprite Sheets (Subchrist)/ChromeFont.spd` | 2,388 | `5b231c73ce2a0f4697ed9ef916a9a95b4bb5b582114b509ba99a5b295da3f57e` |
+| SPD v5 sprite animations | `SpritePad C64 3.80 Pro/Examples (SPD5)/Sprite Animations (Subchrist)/SpriteAnimations01.spd` | 13,252 | `ca032b6fb295b5f315bd560fa020e937aad6f5497636596340c8d84429170efc` |
+| SPD v5 tiles | `SpritePad C64 3.80 Pro/Examples (SPD5)/Tile Sheets (Subchrist)/Expanded Sprite Test.spd` | 1,090 | `72f1394349a4a8502ed7d0a0500f49898b91e2ce027f23b4f3de73e7d73ea066` |
+| CTM v9 text MC per-tile | `CharPad C64 3.80 Pro/Examples (CTM9)/Maps (Subchrist)/Hexagone (5x5).ctm` | 833 | `dcd26ceb1af4d72776ce6f54120db2fec9d80ba969060e8f72aceaced234009f` |
+| CTM v9 text MC per-project | `CharPad C64 3.80 Pro/Examples (CTM9)/Maps (Subchrist)/Floor Kit S1 (4x4).ctm` | 1,186 | `43c25a6b1cddfc8daa1ab937727787c08eea3c8fc1b5f0d983af91b090dadc11` |
+| CTM v9 text EC | `CharPad C64 3.80 Pro/Examples (CTM9)/Maps (Subchrist, ECM)/ECM Icon Samples (2x2).ctm` | 3,067 | `09c888463e5e3b98fcc76c027a9102df3904ca11f14d8c1d0d0ea812c5cd23b9` |
+| CTM v9 text HR no tiles | `CharPad C64 3.80 Pro/Examples (key maps)/C64 ROM Upper Case.ctm` | 4,335 | `7dd3979e661c855ecf376ce7a0d88bc054aa7c56d43eb4bb64dbc19a18ec5d2d` |
+| CTM v9 bitmap MC per-char | `CharPad C64 3.80 Pro/Examples (CTM9)/Pictures (image imports)/Misc - CharPadPro.ctm` | 8,033 | `33d557f6ee208643411bb21d908f398361e6f72e51ccb15df258ed01faca32ba` |
 
-- `sprite_attributes` extracts record byte 63 from each 64-byte SPD record. It does not emit a second
-  copy of the bitmap bytes.
-- `tiles`/`map` canonical width is chosen from the maximum referenced index in the validated layer.
-  It never truncates or widens other outputs.
-- `tiles_packed12`/`map_packed12` are independent representations. Selecting one never emits the
-  canonical, forced-word, low or high companion.
-- `charset` carries 2-KiB alignment and VIC visibility. Final layout derives
-  `vicCharsetSelect`; the handler never supplies an address or `$D018` value.
+The test suite reads these files when `RD06_PRODUCER_ROOT` points at the apps folder. The committed
+fixtures are synthetic files generated from the official manual; they cover optional components,
+adjacent versions, truncation, boundary counts and display/color/tile combinations. The manifest
+records both the local real paths/hashes and the committed synthetic fixture hashes.
 
 ### Error handling
 
 | Error case | Handling strategy | AR Ref |
 | --- | --- | --- |
 | Wrong magic/version | E10204 at the signature/version offset | AR-17 |
-| Truncated block or record | E10204 naming the block and required/remaining bytes | AR-17 |
+| Truncated header/block/record | E10204 naming the block and required/remaining bytes | AR-17 |
 | Count/index/attribute mismatch | E10204 naming the field and offending value | AR-17 |
-| Conditional component absent | Selector absent; requesting it is E10133 | AR-17 |
+| Optional component absent | Selector absent; requesting it is E10133 | AR-17 |
 | Trailing bytes | E10204 naming the exact EOF offset | AR-17 |
+| Tile name without terminator or over 32 chars | E10204 naming the tile and name offset | AR-17 |
 | Canonical width mismatch | E10144 with the required `byte[]` or `word[]` type | AR-20 |
 | Packed-12 unavailable | E10133 listing available representations | AR-20 |
 | Charset alignment/visibility failure | E10143 for one-object alignment; E10273 for character-ROM/cross-object conflicts | AR-11 |
-| Reserved `.spd`/`.ctm` before evidence | E10204 before raw fallback | AR-53 |
-| Producer evidence missing | Family stays blocked; no decoder task executes | AR-1 |
+| Selected output over 65,535 bytes | E10265 before selector exposure | AR-12 |
 
 ## Testing Requirements
 
-- Fixture-manifest validation: every producer file has provenance, settings, license, SHA-256 and
-  expected outputs.
-- Positive selector tests for every fixture and every available selector, with exact type, length and
-  SHA-256.
-- Canonical-width, packed-12, low/high, tile/no-tile and optional-component presence/absence tests.
-- Negative tests for adjacent versions, every truncation boundary, wrong order, count/index mismatch,
-  trailing bytes, unknown selector, and exact EOF.
-- Layout tests for 64-byte sprite alignment, 2-KiB charset alignment, VIC visibility, and the
+- Parse the official manual structure for SPD v5 and CTM v9, including exact header offsets, flags,
+  counts, block order, variable names and exact EOF.
+- Parse every selected real example locally and verify exact selector types, lengths and hashes.
+- Synthetic coverage for every selector, optional component, adjacent version, truncation boundary,
+  count/index mismatch, trailing byte, tile/no-tile, display × color × tile mode and packed-12
+  boundary.
+- Layout tests for 64-byte sprite alignment, 2-KiB charset alignment, VIC visibility and the
   256-record-plus-screen failure.
-- No Linux build or test invokes a producer application.
-
-## Blocked Work
-
-The following work remains `[!]` until its checkpoint passes:
-
-- SpritePad decoder, selectors, optional components and producer regression suite.
-- CharPad decoder, ordered block validation, selector matrix and producer regression suite.
-- The retained `assets/bad.spd` E10204 structural-failure oracle.
-- Producer-specific VICE rendering checks.
-- The focused SpritePad and CharPad examples required by R6.54.
-
-The blocked tasks are listed at the end of [99-execution-plan.md](99-execution-plan.md).
+- No Linux build or test invokes SpritePad or CharPad.

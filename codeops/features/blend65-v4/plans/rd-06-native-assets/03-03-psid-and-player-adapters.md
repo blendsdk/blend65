@@ -12,8 +12,8 @@ interrupt ownership, cadence or mixer.
 
 Callable audio is a separate contract. A plain PSID remains legal embedded data. `c64.audio`
 operations require one exact hash-bound `AudioPlayerContract`; the baseline map is empty, so every
-call on a plain PSID is E10256. GoatTracker 2.77 is the first adapter family, but its binding is
-blocked until exact archive/member hashes, exports, settings and ABI evidence arrive (AR-2).
+call on a plain PSID is E10256. The GoatTracker 2.77 adapter is moved out of RD-06 to a later
+follow-up (AR-58); this plan delivers the generic seam and the empty contract map only.
 
 ## Architecture
 
@@ -175,7 +175,7 @@ missing the requested operation, cue, numeric form or voice is E10257. Any non-r
 reachable from two concurrent domains is E10258 (AR-13). A contract that conflicts with the selected
 video/model/topology is E10261.
 
-### GoatTracker 2.77 binding (blocked)
+### GoatTracker 2.77 binding (moved out of RD-06)
 
 The adapter must bind the exact GoatTracker 2.77 archive and member hashes, exported player/data
 identity, and selected feature set:
@@ -187,8 +187,9 @@ identity, and selected feature set:
 - feature-pruned exports and every code/data/writable/self-modifying/ZP/stack/register/flag/banking/
   cadence/IRQ/cycle obligation.
 
-No export evidence exists in the checkout. This binding stays `[!]` until the evidence checkpoint
-passes (AR-2, AR-44).
+This work is moved to a follow-up feature (AR-58). It is not a task or closeout gate in this plan.
+The `AudioPlayerContract` record remains in the design so the follow-up can attach one exact
+contract without changing the compiler seam.
 
 ### Error handling
 
@@ -217,4 +218,4 @@ passes (AR-2, AR-44).
 - E10258 positive and negative domain-overlap cases.
 - Fixed-load placement and conflict tests.
 - Bounded VICE check that the payload lands at the effective load address and is CPU-readable.
-- GoatTracker 2.77 qualification remains blocked.
+- GoatTracker 2.77 qualification is a separate follow-up feature.

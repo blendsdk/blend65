@@ -9,17 +9,18 @@
 ## Overview
 
 RD-06 makes `embed()` truthful for real C64 assets. A Blend65 program can import a SpritePad 3.80
-SPD v5 project, a CharPad 3.88 CTM v9 project, a qualified PSID v1–v4 tune, a classic Koala file,
+SPD v5 project, a CharPad 3.80 CTM v9 project, a qualified PSID v1–v4 tune, a classic Koala file,
 or an unregistered raw file, select one exact typed component, and place that component where the
 hardware consumer can read it. The compiler owns parsing, validation, typing, provenance,
 compile-time evaluation, placement, packaging, diagnostics, and evidence. The program owns what the
 data means and every runtime consumer.
 
-The plan is intentionally split into unblocked and blocked work. PSID, Koala, raw inclusion, the
-generic handler seam, compile-time refinement, and resident layout can be implemented and verified
-now. SpritePad, CharPad, and the GoatTracker 2.77 adapter remain explicit blocked checkpoints until
-their exact producer or player evidence arrives. RD-06 cannot close while any of those checkpoints is
-missing; no handmade file, comparative decoder, or guessed schema may replace them.
+SpritePad and CharPad are unblocked by the licensed applications' official format manuals and real
+producer example files in `/home/gevik/workdir/github/blend65.ri/apps`. The SPD v5 and CTM v9 schemas
+are exact vendor documentation, not guesses. The real examples are local-only evidence because the
+EULA does not grant redistribution; the repository carries a manifest with paths, versions and
+SHA-256 values plus synthetic fixtures generated from the manual. The GoatTracker 2.77 adapter is
+moved out of RD-06 to a later follow-up; RD-06 keeps the generic audio seam and empty contract map.
 
 This is asset integration, not a game engine. No handler, compiler pass, example, or report supplies
 a renderer, scheduler, mixer, scene runtime, or gameplay policy.
@@ -32,13 +33,13 @@ prove compile-time refinement, and place every resident byte legally.
 **Smallest viable design:** One target-neutral handler contract, one profile-owned extension map,
 four explicit C64 handlers, the existing typed frontend and compile-time evaluator, and an extension
 of the existing interval layout rather than a second allocator. Producer-gated families reuse the
-same seam when their evidence arrives.
+same seam with the vendor manuals and selected real examples.
 
 **Excluded machinery:** A public plugin registry, a generic asset graph/query language, a runtime
 asset loader, a scene or renderer API, an audio scheduler/mixer, a new build system, a configurable
 parser budget, and a second layout solver.
 
-**Approved architecture decisions:** AR-2 (generic `c64.audio` surface plus blocked GoatTracker binding),
+**Approved architecture decisions:** AR-2 (generic `c64.audio` surface; GoatTracker adapter moved to a follow-up),
 AR-4 (target-neutral seam plus `assets/c64/` handlers), AR-5 (selected VIC bank 0), AR-10 (typed scalar
 embedded values), AR-13 (static audio-overlap proof), AR-14 (two additional memory views), and AR-44
 (closed audio-contract record). No other material support surface is approved.
@@ -98,8 +99,8 @@ const MAP: byte[] = embed("level.ctm", "map");               // byte[] or word[]
 
 | Decision | Outcome | AR |
 | --- | --- | --- |
-| Evidence-absent families | Full plan; producer families blocked, not guessed | AR-1 |
-| GoatTracker | Generic audio surface now; GT 2.77 binding blocked | AR-2 |
+| Producer evidence | Official vendor manuals + selected real examples; local-only files, synthetic committed fixtures | AR-1, AR-54–AR-57 |
+| GoatTracker | Generic audio surface now; GT 2.77 adapter moved to a follow-up | AR-2, AR-58 |
 | Native `loadable const` | Fail closed with E10204 + ledger; RD-07 owns delivery | AR-3 |
 | Handler architecture | Core contract, `assets/c64/` handlers, profile-owned map | AR-4, AR-49 |
 | VIC bank | Selected bank 0 only | AR-5 |
@@ -129,6 +130,7 @@ phase-review role for the frozen `embed()`/selector semantics, not a new standin
 
 - `codeops/features/blend65-v4/requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md`
 - `codeops/features/blend65-v4/00-rd-06-producer-evidence-handoff.md`
+- `/home/gevik/workdir/github/blend65.ri/apps/` (licensed SpritePad/CharPad manuals and examples)
 - `packages/compiler/src/assets/`
 - `packages/compiler/src/assets/c64/`
 - `packages/compiler/src/target/`

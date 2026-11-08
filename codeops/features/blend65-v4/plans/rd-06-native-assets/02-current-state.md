@@ -117,7 +117,7 @@ blocked GT binding.
 - ACME 0.97 is version-pinned and its discovered executable SHA-256 is recorded.
 - VICE 3.10 is version-pinned; the Linux executable is recorded/verified by banner and the Windows
   bundle is SHA-256 pinned. Four cooperative profiles are in use.
-- SpritePad 3.80, CharPad 3.88 and GoatTracker 2.77 evidence, supplied manually from Windows.
+- SpritePad 3.80 and CharPad 3.80 official manuals and real examples under `/home/gevik/workdir/github/blend65.ri/apps`; GoatTracker is a follow-up.
 - HVSC `SID_file_format.txt` SHA-256 `b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0`.
 
 ## Risks and Concerns

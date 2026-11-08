@@ -125,7 +125,7 @@ export interface AssetProvenance {
 }
 ```
 
-Handler keys and versions are fixed: `spritepad` / `3.80`, `charpad` / `3.88`, `psid` / `1-4`,
+Handler keys and versions are fixed: `spritepad` / `3.80`, `charpad` / `3.80`, `psid` / `1-4`,
 `koala` / `classic`, `raw` / `1`. Producer provenance (operator, save settings, retention approval)
 is fixture-manifest data, not a runtime handler field; it is consumed by tests and reports, not by
 `AssetHandlerRequest`.

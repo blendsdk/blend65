@@ -7,8 +7,8 @@
 
 This component owns the data-only fixture manifest, the public PSID/Koala/raw fixtures, the
 producer-evidence checkpoints, malformed/adjacent-version derivations, bounded VICE checks, public
-status text, host observations and the closeout evidence. It never invokes SpritePad, CharPad or
-GoatTracker on Linux, and it never labels a handmade or comparative file as producer evidence.
+status text, host observations and the closeout evidence. It never invokes SpritePad or CharPad on
+Linux, and it never labels a handmade or comparative file as producer evidence.
 
 ## Architecture
 
@@ -69,9 +69,9 @@ and every expected selector hash matches the committed bytes. Helper tools are e
 | `raw` | Deterministic public bytes | None |
 | `psid` | Constructed from the pinned HVSC format description | None |
 | `koala` | Deterministic public 10,003-byte files | None |
-| `spritepad` | SpritePad 3.80 SPD v5 producer saves | AR-1 / AR-37 / AR-50 |
-| `charpad` | CharPad 3.88 CTM v9 producer saves | AR-1 / AR-37 / AR-50 |
-| `goattracker` | GoatTracker 2.77 exports and player identity | AR-2 / AR-44 |
+| `spritepad` | SpritePad 3.80 SPD v5 real examples + synthetic cases | AR-54–AR-57 |
+| `charpad` | CharPad 3.80 CTM v9 real examples + synthetic cases | AR-54–AR-57 |
+| `goattracker` | Moved to a follow-up feature; not an RD-06 fixture family | AR-58 |
 
 ### Public fixture construction
 
@@ -91,19 +91,25 @@ fixtures at run time.
 
 ### Producer evidence checkpoints
 
-The Windows checklist is [00-rd-06-producer-evidence-handoff.md](../../00-rd-06-producer-evidence-handoff.md).
-A checkpoint passes only when:
+The evidence is available at `/home/gevik/workdir/github/blend65.ri/apps`:
 
-1. a named owner records completion in the manifest;
-2. the exact producer version screenshot is present;
-3. every required `MIN`/`ALL`/`WIDE`/optional or display × color × tile fixture is present;
-4. `provenance.txt` states the save settings, operator/date/machine and original-save confirmation;
-5. retention/redistribution approval is explicit;
-6. SHA-256 values match the received bytes; and
-7. expected selector outputs are recorded from the producer exports, not guessed.
+- SpritePad C64 Pro 3.80 with SPD v5 examples.
+- CharPad C64 Pro 3.80 with CTM v9 examples.
+- Official vendor manuals `File Format - SPD (V5).htm` and `File Format - CTM (V9).htm`.
 
-The Linux side then derives v4/v6 or v8/v10, truncation, count/index and trailing-byte cases and
-records the derivation recipe in the manifest.
+The real examples are local-only evidence because the EULA does not grant redistribution of the
+bundled files. A checkpoint passes when:
+
+1. a named owner records completion in the producer-evidence manifest;
+2. the exact producer version and manual paths/hashes are recorded;
+3. the selected real examples are present and their SHA-256 values match;
+4. retention disposition is `local-only`; and
+5. expected selector outputs are derived from the official manual and verified against the real
+   files, not guessed.
+
+The repository commits the producer-evidence manifest and synthetic fixtures generated from the
+manual. The Linux side derives v4/v6 or v8/v10, truncation, count/index and trailing-byte cases from
+the synthetic fixtures and records the derivation recipe.
 
 ### VICE checks
 
@@ -128,7 +134,7 @@ selectors, selected profiles and evidence level. Missing producer/player evidenc
 
 Record per-handler parse/type/layout/build duration and peak host memory against the named fixtures.
 These are trends, not wall-clock gates, and they do not authorize an incremental cache. Refresh them
-at closeout so the blocked handlers are covered once their evidence lands.
+at closeout so the final status covers every handler family.
 
 ### Deferral expiry
 
@@ -142,7 +148,7 @@ ledger, and re-own every due item. No deferral may name closed RD-06 work as its
 | --- | --- | --- |
 | Manifest missing/duplicate/unlisted file | Test failure naming the path | AR-15 |
 | Hash mismatch | Test failure with expected/actual | AR-15 |
-| Producer evidence incomplete | Family blocked; no decoder task executes; owner/completion recorded | AR-1, AR-51 |
+| Producer evidence missing | Re-read the installed app folder; if the files are absent, record the local-only path as unavailable and do not claim producer verification | AR-54–AR-57 |
 | Different producer version | Reject the checkpoint; never relabel | AR-1 |
 | Third-party content not redistributable | Local-only evidence path with committed manifest and hashes | AR-15 |
 | VICE unavailable | Report the blocked check; do not claim runtime proof | AR-38 |

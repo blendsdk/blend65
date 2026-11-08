@@ -9,6 +9,13 @@
 > **SAME-SESSION REVIEW:** This plan was created in the current session. Same-agent bias risk is
 > elevated. The five auditor dispatches ran in fresh contexts; a new-session review is still
 > recommended before execution.
+>
+> **2026-11-08 evidence update:** the licensed SpritePad 3.80 and CharPad 3.80 installations and
+> their official SPD v5/CTM v9 manuals plus real examples were supplied at
+> `/home/gevik/workdir/github/blend65.ri/apps`. AR-54–AR-58 supersede the earlier producer-blocked
+> assumptions: SpritePad/CharPad are unblocked, the real examples are local-only evidence, committed
+> fixtures are synthetic, and GoatTracker is moved to a follow-up. The findings remain resolved; the
+> evidence path changed, not the plan's quality verdict.
 
 ### Codebase Context Summary
 
@@ -402,13 +409,13 @@
 | PF-004 | Accepted recommendation | Phase 10 split into unblocked 10.1 and producer-inclusive 10.2 |
 | PF-005 | Accepted recommendation | Evidence id extended with input identity and representation |
 | PF-006 | Accepted recommendation | `reservedExtensions` fail closed with E10204 before raw fallback |
-| PF-007 | Accepted recommendation | Producer-family ST cases moved to blocked phases; PSID/Koala scalar cases added |
+| PF-007 | Accepted recommendation | Producer-family ST cases use the vendor manuals and selected real examples; PSID/Koala scalar cases added |
 | PF-008 | Accepted recommendation | Public fixtures and manifest moved to Phase 1.4 |
 | PF-009 | Accepted recommendation | Q-P15 workload and oracle authored by `[spec-author]` before implementation |
 | PF-010 | Accepted recommendation | Audio embed-only, aliasing and compile-time examples added; example oracle added |
 | PF-011 | Accepted recommendation | Integration, aliasing and blocked-gate test tasks added |
-| PF-012 | Accepted recommendation | ST-171–ST-184 and AC coverage map added |
-| PF-013 | Option A — explicit AR-51 boundary | AR-51 records the planning-before-evidence boundary; handoff wording aligned |
+| PF-012 | Accepted recommendation | ST-171–ST-184 and AC coverage map added; ST-171–ST-179 moved with GoatTracker |
+| PF-013 | Option A — explicit AR-51 boundary | AR-51 updated: vendor manuals and real examples now satisfy the evidence boundary; no guessed schema remains |
 | PF-014 | Accepted recommendation | Character ROM reserved globally; existing fixtures audited; output-change claim qualified |
 | PF-015 | Option A — keep W10150 | AR-52 preserves the frozen warning; R6.47 interpreted as no new percentage warning |
 | PF-016 | Option A — E10204 + ledger | AR-3 updated to E10204 with the expressiveness-ledger entry |
@@ -419,5 +426,6 @@
 
 - The plan is still a **same-session review**. A fresh-session preflight is recommended before
   execution if maximum review independence is required.
-- The producer and player evidence checkpoints remain blocked. Their tasks are `[!]` and cannot be
-  reported as verified until the evidence arrives.
+- The licensed SpritePad 3.80 and CharPad 3.80 manuals and real examples are available at
+  `/home/gevik/workdir/github/blend65.ri/apps`. Real files are local-only evidence; committed
+  fixtures are synthetic. The GoatTracker adapter is moved to a follow-up feature (AR-58).

@@ -3,16 +3,17 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-07
-> **Progress**: 0/163 tasks (0%)
+> **Progress**: 0/151 tasks (0%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
 
-Implement RD-06 in ten phases. Phases 1–6 are unblocked: core dispatch and public fixtures, PSID,
-Koala, compile-time refinement, resident layout/evidence, and examples/blocked gates/status.
-Phases 7–9 are producer/player gated: SpritePad, CharPad, and the GoatTracker 2.77 binding. Phase
-10.1 is the unblocked integration and blocked-state closeout; Phase 10.2 is the producer-inclusive
-final verification and closeout, which cannot pass until Phases 7–9 pass.
+Implement RD-06 in nine active phases plus the final closeout. Phases 1–8 are unblocked: core
+dispatch and public fixtures, PSID, Koala, compile-time refinement, resident layout/evidence,
+examples/status, SpritePad and CharPad. The vendor manuals and real examples are available under
+`/home/gevik/workdir/github/blend65.ri/apps`. Phase 9 (GoatTracker 2.77) is moved out of RD-06 by
+AR-58. Phase 10.1 is the unblocked integration and contingency closeout; Phase 10.2 is the final
+verification and closeout.
 
 **🚨 Update this document after EACH completed task!**
 
@@ -27,14 +28,15 @@ final verification and closeout, which cannot pass until Phases 7–9 pass.
 | 3 | Koala parser and components | 13 |
 | 4 | Compile-time refinement and Q-P15 | 13 |
 | 5 | Resident layout, derived fields and evidence | 24 |
-| 6 | Examples, blocked gates and status | 13 |
-| 7 | SpritePad SPD v5 (blocked) | 12 |
-| 8 | CharPad CTM v9 (blocked) | 12 |
-| 9 | GoatTracker 2.77 adapter (blocked) | 12 |
-| 10 | Unblocked integration + producer-inclusive closeout | 11 |
+| 6 | Examples, evidence and status | 13 |
+| 7 | SpritePad SPD v5 | 12 |
+| 8 | CharPad CTM v9 | 12 |
+| 9 | GoatTracker 2.77 adapter (moved out) | 0 |
+| 10 | Integration and final closeout | 11 |
 
-**Total: 163 tasks across 10 phases** (no fabricated hour estimates; scope is bounded by the
-CodeOps task-size criteria: one reviewable change, 1–3 files, about 50–150 lines, immediately testable).
+**Total: 151 tasks across 10 phases** (Phase 9 has no tasks). No fabricated hour estimates; scope is
+bounded by the CodeOps task-size criteria: one reviewable change, 1–3 files, about 50–150 lines,
+immediately testable.
 
 > **⚠️ EXECUTION RULE — APPLIES TO EVERY AGENT EXECUTING THIS PLAN:**
 >
@@ -459,20 +461,21 @@ CodeOps task-size criteria: one reviewable change, 1–3 files, about 50–150 l
 
 ---
 
-## Phase 7: SpritePad SPD v5 (blocked)
+## Phase 7: SpritePad SPD v5
 
 > **Phase baseline tree**: _recorded by the exec-plan skill at phase start_
 > **Lenses**: semantics, machine code, target platform
 > **Reasoning**: max — untrusted producer format, optional matrix and VIC placement
-> **Gate**: AR-1, AR-37, AR-50, AR-51; owner: project owner (Windows evidence); completion: manifest entry + hashes + retention approval + expected outputs; checklist [00-rd-06-producer-evidence-handoff.md](../../00-rd-06-producer-evidence-handoff.md)
+> **Gate**: AR-54–AR-57. Evidence is available at `/home/gevik/workdir/github/blend65.ri/apps`; the official vendor manual and selected real examples are local-only, and the committed fixtures are synthetic.
 
 ### Step 7.1: Evidence checkpoint
 
-- [!] 7.1.1 [owner: project owner] Receive, hash, validate and record the complete SpritePad 3.80 SPD v5 evidence set, including owner/completion — `test/rd06/fixtures/spritepad/`, `test/rd06/fixtures/manifest.json` · Blocked: SpritePad 3.80 producer evidence not supplied
+- [ ] 7.1.1 Record the installed SpritePad 3.80 manual and selected real SPD v5 examples (paths, sizes, SHA-256, local-only retention) and create the producer-evidence manifest — `test/rd06/fixtures/producer-evidence.json`, `test/rd06/fixtures/manifest.json`
 
 **Deliverables**:
-- [ ] MIN/ALL/WIDE/OPTIONALS fixtures, version evidence, settings, provenance, retention approval and hashes
-- [ ] Expected selector outputs recorded from producer exports
+- [ ] Vendor manual path/hash and selected real example paths/hashes recorded
+- [ ] Local-only retention disposition recorded
+- [ ] Expected selector outputs derived from the manual and verified against the real examples
 
 **Verify**: `yarn vitest run test/rd06/fixtures.spec.test.ts`
 
@@ -481,8 +484,8 @@ CodeOps task-size criteria: one reviewable change, 1–3 files, about 50–150 l
 **Reference**: [03-02](03-02-spritepad-charpad.md) · ST-19–ST-40
 **Objective**: Lock every SPD v5 selector, optional matrix and rejection.
 
-- [!] 7.2.1 [spec-author] Write SpritePad specification tests from ST-7–ST-9, ST-19–ST-40 and the retained ST-187 `bad.spd` oracle — `packages/compiler/src/assets/c64/spritepad.spec.test.ts` · Blocked: SpritePad evidence
-- [!] 7.2.2 Run the SpritePad specification tests and record the red phase · Blocked: SpritePad evidence
+- [ ] 7.2.1 [spec-author] Write SpritePad specification tests from ST-7–ST-9, ST-19–ST-40 and the retained ST-187 `bad.spd` oracle — `packages/compiler/src/assets/c64/spritepad.spec.test.ts`
+- [ ] 7.2.2 Run the SpritePad specification tests and record the red phase
 
 **Deliverables**:
 - [ ] All ST-19–ST-40 encoded
@@ -495,10 +498,10 @@ CodeOps task-size criteria: one reviewable change, 1–3 files, about 50–150 l
 **Reference**: [03-02](03-02-spritepad-charpad.md) · AR-19, AR-45
 **Objective**: Implement the validated SPD v5 parser and selector projection.
 
-- [!] 7.3.1 Add SPD v5 signature/version/flags/counts/records/EOF validation — `packages/compiler/src/assets/c64/spritepad.ts` · Blocked: SpritePad evidence
-- [!] 7.3.2 Add native records, colors, counts and derived `sprite_attributes` — `packages/compiler/src/assets/c64/spritepad.ts` · Blocked: SpritePad evidence
-- [!] 7.3.3 Add tile, tag, overlay and both animation component selectors — `packages/compiler/src/assets/c64/spritepad.ts` · Blocked: SpritePad evidence
-- [!] 7.3.4 Attach 64-byte alignment and VIC visibility; register the handler — `packages/compiler/src/assets/c64/index.ts` · Blocked: SpritePad evidence
+- [ ] 7.3.1 Add SPD v5 signature/version/flags/counts/records/variable names/exact EOF validation — `packages/compiler/src/assets/c64/spritepad.ts`
+- [ ] 7.3.2 Add native records, colors, counts and derived `sprite_attributes` — `packages/compiler/src/assets/c64/spritepad.ts`
+- [ ] 7.3.3 Add tile, tag, overlay and both animation component selectors — `packages/compiler/src/assets/c64/spritepad.ts`
+- [ ] 7.3.4 Attach 64-byte alignment and VIC visibility; register the handler — `packages/compiler/src/assets/c64/index.ts`
 
 **Deliverables**:
 - [ ] Every valid selector yields its exact type/length/hash
@@ -508,35 +511,36 @@ CodeOps task-size criteria: one reviewable change, 1–3 files, about 50–150 l
 
 ### Step 7.4: Green, implementation tests, VICE and review
 
-- [!] 7.4.1 Run the SpritePad specification tests and verify the green phase · Blocked: SpritePad evidence
-- [!] 7.4.2 Write optional-matrix and malformed-derivation implementation tests — `packages/compiler/src/assets/c64/spritepad.impl.test.ts` · Blocked: SpritePad evidence
-- [!] 7.4.3 Add the bounded producer VICE rendering check — `test/rd06/vice-spritepad.spec.test.ts` · Blocked: SpritePad evidence
-- [!] 7.4.4 Add the focused SpritePad example — `examples/rd06-assets/spritepad.blend` · Blocked: SpritePad evidence
-- [!] 7.4.5 Dispatch independent semantics, machine-code and platform reviews · Blocked: SpritePad evidence
+- [ ] 7.4.1 Run the SpritePad specification tests and verify the green phase
+- [ ] 7.4.2 Write synthetic optional-matrix, adjacent-version and malformed-derivation implementation tests — `packages/compiler/src/assets/c64/spritepad.impl.test.ts`
+- [ ] 7.4.3 Add the bounded producer VICE rendering check — `test/rd06/vice-spritepad.spec.test.ts`
+- [ ] 7.4.4 Add the focused SpritePad example — `examples/rd06-assets/spritepad.blend`
+- [ ] 7.4.5 Dispatch independent semantics, machine-code and platform reviews
 
 **Deliverables**:
-- [ ] ST-19–ST-40 pass
-- [ ] Producer VICE evidence recorded
+- [ ] ST-7–ST-9, ST-19–ST-40 and ST-187 pass
+- [ ] Real-example acceptance and synthetic coverage recorded
 - [ ] Review findings resolved
 
 **Verify**: `yarn build && yarn typecheck && yarn workspace @blend65/compiler test src/assets/c64/spritepad.spec.test.ts && yarn vitest run test/rd06/vice-spritepad.spec.test.ts`
 
 ---
 
-## Phase 8: CharPad CTM v9 (blocked)
+## Phase 8: CharPad CTM v9
 
 > **Phase baseline tree**: _recorded by the exec-plan skill at phase start_
 > **Lenses**: semantics, machine code, target platform
 > **Reasoning**: max — ordered block schema, width boundaries and VIC placement
-> **Gate**: AR-1, AR-37, AR-50, AR-51; owner: project owner (Windows evidence); completion: manifest entry + hashes + retention approval + expected outputs; checklist [00-rd-06-producer-evidence-handoff.md](../../00-rd-06-producer-evidence-handoff.md)
+> **Gate**: AR-54–AR-57. Evidence is available at `/home/gevik/workdir/github/blend65.ri/apps`; the official vendor manual and selected real examples are local-only, and the committed fixtures are synthetic.
 
 ### Step 8.1: Evidence checkpoint
 
-- [!] 8.1.1 [owner: project owner] Receive, hash, validate and record the complete CharPad 3.88 CTM v9 evidence set, including owner/completion — `test/rd06/fixtures/charpad/`, `test/rd06/fixtures/manifest.json` · Blocked: CharPad 3.88 producer evidence not supplied
+- [ ] 8.1.1 Record the installed CharPad 3.80 manual and selected real CTM v9 examples (paths, sizes, SHA-256, local-only retention) and create the producer-evidence manifest — `test/rd06/fixtures/producer-evidence.json`, `test/rd06/fixtures/manifest.json`
 
 **Deliverables**:
-- [ ] MIN/ALL/WIDE/matrix fixtures, version evidence, settings, provenance, retention approval and hashes
-- [ ] Expected selector outputs recorded from producer exports
+- [ ] Vendor manual path/hash and selected real example paths/hashes recorded
+- [ ] Local-only retention disposition recorded
+- [ ] Expected selector outputs derived from the manual and verified against the real examples
 
 **Verify**: `yarn vitest run test/rd06/fixtures.spec.test.ts`
 
@@ -545,8 +549,8 @@ CodeOps task-size criteria: one reviewable change, 1–3 files, about 50–150 l
 **Reference**: [03-02](03-02-spritepad-charpad.md) · ST-41–ST-65
 **Objective**: Lock every CTM v9 selector, width boundary, packed form and rejection.
 
-- [!] 8.2.1 [spec-author] Write CharPad specification tests from ST-8, ST-41–ST-65 — `packages/compiler/src/assets/c64/charpad.spec.test.ts` · Blocked: CharPad evidence
-- [!] 8.2.2 Run the CharPad specification tests and record the red phase · Blocked: CharPad evidence
+- [ ] 8.2.1 [spec-author] Write CharPad specification tests from ST-8, ST-41–ST-65 — `packages/compiler/src/assets/c64/charpad.spec.test.ts`
+- [ ] 8.2.2 Run the CharPad specification tests and record the red phase
 
 **Deliverables**:
 - [ ] All ST-41–ST-65 encoded
@@ -559,10 +563,10 @@ CodeOps task-size criteria: one reviewable change, 1–3 files, about 50–150 l
 **Reference**: [03-02](03-02-spritepad-charpad.md) · AR-20, AR-46
 **Objective**: Implement the validated CTM v9 parser and selector projection.
 
-- [!] 8.3.1 Add CTM v9 signature/version/ordered blocks/counts/EOF validation — `packages/compiler/src/assets/c64/charpad.ts` · Blocked: CharPad evidence
-- [!] 8.3.2 Add charset, colors, color method, dimensions and tile mode — `packages/compiler/src/assets/c64/charpad.ts` · Blocked: CharPad evidence
-- [!] 8.3.3 Add canonical width, forced word, low/high planes and packed-12 — `packages/compiler/src/assets/c64/charpad.ts` · Blocked: CharPad evidence
-- [!] 8.3.4 Attach 2-KiB charset alignment and VIC visibility; register the handler — `packages/compiler/src/assets/c64/index.ts` · Blocked: CharPad evidence
+- [ ] 8.3.1 Add CTM v9 signature/version/ordered blocks/counts/EOF validation — `packages/compiler/src/assets/c64/charpad.ts`
+- [ ] 8.3.2 Add charset, colors, color method, dimensions and tile mode — `packages/compiler/src/assets/c64/charpad.ts`
+- [ ] 8.3.3 Add canonical width, forced word, low/high planes and packed-12 — `packages/compiler/src/assets/c64/charpad.ts`
+- [ ] 8.3.4 Attach 2-KiB charset alignment and VIC visibility; register the handler — `packages/compiler/src/assets/c64/index.ts`
 
 **Deliverables**:
 - [ ] Every valid selector yields its exact type/length/hash
@@ -572,82 +576,29 @@ CodeOps task-size criteria: one reviewable change, 1–3 files, about 50–150 l
 
 ### Step 8.4: Green, implementation tests, VICE and review
 
-- [!] 8.4.1 Run the CharPad specification tests and verify the green phase · Blocked: CharPad evidence
-- [!] 8.4.2 Write block-order, truncation, width and packed-12 implementation tests — `packages/compiler/src/assets/c64/charpad.impl.test.ts` · Blocked: CharPad evidence
-- [!] 8.4.3 Add the bounded producer VICE charset check — `test/rd06/vice-charpad.spec.test.ts` · Blocked: CharPad evidence
-- [!] 8.4.4 Add the focused CharPad example — `examples/rd06-assets/charpad.blend` · Blocked: CharPad evidence
-- [!] 8.4.5 Dispatch independent semantics, machine-code and platform reviews · Blocked: CharPad evidence
+- [ ] 8.4.1 Run the CharPad specification tests and verify the green phase
+- [ ] 8.4.2 Write synthetic block-order, truncation, display/color/tile-mode, width and packed-12 implementation tests — `packages/compiler/src/assets/c64/charpad.impl.test.ts`
+- [ ] 8.4.3 Add the bounded producer VICE charset check — `test/rd06/vice-charpad.spec.test.ts`
+- [ ] 8.4.4 Add the focused CharPad example — `examples/rd06-assets/charpad.blend`
+- [ ] 8.4.5 Dispatch independent semantics, machine-code and platform reviews
 
 **Deliverables**:
-- [ ] ST-41–ST-65 pass
-- [ ] Producer VICE evidence recorded
+- [ ] ST-8, ST-41–ST-65 pass
+- [ ] Real-example acceptance and synthetic coverage recorded
 - [ ] Review findings resolved
 
 **Verify**: `yarn build && yarn typecheck && yarn workspace @blend65/compiler test src/assets/c64/charpad.spec.test.ts && yarn vitest run test/rd06/vice-charpad.spec.test.ts`
 
 ---
 
-## Phase 9: GoatTracker 2.77 adapter (blocked)
+## Phase 9: GoatTracker 2.77 adapter (moved out of RD-06)
 
-> **Phase baseline tree**: _recorded by the exec-plan skill at phase start_
-> **Lenses**: SFA/ABI, machine code, target platform
-> **Reasoning**: max — exact player ABI, writable state, interrupt ownership and cost
-> **Gate**: AR-2, AR-44; owner: project owner (Windows/GoatTracker evidence); completion: exact archive/member hashes, exports, settings, ABI evidence and expected outputs; checklist [00-rd-06-producer-evidence-handoff.md](../../00-rd-06-producer-evidence-handoff.md#part-g--goattracker-277)
-
-### Step 9.1: Evidence checkpoint
-
-- [!] 9.1.1 [owner: project owner] Receive, hash and record the exact GoatTracker 2.77 archive, exports, settings and ABI evidence, including owner/completion — `test/rd06/fixtures/goattracker/`, `test/rd06/fixtures/manifest.json` · Blocked: GoatTracker 2.77 evidence not supplied
-
-**Deliverables**:
-- [ ] Exact player/data identity, feature set, exports and hashes
-- [ ] Music-only and `-Dx` SFX exports
-
-**Verify**: `yarn vitest run test/rd06/fixtures.spec.test.ts`
-
-### Step 9.2: Specification tests first
-
-**Reference**: [03-03](03-03-psid-and-player-adapters.md) · AC-19/AC-20
-**Objective**: Lock the GoatTracker call sequences, feature pruning and costs.
-
-- [!] 9.2.1 [spec-author] Write GoatTracker specification tests from ST-171–ST-179 — `packages/compiler/src/assets/c64/goattracker.spec.test.ts` · Blocked: GoatTracker evidence
-- [!] 9.2.2 Run the GoatTracker specification tests and record the red phase · Blocked: GoatTracker evidence
-
-**Deliverables**:
-- [ ] Exact ABI and resource expectations encoded
-- [ ] Red evidence recorded
-
-**Verify**: `yarn workspace @blend65/compiler test src/assets/c64/goattracker.spec.test.ts`
-
-### Step 9.3: Implementation
-
-**Reference**: [03-03](03-03-psid-and-player-adapters.md) · AR-44
-**Objective**: Bind the exact contract and lower the operations.
-
-- [!] 9.3.1 Add the hash-bound GoatTracker contract record — `packages/compiler/src/assets/c64/goattracker.ts` · Blocked: GoatTracker evidence
-- [!] 9.3.2 Add feature-pruned exports and the init/tick/SFX ABI — `packages/compiler/src/assets/c64/goattracker.ts` · Blocked: GoatTracker evidence
-- [!] 9.3.3 Lower constant operations to direct register setup and absolute JSR with exact costs — `packages/compiler/src/machine/lower-c64.ts` · Blocked: GoatTracker evidence
-- [!] 9.3.4 Add the contract to the selected profile map — `packages/compiler/src/assets/c64/goattracker.ts`, `packages/compiler/src/frontend/profile.ts` · Blocked: GoatTracker evidence
-
-**Deliverables**:
-- [ ] Exact contract identity and enabled features
-- [ ] Direct call sequences and complete costs
-
-**Verify**: `yarn workspace @blend65/compiler test src/assets/c64/goattracker.spec.test.ts`
-
-### Step 9.4: Green, implementation tests, VICE and review
-
-- [!] 9.4.1 Run the GoatTracker specification tests and verify the green phase · Blocked: GoatTracker evidence
-- [!] 9.4.2 Write ABI, pruning, overlap and cost implementation tests — `packages/compiler/src/assets/c64/goattracker.impl.test.ts` · Blocked: GoatTracker evidence
-- [!] 9.4.3 Add the sequential VICE call/effect observation — `test/rd06/vice-goattracker.spec.test.ts` · Blocked: GoatTracker evidence
-- [!] 9.4.4 Record the physical listening and analog boundary honestly · Blocked: GoatTracker evidence
-- [!] 9.4.5 Dispatch independent SFA/ABI, machine-code and platform reviews · Blocked: GoatTracker evidence
-
-**Deliverables**:
-- [ ] AC-19/AC-20 pass
-- [ ] VICE call/effect evidence recorded
-- [ ] Physical listening remains explicitly bounded
-
-**Verify**: `yarn build && yarn typecheck && yarn workspace @blend65/compiler test src/assets/c64/goattracker.spec.test.ts && yarn vitest run test/rd06/vice-goattracker.spec.test.ts`
+> **Status**: Moved out of RD-06 by AR-58.
+> **Reason**: The adapter needs exact GoatTracker archive/member hashes, exports, settings and ABI
+> evidence. The generic `c64.audio` seam and empty contract map remain in RD-06; the GoatTracker
+> binding is a separate follow-up feature.
+>
+> No tasks in this phase. The AC-19/AC-20 acceptance criteria are moved with the adapter.
 
 ---
 
@@ -656,16 +607,16 @@ CodeOps task-size criteria: one reviewable change, 1–3 files, about 50–150 l
 > **Phase baseline tree**: _recorded by the exec-plan skill at phase start_
 > **Lenses**: semantics, SFA/ABI, machine code, target platform
 > **Reasoning**: max — full RD boundary, evidence integrity and closeout
-> **Gate**: Step 10.1 is unblocked after Phase 6; Step 10.2 is blocked until Phases 7–9 complete.
+> **Gate**: Step 10.1 is unblocked after Phase 8; Step 10.2 is the final closeout after 10.1.
 
-### Step 10.1: Unblocked integration and blocked-state closeout
+### Step 10.1: Integration and contingency closeout
 
-**Reference**: AR-1, AR-51, AR-52
-**Objective**: Give the unblocked work a verifiable terminal state even if producer evidence never arrives.
+**Reference**: AR-1, AR-51, AR-52, AR-54–AR-57
+**Objective**: Give the integrated work a verifiable terminal state even if a vendor example path is unavailable on a later host.
 
 - [ ] 10.1.1 Run the complete unblocked RD-06 suite and record the impact-based verification record — `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`
 - [ ] 10.1.2 Audit the unblocked `.assets.json`, `.memory.json`, `.costs.json` and `.debug.json` evidence set — `test/rd06/evidence-assets.impl.test.ts`
-- [ ] 10.1.3 Record the blocked-state closeout, remaining evidence gaps and roadmap `Blocked` state — `codeops/features/blend65-v4/plans/rd-06-native-assets/09-closeout.md`, `codeops/features/blend65-v4/00-roadmap.md`
+- [ ] 10.1.3 Record the contingency closeout, any unavailable vendor-evidence path and the honest roadmap state — `codeops/features/blend65-v4/plans/rd-06-native-assets/09-closeout.md`, `codeops/features/blend65-v4/00-roadmap.md`
 - [ ] 10.1.4 Dispatch the unblocked-phase correctness, semantics, SFA/ABI, machine-code and platform reviews
 
 **Deliverables**:
@@ -675,18 +626,18 @@ CodeOps task-size criteria: one reviewable change, 1–3 files, about 50–150 l
 
 **Verify**: `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`
 
-### Step 10.2: Producer-inclusive final verification and closeout (blocked)
+### Step 10.2: Final verification and closeout
 
 **Reference**: AR-1, AR-2, AR-51
-**Objective**: Run the final boundary suite and close RD-06 only after the evidence-gated phases pass.
+**Objective**: Run the final boundary suite and close RD-06 after all active phases pass.
 
-- [!] 10.2.1 Run the complete RD-06 boundary suite once after all paths integrate — `yarn test` · Blocked: Phases 7–9
-- [!] 10.2.2 Run the sequential four-profile VICE qualification — `yarn vitest run test/rd06 test/rd05` · Blocked: Phases 7–9
-- [!] 10.2.3 Dispatch the final independent correctness, semantics, SFA/ABI, machine-code and platform reviews · Blocked: Phases 7–9
-- [!] 10.2.4 Audit the complete evidence set and cross-sidecar reconciliation · Blocked: Phases 7–9
-- [!] 10.2.5 Run the deferral-expiry gate and re-own every due item — `codeops/features/blend65-v4/plans/rd-06-native-assets/09-closeout.md` · Blocked: Phases 7–9
-- [!] 10.2.6 Record honest public status, fixture roles, refreshed host observations and `VICE-verified / hardware-unverified` boundaries · Blocked: Phases 7–9
-- [!] 10.2.7 Update the roadmap and closeout — `codeops/features/blend65-v4/00-roadmap.md` · Blocked: Phases 7–9
+- [ ] 10.2.1 Run the complete RD-06 boundary suite once after all paths integrate — `yarn test`
+- [ ] 10.2.2 Run the sequential four-profile VICE qualification — `yarn vitest run test/rd06 test/rd05`
+- [ ] 10.2.3 Dispatch the final independent correctness, semantics, SFA/ABI, machine-code and platform reviews
+- [ ] 10.2.4 Audit the complete evidence set and cross-sidecar reconciliation
+- [ ] 10.2.5 Run the deferral-expiry gate and re-own every due item — `codeops/features/blend65-v4/plans/rd-06-native-assets/09-closeout.md`
+- [ ] 10.2.6 Record honest public status, fixture roles, refreshed host observations and `VICE-verified / hardware-unverified` boundaries
+- [ ] 10.2.7 Update the roadmap and closeout — `codeops/features/blend65-v4/00-roadmap.md`
 
 **Deliverables**:
 - [ ] Complete boundary suite green
@@ -712,15 +663,13 @@ Phase 4 (comptime) ─┤
     ↓               │
 Phase 5 (layout) ←──┘
     ↓
-Phase 6 (examples/blocked gates/status + unblocked full suite)
+Phase 6 (examples/status + unblocked suite)
     ↓
-Phase 10.1 (unblocked integration + blocked-state closeout)
+Phase 7 (SpritePad) → Phase 8 (CharPad)
     ↓
-Phase 7 (SpritePad, blocked) ─┐
-Phase 8 (CharPad, blocked) ───┤
-Phase 9 (GoatTracker, blocked)┤
-    ↓                          │
-Phase 10.2 (producer-inclusive final verification/closeout)
+Phase 10.1 (integration + contingency closeout)
+    ↓
+Phase 10.2 (final verification/closeout)
 ```
 
 ## Success Criteria
@@ -728,7 +677,7 @@ Phase 10.2 (producer-inclusive final verification/closeout)
 **Feature is complete when:**
 
 1. ✅ All unblocked phases completed and verified.
-2. ✅ SpritePad, CharPad and GoatTracker evidence checkpoints passed, or RD-06 is explicitly blocked and not reported as complete.
+2. ✅ SpritePad and CharPad producer evidence recorded without guessing; GoatTracker is explicitly moved to a follow-up (AR-58) and is not reported as verified.
 3. ✅ All verification passing (`yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck`, `yarn test`).
 4. ✅ Sequential VICE qualification passes on the selected profiles.
 5. ✅ No dead code, no hidden runtime, no compiler-supplied renderer/scheduler/mixer.

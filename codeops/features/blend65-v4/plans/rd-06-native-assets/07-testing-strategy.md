@@ -44,22 +44,22 @@ the implementation being written.
 | ST-169 | Hostile asset name/tag containing ACME syntax | Never emitted as an ACME directive or string; no source injection | AC-33 |
 | ST-170 | `.spd` or `.ctm` before its handler is registered | E10204 before raw fallback; no producer bytes embedded | AR-53 |
 
-### SpritePad 3.80 / SPD v5 (blocked until AR-51 evidence)
+### SpritePad 3.80 / SPD v5 (unblocked; vendor manual + local examples)
 
 | # | Input / Scenario | Expected Output / Behavior | Source |
 |---|------------------|-----------------------------|--------|
-| ST-7 | `a.spd` with valid v5 MIN fixture, no selector | Handler `spritepad`, default `sprites`, exact `64*N` bytes and manifest hash | R6.9, R6.12 |
-| ST-8 | `a.ctm` with valid v9 fixture, no selector | E10132 listing available selectors | R6.13 |
-| ST-9 | `embed("a.spd", "nope")` | E10133 listing the available selector inventory | R6.3 |
-| ST-19 | `SPD380-MIN-V5` default embed | `sprites` = 64 native bytes per sprite; `count`, three colors, `sprite_attributes` exact from manifest | R6.9, R6.12 |
-| ST-20 | `SPD380-ALL-V5` every selector | Every optional selector present with exact type/length/hash | R6.10, R6.12 |
-| ST-21 | `SPD380-WIDE-V5` boundary counts/indices | Wide counts accepted with exact outputs and no truncation | R6.8, R6.12 |
-| ST-22 | `SPD380-OPTIONALS-V5-tiles` | `tile_count`, `tile_width`, `tile_height`, `tiles` exact | R6.10 |
-| ST-23 | `SPD380-OPTIONALS-V5-attributes` | `tile_attributes` exact | R6.10 |
-| ST-24 | `SPD380-OPTIONALS-V5-tags` | `tile_tags` exact | R6.10 |
-| ST-25 | `SPD380-OPTIONALS-V5-overlays` | Both overlay distances exact | R6.10 |
-| ST-26 | `SPD380-OPTIONALS-V5-sprite-animation` | Count, starts, ends, timers, flags exact | R6.10 |
-| ST-27 | `SPD380-OPTIONALS-V5-tile-animation` | Count, starts, ends, timers, flags exact | R6.10 |
+| ST-7 | `ChromeFont.spd` with no selector | Handler `spritepad`, default `sprites`, exact `64*N` bytes and manifest hash | R6.9, R6.12 |
+| ST-8 | `Hexagone (5x5).ctm` with no selector | E10132 listing available selectors | R6.13 |
+| ST-9 | `embed("ChromeFont.spd", "nope")` | E10133 listing the available selector inventory | R6.3 |
+| ST-19 | `ChromeFont.spd` default embed | `sprites` = 64 native bytes per sprite; `count`, three colors, `sprite_attributes` exact from manifest | R6.9, R6.12 |
+| ST-20 | `SpriteAnimations01.spd` every available selector | Every optional selector present with exact type/length/hash | R6.10, R6.12 |
+| ST-21 | `Expanded Sprite Test.spd` tile counts/indices | Wide counts accepted with exact outputs and no truncation | R6.8, R6.12 |
+| ST-22 | `Expanded Sprite Test.spd` tile selectors | `tile_count`, `tile_width`, `tile_height`, `tiles` exact | R6.10 |
+| ST-23 | Synthetic SPD v5 tile-attributes case | `tile_attributes` exact | R6.10 |
+| ST-24 | Synthetic SPD v5 tile-tags case | `tile_tags` exact | R6.10 |
+| ST-25 | Real/synthetic SPD v5 overlay case | Both overlay distances exact | R6.10 |
+| ST-26 | `SpriteAnimations01.spd` sprite animation | Count, starts, ends, timers, flags exact | R6.10 |
+| ST-27 | Synthetic SPD v5 tile-animation case | Count, starts, ends, timers, flags exact | R6.10 |
 | ST-28 | Selector absent from parsed optional set | E10133 listing the available names | R6.10 |
 | ST-29 | SPD v4 file | E10204 at the version byte, no bytes | R6.8, AC-09 |
 | ST-30 | SPD v6 file | E10204 at the version byte, no bytes | R6.8, AC-09 |
@@ -75,13 +75,13 @@ the implementation being written.
 | ST-40 | `"multicolor"`, `"base_block"` or another invented name | E10133; no file-wide multicolor or base block exists | R6.9, AC-07 |
 | ST-187 | Retained `assets/bad.spd` (`01 02 03`) | Exactly one E10204 whose message matches the structural-failure regex; primary span is the embed call; no asset emitted | RD-06 retained fixture |
 
-### CharPad 3.88 / CTM v9 (blocked until AR-51 evidence)
+### CharPad 3.80 / CTM v9 (unblocked; vendor manual + local examples)
 
 | # | Input / Scenario | Expected Output / Behavior | Source |
 |---|------------------|-----------------------------|--------|
-| ST-41 | `CTM388-MIN-V9` | `charset`, `map`, `colors`, `color_method`, dimensions exact; `tile_mode=false`, `tile_width=1`, `tile_height=1` | R6.14, R6.19 |
-| ST-42 | `CTM388-ALL-V9` every selector | Every selector present with exact type/length/hash | R6.14, R6.19 |
-| ST-43 | `CTM388-WIDE-V9` | Wide dimensions/counts accepted, exact outputs | R6.13, R6.19 |
+| ST-41 | `Hexagone (5x5).ctm` | `charset`, `map`, `colors`, `color_method`, dimensions exact; `tile_mode=false`, `tile_width=1`, `tile_height=1` | R6.14, R6.19 |
+| ST-42 | `C64 ROM Upper Case.ctm` every available selector | Every selector present with exact type/length/hash | R6.14, R6.19 |
+| ST-43 | Synthetic CTM v9 wide boundary | Wide dimensions/counts accepted, exact outputs | R6.13, R6.19 |
 | ST-44 | Tile-mode fixture | `tiles`, `tiles_word`, `tiles_low/high`, `tiles_packed12` exact | R6.14–R6.16 |
 | ST-45 | No-tile fixture | `tiles`, `tiles_word`, `tiles_low/high`, `tiles_packed12` absent → E10133; `tile_mode=false` | R6.14 |
 | ST-46 | Every referenced index ≤ 255 | `map` and `tiles` are `byte[]` | R6.15, AC-12 |
@@ -239,19 +239,11 @@ the implementation being written.
 | ST-180 | Source/manifest/asset changes during capture | Complete retry or deterministic failure; no mixed input hashes | AC-03 |
 | ST-184 | Mutable/runtime-local/explicit-extent/element-type mismatch | Specification 4 diagnostic and no artifact | AC-04 |
 
-### GoatTracker 2.77 adapter (blocked until AR-2 evidence)
+### GoatTracker 2.77 adapter (moved out of RD-06)
 
 | # | Input / Scenario | Expected Output / Behavior | Source |
 |---|------------------|-----------------------------|--------|
-| ST-171 | GoatTracker init with subtune in A | `JSR start` exact sequence and register state | R6.24, AC-19 |
-| ST-172 | GoatTracker one tick | `JSR start+3` exact sequence | R6.24, AC-19 |
-| ST-173 | `-Dx` SFX with channel offset 0 | Effect address in A/Y, X=0, `JSR start+6` | R6.24, AC-19 |
-| ST-174 | `-Dx` SFX with channel offset 7 | X=7, exact call sequence | R6.24, AC-19 |
-| ST-175 | `-Dx` SFX with channel offset 14 | X=14, exact call sequence | R6.24, AC-19 |
-| ST-176 | Feature-pruned music-only export | Only enabled features/costs present; no unused player code | R6.24, AC-19 |
-| ST-177 | Writable/self-modifying ranges | Exact ranges reported and placed writable | R6.24, AC-19 |
-| ST-178 | Complete code/data/ZP/stack/cycle costs | Exact resource record with `Unknown` for unavailable terms | R6.24, AC-19 |
-| ST-179 | Static and binary inspection | No compiler-installed IRQ, scheduler, mixer, queue, dispatcher or name table | R6.25, AC-20 |
+| — | GoatTracker 2.77 adapter | Moved to a follow-up feature (AR-58); not an RD-06 specification case | R6.24–R6.25 |
 
 ## Test Categories
 
@@ -274,7 +266,7 @@ the implementation being written.
 | `test/rd06/blocked-gates.spec.test.ts` | ST-159, ST-160 | Blocked-family honesty |
 | `test/rd06/examples.spec.test.ts` | ST-128, ST-161 | Example builds |
 | `test/rd06/fixtures.spec.test.ts` | ST-155–ST-164, ST-180, ST-183, ST-184 | Fixtures/status/closeout |
-| `packages/compiler/src/assets/c64/goattracker.spec.test.ts` | ST-171–ST-179 | GoatTracker (blocked) |
+
 
 ### Implementation tests
 
@@ -291,7 +283,7 @@ the implementation being written.
 | `test/rd06/fixtures.impl.test.ts` | Manifest duplicate/unlisted/hash-mismatch cases | High |
 | `packages/compiler/src/assets/c64/spritepad.impl.test.ts` | Optional-matrix and malformed derivations | High |
 | `packages/compiler/src/assets/c64/charpad.impl.test.ts` | Block order, truncation, width and packed-12 internals | High |
-| `packages/compiler/src/assets/c64/goattracker.impl.test.ts` | ABI, pruning, overlap and cost internals | High |
+
 
 ### Integration and end-to-end tests
 
@@ -305,7 +297,6 @@ the implementation being written.
 | `test/rd06/vice-qp15.spec.test.ts` | Q-P15, VICE | Draw order, occlusion, update, cycle evidence |
 | `test/rd06/vice-spritepad.spec.test.ts` | SpritePad, VICE | Producer rendering check (blocked) |
 | `test/rd06/vice-charpad.spec.test.ts` | CharPad, VICE | Charset visibility (blocked) |
-| `test/rd06/vice-goattracker.spec.test.ts` | GoatTracker, VICE | Call/effect observation (blocked) |
 
 ## Test Data
 
@@ -317,20 +308,20 @@ the implementation being written.
 - `test/rd06/fixtures/public/koala/`
 - `test/rd06/fixtures/spritepad/` (blocked)
 - `test/rd06/fixtures/charpad/` (blocked)
-- `test/rd06/fixtures/goattracker/` (blocked)
+- `test/rd06/fixtures/goattracker/` (moved to a follow-up; not an RD-06 fixture family)
 - `test/rd06/fixture-tools/` (schema, checkpoint validator, fixture builders)
 
 ### Mock requirements
 
 No mock parser or comparative decoder. Real compiler services, real ACME, real VICE for hardware
 checks. Synthetic audio contracts are real typed records used to test contract validation; they are
-not GoatTracker qualification.
+not a player-adapter qualification.
 
 ## AC Coverage Map
 
 | AC | ST cases | AC | ST cases |
 | --- | --- | --- | --- |
-| AC-01 | ST-1, ST-7, ST-8, ST-41, ST-66, ST-94, ST-170 | AC-20 | ST-179 |
+| AC-01 | ST-1, ST-7, ST-8, ST-41, ST-66, ST-94, ST-170 | AC-20 | Moved out (AR-58) |
 | AC-02 | ST-4, ST-5, ST-6, ST-8, ST-9, ST-54, ST-96 | AC-21 | ST-94, ST-95, ST-101 |
 | AC-03 | ST-180 | AC-22 | ST-99, ST-100 |
 | AC-04 | ST-15, ST-16, ST-184 | AC-23 | ST-102–ST-106, ST-109 |
@@ -348,7 +339,7 @@ not GoatTracker qualification.
 | AC-16 | ST-66–ST-71 | AC-35 | ST-161, ST-162 |
 | AC-17 | ST-72–ST-85 | AC-36 | ST-128 |
 | AC-18 | ST-83–ST-87, ST-181 | AC-37 | ST-164 |
-| AC-19 | ST-171–ST-178 | — | — |
+| AC-19 | Moved out (AR-58) | — | — |
 
 ## Verification Checklist
 

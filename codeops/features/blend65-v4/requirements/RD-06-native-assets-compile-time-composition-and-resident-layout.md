@@ -3,6 +3,7 @@
 > **Document**: RD-06-native-assets-compile-time-composition-and-resident-layout.md
 > **Status**: Draft
 > **Created**: 2026-09-10
+> **Scope revision**: 2026-11-08 — CharPad producer pin is 3.80 (CTM v9). SpritePad/CharPad evidence is the licensed vendor manuals plus selected real examples; real files may remain local-only with a committed manifest and hashes. GoatTracker 2.77 (R6.24–R6.26, AC-19–AC-20) is moved to follow-up T-19 and is not an RD-06 closeout gate.
 > **Project**: Blend65 v4
 > **Depends On**: RD-01, RD-02, RD-03, RD-04, RD-05
 > **CodeOps Artifact Schema**: 1
@@ -43,7 +44,7 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
 #### Bounded asset integration surface — complexity L
 
 - [ ] **R6.1 — Implement exactly the approved handler baseline.** Provide explicit built-in C64
-  handlers for SpritePad C64 Pro 3.80 project files with SPD v5, CharPad C64 Pro 3.88 project files
+  handlers for SpritePad C64 Pro 3.80 project files with SPD v5, CharPad C64 Pro 3.80 project files
   with CTM v9, the self-contained directly callable PSID v1–v4 subset, and classic 10,003-byte
   Koala files. Preserve one-argument raw byte inclusion only for extensions that the selected
   profile has not registered. Before implementation planning or decoder work for any named native
@@ -114,13 +115,14 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   and selected-VIC-bank visibility constraints. Final placement, not the file handler, determines
   `vicSpriteBlock` values. Reject misalignment, an out-of-bank record, or a record set that cannot
   coexist with the active screen and other live VIC objects; never copy or split records silently.
-- [ ] **R6.12 — Require authentic producer evidence.** Parser qualification requires the
-  producer-generated `SPD380-MIN-V5`, `SPD380-ALL-V5`, `SPD380-WIDE-V5`, and meaningful
-  `SPD380-OPTIONALS-V5-*` fixtures, plus derived v4/v6 and malformed cases. Record SpritePad 3.80
-  project/save provenance, file SHA-256, every selected output's type, length and SHA-256, and
-  complete tail/EOF coverage. The Linux compiler and CI never invoke SpritePad. (AR-037, AR-040)
+- [ ] **R6.12 — Require authentic producer evidence.** Parser qualification uses the official
+  SpritePad C64 Pro 3.80 vendor manual plus selected real SPD v5 examples (local-only when the EULA
+  does not grant redistribution) and synthetic derived v4/v6/malformed cases covering every optional
+  component and boundary. Record the manual and example paths/versions/SHA-256, every selected
+  output's type, length and SHA-256, and complete tail/EOF coverage. The Linux compiler and CI never
+  invoke SpritePad. (AR-037, AR-040, AR-54–AR-57)
 
-#### CharPad C64 Pro 3.88 / CTM v9 — complexity XL
+#### CharPad C64 Pro 3.80 / CTM v9 — complexity XL
 
 - [ ] **R6.13 — Validate complete CTM v9 projects.** Accept ASCII `CTM` version 9 only and validate
   the full ordered `$DABn` block schema, flags, counts, dimensions, display/color/tile conditions,
@@ -148,13 +150,18 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   screens, derived Color RAM, base addresses, VIC register fields, or offset tables. `"charset"`
   carries 2-KiB alignment and selected-VIC-bank visibility. Final layout supplies the address used
   by `vicCharsetSelect`; the handler supplies bytes and constraints only. (AR-038)
-- [ ] **R6.19 — Require authentic CharPad evidence.** Qualification requires producer-generated
-  `CTM388-MIN-V9`, `CTM388-ALL-V9`, `CTM388-WIDE-V9`, and every meaningful display × color ×
-  tile-mode fixture, plus v8/v10 and block-derived malformed cases. Record 3.88 project/save
-  provenance, input SHA-256, dimensions/widths, and every selected output's type, length and
-  SHA-256. Comparative parsers cannot replace missing producer evidence. (AR-040)
+- [ ] **R6.19 — Require authentic CharPad evidence.** Qualification uses the official CharPad C64
+  Pro 3.80 vendor manual plus selected real CTM v9 examples (local-only when the EULA does not grant
+  redistribution) and synthetic coverage for every display × color × tile-mode combination, v8/v10
+  and block-derived malformed cases. Record the manual/example paths, 3.80 version, input SHA-256,
+  dimensions/widths, and every selected output's type, length and SHA-256. Comparative parsers cannot
+  replace this evidence. (AR-040, AR-54–AR-57)
 
 #### PSID data and exact player adapters — complexity XL
+
+> **Scope revision 2026-11-08:** R6.24–R6.26 are moved to follow-up T-19; RD-06 keeps R6.20–R6.23
+> (PSID parsing, load/entry metadata, compatibility and the callable-audio split) and the generic
+> `c64.audio` seam with an empty contract map.
 
 - [ ] **R6.20 — Parse only the qualified PSID subset.** Accept ASCII `PSID` v1–v4 with data offset
   `$0076` for v1 or `$007C` for v2–v4, version-correct header lengths and big-endian fields,
@@ -178,17 +185,17 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   interrupt ownership, or a safe ABI. Callable use requires provenance matching one exact
   hash-bound selected-profile player contract. Missing contract is E10256 and an unavailable
   operation/cue/voice is E10257. (AR-038, AR-040)
-- [ ] **R6.24 — Qualify GoatTracker 2.77 as the first adapter.** Bind the exact exported player/data
+- [ ] **R6.24 — Qualify GoatTracker 2.77 as the first adapter (moved to T-19).** Bind the exact exported player/data
   identity and selected feature set. Cover init with subtune in A to `JSR start`, one tick to
   `JSR start+3`, and optional `-Dx` SFX with effect address in A/Y and channel offset `0`, `7`, or
   `14` in X to `JSR start+6`. Preserve feature-pruned exports and report every code, data, writable,
   self-modifying, ZP, stack, register/flag, banking, cadence, IRQ, and cycle obligation. (AR-040)
-- [ ] **R6.25 — Keep audio policy in source and the selected player.** User-authored source chooses
+- [ ] **R6.25 — Keep audio policy in source and the selected player (moved to T-19).** User-authored source chooses
   init, song/effect, and every tick call site. The compiler installs no scheduler, mixer, queue,
   interrupt, or name table. Player-native arbitration/queue behavior is allowed only when the exact
   adapter declares it; it is not generalized into a Blend65 audio engine. Reachable unsafe overlap
   of non-reentrant player operations is E10258. (AR-038)
-- [ ] **R6.26 — Prove audio assets independently.** Cover one fixed-load and one payload-load-address
+- [ ] **R6.26 — Prove audio assets independently (moved to T-19).** Cover one fixed-load and one payload-load-address
   file for every accepted PSID version, valid PAL/NTSC/model combinations, exact GoatTracker
   music-only and integrated-SFX exports, and all listed negative classes. Runtime proof observes
   calls and ordered SID-register effects; named physical 6581/8580 listening remains the bounded
@@ -533,7 +540,7 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 
 ### With RD-03 (Playable M1 Complete Pipeline)
 
-- Adds the first SpritePad path against the complete 3.80 fixture set, then reuses M1's typed-array,
+- Adds the first SpritePad path against the selected real 3.80 examples and synthetic coverage, then reuses M1's typed-array,
   placement and runtime boundaries as regression evidence. The user-provided project is evidence,
   not a template game system.
 
@@ -688,7 +695,7 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 7. [ ] **AC-07 — SPD identity and records:** Authentic 3.80 fixtures prove ASCII `SPD` v5, exact
    64-byte records, word counts, global colors, packed per-record attributes, default `sprites`, and
    every selector in the SpritePad technical table by type, length, and SHA-256.
-8. [ ] **AC-08 — SPD optional matrix:** The `SPD380-OPTIONALS-V5-*` set exercises every supported
+8. [ ] **AC-08 — SPD optional matrix:** The synthetic optional-component set exercises every supported
    tile, tag, overlay, sprite-animation, and tile-animation component both present and absent in
    meaningful valid combinations; absent selection is E10133.
 9. [ ] **AC-09 — SPD failures:** V4, v6, every block truncation, mismatched count/index/attribute,
@@ -696,9 +703,10 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 10. [ ] **AC-10 — SPD placement:** A legal aligned visible record set yields exact final
     `vicSpriteBlock` values with no runtime calculation/copy. Misaligned, out-of-bank, and
     256-record-plus-active-screen resident cases fail with interval evidence before ACME.
-11. [ ] **AC-11 — CTM identity and modes:** Authentic 3.88 fixtures prove ASCII `CTM` v9, complete
-    ordered blocks, every display × color × tile-mode combination, exact EOF, and all selector
-    types/availability in the CharPad table.
+11. [ ] **AC-11 — CTM identity and modes:** The official CharPad 3.80 manual, selected real CTM v9
+    examples and synthetic coverage prove ASCII `CTM` v9, complete ordered blocks, every display ×
+    color × tile-mode combination, exact EOF, and all selector types/availability in the CharPad
+    table.
 12. [ ] **AC-12 — CTM canonical width:** Maximum index 255 produces `byte[]`; 256 produces
     little-endian `word[]`. Declaring the opposite type produces E10144 with the required type and
     never truncates or changes the parsed file result.
@@ -721,10 +729,10 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 18. [ ] **AC-18 — Unknown is not Both:** Unknown PSID clock/model remains legal embedded data but
     cannot be called without an exact contract; a specific compatible set passes and a specific
     incompatible set fails without conversion.
-19. [ ] **AC-19 — GoatTracker exact adapter:** Hash-bound GoatTracker 2.77 music-only and `-Dx`
+19. [ ] **AC-19 — GoatTracker exact adapter (moved to T-19):** Hash-bound GoatTracker 2.77 music-only and `-Dx`
     exports prove direct init/tick/SFX call sequences, logical voice mapping to X offsets
     `0`, `7`, `14`, enabled feature pruning, exact writable ranges, and complete resource costs.
-20. [ ] **AC-20 — No audio engine:** Static and binary inspection finds no compiler-installed IRQ,
+20. [ ] **AC-20 — No audio engine (moved to T-19):** Static and binary inspection finds no compiler-installed IRQ,
     scheduler, mixer, generic queue, dispatcher, runtime name table, or unrequested player feature.
     User source contains every tick/cue call site; unsafe overlap is E10258.
 21. [ ] **AC-21 — Koala exact layout:** Zero-pattern, patterned, Color-RAM-high-nibble, and
