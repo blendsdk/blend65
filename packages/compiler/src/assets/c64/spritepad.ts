@@ -370,10 +370,13 @@ export const spritepadHandler: AssetHandler = Object.freeze({
       case "tile_height":
         return scalarOutput(BigInt(tileHeight), SCALAR_TYPES.byte);
       case "tiles":
+        if (!tiles) return failure(request, "E10133", "TILES", 4, "this project has no tile layer");
         return arrayOutput(tileData, byteArray(tileData.length), "spd-tiles");
       case "tile_attributes":
+        if (!tiles) return failure(request, "E10133", "TILES", 4, "this project has no tile layer");
         return arrayOutput(tileAttributes, byteArray(tileAttributes.length), "spd-tile-attributes");
       case "tile_tags":
+        if (!tiles) return failure(request, "E10133", "TILES", 4, "this project has no tile layer");
         return arrayOutput(tileTags, byteArray(tileTags.length), "spd-tile-tags");
       case "sprite_animation_count":
         return scalarOutput(BigInt(spriteAnimationCount), SCALAR_TYPES.word);

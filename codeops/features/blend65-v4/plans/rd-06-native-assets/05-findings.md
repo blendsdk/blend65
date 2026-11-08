@@ -77,3 +77,5 @@
 | SR-804 | 6/7/8 | MAJOR | closeout/coverage | deferred — committed synthetic SPD/CTM fixtures, focused producer examples, a dedicated layout/evidence sidecar test and formal phase reviews remain; RD-06 is not closeout-ready |
 | SR-805 | 5 | MINOR | layout/spec | fixed — 128-sprite fit, 256-sprite failure, alignment, bank visibility, character-ROM and region tests |
 | SR-806 | 6 | MINOR | status/spec | fixed — producer-evidence retention, public synthetic status and VICE boundary tests |
+| SR-807 | 5 | MINOR | evidence/impl | fixed — sidecar tests cover scalar `compileTime`, resident constraints/alignment/visibility and deduplicated build inputs |
+| SR-808 | 7 | MINOR | spritepad/impl | fixed — synthetic name-length, no-tile and tile-cell tests |

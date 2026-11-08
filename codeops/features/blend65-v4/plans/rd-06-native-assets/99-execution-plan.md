@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-08
-> **Progress**: 119/151 tasks (79%)
+> **Progress**: 125/151 tasks (83%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -343,8 +343,8 @@ immediately testable.
 **Objective**: Lock every interval, view, derived field and sidecar expectation.
 
 - [x] 5.1.1 [spec-author] Write interval, alignment, Koala placement, VIC-field and composition specification tests from ST-102–ST-107, ST-109, ST-129–ST-145, ST-182, ST-185 and ST-186 — `test/rd06/layout-assets.spec.test.ts`
-- [ ] 5.1.2 [spec-author] Write evidence, scalar-record and cross-sidecar specification tests from ST-92 and ST-146–ST-154 — `test/rd06/layout-assets.spec.test.ts`
-- [ ] 5.1.3 Run the layout/evidence specification tests and record the red phase — `yarn vitest run test/rd06/layout-assets.spec.test.ts`
+- [x] 5.1.2 [spec-author] Write evidence, scalar-record and cross-sidecar specification tests from ST-92 and ST-146–ST-154 — `test/rd06/layout-assets.spec.test.ts`
+- [x] 5.1.3 Run the layout/evidence specification tests and record the red phase — `yarn vitest run test/rd06/layout-assets.spec.test.ts`
 
 **Deliverables**:
 - [ ] Interval, view, alignment, visibility, derived-field and sidecar expectations encoded
@@ -368,7 +368,7 @@ immediately testable.
 - [ ] 5.2.9 Populate `.costs.json` zero/runtime costs and `.debug.json` asset records — `packages/compiler/src/services/evidence.ts`
 - [x] 5.2.10 Keep ACME output free of asset paths and permissive binary directives — `packages/compiler/src/artifacts/acme-serializer.ts`
 - [x] 5.2.11 Extend cross-sidecar reconciliation for handler/selector/constraint and compile-time scalar fields — `packages/compiler/src/publication/sidecar-consistency.ts`
-- [ ] 5.2.12 Keep the existing Specification 4 W10150 percentage warning unchanged and add its regression — `packages/compiler/src/services/resource-diagnostics.ts`
+- [x] 5.2.12 Keep the existing Specification 4 W10150 percentage warning unchanged and add its regression — `packages/compiler/src/services/resource-diagnostics.ts`
 - [x] 5.2.13 Add the `c64.vic.bank0` region and reject other regions; publish per-asset bank/visibility evidence — `packages/compiler/src/frontend/profile.ts`, `packages/compiler/src/frontend/placement.ts`, `packages/compiler/src/services/evidence.ts`
 
 **Deliverables**:
@@ -383,9 +383,9 @@ immediately testable.
 **Reference**: AR-6, AR-38
 **Objective**: Prove the specification and keep existing output stable.
 
-- [ ] 5.3.1 Run the layout/evidence specification tests and verify the green phase — `yarn vitest run test/rd06/layout-assets.spec.test.ts`
+- [x] 5.3.1 Run the layout/evidence specification tests and verify the green phase — `yarn vitest run test/rd06/layout-assets.spec.test.ts`
 - [ ] 5.3.2 Write layout cursor, noCross, alignment, derived-field and free-interval implementation tests — `packages/compiler/src/layout/c64-layout-assets.impl.test.ts`
-- [ ] 5.3.3 Write sidecar completeness, canonical order and reconciliation implementation tests — `test/rd06/evidence-assets.impl.test.ts`
+- [x] 5.3.3 Write sidecar completeness, canonical order and reconciliation implementation tests — `test/rd06/evidence-assets.impl.test.ts`
 - [x] 5.3.4 Run the focused M1/RD-05 layout and artifact regressions — `yarn vitest run test/m1/pipeline.spec.test.ts test/rd05/profile-output.spec.test.ts`
 - [x] 5.3.5 Run the directed layout/evidence suite and phase checkpoint
 - [ ] 5.3.6 Dispatch independent SFA/ABI, machine-code and platform reviews and record dispositions
@@ -512,7 +512,7 @@ immediately testable.
 ### Step 7.4: Green, implementation tests, VICE and review
 
 - [x] 7.4.1 Run the SpritePad specification tests and verify the green phase
-- [ ] 7.4.2 Write synthetic optional-matrix, adjacent-version and malformed-derivation implementation tests — `packages/compiler/src/assets/c64/spritepad.impl.test.ts`
+- [x] 7.4.2 Write synthetic optional-matrix, adjacent-version and malformed-derivation implementation tests — `packages/compiler/src/assets/c64/spritepad.impl.test.ts`
 - [x] 7.4.3 Add the bounded producer VICE rendering check — `test/rd06/vice-spritepad.spec.test.ts`
 - [ ] 7.4.4 Add the focused SpritePad example — `examples/rd06-assets/spritepad.blend`
 - [ ] 7.4.5 Dispatch independent semantics, machine-code and platform reviews
