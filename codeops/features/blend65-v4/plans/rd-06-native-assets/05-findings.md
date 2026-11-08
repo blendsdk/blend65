@@ -71,3 +71,7 @@
 | SR-704 | 7/8 | MINOR | qualification/impl | deferred — dedicated impl tests, producer VICE rendering checks and formal phase reviews remain |
 | SR-705 | 6 | MAJOR | examples/status | deferred — `examples/rd06-assets/`, host observations and public status text remain |
 | SR-706 | 8 | MINOR | charpad/tags | accepted — tile tags are validated structurally but not exposed as a selector because the plan does not list one |
+| SR-801 | 6 | MAJOR | example/status | fixed — `examples/rd06-assets/` builds raw, Koala and PSID assets and `08-host-observations.md` records handler identities and the VICE/hardware boundary |
+| SR-802 | 8 | MINOR | charpad/impl | fixed — synthetic CTM tests cover packed-12 overflow, no-tile defaults and per-mode color width |
+| SR-803 | 7/8 | MINOR | producer/vice | fixed — native VICE observes SpritePad sprite bytes and CharPad charset bytes at their final addresses |
+| SR-804 | 6/7/8 | MAJOR | closeout/coverage | deferred — dedicated fixture/status/blocked-gate spec files, committed synthetic SPD/CTM fixtures, focused producer examples, and formal phase reviews remain; RD-06 is not closeout-ready |

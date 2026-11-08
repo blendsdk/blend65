@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-08
-> **Progress**: 106/151 tasks (70%)
+> **Progress**: 112/151 tasks (74%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -429,8 +429,8 @@ immediately testable.
 **Objective**: Create the producer checkpoint, examples and status records.
 
 - [ ] 6.2.1 Add the producer-checkpoint validator and blocked-family checks — `test/rd06/fixture-tools/producer-checkpoint.ts`
-- [ ] 6.2.2 Add the focused raw, PSID, Koala, audio embed-only, aliasing and compile-time refinement examples with `blend65.json` + `src/` — `examples/rd06-assets/`
-- [ ] 6.2.3 Record per-handler host observations and public status text — `codeops/features/blend65-v4/plans/rd-06-native-assets/08-host-observations.md`
+- [x] 6.2.2 Add the focused raw, PSID, Koala, audio embed-only, aliasing and compile-time refinement examples with `blend65.json` + `src/` — `examples/rd06-assets/`
+- [x] 6.2.3 Record per-handler host observations and public status text — `codeops/features/blend65-v4/plans/rd-06-native-assets/08-host-observations.md`
 - [ ] 6.2.4 Add the blocked-gate manifest fixtures/expectations — `test/rd06/fixtures/manifest.json`, `test/rd06/blocked-gates.spec.test.ts`
 
 **Deliverables**:
@@ -447,7 +447,7 @@ immediately testable.
 
 - [ ] 6.3.1 Run the fixture/status specification tests and verify the green phase — `yarn vitest run test/rd06/fixtures.spec.test.ts`
 - [ ] 6.3.2 Write manifest duplicate/unlisted/hash-mismatch implementation tests — `test/rd06/fixtures.impl.test.ts`
-- [ ] 6.3.3 Build every focused example and verify exact outputs — `yarn vitest run test/rd06/examples.spec.test.ts`
+- [x] 6.3.3 Build every focused example and verify exact outputs — `yarn vitest run test/rd06/examples.spec.test.ts`
 - [ ] 6.3.4 Run the complete unblocked RD-06 suite and phase checkpoint — `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`
 - [ ] 6.3.5 Dispatch independent semantics and target-platform reviews of examples and status text
 
@@ -513,7 +513,7 @@ immediately testable.
 
 - [x] 7.4.1 Run the SpritePad specification tests and verify the green phase
 - [ ] 7.4.2 Write synthetic optional-matrix, adjacent-version and malformed-derivation implementation tests — `packages/compiler/src/assets/c64/spritepad.impl.test.ts`
-- [ ] 7.4.3 Add the bounded producer VICE rendering check — `test/rd06/vice-spritepad.spec.test.ts`
+- [x] 7.4.3 Add the bounded producer VICE rendering check — `test/rd06/vice-spritepad.spec.test.ts`
 - [ ] 7.4.4 Add the focused SpritePad example — `examples/rd06-assets/spritepad.blend`
 - [ ] 7.4.5 Dispatch independent semantics, machine-code and platform reviews
 
@@ -577,8 +577,8 @@ immediately testable.
 ### Step 8.4: Green, implementation tests, VICE and review
 
 - [x] 8.4.1 Run the CharPad specification tests and verify the green phase
-- [ ] 8.4.2 Write synthetic block-order, truncation, display/color/tile-mode, width and packed-12 implementation tests — `packages/compiler/src/assets/c64/charpad.impl.test.ts`
-- [ ] 8.4.3 Add the bounded producer VICE charset check — `test/rd06/vice-charpad.spec.test.ts`
+- [x] 8.4.2 Write synthetic block-order, truncation, display/color/tile-mode, width and packed-12 implementation tests — `packages/compiler/src/assets/c64/charpad.impl.test.ts`
+- [x] 8.4.3 Add the bounded producer VICE charset check — `test/rd06/vice-charpad.spec.test.ts`
 - [ ] 8.4.4 Add the focused CharPad example — `examples/rd06-assets/charpad.blend`
 - [ ] 8.4.5 Dispatch independent semantics, machine-code and platform reviews
 

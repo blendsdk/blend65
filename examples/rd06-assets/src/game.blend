@@ -1,0 +1,25 @@
+module Game;
+
+// Raw bytes: the default raw handler keeps the existing inclusion behavior.
+const SPRITES: byte[] = embed("sprites.bin");
+
+// Koala display components: placed explicitly and combined into $D018 fields.
+place(at: $2000) const BITMAP: byte[] = embed("level.kla", "bitmap");
+place(at: $0C00) const SCREEN: byte[] = embed("level.kla", "screen");
+
+// PSID data: fixed at its own declared load address; the scalar is compile-time only.
+const MUSIC: byte[] = embed("music.sid");
+const MUSIC_INIT: word = embed("music.sid", "init_address");
+
+function main(): void {
+  poke($D011, $3b);
+  poke($D016, $18);
+  poke($D018, c64.vic.vicBitmapSelect(&BITMAP) | c64.vic.vicScreenSelect(&SCREEN));
+  poke($DD00, $17);
+  poke($0400, byte(MUSIC_INIT));
+  poke($0401, SPRITES[0]);
+  poke($0402, MUSIC[0]);
+  while (true) {
+    c64.video.waitNextFrame();
+  }
+}
