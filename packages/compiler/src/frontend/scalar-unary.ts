@@ -112,6 +112,19 @@ export function analyzeScalarUnary(
       placeContext: true,
     });
     if (operand.node === null) return { node: null, exact: null };
+    if (
+      operand.node.binding !== null &&
+      analyzer.host.embeddedAddressability?.(operand.node.binding) === "empty"
+    ) {
+      analyzer.host.diagnose(
+        error(
+          "E10043",
+          `Address-of requires an addressable storage place or target function — '${analyzer.host.sourceText(expression.operand.span)}' is a compile-time-only embedded value with no target address`,
+          expression.span,
+        ),
+      );
+      return { node: null, exact: null };
+    }
     const operandName = qualifiedCallName(expression.operand);
     const named = operandName === null ? null : analyzer.host.resolveName(operandName, context);
     if (
@@ -231,7 +244,13 @@ export function analyzeScalarUnary(
   const operandFacts = integerFacts(operand.node.type, false)!;
   if (context.ordinalContext && operandFacts.width === 8) {
     const promoted = operandFacts.signed ? SCALAR_TYPES.sword : SCALAR_TYPES.word;
-    operand = applyExpectedScalar(operand, promoted, expression.operand, context, analyzer.host);
+    operand = applyExpectedScalar(
+      operand,
+      promoted,
+      expression.operand,
+      { ...context, operatorConversion: true },
+      analyzer.host,
+    );
     if (operand.node === null) return { node: null, exact: null };
   }
   const facts = integerFacts(operand.node.type, !context.constantContext)!;

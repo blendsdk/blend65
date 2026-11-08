@@ -91,6 +91,7 @@ class ModuleAnalyzer {
   private readonly body: BodyAnalyzer;
   /** Immutable packed constants, encoded once when their declaration is published. */
   private readonly constantAggregates = new Map<string, readonly number[]>();
+  private readonly embeddedAddressability = new Map<string, "resident" | "scalar" | "empty">();
   readonly profileSignatures = new Map<string, FunctionSignature>();
 
   constructor(
@@ -110,10 +111,18 @@ class ModuleAnalyzer {
       diagnose: (diagnostic) => this.diagnostics.push(diagnostic),
       defer: (span, message) => this.addObligation(span, message),
       sourceText: (span) => sourceText(this.sources, span),
-      embeddedExtent: (initializer) =>
-        this.embeddedValues.get(
+      embeddedExtent: (initializer) => {
+        const value = this.embeddedValues.get(
           `${initializer.span.sourceId}:${initializer.span.start}:${initializer.span.end}`,
-        )?.type.length ?? null,
+        );
+        return value?.type.kind === "array" ? value.type.length : null;
+      },
+      embeddedScalar: (initializer) => {
+        const value = this.embeddedValues.get(
+          `${initializer.span.sourceId}:${initializer.span.start}:${initializer.span.end}`,
+        );
+        return value?.kind === "embedded-scalar" ? { value: value.value, type: value.type } : null;
+      },
     });
     const prepared = prepareModuleBindings(graph, this.declarationByKey, this.aggregates);
     this.bindings = prepared.bindings;
@@ -162,6 +171,8 @@ class ModuleAnalyzer {
           this.embeddedValues.get(
             `${expression.span.sourceId}:${expression.span.start}:${expression.span.end}`,
           ) ?? null,
+        embeddedAddressability: (binding) =>
+          this.embeddedAddressability.get(bindingIdentityKey(binding)) ?? null,
       },
       this.aggregates,
     );
@@ -332,17 +343,43 @@ class ModuleAnalyzer {
     ) {
       this.retainConstantAggregate(analyzed.binding, analyzed.initializer, analyzed.type);
     }
+    if (analyzed.kind === "typed" && analyzed.initializer?.embedded !== undefined) {
+      const embedded = analyzed.initializer.embedded;
+      this.embeddedAddressability.set(
+        bindingIdentityKey(analyzed.binding),
+        embedded.kind === "embedded-scalar"
+          ? "scalar"
+          : embedded.bytes.length > 0
+            ? "resident"
+            : "empty",
+      );
+    }
+    const scalarPlacement =
+      declaration.placement !== null &&
+      analyzed.kind === "typed" &&
+      analyzed.initializer?.embedded?.kind === "embedded-scalar";
+    if (scalarPlacement) {
+      this.diagnostics.push(
+        errorDiagnostic(
+          "E10272",
+          `Invalid place constraint on '${declaration.name}' — a compile-time scalar selector has no resident object; remove the placement clause or select a resident array component`,
+          declaration.placement?.span ?? declaration.nameSpan,
+        ),
+      );
+    }
     this.declarations.push(
       declaration.placement !== null && placement === null
         ? Object.freeze({ kind: "poison", binding: state.binding.id, span: declaration.span })
-        : analyzed.kind === "typed"
-          ? Object.freeze({
-              ...analyzed,
-              placement,
-              loadable: declaration.loadable,
-              zeropage: declaration.zeropage,
-            })
-          : analyzed,
+        : scalarPlacement
+          ? Object.freeze({ kind: "poison", binding: state.binding.id, span: declaration.span })
+          : analyzed.kind === "typed"
+            ? Object.freeze({
+                ...analyzed,
+                placement,
+                loadable: declaration.loadable,
+                zeropage: declaration.zeropage,
+              })
+            : analyzed,
     );
   }
 
@@ -484,7 +521,10 @@ class ModuleAnalyzer {
     type: SemanticType,
   ): void {
     if (type.kind !== "array" && type.kind !== "struct") return;
-    const bytes = initializer.embedded?.bytes ?? initializerBytes(initializer, type);
+    const embedded = initializer.embedded;
+    const bytes =
+      (embedded?.kind === "embedded" ? embedded.bytes : undefined) ??
+      initializerBytes(initializer, type);
     if (bytes !== null) this.constantAggregates.set(bindingIdentityKey(binding), bytes);
   }
 

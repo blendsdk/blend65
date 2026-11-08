@@ -1,3 +1,4 @@
+import type { ResidentAsset } from "../assets/asset-types.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
 import type {
@@ -149,7 +150,9 @@ export function lowerData(
     });
   const reachable = new Set(program.reachableAssets);
   const assets = program.semantic.assets
-    .filter(({ id }) => reachable.has(id))
+    .filter(
+      (asset): asset is ResidentAsset => asset.kind === "resident-asset" && reachable.has(asset.id),
+    )
     .map((asset) => {
       const vicSpriteBlocks = spriteAssets.has(`asset.${asset.id}`);
       return Object.freeze({

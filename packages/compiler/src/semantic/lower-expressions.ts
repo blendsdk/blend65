@@ -254,7 +254,9 @@ export class ExpressionLowerer {
     const embedded = this.embeddedByBinding.get(bindingIdentityKey(source.binding));
     return Object.freeze({
       root: source.binding,
-      ...(embedded === undefined ? {} : { asset: embedded.assetId }),
+      ...(embedded?.kind !== "embedded" || embedded.bytes.length === 0
+        ? {}
+        : { asset: embedded.assetId }),
       rootType: root.type,
       path: Object.freeze(path),
     });
@@ -310,7 +312,11 @@ export class ExpressionLowerer {
       }
       const embedded = this.embeddedByBinding.get(bindingIdentityKey(operandNode.place.binding));
       const result = this.builder.nextValue();
-      if (embedded !== undefined && operandNode.place.path.length === 0) {
+      if (
+        embedded?.kind === "embedded" &&
+        embedded.bytes.length > 0 &&
+        operandNode.place.path.length === 0
+      ) {
         this.builder.emit(
           Object.freeze({
             kind: "embedded-address",

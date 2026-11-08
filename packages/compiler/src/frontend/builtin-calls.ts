@@ -43,6 +43,15 @@ export function analyzeBuiltinCall(
   if (name === "embed") {
     const embedded = host.embeddedValue(expression);
     if (embedded === null) return null;
+    if (embedded.kind === "embedded-scalar") {
+      return {
+        node: createScalarTypedExpression(expression, embedded.type, embedded.value, {
+          embedded,
+          evaluation: "left-to-right",
+        }),
+        exact: embedded.value,
+      };
+    }
     return {
       node: createScalarTypedExpression(expression, embedded.type, null, {
         embedded,

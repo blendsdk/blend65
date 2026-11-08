@@ -81,7 +81,8 @@ export class ComptimeAggregates {
   /** Build, copy, or select a packed aggregate using ordinary source evaluation order. */
   evaluate(expression: TypedExpr, frame: ComptimeFrame, root: SourceSpan): AggregateValue {
     this.budget.step(expression.span, root);
-    if (expression.embedded !== undefined) return { value: expression.embedded.bytes, bytes: 0 };
+    if (expression.embedded?.kind === "embedded")
+      return { value: expression.embedded.bytes, bytes: 0 };
     if (expression.encodedBytes !== undefined) {
       return this.temporary(expression.encodedBytes, expression.type, expression.span, root);
     }

@@ -36,6 +36,13 @@ export function evaluateConstant(
   if (expression.kind === "name") {
     return evaluateNamedConstant(registry, expression, module, scope, report, failure);
   }
+  if (
+    expression.kind === "call" &&
+    expression.callee.kind === "name" &&
+    expression.callee.name === "embed"
+  ) {
+    return registry.host.embeddedScalar?.(expression) ?? null;
+  }
   if (expression.kind === "member") {
     const name = qualifiedCallName(expression);
     const root = name?.split(".", 1)[0];

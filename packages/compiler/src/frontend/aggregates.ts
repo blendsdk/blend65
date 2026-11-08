@@ -75,15 +75,47 @@ export function applyExpectedAggregate(
       exact: result.exact,
     };
   }
-  if (node.embedded !== undefined && expected.kind === "array" && node.type.kind === "array") {
-    host.diagnose(
-      projectDiagnostic(
-        "E10140",
-        `Embedded data size mismatch — expected ${expected.length} elements, got ${node.type.length}`,
-        expression.span,
-      ),
-    );
-    return { node: null, exact: result.exact };
+  if (node.embedded !== undefined) {
+    if (node.embedded.kind === "embedded-scalar") {
+      host.diagnose(
+        projectDiagnostic(
+          "E10144",
+          `Embedded selector produces '${semanticTypeName(node.type)}' — expected '${semanticTypeName(expected)}'; declare the exact selector type`,
+          expression.span,
+        ),
+      );
+      return { node: null, exact: result.exact };
+    }
+    if (expected.kind === "scalar") {
+      host.diagnose(
+        projectDiagnostic(
+          "E10142",
+          `Embedded data produces '${semanticTypeName(node.type)}' and cannot be used where '${semanticTypeName(expected)}' is required — select a scalar component instead`,
+          expression.span,
+        ),
+      );
+      return { node: null, exact: result.exact };
+    }
+    if (expected.kind === "array" && node.type.kind === "array") {
+      if (!semanticTypesEqual(node.type.element, expected.element)) {
+        host.diagnose(
+          projectDiagnostic(
+            "E10144",
+            `Embedded selector produces '${semanticTypeName(node.type)}' — expected '${semanticTypeName(expected)}'; declare the exact selector type`,
+            expression.span,
+          ),
+        );
+      } else {
+        host.diagnose(
+          projectDiagnostic(
+            "E10140",
+            `Embedded data size mismatch — expected ${expected.length} elements, got ${node.type.length}`,
+            expression.span,
+          ),
+        );
+      }
+      return { node: null, exact: result.exact };
+    }
   }
   host.diagnose(
     projectDiagnostic(

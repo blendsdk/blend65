@@ -111,11 +111,11 @@ describe("canonical project asset failures", () => {
         related: [],
       });
       const message = errors[0]?.message ?? "";
-      const sourceDirectory = join(root, "src");
-      const assetDirectory = join(root, "assets");
-      expect(message).toContain(sourceDirectory);
-      expect(message).toContain(assetDirectory);
-      expect(message.indexOf(sourceDirectory)).toBeLessThan(message.indexOf(assetDirectory));
+      // Diagnostics name project-relative search roots and never the host checkout path.
+      expect(message).not.toContain(root);
+      expect(message).toContain("'src'");
+      expect(message).toContain("'assets'");
+      expect(message.indexOf("'src'")).toBeLessThan(message.indexOf("'assets'"));
     });
   });
 });

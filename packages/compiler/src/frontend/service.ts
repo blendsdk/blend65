@@ -2,8 +2,19 @@ import type { ProjectDiagnostic, ProjectSnapshot, SourceSpan } from "../project/
 import { escapeDiagnosticText, projectDiagnostic } from "../project/diagnostics.js";
 import { PROFILES } from "../project/manifest.js";
 import { projectInputSha256 } from "../project/input-identity.js";
-import { resolveRawAsset } from "../assets/raw-asset.js";
-import type { EmbeddedValue, SemanticAsset } from "../assets/asset-types.js";
+import {
+  canonicalAssetExtension,
+  dispatchAsset,
+  findAssetHandler,
+} from "../assets/asset-dispatch.js";
+import type { AssetHandlerOutput } from "../assets/asset-handler.js";
+import { isValidAssetLiteralPath, readNativeAsset, resolveRawAsset } from "../assets/raw-asset.js";
+import type {
+  EmbeddedValue,
+  ResidentAsset,
+  ScalarAsset,
+  SemanticAsset,
+} from "../assets/asset-types.js";
 import { placeSemanticAssets } from "./asset-placement.js";
 import { scalarWarning } from "./constants.js";
 import { analyzeModules } from "./analyzer.js";
@@ -14,7 +25,7 @@ import { analyzeEffects } from "./effects.js";
 import { indexModules, resolveModules } from "./modules.js";
 import { selectFrontendProfile } from "./profile.js";
 import { createProfileBindings } from "./profile-bindings.js";
-import type { FrontendProfile } from "./profile.js";
+import type { FrontendAssetProfile, FrontendProfile } from "./profile.js";
 import { discoverEmbeddedRequests, discoverPendingObligations } from "./source-discovery.js";
 import type { EmbeddedRequest } from "./source-discovery.js";
 import { ANALYSIS_OBLIGATION_KIND, freezeSourceSpan } from "./semantic-types.js";
@@ -558,6 +569,138 @@ export async function analyzeProjectWithAssets(snapshot: ProjectSnapshot): Promi
   return withInputs(await analyzePreparedProjectWithAssets(prepared.snapshot), prepared.snapshot);
 }
 
+/** Build one resident or scalar semantic asset from a validated handler output. */
+function semanticAssetFromOutput(
+  resolvedPath: string,
+  inputSha256: string,
+  inputBytes: number,
+  output: AssetHandlerOutput,
+): SemanticAsset {
+  const handler = Object.freeze({
+    handlerKey: output.handlerKey,
+    handlerVersion: output.handlerVersion,
+    selector: output.resolvedSelector,
+    representation: output.representation,
+    inputSha256,
+    outputSha256: output.outputSha256,
+    selectors: output.selectors,
+  });
+  if (output.value.kind === "embedded" && output.value.bytes.length > 0) {
+    return Object.freeze({
+      kind: "resident-asset",
+      id: output.value.assetId,
+      sourcePath: resolvedPath,
+      inputSha256,
+      inputBytes,
+      outputSha256: output.outputSha256,
+      bytes: output.value.bytes,
+      handler,
+      constraints: output.constraints,
+    }) satisfies ResidentAsset;
+  }
+  return Object.freeze({
+    kind: "scalar-asset",
+    id: output.value.assetId,
+    sourcePath: resolvedPath,
+    inputSha256,
+    inputBytes,
+    outputSha256: output.outputSha256,
+    handler,
+    scalarType: output.value.kind === "embedded-scalar" ? output.value.type : null,
+    scalarValue: output.value.kind === "embedded-scalar" ? output.value.value : null,
+    constraints: output.constraints,
+  }) satisfies ScalarAsset;
+}
+
+/** Run one native request through its closed handler without exposing partial values. */
+async function analyzeNativeRequest(
+  snapshot: ProjectSnapshot,
+  request: EmbeddedRequest,
+  handlers: FrontendAssetProfile["handlers"],
+  reservedExtensions: ReadonlySet<string>,
+): Promise<
+  | {
+      readonly kind: "complete";
+      readonly output: AssetHandlerOutput;
+      readonly resolvedPath: string;
+      readonly inputSha256: string;
+      readonly inputBytes: number;
+    }
+  | { readonly kind: "error"; readonly diagnostics: readonly ProjectDiagnostic[] }
+> {
+  if (!isValidAssetLiteralPath(request.literalPath)) {
+    return Object.freeze({
+      kind: "error",
+      diagnostics: Object.freeze([
+        projectDiagnostic(
+          "PROJECT_PATH_INVALID",
+          `Invalid native asset path '${escapeDiagnosticText(request.literalPath)}'`,
+          request.span,
+        ),
+      ]),
+    });
+  }
+  const empty = Object.freeze({
+    sourceId: request.sourceId,
+    literalPath: request.literalPath,
+    resolvedPath: request.literalPath,
+    selector: request.selector,
+    owner: request.owner,
+    span: request.span,
+    bytes: Object.freeze([]) as readonly number[],
+    inputSha256: "",
+  });
+  if (request.owner === "loadable" || findAssetHandler(handlers, request.literalPath) === null) {
+    const failure = dispatchAsset(empty, handlers, reservedExtensions);
+    return failure.kind === "failure"
+      ? Object.freeze({ kind: "error", diagnostics: Object.freeze([failure.diagnostic]) })
+      : Object.freeze({ kind: "error", diagnostics: Object.freeze([]) });
+  }
+  const read = await readNativeAsset(snapshot, request.literalPath, request.sourceId);
+  if (read.kind === "error") {
+    return Object.freeze({
+      kind: "error",
+      diagnostics: Object.freeze(
+        read.diagnostics.map((diagnostic) =>
+          Object.freeze({ ...diagnostic, primarySpan: diagnostic.primarySpan ?? request.span }),
+        ),
+      ),
+    });
+  }
+  const result = dispatchAsset(
+    Object.freeze({
+      sourceId: request.sourceId,
+      literalPath: request.literalPath,
+      resolvedPath: read.asset.sourcePath,
+      selector: request.selector,
+      owner: request.owner,
+      span: request.span,
+      bytes: read.asset.bytes,
+      inputSha256: read.asset.inputSha256,
+    }),
+    handlers,
+    reservedExtensions,
+  );
+  if (result.kind === "failure") {
+    return Object.freeze({
+      kind: "error",
+      diagnostics: Object.freeze([
+        Object.freeze({
+          ...result.diagnostic,
+          primarySpan: result.diagnostic.primarySpan ?? request.span,
+        }),
+      ]),
+    });
+  }
+  return Object.freeze({
+    kind: "complete",
+    output: result,
+    resolvedPath: read.asset.sourcePath,
+    inputSha256: read.asset.inputSha256,
+    inputBytes: read.asset.bytes.length,
+  });
+}
+
 /** Discover assets and run frontend stages against the same already-admitted source records. */
 async function analyzePreparedProjectWithAssets(
   snapshot: ProjectSnapshot,
@@ -570,18 +713,46 @@ async function analyzePreparedProjectWithAssets(
   if (discovered.kind === "error") {
     return Object.freeze({ kind: ANALYSIS_RESULT_KIND.error, diagnostics: discovered.diagnostics });
   }
+  const selected = PROFILES.some((profile) => profile === snapshot.effectiveTarget)
+    ? selectFrontendProfile(snapshot.effectiveTarget)
+    : null;
+  const handlers = selected?.kind === "complete" ? selected.profile.assets.handlers : new Map();
+  const reservedExtensions =
+    selected?.kind === "complete" ? selected.profile.assets.reservedExtensions : new Set<string>();
   const values = new Map<string, EmbeddedValue>();
   const assets = new Map<string, SemanticAsset>();
   const assetRequests = new Map<string, EmbeddedRequest[]>();
+  const resolvedSelectors = new Map<string, string>();
   for (const request of discovered.requests) {
-    const nativeFormat = /\.(?:spd|ctm|sid|kla|koa)$/iu.test(request.literalPath);
-    if (request.selector !== null && !nativeFormat) {
+    const extension = canonicalAssetExtension(request.literalPath);
+    const handler = findAssetHandler(handlers, request.literalPath);
+    if (handler !== null || reservedExtensions.has(extension)) {
+      const native = await analyzeNativeRequest(snapshot, request, handlers, reservedExtensions);
+      if (native.kind === "error") {
+        return Object.freeze({ kind: ANALYSIS_RESULT_KIND.error, diagnostics: native.diagnostics });
+      }
+      const output = native.output;
+      const asset = semanticAssetFromOutput(
+        native.resolvedPath,
+        native.inputSha256,
+        native.inputBytes,
+        output,
+      );
+      values.set(request.key, output.value);
+      const aliases = assetRequests.get(asset.id) ?? [];
+      aliases.push(request);
+      assetRequests.set(asset.id, aliases);
+      resolvedSelectors.set(asset.id, output.resolvedSelector);
+      assets.set(asset.id, asset);
+      continue;
+    }
+    if (request.selector !== null) {
       return Object.freeze({
         kind: ANALYSIS_RESULT_KIND.error,
         diagnostics: Object.freeze([
           projectDiagnostic(
             "E10137",
-            `No format handler is registered for extension '${escapeDiagnosticText(request.literalPath.match(/\.[^./]+$/u)?.[0] ?? "")}' with selector '${escapeDiagnosticText(request.selector)}'`,
+            `No format handler is registered for extension '${escapeDiagnosticText(extension)}' with selector '${escapeDiagnosticText(request.selector)}'`,
             request.span,
           ),
         ]),
@@ -589,21 +760,6 @@ async function analyzePreparedProjectWithAssets(
     }
     const result = await resolveRawAsset(snapshot, request.literalPath, request.sourceId);
     if (result.kind === "error") {
-      if (
-        nativeFormat &&
-        result.diagnostics.some(({ code }) => code === "E10131" || code === "E10265")
-      ) {
-        return Object.freeze({
-          kind: ANALYSIS_RESULT_KIND.error,
-          diagnostics: Object.freeze([
-            projectDiagnostic(
-              "E10204",
-              "Registered native asset format is not yet supported",
-              request.span,
-            ),
-          ]),
-        });
-      }
       return Object.freeze({
         kind: ANALYSIS_RESULT_KIND.error,
         diagnostics: Object.freeze(
@@ -613,24 +769,6 @@ async function analyzePreparedProjectWithAssets(
         ),
       });
     }
-    if (nativeFormat) {
-      return Object.freeze({
-        kind: ANALYSIS_RESULT_KIND.error,
-        diagnostics: Object.freeze([
-          /\.ctm$/iu.test(request.literalPath) && request.selector === null
-            ? projectDiagnostic(
-                "E10132",
-                "This registered format requires a selector",
-                request.span,
-              )
-            : projectDiagnostic(
-                "E10204",
-                "Registered native asset format is not yet supported",
-                request.span,
-              ),
-        ]),
-      });
-    }
     values.set(request.key, result.value);
     const aliases = assetRequests.get(result.asset.id) ?? [];
     aliases.push(request);
@@ -638,7 +776,9 @@ async function analyzePreparedProjectWithAssets(
     assets.set(result.asset.id, result.asset);
   }
   const repeatedAssets: ProjectDiagnostic[] = [];
-  for (const requests of assetRequests.values()) {
+  for (const [assetId, requests] of assetRequests) {
+    const asset = assets.get(assetId);
+    if (asset === undefined || asset.kind !== "resident-asset") continue;
     const declarations = resolved.graph.modules.flatMap(({ units }) =>
       units.flatMap((unit) =>
         unit.declarations.filter(
@@ -661,7 +801,7 @@ async function analyzePreparedProjectWithAssets(
     repeatedAssets.push(
       scalarWarning(
         "W10151",
-        `${sites.length} declarations share embedded output '${escapeDiagnosticText(request.literalPath)}' selector '${escapeDiagnosticText(request.selector ?? "")}' at one address`,
+        `${sites.length} declarations share embedded output '${escapeDiagnosticText(request.literalPath)}' selector '${escapeDiagnosticText(resolvedSelectors.get(assetId) ?? request.selector ?? "")}' at one address`,
         sites[sites.length - 1]!,
         sites
           .slice(0, -1)

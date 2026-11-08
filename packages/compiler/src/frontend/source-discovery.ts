@@ -15,6 +15,8 @@ export interface EmbeddedRequest {
   readonly literalPath: string;
   /** Source containing the call, used for source-relative lookup. */
   readonly sourceId: string;
+  /** Declaration ownership recorded for dispatch and loadable rejection. */
+  readonly owner: "resident" | "loadable";
   /** Optional literal selector for a registered native format. */
   readonly selector: string | null;
 }
@@ -262,7 +264,7 @@ export function discoverPendingObligations(
 export function discoverEmbeddedRequests(graph: ModuleGraph): EmbeddedRequestResult {
   const requests: EmbeddedRequest[] = [];
   const diagnostics: ProjectDiagnostic[] = [];
-  visitGraphExpressions(graph.modules, (expression, owner, ownerSpan) => {
+  visitGraphExpressions(graph.modules, (expression, declarationOwner, ownerSpan) => {
     if (
       expression.kind !== "call" ||
       expression.callee.kind !== "name" ||
@@ -270,14 +272,14 @@ export function discoverEmbeddedRequests(graph: ModuleGraph): EmbeddedRequestRes
     ) {
       return true;
     }
-    if (owner !== "resident" && owner !== "loadable") {
+    if (declarationOwner !== "resident" && declarationOwner !== "loadable") {
       diagnostics.push(
         projectDiagnostic(
-          owner === "mutable" ? "E10134" : "E10135",
-          owner === "mutable"
+          declarationOwner === "mutable" ? "E10134" : "E10135",
+          declarationOwner === "mutable"
             ? "'embed()' can only initialize an ordinary or loadable const declaration — found 'let'"
             : "'embed()' can only appear in a module-level ordinary const or a loadable const initializer",
-          owner === "mutable" ? (ownerSpan ?? expression.span) : expression.span,
+          declarationOwner === "mutable" ? (ownerSpan ?? expression.span) : expression.span,
         ),
       );
       return false;
@@ -318,6 +320,7 @@ export function discoverEmbeddedRequests(graph: ModuleGraph): EmbeddedRequestRes
           span: freezeSourceSpan(expression.span),
           literalPath,
           sourceId: expression.span.sourceId,
+          owner: declarationOwner,
           selector:
             expression.arguments.length === 2
               ? embeddedLiteralPath(expression.arguments[1]!)

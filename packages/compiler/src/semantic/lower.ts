@@ -250,7 +250,9 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
       residentAssetRoots: Object.freeze([
         ...new Set(
           frontend.declarations.flatMap((declaration) =>
-            !declaration.loadable && declaration.initializer?.embedded !== undefined
+            !declaration.loadable &&
+            declaration.initializer?.embedded?.kind === "embedded" &&
+            declaration.initializer.embedded.bytes.length > 0
               ? [declaration.initializer.embedded.assetId]
               : [],
           ),

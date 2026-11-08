@@ -1,3 +1,5 @@
+import { C64_ASSET_HANDLERS } from "../assets/c64/index.js";
+import type { AssetHandler } from "../assets/asset-handler.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic } from "../project/types.js";
 import { C64_KERNAL_PROFILES, selectC64KernalFacts } from "../profile/c64-kernal.js";
@@ -44,6 +46,16 @@ export interface ProfileConstant {
   readonly value: bigint | boolean;
 }
 
+/** Closed asset-format facts owned by one frontend profile. */
+export interface FrontendAssetProfile {
+  /** Registered handlers keyed by stable handler key. */
+  readonly handlers: ReadonlyMap<string, AssetHandler>;
+  /** Extensions which must fail closed until a handler is registered. */
+  readonly reservedExtensions: ReadonlySet<string>;
+  /** Named placement regions this profile can satisfy. */
+  readonly regions: ReadonlySet<string>;
+}
+
 /** Target-neutral declarations exposed to source analysis for one profile. */
 export interface FrontendProfile {
   /** Complete qualified profile identity. */
@@ -52,11 +64,29 @@ export interface FrontendProfile {
   readonly capabilities: readonly ProfileCapability[];
   /** Exact scalar constants in deterministic qualified-name order. */
   readonly constants: readonly ProfileConstant[];
+  /** Closed native asset handler and region inventory. */
+  readonly assets: FrontendAssetProfile;
   /** Per-mutable-array RAM advisory threshold; null disables this warning. */
   readonly warnArraySize: number | null;
   /** Resolved per-struct zero-page advisory threshold. */
   readonly warnStructZpSize: number;
 }
+
+/** Extensions with a defined native meaning that may not fall back to raw bytes. */
+const RESERVED_ASSET_EXTENSIONS: ReadonlySet<string> = new Set([
+  ".spd",
+  ".ctm",
+  ".sid",
+  ".kla",
+  ".koa",
+]);
+
+/** Native asset facts shared by every qualified C64 profile. */
+const C64_ASSET_PROFILE: FrontendAssetProfile = Object.freeze({
+  handlers: C64_ASSET_HANDLERS,
+  reservedExtensions: RESERVED_ASSET_EXTENSIONS,
+  regions: new Set(["c64.vic.bank0"]),
+});
 
 /** Named character encodings available to source literals in the selected C64 profile. */
 export type C64Encoding = "screen_codes" | "petscii";
@@ -384,6 +414,7 @@ export function selectFrontendProfile(profileId: string): FrontendProfileResult 
         ...COOPERATIVE_DECLARATIONS,
         id: facts.id,
         constants: profileConstants(facts),
+        assets: C64_ASSET_PROFILE,
       }),
     });
   }

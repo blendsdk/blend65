@@ -1,0 +1,631 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    {
+      "id": "koala-background-high-nibble",
+      "family": "koala",
+      "path": "public/koala/koala-background-high-nibble.kla",
+      "sha256": "5ce3be7a5d3496c914fcbe301cd32956262f8448b3c7b03e76fe25b787e73afa",
+      "provenance": {
+        "kind": "constructed",
+        "source": "Classic Koala Paint layout ($6000 load, 10,003 bytes)",
+        "sourceSha256": "c88cf9468f1701ff059abe2c172a0da5edd6af83ae80ca1a7579e291c38df6d9",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "bitmap": {
+            "type": "byte[]",
+            "length": 8000,
+            "sha256": "963003f1dce271184f4398348abb22090b033a5b548d30709ab0986e0459705e"
+          },
+          "screen": {
+            "type": "byte[]",
+            "length": 1000,
+            "sha256": "6f0a6d8eaf34bb2235b2c60f7ad3eaf39f1616ed16f9230cc43e78e1b2644b90"
+          },
+          "color_ram": {
+            "type": "byte[]",
+            "length": 1000,
+            "sha256": "541b3e9daa09b20bf85fa273e5cbd3e80185aa4ec298e765db87742b70138a53"
+          },
+          "background": {
+            "type": "byte",
+            "value": 171
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "koala-color-high-nibble",
+      "family": "koala",
+      "path": "public/koala/koala-color-high-nibble.kla",
+      "sha256": "2a961f13864c3c29dde32faa92291f793d4adde4e6a934e71a26b8f1a2834dbd",
+      "provenance": {
+        "kind": "constructed",
+        "source": "Classic Koala Paint layout ($6000 load, 10,003 bytes)",
+        "sourceSha256": "c88cf9468f1701ff059abe2c172a0da5edd6af83ae80ca1a7579e291c38df6d9",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "bitmap": {
+            "type": "byte[]",
+            "length": 8000,
+            "sha256": "9461d3988139202213ef61bc3e025c8014fe42fb2c383953d575d051c9cfce53"
+          },
+          "screen": {
+            "type": "byte[]",
+            "length": 1000,
+            "sha256": "678b0f77ebb2ee67714b2383d5b1d2e81ffd7e4c4606b36277959c4b6ebb4dea"
+          },
+          "color_ram": {
+            "type": "byte[]",
+            "length": 1000,
+            "sha256": "205bd9fef0bb73758fead5035656a1f1effaf838c81802cd4e0e20933ef473ca"
+          },
+          "background": {
+            "type": "byte",
+            "value": 1
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "koala-patterned",
+      "family": "koala",
+      "path": "public/koala/koala-patterned.kla",
+      "sha256": "c0e4be13ac78c88bf61847916104bdf1258008fe05d2474090f1c8e28e032889",
+      "provenance": {
+        "kind": "constructed",
+        "source": "Classic Koala Paint layout ($6000 load, 10,003 bytes)",
+        "sourceSha256": "c88cf9468f1701ff059abe2c172a0da5edd6af83ae80ca1a7579e291c38df6d9",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "bitmap": {
+            "type": "byte[]",
+            "length": 8000,
+            "sha256": "5f7d452db881323076ba9da63ea29168a01f97c1097a2253ea3a1a148a3459d2"
+          },
+          "screen": {
+            "type": "byte[]",
+            "length": 1000,
+            "sha256": "eb8ea6f30a05fa8893808feec310badb41ce3e7187dd7b61d910978fbc4ec22c"
+          },
+          "color_ram": {
+            "type": "byte[]",
+            "length": 1000,
+            "sha256": "ad32c4dda2639b2d517de838d7596dc3cfe26b096ca2f2a85760ae672c098d0e"
+          },
+          "background": {
+            "type": "byte",
+            "value": 6
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "koala-zero",
+      "family": "koala",
+      "path": "public/koala/koala-zero.kla",
+      "sha256": "b2bf60a6d78b694e58e833e21e3af857de2cb3f183179a3941ec90187bb42824",
+      "provenance": {
+        "kind": "constructed",
+        "source": "Classic Koala Paint layout ($6000 load, 10,003 bytes)",
+        "sourceSha256": "c88cf9468f1701ff059abe2c172a0da5edd6af83ae80ca1a7579e291c38df6d9",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "bitmap": {
+            "type": "byte[]",
+            "length": 8000,
+            "sha256": "668946bab9868b28489bb906205ee1026045c8bcd3ca62a1bdf733c65491351b"
+          },
+          "screen": {
+            "type": "byte[]",
+            "length": 1000,
+            "sha256": "541b3e9daa09b20bf85fa273e5cbd3e80185aa4ec298e765db87742b70138a53"
+          },
+          "color_ram": {
+            "type": "byte[]",
+            "length": 1000,
+            "sha256": "541b3e9daa09b20bf85fa273e5cbd3e80185aa4ec298e765db87742b70138a53"
+          },
+          "background": {
+            "type": "byte",
+            "value": 0
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "psid-v1-fixed",
+      "family": "psid",
+      "path": "public/psid/psid-v1-fixed.sid",
+      "sha256": "41aa8806aa66cab2055c4d1da548569395b891995099b9e5c9fcb6e905e386fa",
+      "provenance": {
+        "kind": "constructed",
+        "source": "HVSC SID file format (PSID v1-v4 subset)",
+        "sourceSha256": "b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "data": {
+            "type": "byte[]",
+            "length": 8,
+            "sha256": "c4a3e33f83c3ebaac346b394bad59ac51faac3561d86741485134dfcacee5d8a"
+          },
+          "init_address": {
+            "type": "word",
+            "value": 49152
+          },
+          "play_address": {
+            "type": "word",
+            "value": 49155
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "psid-v1-payload",
+      "family": "psid",
+      "path": "public/psid/psid-v1-payload.sid",
+      "sha256": "c97bb1c2a366a019454373e975a97cb6e54d802a4409d561fd69f4f14a12524d",
+      "provenance": {
+        "kind": "constructed",
+        "source": "HVSC SID file format (PSID v1-v4 subset)",
+        "sourceSha256": "b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "data": {
+            "type": "byte[]",
+            "length": 8,
+            "sha256": "c4a3e33f83c3ebaac346b394bad59ac51faac3561d86741485134dfcacee5d8a"
+          },
+          "init_address": {
+            "type": "word",
+            "value": 49152
+          },
+          "play_address": {
+            "type": "word",
+            "value": 49155
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "psid-v2-fixed",
+      "family": "psid",
+      "path": "public/psid/psid-v2-fixed.sid",
+      "sha256": "76dbc92f902aac7ad850b8cb39545ead539446b8dd35b8b9b7c5e0a1a6ca62b9",
+      "provenance": {
+        "kind": "constructed",
+        "source": "HVSC SID file format (PSID v1-v4 subset)",
+        "sourceSha256": "b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "data": {
+            "type": "byte[]",
+            "length": 8,
+            "sha256": "c4a3e33f83c3ebaac346b394bad59ac51faac3561d86741485134dfcacee5d8a"
+          },
+          "init_address": {
+            "type": "word",
+            "value": 49152
+          },
+          "play_address": {
+            "type": "word",
+            "value": 49155
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "psid-v2-payload",
+      "family": "psid",
+      "path": "public/psid/psid-v2-payload.sid",
+      "sha256": "1531208e5b605c7b7c89888674fa6d11600b775213fe1a53efa42beec2f5b988",
+      "provenance": {
+        "kind": "constructed",
+        "source": "HVSC SID file format (PSID v1-v4 subset)",
+        "sourceSha256": "b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "data": {
+            "type": "byte[]",
+            "length": 8,
+            "sha256": "c4a3e33f83c3ebaac346b394bad59ac51faac3561d86741485134dfcacee5d8a"
+          },
+          "init_address": {
+            "type": "word",
+            "value": 49152
+          },
+          "play_address": {
+            "type": "word",
+            "value": 49155
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "psid-v3-fixed",
+      "family": "psid",
+      "path": "public/psid/psid-v3-fixed.sid",
+      "sha256": "92ba5b50967950a68c6ce11b8bf6d50fb5b59f96b18c9aae3fad45b4f247d9bb",
+      "provenance": {
+        "kind": "constructed",
+        "source": "HVSC SID file format (PSID v1-v4 subset)",
+        "sourceSha256": "b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "data": {
+            "type": "byte[]",
+            "length": 8,
+            "sha256": "c4a3e33f83c3ebaac346b394bad59ac51faac3561d86741485134dfcacee5d8a"
+          },
+          "init_address": {
+            "type": "word",
+            "value": 49152
+          },
+          "play_address": {
+            "type": "word",
+            "value": 49155
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "psid-v3-payload",
+      "family": "psid",
+      "path": "public/psid/psid-v3-payload.sid",
+      "sha256": "5fc9d90562606f8b1b9bd892839c1dda83dc09a94ff91be8f01fda61b667891f",
+      "provenance": {
+        "kind": "constructed",
+        "source": "HVSC SID file format (PSID v1-v4 subset)",
+        "sourceSha256": "b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "data": {
+            "type": "byte[]",
+            "length": 8,
+            "sha256": "c4a3e33f83c3ebaac346b394bad59ac51faac3561d86741485134dfcacee5d8a"
+          },
+          "init_address": {
+            "type": "word",
+            "value": 49152
+          },
+          "play_address": {
+            "type": "word",
+            "value": 49155
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "psid-v4-fixed",
+      "family": "psid",
+      "path": "public/psid/psid-v4-fixed.sid",
+      "sha256": "c6a84af39b6587ff6f97b0df8a890eb01b4a618b410b1bdb079cdc4b64a4e31d",
+      "provenance": {
+        "kind": "constructed",
+        "source": "HVSC SID file format (PSID v1-v4 subset)",
+        "sourceSha256": "b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "data": {
+            "type": "byte[]",
+            "length": 8,
+            "sha256": "c4a3e33f83c3ebaac346b394bad59ac51faac3561d86741485134dfcacee5d8a"
+          },
+          "init_address": {
+            "type": "word",
+            "value": 49152
+          },
+          "play_address": {
+            "type": "word",
+            "value": 49155
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "psid-v4-payload",
+      "family": "psid",
+      "path": "public/psid/psid-v4-payload.sid",
+      "sha256": "dc6ab92a8acd001e4b2b853702827d4e9716aeaed3b5eed52318e45cbedbe258",
+      "provenance": {
+        "kind": "constructed",
+        "source": "HVSC SID file format (PSID v1-v4 subset)",
+        "sourceSha256": "b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "data": {
+            "type": "byte[]",
+            "length": 8,
+            "sha256": "c4a3e33f83c3ebaac346b394bad59ac51faac3561d86741485134dfcacee5d8a"
+          },
+          "init_address": {
+            "type": "word",
+            "value": 49152
+          },
+          "play_address": {
+            "type": "word",
+            "value": 49155
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "raw-511",
+      "family": "raw",
+      "path": "public/raw/raw-511.bin",
+      "sha256": "82b44a692d9cbc54f3d3b89def458ee2f049e25df213d31926076322b6f23e55",
+      "provenance": {
+        "kind": "constructed",
+        "source": "Deterministic public byte sequence",
+        "sourceSha256": "5e37f16522986f953fdc2c27cee46854ac2d66bfcd13a21e40d328c13a51410d",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "raw": {
+            "type": "byte[]",
+            "length": 511,
+            "sha256": "82b44a692d9cbc54f3d3b89def458ee2f049e25df213d31926076322b6f23e55"
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "raw-513",
+      "family": "raw",
+      "path": "public/raw/raw-513.bin",
+      "sha256": "a48ba5e52522becf71c7e998fc48a108b592433b5c74c5cf368d00245c16af8d",
+      "provenance": {
+        "kind": "constructed",
+        "source": "Deterministic public byte sequence",
+        "sourceSha256": "04b79727fcd2fc5ce8bf193f254f3c72c81f94b0e2239ef8c70bf78ba785bd5b",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "raw": {
+            "type": "byte[]",
+            "length": 513,
+            "sha256": "a48ba5e52522becf71c7e998fc48a108b592433b5c74c5cf368d00245c16af8d"
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "raw-empty",
+      "family": "raw",
+      "path": "public/raw/raw-empty.bin",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "provenance": {
+        "kind": "constructed",
+        "source": "Deterministic public byte sequence",
+        "sourceSha256": "7f1ffae48e69a1be2baa7dd736a31e9f8c29987222d5c02ca28573d0f3ca93e8",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "reject",
+        "selectors": {}
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "raw-nonempty",
+      "family": "raw",
+      "path": "public/raw/raw-nonempty.bin",
+      "sha256": "55c53f5d490297900cefa825d0c8e8e9532ee8a118abe7d8570762cd38be9818",
+      "provenance": {
+        "kind": "constructed",
+        "source": "Deterministic public byte sequence",
+        "sourceSha256": "eecf264ca58bc64759fab590a1460b93dc86b416be0d1276a7f80eaa65abe316",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "raw": {
+            "type": "byte[]",
+            "length": 8,
+            "sha256": "55c53f5d490297900cefa825d0c8e8e9532ee8a118abe7d8570762cd38be9818"
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    }
+  ]
+}

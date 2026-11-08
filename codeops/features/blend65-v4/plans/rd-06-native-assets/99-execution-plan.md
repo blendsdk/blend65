@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-07
-> **Progress**: 0/151 tasks (0%)
+> **Last Updated**: 2026-11-08
+> **Progress**: 34/151 tasks (23%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -61,7 +61,7 @@ immediately testable.
 
 ## Phase 1: Asset handler core and dispatch
 
-> **Phase baseline tree**: _recorded by the exec-plan skill at phase start_
+> **Phase baseline tree**: 859302fcdc23e4645cb67c412512eb52d84055be
 > **Lenses**: semantics, target platform
 > **Reasoning**: high — typed frontend, identity and dispatch boundary
 
@@ -70,9 +70,9 @@ immediately testable.
 **Reference**: [03-01](03-01-asset-handler-core.md) · ST-1–ST-6, ST-10–ST-13, ST-17, ST-18, ST-165–ST-170 · AR-3, AR-4, AR-9, AR-10, AR-11, AR-17, AR-18, AR-23, AR-26, AR-53
 **Objective**: Lock the handler contract, identity, scalar typing, owner rules and security boundary before code.
 
-- [ ] 1.1.1 [spec-author] Write core dispatch, identity and typing specification tests from ST-1–ST-6, ST-10–ST-13, ST-17 and ST-18 — `packages/compiler/src/assets/asset-handler.spec.test.ts`
-- [ ] 1.1.2 [spec-author] Write frontend-metadata and security specification tests from ST-165–ST-170 — `test/rd06/frontend-assets.spec.test.ts`, `test/rd06/security-assets.spec.test.ts`
-- [ ] 1.1.3 Run both specification suites and record the red phase — `yarn workspace @blend65/compiler test src/assets/asset-handler.spec.test.ts && yarn vitest run test/rd06/frontend-assets.spec.test.ts test/rd06/security-assets.spec.test.ts`
+- [x] 1.1.1 [spec-author] Write core dispatch, identity and typing specification tests from ST-1–ST-6, ST-10–ST-13, ST-17 and ST-18 — `packages/compiler/src/assets/asset-handler.spec.test.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.1.2 [spec-author] Write frontend-metadata and security specification tests from ST-165–ST-170 — `test/rd06/frontend-assets.spec.test.ts`, `test/rd06/security-assets.spec.test.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.1.3 Run both specification suites and record the red phase — `yarn workspace @blend65/compiler test src/assets/asset-handler.spec.test.ts && yarn vitest run test/rd06/frontend-assets.spec.test.ts test/rd06/security-assets.spec.test.ts` ✅ (completed: 2026-11-08 09:12)
 
 **Deliverables**:
 - [ ] All core, frontend-metadata and security cases encoded with concrete input/output pairs
@@ -85,23 +85,23 @@ immediately testable.
 **Reference**: [03-01](03-01-asset-handler-core.md) · AR-3, AR-4, AR-9, AR-10, AR-11
 **Objective**: Add the target-neutral seam, scalar values, identity, dispatch and owner rule.
 
-- [ ] 1.2.1 Add the target-neutral handler, request, output, constraint and selector types — `packages/compiler/src/assets/asset-handler.ts`
-- [ ] 1.2.2 Add `EmbeddedScalarValue`, `EmbeddedValue` union, provenance and extended `SemanticAsset` — `packages/compiler/src/assets/asset-types.ts`
-- [ ] 1.2.3 Add native and raw canonical identity helpers — `packages/compiler/src/assets/asset-identity.ts`
-- [ ] 1.2.4 Add extension dispatch, selector resolution, owner guard and failure mapping — `packages/compiler/src/assets/asset-dispatch.ts`
-- [ ] 1.2.5 Expose the existing resident/loadable owner on every embedded request without narrowing the internal mutable/local owner values — `packages/compiler/src/frontend/source-discovery.ts`
-- [ ] 1.2.6 Select the profile and route native requests through `dispatchAsset`; keep raw behavior unchanged — `packages/compiler/src/frontend/service.ts`
-- [ ] 1.2.7 Inject scalar and array embedded values and distinguish E10144 from E10140 — `packages/compiler/src/frontend/builtin-calls.ts`, `packages/compiler/src/frontend/aggregate-types.ts`, `packages/compiler/src/frontend/aggregates.ts`
-- [ ] 1.2.8 Merge handler constraints with source `place(...)` and keep the loadable rule — `packages/compiler/src/frontend/asset-placement.ts`
-- [ ] 1.2.9 Carry handler provenance and constraints into semantic assets — `packages/compiler/src/semantic/lower.ts`
-- [ ] 1.2.10 Update W10151 grouping and extend the `.assets.json` evidence id with input identity/representation — `packages/compiler/src/frontend/service.ts`, `packages/compiler/src/services/evidence.ts`, `packages/compiler/src/artifacts/assets-evidence-validator.ts`
-- [ ] 1.2.11 Add the E10204 native-loadable guard, precise resident-only message and expressiveness-ledger entry; keep raw loadable behavior — `packages/compiler/src/assets/asset-handler.impl.test.ts`, `test/rd04/expressiveness-ledger.json`
-- [ ] 1.2.12 Expose selector inventory, exact types, availability, provenance and pre-layout constraints in the shared semantic model — `packages/compiler/src/frontend/semantic-types.ts`, `packages/compiler/src/frontend/analyzer.ts`
-- [ ] 1.2.13 Add the diagnostic formatting/redaction helper for declaration, relative spelling, handler identity, failed field and remedy — `packages/compiler/src/assets/asset-diagnostics.ts`, `packages/compiler/src/frontend/diagnostics.ts`
-- [ ] 1.2.14 Harden native dispatch containment and ACME-safe handling of names/tags — `packages/compiler/src/assets/asset-dispatch.ts`, `packages/compiler/src/artifacts/acme-serializer.ts`
-- [ ] 1.2.15 Add the closed `reservedExtensions` profile set and fail-closed dispatch before raw fallback — `packages/compiler/src/frontend/profile.ts`, `packages/compiler/src/assets/asset-dispatch.ts`
-- [ ] 1.2.16 Make `SemanticAsset` a resident/scalar union and exclude scalar and zero-byte assets from resident roots — `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/assets/asset-types.ts`
-- [ ] 1.2.17 Add the native 1 MiB bounded read path and the 65,535-byte selected-output gate, preserving raw behavior — `packages/compiler/src/assets/raw-asset.ts`, `packages/compiler/src/assets/asset-dispatch.ts`
+- [x] 1.2.1 Add the target-neutral handler, request, output, constraint and selector types — `packages/compiler/src/assets/asset-handler.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.2 Add `EmbeddedScalarValue`, `EmbeddedValue` union, provenance and extended `SemanticAsset` — `packages/compiler/src/assets/asset-types.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.3 Add native and raw canonical identity helpers — `packages/compiler/src/assets/asset-identity.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.4 Add extension dispatch, selector resolution, owner guard and failure mapping — `packages/compiler/src/assets/asset-dispatch.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.5 Expose the existing resident/loadable owner on every embedded request without narrowing the internal mutable/local owner values — `packages/compiler/src/frontend/source-discovery.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.6 Select the profile and route native requests through `dispatchAsset`; keep raw behavior unchanged — `packages/compiler/src/frontend/service.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.7 Inject scalar and array embedded values and distinguish E10144 from E10140 — `packages/compiler/src/frontend/builtin-calls.ts`, `packages/compiler/src/frontend/aggregate-types.ts`, `packages/compiler/src/frontend/aggregates.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.8 Merge handler constraints with source `place(...)` and keep the loadable rule — `packages/compiler/src/frontend/asset-placement.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.9 Carry handler provenance and constraints into semantic assets — `packages/compiler/src/semantic/lower.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.10 Update W10151 grouping and extend the `.assets.json` evidence id with input identity/representation — `packages/compiler/src/frontend/service.ts`, `packages/compiler/src/services/evidence.ts`, `packages/compiler/src/artifacts/assets-evidence-validator.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.11 Add the E10204 native-loadable guard, precise resident-only message and expressiveness-ledger entry; keep raw loadable behavior — `packages/compiler/src/assets/asset-handler.impl.test.ts`, `test/rd04/expressiveness-ledger.json` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.12 Expose selector inventory, exact types, availability, provenance and pre-layout constraints in the shared semantic model — `packages/compiler/src/frontend/semantic-types.ts`, `packages/compiler/src/frontend/analyzer.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.13 Add the diagnostic formatting/redaction helper for declaration, relative spelling, handler identity, failed field and remedy — `packages/compiler/src/assets/asset-diagnostics.ts`, `packages/compiler/src/frontend/diagnostics.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.14 Harden native dispatch containment and ACME-safe handling of names/tags — `packages/compiler/src/assets/asset-dispatch.ts`, `packages/compiler/src/artifacts/acme-serializer.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.15 Add the closed `reservedExtensions` profile set and fail-closed dispatch before raw fallback — `packages/compiler/src/frontend/profile.ts`, `packages/compiler/src/assets/asset-dispatch.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.16 Make `SemanticAsset` a resident/scalar union and exclude scalar and zero-byte assets from resident roots — `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/assets/asset-types.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.2.17 Add the native 1 MiB bounded read path and the 65,535-byte selected-output gate, preserving raw behavior — `packages/compiler/src/assets/raw-asset.ts`, `packages/compiler/src/assets/asset-dispatch.ts` ✅ (completed: 2026-11-08 09:12)
 
 **Deliverables**:
 - [ ] Handler contract, identity and dispatch compile against the public frontend boundary
@@ -114,13 +114,13 @@ immediately testable.
 **Reference**: AR-6, AR-38
 **Objective**: Prove the spec tests pass, cover internals, and run the phase checkpoint.
 
-- [ ] 1.3.1 Run the core specification tests and verify the green phase — `yarn workspace @blend65/compiler test src/assets/asset-handler.spec.test.ts`
-- [ ] 1.3.2 Run the frontend-metadata and security specification tests and verify the green phase — `yarn vitest run test/rd06/frontend-assets.spec.test.ts test/rd06/security-assets.spec.test.ts`
-- [ ] 1.3.3 Write implementation tests for identity collisions, owner edges, selector ordering, reserved extensions and diagnostic spans — `packages/compiler/src/assets/asset-handler.impl.test.ts`
-- [ ] 1.3.4 Write security implementation tests for path containment, hostile names/tags, overflow boundaries, diagnostic redaction and ACME injection — `test/rd06/security-assets.impl.test.ts`
-- [ ] 1.3.5 Run the directed package and root tests — `yarn workspace @blend65/compiler test src/assets src/frontend && yarn vitest run test/rd06/frontend-assets.spec.test.ts test/rd06/security-assets.spec.test.ts test/rd06/security-assets.impl.test.ts`
-- [ ] 1.3.6 Run `yarn prettier --check` on touched files, `yarn build` and `yarn typecheck`
-- [ ] 1.3.7 Dispatch independent correctness, semantics and target-platform reviews of the phase diff and record dispositions
+- [x] 1.3.1 Run the core specification tests and verify the green phase — `yarn workspace @blend65/compiler test src/assets/asset-handler.spec.test.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.3.2 Run the frontend-metadata and security specification tests and verify the green phase — `yarn vitest run test/rd06/frontend-assets.spec.test.ts test/rd06/security-assets.spec.test.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.3.3 Write implementation tests for identity collisions, owner edges, selector ordering, reserved extensions and diagnostic spans — `packages/compiler/src/assets/asset-handler.impl.test.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.3.4 Write security implementation tests for path containment, hostile names/tags, overflow boundaries, diagnostic redaction and ACME injection — `test/rd06/security-assets.impl.test.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.3.5 Run the directed package and root tests — `yarn workspace @blend65/compiler test src/assets src/frontend && yarn vitest run test/rd06/frontend-assets.spec.test.ts test/rd06/security-assets.spec.test.ts test/rd06/security-assets.impl.test.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.3.6 Run `yarn prettier --check` on touched files, `yarn build` and `yarn typecheck` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.3.7 Dispatch independent correctness, semantics and target-platform reviews of the phase diff and record dispositions ✅ (completed: 2026-11-08 09:55)
 
 **Deliverables**:
 - [ ] Core, frontend-metadata and security ST cases pass
@@ -134,13 +134,13 @@ immediately testable.
 **Reference**: [03-07](03-07-fixtures-qualification.md) · AR-7, AR-15
 **Objective**: Create the manifest and public fixtures before the handler spec tests need them.
 
-- [ ] 1.4.1 Add the manifest schema, types and validator — `test/rd06/fixture-tools/manifest.ts`
-- [ ] 1.4.2 Commit the public raw fixtures and boundary cases — `test/rd06/fixtures/public/raw/`
-- [ ] 1.4.3 Commit the public PSID v1–v4 fixed/payload fixtures — `test/rd06/fixtures/public/psid/`
-- [ ] 1.4.4 Commit the public Koala zero/patterned/high-nibble fixtures — `test/rd06/fixtures/public/koala/`
-- [ ] 1.4.5 Record every fixture entry, spec-derived expectation and SHA-256 — `test/rd06/fixtures/manifest.json`
-- [ ] 1.4.6 Add the fixture-manifest completeness/hash test — `test/rd06/fixtures.spec.test.ts`
-- [ ] 1.4.7 Run the fixture foundation tests — `yarn vitest run test/rd06/fixtures.spec.test.ts`
+- [x] 1.4.1 Add the manifest schema, types and validator — `test/rd06/fixture-tools/manifest.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.4.2 Commit the public raw fixtures and boundary cases — `test/rd06/fixtures/public/raw/` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.4.3 Commit the public PSID v1–v4 fixed/payload fixtures — `test/rd06/fixtures/public/psid/` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.4.4 Commit the public Koala zero/patterned/high-nibble fixtures — `test/rd06/fixtures/public/koala/` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.4.5 Record every fixture entry, spec-derived expectation and SHA-256 — `test/rd06/fixtures/manifest.json` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.4.6 Add the fixture-manifest completeness/hash test — `test/rd06/fixtures.spec.test.ts` ✅ (completed: 2026-11-08 09:12)
+- [x] 1.4.7 Run the fixture foundation tests — `yarn vitest run test/rd06/fixtures.spec.test.ts` ✅ (completed: 2026-11-08 09:12)
 
 **Deliverables**:
 - [ ] Public fixtures are deterministic, committed and manifest-backed

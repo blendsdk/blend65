@@ -27,7 +27,7 @@ export class CallLowerer {
     type: SemanticType,
     destination?: AggregateDestination,
   ): ValueId | null {
-    if (expression.embedded !== undefined) {
+    if (expression.embedded?.kind === "embedded") {
       const result = this.builder.nextValue();
       this.builder.emit(
         Object.freeze({

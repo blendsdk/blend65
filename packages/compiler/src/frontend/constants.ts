@@ -1,4 +1,5 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
+import { semanticTypeName, semanticTypesEqual } from "./semantic-type-relations.js";
 import { qualifiedCallName } from "./direct-calls.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type {
@@ -417,6 +418,29 @@ export function applyExpectedScalar(
   host: ScalarExpressionHost,
 ): ScalarExpressionResult {
   const node = result.node!;
+  if (node.embedded !== undefined && !context.operatorConversion) {
+    if (node.embedded.kind === "embedded") {
+      host.diagnose(
+        conversionError(
+          "E10142",
+          `Embedded data produces '${semanticTypeName(node.type)}' and cannot be used where '${semanticTypeName(expected)}' is required — select a scalar component instead`,
+          expression,
+        ),
+      );
+      return { node: null, exact: result.exact };
+    }
+    if (!semanticTypesEqual(node.type, expected)) {
+      host.diagnose(
+        conversionError(
+          "E10144",
+          `Embedded selector produces '${semanticTypeName(node.type)}' — expected '${semanticTypeName(expected)}'; declare the exact selector type`,
+          expression,
+        ),
+      );
+      return { node: null, exact: result.exact };
+    }
+    return result;
+  }
   if (node.type.kind === "enum") {
     if (expected.kind !== "scalar" || expected.name !== "byte") {
       host.diagnose(

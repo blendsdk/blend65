@@ -235,6 +235,7 @@ function asset(value: unknown, invalid?: EvidenceFieldFailure): boolean {
       "handler",
       "handlerVersion",
       "selector",
+      "representation",
       "logicalType",
       "shape",
       "outputSha256",
@@ -286,6 +287,10 @@ function asset(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   }
   if (!isEvidenceText(value.selector, invalid, ["selector"])) {
     invalid?.(["selector"], "selector must contain nonempty text");
+    return false;
+  }
+  if (!isEvidenceText(value.representation, invalid, ["representation"])) {
+    invalid?.(["representation"], "representation must contain nonempty text");
     return false;
   }
   if (!isEvidenceText(value.logicalType, invalid, ["logicalType"])) {
@@ -351,14 +356,19 @@ function asset(value: unknown, invalid?: EvidenceFieldFailure): boolean {
     handler: value.handler,
     handlerVersion: value.handlerVersion,
     selector: value.selector,
+    representation: value.representation,
     logicalType: value.logicalType,
     shape: value.shape,
     outputSha256: value.outputSha256,
+    inputs: (value.inputs as Record<string, unknown>[]).map((input) => ({
+      path: input.path,
+      sha256: input.sha256,
+    })),
   });
   if (value.id !== expectedId) {
     invalid?.(
       ["id"],
-      "asset ID must equal the canonical hash of its handler, selector, type, shape and output digest",
+      "asset ID must equal the canonical hash of its handler, selector, representation, type, shape, output digest and inputs",
     );
     return false;
   }

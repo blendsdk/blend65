@@ -319,6 +319,25 @@ export class ScalarExpressionAnalyzer {
       );
       return { node: null, exact: null };
     }
+    if (
+      !callTarget &&
+      this.host.embeddedAddressability?.(state.binding.id) === "empty" &&
+      !context.constantContext &&
+      !context.compileTimeQuery &&
+      !context.placeContext &&
+      !(context.caller !== null && this.host.functionMode?.(context.caller) === "comptime")
+    ) {
+      this.host.diagnose(
+        error(
+          "E10131",
+          `Embedded output '${expression.name}' is empty and has no resident storage — use it only in compile-time expressions or select a nonempty component`,
+          expression.span,
+          null,
+          [{ span: state.nameSpan, message: "Empty embedded output is declared here" }],
+        ),
+      );
+      return { node: null, exact: null };
+    }
     if (state.binding.loadable && !context.compileTimeQuery) {
       this.host.diagnose(
         error(

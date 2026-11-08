@@ -21,18 +21,21 @@ function identity(name: string) {
 }
 
 function selectedAsset() {
+  const inputs = [{ path: "assets/fixture.bin", sha256: ZERO_HASH }];
   const projection = {
     handler: "fixture",
     handlerVersion: "1",
     selector: "first",
+    representation: "native-bytes",
     logicalType: "const byte",
     shape: [1],
     outputSha256: ZERO_HASH,
+    inputs,
   };
   return {
     id: sha256(canonicalEvidenceJson(projection)),
-    inputs: [],
     ...projection,
+    inputs: [{ path: "assets/fixture.bin", bytes: 1, sha256: ZERO_HASH }],
     payloadBytes: 1,
     emittedBytes: 1,
     aliases: [],

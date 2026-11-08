@@ -94,10 +94,22 @@ export function analyzeScalarBinary(
     }
   }
   if (left.node.type.kind === "enum") {
-    left = applyExpectedScalar(left, SCALAR_TYPES.byte, expression.left, context, analyzer.host);
+    left = applyExpectedScalar(
+      left,
+      SCALAR_TYPES.byte,
+      expression.left,
+      { ...context, operatorConversion: true },
+      analyzer.host,
+    );
   }
   if (right.node.type.kind === "enum") {
-    right = applyExpectedScalar(right, SCALAR_TYPES.byte, expression.right, context, analyzer.host);
+    right = applyExpectedScalar(
+      right,
+      SCALAR_TYPES.byte,
+      expression.right,
+      { ...context, operatorConversion: true },
+      analyzer.host,
+    );
   }
   if (left.node === null || right.node === null) return { node: null, exact: null };
   if (diagnoseAggregateBinary(expression, left.node, right.node, analyzer.host)) {
@@ -179,17 +191,41 @@ export function analyzeScalarBinary(
     : null;
   const operationType = ordinalType ?? (shift ? left.node.type : naturalResultType);
   if (ordinalType !== null) {
-    left = applyExpectedScalar(left, ordinalType, expression.left, context, analyzer.host);
+    left = applyExpectedScalar(
+      left,
+      ordinalType,
+      expression.left,
+      { ...context, operatorConversion: true },
+      analyzer.host,
+    );
     if (!shift) {
-      right = applyExpectedScalar(right, ordinalType, expression.right, context, analyzer.host);
+      right = applyExpectedScalar(
+        right,
+        ordinalType,
+        expression.right,
+        { ...context, operatorConversion: true },
+        analyzer.host,
+      );
     }
     if (left.node === null || right.node === null) return { node: null, exact: null };
   } else if (!shift && !context.constantContext) {
     // Runtime operands need a common machine width. Constant operands retain their
     // exact values until the enclosing declaration/use checks its destination range.
     const resultType = naturalResultType;
-    left = applyExpectedScalar(left, resultType, expression.left, context, analyzer.host);
-    right = applyExpectedScalar(right, resultType, expression.right, context, analyzer.host);
+    left = applyExpectedScalar(
+      left,
+      resultType,
+      expression.left,
+      { ...context, operatorConversion: true },
+      analyzer.host,
+    );
+    right = applyExpectedScalar(
+      right,
+      resultType,
+      expression.right,
+      { ...context, operatorConversion: true },
+      analyzer.host,
+    );
     if (left.node === null || right.node === null) return { node: null, exact: null };
   }
   if (

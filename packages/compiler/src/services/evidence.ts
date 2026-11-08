@@ -13,6 +13,7 @@ import {
 } from "../artifacts/evidence.js";
 import type { EvidenceIdentity, EvidenceRecord } from "../artifacts/evidence-types.js";
 import { canonicalEvidenceHash } from "../artifacts/evidence-validation.js";
+import type { ResidentAsset } from "../assets/asset-types.js";
 import { BUILD_INFO } from "../build-info.js";
 import type { ProjectSnapshot } from "../project/types.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
@@ -149,15 +150,17 @@ async function writeEncoded(
   return Object.freeze({ path: name, bytes: encoded.bytes.byteLength, sha256: encoded.sha256 });
 }
 
-/** Produce the deterministic evidence identity used by the raw-asset sidecar schema. */
-function rawAssetEvidenceId(asset: WholeProgram["semantic"]["assets"][number]): string {
+/** Produce the deterministic evidence identity used by the asset sidecar schema. */
+function assetEvidenceId(asset: ResidentAsset): string {
   return canonicalEvidenceHash({
-    handler: "raw",
-    handlerVersion: "1",
-    selector: "raw",
+    handler: asset.handler.handlerKey,
+    handlerVersion: asset.handler.handlerVersion,
+    selector: asset.handler.selector,
+    representation: asset.handler.representation,
     logicalType: "const byte[]",
     shape: [asset.bytes.length],
-    outputSha256: asset.sha256,
+    outputSha256: asset.outputSha256,
+    inputs: [{ path: asset.sourcePath, sha256: asset.inputSha256 }],
   });
 }
 
@@ -282,11 +285,14 @@ export async function prepareEvidence(
   const primaryArtifact = basename(input.artifacts.prg.path);
   const primaryBytes = await readFile(input.artifacts.prg.path);
   const semanticAssets = input.program.semantic.assets
-    .filter(({ id }) => input.program.reachableAssets.includes(id))
+    .filter(
+      (asset): asset is ResidentAsset =>
+        asset.kind === "resident-asset" && input.program.reachableAssets.includes(asset.id),
+    )
     .sort((left, right) =>
       Buffer.compare(Buffer.from(left.sourcePath), Buffer.from(right.sourcePath)),
     );
-  const assetIds = new Map(semanticAssets.map((asset) => [asset.id, rawAssetEvidenceId(asset)]));
+  const assetIds = new Map(semanticAssets.map((asset) => [asset.id, assetEvidenceId(asset)]));
   const assetEvidence = Object.freeze({
     kind: "blend65.assets",
     schemaVersion: 1,
@@ -304,16 +310,17 @@ export async function prepareEvidence(
             inputs: Object.freeze([
               Object.freeze({
                 path: asset.sourcePath,
-                bytes: asset.bytes.length,
-                sha256: asset.sha256,
+                bytes: asset.inputBytes,
+                sha256: asset.inputSha256,
               }),
             ]),
-            handler: "raw",
-            handlerVersion: "1",
-            selector: "raw",
+            handler: asset.handler.handlerKey,
+            handlerVersion: asset.handler.handlerVersion,
+            selector: asset.handler.selector,
+            representation: asset.handler.representation,
             logicalType: "const byte[]",
             shape: Object.freeze([asset.bytes.length]),
-            outputSha256: asset.sha256,
+            outputSha256: asset.outputSha256,
             payloadBytes: asset.bytes.length,
             emittedBytes: asset.bytes.length,
             aliases: Object.freeze([assetSymbolName(asset.id)]),
@@ -565,15 +572,25 @@ export async function prepareEvidence(
       ),
     ),
     assets: Object.freeze(
-      semanticAssets.map((asset) =>
-        Object.freeze({
-          path: asset.sourcePath,
-          sha256: asset.sha256,
-          handler: "raw",
-          handlerVersion: "1",
-          selector: "raw",
-        }),
-      ),
+      [...semanticAssets]
+        .sort(
+          (left, right) =>
+            Buffer.compare(Buffer.from(left.sourcePath), Buffer.from(right.sourcePath)) ||
+            Buffer.compare(
+              Buffer.from(left.handler.handlerKey),
+              Buffer.from(right.handler.handlerKey),
+            ) ||
+            Buffer.compare(Buffer.from(left.handler.selector), Buffer.from(right.handler.selector)),
+        )
+        .map((asset) =>
+          Object.freeze({
+            path: asset.sourcePath,
+            sha256: asset.inputSha256,
+            handler: asset.handler.handlerKey,
+            handlerVersion: asset.handler.handlerVersion,
+            selector: asset.handler.selector,
+          }),
+        ),
     ),
     addressSpaces: debug.addressSpaces,
     functions: debug.functions,
@@ -672,12 +689,21 @@ export async function prepareEvidence(
           ),
         ),
         assets: Object.freeze(
-          semanticAssets.map((asset) =>
-            Object.freeze({
-              path: asset.sourcePath,
-              bytes: asset.bytes.length,
-              sha256: asset.sha256,
-            }),
+          [
+            ...new Map(
+              semanticAssets.map((asset) => [
+                `${asset.sourcePath}\0${asset.inputSha256}`,
+                Object.freeze({
+                  path: asset.sourcePath,
+                  bytes: asset.inputBytes,
+                  sha256: asset.inputSha256,
+                }),
+              ]),
+            ).values(),
+          ].sort(
+            (left, right) =>
+              Buffer.compare(Buffer.from(left.path), Buffer.from(right.path)) ||
+              Buffer.compare(Buffer.from(left.sha256), Buffer.from(right.sha256)),
           ),
         ),
         compiler,

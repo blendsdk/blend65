@@ -183,6 +183,15 @@ function emitsBytes(block: MachineBlock): boolean {
 }
 
 /** Emit explicit byte directives in short deterministic rows. */
+/** Reduce an asset spelling to a safe readable comment token without a host path. */
+function assetCommentName(sourceName: string | undefined): string {
+  if (sourceName === undefined) return "asset";
+  const base = sourceName.slice(sourceName.lastIndexOf("/") + 1);
+  const sanitized = base.replace(/[^A-Za-z0-9_.-]/gu, "_").slice(0, 80);
+  return sanitized.length === 0 ? "asset" : sanitized;
+}
+
+/** Emit explicit byte directives in short deterministic rows. */
 function byteLines(bytes: readonly number[]): readonly string[] {
   const lines: string[] = [];
   for (let offset = 0; offset < bytes.length; offset += 16) {
@@ -277,7 +286,9 @@ export function serializeAcme(input: AcmeSerializationInput): AcmeSerializationR
     lines.push(`* = ${hex(interval.start, 4)}`);
     const data = input.layout.program.data.find(({ id }) => id === interval.id);
     lines.push(
-      `; ${interval.kind} ${JSON.stringify(data?.sourceName ?? interval.id.replace(/[^A-Za-z0-9_]/g, "_"))} (${interval.end - interval.start + 1} bytes)`,
+      interval.kind === "asset"
+        ? `; asset ${assetCommentName(data?.sourceName)} (${interval.end - interval.start + 1} bytes)`
+        : `; ${interval.kind} ${JSON.stringify(data?.sourceName ?? interval.id.replace(/[^A-Za-z0-9_]/g, "_"))} (${interval.end - interval.start + 1} bytes)`,
     );
     addLabel(interval.id, interval.start);
     if (interval.bytes === null) continue;

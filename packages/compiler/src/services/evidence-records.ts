@@ -9,6 +9,7 @@ import { capturedByteLocations, privateHomeAvailability } from "./debug-storage-
 import { c64InterruptEntryLabel } from "../machine/lower-c64-interrupt.js";
 import { acmeLabelName, acmeLabelNames } from "../artifacts/acme-labels.js";
 import type { EvidenceRecord } from "../artifacts/evidence-types.js";
+import type { ResidentAsset } from "../assets/asset-types.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { canonicalEvidenceJson } from "../artifacts/evidence-validation.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
@@ -576,8 +577,9 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       }),
     });
   }
-  for (const asset of input.program.semantic.assets.filter(({ id }) =>
-    input.program.reachableAssets.includes(id),
+  for (const asset of input.program.semantic.assets.filter(
+    (asset): asset is ResidentAsset =>
+      asset.kind === "resident-asset" && input.program.reachableAssets.includes(asset.id),
   )) {
     const interval = input.layout.intervals.find(({ id }) => id === `asset.${asset.id}`);
     if (interval === undefined) continue;
@@ -758,8 +760,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       const functionIndex = functionIndexes.get(bindingIdentityKey(proof.loop.function.id));
       if (functionIndex === undefined) continue;
       const ownerName = String(functions[functionIndex]!.qualifiedName);
-      const targetName =
-        proof.requestId === null ? undefined : `${ownerName}::${proof.requestId}`;
+      const targetName = proof.requestId === null ? undefined : `${ownerName}::${proof.requestId}`;
       const target =
         targetName === undefined
           ? undefined
@@ -843,8 +844,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
   );
   const locations = Object.freeze(
     symbolDrafts.map((symbol) => {
-      const targetName =
-        "rematerializeTarget" in symbol ? symbol.rematerializeTarget : undefined;
+      const targetName = "rematerializeTarget" in symbol ? symbol.rematerializeTarget : undefined;
       const targetIndex =
         targetName === undefined
           ? undefined

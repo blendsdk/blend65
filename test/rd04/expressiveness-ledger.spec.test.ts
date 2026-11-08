@@ -13,6 +13,12 @@ interface Limitation {
   readonly reason: string;
 }
 
+/** One asset written with a ledger probe so native restrictions stay reproducible. */
+interface ProbeAsset {
+  readonly path: string;
+  readonly bytes: Uint8Array;
+}
+
 /** Public build outcome reduced to the acceptance and diagnostic facts under test. */
 interface Observation {
   readonly kind: string;
@@ -54,11 +60,15 @@ async function readLimitations(): Promise<readonly Limitation[]> {
 }
 
 /** Build through the public service so late storage proof participates in the observed result. */
-async function observe(source: string): Promise<Observation> {
+async function observe(source: string, assets: readonly ProbeAsset[] = []): Promise<Observation> {
   const root = await mkdtemp(join(tmpdir(), "blend65-ledger-spec-"));
   try {
     await mkdir(join(root, "src"));
+    await mkdir(join(root, "assets"), { recursive: true });
     await writeFile(join(root, "src/game.blend"), source);
+    for (const asset of assets) {
+      await writeFile(join(root, "assets", asset.path), asset.bytes);
+    }
     await writeFile(
       join(root, "blend65.json"),
       JSON.stringify({
@@ -67,6 +77,7 @@ async function observe(source: string): Promise<Observation> {
         sourceRoot: "src",
         entry: "Game",
         target: "c64-pal-prg-kernal-6581",
+        assetPaths: ["assets"],
         outDir: "out",
         optimization: "none",
       }),
@@ -104,7 +115,14 @@ interrupt function handler(): void { ${update} }
 function main(): void { asm_cli(); asm_nop(); setIRQ(&handler); asm_nop(); restoreIRQ(); }`,
 );
 
-const probes = [
+/** One reproducible compiler probe owned by a ledger row. */
+interface LedgerProbe {
+  readonly id: string;
+  readonly sources: readonly string[];
+  readonly assets?: readonly ProbeAsset[];
+}
+
+const probes: readonly LedgerProbe[] = [
   {
     id: "v4-nmi-installation",
     sources: ["setNMIExclusive"].map(
@@ -126,6 +144,15 @@ function main(): void { ${installer}(&handler); restoreNMI(); }`,
   {
     id: "v4-handler-irq-update",
     sources: handlerIrqSources.slice(0, 2),
+  },
+  {
+    id: "v4-native-loadable-asset",
+    assets: [{ path: "table.spd", bytes: Uint8Array.from([1, 2, 3, 4]) }],
+    sources: [
+      `module Game;
+loadable const TABLE: byte[] = embed("table.spd");
+function main(): void {}`,
+    ],
   },
   {
     id: "v4-stack-route-overestimate",
@@ -191,7 +218,7 @@ describe("expressiveness restriction expiry", () => {
     closedOwner = owner;
     for (const probe of probes) {
       const results: Observation[] = [];
-      for (const source of probe.sources) results.push(await observe(source));
+      for (const source of probe.sources) results.push(await observe(source, probe.assets));
       observations.set(probe.id, results);
     }
   }, 60_000);

@@ -127,8 +127,11 @@ describe("raw embedded assets", () => {
     if (first.kind !== "complete" || repeated.kind !== "complete")
       throw new Error("Expected a complete raw asset");
     expect(first.asset).toMatchObject({
+      kind: "resident-asset",
       sourcePath: "first/sprites.bin",
-      sha256: sha256(firstBytes),
+      inputSha256: sha256(firstBytes),
+      outputSha256: sha256(firstBytes),
+      handler: { handlerKey: "raw", handlerVersion: "1", selector: "raw", representation: "raw" },
     });
     expect(first.asset.id.length).toBeGreaterThan(0);
     expect(first.value).toMatchObject({

@@ -67,10 +67,22 @@ describe("lowering through final C64 layout", () => {
       ...base.semantic,
       assets: Object.freeze([
         Object.freeze({
+          kind: "resident-asset" as const,
           id: "sprites",
           sourcePath: "assets/sprites.bin",
-          sha256: "0".repeat(64),
+          inputSha256: "0".repeat(64),
+          outputSha256: "0".repeat(64),
           bytes: Object.freeze(new Array<number>(64).fill(0x5a)),
+          handler: Object.freeze({
+            handlerKey: "raw",
+            handlerVersion: "1",
+            selector: "raw",
+            representation: "raw",
+            inputSha256: "0".repeat(64),
+            outputSha256: "0".repeat(64),
+            selectors: Object.freeze([]),
+          }),
+          constraints: Object.freeze([]),
         }),
       ]),
     });

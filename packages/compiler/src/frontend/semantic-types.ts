@@ -599,6 +599,8 @@ export interface ScalarExpressionContext {
   readonly compileTimeQuery?: boolean;
   /** Whether direct integer operators compute in the array-ordinal promotion domain. */
   readonly ordinalContext?: boolean;
+  /** Whether this conversion is internal promotion rather than a declaration/assignment. */
+  readonly operatorConversion?: boolean;
   /** The exact expression admitted as a CPU-control statement, never a nested value. */
   readonly cpuStatementExpression?: Expr;
 }
@@ -639,6 +641,8 @@ export interface ScalarExpressionHost {
   read(place: Place, span: SourceSpan): void;
   /** Return a prevalidated embedded value for this exact call expression. */
   embeddedValue(expression: Expr): EmbeddedValue | null;
+  /** Classify an embedded declaration's addressability for address-of diagnostics. */
+  embeddedAddressability?(binding: BindingId): "resident" | "scalar" | "empty" | null;
 }
 
 /** Direct callbacks required while aggregate types are resolved. */
@@ -655,4 +659,6 @@ export interface AggregateRegistryHost {
   sourceText(span: SourceSpan): string;
   /** Infer an unsized declaration from an already validated embedded value. */
   embeddedExtent?(initializer: Expr): number | null;
+  /** Expose an already admitted scalar selector to constant type evaluation. */
+  embeddedScalar?(initializer: Expr): { readonly value: bigint | boolean; readonly type: ScalarType } | null;
 }
