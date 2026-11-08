@@ -58,6 +58,8 @@ export interface ResidentAsset {
   readonly outputSha256: string;
   /** Immutable emitted bytes in source order. */
   readonly bytes: readonly number[];
+  /** Exact selected array type, preserving the element type and extent. */
+  readonly arrayType: ArrayType;
   /** Exact handler identity and selector provenance. */
   readonly handler: AssetProvenance;
   /** Handler-owned placement and consumer constraints. */

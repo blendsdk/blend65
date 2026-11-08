@@ -103,7 +103,7 @@ describe.skipIf(!available)("native producer assets in the frontend", () => {
 
   // A tile data selector is not VIC-visible and remains ordinary resident data.
   it("should build SpritePad tile data without a VIC visibility claim", async () => {
-    const source = `module Game;\n\nconst TILES: byte[] = embed("tiles.spd", "tiles");\n${MAIN}`;
+    const source = `module Game;\n\nconst TILES: word[] = embed("tiles.spd", "tiles");\n${MAIN}`;
     await withProject(source, [producer(SPD_TILES_PATH, "tiles.spd")], async (project) => {
       const built = await buildProject({ project });
       expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
@@ -112,8 +112,17 @@ describe.skipIf(!available)("native producer assets in the frontend", () => {
       if (built.kind !== "success") throw new Error("Expected tile build");
       const assets = JSON.parse(
         await readFile(join(built.generation.directory, ".assets.json"), "utf8"),
-      ) as { assets: { selector: string; placement: { range: { visibility: string[] } } }[] };
+      ) as {
+        assets: {
+          selector: string;
+          logicalType: string;
+          shape: number[];
+          placement: { range: { visibility: string[] } };
+        }[];
+      };
       expect(assets.assets[0]?.selector).toBe("tiles");
+      expect(assets.assets[0]?.logicalType).toBe("const word[]");
+      expect(assets.assets[0]?.shape).toEqual([54]);
       expect(assets.assets[0]?.placement.range.visibility).toEqual([]);
     });
   }, 60_000);

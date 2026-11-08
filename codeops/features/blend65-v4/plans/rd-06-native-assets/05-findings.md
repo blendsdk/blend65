@@ -79,3 +79,22 @@
 | SR-806 | 6 | MINOR | status/spec | fixed — producer-evidence retention, public synthetic status and VICE boundary tests |
 | SR-807 | 5 | MINOR | evidence/impl | fixed — sidecar tests cover scalar `compileTime`, resident constraints/alignment/visibility and deduplicated build inputs |
 | SR-808 | 7 | MINOR | spritepad/impl | fixed — synthetic name-length, no-tile and tile-cell tests |
+| SR-809 | 7 | MAJOR | spritepad/tiles | fixed — `tiles` is `word[]` of sprite indices, cells are validated against SPQ |
+| SR-810 | 8 | MAJOR | charpad/map | fixed — `map_packed12` added with 12-bit availability and packed bytes |
+| SR-811 | 5 | MAJOR | layout/sprite-placement | fixed — sprite placement honors source `at`/align/noCross/region and fixed data |
+| SR-812 | 5 | MAJOR | layout/sprite-holes | fixed — bank-0 first-fit from $2000 with a full-bank fallback below $2000 |
+| SR-813 | 5 | MAJOR | memory/views | deferred — cpu16 free intervals still include reserved/I/O/ROM space; VIC and Color RAM views remain (SR-504) |
+| SR-814 | 5 | MAJOR | evidence/word-types | fixed — resident assets carry their exact ArrayType; `word[]` type/shape and debug symbols are correct |
+| SR-815 | 8 | MAJOR | charpad/robustness | fixed — maxima use loops, no spread-argument crash on large maps |
+| SR-816 | 7 | MAJOR | example/sprite-pointer | fixed — the example and layout test use `setSpritePointer` instead of the color register |
+| SR-817 | 8 | MAJOR | example/d018 | fixed — the CharPad example combines the screen field instead of clearing it |
+| SR-818 | 5 | MINOR | diagnostics/field-errors | deferred — VIC field failures still surface as COMPILER_LOWERING/COMPILER_LAYOUT instead of E10143/E10273 |
+| SR-819 | 5 | MINOR | diagnostics/reasons | deferred — invalid-asset/capacity reasons remain generic |
+| SR-820 | 5 | MINOR | diagnostics/names | fixed — asset names use the basename instead of the extension token |
+| SR-821 | 8 | MINOR | charpad/extra-selectors | accepted — `char_materials`/count selectors are useful extra surface; 65,536 count representation remains open |
+| SR-822 | 8 | MINOR | charpad/colors | accepted — per-project colors are normalized to low nibbles; other methods preserve native bytes |
+| SR-823 | 7/8 | MINOR | producer/vice-oracle | fixed — producer VICE checks assert alignment and bank-0 placement |
+| SR-824 | 6 | MINOR | status/coverage | fixed — status counts and selector claim refreshed |
+| SR-825 | 2 | MINOR | psid/rom-window | fixed — PSID no longer rejects CPU-visible $1000/$A000 payload intervals |
+| SR-826 | 7/8 | MINOR | inventory/dynamic-types | deferred — SPD/CTM inventories advertise zero-length dynamic arrays |
+| SR-827 | 5 | MINOR | evidence/padding | deferred — `paddingBeforeBytes` remains 0 for aligned assets |

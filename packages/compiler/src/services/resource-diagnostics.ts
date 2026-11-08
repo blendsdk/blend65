@@ -53,7 +53,9 @@ export function sourcePlacementFailure(
 ): ProjectDiagnostic {
   const object = [...machine.data, ...machine.functions].find(({ id }) => id === objectId);
   const key = objectId?.replace(/^(?:global|fn)\./u, "") ?? "";
-  const name = object?.sourceName?.split(".").at(-1) ?? objectId ?? "object";
+  const name = object?.sourceName?.includes("/")
+    ? object.sourceName.split("/").at(-1)!
+    : (object?.sourceName?.split(".").at(-1) ?? objectId ?? "object");
   const data = machine.data.find(({ id }) => id === objectId);
   const vicVisible = data?.vicVisible === true;
   const handlerFixed =

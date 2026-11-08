@@ -31,6 +31,7 @@ async function observe(
   source: string,
   expectedBytes: number,
   offset: number,
+  alignment: number,
 ): Promise<void> {
   if (asset === null) return;
   await withProject(source, [asset], async (project) => {
@@ -44,6 +45,8 @@ async function observe(
     ) as { assets: { selector: string; placement: { range: { start: number } } }[] };
     const start = assets.assets[0]?.placement.range.start;
     if (start === undefined) throw new Error("Producer asset has no placement");
+    expect(start % alignment).toBe(0);
+    expect(start).toBeLessThan(0x4000);
     const started = await startVice(
       join(built.generation.directory, built.generation.primaryArtifact),
       80_000_000,
@@ -81,7 +84,7 @@ describe.sequential("producer assets in native VICE", () => {
 const SPRITES: byte[] = embed("player.spd");
 function main(): void { poke($D015, 1); while (true) { poke($D020, 0); } }
 `;
-    await observe(asset, source, 64, 20);
+    await observe(asset, source, 64, 20, 64);
   }, 60_000);
 
   // CharPad charset bytes appear at their 2-KiB-aligned resident address.
@@ -94,6 +97,6 @@ function main(): void { poke($D015, 1); while (true) { poke($D020, 0); } }
 const CHARSET: byte[] = embed("level.ctm", "charset");
 function main(): void { poke($D018, c64.vic.vicCharsetSelect(&CHARSET)); while (true) { poke($D020, 0); } }
 `;
-    await observe(asset, source, 8, 23);
+    await observe(asset, source, 8, 23, 2048);
   }, 60_000);
 });

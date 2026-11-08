@@ -308,6 +308,7 @@ async function readCandidate(
       inputBytes: size,
       outputSha256: sha256,
       bytes,
+      arrayType: type,
       handler,
       constraints: Object.freeze([]),
     });

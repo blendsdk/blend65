@@ -1,0 +1,12 @@
+module Game;
+
+// SPD v5: the default selector is the native 64-byte sprite array.
+const SPRITES: byte[] = embed("player.spd");
+
+function main(): void {
+  c64.vic.setSpriteEnabled(0, true);
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+  while (true) {
+    c64.video.waitNextFrame();
+  }
+}

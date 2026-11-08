@@ -63,7 +63,11 @@ function wordArray(length: number) {
 }
 
 /** Selector inventory for one parsed file. */
-function inventory(tileMode: boolean, packed: boolean): readonly AssetSelectorInfo[] {
+function inventory(
+  tileMode: boolean,
+  packed: boolean,
+  packedMap: boolean,
+): readonly AssetSelectorInfo[] {
   const scalar = (name: string, type = SCALAR_TYPES.word) =>
     Object.freeze({
       name,
@@ -99,6 +103,7 @@ function inventory(tileMode: boolean, packed: boolean): readonly AssetSelectorIn
     array("map_word", wordArray(0)),
     array("map_low", byteArray(0)),
     array("map_high", byteArray(0)),
+    array("map_packed12", byteArray(0), packedMap),
   ]);
 }
 
@@ -123,7 +128,8 @@ function canonicalCells(values: readonly number[]): {
   readonly type: ReturnType<typeof byteArray> | ReturnType<typeof wordArray>;
   readonly bytes: readonly number[];
 } {
-  const maximum = Math.max(0, ...values);
+  let maximum = 0;
+  for (const value of values) if (value > maximum) maximum = value;
   if (maximum <= 0xff) {
     return {
       type: byteArray(values.length),
@@ -312,7 +318,9 @@ export const charpadHandler: AssetHandler = Object.freeze({
           );
         }
       }
-      if (Math.max(0, ...tileValues) <= 0xfff) {
+      let tileMaximum = 0;
+      for (const value of tileValues) if (value > tileMaximum) tileMaximum = value;
+      if (tileMaximum <= 0xfff) {
         tilePacked = Object.freeze(pack12(tileValues));
       }
       if (colorMethod === 1) {
@@ -410,8 +418,13 @@ export const charpadHandler: AssetHandler = Object.freeze({
         : colorMethod === 1
           ? tileColors
           : charColors;
-    const packedAvailable = tileMode && Math.max(0, ...tileValues) <= 0xfff;
-    const selectors = inventory(tileMode, packedAvailable);
+    let tileMaximum = 0;
+    for (const value of tileValues) if (value > tileMaximum) tileMaximum = value;
+    let mapMaximum = 0;
+    for (const value of mapValues) if (value > mapMaximum) mapMaximum = value;
+    const packedAvailable = tileMode && tileMaximum <= 0xfff;
+    const packedMapAvailable = mapMaximum <= 0xfff;
+    const selectors = inventory(tileMode, packedAvailable, packedMapAvailable);
     const selector = request.selector;
     if (selector === null) {
       return Object.freeze({
@@ -548,6 +561,16 @@ export const charpadHandler: AssetHandler = Object.freeze({
           byteArray(mapValues.length),
           "ctm-map-high",
         );
+      case "map_packed12":
+        if (!packedMapAvailable)
+          return failure(
+            request,
+            "E10133",
+            "MAP_PACKED12",
+            0,
+            "packed-12 needs a map whose values all fit in 12 bits",
+          );
+        return arrayOutput(pack12(mapValues), byteArray(mapValues.length), "ctm-map-packed12");
       default:
         return Object.freeze({
           kind: "failure",

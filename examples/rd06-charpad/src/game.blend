@@ -1,0 +1,11 @@
+module Game;
+
+// CTM v9: the charset selector carries the 2-KiB alignment and VIC visibility.
+const CHARSET: byte[] = embed("level.ctm", "charset");
+
+function main(): void {
+  poke($D018, $10 | c64.vic.vicCharsetSelect(&CHARSET));
+  while (true) {
+    c64.video.waitNextFrame();
+  }
+}

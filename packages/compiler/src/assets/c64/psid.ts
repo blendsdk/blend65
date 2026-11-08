@@ -282,17 +282,6 @@ export const psidHandler: AssetHandler = Object.freeze({
         "the payload must contain music data after the load address",
       );
     }
-    const dataEnd = effectiveLoad + data.length;
-    const overlaps = (start: number, end: number) => effectiveLoad < end && dataEnd > start;
-    if (overlaps(0x1000, 0x2000) || overlaps(0xa000, 0xc000)) {
-      return failure(
-        request,
-        "E10261",
-        "LOAD_ADDRESS",
-        0x08,
-        `the payload interval $${effectiveLoad.toString(16)}-$${(dataEnd - 1).toString(16)} overlaps a ROM window visible on the selected profile; no banking is inferred`,
-      );
-    }
     if (effectiveLoad + data.length > 0x10000) {
       return failure(
         request,

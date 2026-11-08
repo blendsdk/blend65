@@ -12,7 +12,7 @@ function spd(name: string): Buffer {
   header.write("SPD", 0, "ascii");
   header[3] = 5;
   header[4] = 0x01;
-  header.writeUInt16LE(0, 5);
+  header.writeUInt16LE(1, 5);
   header.writeUInt16LE(1, 7);
   header[9] = 0;
   header[10] = 0;
@@ -20,7 +20,8 @@ function spd(name: string): Buffer {
   header[12] = 1;
   return Buffer.concat([
     header,
-    Buffer.from([0x11, 0x22]),
+    Buffer.alloc(64, 0x44),
+    Buffer.from([0x00, 0x00]),
     Buffer.from([0x01]),
     Buffer.from([0x02]),
     Buffer.from(name, "ascii"),
@@ -62,7 +63,8 @@ describe("SpritePad internals", () => {
     if (tiles.kind !== "output") throw new Error("Expected tiles");
     expect(tiles.value.kind).toBe("embedded");
     if (tiles.value.kind !== "embedded") throw new Error("Expected tile bytes");
-    expect(tiles.value.bytes).toEqual([0x11, 0x22]);
+    expect(tiles.value.bytes).toEqual([0x00, 0x00]);
+    expect(tiles.value.type).toMatchObject({ kind: "array", element: { name: "word" }, length: 1 });
     const attributes = spritepadHandler.parse(request(bytes, "tile_attributes"));
     expect(attributes.kind).toBe("output");
     if (attributes.kind !== "output") throw new Error("Expected tile attributes");

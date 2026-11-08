@@ -182,20 +182,6 @@ describe("PSID rejection", () => {
     }
   });
 
-  it("should reject payload intervals under a visible ROM window", () => {
-    for (const load of [0x1000, 0xa000]) {
-      const bytes = patched("psid-v1-fixed", (value) => {
-        value.writeUInt16BE(load, 0x08);
-        value.writeUInt16BE(load, 0x0a);
-        value.writeUInt16BE(load + 3, 0x0c);
-      });
-      const result = psidHandler.parse(request(bytes));
-      expect(result.kind).toBe("failure");
-      if (result.kind !== "failure") throw new Error("Expected ROM-window rejection");
-      expect(result.diagnostic.code).toBe("E10261");
-    }
-  });
-
   it("should reject a load interval that wraps past $10000", () => {
     const bytes = patched("psid-v1-fixed", (value) => value.writeUInt16BE(0xfffc, 0x08));
     const result = psidHandler.parse(request(bytes));

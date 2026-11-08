@@ -11,7 +11,7 @@ describe("resident layout asset constraints", () => {
   it("should fit 128 sprite records in bank 0", async () => {
     const source = `module Game;
 const SPRITES: byte[] = embed("sprites.bin");
-function main(): void { poke($D015, 1); poke($D027, c64.vic.vicSpriteBlock(&SPRITES)); }
+function main(): void { c64.vic.setSpriteEnabled(0, true); c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES)); }
 `;
     await withProject(
       source,
@@ -35,7 +35,7 @@ function main(): void { poke($D015, 1); poke($D027, c64.vic.vicSpriteBlock(&SPRI
   it("should reject 256 sprite records with the active screen", async () => {
     const source = `module Game;
 const SPRITES: byte[] = embed("sprites.bin");
-function main(): void { poke($D015, 1); poke($D027, c64.vic.vicSpriteBlock(&SPRITES)); }
+function main(): void { c64.vic.setSpriteEnabled(0, true); c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES)); }
 `;
     await withProject(
       source,

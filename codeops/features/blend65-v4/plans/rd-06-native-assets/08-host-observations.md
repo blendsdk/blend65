@@ -23,11 +23,11 @@ behavior is observed through the pinned VICE 3.10 `x64sc` harness. No native har
 
 | Run | Result | Notes |
 | --- | --- | --- |
-| Compiler suite | 3,617 passed, 2 skipped | `yarn workspace @blend65/compiler test` |
-| Directed root suites | 656 passed | `test/rd04`, `test/m1`, `test/rd06` |
+| Compiler suite | 3,623 passed, 2 skipped | `yarn workspace @blend65/compiler test` |
+| Directed root suites | 673 passed | `test/rd04`, `test/m1`, `test/rd06` |
 | PSID VICE placement | Fixed and payload-load data observed at `$3000` | `test/rd06/vice-psid.spec.test.ts` |
 | Koala/Q-P15 VICE | Screen, Color RAM, bitmap head and change bytes observed | `test/rd06/vice-qp15.spec.test.ts` |
-| Producer examples | All selectors parsed from the installed 3.80 examples | `spritepad.spec.test.ts`, `charpad.spec.test.ts` |
+| Producer examples | Selected SPD and CTM selectors parsed and hashed from the installed 3.80 examples | `spritepad.spec.test.ts`, `charpad.spec.test.ts` |
 
 Per-handler wall-clock parse/layout/build durations and peak RSS are not recorded here as exact
 numbers. The host measurements in `.build.json` remain `Unknown` where the compiler cannot measure

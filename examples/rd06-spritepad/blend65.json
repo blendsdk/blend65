@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "name": "rd06-spritepad",
+  "sourceRoot": "src",
+  "entry": "Game",
+  "target": "c64-pal-prg-kernal-6581",
+  "assetPaths": ["assets"],
+  "outDir": "out",
+  "optimization": "none"
+}

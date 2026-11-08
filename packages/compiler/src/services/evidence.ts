@@ -152,13 +152,14 @@ async function writeEncoded(
 
 /** Exact source-language type of one selected asset. */
 function assetLogicalType(asset: SemanticAsset): string {
-  if (asset.kind === "resident-asset") return "const byte[]";
+  if (asset.kind === "resident-asset")
+    return `const ${asset.arrayType.element.kind === "scalar" ? asset.arrayType.element.name : "byte"}[]`;
   return asset.scalarType === null ? "const byte[]" : `const ${asset.scalarType.name}`;
 }
 
 /** Exact logical shape of one selected asset. */
 function assetShape(asset: SemanticAsset): readonly number[] {
-  return asset.kind === "resident-asset" ? [asset.bytes.length] : [];
+  return asset.kind === "resident-asset" ? [asset.arrayType.length] : [];
 }
 
 /** Produce the deterministic evidence identity used by the asset sidecar schema. */

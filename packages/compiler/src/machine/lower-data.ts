@@ -161,8 +161,7 @@ export function lowerData(
         1,
       );
       const vicVisible = asset.constraints.some(
-        (constraint) =>
-          constraint.kind === "visibility" && constraint.consumer === "vic",
+        (constraint) => constraint.kind === "visibility" && constraint.consumer === "vic",
       );
       return Object.freeze({
         id: `asset.${asset.id}`,

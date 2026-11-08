@@ -50,4 +50,23 @@ describe("RD-06 asset example", () => {
       await rm(root, { recursive: true, force: true });
     }
   }, 60_000);
+
+  // The focused producer examples build from committed synthetic SPD v5 and CTM v9 files.
+  it.each(["rd06-spritepad", "rd06-charpad"])(
+    "should build the %s example",
+    async (name) => {
+      const root = await mkdtemp(join(tmpdir(), `blend65-${name}-`));
+      try {
+        await cp(join(process.cwd(), "examples", name), root, { recursive: true });
+        const built = await buildProject({ project: join(root, "blend65.json") });
+        expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+          "success",
+        );
+        if (built.kind !== "success") throw new Error(`Expected ${name} build`);
+      } finally {
+        await rm(root, { recursive: true, force: true });
+      }
+    },
+    60_000,
+  );
 });

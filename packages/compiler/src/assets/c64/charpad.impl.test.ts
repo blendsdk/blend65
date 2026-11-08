@@ -13,6 +13,7 @@ function ctm(options: {
   readonly tileCell?: number;
   readonly displayMode?: number;
   readonly colorMethod?: number;
+  readonly mapCell?: number;
 }): Buffer {
   const header = Buffer.alloc(19);
   header.write("CTM", 0, "ascii");
@@ -41,7 +42,11 @@ function ctm(options: {
     parts.push(block(next++), Buffer.from([1]));
     parts.push(block(next++), Buffer.from([0]));
   }
-  parts.push(block(next++), Buffer.from([1, 0, 1, 0]), Buffer.from([0, 0]));
+  parts.push(
+    block(next++),
+    Buffer.from([1, 0, 1, 0]),
+    Buffer.from([(options.mapCell ?? 0) & 0xff, ((options.mapCell ?? 0) >> 8) & 0xff]),
+  );
   return Buffer.concat([header, ...parts]);
 }
 
@@ -75,6 +80,22 @@ describe("CharPad internals", () => {
     expect(word.value.kind).toBe("embedded");
     if (word.value.kind !== "embedded") throw new Error("Expected bytes");
     expect(word.value.bytes).toEqual([0, 16]);
+  });
+
+  // The map packed-12 form is available up to index 4095 and absent above it.
+  it("should expose map packed-12 only below 4096", () => {
+    const packed = charpadHandler.parse(
+      request(ctm({ chars: 0x300, tileMode: false, mapCell: 0x123 }), "map_packed12"),
+    );
+    expect(packed.kind).toBe("output");
+    if (packed.kind !== "output") throw new Error("Expected packed map");
+    expect(packed.value).toMatchObject({ kind: "embedded", bytes: [0x23, 0x01] });
+    const unavailable = charpadHandler.parse(
+      request(ctm({ chars: 4097, tileMode: false, mapCell: 4096 }), "map_packed12"),
+    );
+    expect(unavailable.kind).toBe("failure");
+    if (unavailable.kind !== "failure") throw new Error("Expected packed map rejection");
+    expect(unavailable.diagnostic.code).toBe("E10133");
   });
 
   // A no-tile project still exposes the map and the default tile dimensions.

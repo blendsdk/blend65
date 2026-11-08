@@ -6,7 +6,6 @@ import { validateMachineProgram } from "../machine/bind.js";
 import { machineInstruction } from "../machine/lower-control.js";
 import type { MachineBlock, MachineFunction, MachineProgram } from "../machine/machine-types.js";
 import {
-  align,
   freeSourceStart,
   overlaps,
   satisfiesSourcePlacement,
@@ -554,28 +553,40 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     if (bytes === null || bytes.length === 0 || bytes.length % 64 !== 0) {
       return Object.freeze({ kind: "error", reason: "invalid-asset", objectId: asset.id });
     }
-    let start = align(input.profile.machine.spriteStart, 64);
-    while (
-      overlaps(
-        start,
-        start + bytes.length - 1,
-        input.profile.machine.characterRomStart,
-        input.profile.machine.characterRomEnd,
-      ) ||
-      overlaps(
-        start,
-        start + bytes.length - 1,
-        input.profile.machine.screenAddress,
-        input.profile.machine.screenEnd,
-      ) ||
-      intervals.some((interval) =>
-        overlaps(start, start + bytes.length - 1, interval.start, interval.end),
-      )
-    ) {
-      start = align(start + 64, 64);
-    }
-    const end = start + bytes.length - 1;
-    if (start < input.profile.machine.vicBankStart || end > input.profile.machine.vicBankEnd) {
+    const occupied: { readonly start: number; readonly end: number }[] = [
+      ...intervals,
+      ...fixedData,
+      {
+        start: input.profile.machine.characterRomStart,
+        end: input.profile.machine.characterRomEnd,
+      },
+      {
+        start: input.profile.machine.screenAddress,
+        end: input.profile.machine.screenEnd,
+      },
+    ];
+    const candidate = (from: number): number | null => {
+      const value = freeSourceStart(
+        from,
+        bytes.length,
+        Math.max(64, asset.placement?.align ?? 1),
+        asset.placement,
+        occupied,
+        input.profile,
+      );
+      return value !== null &&
+        value >= input.profile.machine.vicBankStart &&
+        value + bytes.length - 1 <= input.profile.machine.vicBankEnd
+        ? value
+        : null;
+    };
+    const start =
+      candidate(
+        Math.max(input.profile.machine.spriteStart, input.profile.packager.residentStart),
+      ) ??
+      candidate(Math.max(input.profile.machine.vicBankStart, input.profile.packager.residentStart));
+    const end = start === null ? -1 : start + bytes.length - 1;
+    if (start === null) {
       return Object.freeze({ kind: "error", reason: "vic-visibility", objectId: asset.id });
     }
     if (

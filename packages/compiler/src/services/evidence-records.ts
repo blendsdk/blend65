@@ -587,9 +587,11 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       name: asset.id,
       qualifiedName: assetSymbolName(asset.id),
       kind: "asset",
-      type: `byte[${asset.bytes.length}]`,
+      type: `${
+        asset.arrayType.element.kind === "scalar" ? asset.arrayType.element.name : "byte"
+      }[${asset.arrayType.length}]`,
       byteWidth: asset.bytes.length,
-      shape: Object.freeze([asset.bytes.length]),
+      shape: Object.freeze([asset.arrayType.length]),
       scope: "asset",
       origin: Object.freeze({ kind: "generated", cause: "asset" }),
       linkage: "internal",

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { validateProducerCheckpoint } from "./fixture-tools/producer-checkpoint.js";
 
 const repository = process.cwd();
 const producer = JSON.parse(
@@ -13,6 +14,12 @@ const producer = JSON.parse(
 };
 
 describe("producer evidence honesty", () => {
+  // The checkpoint validates every manual and example when the licensed folder is present.
+  it("should pass the local producer checkpoint", () => {
+    const checkpoint = validateProducerCheckpoint(repository);
+    expect(checkpoint.violations).toEqual([]);
+    expect(typeof checkpoint.available).toBe("boolean");
+  });
   // The real vendor examples are referenced but never committed.
   it("should keep producer files local-only and their hashes pinned", () => {
     expect(producer.retention.disposition).toBe("local-only");

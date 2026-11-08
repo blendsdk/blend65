@@ -595,6 +595,7 @@ function semanticAssetFromOutput(
       inputBytes,
       outputSha256: output.outputSha256,
       bytes: output.value.bytes,
+      arrayType: output.value.type,
       handler,
       constraints: output.constraints,
     }) satisfies ResidentAsset;

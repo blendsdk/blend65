@@ -94,7 +94,7 @@ function inventory(
     scalar("tile_count"),
     scalar("tile_width", SCALAR_TYPES.byte),
     scalar("tile_height", SCALAR_TYPES.byte),
-    array("tiles", byteArray(0), tiles),
+    array("tiles", wordArray(0), tiles),
     array("tile_attributes", byteArray(0), tiles),
     array("tile_tags", byteArray(0), tiles),
     scalar("sprite_animation_count", SCALAR_TYPES.word, spriteAnimation),
@@ -202,6 +202,20 @@ export const spritepadHandler: AssetHandler = Object.freeze({
         return failure(request, "E10204", "TILE_DATA", offset, "truncated tile data");
       }
       tileData = bytes.slice(offset, offset + tileBytesLength);
+      const tileValues = Array.from({ length: tileCount * tileWidth * tileHeight }, (_, index) =>
+        leWord(tileData, index * 2),
+      );
+      for (const value of tileValues) {
+        if (value >= spriteCount) {
+          return failure(
+            request,
+            "E10204",
+            "TILE_DATA",
+            offset,
+            `tile cell references sprite ${value} but the project has ${spriteCount}`,
+          );
+        }
+      }
       offset += tileBytesLength;
       tileAttributes = bytes.slice(offset, offset + tileCount);
       offset += tileCount;
@@ -371,7 +385,15 @@ export const spritepadHandler: AssetHandler = Object.freeze({
         return scalarOutput(BigInt(tileHeight), SCALAR_TYPES.byte);
       case "tiles":
         if (!tiles) return failure(request, "E10133", "TILES", 4, "this project has no tile layer");
-        return arrayOutput(tileData, byteArray(tileData.length), "spd-tiles");
+        return arrayOutput(
+          wordBytes(
+            Array.from({ length: tileCount * tileWidth * tileHeight }, (_, index) =>
+              leWord(tileData, index * 2),
+            ),
+          ),
+          wordArray(tileCount * tileWidth * tileHeight),
+          "spd-tiles",
+        );
       case "tile_attributes":
         if (!tiles) return failure(request, "E10133", "TILES", 4, "this project has no tile layer");
         return arrayOutput(tileAttributes, byteArray(tileAttributes.length), "spd-tile-attributes");
