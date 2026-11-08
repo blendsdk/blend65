@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-08
-> **Progress**: 112/151 tasks (74%)
+> **Progress**: 119/151 tasks (79%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -342,7 +342,7 @@ immediately testable.
 **Reference**: [03-06](03-06-resident-layout-evidence.md) · ST-92, ST-129–ST-154, ST-182, ST-185 · AR-5, AR-11, AR-14, AR-29–AR-35
 **Objective**: Lock every interval, view, derived field and sidecar expectation.
 
-- [ ] 5.1.1 [spec-author] Write interval, alignment, Koala placement, VIC-field and composition specification tests from ST-102–ST-107, ST-109, ST-129–ST-145, ST-182, ST-185 and ST-186 — `test/rd06/layout-assets.spec.test.ts`
+- [x] 5.1.1 [spec-author] Write interval, alignment, Koala placement, VIC-field and composition specification tests from ST-102–ST-107, ST-109, ST-129–ST-145, ST-182, ST-185 and ST-186 — `test/rd06/layout-assets.spec.test.ts`
 - [ ] 5.1.2 [spec-author] Write evidence, scalar-record and cross-sidecar specification tests from ST-92 and ST-146–ST-154 — `test/rd06/layout-assets.spec.test.ts`
 - [ ] 5.1.3 Run the layout/evidence specification tests and record the red phase — `yarn vitest run test/rd06/layout-assets.spec.test.ts`
 
@@ -386,8 +386,8 @@ immediately testable.
 - [ ] 5.3.1 Run the layout/evidence specification tests and verify the green phase — `yarn vitest run test/rd06/layout-assets.spec.test.ts`
 - [ ] 5.3.2 Write layout cursor, noCross, alignment, derived-field and free-interval implementation tests — `packages/compiler/src/layout/c64-layout-assets.impl.test.ts`
 - [ ] 5.3.3 Write sidecar completeness, canonical order and reconciliation implementation tests — `test/rd06/evidence-assets.impl.test.ts`
-- [ ] 5.3.4 Run the focused M1/RD-05 layout and artifact regressions — `yarn vitest run test/m1/pipeline.spec.test.ts test/rd05/profile-output.spec.test.ts`
-- [ ] 5.3.5 Run the directed layout/evidence suite and phase checkpoint
+- [x] 5.3.4 Run the focused M1/RD-05 layout and artifact regressions — `yarn vitest run test/m1/pipeline.spec.test.ts test/rd05/profile-output.spec.test.ts`
+- [x] 5.3.5 Run the directed layout/evidence suite and phase checkpoint
 - [ ] 5.3.6 Dispatch independent SFA/ABI, machine-code and platform reviews and record dispositions
 - [ ] 5.3.7 Audit existing fixtures for character-ROM crossings and record any expected artifact changes — `test/m1`, `test/rd05`
 - [ ] 5.3.8 Run the bounded Koala visibility and Color RAM transfer VICE check — `test/rd06/vice-koala.spec.test.ts`
@@ -412,9 +412,9 @@ immediately testable.
 **Reference**: [03-07](03-07-fixtures-qualification.md) · ST-155–ST-164, ST-180, ST-183, ST-184 · AR-7, AR-15, AR-37–AR-40
 **Objective**: Lock manifest completeness, examples, blocked gates and status evidence.
 
-- [ ] 6.1.1 [spec-author] Write fixture-manifest, status and AC-gap specification tests from ST-155–ST-164, ST-180, ST-183 and ST-184 — `test/rd06/fixtures.spec.test.ts`
-- [ ] 6.1.2 [spec-author] Write example build/output specification tests — `test/rd06/examples.spec.test.ts`
-- [ ] 6.1.3 [spec-author] Write integration, aliasing and blocked-gate specification tests — `test/rd06/integration.spec.test.ts`, `test/rd06/aliasing.spec.test.ts`, `test/rd06/blocked-gates.spec.test.ts`
+- [x] 6.1.1 [spec-author] Write fixture-manifest, status and AC-gap specification tests from ST-155–ST-164, ST-180, ST-183 and ST-184 — `test/rd06/fixtures.spec.test.ts`
+- [x] 6.1.2 [spec-author] Write example build/output specification tests — `test/rd06/examples.spec.test.ts`
+- [x] 6.1.3 [spec-author] Write integration, aliasing and blocked-gate specification tests — `test/rd06/integration.spec.test.ts`, `test/rd06/aliasing.spec.test.ts`, `test/rd06/blocked-gates.spec.test.ts`
 - [ ] 6.1.4 Run the fixture/example/integration specification tests and record the red phase — `yarn vitest run test/rd06/fixtures.spec.test.ts test/rd06/examples.spec.test.ts test/rd06/integration.spec.test.ts test/rd06/aliasing.spec.test.ts test/rd06/blocked-gates.spec.test.ts`
 
 **Deliverables**:
@@ -445,7 +445,7 @@ immediately testable.
 **Reference**: AR-6, AR-38
 **Objective**: Prove the fixture/status behavior and build the examples.
 
-- [ ] 6.3.1 Run the fixture/status specification tests and verify the green phase — `yarn vitest run test/rd06/fixtures.spec.test.ts`
+- [x] 6.3.1 Run the fixture/status specification tests and verify the green phase — `yarn vitest run test/rd06/fixtures.spec.test.ts`
 - [ ] 6.3.2 Write manifest duplicate/unlisted/hash-mismatch implementation tests — `test/rd06/fixtures.impl.test.ts`
 - [x] 6.3.3 Build every focused example and verify exact outputs — `yarn vitest run test/rd06/examples.spec.test.ts`
 - [ ] 6.3.4 Run the complete unblocked RD-06 suite and phase checkpoint — `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`

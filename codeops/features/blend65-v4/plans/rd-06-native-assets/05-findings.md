@@ -74,4 +74,6 @@
 | SR-801 | 6 | MAJOR | example/status | fixed — `examples/rd06-assets/` builds raw, Koala and PSID assets and `08-host-observations.md` records handler identities and the VICE/hardware boundary |
 | SR-802 | 8 | MINOR | charpad/impl | fixed — synthetic CTM tests cover packed-12 overflow, no-tile defaults and per-mode color width |
 | SR-803 | 7/8 | MINOR | producer/vice | fixed — native VICE observes SpritePad sprite bytes and CharPad charset bytes at their final addresses |
-| SR-804 | 6/7/8 | MAJOR | closeout/coverage | deferred — dedicated fixture/status/blocked-gate spec files, committed synthetic SPD/CTM fixtures, focused producer examples, and formal phase reviews remain; RD-06 is not closeout-ready |
+| SR-804 | 6/7/8 | MAJOR | closeout/coverage | deferred — committed synthetic SPD/CTM fixtures, focused producer examples, a dedicated layout/evidence sidecar test and formal phase reviews remain; RD-06 is not closeout-ready |
+| SR-805 | 5 | MINOR | layout/spec | fixed — 128-sprite fit, 256-sprite failure, alignment, bank visibility, character-ROM and region tests |
+| SR-806 | 6 | MINOR | status/spec | fixed — producer-evidence retention, public synthetic status and VICE boundary tests |
