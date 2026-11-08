@@ -115,6 +115,38 @@ describe("PSID frontend integration", () => {
     expect(result.map(({ code }) => code)).toContain("E10142");
   });
 
+  // A scalar selector publishes a zero-byte compile-time evidence record.
+  it("should publish a compileTime scalar asset record", async () => {
+    const source = `module Game;\n\nconst INIT: word = embed("music.sid", "init_address");\nfunction main(): void { poke($0400, byte(INIT)); }\n`;
+    await withProject(source, [psid("psid-v1-fixed")], async (project) => {
+      const built = await buildProject({ project });
+      expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+        "success",
+      );
+      if (built.kind !== "success") throw new Error("Expected a scalar build");
+      const assets = JSON.parse(
+        await readFile(join(built.generation.directory, ".assets.json"), "utf8"),
+      ) as {
+        assets: {
+          selector: string;
+          logicalType: string;
+          payloadBytes: number;
+          emittedBytes: number;
+          placement: { kind: string; outputSha256: string };
+        }[];
+      };
+      expect(assets.assets).toHaveLength(1);
+      expect(assets.assets[0]).toMatchObject({
+        selector: "init_address",
+        logicalType: "const word",
+        payloadBytes: 0,
+        emittedBytes: 0,
+        placement: { kind: "compileTime" },
+      });
+      expect(assets.assets[0]?.placement.outputSha256).toMatch(/^[0-9a-f]{64}$/u);
+    });
+  });
+
   // The fixed load participates in the ordinary placement intersection.
   it("should reject a source address that contradicts the PSID load address", async () => {
     const source = `module Game;\n\nplace(at: $C100) const MUSIC: byte[] = embed("music.sid");\n${MAIN}`;

@@ -57,3 +57,11 @@
 | SR-307 | 4 | MINOR | qp15/representations | fixed — REFERENCES is derived from the embedded screen low nibbles |
 | SR-308 | 4 | MINOR | qp15/scalar-oracle | fixed — the PSID scalar test observes both low and high bytes |
 | SR-309 | 4 | MINOR | plan/budget-coverage | fixed — `comptime-assets.impl.test.ts` proves no 64-byte embed charge and the step budget |
+| SR-501 | 5 | MAJOR | layout/vic-visibility | fixed — VIC-visible assets require bank 0, avoid character ROM and the active screen, and `c64.vic.bank0` is a real region; other regions are E10272 |
+| SR-502 | 5 | MAJOR | evidence/assets | fixed — handler/source constraints, exact alignment/visibility and scalar `compileTime` records are published |
+| SR-503 | 5 | MAJOR | publication/scalars | fixed — build/debug/scalar input and placement reconciliation accept zero-byte records |
+| SR-504 | 5 | MAJOR | evidence/memory-views | deferred — `.memory.json` has only `cpu16-resident`; the VIC bank and Color RAM views need a schema addition for a non-`cpu16` address space |
+| SR-505 | 5 | MINOR | costs/compile-time | deferred — `.costs.json` has no compile-time-zero accounting component; no artifact-byte inflation is claimed |
+| SR-506 | 5 | MINOR | layout/global-rom | deferred — character ROM is reserved for VIC-visible assets and PSID fixed loads, not every CPU-only code/data interval; a blanket reservation breaks existing M1 code placement |
+| SR-507 | 5 | MINOR | platform/screen-tail | deferred — a relocated screen's full 1-KiB pointer tail and `setSpritePointer` base are not yet layout-derived |
+| SR-508 | 5 | MINOR | qualification/layout | deferred — the dedicated layout/evidence spec file and VICE Koala visibility check remain; Q-P15 covers the visible bitmap/screen/Color RAM path |

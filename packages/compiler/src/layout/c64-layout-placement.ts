@@ -24,7 +24,10 @@ export function satisfiesSourcePlacement(
     start % placement.align === 0 &&
     (placement.noCross === null ||
       Math.floor(start / placement.noCross) === Math.floor(end / placement.noCross)) &&
-    placement.region === null &&
+    (placement.region === null ||
+      (placement.region === "c64.vic.bank0" &&
+        start >= profile.machine.vicBankStart &&
+        end <= profile.machine.vicBankEnd)) &&
     start >= profile.packager.residentStart &&
     end <= profile.packager.residentEnd
   );

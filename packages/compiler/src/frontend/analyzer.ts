@@ -332,6 +332,7 @@ class ModuleAnalyzer {
       this.expressions,
       this.diagnostics,
       declaration.name,
+      this.profile?.assets.regions ?? new Set(),
     );
     const analyzed = analyzeScalarModuleVariable(declaration, module, state, scope, {
       expressions: this.expressions,
@@ -422,6 +423,7 @@ class ModuleAnalyzer {
       this.expressions,
       this.diagnostics,
       declaration.name,
+      this.profile?.assets.regions ?? new Set(),
     );
     const parameterBindings = prepareFunctionParameters(declaration, signature, scope, {
       sources: this.sources,

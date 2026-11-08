@@ -40,6 +40,18 @@ function main(): void {
         assets.assets.map(({ selector, placement }) => [selector, placement.range.start]),
       );
       expect(Object.fromEntries(starts)).toEqual({ bitmap: 0x2000, screen: 0x0c00 });
+      const bitmap = assets.assets.find(({ selector }) => selector === "bitmap")!;
+      expect(bitmap.placement.range).toMatchObject({
+        alignmentBytes: 8192,
+        visibility: ["vic"],
+      });
+      expect(bitmap.constraints).toEqual(
+        expect.arrayContaining([
+          { kind: "align", origin: "handler", bytes: 8192 },
+          { kind: "visibility", origin: "handler", consumer: "vic", conditionId: "vic" },
+          { kind: "at", origin: "source", addressSpaceId: "cpu16", start: 0x2000 },
+        ]),
+      );
     });
   });
 
@@ -90,6 +102,48 @@ ${MAIN}`;
       const conflict = checked.diagnostics.find(({ code }) => code === "E10273");
       expect(conflict?.message).toContain("8192");
       expect(conflict?.message).not.toMatch(/null-byte/iu);
+    });
+  });
+
+  // A handler-visible object cannot use the character-ROM window or bank 1.
+  it("should reject a bitmap in character ROM or outside bank 0", async () => {
+    for (const address of [0x1000, 0x4000]) {
+      const source = `module Game;\n\nplace(at: $${address.toString(16)}) const BITMAP: byte[] = embed("level.kla", "bitmap");\n${MAIN}`;
+      await withProject(source, [koala("koala-zero")], async (project) => {
+        const built = await buildProject({ project });
+        expect(built.kind).toBe("failure");
+        const conflict = built.diagnostics.find(({ code }) => code === "E10273");
+        expect(conflict).toBeDefined();
+        expect(conflict?.message).toMatch(address === 0x1000 ? /8192/iu : /VIC-visible/iu);
+      });
+    }
+  });
+
+  // Bitmap and screen must share bank 0; a screen in bank 1 fails.
+  it("should reject a screen placed in another VIC bank", async () => {
+    const source = `module Game;
+place(at: $2000) const BITMAP: byte[] = embed("level.kla", "bitmap");
+place(at: $4000) const SCREEN: byte[] = embed("level.kla", "screen");
+${MAIN}`;
+    await withProject(source, [koala("koala-zero")], async (project) => {
+      const built = await buildProject({ project });
+      expect(built.kind).toBe("failure");
+      expect(built.diagnostics.map(({ code }) => code)).toContain("E10273");
+    });
+  });
+
+  // The selected profile exports the bank-0 region and rejects others.
+  it("should accept c64.vic.bank0 and reject c64.vic.bank1", async () => {
+    const accepted = `module Game;\n\nplace(region: c64.vic.bank0, at: $2000) const BITMAP: byte[] = embed("level.kla", "bitmap");\n${MAIN}`;
+    await withProject(accepted, [koala("koala-zero")], async (project) => {
+      const checked = await checkProject({ project });
+      expect(checked.kind, JSON.stringify(checked.diagnostics)).toBe("success");
+    });
+    const rejected = `module Game;\n\nplace(region: c64.vic.bank1) const BITMAP: byte[] = embed("level.kla", "bitmap");\n${MAIN}`;
+    await withProject(rejected, [koala("koala-zero")], async (project) => {
+      const checked = await checkProject({ project });
+      expect(checked.kind).toBe("failure");
+      expect(checked.diagnostics.map(({ code }) => code)).toContain("E10272");
     });
   });
 

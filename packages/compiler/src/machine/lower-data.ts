@@ -155,13 +155,23 @@ export function lowerData(
     )
     .map((asset) => {
       const vicSpriteBlocks = spriteAssets.has(`asset.${asset.id}`);
+      const handlerAlignment = asset.constraints.reduce(
+        (maximum, constraint) =>
+          constraint.kind === "align" ? Math.max(maximum, constraint.bytes) : maximum,
+        1,
+      );
+      const vicVisible = asset.constraints.some(
+        (constraint) =>
+          constraint.kind === "visibility" && constraint.consumer === "vic",
+      );
       return Object.freeze({
         id: `asset.${asset.id}`,
         kind: "asset" as const,
         assetId: asset.id,
         sourceName: asset.sourcePath,
         vicSpriteBlocks,
-        alignment: vicSpriteBlocks ? 64 : 1,
+        vicVisible: vicVisible || vicSpriteBlocks,
+        alignment: vicSpriteBlocks ? Math.max(64, handlerAlignment) : handlerAlignment,
         bytes: asset.bytes,
         ...(asset.placement === undefined ? {} : { placement: asset.placement }),
       });

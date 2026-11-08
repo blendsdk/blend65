@@ -545,7 +545,9 @@ export function closeCanonicalReference(
     );
   if (shared.kind === "error") {
     const failed = terminal("compiler", [
-      shared.reason === "source-placement"
+      shared.reason === "source-placement" ||
+      shared.reason === "vic-visibility" ||
+      shared.reason === "character-rom"
         ? sourcePlacementFailure(lowered.program, resourceSpans, shared.objectId)
         : projectDiagnostic(
             "COMPILER_LAYOUT",
@@ -557,6 +559,8 @@ export function closeCanonicalReference(
     // turn an internal error into an optimization opportunity.
     return shared.reason === "resident-range" ||
       shared.reason === "source-placement" ||
+      shared.reason === "vic-visibility" ||
+      shared.reason === "character-rom" ||
       (shared.reason === "code-conflict" && shared.objectId === "startup.restore") ||
       (candidate && shared.reason === "invalid-data" && shared.objectId === C64_STARTUP_STATE_ID)
       ? rejected("layout", failed.failure, { ...facts, objectId: shared.objectId })

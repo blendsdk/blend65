@@ -590,6 +590,8 @@ export interface MachineDataObject {
   readonly assetId?: string;
   /** False for ordinary raw data that does not feed a VIC sprite-block operand. */
   readonly vicSpriteBlocks?: boolean;
+  /** True when the handler requires this object to be visible to the VIC. */
+  readonly vicVisible?: boolean;
   /** Required byte alignment. */
   readonly alignment: number;
   /** Exact resident bytes; BSS bytes are explicit zeroes in this phase. */

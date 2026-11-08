@@ -25,7 +25,7 @@ function physicalInterval(
   const semanticAssetId = interval.id.startsWith("asset.") ? interval.id.slice(6) : null;
   const evidenceAssetId = semanticAssetId === null ? undefined : assetIds.get(semanticAssetId);
   const isAsset = interval.kind === "asset" && evidenceAssetId !== undefined;
-  const isVicAsset = isAsset && spriteAssetIds.has(interval.id);
+  const isVicAsset = interval.vicVisible === true || (isAsset && spriteAssetIds.has(interval.id));
   const isStorage = interval.kind === "sfa";
   const isPadding = interval.kind === "fill";
   const requestsById = new Map(inventory.requests.map((request) => [request.id, request] as const));
@@ -90,9 +90,7 @@ function physicalInterval(
           home.address === interval.start ? [selectedRequests[index]!.alignment] : [],
         ),
       )
-    : isVicAsset
-      ? 64
-      : 1;
+    : (interval.requiredAlignment ?? (isVicAsset ? 64 : 1));
   return Object.freeze({
     id: interval.id,
     addressSpaceId: "cpu16",

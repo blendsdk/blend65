@@ -11,6 +11,7 @@ export function checkedPlacement(
   expressions: ScalarExpressionAnalyzer,
   diagnostics: ProjectDiagnostic[],
   owner: string,
+  regions: ReadonlySet<string> = new Set(),
 ): PlacementConstraints | null {
   const placement =
     clause === null
@@ -22,6 +23,7 @@ export function checkedPlacement(
             expressions.analyze(expression, null, active).node?.constant ?? null,
           (diagnostic) => diagnostics.push(diagnostic),
           owner,
+          regions,
         );
   if (placement?.at != null && placement.at % placement.align !== 0 && clause !== null) {
     diagnostics.push(
@@ -43,6 +45,7 @@ export function resolvePlacement(
   analyze: (expression: Expr, context: ScalarExpressionContext) => bigint | boolean | null,
   diagnose: (diagnostic: ProjectDiagnostic) => void,
   owner = "declaration",
+  regions: ReadonlySet<string> = new Set(),
 ): PlacementConstraints | null {
   const seen = new Map<string, SourceSpan>();
   let valid = true;
@@ -72,6 +75,7 @@ export function resolvePlacement(
     seen.set(argument.key, keySpan);
     if (argument.key === "region") {
       region = typeof argument.value === "string" ? argument.value : null;
+      if (region !== null && regions.has(region)) continue;
       invalid(
         `region '${region ?? "<invalid>"}' is not exported by the selected resident profile`,
         { ...argument.span, start: argument.span.end - (region?.length ?? 0) },

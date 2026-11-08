@@ -450,6 +450,22 @@ function asset(value: unknown, invalid?: EvidenceFieldFailure): boolean {
       return false;
     }
     ranges = placement.copies as Record<string, unknown>[];
+  } else if (placement.kind === "compileTime") {
+    if (
+      !hasExactEvidenceKeys(placement, ["kind", "outputSha256"]) ||
+      !isEvidenceHash(placement.outputSha256, invalid, ["placement", "outputSha256"]) ||
+      placement.outputSha256 !== value.outputSha256 ||
+      value.payloadBytes !== 0 ||
+      value.emittedBytes !== 0 ||
+      constraints.length !== 0
+    ) {
+      invalid?.(
+        [],
+        "compileTime placement must be an exact zero-byte record whose output digest matches the selected value",
+      );
+      return false;
+    }
+    ranges = [];
   } else if (placement.kind === "loadable") {
     if (
       !hasExactEvidenceKeys(placement, ["kind", "loadUnitId", "artifactPath", "destinations"]) ||
@@ -473,7 +489,10 @@ function asset(value: unknown, invalid?: EvidenceFieldFailure): boolean {
     }
     ranges = placement.destinations as Record<string, unknown>[];
   } else {
-    invalid?.(["placement", "kind"], "placement must be single, replicated or loadable");
+    invalid?.(
+      ["placement", "kind"],
+      "placement must be single, replicated, loadable or compileTime",
+    );
     return false;
   }
   if (!constraintsMatch(constraints, ranges)) {

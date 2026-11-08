@@ -126,6 +126,8 @@ function assetPlacementsMatchMemory(
   );
   return assets.every((asset) => {
     const placement = asset.placement as Record<string, unknown>;
+    // A compile-time scalar owns no resident interval and no memory record.
+    if (placement.kind === "compileTime") return asset.payloadBytes === 0;
     const ranges =
       placement.kind === "single"
         ? [placement.range as Record<string, unknown>]
@@ -334,7 +336,8 @@ export function sidecarReferencesAgree(
     assetRecords.some((asset) => {
       const placement = asset.placement as Record<string, unknown>;
       return (
-        (asset.aliases as string[]).some((alias) => !symbols.has(alias)) ||
+        (placement.kind !== "compileTime" &&
+          (asset.aliases as string[]).some((alias) => !symbols.has(alias))) ||
         (placement.kind === "loadable" &&
           (!loadUnitIds.has(String(placement.loadUnitId)) ||
             placement.artifactPath !== packageValue.artifactPath))

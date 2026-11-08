@@ -55,13 +55,15 @@ export function sourcePlacementFailure(
   const key = objectId?.replace(/^(?:global|fn)\./u, "") ?? "";
   const name = object?.sourceName?.split(".").at(-1) ?? objectId ?? "object";
   const data = machine.data.find(({ id }) => id === objectId);
+  const vicVisible = data?.vicVisible === true;
   const handlerFixed =
     data !== undefined &&
     data.kind === "asset" &&
     data.placement?.at !== undefined &&
     data.placement.at !== null;
-  const message =
-    handlerFixed && data?.placement?.at !== null && data?.placement?.at !== undefined
+  const message = vicVisible
+    ? `Cannot place '${name}' — the handler requires a VIC-visible address in bank 0 with ${data?.alignment ?? 1}-byte alignment, clear of the character-ROM window and the active screen; the selected address cannot satisfy that requirement`
+    : handlerFixed && data?.placement?.at !== null && data?.placement?.at !== undefined
       ? `Cannot place '${name}' — the handler requires the fixed load address $${data.placement.at.toString(16)}, which conflicts with occupied storage or the selected profile resident window; the payload cannot be moved`
       : `Cannot place '${name}' — explicit placement constraints conflict with occupied storage or the selected profile window; change or remove the explicit constraint`;
   return projectDiagnostic(

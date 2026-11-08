@@ -12,8 +12,8 @@ import {
   encodeMemoryEvidence,
 } from "../artifacts/evidence.js";
 import type { EvidenceIdentity, EvidenceRecord } from "../artifacts/evidence-types.js";
-import { canonicalEvidenceHash } from "../artifacts/evidence-validation.js";
-import type { ResidentAsset } from "../assets/asset-types.js";
+import { canonicalEvidenceHash, canonicalEvidenceJson } from "../artifacts/evidence-validation.js";
+import type { ResidentAsset, ScalarAsset, SemanticAsset } from "../assets/asset-types.js";
 import { BUILD_INFO } from "../build-info.js";
 import type { ProjectSnapshot } from "../project/types.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
@@ -150,18 +150,81 @@ async function writeEncoded(
   return Object.freeze({ path: name, bytes: encoded.bytes.byteLength, sha256: encoded.sha256 });
 }
 
+/** Exact source-language type of one selected asset. */
+function assetLogicalType(asset: SemanticAsset): string {
+  if (asset.kind === "resident-asset") return "const byte[]";
+  return asset.scalarType === null ? "const byte[]" : `const ${asset.scalarType.name}`;
+}
+
+/** Exact logical shape of one selected asset. */
+function assetShape(asset: SemanticAsset): readonly number[] {
+  return asset.kind === "resident-asset" ? [asset.bytes.length] : [];
+}
+
 /** Produce the deterministic evidence identity used by the asset sidecar schema. */
-function assetEvidenceId(asset: ResidentAsset): string {
+function assetEvidenceId(asset: SemanticAsset): string {
   return canonicalEvidenceHash({
     handler: asset.handler.handlerKey,
     handlerVersion: asset.handler.handlerVersion,
     selector: asset.handler.selector,
     representation: asset.handler.representation,
-    logicalType: "const byte[]",
-    shape: [asset.bytes.length],
+    logicalType: assetLogicalType(asset),
+    shape: assetShape(asset),
     outputSha256: asset.outputSha256,
     inputs: [{ path: asset.sourcePath, sha256: asset.inputSha256 }],
   });
+}
+
+/** Merge handler and source placement evidence for one resident asset. */
+function assetConstraints(asset: ResidentAsset): readonly Record<string, unknown>[] {
+  const constraints: Record<string, unknown>[] = asset.constraints.map((constraint) => ({ ...constraint }));
+  const placement = asset.placement;
+  if (placement !== undefined) {
+    const hasAt = constraints.some(
+      ({ kind, start }) => kind === "at" && start === placement.at,
+    );
+    if (placement.at !== null && !hasAt) {
+      constraints.push({
+        kind: "at",
+        origin: "source",
+        addressSpaceId: "cpu16",
+        start: placement.at,
+      });
+    }
+    if (
+      placement.align > 1 &&
+      !constraints.some(({ kind, bytes }) => kind === "align" && Number(bytes) >= placement.align)
+    ) {
+      constraints.push({ kind: "align", origin: "source", bytes: placement.align });
+    }
+    if (
+      placement.noCross !== null &&
+      !constraints.some(
+        ({ kind, boundaryBytes }) =>
+          kind === "noCross" && Number(boundaryBytes) <= placement.noCross!,
+      )
+    ) {
+      constraints.push({
+        kind: "noCross",
+        origin: "source",
+        boundaryBytes: placement.noCross,
+      });
+    }
+    if (
+      placement.region !== null &&
+      !constraints.some(({ kind, regionId }) => kind === "region" && regionId === placement.region)
+    ) {
+      constraints.push({ kind: "region", origin: "source", regionId: placement.region });
+    }
+  }
+  return constraints.sort((left, right) =>
+    Buffer.compare(
+      Buffer.from(`${String(left.kind)}\0${String(left.origin)}\0${canonicalEvidenceJson(left)}`),
+      Buffer.from(
+        `${String(right.kind)}\0${String(right.origin)}\0${canonicalEvidenceJson(right)}`,
+      ),
+    ),
+  );
 }
 
 /** Return the exact free partition around sorted, non-overlapping intervals. */
@@ -292,67 +355,92 @@ export async function prepareEvidence(
     .sort((left, right) =>
       Buffer.compare(Buffer.from(left.sourcePath), Buffer.from(right.sourcePath)),
     );
+  const scalarAssets = input.program.semantic.assets
+    .filter((asset): asset is ScalarAsset => asset.kind === "scalar-asset")
+    .sort((left, right) => Buffer.compare(Buffer.from(left.sourcePath), Buffer.from(right.sourcePath)));
   const assetIds = new Map(semanticAssets.map((asset) => [asset.id, assetEvidenceId(asset)]));
+  const residentRecords = semanticAssets.map((asset) => {
+    const placement = input.layout.intervals.find(({ id }) => id === `asset.${asset.id}`);
+    if (placement === undefined) throw new Error("Reachable asset has no final placement");
+    const data = input.layout.program.data.find(({ id }) => id === placement.id);
+    const vicVisible = data?.vicVisible === true;
+    const visibility = vicVisible ? ["vic"] : [];
+    const handlerConstraints = assetConstraints(asset);
+    const alignmentBytes =
+      placement.requiredAlignment ??
+      Math.max(
+        1,
+        ...handlerConstraints
+          .filter(({ kind }) => kind === "align")
+          .map(({ bytes }) => Number(bytes)),
+      );
+    const evidenceId = assetIds.get(asset.id)!;
+    return Object.freeze({
+      id: evidenceId,
+      inputs: Object.freeze([
+        Object.freeze({
+          path: asset.sourcePath,
+          bytes: asset.inputBytes,
+          sha256: asset.inputSha256,
+        }),
+      ]),
+      handler: asset.handler.handlerKey,
+      handlerVersion: asset.handler.handlerVersion,
+      selector: asset.handler.selector,
+      representation: asset.handler.representation,
+      logicalType: assetLogicalType(asset),
+      shape: Object.freeze(assetShape(asset)),
+      outputSha256: asset.outputSha256,
+      payloadBytes: asset.bytes.length,
+      emittedBytes: asset.bytes.length,
+      aliases: Object.freeze([assetSymbolName(asset.id)]),
+      constraints: Object.freeze(handlerConstraints.map((constraint) => Object.freeze(constraint))),
+      placement: Object.freeze({
+        kind: "single",
+        range: Object.freeze({
+          addressSpaceId: "cpu16",
+          start: placement.start,
+          end: placement.end + 1,
+          alignmentBytes,
+          paddingBeforeBytes: 0,
+          residencyId: "resident",
+          visibility: Object.freeze(visibility),
+          writableRanges: Object.freeze([]),
+        }),
+      }),
+    });
+  });
+  const scalarRecords = scalarAssets.map((asset) =>
+    Object.freeze({
+      id: assetEvidenceId(asset),
+      inputs: Object.freeze([
+        Object.freeze({
+          path: asset.sourcePath,
+          bytes: asset.inputBytes,
+          sha256: asset.inputSha256,
+        }),
+      ]),
+      handler: asset.handler.handlerKey,
+      handlerVersion: asset.handler.handlerVersion,
+      selector: asset.handler.selector,
+      representation: asset.handler.representation,
+      logicalType: assetLogicalType(asset),
+      shape: Object.freeze(assetShape(asset)),
+      outputSha256: asset.outputSha256,
+      payloadBytes: 0,
+      emittedBytes: 0,
+      aliases: Object.freeze([assetSymbolName(asset.id)]),
+      constraints: Object.freeze([]),
+      placement: Object.freeze({ kind: "compileTime", outputSha256: asset.outputSha256 }),
+    }),
+  );
   const assetEvidence = Object.freeze({
     kind: "blend65.assets",
     schemaVersion: 1,
     assets: Object.freeze(
-      semanticAssets
-        .map((asset) => {
-          const placement = input.layout.intervals.find(({ id }) => id === `asset.${asset.id}`);
-          if (placement === undefined) throw new Error("Reachable asset has no final placement");
-          const vicSpriteBlocks =
-            input.layout.program.data.find(({ id }) => id === placement.id)?.vicSpriteBlocks !==
-            false;
-          const evidenceId = assetIds.get(asset.id)!;
-          return Object.freeze({
-            id: evidenceId,
-            inputs: Object.freeze([
-              Object.freeze({
-                path: asset.sourcePath,
-                bytes: asset.inputBytes,
-                sha256: asset.inputSha256,
-              }),
-            ]),
-            handler: asset.handler.handlerKey,
-            handlerVersion: asset.handler.handlerVersion,
-            selector: asset.handler.selector,
-            representation: asset.handler.representation,
-            logicalType: "const byte[]",
-            shape: Object.freeze([asset.bytes.length]),
-            outputSha256: asset.outputSha256,
-            payloadBytes: asset.bytes.length,
-            emittedBytes: asset.bytes.length,
-            aliases: Object.freeze([assetSymbolName(asset.id)]),
-            constraints: Object.freeze(
-              vicSpriteBlocks
-                ? [
-                    Object.freeze({ kind: "align", origin: "profile", bytes: 64 }),
-                    Object.freeze({
-                      kind: "visibility",
-                      origin: "profile",
-                      consumer: "vic",
-                      conditionId: "vic",
-                    }),
-                  ]
-                : [],
-            ),
-            placement: Object.freeze({
-              kind: "single",
-              range: Object.freeze({
-                addressSpaceId: "cpu16",
-                start: placement.start,
-                end: placement.end + 1,
-                alignmentBytes: vicSpriteBlocks ? 64 : 1,
-                paddingBeforeBytes: 0,
-                residencyId: "resident",
-                visibility: Object.freeze(vicSpriteBlocks ? ["vic"] : []),
-                writableRanges: Object.freeze([]),
-              }),
-            }),
-          });
-        })
-        .sort((left, right) => Buffer.compare(Buffer.from(left.id), Buffer.from(right.id))),
+      [...residentRecords, ...scalarRecords].sort((left, right) =>
+        Buffer.compare(Buffer.from(left.id), Buffer.from(right.id)),
+      ),
     ),
   });
   const intervals = deriveMemoryIntervals(
@@ -572,7 +660,7 @@ export async function prepareEvidence(
       ),
     ),
     assets: Object.freeze(
-      [...semanticAssets]
+      [...semanticAssets, ...scalarAssets]
         .sort(
           (left, right) =>
             Buffer.compare(Buffer.from(left.sourcePath), Buffer.from(right.sourcePath)) ||
@@ -691,7 +779,7 @@ export async function prepareEvidence(
         assets: Object.freeze(
           [
             ...new Map(
-              semanticAssets.map((asset) => [
+              [...semanticAssets, ...scalarAssets].map((asset) => [
                 `${asset.sourcePath}\0${asset.inputSha256}`,
                 Object.freeze({
                   path: asset.sourcePath,

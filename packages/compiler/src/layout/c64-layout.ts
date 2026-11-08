@@ -26,6 +26,10 @@ export interface C64LayoutInterval {
   readonly end: number;
   /** Loaded bytes, or null for storage reserved without PRG bytes. */
   readonly bytes: readonly number[] | null;
+  /** True when the handler requires VIC visibility for this object. */
+  readonly vicVisible?: boolean;
+  /** Exact handler or source alignment in bytes. */
+  readonly requiredAlignment?: number;
 }
 
 /** Inputs to deterministic final C64 layout. */
@@ -488,16 +492,41 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     )
       return Object.freeze({ kind: "error", reason: "resident-range", objectId: null });
     const fixed = data.placement?.at != null;
+    const visible = data.vicVisible === true;
+    const occupied: { readonly start: number; readonly end: number }[] = fixed
+      ? [...intervals]
+      : [...intervals, ...fixedData];
+    if (visible) {
+      occupied.push(
+        {
+          start: input.profile.machine.characterRomStart,
+          end: input.profile.machine.characterRomEnd,
+        },
+        {
+          start: input.profile.machine.screenAddress,
+          end: input.profile.machine.screenEnd,
+        },
+      );
+    }
     const start = freeSourceStart(
-      cursor,
+      visible ? Math.max(cursor, input.profile.machine.vicBankStart) : cursor,
       bytes.length,
       data.alignment,
       data.placement,
-      fixed ? intervals : [...intervals, ...fixedData],
+      occupied,
       input.profile,
     );
-    if (start === null) {
-      return Object.freeze({ kind: "error", reason: "source-placement", objectId: data.id });
+    if (
+      start === null ||
+      (visible &&
+        (start < input.profile.machine.vicBankStart ||
+          start + bytes.length - 1 > input.profile.machine.vicBankEnd))
+    ) {
+      return Object.freeze({
+        kind: "error",
+        reason: visible ? "vic-visibility" : "source-placement",
+        objectId: data.id,
+      });
     }
     if (
       bytes.length > 0 &&
@@ -507,6 +536,8 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
         start,
         end: start + bytes.length - 1,
         bytes,
+        ...(data.vicVisible === true ? { vicVisible: true } : {}),
+        requiredAlignment: data.alignment,
       })
     ) {
       return Object.freeze({ kind: "error", reason: "data-conflict", objectId: data.id });
@@ -554,6 +585,8 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
         start,
         end,
         bytes,
+        vicVisible: true,
+        requiredAlignment: 64,
       })
     ) {
       return Object.freeze({ kind: "error", reason: "asset-conflict", objectId: asset.id });
@@ -641,9 +674,6 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     [...intervals].sort((left, right) => left.start - right.start || compareIds(left, right)),
   );
   const loaded = ordered.filter(({ bytes }) => bytes !== null);
-  if (loaded.length === 0) {
-    return Object.freeze({ kind: "error", reason: "empty-layout", objectId: null });
-  }
   if (
     loaded.some(
       ({ start, end }) =>
