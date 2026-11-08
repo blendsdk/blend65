@@ -1,4 +1,5 @@
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
+import type { VicFieldTransform } from "./vic-fields.js";
 import type {
   StorageBinder,
   StorageProfile,
@@ -360,7 +361,7 @@ export type MachineOperand =
       readonly label: string;
       readonly offset?: number;
       readonly addressByte?: "low" | "high";
-      readonly transform?: "vic-sprite-block";
+      readonly transform?: VicFieldTransform;
     }
   | {
       readonly kind: "storage";

@@ -38,3 +38,13 @@
 | SR-112 | 2 | MINOR | evidence/constraints | deferred to Phase 5.2.7/5.2.9/5.2.11 — handler constraints and scalar `compileTime` records are Phase 5-owned |
 | SR-113 | 2 | MINOR | vice/profile | fixed — `withProject` takes the profile so the NTSC 8580 artifact is built for that profile |
 | SR-114 | 2 | MINOR | layout/rom-reservation | deferred to Phase 5.2.4 — global character-ROM reservation; PSID now rejects its own visible-ROM intervals |
+| SR-201 | 3 | MAJOR | tests/vic-fields | fixed — direct `vicFieldValue` table and rejection tests; root assertions target `lda #$38`/`lda #$0a` |
+| SR-202 | 3 | MAJOR | machine/immediate-fold | fixed — one constant `lda` + logical op folds to a single immediate; OR case is 5 bytes/6 cycles |
+| SR-203 | 3 | MAJOR | machine/diagnostics | fixed — constant field failures use `loweringFailure` with the source span; layout transform failures remain Phase 5 E10273 |
+| SR-204 | 3 | MAJOR | evidence/vic | deferred to Phase 5.2.7/5.2.8/5.2.11 — constraints, alignment, visibility and VIC memory views |
+| SR-205 | 3 | MINOR | layout/non-asset-fields | deferred to Phase 5 — field transforms resolve asset intervals only; non-asset arguments currently fail as layout |
+| SR-206 | 3 | MINOR | layout/diagnostics | fixed — conflicting source placement names the combined alignment/window detail |
+| SR-207 | 3 | MINOR | vic/character-rom | fixed — field derivation rejects any consumer interval over the VIC-invisible character ROM |
+| SR-208 | 3 | MINOR | fixtures/provenance | accepted — Koala `sourceSha256` is a construction-domain token; bytes and manifest hashes are exact |
+| SR-209 | 3 | MINOR | plan/charen | accepted — reserving character ROM for all resident objects is the approved plan policy; Phase 5 keeps it |
+| SR-210 | 3 | MINOR | platform/screen-tail | deferred to Phase 5 — a relocated screen's full 1 Ki-sprite-pointer tail and `setSpritePointer` base need the layout-owned screen relation |

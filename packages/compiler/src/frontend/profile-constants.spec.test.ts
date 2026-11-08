@@ -52,7 +52,7 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
   });
 
   // Every selected operation keeps its exact signature and effect classification.
-  it("should expose all forty-six operation signatures and effects", () => {
+  it("should expose all forty-nine operation signatures and effects", () => {
     const result = selectFrontendProfile(id);
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected complete profile selection");
@@ -108,6 +108,9 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
       ["c64.audio.audioTick", ["word"], "void", "volatile-write"],
       ["c64.audio.audioTriggerSfx", ["word", "word"], "void", "volatile-write"],
       ["c64.audio.audioTriggerSfxOn", ["word", "word", "byte"], "void", "volatile-write"],
+      ["c64.vic.vicBitmapSelect", ["word"], "byte", "pure"],
+      ["c64.vic.vicCharsetSelect", ["word"], "byte", "pure"],
+      ["c64.vic.vicScreenSelect", ["word"], "byte", "pure"],
       ["c64.vic.vicSpriteBlock", ["word"], "byte", "pure"],
       ["c64.video.waitNextFrame", [], "void", "ordered-wait"],
     ]);

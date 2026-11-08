@@ -86,7 +86,7 @@ describe("selected profile state internals", () => {
     const selected = profile();
     const first = createProfileBindings(selected);
     const second = createProfileBindings(selected);
-    expect(first).toHaveLength(71);
+    expect(first).toHaveLength(74);
     expect(Object.isFrozen(first)).toBe(true);
     first.forEach((state, index) => {
       expect(state).not.toBe(second[index]);
@@ -97,8 +97,8 @@ describe("selected profile state internals", () => {
         sourceId: `profile:${selected.id}`,
         span: { sourceId: `profile:${selected.id}`, start: index, end: index + 1 },
       });
-      expect(state.binding.storage).toBe(index < 46 ? "function" : "constant");
-      expect(state.readonly).toBe(index >= 46);
+      expect(state.binding.storage).toBe(index < 49 ? "function" : "constant");
+      expect(state.readonly).toBe(index >= 49);
     });
     for (const name of [
       "joystickUpMask",

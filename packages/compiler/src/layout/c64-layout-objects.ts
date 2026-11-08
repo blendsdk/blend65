@@ -1,5 +1,7 @@
 import type { StorageClosureCertificate } from "../storage/storage-types.js";
 import type { TargetProfile } from "../target/profile.js";
+import { vicFieldValue } from "../machine/vic-fields.js";
+import type { MachineInstruction } from "../machine/machine-types.js";
 import type {
   MachineDataObject,
   MachineFunction,
@@ -119,6 +121,41 @@ export function storageIntervals(
   );
 }
 
+/** Fold one immediate `lda` followed by a constant logical operation. */
+function foldConstantImmediateOps(
+  instructions: readonly MachineInstruction[],
+): readonly MachineInstruction[] {
+  const folded: MachineInstruction[] = [];
+  for (const instruction of instructions) {
+    const previous = folded.at(-1);
+    if (
+      previous !== undefined &&
+      previous.opcode === "lda" &&
+      previous.mode === "immediate" &&
+      previous.operand?.kind === "immediate" &&
+      instruction.mode === "immediate" &&
+      instruction.operand?.kind === "immediate" &&
+      (instruction.opcode === "ora" || instruction.opcode === "and" || instruction.opcode === "eor")
+    ) {
+      const left = previous.operand.value;
+      const right = instruction.operand.value;
+      const value =
+        instruction.opcode === "ora"
+          ? left | right
+          : instruction.opcode === "and"
+            ? left & right
+            : left ^ right;
+      folded[folded.length - 1] = Object.freeze({
+        ...previous,
+        operand: Object.freeze({ kind: "immediate" as const, value: value & 0xff }),
+      });
+      continue;
+    }
+    folded.push(instruction);
+  }
+  return Object.freeze(folded);
+}
+
 /** Resolve one layout-owned immediate transform after every asset has a final address. */
 export function resolvePlacementTransforms(
   program: MachineProgram,
@@ -130,31 +167,33 @@ export function resolvePlacementTransforms(
     const blocks = fn.blocks.map((block) => {
       const instructions = block.instructions.map((instruction) => {
         const operand = instruction.operand;
-        if (operand?.kind !== "label" || operand.transform !== "vic-sprite-block") {
+        if (operand?.kind !== "label" || operand.transform === undefined) {
           return instruction;
         }
         const interval = placed.get(operand.label);
         const address = interval === undefined ? -1 : interval.start + (operand.offset ?? 0);
-        if (
-          interval?.kind !== "asset" ||
-          address < profile.machine.vicBankStart ||
-          address > profile.machine.vicBankEnd ||
-          address % 64 !== 0
-        ) {
-          return null;
-        }
+        if (interval?.kind !== "asset") return null;
+        const value = vicFieldValue(
+          operand.transform,
+          address,
+          profile.machine.vicBankStart,
+          profile.machine.characterRomStart,
+          profile.machine.characterRomEnd,
+        );
+        if (value === null) return null;
         return Object.freeze({
           ...instruction,
-          operand: Object.freeze({
-            kind: "immediate" as const,
-            value: (address - profile.machine.vicBankStart) / 64,
-          }),
+          operand: Object.freeze({ kind: "immediate" as const, value }),
         });
       });
       if (instructions.some((instruction) => instruction === null)) return null;
       return Object.freeze({
         ...block,
-        instructions: Object.freeze(instructions.filter((instruction) => instruction !== null)),
+        instructions: foldConstantImmediateOps(
+          instructions.filter(
+            (instruction): instruction is MachineInstruction => instruction !== null,
+          ),
+        ),
       });
     });
     if (blocks.some((block) => block === null)) return null;

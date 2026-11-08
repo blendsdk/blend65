@@ -342,6 +342,24 @@ describe("selected frontend profile", () => {
         effect: "volatile-write",
       },
       {
+        name: "c64.vic.vicBitmapSelect",
+        parameters: ["word"],
+        returnType: "byte",
+        effect: "pure",
+      },
+      {
+        name: "c64.vic.vicCharsetSelect",
+        parameters: ["word"],
+        returnType: "byte",
+        effect: "pure",
+      },
+      {
+        name: "c64.vic.vicScreenSelect",
+        parameters: ["word"],
+        returnType: "byte",
+        effect: "pure",
+      },
+      {
         name: "c64.vic.vicSpriteBlock",
         parameters: ["word"],
         returnType: "byte",

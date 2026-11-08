@@ -1,4 +1,5 @@
 import type { AssetHandler } from "../asset-handler.js";
+import { koalaHandler } from "./koala.js";
 import { psidHandler } from "./psid.js";
 
 /**
@@ -9,5 +10,6 @@ import { psidHandler } from "./psid.js";
  * but absent from this map fails closed instead of falling back to raw bytes.
  */
 export const C64_ASSET_HANDLERS: ReadonlyMap<string, AssetHandler> = new Map<string, AssetHandler>([
+  ["koala", koalaHandler],
   ["psid", psidHandler],
 ]);

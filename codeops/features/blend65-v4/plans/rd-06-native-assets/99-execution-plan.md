@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-08
-> **Progress**: 53/151 tasks (35%)
+> **Progress**: 66/151 tasks (44%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -217,7 +217,7 @@ immediately testable.
 
 ## Phase 3: Koala and VIC display fields
 
-> **Phase baseline tree**: _recorded by the exec-plan skill at phase start_
+> **Phase baseline tree**: 6131cf55
 > **Lenses**: machine code, target platform
 > **Reasoning**: high — hardware alignment/visibility and derived register fields
 
@@ -226,9 +226,9 @@ immediately testable.
 **Reference**: [03-04](03-04-koala.md) · ST-94–ST-110, ST-186 · AR-22, AR-30
 **Objective**: Lock the exact Koala components, high-bit rule and VIC fields.
 
-- [ ] 3.1.1 [spec-author] Write Koala length, component and high-bit specification tests from ST-94–ST-101 — `packages/compiler/src/assets/c64/koala.spec.test.ts`
-- [ ] 3.1.2 [spec-author] Write Koala requested-only, transfer and fallback specification tests from ST-108, ST-109 and ST-110 — `packages/compiler/src/assets/c64/koala.spec.test.ts`
-- [ ] 3.1.3 Run the Koala specification tests and record the red phase — `yarn workspace @blend65/compiler test src/assets/c64/koala.spec.test.ts`
+- [x] 3.1.1 [spec-author] Write Koala length, component and high-bit specification tests from ST-94–ST-101 — `packages/compiler/src/assets/c64/koala.spec.test.ts` ✅ (completed: 2026-11-08 15:05)
+- [x] 3.1.2 [spec-author] Write Koala requested-only, transfer and fallback specification tests from ST-108, ST-109 and ST-110 — `packages/compiler/src/assets/c64/koala.spec.test.ts` ✅ (completed: 2026-11-08 15:05)
+- [x] 3.1.3 Run the Koala specification tests and record the red phase — `yarn workspace @blend65/compiler test src/assets/c64/koala.spec.test.ts` ✅ (completed: 2026-11-08 15:05)
 
 **Deliverables**:
 - [ ] Four selectors, high-bit preservation, alignment and derived fields encoded
@@ -241,12 +241,12 @@ immediately testable.
 **Reference**: [03-04](03-04-koala.md) · AR-22, AR-30
 **Objective**: Implement the Koala handler and the two missing VIC select operations.
 
-- [ ] 3.2.1 Add Koala length/load-address/component validation — `packages/compiler/src/assets/c64/koala.ts`
-- [ ] 3.2.2 Build the four typed outputs and preserve every source byte — `packages/compiler/src/assets/c64/koala.ts`
-- [ ] 3.2.3 Attach bitmap 8-KiB and screen 1-KiB alignment/visibility constraints — `packages/compiler/src/assets/c64/koala.ts`
-- [ ] 3.2.4 Register the Koala handler for `.kla` and `.koa` — `packages/compiler/src/assets/c64/index.ts`
-- [ ] 3.2.5 Add `vicCharsetSelect`, `vicBitmapSelect` and `vicScreenSelect` pure-field capabilities — `packages/compiler/src/frontend/profile.ts`
-- [ ] 3.2.6 Add the three derived-field transforms and post-layout resolution; define them as pure field constants — `packages/compiler/src/machine/lower-c64.ts`, `packages/compiler/src/machine/machine-types.ts`, `packages/compiler/src/layout/c64-layout-objects.ts`
+- [x] 3.2.1 Add Koala length/load-address/component validation — `packages/compiler/src/assets/c64/koala.ts` ✅ (completed: 2026-11-08 15:05)
+- [x] 3.2.2 Build the four typed outputs and preserve every source byte — `packages/compiler/src/assets/c64/koala.ts` ✅ (completed: 2026-11-08 15:05)
+- [x] 3.2.3 Attach bitmap 8-KiB and screen 1-KiB alignment/visibility constraints — `packages/compiler/src/assets/c64/koala.ts` ✅ (completed: 2026-11-08 15:05)
+- [x] 3.2.4 Register the Koala handler for `.kla` and `.koa` — `packages/compiler/src/assets/c64/index.ts` ✅ (completed: 2026-11-08 15:05)
+- [x] 3.2.5 Add `vicCharsetSelect`, `vicBitmapSelect` and `vicScreenSelect` pure-field capabilities — `packages/compiler/src/frontend/profile.ts` ✅ (completed: 2026-11-08 15:05)
+- [x] 3.2.6 Add the three derived-field transforms and post-layout resolution; define them as pure field constants — `packages/compiler/src/machine/lower-c64.ts`, `packages/compiler/src/machine/machine-types.ts`, `packages/compiler/src/layout/c64-layout-objects.ts` ✅ (completed: 2026-11-08 15:05)
 
 **Deliverables**:
 - [ ] Koala selectors emit only requested bytes
@@ -259,10 +259,10 @@ immediately testable.
 **Reference**: AR-6, AR-38
 **Objective**: Prove the specification and observe display data in VICE.
 
-- [ ] 3.3.1 Run the Koala specification tests and verify the green phase — `yarn workspace @blend65/compiler test src/assets/c64/koala.spec.test.ts`
-- [ ] 3.3.2 Write Koala boundary, high-bit, extension-casing and requested-only implementation tests — `packages/compiler/src/assets/c64/koala.impl.test.ts`
-- [ ] 3.3.3 Run the directed Koala tests and the phase checkpoint — `yarn workspace @blend65/compiler test src/assets/c64`
-- [ ] 3.3.4 Dispatch independent machine-code and platform reviews and record dispositions
+- [x] 3.3.1 Run the Koala specification tests and verify the green phase — `yarn workspace @blend65/compiler test src/assets/c64/koala.spec.test.ts` ✅ (completed: 2026-11-08 15:05)
+- [x] 3.3.2 Write Koala boundary, high-bit, extension-casing and requested-only implementation tests — `packages/compiler/src/assets/c64/koala.impl.test.ts` ✅ (completed: 2026-11-08 15:05)
+- [x] 3.3.3 Run the directed Koala tests and the phase checkpoint — `yarn workspace @blend65/compiler test src/assets/c64` ✅ (completed: 2026-11-08 15:05)
+- [x] 3.3.4 Dispatch independent machine-code and platform reviews and record dispositions ✅ (completed: 2026-11-08 15:05)
 
 **Deliverables**:
 - [ ] ST-94–ST-101, ST-108 and ST-110 pass

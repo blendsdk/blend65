@@ -1,4 +1,5 @@
 import type { SourceSpan } from "../project/types.js";
+import type { VicFieldTransform } from "./vic-fields.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
@@ -40,7 +41,7 @@ export type LoweredValue =
       readonly signed?: boolean;
       /** First byte of a scalar view inside the same resident data symbol. */
       readonly offset?: number;
-      readonly transform?: "vic-sprite-block";
+      readonly transform?: VicFieldTransform;
       /** Source-owned zero-page data has a proved one-byte physical address. */
       readonly zeroPage?: boolean;
     }
@@ -330,11 +331,7 @@ export function modeForValue(
   if (value.kind === "constant") return "immediate";
   if (value.kind === "storage") return "storage";
   if (value.kind === "label")
-    return value.transform === "vic-sprite-block"
-      ? "immediate"
-      : value.zeroPage
-        ? "zero-page"
-        : "absolute";
+    return value.transform !== undefined ? "immediate" : value.zeroPage ? "zero-page" : "absolute";
   if (value.kind === "symbol-address") return "immediate";
   throw new Error("Machine value has no addressable mode");
 }

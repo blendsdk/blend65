@@ -258,15 +258,24 @@ function evidenceAgrees(
   const packageValue = build.package;
   const debugSources = debug.value.sources as readonly Record<string, unknown>[];
   const debugAssets = debug.value.assets as readonly Record<string, unknown>[];
-  const selectedAssetInputs = (assets.value.assets as readonly Record<string, unknown>[])
-    .flatMap((asset) => asset.inputs as readonly Record<string, unknown>[])
-    .map((input) => ({ path: input.path, bytes: input.bytes, sha256: input.sha256 }))
-    .sort((left, right) =>
-      Buffer.compare(
-        Buffer.from(`${String(left.path)}\0${String(left.sha256)}`),
-        Buffer.from(`${String(right.path)}\0${String(right.sha256)}`),
-      ),
-    );
+  const selectedAssetInputs = [
+    ...new Map(
+      (assets.value.assets as readonly Record<string, unknown>[])
+        .flatMap((asset) => asset.inputs as readonly Record<string, unknown>[])
+        .map(
+          (input) =>
+            [
+              `${String(input.path)}\0${String(input.sha256)}`,
+              { path: input.path, bytes: input.bytes, sha256: input.sha256 },
+            ] as const,
+        ),
+    ).values(),
+  ].sort((left, right) =>
+    Buffer.compare(
+      Buffer.from(`${String(left.path)}\0${String(left.sha256)}`),
+      Buffer.from(`${String(right.path)}\0${String(right.sha256)}`),
+    ),
+  );
   const semanticAssets = build.semanticInputs.assets.map(({ path, bytes, sha256 }) => ({
     path,
     bytes,
@@ -304,7 +313,11 @@ function evidenceAgrees(
       build.semanticInputs.sources,
     ) &&
     sameValue(
-      debugAssets.map(({ path, sha256 }) => ({ path, sha256 })),
+      [
+        ...new Map(
+          debugAssets.map(({ path, sha256 }) => [`${path}\0${sha256}`, { path, sha256 }] as const),
+        ).values(),
+      ],
       build.semanticInputs.assets.map(({ path, sha256 }) => ({ path, sha256 })),
     )
   );

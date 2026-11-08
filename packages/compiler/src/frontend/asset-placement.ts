@@ -173,10 +173,17 @@ export function placeSemanticAssets(
       (previous?.region != null && next.region !== null && previous.region !== next.region) ||
       !satisfiable(combined, embedded.bytes.length);
     if (incompatible) {
+      const detail = weakensHandler
+        ? constraintMessage(asset, base)
+        : combined.at !== null && combined.at % combined.align !== 0
+          ? `the combined ${combined.align}-byte alignment cannot be satisfied at $${combined.at.toString(16)}`
+          : combined.noCross !== null && embedded.bytes.length > combined.noCross
+            ? `the output is ${embedded.bytes.length} bytes but must stay within ${combined.noCross} bytes`
+            : "the combined constraints cannot be satisfied together";
       diagnostics.push(
         projectDiagnostic(
           "E10273",
-          `Cannot place '${asset.sourcePath}' — combined explicit placement constraints conflict with the handler requirement${weakensHandler ? ` (${constraintMessage(asset, base)})` : ""}; change or remove the explicit constraint`,
+          `Cannot place '${asset.sourcePath}' — combined explicit placement constraints conflict with the handler requirement (${detail}); change or remove the explicit constraint`,
           span,
           null,
           (contributors.get(embedded.assetId) ?? []).map((contributor) => ({

@@ -15,6 +15,8 @@ import type {
   MachineInstruction,
   MachineMemoryEffect,
 } from "./machine-types.js";
+import { loweringFailure } from "./lower-state.js";
+import { vicFieldValue, type VicFieldTransform } from "./vic-fields.js";
 export {
   c64InterruptEntryLabel,
   createC64InterruptEntry,
@@ -446,7 +448,17 @@ export function lowerC64Operation(
     });
   }
 
-  if (operation.capability === "c64.vic.vicSpriteBlock") {
+  const vicTransform: VicFieldTransform | null =
+    operation.capability === "c64.vic.vicSpriteBlock"
+      ? "vic-sprite-block"
+      : operation.capability === "c64.vic.vicCharsetSelect"
+        ? "vic-charset-select"
+        : operation.capability === "c64.vic.vicBitmapSelect"
+          ? "vic-bitmap-select"
+          : operation.capability === "c64.vic.vicScreenSelect"
+            ? "vic-screen-select"
+            : null;
+  if (vicTransform !== null) {
     const addressValue = argument(operation, values, 0);
     const address = constant(addressValue);
     if (address === null && addressValue.kind === "label") {
@@ -457,27 +469,34 @@ export function lowerC64Operation(
           label: addressValue.label,
           bytes: 1,
           signed: false,
-          transform: "vic-sprite-block",
+          transform: vicTransform,
+          ...(addressValue.offset === undefined ? {} : { offset: addressValue.offset }),
         }),
         data: Object.freeze([]),
       });
     }
-    if (
-      address === null ||
-      address < machine.vicBankStart ||
-      address > machine.vicBankEnd ||
-      address % 64 !== 0
-    ) {
-      throw new Error("Sprite address is not a 64-byte-aligned address in the selected VIC bank");
+    if (address === null) {
+      throw loweringFailure(
+        `VIC field '${vicTransform}' requires a constant or symbolic address`,
+        source,
+      );
+    }
+    const value = vicFieldValue(
+      vicTransform,
+      address,
+      machine.vicBankStart,
+      machine.characterRomStart,
+      machine.characterRomEnd,
+    );
+    if (value === null) {
+      throw loweringFailure(
+        `VIC field '${vicTransform}' requires an aligned, VIC-visible address in the selected VIC bank`,
+        source,
+      );
     }
     return Object.freeze({
       instructions: Object.freeze([]),
-      result: Object.freeze({
-        kind: "constant",
-        value: (address - machine.vicBankStart) / 64,
-        bytes: 1,
-        signed: false,
-      }),
+      result: Object.freeze({ kind: "constant", value, bytes: 1, signed: false }),
       data: Object.freeze([]),
     });
   }
