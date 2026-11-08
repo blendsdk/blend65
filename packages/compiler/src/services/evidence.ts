@@ -177,12 +177,12 @@ function assetEvidenceId(asset: SemanticAsset): string {
 
 /** Merge handler and source placement evidence for one resident asset. */
 function assetConstraints(asset: ResidentAsset): readonly Record<string, unknown>[] {
-  const constraints: Record<string, unknown>[] = asset.constraints.map((constraint) => ({ ...constraint }));
+  const constraints: Record<string, unknown>[] = asset.constraints.map((constraint) => ({
+    ...constraint,
+  }));
   const placement = asset.placement;
   if (placement !== undefined) {
-    const hasAt = constraints.some(
-      ({ kind, start }) => kind === "at" && start === placement.at,
-    );
+    const hasAt = constraints.some(({ kind, start }) => kind === "at" && start === placement.at);
     if (placement.at !== null && !hasAt) {
       constraints.push({
         kind: "at",
@@ -357,7 +357,9 @@ export async function prepareEvidence(
     );
   const scalarAssets = input.program.semantic.assets
     .filter((asset): asset is ScalarAsset => asset.kind === "scalar-asset")
-    .sort((left, right) => Buffer.compare(Buffer.from(left.sourcePath), Buffer.from(right.sourcePath)));
+    .sort((left, right) =>
+      Buffer.compare(Buffer.from(left.sourcePath), Buffer.from(right.sourcePath)),
+    );
   const assetIds = new Map(semanticAssets.map((asset) => [asset.id, assetEvidenceId(asset)]));
   const residentRecords = semanticAssets.map((asset) => {
     const placement = input.layout.intervals.find(({ id }) => id === `asset.${asset.id}`);

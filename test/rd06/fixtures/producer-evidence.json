@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "producerRoot": "/home/gevik/workdir/github/blend65.ri/apps",
+  "retention": {
+    "disposition": "local-only",
+    "reason": "The vendor EULA does not grant redistribution of bundled example files."
+  },
+  "manuals": [
+    {
+      "path": "SpritePad C64 3.80 Pro/Help/File Format - SPD (V5).htm",
+      "bytes": 5572,
+      "sha256": "8c28898ed1c0451290721ebbf686a86e501014f597aaf7e191a00fc13b1ee4a6"
+    },
+    {
+      "path": "CharPad C64 3.80 Pro/Help/File Format - CTM (V9).htm",
+      "bytes": 9326,
+      "sha256": "cbf1503202ad90232e8944c6975099dcc176b9348e5c467c7f4d433446897346"
+    }
+  ],
+  "fixtures": [
+    {
+      "path": "SpritePad C64 3.80 Pro/Examples (SPD5)/Sprite Sheets (Subchrist)/ChromeFont.spd",
+      "bytes": 2388,
+      "sha256": "5b231c73ce2a0f4697ed9ef916a9a95b4bb5b582114b509ba99a5b295da3f57e",
+      "id": "spritepad-3.80-spd5-chromefont",
+      "family": "spritepad",
+      "producer": "SpritePad C64 Pro",
+      "producerVersion": "3.80",
+      "format": "SPD v5"
+    },
+    {
+      "path": "SpritePad C64 3.80 Pro/Examples (SPD5)/Sprite Animations (Subchrist)/SpriteAnimations01.spd",
+      "bytes": 13252,
+      "sha256": "ca032b6fb295b5f315bd560fa020e937aad6f5497636596340c8d84429170efc",
+      "id": "spritepad-3.80-spd5-sprite-animations",
+      "family": "spritepad",
+      "producer": "SpritePad C64 Pro",
+      "producerVersion": "3.80",
+      "format": "SPD v5"
+    },
+    {
+      "path": "SpritePad C64 3.80 Pro/Examples (SPD5)/Tile Sheets (Subchrist)/Expanded Sprite Test.spd",
+      "bytes": 1090,
+      "sha256": "72f1394349a4a8502ed7d0a0500f49898b91e2ce027f23b4f3de73e7d73ea066",
+      "id": "spritepad-3.80-spd5-tiles",
+      "family": "spritepad",
+      "producer": "SpritePad C64 Pro",
+      "producerVersion": "3.80",
+      "format": "SPD v5"
+    },
+    {
+      "path": "CharPad C64 3.80 Pro/Examples (CTM9)/Maps (Subchrist)/Hexagone (5x5).ctm",
+      "bytes": 833,
+      "sha256": "dcd26ceb1af4d72776ce6f54120db2fec9d80ba969060e8f72aceaced234009f",
+      "id": "charpad-3.80-ctm9-tile-per-tile",
+      "family": "charpad",
+      "producer": "CharPad C64 Pro",
+      "producerVersion": "3.80",
+      "format": "CTM v9"
+    },
+    {
+      "path": "CharPad C64 3.80 Pro/Examples (CTM9)/Maps (Subchrist)/Floor Kit S1 (4x4).ctm",
+      "bytes": 1186,
+      "sha256": "43c25a6b1cddfc8daa1ab937727787c08eea3c8fc1b5f0d983af91b090dadc11",
+      "id": "charpad-3.80-ctm9-tile-per-project",
+      "family": "charpad",
+      "producer": "CharPad C64 Pro",
+      "producerVersion": "3.80",
+      "format": "CTM v9"
+    },
+    {
+      "path": "CharPad C64 3.80 Pro/Examples (CTM9)/Maps (Subchrist, ECM)/ECM Icon Samples (2x2).ctm",
+      "bytes": 3067,
+      "sha256": "09c888463e5e3b98fcc76c027a9102df3904ca11f14d8c1d0d0ea812c5cd23b9",
+      "id": "charpad-3.80-ctm9-text-ec",
+      "family": "charpad",
+      "producer": "CharPad C64 Pro",
+      "producerVersion": "3.80",
+      "format": "CTM v9"
+    },
+    {
+      "path": "CharPad C64 3.80 Pro/Examples (key maps)/C64 ROM Upper Case.ctm",
+      "bytes": 4335,
+      "sha256": "7dd3979e661c855ecf376ce7a0d88bc054aa7c56d43eb4bb64dbc19a18ec5d2d",
+      "id": "charpad-3.80-ctm9-text-hr-no-tiles",
+      "family": "charpad",
+      "producer": "CharPad C64 Pro",
+      "producerVersion": "3.80",
+      "format": "CTM v9"
+    },
+    {
+      "path": "CharPad C64 3.80 Pro/Examples (CTM9)/Pictures (image imports)/Misc - CharPadPro.ctm",
+      "bytes": 8033,
+      "sha256": "33d557f6ee208643411bb21d908f398361e6f72e51ccb15df258ed01faca32ba",
+      "id": "charpad-3.80-ctm9-bitmap-mc-per-char",
+      "family": "charpad",
+      "producer": "CharPad C64 Pro",
+      "producerVersion": "3.80",
+      "format": "CTM v9"
+    }
+  ]
+}

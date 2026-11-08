@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-08
-> **Progress**: 88/151 tasks (58%)
+> **Progress**: 106/151 tasks (70%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -470,7 +470,7 @@ immediately testable.
 
 ### Step 7.1: Evidence checkpoint
 
-- [ ] 7.1.1 Record the installed SpritePad 3.80 manual and selected real SPD v5 examples (paths, sizes, SHA-256, local-only retention) and create the producer-evidence manifest — `test/rd06/fixtures/producer-evidence.json`, `test/rd06/fixtures/manifest.json`
+- [x] 7.1.1 Record the installed SpritePad 3.80 manual and selected real SPD v5 examples (paths, sizes, SHA-256, local-only retention) and create the producer-evidence manifest — `test/rd06/fixtures/producer-evidence.json`, `test/rd06/fixtures/manifest.json`
 
 **Deliverables**:
 - [ ] Vendor manual path/hash and selected real example paths/hashes recorded
@@ -484,8 +484,8 @@ immediately testable.
 **Reference**: [03-02](03-02-spritepad-charpad.md) · ST-19–ST-40
 **Objective**: Lock every SPD v5 selector, optional matrix and rejection.
 
-- [ ] 7.2.1 [spec-author] Write SpritePad specification tests from ST-7–ST-9, ST-19–ST-40 and the retained ST-187 `bad.spd` oracle — `packages/compiler/src/assets/c64/spritepad.spec.test.ts`
-- [ ] 7.2.2 Run the SpritePad specification tests and record the red phase
+- [x] 7.2.1 [spec-author] Write SpritePad specification tests from ST-7–ST-9, ST-19–ST-40 and the retained ST-187 `bad.spd` oracle — `packages/compiler/src/assets/c64/spritepad.spec.test.ts`
+- [x] 7.2.2 Run the SpritePad specification tests and record the red phase
 
 **Deliverables**:
 - [ ] All ST-19–ST-40 encoded
@@ -498,10 +498,10 @@ immediately testable.
 **Reference**: [03-02](03-02-spritepad-charpad.md) · AR-19, AR-45
 **Objective**: Implement the validated SPD v5 parser and selector projection.
 
-- [ ] 7.3.1 Add SPD v5 signature/version/flags/counts/records/variable names/exact EOF validation — `packages/compiler/src/assets/c64/spritepad.ts`
-- [ ] 7.3.2 Add native records, colors, counts and derived `sprite_attributes` — `packages/compiler/src/assets/c64/spritepad.ts`
-- [ ] 7.3.3 Add tile, tag, overlay and both animation component selectors — `packages/compiler/src/assets/c64/spritepad.ts`
-- [ ] 7.3.4 Attach 64-byte alignment and VIC visibility; register the handler — `packages/compiler/src/assets/c64/index.ts`
+- [x] 7.3.1 Add SPD v5 signature/version/flags/counts/records/variable names/exact EOF validation — `packages/compiler/src/assets/c64/spritepad.ts`
+- [x] 7.3.2 Add native records, colors, counts and derived `sprite_attributes` — `packages/compiler/src/assets/c64/spritepad.ts`
+- [x] 7.3.3 Add tile, tag, overlay and both animation component selectors — `packages/compiler/src/assets/c64/spritepad.ts`
+- [x] 7.3.4 Attach 64-byte alignment and VIC visibility; register the handler — `packages/compiler/src/assets/c64/index.ts`
 
 **Deliverables**:
 - [ ] Every valid selector yields its exact type/length/hash
@@ -511,7 +511,7 @@ immediately testable.
 
 ### Step 7.4: Green, implementation tests, VICE and review
 
-- [ ] 7.4.1 Run the SpritePad specification tests and verify the green phase
+- [x] 7.4.1 Run the SpritePad specification tests and verify the green phase
 - [ ] 7.4.2 Write synthetic optional-matrix, adjacent-version and malformed-derivation implementation tests — `packages/compiler/src/assets/c64/spritepad.impl.test.ts`
 - [ ] 7.4.3 Add the bounded producer VICE rendering check — `test/rd06/vice-spritepad.spec.test.ts`
 - [ ] 7.4.4 Add the focused SpritePad example — `examples/rd06-assets/spritepad.blend`
@@ -535,7 +535,7 @@ immediately testable.
 
 ### Step 8.1: Evidence checkpoint
 
-- [ ] 8.1.1 Record the installed CharPad 3.80 manual and selected real CTM v9 examples (paths, sizes, SHA-256, local-only retention) and create the producer-evidence manifest — `test/rd06/fixtures/producer-evidence.json`, `test/rd06/fixtures/manifest.json`
+- [x] 8.1.1 Record the installed CharPad 3.80 manual and selected real CTM v9 examples (paths, sizes, SHA-256, local-only retention) and create the producer-evidence manifest — `test/rd06/fixtures/producer-evidence.json`, `test/rd06/fixtures/manifest.json`
 
 **Deliverables**:
 - [ ] Vendor manual path/hash and selected real example paths/hashes recorded
@@ -549,8 +549,8 @@ immediately testable.
 **Reference**: [03-02](03-02-spritepad-charpad.md) · ST-41–ST-65
 **Objective**: Lock every CTM v9 selector, width boundary, packed form and rejection.
 
-- [ ] 8.2.1 [spec-author] Write CharPad specification tests from ST-8, ST-41–ST-65 — `packages/compiler/src/assets/c64/charpad.spec.test.ts`
-- [ ] 8.2.2 Run the CharPad specification tests and record the red phase
+- [x] 8.2.1 [spec-author] Write CharPad specification tests from ST-8, ST-41–ST-65 — `packages/compiler/src/assets/c64/charpad.spec.test.ts`
+- [x] 8.2.2 Run the CharPad specification tests and record the red phase
 
 **Deliverables**:
 - [ ] All ST-41–ST-65 encoded
@@ -563,10 +563,10 @@ immediately testable.
 **Reference**: [03-02](03-02-spritepad-charpad.md) · AR-20, AR-46
 **Objective**: Implement the validated CTM v9 parser and selector projection.
 
-- [ ] 8.3.1 Add CTM v9 signature/version/ordered blocks/counts/EOF validation — `packages/compiler/src/assets/c64/charpad.ts`
-- [ ] 8.3.2 Add charset, colors, color method, dimensions and tile mode — `packages/compiler/src/assets/c64/charpad.ts`
-- [ ] 8.3.3 Add canonical width, forced word, low/high planes and packed-12 — `packages/compiler/src/assets/c64/charpad.ts`
-- [ ] 8.3.4 Attach 2-KiB charset alignment and VIC visibility; register the handler — `packages/compiler/src/assets/c64/index.ts`
+- [x] 8.3.1 Add CTM v9 signature/version/ordered blocks/counts/EOF validation — `packages/compiler/src/assets/c64/charpad.ts`
+- [x] 8.3.2 Add charset, colors, color method, dimensions and tile mode — `packages/compiler/src/assets/c64/charpad.ts`
+- [x] 8.3.3 Add canonical width, forced word, low/high planes and packed-12 — `packages/compiler/src/assets/c64/charpad.ts`
+- [x] 8.3.4 Attach 2-KiB charset alignment and VIC visibility; register the handler — `packages/compiler/src/assets/c64/index.ts`
 
 **Deliverables**:
 - [ ] Every valid selector yields its exact type/length/hash
@@ -576,7 +576,7 @@ immediately testable.
 
 ### Step 8.4: Green, implementation tests, VICE and review
 
-- [ ] 8.4.1 Run the CharPad specification tests and verify the green phase
+- [x] 8.4.1 Run the CharPad specification tests and verify the green phase
 - [ ] 8.4.2 Write synthetic block-order, truncation, display/color/tile-mode, width and packed-12 implementation tests — `packages/compiler/src/assets/c64/charpad.impl.test.ts`
 - [ ] 8.4.3 Add the bounded producer VICE charset check — `test/rd06/vice-charpad.spec.test.ts`
 - [ ] 8.4.4 Add the focused CharPad example — `examples/rd06-assets/charpad.blend`

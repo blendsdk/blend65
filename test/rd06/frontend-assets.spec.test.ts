@@ -57,12 +57,12 @@ describe("frontend asset metadata", () => {
     });
   });
 
-  // Reserved native extensions fail closed before any raw fallback.
-  it("should reject a reserved .spd file before raw fallback", async () => {
+  // A registered native extension never falls back to raw bytes on a malformed file.
+  it("should reject a malformed registered .spd file before raw fallback", async () => {
     const source = `module Game;\n\nconst SPRITES: byte[] = embed("player.spd");\n${MAIN}`;
     const result = await diagnostics(source, [{ path: "player.spd", bytes: patternedBytes(64) }]);
     expect(result.map(({ code }) => code)).toEqual(["E10204"]);
-    expect(result[0]?.message).toMatch(/reserved/iu);
+    expect(result[0]?.message).toMatch(/SPD|version|handler/iu);
   });
 
   // A native asset may not initialize a loadable const in this release.

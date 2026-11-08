@@ -1,6 +1,8 @@
 import type { AssetHandler } from "../asset-handler.js";
+import { charpadHandler } from "./charpad.js";
 import { koalaHandler } from "./koala.js";
 import { psidHandler } from "./psid.js";
+import { spritepadHandler } from "./spritepad.js";
 
 /**
  * Closed native handler inventory for the C64 profile family.
@@ -10,6 +12,8 @@ import { psidHandler } from "./psid.js";
  * but absent from this map fails closed instead of falling back to raw bytes.
  */
 export const C64_ASSET_HANDLERS: ReadonlyMap<string, AssetHandler> = new Map<string, AssetHandler>([
+  ["charpad", charpadHandler],
   ["koala", koalaHandler],
   ["psid", psidHandler],
+  ["spritepad", spritepadHandler],
 ]);

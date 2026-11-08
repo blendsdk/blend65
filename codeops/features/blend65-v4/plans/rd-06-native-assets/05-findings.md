@@ -65,3 +65,9 @@
 | SR-506 | 5 | MINOR | layout/global-rom | deferred — character ROM is reserved for VIC-visible assets and PSID fixed loads, not every CPU-only code/data interval; a blanket reservation breaks existing M1 code placement |
 | SR-507 | 5 | MINOR | platform/screen-tail | deferred — a relocated screen's full 1-KiB pointer tail and `setSpritePointer` base are not yet layout-derived |
 | SR-508 | 5 | MINOR | qualification/layout | deferred — the dedicated layout/evidence spec file and VICE Koala visibility check remain; Q-P15 covers the visible bitmap/screen/Color RAM path |
+| SR-701 | 7 | MAJOR | spritepad/parser | fixed — SPD v5 header, exact block order, tile names/tags, animation frames, exact EOF and selector hashes verified against the three 3.80 examples |
+| SR-702 | 8 | MAJOR | charpad/parser | fixed — CTM v9 header, ordered blocks, per-mode color width, canonical/word/plane/packed-12 forms and exact EOF verified against five 3.80 examples |
+| SR-703 | 7/8 | MAJOR | fixtures/synthetic | deferred — committed synthetic SPD/CTM fixtures are not generated yet; producer examples are local-only and tests skip without the apps folder |
+| SR-704 | 7/8 | MINOR | qualification/impl | deferred — dedicated impl tests, producer VICE rendering checks and formal phase reviews remain |
+| SR-705 | 6 | MAJOR | examples/status | deferred — `examples/rd06-assets/`, host observations and public status text remain |
+| SR-706 | 8 | MINOR | charpad/tags | accepted — tile tags are validated structurally but not exposed as a selector because the plan does not list one |
