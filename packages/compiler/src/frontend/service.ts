@@ -584,6 +584,7 @@ function semanticAssetFromOutput(
     inputSha256,
     outputSha256: output.outputSha256,
     selectors: output.selectors,
+    ...(output.compatibility === undefined ? {} : { compatibility: output.compatibility }),
   });
   if (output.value.kind === "embedded" && output.value.bytes.length > 0) {
     return Object.freeze({
@@ -647,6 +648,8 @@ async function analyzeNativeRequest(
     selector: request.selector,
     owner: request.owner,
     span: request.span,
+    declaration: request.declaration,
+    profileId: snapshot.effectiveTarget,
     bytes: Object.freeze([]) as readonly number[],
     inputSha256: "",
   });
@@ -675,6 +678,8 @@ async function analyzeNativeRequest(
       selector: request.selector,
       owner: request.owner,
       span: request.span,
+      declaration: request.declaration,
+      profileId: snapshot.effectiveTarget,
       bytes: read.asset.bytes,
       inputSha256: read.asset.inputSha256,
     }),

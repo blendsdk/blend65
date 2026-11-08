@@ -15,6 +15,7 @@ export async function withProject<T>(
   source: string,
   assets: readonly ProjectAsset[],
   inspect: (project: string, root: string) => Promise<T>,
+  target = "c64-pal-prg-kernal-6581",
 ): Promise<T> {
   const root = await mkdtemp(join(tmpdir(), "blend65-rd06-"));
   try {
@@ -33,7 +34,7 @@ export async function withProject<T>(
         name: "rd06-fixture",
         sourceRoot: "src",
         entry: "Game",
-        target: "c64-pal-prg-kernal-6581",
+        target,
         assetPaths: ["assets"],
         outDir: "out",
         optimization: "none",

@@ -63,7 +63,10 @@ function constraintMessage(asset: ResidentAsset, placement: PlacementConstraints
   if (placement.noCross !== null && asset.bytes.length > placement.noCross) {
     return `handler requires ${placement.noCross} contiguous bytes but the output is ${asset.bytes.length} bytes`;
   }
-  return `handler requires the object to stay within one ${placement.noCross}-byte window`;
+  if (placement.at !== null) {
+    return `handler requires the fixed load address $${placement.at.toString(16)}`;
+  }
+  return "handler placement requirement cannot be satisfied";
 }
 
 /**

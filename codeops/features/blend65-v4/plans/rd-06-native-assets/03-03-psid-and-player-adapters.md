@@ -37,8 +37,9 @@ no `c64.audio` platform module, no player contract, and no E10256/E10257/E10258/
 ```
 
 The handler lives in `packages/compiler/src/assets/c64/psid.ts`. The contract record lives in
-`packages/compiler/src/assets/c64/audio-contract.ts`; operation lowering uses the existing
-`machine/lower-platform.ts` and `machine/lower-call.ts` path.
+`packages/compiler/src/assets/c64/audio-contract.ts`. Operation lowering and whole-program E10258
+activation are gated on the first registered contract (AR-59); Phase 2 delivers the contract
+record, E10256/E10257 validation and the domain-overlap primitive only.
 
 ## Implementation Details
 
@@ -201,6 +202,7 @@ contract without changing the compiler seam.
 | Load interval wraps or overflows | E10204 | AR-12 |
 | Songs/start song out of range | E10204 | AR-21 |
 | Specific incompatible video/model/topology | E10261 | AR-21 |
+| Payload interval under a visible character/BASIC ROM window | E10261; no banking is inferred | AR-21 |
 | Plain PSID used with `c64.audio` | E10256 naming the missing contract | AR-2, AR-44 |
 | Contract lacks operation/cue/voice | E10257 listing available forms | AR-44 |
 | Non-reentrant overlap | E10258 with both reachable domains | AR-13 |
@@ -215,7 +217,8 @@ contract without changing the compiler seam.
 - Plain PSID → E10256 for each audio operation; empty contract inventory.
 - Contract validation, feature pruning, voice mapping, name lookup and cost records with synthetic
   contract fixtures (not GoatTracker qualification).
-- E10258 positive and negative domain-overlap cases.
+- The domain-overlap primitive, positive and negative, until the first contract activates
+  whole-program E10258 (AR-59).
 - Fixed-load placement and conflict tests.
 - Bounded VICE check that the payload lands at the effective load address and is CPU-readable.
 - GoatTracker 2.77 qualification is a separate follow-up feature.

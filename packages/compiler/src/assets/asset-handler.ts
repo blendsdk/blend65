@@ -84,10 +84,30 @@ export interface AssetHandlerRequest {
   readonly owner: "resident" | "loadable";
   /** Complete source call span used for every failure diagnostic. */
   readonly span: SourceSpan;
+  /** Declaring source name used in failure messages. */
+  readonly declaration: string;
+  /** Selected profile identity for format compatibility checks. */
+  readonly profileId: string;
   /** Already read immutable file bytes. */
   readonly bytes: readonly number[];
   /** Lowercase SHA-256 of the input bytes. */
   readonly inputSha256: string;
+}
+
+/** Declared compatibility meanings retained from one native container. */
+export interface AssetCompatibility {
+  /** Video-standard meaning; `both` is not `unknown`. */
+  readonly video: "unknown" | "PAL" | "NTSC" | "both";
+  /** Primary SID-model meaning; `both` is not `unknown`. */
+  readonly sidModel: "unknown" | "6581" | "8580" | "both";
+  /** Whether the container declares a second SID endpoint. */
+  readonly secondSid: boolean;
+  /** Whether the container declares a third SID endpoint. */
+  readonly thirdSid: boolean;
+  /** Declared song count. */
+  readonly songs: number;
+  /** Declared start song, one-based. */
+  readonly startSong: number;
 }
 
 /** Exact output selected from one validated file. */
@@ -110,6 +130,8 @@ export interface AssetHandlerOutput {
   readonly constraints: readonly AssetConstraint[];
   /** Complete selector inventory for this parsed file. */
   readonly selectors: readonly AssetSelectorInfo[];
+  /** Declared compatibility meanings retained for later contract qualification. */
+  readonly compatibility?: AssetCompatibility;
 }
 
 /** One closed handler contract. */
@@ -150,6 +172,8 @@ export interface AssetProvenance {
   readonly outputSha256: string;
   /** Complete selector inventory for this parsed file. */
   readonly selectors: readonly AssetSelectorInfo[];
+  /** Declared compatibility meanings retained for later contract qualification. */
+  readonly compatibility?: AssetCompatibility;
 }
 
 /** Exact payload and metadata one handler supplies to build its output. */
@@ -164,6 +188,7 @@ export type NativeOutputInput =
       readonly bytes: readonly number[];
       readonly constraints: readonly AssetConstraint[];
       readonly selectors: readonly AssetSelectorInfo[];
+      readonly compatibility?: AssetCompatibility;
     }
   | {
       readonly handlerKey: string;
@@ -175,6 +200,7 @@ export type NativeOutputInput =
       readonly scalar: bigint | boolean;
       readonly constraints: readonly AssetConstraint[];
       readonly selectors: readonly AssetSelectorInfo[];
+      readonly compatibility?: AssetCompatibility;
     };
 
 /** Encode one scalar value into a stable byte sequence for identity and evidence. */
@@ -217,6 +243,7 @@ export function createNativeOutput(input: NativeOutputInput): AssetHandlerOutput
     inputSha256: input.request.inputSha256,
     outputSha256,
     selectors: input.selectors,
+    ...(input.compatibility === undefined ? {} : { compatibility: input.compatibility }),
   });
   const assetId = nativeAssetId(provenance, input.request.resolvedPath);
   const value: EmbeddedValue =
@@ -245,5 +272,6 @@ export function createNativeOutput(input: NativeOutputInput): AssetHandlerOutput
     outputSha256,
     constraints: Object.freeze([...input.constraints]),
     selectors: Object.freeze([...input.selectors]),
+    ...(input.compatibility === undefined ? {} : { compatibility: input.compatibility }),
   });
 }

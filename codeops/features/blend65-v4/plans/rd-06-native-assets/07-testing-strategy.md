@@ -136,10 +136,10 @@ the implementation being written.
 | ST-87 | Plain PSID `audioInitDefault(&MUSIC)` | E10256 naming the missing exact contract | R6.23, AC-18 |
 | ST-88 | Plain PSID each `c64.audio` operation | E10256 for every operation | R6.23 |
 | ST-89 | Contract missing requested cue/voice/operation | E10257 listing available forms | R6.23 |
-| ST-90 | Non-reentrant operation reachable from mainline and IRQ | E10258 naming both domains | R6.25 |
+| ST-90 | Non-reentrant operation reachable from mainline and IRQ | Domain-overlap primitive proves both domains; whole-program E10258 activates with T-19 (AR-59) | R6.25 |
 | ST-91 | Source `place(at)` differs from PSID fixed load | E10273 naming both constraints | R6.21, R6.44 |
 | ST-93 | `embed("a.sid")` | Default `"data"` selector | R6.21 |
-| ST-181 | PSID with a specific compatible video/model set | Embed accepted; a matching synthetic contract can call it | R6.22, AC-18 |
+| ST-181 | PSID with a specific compatible video/model set | Embed accepted with retained compatibility facts; contract-record validation is unit-tested, callable path is T-19 (AR-59) | R6.22, AC-18 |
 
 ### Koala (unblocked)
 

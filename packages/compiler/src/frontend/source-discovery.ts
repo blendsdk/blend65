@@ -17,6 +17,8 @@ export interface EmbeddedRequest {
   readonly sourceId: string;
   /** Declaration ownership recorded for dispatch and loadable rejection. */
   readonly owner: "resident" | "loadable";
+  /** Declaring source name used in handler diagnostics. */
+  readonly declaration: string;
   /** Optional literal selector for a registered native format. */
   readonly selector: string | null;
 }
@@ -33,6 +35,8 @@ interface ExpressionWork {
   readonly owner?: "resident" | "loadable" | "mutable" | "local" | undefined;
   /** Complete declaration span when an ownership error names the declaration. */
   readonly ownerSpan?: SourceSpan | undefined;
+  /** Declaring source name when the expression belongs to one variable. */
+  readonly ownerName?: string | undefined;
 }
 
 interface StatementWork {
@@ -87,6 +91,7 @@ function pushStatementChildren(pending: SourceWork[], statement: Statement): voi
         kind: "expression",
         value: statement.initializer,
         ownerSpan: statement.span,
+        ownerName: statement.name,
         owner:
           statement.declarationKind === "let"
             ? "mutable"
@@ -149,7 +154,12 @@ function pushStatementChildren(pending: SourceWork[], statement: Statement): voi
  */
 function visitGraphExpressions(
   modules: ModuleGraph["modules"],
-  visit: (expression: Expr, owner: ExpressionWork["owner"], ownerSpan?: SourceSpan) => boolean,
+  visit: (
+    expression: Expr,
+    owner: ExpressionWork["owner"],
+    ownerSpan?: SourceSpan,
+    ownerName?: string,
+  ) => boolean,
 ): void {
   const pending: SourceWork[] = [];
   const declarations = modules.flatMap((module) =>
@@ -166,6 +176,7 @@ function visitGraphExpressions(
         kind: "expression",
         value: declaration.initializer,
         ownerSpan: declaration.span,
+        ownerName: declaration.name,
         owner:
           declaration.declarationKind === "let"
             ? "mutable"
@@ -183,7 +194,7 @@ function visitGraphExpressions(
       pushStatementChildren(pending, current.value);
       continue;
     }
-    if (!visit(current.value, current.owner, current.ownerSpan)) continue;
+    if (!visit(current.value, current.owner, current.ownerSpan, current.ownerName)) continue;
     const children = expressionChildren(current.value);
     for (let index = children.length - 1; index >= 0; index--) {
       pending.push({
@@ -191,6 +202,7 @@ function visitGraphExpressions(
         value: children[index]!,
         owner: current.owner,
         ownerSpan: current.ownerSpan,
+        ownerName: current.ownerName,
       });
     }
   }
@@ -264,7 +276,7 @@ export function discoverPendingObligations(
 export function discoverEmbeddedRequests(graph: ModuleGraph): EmbeddedRequestResult {
   const requests: EmbeddedRequest[] = [];
   const diagnostics: ProjectDiagnostic[] = [];
-  visitGraphExpressions(graph.modules, (expression, declarationOwner, ownerSpan) => {
+  visitGraphExpressions(graph.modules, (expression, declarationOwner, ownerSpan, ownerName) => {
     if (
       expression.kind !== "call" ||
       expression.callee.kind !== "name" ||
@@ -321,6 +333,7 @@ export function discoverEmbeddedRequests(graph: ModuleGraph): EmbeddedRequestRes
           literalPath,
           sourceId: expression.span.sourceId,
           owner: declarationOwner,
+          declaration: ownerName ?? "embed",
           selector:
             expression.arguments.length === 2
               ? embeddedLiteralPath(expression.arguments[1]!)

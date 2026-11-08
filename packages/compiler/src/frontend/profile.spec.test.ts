@@ -306,6 +306,42 @@ describe("selected frontend profile", () => {
         effect: "volatile-write",
       },
       {
+        name: "c64.audio.audioInitDefault",
+        parameters: ["word"],
+        returnType: "void",
+        effect: "volatile-write",
+      },
+      {
+        name: "c64.audio.audioInit",
+        parameters: ["word", "word"],
+        returnType: "void",
+        effect: "volatile-write",
+      },
+      {
+        name: "c64.audio.audioInitNamed",
+        parameters: ["word", "word"],
+        returnType: "void",
+        effect: "volatile-write",
+      },
+      {
+        name: "c64.audio.audioTick",
+        parameters: ["word"],
+        returnType: "void",
+        effect: "volatile-write",
+      },
+      {
+        name: "c64.audio.audioTriggerSfx",
+        parameters: ["word", "word"],
+        returnType: "void",
+        effect: "volatile-write",
+      },
+      {
+        name: "c64.audio.audioTriggerSfxOn",
+        parameters: ["word", "word", "byte"],
+        returnType: "void",
+        effect: "volatile-write",
+      },
+      {
         name: "c64.vic.vicSpriteBlock",
         parameters: ["word"],
         returnType: "byte",

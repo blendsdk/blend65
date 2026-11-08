@@ -173,6 +173,14 @@ class ModuleAnalyzer {
           ) ?? null,
         embeddedAddressability: (binding) =>
           this.embeddedAddressability.get(bindingIdentityKey(binding)) ?? null,
+        profileCallFailure: (name, span) =>
+          name.startsWith("c64.audio.")
+            ? errorDiagnostic(
+                "E10256",
+                `Callable audio operation '${name.slice(name.lastIndexOf(".") + 1)}' requires an exact hash-bound player contract for the selected profile '${this.profile?.id ?? "<none>"}' — no contract is registered; a plain PSID supplies data and entry addresses only`,
+                span,
+              )
+            : null,
       },
       this.aggregates,
     );

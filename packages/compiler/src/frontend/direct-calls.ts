@@ -137,6 +137,11 @@ export function analyzeDirectCall(
       ? (host.resolveName(host.sourceText(expression.callee.span), context)?.binding
           .qualifiedName ?? name)
       : `${callee.node.qualifiedModule.name}.${name}`;
+  const profileFailure = host.profileCallFailure?.(qualifiedName, expression.span) ?? null;
+  if (profileFailure !== null) {
+    host.diagnose(profileFailure);
+    return { node: null, exact: null };
+  }
   let valid = expression.arguments.length === signature.parameters.length;
   if (!valid) {
     host.diagnose(

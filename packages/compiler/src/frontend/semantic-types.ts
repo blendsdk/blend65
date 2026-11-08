@@ -643,6 +643,8 @@ export interface ScalarExpressionHost {
   embeddedValue(expression: Expr): EmbeddedValue | null;
   /** Classify an embedded declaration's addressability for address-of diagnostics. */
   embeddedAddressability?(binding: BindingId): "resident" | "scalar" | "empty" | null;
+  /** Reject a selected-profile call whose exact operation contract is unavailable. */
+  profileCallFailure?(qualifiedName: string, span: SourceSpan): ProjectDiagnostic | null;
 }
 
 /** Direct callbacks required while aggregate types are resolved. */

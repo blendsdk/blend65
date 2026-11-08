@@ -52,7 +52,7 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
   });
 
   // Every selected operation keeps its exact signature and effect classification.
-  it("should expose all forty operation signatures and effects", () => {
+  it("should expose all forty-six operation signatures and effects", () => {
     const result = selectFrontendProfile(id);
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected complete profile selection");
@@ -102,6 +102,12 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
       ["c64.vic.setSpriteEnabled", ["byte", "boolean"], "void", "volatile-write"],
       ["c64.vic.setSpritePointer", ["byte", "byte"], "void", "volatile-write"],
       ["c64.vic.setSpritePosition", ["byte", "word", "byte"], "void", "volatile-write"],
+      ["c64.audio.audioInitDefault", ["word"], "void", "volatile-write"],
+      ["c64.audio.audioInit", ["word", "word"], "void", "volatile-write"],
+      ["c64.audio.audioInitNamed", ["word", "word"], "void", "volatile-write"],
+      ["c64.audio.audioTick", ["word"], "void", "volatile-write"],
+      ["c64.audio.audioTriggerSfx", ["word", "word"], "void", "volatile-write"],
+      ["c64.audio.audioTriggerSfxOn", ["word", "word", "byte"], "void", "volatile-write"],
       ["c64.vic.vicSpriteBlock", ["word"], "byte", "pure"],
       ["c64.video.waitNextFrame", [], "void", "ordered-wait"],
     ]);

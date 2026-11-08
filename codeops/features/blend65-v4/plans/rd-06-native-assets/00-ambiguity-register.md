@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-06 Native Assets, Compile-Time Composition, and Resident Layout
 
-> **Status**: ✅ GATE PASSED — all 58 items resolved
+> **Status**: ✅ GATE PASSED — all 59 items resolved
 > **Last Updated**: 2026-11-07
 > **CodeOps Artifact Schema**: 1
 
@@ -75,6 +75,7 @@ ownership, and placement doctrine; those rows cite the owning requirement instea
 | AR-56 | Data & state | Can the vendor example files be committed? | Commit originals / local-only + synthetic fixtures / ignore | Treat the real examples as local-only evidence because the EULA does not grant redistribution of the bundled files. Commit a producer-evidence manifest with paths, versions and SHA-256 values plus synthetic fixtures generated from the official format manuals. | ✅ Resolved |
 | AR-57 | Data & state | Is the full MIN/ALL/WIDE/optional matrix still required? | Full matrix / selected real examples + synthetic coverage | Replace the full manual matrix with selected real producer examples and synthetic coverage derived from the official manual: optional components, truncation, adjacent versions, boundary counts and display/color/tile combinations. | ✅ Resolved |
 | AR-58 | Scope | Does RD-06 still need the GoatTracker 2.77 adapter to close? | Keep as blocker / move to follow-up / drop entirely | Move the adapter to a follow-up. Amend RD-06 R6.24–R6.26/AC-19/AC-20 to a later owned feature; RD-06 closes with the generic audio seam and empty contract map. | ✅ Resolved |
+| AR-59 (runtime) | Behavioral | With an empty audio contract map, no legal callable-audio operation exists. Should Phase 2 still implement lowering and whole-program E10258 integration? | Implement dead lowering now / gate lowering and E10258 activation on the first contract | Authority: AI — delegated by --auto-design. Eligibility: implementation mechanism inside the approved generic-audio seam; no product behavior change. Decision: keep the typed contract record, contract lookup, E10257 validation and domain-overlap primitive; do not add unreachable lowering or whole-program E10258 wiring. Every source call is E10256 before lowering. T-19 adds the contract, lowering and E10258 activation together. Evidence: empty `AUDIO_PLAYER_CONTRACTS`; E10256 precedes any operation; dead lowering would violate the no-dead-code standard. Rejected: unreachable lowering now (dead code, untested); runtime contract injection (new product surface). Strongest counterargument: the plan text names lowering; however an operation without a contract has no entry address, ABI or writable ranges to lower, so the code would be unverifiable. Confidence: High. Policy version: 1. Root invocation ID: rd06-exec-2026-11-08. Reopen triggers: a contract is registered or T-19 starts. | ✅ Resolved |
 
 ## Resolution Notes
 

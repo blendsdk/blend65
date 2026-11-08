@@ -54,9 +54,19 @@ export function sourcePlacementFailure(
   const object = [...machine.data, ...machine.functions].find(({ id }) => id === objectId);
   const key = objectId?.replace(/^(?:global|fn)\./u, "") ?? "";
   const name = object?.sourceName?.split(".").at(-1) ?? objectId ?? "object";
+  const data = machine.data.find(({ id }) => id === objectId);
+  const handlerFixed =
+    data !== undefined &&
+    data.kind === "asset" &&
+    data.placement?.at !== undefined &&
+    data.placement.at !== null;
+  const message =
+    handlerFixed && data?.placement?.at !== null && data?.placement?.at !== undefined
+      ? `Cannot place '${name}' — the handler requires the fixed load address $${data.placement.at.toString(16)}, which conflicts with occupied storage or the selected profile resident window; the payload cannot be moved`
+      : `Cannot place '${name}' — explicit placement constraints conflict with occupied storage or the selected profile window; change or remove the explicit constraint`;
   return projectDiagnostic(
     "E10273",
-    `Cannot place '${name}' — explicit placement constraints conflict with occupied storage or the selected profile window; change or remove the explicit constraint`,
+    message,
     spans.get(`placement:${key}`) ?? spans.get(key) ?? null,
   );
 }

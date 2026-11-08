@@ -307,6 +307,17 @@ export function diagnoseAggregateBinary(
   host: ScalarExpressionHost,
 ): boolean {
   if (left.type.kind === "scalar" && right.type.kind === "scalar") return false;
+  const embedded = [left, right].find(({ embedded }) => embedded?.kind === "embedded");
+  if (embedded !== undefined) {
+    host.diagnose(
+      projectDiagnostic(
+        "E10142",
+        `Embedded data produces '${semanticTypeName(embedded.type)}' and cannot be used in a '${expression.operator}' expression — select a scalar component or index one element`,
+        expression.span,
+      ),
+    );
+    return true;
+  }
   if (left.type.kind === "array" || right.type.kind === "array") {
     host.diagnose(
       projectDiagnostic(

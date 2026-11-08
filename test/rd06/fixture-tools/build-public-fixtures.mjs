@@ -49,9 +49,7 @@ function psid(version, payloadLoad) {
   }
   if (version >= 3) header[0x7a] = 0;
   if (version >= 4) header[0x7b] = 0;
-  const payload = payloadLoad
-    ? Buffer.concat([Buffer.from([LOAD & 0xff, LOAD >> 8]), CODE])
-    : CODE;
+  const payload = payloadLoad ? Buffer.concat([Buffer.from([LOAD & 0xff, LOAD >> 8]), CODE]) : CODE;
   return Buffer.concat([header, payload]);
 }
 
@@ -128,14 +126,15 @@ for (const version of [1, 2, 3, 4]) {
     const bytes = psid(version, payloadLoad);
     const written = await write(`psid/${id}.sid`, bytes);
     const dataOffset = version === 1 ? 0x76 : 0x7c;
-    const data = payloadLoad
-      ? bytes.subarray(dataOffset + 2)
-      : bytes.subarray(dataOffset);
+    const data = payloadLoad ? bytes.subarray(dataOffset + 2) : bytes.subarray(dataOffset);
     entries.push({
       id,
       family: "psid",
       ...written,
-      provenance: constructed("HVSC SID file format (PSID v1-v4 subset)", "b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0"),
+      provenance: constructed(
+        "HVSC SID file format (PSID v1-v4 subset)",
+        "b89a78d3c1d90d0b8c6b4cfd2001be026ad6c2c31b73cdbab857c627a60779f0",
+      ),
       producer: null,
       producerVersion: null,
       settings: {},
@@ -192,7 +191,10 @@ for (const item of koalaCases) {
     id: item.id,
     family: "koala",
     ...written,
-    provenance: constructed("Classic Koala Paint layout ($6000 load, 10,003 bytes)", sha256(Buffer.from("koala"))),
+    provenance: constructed(
+      "Classic Koala Paint layout ($6000 load, 10,003 bytes)",
+      sha256(Buffer.from("koala")),
+    ),
     producer: null,
     producerVersion: null,
     settings: {},

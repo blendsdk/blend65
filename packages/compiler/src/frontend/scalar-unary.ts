@@ -63,6 +63,16 @@ export function analyzeScalarUnary(
             )
           : null;
     if (functionName?.node?.binding !== null && functionName?.node?.binding !== undefined) {
+      if (functionName.node.binding.sourceId.startsWith("profile:")) {
+        analyzer.host.diagnose(
+          error(
+            "E10043",
+            `Address-of requires an addressable storage place or target function — profile operation '${analyzer.host.sourceText(expression.operand.span)}' has no target address`,
+            expression.span,
+          ),
+        );
+        return { node: null, exact: null };
+      }
       if (analyzer.host.isFunction(functionName.node.binding)) {
         if (analyzer.host.functionMode?.(functionName.node.binding) === "comptime") {
           analyzer.host.diagnose(
@@ -218,6 +228,16 @@ export function analyzeScalarUnary(
   if (isScalarType(operand.node.type) && operand.node.type.name === "void") {
     analyzer.host.diagnose(
       error("SEMANTIC_ERROR", "Void expression cannot be used as a value", expression.span),
+    );
+    return { node: null, exact: null };
+  }
+  if (operand.node.embedded?.kind === "embedded") {
+    analyzer.host.diagnose(
+      error(
+        "E10142",
+        `Embedded data produces '${semanticTypeName(operand.node.type)}' and cannot be used with '${expression.operator}' — select a scalar component or index one element`,
+        expression.span,
+      ),
     );
     return { node: null, exact: null };
   }

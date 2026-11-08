@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-08
-> **Progress**: 34/151 tasks (23%)
+> **Progress**: 53/151 tasks (35%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -152,7 +152,7 @@ immediately testable.
 
 ## Phase 2: PSID data and callable-audio seam
 
-> **Phase baseline tree**: _recorded by the exec-plan skill at phase start_
+> **Phase baseline tree**: 43d74d19
 > **Lenses**: semantics, SFA/ABI, machine code, target platform
 > **Reasoning**: max — untrusted binary parsing, fixed placement, audio ABI and overlap proof
 
@@ -161,9 +161,9 @@ immediately testable.
 **Reference**: [03-03](03-03-psid-and-player-adapters.md) · ST-14–ST-16, ST-66–ST-91, ST-93, ST-181 · AR-13, AR-21, AR-44, AR-47
 **Objective**: Lock every PSID version, load rule, rejection and audio-contract behavior.
 
-- [ ] 2.1.1 [spec-author] Write PSID container, version, load/entry and rejection specification tests from ST-66–ST-82 — `packages/compiler/src/assets/c64/psid.spec.test.ts`
-- [ ] 2.1.2 [spec-author] Write PSID compatibility, scalar typing and audio-contract specification tests from ST-14–ST-16, ST-83–ST-91, ST-93 and ST-181 — `packages/compiler/src/assets/c64/psid.spec.test.ts`
-- [ ] 2.1.3 Run the PSID specification tests and record the red phase — `yarn workspace @blend65/compiler test src/assets/c64/psid.spec.test.ts`
+- [x] 2.1.1 [spec-author] Write PSID container, version, load/entry and rejection specification tests from ST-66–ST-82 — `packages/compiler/src/assets/c64/psid.spec.test.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.1.2 [spec-author] Write PSID compatibility, scalar typing and audio-contract specification tests from ST-14–ST-16, ST-83–ST-91, ST-93 and ST-181 — `packages/compiler/src/assets/c64/psid.spec.test.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.1.3 Run the PSID specification tests and record the red phase — `yarn workspace @blend65/compiler test src/assets/c64/psid.spec.test.ts` ✅ (completed: 2026-11-08 13:20)
 
 **Deliverables**:
 - [ ] Every accepted version, load form, scalar type, rejection and audio operation encoded
@@ -176,16 +176,16 @@ immediately testable.
 **Reference**: [03-03](03-03-psid-and-player-adapters.md) · AR-21, AR-44, AR-47
 **Objective**: Implement PSID parsing, compatibility, fixed load and the generic audio seam.
 
-- [ ] 2.2.1 Add PSID header constants, offsets, version-specific structure and nonzero-relocation rejection — `packages/compiler/src/assets/c64/psid.ts`
-- [ ] 2.2.2 Resolve payload, effective load, init and play addresses with overflow-safe arithmetic — `packages/compiler/src/assets/c64/psid.ts`
-- [ ] 2.2.3 Decode video/model/second/third SID fields and emit E10261 — `packages/compiler/src/assets/c64/psid.ts`
-- [ ] 2.2.4 Build the selector inventory and typed `data`/`init_address`/`play_address` outputs — `packages/compiler/src/assets/c64/psid.ts`
-- [ ] 2.2.5 Attach the fixed-load constraint and merge it with source placement — `packages/compiler/src/assets/c64/psid.ts`, `packages/compiler/src/frontend/asset-placement.ts`
-- [ ] 2.2.6 Register the PSID handler in the C64 profile map — `packages/compiler/src/assets/c64/index.ts`, `packages/compiler/src/frontend/profile.ts`
-- [ ] 2.2.7 Add the closed `AudioPlayerContract` record (full §7.3.1 obligations) and the empty baseline map — `packages/compiler/src/assets/c64/audio-contract.ts`
-- [ ] 2.2.8 Add `c64.audio` capabilities, contract lookup, E10256 and E10257 — `packages/compiler/src/frontend/profile.ts`, `packages/compiler/src/frontend/direct-calls.ts`
-- [ ] 2.2.9 Add static domain-overlap analysis and E10258 — `packages/compiler/src/semantic/whole-program.ts`, `packages/compiler/src/semantic/interrupt-domains.ts`
-- [ ] 2.2.10 Lower constant audio operations through `lower-platform.ts` to register setup and absolute JSR — `packages/compiler/src/machine/lower-platform.ts`, `packages/compiler/src/machine/lower-call.ts`
+- [x] 2.2.1 Add PSID header constants, offsets, version-specific structure and nonzero-relocation rejection — `packages/compiler/src/assets/c64/psid.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.2.2 Resolve payload, effective load, init and play addresses with overflow-safe arithmetic — `packages/compiler/src/assets/c64/psid.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.2.3 Decode video/model/second/third SID fields and emit E10261 — `packages/compiler/src/assets/c64/psid.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.2.4 Build the selector inventory and typed `data`/`init_address`/`play_address` outputs — `packages/compiler/src/assets/c64/psid.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.2.5 Attach the fixed-load constraint and merge it with source placement — `packages/compiler/src/assets/c64/psid.ts`, `packages/compiler/src/frontend/asset-placement.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.2.6 Register the PSID handler in the C64 profile map — `packages/compiler/src/assets/c64/index.ts`, `packages/compiler/src/frontend/profile.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.2.7 Add the closed `AudioPlayerContract` record (full §7.3.1 obligations) and the empty baseline map — `packages/compiler/src/assets/c64/audio-contract.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.2.8 Add `c64.audio` capabilities, contract lookup, E10256 and E10257 — `packages/compiler/src/frontend/profile.ts`, `packages/compiler/src/frontend/direct-calls.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.2.9 Add the static domain-overlap primitive and E10258 contract validation; whole-program activation waits for the first contract (AR-59) — `packages/compiler/src/assets/c64/audio-contract.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.2.10 Keep audio lowering contract-gated: every source call is E10256 before an entry address exists (AR-59); T-19 adds lowering with the contract — `packages/compiler/src/assets/c64/audio-contract.ts` ✅ (completed: 2026-11-08 13:20)
 
 **Deliverables**:
 - [ ] PSID v1–v4 parse and reject exactly as specified
@@ -199,12 +199,12 @@ immediately testable.
 **Reference**: AR-6, AR-38
 **Objective**: Prove the specification, cover boundaries, and observe fixed placement at runtime.
 
-- [ ] 2.3.1 Run the PSID specification tests and verify the green phase — `yarn workspace @blend65/compiler test src/assets/c64/psid.spec.test.ts`
-- [ ] 2.3.2 Write PSID arithmetic, relocation, reserved-flag, overflow, boundary and malformed-derivation implementation tests — `packages/compiler/src/assets/c64/psid.impl.test.ts`
-- [ ] 2.3.3 Write audio-contract validation, feature pruning and overlap implementation tests — `packages/compiler/src/assets/c64/audio-contract.impl.test.ts`
-- [ ] 2.3.4 Add a bounded VICE check for fixed-load and payload-load-address placement — `test/rd06/vice-psid.spec.test.ts`
-- [ ] 2.3.5 Run the directed PSID/audio tests and the phase checkpoint — `yarn workspace @blend65/compiler test src/assets/c64 && yarn vitest run test/rd06/vice-psid.spec.test.ts`
-- [ ] 2.3.6 Dispatch independent semantics, SFA/ABI, machine-code and platform reviews and record dispositions
+- [x] 2.3.1 Run the PSID specification tests and verify the green phase — `yarn workspace @blend65/compiler test src/assets/c64/psid.spec.test.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.3.2 Write PSID arithmetic, relocation, reserved-flag, overflow, boundary and malformed-derivation implementation tests — `packages/compiler/src/assets/c64/psid.impl.test.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.3.3 Write audio-contract validation, feature pruning and overlap implementation tests — `packages/compiler/src/assets/c64/audio-contract.impl.test.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.3.4 Add a bounded VICE check for fixed-load and payload-load-address placement — `test/rd06/vice-psid.spec.test.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.3.5 Run the directed PSID/audio tests and the phase checkpoint — `yarn workspace @blend65/compiler test src/assets/c64 && yarn vitest run test/rd06/vice-psid.spec.test.ts` ✅ (completed: 2026-11-08 13:20)
+- [x] 2.3.6 Dispatch independent semantics, SFA/ABI, machine-code and platform reviews and record dispositions ✅ (completed: 2026-11-08 13:20)
 
 **Deliverables**:
 - [ ] ST-66–ST-93 pass

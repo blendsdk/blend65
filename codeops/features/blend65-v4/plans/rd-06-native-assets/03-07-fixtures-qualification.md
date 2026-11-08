@@ -83,7 +83,10 @@ fixtures at run time.
 - PSID: one fixed-load and one payload-load-address file for each accepted version, with valid
   PAL/NTSC/model combinations and all negative classes. Headers are big-endian; payloads are tiny,
   readable 6502 routines with a nonzero play address. Spec tests hardcode the spec-derived header
-  values; the manifest supplies the committed bytes and SHA-256.
+  values; the manifest supplies the committed bytes and SHA-256. Malformed PSID cases are derived
+  deterministically from a committed accepted fixture inside the test (one named byte mutation);
+  the derivation is the test function, not a second committed binary. This is the accepted
+  exception to committing every malformed byte sequence.
 - Koala: zero-pattern, patterned, Color-RAM high-nibble and background high-nibble files, each
   exactly 10,003 bytes with `$6000` load address. Spec tests hardcode the component lengths and
   high-bit expectations; the manifest supplies the committed bytes and SHA-256.
