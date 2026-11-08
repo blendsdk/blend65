@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-08
-> **Progress**: 138/151 tasks (91%)
+> **Progress**: 142/151 tasks (94%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -357,15 +357,15 @@ immediately testable.
 **Reference**: [03-06](03-06-resident-layout-evidence.md) · AR-5, AR-11, AR-14, AR-29–AR-35
 **Objective**: Extend the existing first-fit with views, constraints, derived fields and evidence.
 
-- [ ] 5.2.1 Add view and free-interval types and per-view hole calculation bounded to the allocatable resident window — `packages/compiler/src/layout/c64-layout.ts`, `packages/compiler/src/layout/c64-layout-objects.ts`
+- [x] 5.2.1 Add view and free-interval types and per-view hole calculation bounded to the allocatable resident window — `packages/compiler/src/layout/c64-layout.ts`, `packages/compiler/src/layout/c64-layout-objects.ts`
 - [x] 5.2.2 Add the object constraint model and source/handler intersection — `packages/compiler/src/layout/c64-layout-placement.ts`
 - [x] 5.2.3 Enforce sprite 64, charset 2,048, bitmap 8,192 and screen 1,024 alignment — `packages/compiler/src/layout/c64-layout.ts`
 - [x] 5.2.4 Enforce VIC visibility, global character-ROM reservation/avoidance and same-bank pairing — `packages/compiler/src/layout/c64-layout.ts`
 - [x] 5.2.5 Enforce PSID fixed load, full-bank sprite hole search and the 256-record-plus-screen failure with interval evidence — `packages/compiler/src/layout/c64-layout.ts`
 - [x] 5.2.6 Add the `c64.vic.bank0` profile region and reject other regions — `packages/compiler/src/frontend/profile.ts`, `packages/compiler/src/frontend/placement.ts`
 - [x] 5.2.7 Populate `.assets.json` handler, selector, constraints, placement, aliases, writable ranges and `compileTime` scalar records; extend the evidence id — `packages/compiler/src/services/evidence.ts`, `packages/compiler/src/artifacts/assets-evidence-validator.ts`
-- [ ] 5.2.8 Populate `.memory.json` intervals, views, free intervals, reservations and Color RAM view — `packages/compiler/src/services/evidence.ts`, `packages/compiler/src/services/memory-evidence-records.ts`
-- [ ] 5.2.9 Populate `.costs.json` zero/runtime costs and `.debug.json` asset records — `packages/compiler/src/services/evidence.ts`
+- [x] 5.2.8 Populate `.memory.json` intervals, views, free intervals, reservations and Color RAM view — `packages/compiler/src/services/evidence.ts`, `packages/compiler/src/services/memory-evidence-records.ts`
+- [x] 5.2.9 Populate `.costs.json` zero/runtime costs and `.debug.json` asset records — `packages/compiler/src/services/evidence.ts`
 - [x] 5.2.10 Keep ACME output free of asset paths and permissive binary directives — `packages/compiler/src/artifacts/acme-serializer.ts`
 - [x] 5.2.11 Extend cross-sidecar reconciliation for handler/selector/constraint and compile-time scalar fields — `packages/compiler/src/publication/sidecar-consistency.ts`
 - [x] 5.2.12 Keep the existing Specification 4 W10150 percentage warning unchanged and add its regression — `packages/compiler/src/services/resource-diagnostics.ts`
@@ -415,7 +415,7 @@ immediately testable.
 - [x] 6.1.1 [spec-author] Write fixture-manifest, status and AC-gap specification tests from ST-155–ST-164, ST-180, ST-183 and ST-184 — `test/rd06/fixtures.spec.test.ts`
 - [x] 6.1.2 [spec-author] Write example build/output specification tests — `test/rd06/examples.spec.test.ts`
 - [x] 6.1.3 [spec-author] Write integration, aliasing and blocked-gate specification tests — `test/rd06/integration.spec.test.ts`, `test/rd06/aliasing.spec.test.ts`, `test/rd06/blocked-gates.spec.test.ts`
-- [ ] 6.1.4 Run the fixture/example/integration specification tests and record the red phase — `yarn vitest run test/rd06/fixtures.spec.test.ts test/rd06/examples.spec.test.ts test/rd06/integration.spec.test.ts test/rd06/aliasing.spec.test.ts test/rd06/blocked-gates.spec.test.ts`
+- [x] 6.1.4 Run the fixture/example/integration specification tests and record the red phase — `yarn vitest run test/rd06/fixtures.spec.test.ts test/rd06/examples.spec.test.ts test/rd06/integration.spec.test.ts test/rd06/aliasing.spec.test.ts test/rd06/blocked-gates.spec.test.ts`
 
 **Deliverables**:
 - [ ] Manifest, hash, public-fixture and status expectations encoded

@@ -5,6 +5,7 @@ import {
   satisfiesSourcePlacement,
   sourceDataStart,
 } from "./c64-layout-placement.js";
+import { freeIntervalsInWindow } from "./c64-layout-objects.js";
 import { selectTargetProfile } from "../target/profile.js";
 
 /** Minimal profile for placement arithmetic. */
@@ -45,6 +46,41 @@ describe("layout asset placement internals", () => {
     const occupied = [{ start: 0x0840, end: 0x087f }];
     expect(freeSourceStart(0x0801, 4, 64, undefined, occupied, profile())).toBe(0x0880);
     expect(freeSourceStart(0x3fc0, 0x80, 64, undefined, [], profile())).toBe(0x3fc0);
+  });
+
+  // Free intervals are the exact complement of occupied ranges in one window.
+  it("should partition a window around occupied ranges", () => {
+    const free = freeIntervalsInWindow(0x100, 0x200, [
+      { start: 0x120, end: 0x12f },
+      { start: 0x180, end: 0x19f },
+      { start: 0x040, end: 0x080 },
+    ]);
+    expect(free).toEqual([
+      { start: 0x100, end: 0x120, size: 0x20 },
+      { start: 0x130, end: 0x180, size: 0x50 },
+      { start: 0x1a0, end: 0x200, size: 0x60 },
+    ]);
+  });
+
+  // Overlapping occupied ranges merge instead of producing overlapping holes.
+  it("should merge overlapping occupied ranges", () => {
+    const free = freeIntervalsInWindow(0, 0x40, [
+      { start: 0x10, end: 0x1f },
+      { start: 0x18, end: 0x27 },
+    ]);
+    expect(free).toEqual([
+      { start: 0, end: 0x10, size: 0x10 },
+      { start: 0x28, end: 0x40, size: 0x18 },
+    ]);
+  });
+
+  // Ranges crossing a window boundary are clipped rather than ignored.
+  it("should clip occupied ranges at the window boundary", () => {
+    const free = freeIntervalsInWindow(0x100, 0x200, [
+      { start: 0x080, end: 0x10f },
+      { start: 0x1f0, end: 0x280 },
+    ]);
+    expect(free).toEqual([{ start: 0x110, end: 0x1f0, size: 0xe0 }]);
   });
 
   // The selected bank-0 region is accepted only inside the bank.

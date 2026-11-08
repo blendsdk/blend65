@@ -211,3 +211,34 @@ export function resolvePlacementTransforms(
     functions: Object.freeze(functions.filter((fn) => fn !== null)),
   });
 }
+
+/**
+ * Partition one bounded address window into free ranges around occupied intervals.
+ *
+ * Ranges outside the window are ignored and ranges crossing a boundary are
+ * clipped to it. Overlapping or unsorted input still yields a deterministic
+ * partition because clipped ranges are sorted before merging.
+ */
+export function freeIntervalsInWindow(
+  start: number,
+  end: number,
+  occupied: readonly { readonly start: number; readonly end: number }[],
+): readonly { readonly start: number; readonly end: number; readonly size: number }[] {
+  const inside = occupied
+    .filter((range) => range.start < end && range.end >= start)
+    .map((range) => ({
+      start: Math.max(start, range.start),
+      end: Math.min(end, range.end) + 1,
+    }))
+    .sort((left, right) => left.start - right.start);
+  const free: { start: number; end: number; size: number }[] = [];
+  let cursor = start;
+  for (const range of inside) {
+    if (cursor < range.start) {
+      free.push({ start: cursor, end: range.start, size: range.start - cursor });
+    }
+    cursor = Math.max(cursor, range.end);
+  }
+  if (cursor < end) free.push({ start: cursor, end, size: end - cursor });
+  return Object.freeze(free.map((range) => Object.freeze(range)));
+}

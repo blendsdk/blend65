@@ -14,6 +14,7 @@ import {
 import type { EvidenceIdentity, EvidenceRecord } from "../artifacts/evidence-types.js";
 import { canonicalEvidenceHash, canonicalEvidenceJson } from "../artifacts/evidence-validation.js";
 import type { ResidentAsset, ScalarAsset, SemanticAsset } from "../assets/asset-types.js";
+import { freeIntervalsInWindow } from "../layout/c64-layout-objects.js";
 import { BUILD_INFO } from "../build-info.js";
 import type { ProjectSnapshot } from "../project/types.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
@@ -228,49 +229,74 @@ function assetConstraints(asset: ResidentAsset): readonly Record<string, unknown
   );
 }
 
-/** Return the exact free partition around sorted, non-overlapping intervals. */
-function freeIntervals(intervals: readonly EvidenceRecord[]): readonly EvidenceRecord[] {
-  const free: EvidenceRecord[] = [];
-  let cursor = 0;
-  for (const interval of intervals) {
-    const start = interval.start as number;
-    const end = interval.end as number;
-    if (cursor < start)
-      free.push(Object.freeze({ start: cursor, end: start, size: start - cursor }));
-    cursor = end;
-  }
-  if (cursor < 0x10000) {
-    free.push(Object.freeze({ start: cursor, end: 0x10000, size: 0x10000 - cursor }));
-  }
-  return Object.freeze(free);
-}
-
-/** Create the complete CPU view used by the single-bank C64 PRG profile. */
-function memoryView(intervals: readonly EvidenceRecord[]): EvidenceRecord {
-  const free = freeIntervals(intervals);
+/** Build one consistent memory view from the intervals it covers exactly. */
+function buildView(
+  id: string,
+  consumer: "cpu" | "vic",
+  addressSpaceId: string,
+  start: number,
+  end: number,
+  covered: readonly EvidenceRecord[],
+  visibility: readonly string[],
+): EvidenceRecord {
+  const free = freeIntervalsInWindow(
+    start,
+    end,
+    covered.map((interval) => ({
+      start: interval.start as number,
+      end: (interval.end as number) - 1,
+    })),
+  );
   const sum = (field: "size" | "payloadBytes" | "paddingBytes" | "reservedBytes"): number =>
-    intervals.reduce((total, interval) => total + (interval[field] as number), 0);
-  const freeBytes = free.reduce((total, interval) => total + (interval.size as number), 0);
-  const zeroPageBytes = intervals
-    .filter(({ resourceClass }) => resourceClass === "zeroPage")
-    .reduce((total, interval) => total + (interval.size as number), 0);
+    covered.reduce((total, interval) => total + (interval[field] as number), 0);
   return Object.freeze({
-    id: "cpu16-resident",
-    consumer: "cpu",
-    addressSpaceId: "cpu16",
-    start: 0,
-    end: 0x10000,
+    id,
+    consumer,
+    addressSpaceId,
+    start,
+    end,
     activeResidencyIds: Object.freeze(["resident"]),
-    visibility: Object.freeze(["cpu"]),
-    capacityBytes: 0x10000,
+    visibility: Object.freeze([...visibility]),
+    capacityBytes: end - start,
     occupiedBytes: sum("size"),
     payloadBytes: sum("payloadBytes"),
     paddingBytes: sum("paddingBytes"),
     reservedBytes: sum("reservedBytes"),
-    zeroPageBytes,
-    freeBytes,
+    zeroPageBytes: covered
+      .filter(({ resourceClass }) => resourceClass === "zeroPage")
+      .reduce((total, interval) => total + (interval.size as number), 0),
+    freeBytes: free.reduce((total, range) => total + range.size, 0),
     freeIntervals: free,
-    largestFreeBytes: Math.max(0, ...free.map(({ size }) => size as number)),
+    largestFreeBytes: Math.max(0, ...free.map(({ size }) => size)),
+  });
+}
+
+/** One compiler-owned reserved hardware/ROM interval with no PRG payload. */
+function reservation(
+  id: string,
+  start: number,
+  end: number,
+  addressSpaceId = "cpu16",
+): EvidenceRecord {
+  const size = end - start;
+  return Object.freeze({
+    id,
+    addressSpaceId,
+    start,
+    end,
+    size,
+    owner: Object.freeze({ kind: "compiler", id }),
+    kind: "reservation",
+    origin: Object.freeze({ kind: "generated", identity: id }),
+    mutability: "immutable",
+    alignmentBytes: 1,
+    contiguity: Object.freeze({ kind: "single" }),
+    residencyIds: Object.freeze(["resident"]),
+    cpuMappings: Object.freeze([]),
+    resourceClass: "device",
+    payloadBytes: 0,
+    paddingBytes: 0,
+    reservedBytes: size,
   });
 }
 
@@ -446,13 +472,40 @@ export async function prepareEvidence(
       ),
     ),
   });
-  const intervals = deriveMemoryIntervals(
+  const layoutIntervals = deriveMemoryIntervals(
     input.layout,
     input.inventory,
     input.certificate,
     assetIds,
   );
-  const view = memoryView(intervals);
+  // Color RAM is a separate 4-bit hardware space. Screen and character-ROM
+  // reservations are layout constraints, but cannot become CPU intervals while
+  // the contiguous PRG legitimately spans those addresses as RAM.
+  const colorRam = reservation("color-ram.hardware", 0, 0x400, "colorram4");
+  const intervals = Object.freeze(
+    [...layoutIntervals, colorRam].sort((left, right) => {
+      const address = Buffer.compare(
+        Buffer.from(String(left.addressSpaceId)),
+        Buffer.from(String(right.addressSpaceId)),
+      );
+      if (address !== 0) return address;
+      const start = (left.start as number) - (right.start as number);
+      return start !== 0
+        ? start
+        : Buffer.compare(Buffer.from(String(left.id)), Buffer.from(String(right.id)));
+    }),
+  );
+  const cpu = intervals.filter(({ addressSpaceId }) => addressSpaceId === "cpu16");
+  const bank0 = cpu.filter(({ start, end }) => (start as number) >= 0 && (end as number) <= 0x4000);
+  const views = Object.freeze(
+    [
+      buildView("color-ram", "vic", "colorram4", 0, 0x400, [colorRam], ["color-ram"]),
+      buildView("cpu16-resident", "cpu", "cpu16", 0, 0x10000, cpu, ["cpu"]),
+      buildView("vic-bank-0", "vic", "cpu16", 0, 0x4000, bank0, ["vic"]),
+    ].sort((left, right) =>
+      Buffer.compare(Buffer.from(String(left.id)), Buffer.from(String(right.id))),
+    ),
+  );
   const stackCapacity = input.profile.storage.hardwareStackCapacity ?? 0x100;
   const platformStackReserve = input.profile.storage.hardwareStackReserve ?? 0;
   const usableStackCapacity = stackCapacity - platformStackReserve;
@@ -485,7 +538,7 @@ export async function prepareEvidence(
       }),
     ]),
     intervals,
-    views: Object.freeze([view]),
+    views,
     stackDomains: Object.freeze(
       [
         Object.freeze({
@@ -526,24 +579,35 @@ export async function prepareEvidence(
     ),
   });
   const loaded = input.layout.intervals.filter(({ bytes }) => bytes !== null);
-  const costEntries = loaded
-    .map((interval) =>
-      Object.freeze({
-        kind: "bytes",
-        id: `program:${interval.id}`,
-        owner: Object.freeze({ kind: "compiler", id: interval.id }),
-        component: programComponent(interval.kind),
-        accounting: "program",
-        bytes: interval.end - interval.start + 1,
-        sourceSites: Object.freeze([]),
-        dependencyIds: Object.freeze([]),
-      }),
-    )
-    .sort((left, right) => {
-      const leftKey = `${left.accounting}\0${left.component}\0${left.owner.kind}\0${left.owner.id}\0${left.id}`;
-      const rightKey = `${right.accounting}\0${right.component}\0${right.owner.kind}\0${right.owner.id}\0${right.id}`;
-      return Buffer.compare(Buffer.from(leftKey), Buffer.from(rightKey));
-    });
+  const residentCostEntries = loaded.map((interval) =>
+    Object.freeze({
+      kind: "bytes",
+      id: `program:${interval.id}`,
+      owner: Object.freeze({ kind: "compiler", id: interval.id }),
+      component: programComponent(interval.kind),
+      accounting: "program",
+      bytes: interval.end - interval.start + 1,
+      sourceSites: Object.freeze([]),
+      dependencyIds: Object.freeze([]),
+    }),
+  );
+  const compileTimeCostEntries = scalarAssets.map((asset) =>
+    Object.freeze({
+      kind: "bytes" as const,
+      id: `compile-time:${asset.id}`,
+      owner: Object.freeze({ kind: "symbol" as const, id: assetSymbolName(asset.id) }),
+      component: "initializedData" as const,
+      accounting: "program" as const,
+      bytes: 0,
+      sourceSites: Object.freeze([]),
+      dependencyIds: Object.freeze([]),
+    }),
+  );
+  const costEntries = [...residentCostEntries, ...compileTimeCostEntries].sort((left, right) => {
+    const leftKey = `${left.accounting}\0${left.component}\0${left.owner.kind}\0${left.owner.id}\0${left.id}`;
+    const rightKey = `${right.accounting}\0${right.component}\0${right.owner.kind}\0${right.owner.id}\0${right.id}`;
+    return Buffer.compare(Buffer.from(leftKey), Buffer.from(rightKey));
+  });
   const completePathId = "program.entry-to-return";
   const unknownMeasurement = Object.freeze({ kind: "unknown" as const });
   const finalPathCycles = sizeCostVector(input.layout, input.certificate).pathCycles;
@@ -565,12 +629,19 @@ export async function prepareEvidence(
     sourceSites: Object.freeze([]),
     dependencyIds: Object.freeze([]),
   });
-  const residentRam = intervals.reduce((total, interval) => total + (interval.size as number), 0);
+  // Final resources reconcile with the CPU program image. Hardware
+  // reservations live in their own address space and never inflate program RAM.
+  const residentRam = intervals
+    .filter(({ addressSpaceId }) => addressSpaceId === "cpu16")
+    .reduce((total, interval) => total + (interval.size as number), 0);
   const zeroPage = intervals
-    .filter(({ resourceClass }) => resourceClass === "zeroPage")
+    .filter(
+      ({ addressSpaceId, resourceClass }) =>
+        addressSpaceId === "cpu16" && resourceClass === "zeroPage",
+    )
     .reduce((total, interval) => total + (interval.size as number), 0);
   const scratch = intervals
-    .filter(({ kind }) => kind === "scratch")
+    .filter(({ addressSpaceId, kind }) => addressSpaceId === "cpu16" && kind === "scratch")
     .reduce((total, interval) => total + (interval.size as number), 0);
   const finalVector: SizeCostVector = Object.freeze({
     programBytes: Math.max(0, primaryBytes.byteLength - 2),

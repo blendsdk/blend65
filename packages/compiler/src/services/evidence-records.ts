@@ -9,7 +9,7 @@ import { capturedByteLocations, privateHomeAvailability } from "./debug-storage-
 import { c64InterruptEntryLabel } from "../machine/lower-c64-interrupt.js";
 import { acmeLabelName, acmeLabelNames } from "../artifacts/acme-labels.js";
 import type { EvidenceRecord } from "../artifacts/evidence-types.js";
-import type { ResidentAsset } from "../assets/asset-types.js";
+import type { ResidentAsset, ScalarAsset } from "../assets/asset-types.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { canonicalEvidenceJson } from "../artifacts/evidence-validation.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
@@ -574,6 +574,27 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
             byteLength: interval.end - interval.start + 1,
           }),
         ]),
+      }),
+    });
+  }
+  for (const asset of input.program.semantic.assets.filter(
+    (asset): asset is ScalarAsset => asset.kind === "scalar-asset" && asset.scalarType !== null,
+  )) {
+    symbolDrafts.push({
+      name: asset.id,
+      qualifiedName: assetSymbolName(asset.id),
+      kind: "asset",
+      type: typeText(asset.scalarType!),
+      byteWidth: typeBytes(asset.scalarType!),
+      shape: typeShape(asset.scalarType!),
+      scope: "asset",
+      origin: Object.freeze({ kind: "generated", cause: "asset" }),
+      linkage: "internal",
+      labels: Object.freeze([]),
+      liveRangeIndexes: Object.freeze([]),
+      availability: Object.freeze({
+        kind: "optimizedAway",
+        rule: "compile-time selector; no resident storage",
       }),
     });
   }

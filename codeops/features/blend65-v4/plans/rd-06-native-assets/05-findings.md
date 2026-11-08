@@ -60,11 +60,11 @@
 | SR-501 | 5 | MAJOR | layout/vic-visibility | fixed — VIC-visible assets require bank 0, avoid character ROM and the active screen, and `c64.vic.bank0` is a real region; other regions are E10272 |
 | SR-502 | 5 | MAJOR | evidence/assets | fixed — handler/source constraints, exact alignment/visibility and scalar `compileTime` records are published |
 | SR-503 | 5 | MAJOR | publication/scalars | fixed — build/debug/scalar input and placement reconciliation accept zero-byte records |
-| SR-504 | 5 | MAJOR | evidence/memory-views | deferred — `.memory.json` has only `cpu16-resident`; the VIC bank and Color RAM views need a schema addition for a non-`cpu16` address space |
-| SR-505 | 5 | MINOR | costs/compile-time | deferred — `.costs.json` has no compile-time-zero accounting component; no artifact-byte inflation is claimed |
+| SR-504 | 5 | MAJOR | evidence/memory-views | fixed — `cpu16-resident`, `vic-bank-0` and `color-ram` views reconcile occupancy and free intervals |
+| SR-505 | 5 | MINOR | costs/compile-time | fixed — each scalar asset has a zero-byte program entry and an `optimizedAway` debug symbol/location |
 | SR-506 | 5 | MINOR | layout/global-rom | deferred — character ROM is reserved for VIC-visible assets and PSID fixed loads, not every CPU-only code/data interval; a blanket reservation breaks existing M1 code placement |
 | SR-507 | 5 | MINOR | platform/screen-tail | deferred — a relocated screen's full 1-KiB pointer tail and `setSpritePointer` base are not yet layout-derived |
-| SR-508 | 5 | MINOR | qualification/layout | deferred — the dedicated layout/evidence spec file and VICE Koala visibility check remain; Q-P15 covers the visible bitmap/screen/Color RAM path |
+| SR-508 | 5 | MINOR | qualification/layout | fixed — dedicated layout/evidence spec tests and the VICE Koala visibility check exist |
 | SR-701 | 7 | MAJOR | spritepad/parser | fixed — SPD v5 header, exact block order, tile names/tags, animation frames, exact EOF and selector hashes verified against the three 3.80 examples |
 | SR-702 | 8 | MAJOR | charpad/parser | fixed — CTM v9 header, ordered blocks, per-mode color width, canonical/word/plane/packed-12 forms and exact EOF verified against five 3.80 examples |
 | SR-703 | 7/8 | MAJOR | fixtures/synthetic | deferred — committed synthetic SPD/CTM fixtures are not generated yet; producer examples are local-only and tests skip without the apps folder |
@@ -83,7 +83,7 @@
 | SR-810 | 8 | MAJOR | charpad/map | fixed — `map_packed12` added with 12-bit availability and packed bytes |
 | SR-811 | 5 | MAJOR | layout/sprite-placement | fixed — sprite placement honors source `at`/align/noCross/region and fixed data |
 | SR-812 | 5 | MAJOR | layout/sprite-holes | fixed — bank-0 first-fit from $2000 with a full-bank fallback below $2000 |
-| SR-813 | 5 | MAJOR | memory/views | deferred — cpu16 free intervals still include reserved/I/O/ROM space; VIC and Color RAM views remain (SR-504) |
+| SR-813 | 5 | MINOR | memory/views | fixed for views — CPU/VIC/Color windows tile and reconcile; screen/character-ROM reservation intervals remain deferred under SR-506 because the contiguous PRG spans them |
 | SR-814 | 5 | MAJOR | evidence/word-types | fixed — resident assets carry their exact ArrayType; `word[]` type/shape and debug symbols are correct |
 | SR-815 | 8 | MAJOR | charpad/robustness | fixed — maxima use loops, no spread-argument crash on large maps |
 | SR-816 | 7 | MAJOR | example/sprite-pointer | fixed — the example and layout test use `setSpritePointer` instead of the color register |
@@ -98,3 +98,4 @@
 | SR-825 | 2 | MINOR | psid/rom-window | fixed — PSID no longer rejects CPU-visible $1000/$A000 payload intervals |
 | SR-826 | 7/8 | MINOR | inventory/dynamic-types | deferred — SPD/CTM inventories advertise zero-length dynamic arrays |
 | SR-827 | 5 | MINOR | evidence/padding | deferred — `paddingBeforeBytes` remains 0 for aligned assets |
+| SR-828 | 6 | MINOR | qualification/red-phase | accepted gap — no preserved pre-implementation red log exists for the final fixture/example/integration/aliasing/blocked-gate files; green run is 14/14 and observed failure modes are recorded in 08-host-observations |

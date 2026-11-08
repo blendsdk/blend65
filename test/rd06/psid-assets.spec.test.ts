@@ -144,6 +144,30 @@ describe("PSID frontend integration", () => {
         placement: { kind: "compileTime" },
       });
       expect(assets.assets[0]?.placement.outputSha256).toMatch(/^[0-9a-f]{64}$/u);
+      const debug = JSON.parse(
+        await readFile(join(built.generation.directory, ".debug.json"), "utf8"),
+      ) as {
+        symbols: { qualifiedName: string; kind: string; labels: string[] }[];
+        locations: { symbolIndex: number; availability: { kind: string; rule?: string } }[];
+      };
+      const index = debug.symbols.findIndex(({ kind }) => kind === "asset");
+      expect(index).toBeGreaterThanOrEqual(0);
+      expect(debug.symbols[index]?.labels).toEqual([]);
+      const location = debug.locations.filter(({ symbolIndex }) => symbolIndex === index);
+      expect(location).toHaveLength(1);
+      expect(location[0]?.availability).toMatchObject({ kind: "optimizedAway" });
+      expect(location[0]?.availability.rule).toMatch(/compile-time/iu);
+      const costs = JSON.parse(
+        await readFile(join(built.generation.directory, ".costs.json"), "utf8"),
+      ) as {
+        entries: { kind: string; bytes: number; owner: { kind: string }; component: string }[];
+      };
+      const zero = costs.entries.filter(
+        (entry) =>
+          entry.kind === "bytes" && entry.bytes === 0 && entry.component === "initializedData",
+      );
+      expect(zero).toHaveLength(1);
+      expect(zero[0]?.owner.kind).toBe("symbol");
     });
   });
 

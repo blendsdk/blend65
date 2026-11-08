@@ -130,9 +130,11 @@ describe.sequential("aggregate copy machine implementation", () => {
           .reduce((total, symbol) => total + Number(symbol.byteWidth), 0);
         expect(pointerBytes).toBeLessThanOrEqual(Number(budget.zeroPagePointerBytes));
       }
-      expect(resourceRecords.find(({ id }) => id === "residentRam")?.value).toBe(
-        physical.reduce((total, item) => total + Number(item.size), 0),
+      const views = (memory.views as Record<string, unknown>[]).filter(
+        (view) => view.consumer === "cpu",
       );
+      const residentRam = Math.max(0, ...views.map((view) => Number(view.occupiedBytes)));
+      expect(resourceRecords.find(({ id }) => id === "residentRam")?.value).toBe(residentRam);
       expect(resourceRecords.find(({ id }) => id === "zeroPage")?.value).toBe(
         physical
           .filter(({ resourceClass }) => resourceClass === "zeroPage")
