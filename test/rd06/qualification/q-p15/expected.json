@@ -1,0 +1,49 @@
+{
+  "fixture": "test/rd06/fixtures/public/koala/koala-color-high-nibble.kla",
+  "fixtureSha256": "2a961f13864c3c29dde32faa92291f793d4adde4e6a934e71a26b8f1a2834dbd",
+  "mask": {
+    "length": 64,
+    "sha256": "89b81f99b9cc95e7f935416438ce227243b208758b05224c298b2a7bdfdf742a",
+    "hex": "94f491ccb800402c02555e7ab827f10fbc2d52b6d3ad030acca7b003f9ad40793753461a15c3a4c76896ae36fb8cc2510708a9df332d0b953ae54e610b143229"
+  },
+  "priority": {
+    "length": 64,
+    "sha256": "5b0d9c2bb0c3e897d1a262fc7e7f302bcd7178b3526a06d279269a7ebbb783ad",
+    "hex": "05050001010307060704070605000604060000030703040205040607070505050305060701060000000106020407030405040404020004030303050502060204"
+  },
+  "precomposed": {
+    "length": 64,
+    "sha256": "7ebbe1c5372cc3703af8abdc4395f36ddac0fb15060660885d182b06b0b3476c",
+    "hex": "95f590c1b103472607545776b520f604b62050b3d7a30402c5a4b607f7a545753355461711c6a0c06091a632f487c3540504a4d43220049333e3456502163224"
+  },
+  "references": {
+    "length": 16,
+    "sha256": "60d5275b34c12a700361a73d51bbff46143f705929fc77e232669d75673de40d",
+    "hex": "0d0d0809090b0f060704070605080e04"
+  },
+  "conflicts": 63,
+  "screenFinal": {
+    "length": 8,
+    "sha256": "851b4eacb1942ee260e94a0e3dfa72c3d67a6d02229a772a3d6bda6cbcb713b9",
+    "hex": "95f59afab1034726"
+  },
+  "colorFinal": {
+    "length": 8,
+    "sha256": "5cbfcadc3f3d409a01c571f5160243ce068dee2cba89abfdff380dc4813c5c22",
+    "hex": "00010f0304050607"
+  },
+  "bitmapHead": {
+    "length": 8,
+    "sha256": "2ce5773509831164869ae417aeb47aea633af6c9f019a30a3432b3705ee1c56f",
+    "hex": "6b0b6e3347ffbfd3"
+  },
+  "changedCells": 2,
+  "vic": {
+    "d011": "3b",
+    "d016": "18",
+    "d018": "38",
+    "dd00": "17"
+  },
+  "renderBytes": 385,
+  "renderCycles": "Unknown"
+}

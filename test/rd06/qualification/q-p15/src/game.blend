@@ -1,0 +1,90 @@
+module Game;
+
+place(at: $2000) const BITMAP: byte[] = embed("q-p15.kla", "bitmap");
+place(at: $0C00) const SCREEN: byte[] = embed("q-p15.kla", "screen");
+place(at: $4000) const COLORS: byte[] = embed("q-p15.kla", "color_ram");
+
+comptime function invertPanel(): byte[64] {
+  let result: byte[64] = [; 0];
+  for (let index: byte = 0; index < 64; index += 1) {
+    result[index] = BITMAP[index] ^ $ff;
+  }
+  return result;
+}
+
+comptime function panelPriority(): byte[64] {
+  let result: byte[64] = [; 0];
+  for (let index: byte = 0; index < 64; index += 1) {
+    result[index] = SCREEN[index] & $07;
+  }
+  return result;
+}
+
+comptime function composePanels(): byte[64] {
+  let result: byte[64] = [; 0];
+  for (let index: byte = 0; index < 64; index += 1) {
+    result[index] = (MASK[index] & $f0) | PRIORITY[index];
+  }
+  return result;
+}
+
+comptime function panelReferences(): byte[16] {
+  let result: byte[16] = [; 0];
+  for (let index: byte = 0; index < 16; index += 1) {
+    result[index] = SCREEN[index] & $0f;
+  }
+  return result;
+}
+
+comptime function conflictCount(): word {
+  let count: word = 0;
+  for (let index: word = 0; index < 1000; index += 1) {
+    if ((COLORS[index] & $0f) == 0) {
+      count = count + 1;
+    }
+  }
+  return count;
+}
+
+const MASK: byte[64] = invertPanel();
+const PRIORITY: byte[64] = panelPriority();
+const PRECOMPOSED: byte[64] = composePanels();
+const REFERENCES: byte[16] = panelReferences();
+const CONFLICTS: word = conflictCount();
+
+function render(): void {
+  let index: word = 0;
+  while (index < 1000) {
+    poke($D800 + index, COLORS[index] & $0f);
+    index += 1;
+  }
+  let panel: byte = 0;
+  while (panel < 16) {
+    poke($0500 + word(panel), REFERENCES[panel]);
+    panel += 1;
+  }
+  let cell: byte = 0;
+  while (cell < 8) {
+    poke($0C00 + word(cell), PRECOMPOSED[cell]);
+    poke($D800 + word(cell), COLORS[cell] & $0f);
+    cell += 1;
+  }
+  // The changed panel overwrites two foreground cells after the first pass.
+  poke($0C02, PRECOMPOSED[0] ^ $0f);
+  poke($0C03, PRECOMPOSED[1] ^ $0f);
+  poke($D802, $0f);
+  poke($0700, $02);
+  poke($0702, byte(CONFLICTS));
+  poke($0703, byte(CONFLICTS >> 8));
+  poke($D011, $3b);
+  poke($D016, $18);
+  poke($D018, c64.vic.vicBitmapSelect(&BITMAP) | c64.vic.vicScreenSelect(&SCREEN));
+  poke($DD00, $17);
+}
+
+function main(): void {
+  render();
+  while (true) {
+    poke($D020, $00);
+  }
+}

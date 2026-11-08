@@ -662,5 +662,7 @@ export interface AggregateRegistryHost {
   /** Infer an unsized declaration from an already validated embedded value. */
   embeddedExtent?(initializer: Expr): number | null;
   /** Expose an already admitted scalar selector to constant type evaluation. */
-  embeddedScalar?(initializer: Expr): { readonly value: bigint | boolean; readonly type: ScalarType } | null;
+  embeddedScalar?(
+    initializer: Expr,
+  ): { readonly value: bigint | boolean; readonly type: ScalarType } | null;
 }

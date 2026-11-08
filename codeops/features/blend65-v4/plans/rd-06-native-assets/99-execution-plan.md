@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-08
-> **Progress**: 66/151 tasks (44%)
+> **Progress**: 79/151 tasks (52%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -274,7 +274,7 @@ immediately testable.
 
 ## Phase 4: Compile-time refinement and Q-P15
 
-> **Phase baseline tree**: _recorded by the exec-plan skill at phase start_
+> **Phase baseline tree**: a6ba7e86
 > **Lenses**: semantics, machine code
 > **Reasoning**: high — compile-time evaluation, artifact identity and Q-P15 proof
 
@@ -283,9 +283,9 @@ immediately testable.
 **Reference**: [03-05](03-05-comptime-and-qp15.md) · ST-111–ST-128 · AR-27, AR-28
 **Objective**: Freeze the Q-P15 workload and lock compile-time-only behavior before implementation.
 
-- [ ] 4.1.1 [spec-author] Author the Q-P15 workload source, panel data, conflict metadata, user renderer and expected artifact/runtime values — `test/rd06/qualification/q-p15/`
-- [ ] 4.1.2 [spec-author] Write compile-time refinement and Q-P15 specification tests from ST-111–ST-128 against the frozen workload — `test/rd06/comptime-assets.spec.test.ts`, `test/rd06/qp15.spec.test.ts`
-- [ ] 4.1.3 Run the compile-time/Q-P15 specification tests and record the red phase — `yarn vitest run test/rd06/comptime-assets.spec.test.ts test/rd06/qp15.spec.test.ts`
+- [x] 4.1.1 [spec-author] Author the Q-P15 workload source, panel data, conflict metadata, user renderer and expected artifact/runtime values — `test/rd06/qualification/q-p15/` ✅ (completed: 2026-11-08 16:40)
+- [x] 4.1.2 [spec-author] Write compile-time refinement and Q-P15 specification tests from ST-111–ST-128 against the frozen workload — `test/rd06/comptime-assets.spec.test.ts`, `test/rd06/qp15.spec.test.ts` ✅ (completed: 2026-11-08 16:40)
+- [x] 4.1.3 Run the compile-time/Q-P15 specification tests and record the red phase — `yarn vitest run test/rd06/comptime-assets.spec.test.ts test/rd06/qp15.spec.test.ts` ✅ (completed: 2026-11-08 16:40)
 
 **Deliverables**:
 - [ ] Compile-time reads, budget, forbidden operations and Q-P15 expectations encoded
@@ -298,11 +298,11 @@ immediately testable.
 **Reference**: [03-05](03-05-comptime-and-qp15.md) · AR-27, AR-28
 **Objective**: Make embedded values readable at compile time and build the Q-P15 oracle.
 
-- [ ] 4.2.1 Add scalar embedded reads to the compile-time evaluator — `packages/compiler/src/frontend/comptime.ts`, `packages/compiler/src/frontend/comptime-aggregates.ts`
-- [ ] 4.2.2 Prove embedded array reads and fix any gap without a new language feature — `packages/compiler/src/frontend/comptime-aggregates.ts`
-- [ ] 4.2.3 Verify the visibility/budget rule and add the regression test — `packages/compiler/src/frontend/comptime-budget.ts`
-- [ ] 4.2.4 Build the frozen Q-P15 workload and verify the artifact oracle for bytes, masks, priority, reuse, padding and visibility — `test/rd06/qualification/q-p15/`, `test/rd06/qp15.spec.test.ts`
-- [ ] 4.2.5 Add the bounded Q-P15 VICE observations reusing the existing harness — `test/rd06/vice-qp15.spec.test.ts`
+- [x] 4.2.1 Add scalar embedded reads to the compile-time evaluator — `packages/compiler/src/frontend/comptime.ts`, `packages/compiler/src/frontend/comptime-aggregates.ts` ✅ (completed: 2026-11-08 16:40)
+- [x] 4.2.2 Prove embedded array reads and fix any gap without a new language feature — `packages/compiler/src/frontend/comptime-aggregates.ts` ✅ (completed: 2026-11-08 16:40)
+- [x] 4.2.3 Verify the visibility/budget rule and add the regression test — `packages/compiler/src/frontend/comptime-budget.ts` ✅ (completed: 2026-11-08 16:40)
+- [x] 4.2.4 Build the frozen Q-P15 workload and verify the artifact oracle for bytes, masks, priority, reuse, padding and visibility — `test/rd06/qualification/q-p15/`, `test/rd06/qp15.spec.test.ts` ✅ (completed: 2026-11-08 16:40)
+- [x] 4.2.5 Add the bounded Q-P15 VICE observations reusing the existing harness — `test/rd06/vice-qp15.spec.test.ts` ✅ (completed: 2026-11-08 16:40)
 
 **Deliverables**:
 - [ ] Embedded scalars/arrays usable in `comptime function`
@@ -316,11 +316,11 @@ immediately testable.
 **Reference**: AR-6, AR-38
 **Objective**: Prove the specification and observe Q-P15 at runtime.
 
-- [ ] 4.3.1 Run the compile-time/Q-P15 specification tests and verify the green phase — `yarn vitest run test/rd06/comptime-assets.spec.test.ts test/rd06/qp15.spec.test.ts`
-- [ ] 4.3.2 Write compile-time budget and aggregate-read implementation tests — `packages/compiler/src/frontend/comptime-assets.impl.test.ts`
-- [ ] 4.3.3 Run the Q-P15 VICE check sequentially — `yarn vitest run test/rd06/vice-qp15.spec.test.ts`
-- [ ] 4.3.4 Run the directed compile-time/Q-P15 tests and the phase checkpoint
-- [ ] 4.3.5 Dispatch independent semantics and machine-code reviews and record dispositions
+- [x] 4.3.1 Run the compile-time/Q-P15 specification tests and verify the green phase — `yarn vitest run test/rd06/comptime-assets.spec.test.ts test/rd06/qp15.spec.test.ts` ✅ (completed: 2026-11-08 16:40)
+- [x] 4.3.2 Write compile-time budget and aggregate-read implementation tests — `packages/compiler/src/frontend/comptime-assets.impl.test.ts` ✅ (completed: 2026-11-08 16:40)
+- [x] 4.3.3 Run the Q-P15 VICE check sequentially — `yarn vitest run test/rd06/vice-qp15.spec.test.ts` ✅ (completed: 2026-11-08 16:40)
+- [x] 4.3.4 Run the directed compile-time/Q-P15 tests and the phase checkpoint ✅ (completed: 2026-11-08 16:40)
+- [x] 4.3.5 Dispatch independent semantics and machine-code reviews and record dispositions ✅ (completed: 2026-11-08 16:40)
 
 **Deliverables**:
 - [ ] ST-111–ST-128 pass

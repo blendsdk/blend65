@@ -48,3 +48,12 @@
 | SR-208 | 3 | MINOR | fixtures/provenance | accepted — Koala `sourceSha256` is a construction-domain token; bytes and manifest hashes are exact |
 | SR-209 | 3 | MINOR | plan/charen | accepted — reserving character ROM for all resident objects is the approved plan policy; Phase 5 keeps it |
 | SR-210 | 3 | MINOR | platform/screen-tail | deferred to Phase 5 — a relocated screen's full 1 Ki-sprite-pointer tail and `setSpritePointer` base need the layout-owned screen relation |
+| SR-301 | 4 | MAJOR | machine/ordinal-write | deferred to T-20 — `poke(base+index)` uses the indirect 16-bit path; 385-byte renderer and ~200-byte/~283-cycle loop versus expert ~33 bytes/~3,150 cycles. Q-P15 reports the real size and marks cycles Unknown; no parity claim |
+| SR-302 | 4 | MAJOR | evidence/renderer-cost | fixed — Q-P15 asserts the exact `Game.render` code bytes (385) and `Unknown` whole-path cycles separately from asset bytes |
+| SR-303 | 4 | MAJOR | qp15/scene | fixed — foreground overlay, two changed cells, Color RAM transfer, bitmap/screen setup, exact final RAM oracle |
+| SR-304 | 4 | MAJOR | qp15/conflict | fixed — low-nibble background conflict count 63 with exact artifact bytes |
+| SR-305 | 4 | MAJOR | qp15/evidence | deferred to Phase 5.2.7/5.2.8 — handler alignment/visibility and same-bank evidence; Q-P15 uses explicit source placements |
+| SR-306 | 4 | MINOR | qp15/oracle | fixed — every expected hash, full ranges, bitmap position and VICE register-independent bytes asserted |
+| SR-307 | 4 | MINOR | qp15/representations | fixed — REFERENCES is derived from the embedded screen low nibbles |
+| SR-308 | 4 | MINOR | qp15/scalar-oracle | fixed — the PSID scalar test observes both low and high bytes |
+| SR-309 | 4 | MINOR | plan/budget-coverage | fixed — `comptime-assets.impl.test.ts` proves no 64-byte embed charge and the step budget |
