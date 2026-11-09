@@ -318,6 +318,51 @@ function main(): void { c64.vic.setSpriteEnabled(0, true); c64.vic.setSpritePoin
   }, 60_000);
 });
 
+describe("post-layout VIC fold compaction", () => {
+  const bitmap = patternedBytes(8000, 61);
+
+  it("should remove the identity logical op and keep one immediate", async () => {
+    await withProject(
+      `module Game;
+place(at: $2000) const BITMAP: byte[] = embed("bitmap.bin");
+function main(): void { poke($D018, c64.vic.vicBitmapSelect(&BITMAP) | $10); }
+`,
+      [{ path: "bitmap.bin", bytes: bitmap }],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+        const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
+        expect(assembly).toMatch(/lda #\$18\b/iu);
+        expect(assembly).not.toMatch(/ora #\$00\b/iu);
+        expect(assembly).not.toMatch(/and #\$ff\b/iu);
+      },
+    );
+  }, 60_000);
+
+  it("should repair a branch after the folded function shrinks", async () => {
+    await withProject(
+      `module Game;
+place(at: $2000) const BITMAP: byte[] = embed("bitmap.bin");
+function main(): void {
+  let flag: boolean = true;
+  poke($D018, c64.vic.vicBitmapSelect(&BITMAP) | $10);
+  if (flag) { poke($D020, 0); }
+}
+`,
+      [{ path: "bitmap.bin", bytes: bitmap }],
+      async (project) => {
+        const built = await buildProject({ project });
+        expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+          "success",
+        );
+        if (built.kind !== "success") throw new Error("Expected the compacted branch build");
+        const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
+        expect(assembly).toMatch(/lda #\$18\b/iu);
+      },
+    );
+  }, 60_000);
+});
+
 describe("relocated-screen sprite pointer base", () => {
   const screen = patternedBytes(1000, 31);
   const sprites = patternedBytes(64, 32);

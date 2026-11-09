@@ -1,6 +1,7 @@
 import type { SourceSpan } from "../project/types.js";
 import type { StorageClosureCertificate } from "../storage/storage-types.js";
 import type { TargetProfile } from "../target/profile.js";
+import { repairMachineBranches } from "../machine/block-layout.js";
 import { vicFieldFailure, vicFieldValue } from "../machine/vic-fields.js";
 import type { MachineInstruction } from "../machine/machine-types.js";
 import type {
@@ -159,6 +160,7 @@ function foldConstantImmediateOps(
         Object.freeze({
           ...instruction,
           operand: Object.freeze({ kind: "immediate" as const, value: identity }),
+          foldedIdentity: true as const,
         }),
       );
       continue;
@@ -370,6 +372,45 @@ export function resolvePlacementTransforms(
       startup,
       functions: Object.freeze(functions.filter((fn) => fn !== null)),
     }),
+  });
+}
+
+/**
+ * Remove post-layout identity operands from ordinary functions and repair their
+ * branch forms at the existing origins.
+ *
+ * The startup path keeps its identity form because its contiguous entry and
+ * fallthrough relation is not moved by this residual slice. A function whose
+ * repaired form would grow keeps the original identity form so a valid program
+ * is never rejected for a two-byte code-payload win.
+ */
+export function compactFoldedFunctions(program: MachineProgram): MachineProgram {
+  const compact = (fn: MachineFunction): MachineFunction => {
+    if (
+      fn.origin === undefined ||
+      !fn.blocks.some((block) =>
+        block.instructions.some((instruction) => instruction.foldedIdentity === true),
+      )
+    ) {
+      return fn;
+    }
+    const blocks = fn.blocks.map((block) =>
+      Object.freeze({
+        ...block,
+        instructions: Object.freeze(
+          block.instructions.filter((instruction) => instruction.foldedIdentity !== true),
+        ),
+      }),
+    );
+    const repaired = repairMachineBranches(Object.freeze({ ...fn, blocks }), fn.origin);
+    if (repaired.kind === "error") return fn;
+    const original = functionBytes(fn);
+    if (original === null || repaired.byteLength > original) return fn;
+    return repaired.function;
+  };
+  return Object.freeze({
+    ...program,
+    functions: Object.freeze(program.functions.map(compact)),
   });
 }
 

@@ -3,9 +3,9 @@
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: RD-06 residual parity and evidence debt; [issue #140](https://github.com/blendsdk/blend65/issues/140)
 > **Created**: 2026-11-09 15:19
-> **Progress**: 2/8 tasks (25%)
+> **Progress**: 3/8 tasks (38%)
 > **Status**: Executing
-> **Last Updated**: 2026-11-09 16:22
+> **Last Updated**: 2026-11-09 16:24
 > **Phase baseline tree**: `2e7b02bd5ba632ef9b29cf5562a670caf16cf61a`
 > **Scope mode**: strict; the exact source and test paths are listed in the modification set below
 > **Reasoning**: high — lowering, layout, volatile-effect and cost-oracle changes with hardware-visible consequences
@@ -127,10 +127,10 @@ New exported types, functions and properties receive JSDoc in the project style.
 
 ### T-21 — Post-layout VIC fold sizing
 
-- [ ] T-21.1 Write RED coverage: a folded VIC logical op emits one `lda` with no identity `ora`/`and`/`eor`; the owning ordinary function shrinks by two code bytes; a following branch still targets the repaired block; a long branch near the boundary reaches a fixed point; a startup fold keeps its identity form; no executable zero fill remains.
-- [ ] T-21.2 Remove the identity logical op after transform resolution in ordinary functions in both the draft and final layouts with identical fold/compaction; repair at fixed origins to a monotonic fixed point and recompute code intervals, fill and load range without moving assets or data.
-- [ ] T-21.3 If a function cannot shrink without growth, keep its identity form and record the measured 2-byte gap; never reject a program that previously compiled. Verify the shared-storage draft/final shape gate remains stable and that SFA trailing ranges use the same compacted size.
-- [ ] T-21.4 Re-baseline Q-P15 `renderBytes` from 385 to the measured T-21 value (expected 383 for one folded op), record the ruling, and verify the exact byte/cost assertions.
+- [x] T-21.1 Write RED coverage: a folded VIC logical op emits one `lda` with no identity `ora`/`and`/`eor`; the owning ordinary function shrinks by two code bytes; a following branch still targets the repaired block; a long branch near the boundary reaches a fixed point; a startup fold keeps its identity form; no executable zero fill remains. ✅ (completed: 2026-11-09 16:24)
+- [x] T-21.2 Remove the identity logical op after transform resolution in ordinary functions in both the draft and final layouts with identical fold/compaction; repair at fixed origins to a monotonic fixed point and recompute code intervals, fill and load range without moving assets or data. ✅ (completed: 2026-11-09 16:24)
+- [x] T-21.3 If a function cannot shrink without growth, keep its identity form and record the measured 2-byte gap; never reject a program that previously compiled. Verify the shared-storage draft/final shape gate remains stable and that SFA trailing ranges use the same compacted size. ✅ (completed: 2026-11-09 16:24)
+- [x] T-21.4 Re-baseline Q-P15 `renderBytes` from 385 to the measured T-21 value (383 for one folded op), record the ruling, and verify the exact byte/cost assertions. ✅ (completed: 2026-11-09 16:24)
 
 ### T-20 — Ordinal volatile-write lowering (`sta absolute,x`)
 

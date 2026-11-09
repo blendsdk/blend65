@@ -418,6 +418,8 @@ export interface MachineInstruction {
   readonly source: SourceSpan | null;
   /** Original source iteration for an expanded body; not a new source value or scope. */
   readonly sourceIteration?: number;
+  /** Size-neutral identity operand retained only until post-layout compaction. */
+  readonly foldedIdentity?: true;
 }
 
 /** Unconditional transfer to another structured block. */

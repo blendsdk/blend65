@@ -70,6 +70,7 @@ import {
   dataBytes,
   storageIntervals,
   resolvePlacementTransforms,
+  compactFoldedFunctions,
 } from "./c64-layout-objects.js";
 
 /**
@@ -140,6 +141,73 @@ function addScreenTail(
     end: start + 0x3ff,
     bytes: Object.freeze(new Array<number>(start + 0x400 - pointerTableStart).fill(0)),
   });
+}
+
+/** Rebuild loaded code intervals and gap fill after post-layout function compaction. */
+function finalizeCompactedIntervals(
+  intervals: readonly C64LayoutInterval[],
+  program: MachineProgram,
+): readonly C64LayoutInterval[] | null {
+  const pieces: { start: number; end: number }[] = [];
+  for (const fn of [program.startup, ...program.functions]) {
+    for (const block of fn.blocks) {
+      if (block.origin === undefined) continue;
+      const bytes = blockBytes(block);
+      if (bytes === null) return null;
+      if (bytes > 0) pieces.push({ start: block.origin, end: block.origin + bytes - 1 });
+    }
+  }
+  pieces.sort((left, right) => left.start - right.start);
+  const merged: { start: number; end: number }[] = [];
+  for (const piece of pieces) {
+    const last = merged.at(-1);
+    if (last !== undefined && piece.start <= last.end + 1) {
+      last.end = Math.max(last.end, piece.end);
+    } else {
+      merged.push({ ...piece });
+    }
+  }
+  const result = intervals.filter(
+    (interval) => interval.kind !== "code" && !interval.id.startsWith("fill."),
+  );
+  for (const [index, piece] of merged.entries()) {
+    const id = index === 0 ? "program.code" : `program.code.${index}`;
+    if (
+      !addInterval(result, {
+        id,
+        kind: "code",
+        start: piece.start,
+        end: piece.end,
+        bytes: Object.freeze(new Array<number>(piece.end - piece.start + 1).fill(0)),
+      })
+    ) {
+      return null;
+    }
+  }
+  const loaded = result
+    .filter(({ bytes }) => bytes !== null)
+    .sort((left, right) => left.start - right.start);
+  if (loaded.length === 0) return null;
+  let nextLoaded = loaded[0]!.end + 1;
+  for (const interval of loaded.slice(1)) {
+    if (interval.start > nextLoaded) {
+      if (
+        !addInterval(result, {
+          id: `fill.${nextLoaded.toString(16)}`,
+          kind: "fill",
+          start: nextLoaded,
+          end: interval.start - 1,
+          bytes: Object.freeze(new Array<number>(interval.start - nextLoaded).fill(0)),
+        })
+      ) {
+        return null;
+      }
+    }
+    nextLoaded = Math.max(nextLoaded, interval.end + 1);
+  }
+  return Object.freeze(
+    result.sort((left, right) => left.start - right.start || compareIds(left, right)),
+  );
 }
 
 /**
@@ -790,11 +858,23 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   ) {
     return Object.freeze({ kind: "error", reason: "placement-transform", objectId: null });
   }
+  const compacted = compactFoldedFunctions(resolved.program);
+  if (compacted.storageInventoryHash !== undefined && !validateMachineProgram(compacted)) {
+    return Object.freeze({ kind: "error", reason: "placement-transform", objectId: null });
+  }
+  const finalIntervals = finalizeCompactedIntervals(ordered, compacted);
+  if (finalIntervals === null) {
+    return Object.freeze({ kind: "error", reason: "code-conflict", objectId: null });
+  }
+  const finalLoaded = finalIntervals.filter(({ bytes }) => bytes !== null);
   return Object.freeze({
     kind: "complete",
-    intervals: ordered,
+    intervals: finalIntervals,
     spriteBlocks: Object.freeze(spriteBlocks),
-    loadRange: Object.freeze({ start: loaded[0]!.start, end: loaded.at(-1)!.end }),
-    program: resolved.program,
+    loadRange: Object.freeze({
+      start: finalLoaded[0]!.start,
+      end: finalLoaded.at(-1)!.end,
+    }),
+    program: compacted,
   });
 }
