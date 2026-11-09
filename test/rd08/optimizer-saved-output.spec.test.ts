@@ -61,7 +61,9 @@ function physicalIntervals(artifacts: LibraryArtifacts): {
   intervals: Record<string, unknown>[];
   allocated: PhysicalRange[];
 } {
-  const intervals = profileRecords(artifacts.memory.intervals);
+  const intervals = profileRecords(artifacts.memory.intervals).filter(
+    (interval) => interval.addressSpaceId === "cpu16" && interval.kind !== "reservation",
+  );
   expect(intervals.length).toBeGreaterThan(0);
   expect(new Set(intervals.map((interval) => interval.id)).size).toBe(intervals.length);
   const allocated: PhysicalRange[] = [];
@@ -310,10 +312,11 @@ describe.each(sourceLibraryProfiles)("saved optimizer output on %s", (profile) =
     expect(artifacts.memory).toMatchObject({ profileId: profile, acmeReconciled: true });
     expect(artifacts.memory.sfaClosureSha256).toMatch(/^[0-9a-f]{64}$/);
 
+    const viewIntervals = artifacts.memory.intervals as Record<string, unknown>[];
     for (const view of profileRecords(artifacts.memory.views)) {
       const residencyIds = view.activeResidencyIds;
       if (!Array.isArray(residencyIds)) throw new TypeError("Missing active residencies");
-      const active = intervals
+      const active = viewIntervals
         .filter(
           (interval) =>
             interval.addressSpaceId === view.addressSpaceId &&

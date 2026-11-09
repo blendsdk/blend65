@@ -62,7 +62,9 @@ function physicalIntervals(artifacts: LibraryArtifacts): {
   allocated: PhysicalRange[];
 } {
   const imageEnd = 0x0801 + artifacts.prg.length - 2;
-  const intervals = profileRecords(artifacts.memory.intervals);
+  const intervals = profileRecords(artifacts.memory.intervals).filter(
+    (interval) => interval.addressSpaceId === "cpu16" && interval.kind !== "reservation",
+  );
   expect(intervals.length).toBeGreaterThan(0);
   expect(new Set(intervals.map((interval) => interval.id)).size).toBe(intervals.length);
   const allocated: PhysicalRange[] = [];
@@ -518,10 +520,11 @@ describe.each(sourceLibraryProfiles)("acquisition optimizer output on %s", (prof
     expect(profileRecords(artifacts.memory.unboundedEffects).length).toBeGreaterThan(0);
     expect(artifacts.memory.runtimeMemorySafety).toBe("unproven");
 
+    const viewIntervals = artifacts.memory.intervals as Record<string, unknown>[];
     for (const view of profileRecords(artifacts.memory.views)) {
       const residencyIds = view.activeResidencyIds;
       if (!Array.isArray(residencyIds)) throw new TypeError("Missing active residencies");
-      const active = intervals
+      const active = viewIntervals
         .filter(
           (interval) =>
             interval.addressSpaceId === view.addressSpaceId &&
