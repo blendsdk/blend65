@@ -3,9 +3,9 @@
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: RD-06 residual parity and evidence debt; [issue #140](https://github.com/blendsdk/blend65/issues/140)
 > **Created**: 2026-11-09 15:19
-> **Progress**: 6/8 tasks (75%)
+> **Progress**: 7/8 tasks (88%)
 > **Status**: Executing
-> **Last Updated**: 2026-11-09 16:44
+> **Last Updated**: 2026-11-09 16:47
 > **Phase baseline tree**: `2e7b02bd5ba632ef9b29cf5562a670caf16cf61a`
 > **Scope mode**: strict; the exact source and test paths are listed in the modification set below
 > **Reasoning**: high — lowering, layout, volatile-effect and cost-oracle changes with hardware-visible consequences
@@ -154,9 +154,9 @@ New exported types, functions and properties receive JSDoc in the project style.
 
 ### T-25 — Handler inventory and remedy accuracy
 
-- [ ] T-25.1 Write RED coverage: SPD and CTM inventories publish exact parsed array extents (including canonical byte/word cells and packed-12 `cells + ceil(cells/2)`); unavailable selectors are absent from every applicable E10132/E10133 remedy.
-- [ ] T-25.2 Build SPD/CTM inventories from the actual parsed slices and counts; add the available-selector filter used by every native handler remedy.
-- [ ] T-25.3 Verify exact inventory types, positive selector dispatch, negative unavailable-selector diagnostics and unchanged handler hashes.
+- [x] T-25.1 Write RED coverage: SPD and CTM inventories publish exact parsed array extents (including canonical byte/word cells and packed-12 `cells + ceil(cells/2)`); unavailable selectors are absent from every applicable E10132/E10133 remedy. ✅ (completed: 2026-11-09 16:47)
+- [x] T-25.2 Build SPD/CTM inventories from the actual parsed slices and counts; add the available-selector filter used by every native handler remedy. ✅ (completed: 2026-11-09 16:47)
+- [x] T-25.3 Verify exact inventory types, positive selector dispatch, negative unavailable-selector diagnostics and unchanged handler hashes. ✅ (completed: 2026-11-09 16:47)
 
 ### T-26 — VIC view crossing intervals and reservations
 

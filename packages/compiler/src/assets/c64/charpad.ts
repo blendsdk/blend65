@@ -62,12 +62,23 @@ function wordArray(length: number) {
   });
 }
 
+/** Exact parsed extents used to publish one truthful selector inventory. */
+interface CharPadInventoryCounts {
+  readonly charsetLength: number;
+  readonly materialsLength: number;
+  readonly colorsLength: number;
+  readonly tileValuesLength: number;
+  readonly tilePackedLength: number;
+  readonly tileMode: boolean;
+  readonly packed: boolean;
+  readonly tileCanonical: ReturnType<typeof canonicalCells>;
+  readonly mapCanonical: ReturnType<typeof canonicalCells>;
+  readonly mapPackedLength: number;
+  readonly packedMap: boolean;
+}
+
 /** Selector inventory for one parsed file. */
-function inventory(
-  tileMode: boolean,
-  packed: boolean,
-  packedMap: boolean,
-): readonly AssetSelectorInfo[] {
+function inventory(counts: CharPadInventoryCounts): readonly AssetSelectorInfo[] {
   const scalar = (name: string, type = SCALAR_TYPES.word) =>
     Object.freeze({
       name,
@@ -83,9 +94,9 @@ function inventory(
       default: false,
     });
   return Object.freeze([
-    array("charset", byteArray(0)),
-    array("char_materials", byteArray(0)),
-    array("colors", byteArray(0)),
+    array("charset", byteArray(counts.charsetLength)),
+    array("char_materials", byteArray(counts.materialsLength)),
+    array("colors", byteArray(counts.colorsLength)),
     scalar("color_method", SCALAR_TYPES.byte),
     scalar("tile_mode", SCALAR_TYPES.boolean),
     scalar("tile_count"),
@@ -94,16 +105,16 @@ function inventory(
     scalar("charset_count"),
     scalar("map_width"),
     scalar("map_height"),
-    array("tiles", byteArray(0), tileMode),
-    array("tiles_word", wordArray(0), tileMode),
-    array("tiles_low", byteArray(0), tileMode),
-    array("tiles_high", byteArray(0), tileMode),
-    array("tiles_packed12", byteArray(0), tileMode && packed),
-    array("map", byteArray(0)),
-    array("map_word", wordArray(0)),
-    array("map_low", byteArray(0)),
-    array("map_high", byteArray(0)),
-    array("map_packed12", byteArray(0), packedMap),
+    array("tiles", counts.tileCanonical.type, counts.tileMode),
+    array("tiles_word", wordArray(counts.tileValuesLength), counts.tileMode),
+    array("tiles_low", byteArray(counts.tileValuesLength), counts.tileMode),
+    array("tiles_high", byteArray(counts.tileValuesLength), counts.tileMode),
+    array("tiles_packed12", byteArray(counts.tilePackedLength), counts.tileMode && counts.packed),
+    array("map", counts.mapCanonical.type),
+    array("map_word", wordArray(counts.mapCanonical.type.length)),
+    array("map_low", byteArray(counts.mapCanonical.type.length)),
+    array("map_high", byteArray(counts.mapCanonical.type.length)),
+    array("map_packed12", byteArray(counts.mapPackedLength), counts.packedMap),
   ]);
 }
 
@@ -424,7 +435,22 @@ export const charpadHandler: AssetHandler = Object.freeze({
     for (const value of mapValues) if (value > mapMaximum) mapMaximum = value;
     const packedAvailable = tileMode && tileMaximum <= 0xfff;
     const packedMapAvailable = mapMaximum <= 0xfff;
-    const selectors = inventory(tileMode, packedAvailable, packedMapAvailable);
+    const canonicalMap = canonicalCells(mapValues);
+    const tileCanonical = tileMode ? canonicalCells(tileValues) : canonicalCells([]);
+    const canonicalTiles = tileMode ? tileCanonical : null;
+    const selectors = inventory({
+      charsetLength: charset.length,
+      materialsLength: materials.length,
+      colorsLength: colors.length,
+      tileValuesLength: tileValues.length,
+      tilePackedLength: tilePacked.length,
+      tileMode,
+      packed: packedAvailable,
+      tileCanonical,
+      mapCanonical: canonicalMap,
+      mapPackedLength: mapValues.length + Math.ceil(mapValues.length / 2),
+      packedMap: packedMapAvailable,
+    });
     const selector = request.selector;
     if (selector === null) {
       return Object.freeze({
@@ -435,13 +461,14 @@ export const charpadHandler: AssetHandler = Object.freeze({
           literalPath: request.literalPath,
           handlerKey: HANDLER_KEY,
           handlerVersion: HANDLER_VERSION,
-          remedy: `choose one of: ${selectors.map(({ name }) => `'${name}'`).join(", ")}`,
+          remedy: `choose one of: ${selectors
+            .filter(({ available }) => available)
+            .map(({ name }) => `'${name}'`)
+            .join(", ")}`,
           span: request.span,
         }),
       });
     }
-    const canonicalMap = canonicalCells(mapValues);
-    const canonicalTiles = tileMode ? canonicalCells(tileValues) : null;
     const scalarOutput = (
       value: bigint | boolean,
       type: typeof SCALAR_TYPES.word | typeof SCALAR_TYPES.byte | typeof SCALAR_TYPES.boolean,
@@ -583,7 +610,10 @@ export const charpadHandler: AssetHandler = Object.freeze({
             literalPath: request.literalPath,
             handlerKey: HANDLER_KEY,
             handlerVersion: HANDLER_VERSION,
-            remedy: `choose one of: ${selectors.map(({ name }) => `'${name}'`).join(", ")}`,
+            remedy: `choose one of: ${selectors
+              .filter(({ available }) => available)
+              .map(({ name }) => `'${name}'`)
+              .join(", ")}`,
             span: request.span,
           }),
         });

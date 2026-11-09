@@ -57,12 +57,21 @@ function wordArray(length: number) {
   });
 }
 
+/** Exact parsed extents used to publish one truthful selector inventory. */
+interface SpritePadInventoryCounts {
+  readonly spriteCount: number;
+  readonly tileCount: number;
+  readonly tileWidth: number;
+  readonly tileHeight: number;
+  readonly spriteAnimationCount: number;
+  readonly tileAnimationCount: number;
+  readonly tiles: boolean;
+  readonly spriteAnimation: boolean;
+  readonly tileAnimation: boolean;
+}
+
 /** Selector inventory for one parsed file. */
-function inventory(
-  tiles: boolean,
-  spriteAnimation: boolean,
-  tileAnimation: boolean,
-): readonly AssetSelectorInfo[] {
+function inventory(counts: SpritePadInventoryCounts): readonly AssetSelectorInfo[] {
   const scalar = (name: string, type = SCALAR_TYPES.word, available = true) =>
     Object.freeze({
       name,
@@ -77,14 +86,15 @@ function inventory(
       available,
       default: false,
     });
+  const tileCells = counts.tileCount * counts.tileWidth * counts.tileHeight;
   return Object.freeze([
     Object.freeze({
       name: "sprites",
-      type: Object.freeze({ kind: "array" as const, array: byteArray(0) }),
+      type: Object.freeze({ kind: "array" as const, array: byteArray(counts.spriteCount * 64) }),
       available: true,
       default: true,
     }),
-    array("sprite_attributes", byteArray(0)),
+    array("sprite_attributes", byteArray(counts.spriteCount)),
     scalar("count"),
     scalar("background_color", SCALAR_TYPES.byte),
     scalar("multicolor_1", SCALAR_TYPES.byte),
@@ -94,19 +104,27 @@ function inventory(
     scalar("tile_count"),
     scalar("tile_width", SCALAR_TYPES.byte),
     scalar("tile_height", SCALAR_TYPES.byte),
-    array("tiles", wordArray(0), tiles),
-    array("tile_attributes", byteArray(0), tiles),
-    array("tile_tags", byteArray(0), tiles),
-    scalar("sprite_animation_count", SCALAR_TYPES.word, spriteAnimation),
-    array("sprite_animation_starts", wordArray(0), spriteAnimation),
-    array("sprite_animation_ends", wordArray(0), spriteAnimation),
-    array("sprite_animation_timers", byteArray(0), spriteAnimation),
-    array("sprite_animation_flags", byteArray(0), spriteAnimation),
-    scalar("tile_animation_count", SCALAR_TYPES.word, tileAnimation),
-    array("tile_animation_starts", wordArray(0), tileAnimation),
-    array("tile_animation_ends", wordArray(0), tileAnimation),
-    array("tile_animation_timers", byteArray(0), tileAnimation),
-    array("tile_animation_flags", byteArray(0), tileAnimation),
+    array("tiles", wordArray(tileCells), counts.tiles),
+    array("tile_attributes", byteArray(counts.tileCount), counts.tiles),
+    array("tile_tags", byteArray(counts.tileCount), counts.tiles),
+    scalar("sprite_animation_count", SCALAR_TYPES.word, counts.spriteAnimation),
+    array(
+      "sprite_animation_starts",
+      wordArray(counts.spriteAnimationCount),
+      counts.spriteAnimation,
+    ),
+    array("sprite_animation_ends", wordArray(counts.spriteAnimationCount), counts.spriteAnimation),
+    array(
+      "sprite_animation_timers",
+      byteArray(counts.spriteAnimationCount),
+      counts.spriteAnimation,
+    ),
+    array("sprite_animation_flags", byteArray(counts.spriteAnimationCount), counts.spriteAnimation),
+    scalar("tile_animation_count", SCALAR_TYPES.word, counts.tileAnimation),
+    array("tile_animation_starts", wordArray(counts.tileAnimationCount), counts.tileAnimation),
+    array("tile_animation_ends", wordArray(counts.tileAnimationCount), counts.tileAnimation),
+    array("tile_animation_timers", byteArray(counts.tileAnimationCount), counts.tileAnimation),
+    array("tile_animation_flags", byteArray(counts.tileAnimationCount), counts.tileAnimation),
   ]);
 }
 
@@ -312,7 +330,17 @@ export const spritepadHandler: AssetHandler = Object.freeze({
       );
     }
 
-    const selectors = inventory(tiles, spriteAnimation, tileAnimation);
+    const selectors = inventory({
+      spriteCount,
+      tileCount,
+      tileWidth,
+      tileHeight,
+      spriteAnimationCount,
+      tileAnimationCount,
+      tiles,
+      spriteAnimation,
+      tileAnimation,
+    });
     const selector = request.selector ?? "sprites";
     const scalarOutput = (
       value: bigint | boolean,
@@ -477,7 +505,10 @@ export const spritepadHandler: AssetHandler = Object.freeze({
             literalPath: request.literalPath,
             handlerKey: HANDLER_KEY,
             handlerVersion: HANDLER_VERSION,
-            remedy: `choose one of: ${selectors.map(({ name }) => `'${name}'`).join(", ")}`,
+            remedy: `choose one of: ${selectors
+              .filter(({ available }) => available)
+              .map(({ name }) => `'${name}'`)
+              .join(", ")}`,
             span: request.span,
           }),
         });

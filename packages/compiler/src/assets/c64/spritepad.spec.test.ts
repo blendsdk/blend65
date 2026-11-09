@@ -91,6 +91,23 @@ describe("SpritePad SPD v5 structural cases", () => {
     expect(result.diagnostic.code).toBe("E10204");
   });
 
+  // The inventory publishes exact parsed extents rather than zero-length placeholders.
+  it("should publish exact selector extents and filter unavailable remedies", () => {
+    const result = spritepadHandler.parse(synthetic(syntheticBytes));
+    if (result.kind !== "output") throw new Error("Expected synthetic SpritePad output");
+    const spriteCount = syntheticBytes[5]! | (syntheticBytes[6]! << 8);
+    const extent = (name: string) => {
+      const type = result.selectors.find(({ name: selector }) => selector === name)?.type;
+      return type?.kind === "array" ? type.array : undefined;
+    };
+    expect(extent("sprites")).toMatchObject({ length: spriteCount * 64 });
+    expect(extent("sprite_attributes")).toMatchObject({ length: spriteCount });
+    const failure = spritepadHandler.parse(synthetic(syntheticBytes, "nope"));
+    if (failure.kind !== "failure") throw new Error("Expected unavailable selector failure");
+    expect(failure.diagnostic.message).not.toContain("'tiles'");
+    expect(failure.diagnostic.message).not.toContain("'tile_attributes'");
+  });
+
   // Truncation and unexplained trailing bytes are exact structural failures.
   it("should reject truncated and trailing bytes", () => {
     for (const bytes of [syntheticBytes.slice(0, -1), [...syntheticBytes, 0]]) {

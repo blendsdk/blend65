@@ -429,7 +429,10 @@ export const psidHandler: AssetHandler = Object.freeze({
         literalPath: request.literalPath,
         handlerKey: HANDLER_KEY,
         handlerVersion: HANDLER_VERSION,
-        remedy: `choose one of: ${inventory.map(({ name }) => `'${name}'`).join(", ")}`,
+        remedy: `choose one of: ${inventory
+          .filter(({ available }) => available)
+          .map(({ name }) => `'${name}'`)
+          .join(", ")}`,
         span: request.span,
       }),
     });

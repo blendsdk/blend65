@@ -73,6 +73,27 @@ function request(bytes: Buffer, selector: string): AssetHandlerRequest {
 }
 
 describe("CharPad internals", () => {
+  // Inventory types use the exact parsed slices, including packed-12 length.
+  it("should publish exact selector extents and filter unavailable remedies", () => {
+    const result = charpadHandler.parse(
+      request(ctm({ chars: 4, tileMode: true, tileCell: 3 }), "charset"),
+    );
+    if (result.kind !== "output") throw new Error("Expected charset output");
+    const extent = (name: string) => {
+      const type = result.selectors.find(({ name: selector }) => selector === name)?.type;
+      return type?.kind === "array" ? type.array : undefined;
+    };
+    expect(extent("charset")).toMatchObject({ length: 32 });
+    expect(extent("char_materials")).toMatchObject({ length: 4 });
+    expect(extent("colors")).toMatchObject({ length: 3 });
+    expect(extent("tiles")).toMatchObject({ length: 1, size: 1 });
+    expect(extent("tiles_packed12")).toMatchObject({ length: 2 });
+    expect(extent("map")).toMatchObject({ length: 1 });
+    expect(extent("map_packed12")).toMatchObject({ length: 2 });
+    const missing = charpadHandler.parse(request(ctm({ chars: 4, tileMode: false }), "tiles"));
+    if (missing.kind !== "failure") throw new Error("Expected unavailable tile failure");
+    expect(missing.diagnostic.message).not.toContain("'tiles_packed12'");
+  });
   // A tile value above 12 bits makes packed-12 unavailable but keeps the word form.
   it("should reject packed-12 when a tile value exceeds 4095", () => {
     const bytes = ctm({ chars: 4097, tileMode: true, tileCell: 4096 });
