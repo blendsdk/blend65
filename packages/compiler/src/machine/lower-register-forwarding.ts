@@ -110,6 +110,8 @@ export function selectRegisterForwarding(
   readonly ordinalRawWrites: ReadonlyMap<string, { readonly base: number; readonly index: string }>;
   /** Word decimal results constructed directly in their final fixed-address destination. */
   readonly directBcdWrites: ReadonlyMap<string, MemoryWriteOperation>;
+  /** Static place addresses consumed directly by one raw read or write. */
+  readonly staticRawAddresses: ReadonlySet<string>;
   /** Second byte operands read into X to preserve the first operand in A. */
   readonly subtractRightInX: ReadonlySet<string>;
   /** First word-add operands whose high byte survives the second read in Y. */
@@ -173,6 +175,7 @@ export function selectRegisterForwarding(
   const ordinalRawReads = new Map<string, { readonly base: number; readonly index: string }>();
   const ordinalRawWrites = new Map<string, { readonly base: number; readonly index: string }>();
   const directBcdWrites = new Map<string, MemoryWriteOperation>();
+  const staticRawAddresses = new Set<string>();
   const subtractRightInX = new Set<string>();
   const wordAddLeftHighInY = new Set<string>();
   const wordSubtractLeftHighInY = new Set<string>();
@@ -180,6 +183,19 @@ export function selectRegisterForwarding(
   for (const block of blocks) {
     for (let index = 0; index < block.operations.length; index += 1) {
       const producer = block.operations[index]!;
+      if (
+        producer.kind === "place-address" &&
+        producer.place.path.length === 0 &&
+        singleUseValues.has(producer.result) &&
+        block.operations.some(
+          (operation, candidateIndex) =>
+            candidateIndex > index &&
+            (operation.kind === "memory-read" || operation.kind === "memory-write") &&
+            operation.address === producer.result,
+        )
+      ) {
+        staticRawAddresses.add(producer.result);
+      }
       if (
         producer.kind === "binary" &&
         (producer.operator === "<<" || producer.operator === ">>") &&
@@ -777,6 +793,7 @@ export function selectRegisterForwarding(
     ordinalRawReads,
     ordinalRawWrites,
     directBcdWrites,
+    staticRawAddresses,
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,

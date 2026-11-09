@@ -27,6 +27,28 @@ function main(): void {
     );
   }, 60_000);
 
+  it("should store directly through an asset and a local address", async () => {
+    await withProject(
+      `module Game;
+let DATA: byte[64] = [; 0];
+function main(): void {
+  let value: byte = 1;
+  poke(&DATA, $55);
+  poke(&value, $66);
+}
+`,
+      [],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+        const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
+        expect(assembly).not.toMatch(/sta \(/iu);
+        expect(assembly).toMatch(/sta\+2 b65_Game_DATA_/iu);
+        expect(assembly).toMatch(/sta \$0[0-9a-f]{3}\b/iu);
+      },
+    );
+  }, 60_000);
+
   it("should keep an unproved word index on the indirect path", async () => {
     await withProject(
       `module Game;

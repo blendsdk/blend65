@@ -3,9 +3,9 @@
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: RD-06 residual parity and evidence debt; [issue #140](https://github.com/blendsdk/blend65/issues/140)
 > **Created**: 2026-11-09 15:19
-> **Progress**: 4/8 tasks (50%)
+> **Progress**: 5/8 tasks (63%)
 > **Status**: Executing
-> **Last Updated**: 2026-11-09 16:37
+> **Last Updated**: 2026-11-09 16:40
 > **Phase baseline tree**: `2e7b02bd5ba632ef9b29cf5562a670caf16cf61a`
 > **Scope mode**: strict; the exact source and test paths are listed in the modification set below
 > **Reasoning**: high — lowering, layout, volatile-effect and cost-oracle changes with hardware-visible consequences
@@ -141,10 +141,10 @@ New exported types, functions and properties receive JSDoc in the project style.
 
 ### T-22 — Static raw-address direct store
 
-- [ ] T-22.1 Write RED coverage: `poke(&asset, value)`, `poke(&local, value)` in RAM and zero-page homes, and `poke(&global, value)` select a direct absolute store with no dynamic pointer request; a RAM home is 5 bytes/6 cycles, a zero-page home is 4 bytes/5 cycles; parameter and borrowed bases keep the indirect path.
-- [ ] T-22.2 Add a static-address selector/`LoweredValue` kind for symbol addresses and statically resolved places; consume it only in the next raw read/write and suppress the pointer-pair construction.
-- [ ] T-22.3 Lower static byte and word writes with direct storage/label operands, preserving low-first order and volatile effects; publish the static recipe in observer evidence.
-- [ ] T-22.4 Verify exact costs, absence of the dynamic pointer request, unchanged behavior, and the existing raw-address negative cases; update RD-05 cost expectations only where they pin the changed construct.
+- [x] T-22.1 Write RED coverage: `poke(&asset, value)`, `poke(&local, value)` in RAM and zero-page homes, and `poke(&global, value)` select a direct absolute store with no dynamic pointer request; a RAM home is 5 bytes/6 cycles, a zero-page home is 4 bytes/5 cycles; parameter and borrowed bases keep the indirect path. ✅ (completed: 2026-11-09 16:40)
+- [x] T-22.2 Add a static-address selector/`LoweredValue` kind for symbol addresses and statically resolved places; consume it only in the next raw read/write and suppress the pointer-pair construction. ✅ (completed: 2026-11-09 16:40)
+- [x] T-22.3 Lower static byte and word writes with direct storage/label operands, preserving low-first order and volatile effects; publish the static recipe in observer evidence. ✅ (completed: 2026-11-09 16:40)
+- [x] T-22.4 Verify exact costs, absence of the dynamic pointer request, unchanged behavior, and the existing raw-address negative cases; update RD-05 cost expectations only where they pin the changed construct. ✅ (completed: 2026-11-09 16:40)
 
 ### T-23 — VIC field constant arithmetic
 

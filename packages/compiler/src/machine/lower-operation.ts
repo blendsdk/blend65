@@ -657,6 +657,41 @@ export function lowerOperation(
       state.values.set(operation.result, captured.result);
       return captured.instructions;
     }
+    if (state.staticRawAddresses?.has(operation.result) && operation.place.path.length === 0) {
+      const owner = state.input.program.semantic.functions.find(
+        ({ id }) => bindingIdentityKey(id) === bindingIdentityKey(state.owner),
+      );
+      const parameter = owner?.parameters.some(
+        ({ id }) => bindingIdentityKey(id) === bindingIdentityKey(operation.place.root),
+      );
+      const placed = loweredPlace(operation.place, 2, false, state);
+      if (!parameter && placed.kind === "storage") {
+        state.values.set(
+          operation.result,
+          Object.freeze({
+            kind: "static-address" as const,
+            requestId: placed.requestId,
+            offset: placed.offset ?? 0,
+            bytes: 2 as const,
+            signed: false as const,
+          }),
+        );
+        return Object.freeze([]);
+      }
+      if (!parameter && placed.kind === "label") {
+        state.values.set(
+          operation.result,
+          Object.freeze({
+            kind: "static-address" as const,
+            label: placed.label,
+            offset: placed.offset ?? 0,
+            bytes: 2 as const,
+            signed: false as const,
+          }),
+        );
+        return Object.freeze([]);
+      }
+    }
     if (operation.type.kind === "array" || operation.type.kind === "struct") {
       state.aggregatePlaces.set(operation.result, operation.place);
       if (operation.place.path.length === 0 && isReturnedLocalPlace(operation.place, state)) {

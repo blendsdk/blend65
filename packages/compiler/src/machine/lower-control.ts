@@ -69,13 +69,23 @@ export type LoweredValue =
        * A proved `constantBase + unsignedByteIndex` address, retained instead of
        * being computed into a temporary word.
        *
-       * Only the volatile raw-memory read that owns this value may consume it: it
-       * emits the native `absolute,X` form. Every other consumer fails loudly in
-       * `modeForValue`, so this value can never be mistaken for the computed sum.
+       * Only the volatile raw-memory read or write that owns this value may
+       * consume it: it emits the native `absolute,X` form. Every other consumer
+       * fails loudly in `modeForValue`, so this value can never be mistaken for
+       * the computed sum.
        */
       readonly kind: "ordinal-address";
       readonly base: number;
       readonly index: LoweredValue;
+      readonly bytes: number;
+      readonly signed: boolean;
+    }
+  | {
+      /** A statically resolved source place consumed directly by one raw access. */
+      readonly kind: "static-address";
+      readonly requestId?: string;
+      readonly label?: string;
+      readonly offset: number;
       readonly bytes: number;
       readonly signed: boolean;
     }
@@ -317,6 +327,22 @@ export function operandForValue(value: LoweredValue, offset = 0): MachineOperand
       addressByte: offset === 0 ? "low" : "high",
     });
   }
+  if (value.kind === "static-address") {
+    if (value.requestId !== undefined) {
+      return Object.freeze({
+        kind: "storage",
+        requestId: value.requestId,
+        offset: value.offset + offset,
+      });
+    }
+    if (value.label !== undefined) {
+      return Object.freeze({
+        kind: "label",
+        label: value.label,
+        offset: value.offset + offset,
+      });
+    }
+  }
   throw new Error("Machine value has no addressable operand");
 }
 
@@ -333,6 +359,8 @@ export function modeForValue(
   if (value.kind === "label")
     return value.transform !== undefined ? "immediate" : value.zeroPage ? "zero-page" : "absolute";
   if (value.kind === "symbol-address") return "immediate";
+  if (value.kind === "static-address")
+    return value.requestId !== undefined ? "storage" : "absolute";
   throw new Error("Machine value has no addressable mode");
 }
 

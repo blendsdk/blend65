@@ -143,6 +143,8 @@ export interface FunctionLoweringState {
   };
   /** Word BCD results written directly to one fixed volatile destination. */
   readonly directBcdWrites: ReadonlyMap<string, MemoryWriteOperation>;
+  /** Static place addresses consumed directly by one raw read or write. */
+  readonly staticRawAddresses?: ReadonlySet<string>;
   /** Later fixed-address volatile byte of a subtraction, staged from X. */
   readonly subtractRightInX: ReadonlySet<string>;
   /** First addend has its low byte staged and high byte in Y. */

@@ -124,6 +124,7 @@ export function lowerFunction(
     ordinalRawReads,
     ordinalRawWrites,
     directBcdWrites,
+    staticRawAddresses,
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,
@@ -164,6 +165,7 @@ export function lowerFunction(
       ? { ordinalRawReads, ordinalRawWrites }
       : {}),
     directBcdWrites,
+    staticRawAddresses,
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,

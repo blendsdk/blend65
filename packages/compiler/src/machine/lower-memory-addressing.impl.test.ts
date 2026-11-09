@@ -270,6 +270,68 @@ describe("proved ordinal-address byte reads", () => {
   });
 });
 
+describe("static raw-address writes", () => {
+  /** Build a write context for one already-evaluated static address. */
+  function staticContext(address: LoweredValue): RawMemoryLoweringContext {
+    return {
+      cpu: selectedProfile().cpu,
+      owner: sourceBinding(0),
+      values: new Map<string, LoweredValue>([
+        ["address", address],
+        ["value", { kind: "constant", value: 0x5a, bytes: 1 }],
+      ]),
+      pointerRequest: () => {
+        throw new Error("Static address requested pointer storage");
+      },
+    };
+  }
+
+  it("should store directly through an asset symbol address", () => {
+    const stored = lowerMemoryWrite(
+      write(1),
+      staticContext({ kind: "symbol-address", label: "asset.S", bytes: 2 }),
+    );
+    expect(stored.map(({ opcode }) => opcode)).toEqual(["lda", "sta"]);
+    expect(stored[1]!.mode).toBe("absolute");
+    expect(stored[1]!.operand).toEqual({ kind: "label", label: "asset.S" });
+    expect(stored[1]!.memory).toEqual([
+      {
+        kind: "write",
+        address: { kind: "symbolic", label: "asset.S" },
+        width: 1,
+        volatile: true,
+        order: 0,
+      },
+    ]);
+    expect(stored.reduce((sum, instruction) => sum + instruction.cost.bytes, 0)).toBe(5);
+    expect(stored.reduce((sum, instruction) => sum + instruction.cost.minCycles, 0)).toBe(6);
+  });
+
+  it("should store directly through a certified static home", () => {
+    const stored = lowerMemoryWrite(
+      write(1),
+      staticContext({
+        kind: "static-address",
+        requestId: "local",
+        offset: 0,
+        bytes: 2,
+        signed: false,
+      }),
+    );
+    expect(stored[1]!.mode).toBe("storage");
+    expect(stored[1]!.operand).toEqual({ kind: "storage", requestId: "local", offset: 0 });
+    expect(stored[1]!.memory).toEqual([
+      {
+        kind: "write",
+        address: { kind: "storage", requestId: "local", offset: 0 },
+        width: 1,
+        volatile: true,
+        order: 0,
+      },
+    ]);
+  });
+});
+
 describe("proved ordinal-address byte writes", () => {
   /** Add one already-evaluated value to the ordinal write context. */
   function writeContext(index: LoweredValue, value: LoweredValue): RawMemoryLoweringContext {
