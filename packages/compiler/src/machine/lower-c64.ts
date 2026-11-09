@@ -461,7 +461,10 @@ export function lowerC64Operation(
   if (vicTransform !== null) {
     const addressValue = argument(operation, values, 0);
     const address = constant(addressValue);
-    if (address === null && addressValue.kind === "label") {
+    if (
+      address === null &&
+      (addressValue.kind === "label" || addressValue.kind === "symbol-address")
+    ) {
       return Object.freeze({
         instructions: Object.freeze([]),
         result: Object.freeze({
@@ -470,7 +473,9 @@ export function lowerC64Operation(
           bytes: 1,
           signed: false,
           transform: vicTransform,
-          ...(addressValue.offset === undefined ? {} : { offset: addressValue.offset }),
+          ...(addressValue.kind === "label" && addressValue.offset !== undefined
+            ? { offset: addressValue.offset }
+            : {}),
         }),
         data: Object.freeze([]),
       });

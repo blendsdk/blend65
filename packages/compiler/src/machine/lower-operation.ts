@@ -632,7 +632,11 @@ export function lowerOperation(
   if (operation.kind === "embedded-address") {
     state.values.set(
       operation.result,
-      Object.freeze({ kind: "label", label: `asset.${operation.asset}`, bytes: 2, signed: false }),
+      Object.freeze({
+        kind: "symbol-address",
+        label: `asset.${operation.asset}`,
+        bytes: 2,
+      }),
     );
     return Object.freeze([]);
   }

@@ -184,7 +184,11 @@ function accounting(artifacts: Artifacts) {
     views.length,
     "The selected unbanked machine must publish its CPU memory view",
   ).toBeGreaterThan(0);
-  expect(value("residentRam")).toBe(Math.max(...views.map((view) => integer(view.occupiedBytes))));
+  expect(value("residentRam")).toBe(
+    intervals
+      .filter((interval) => interval.addressSpaceId === "cpu16" && interval.kind !== "reservation")
+      .reduce((total, interval) => total + integer(interval.size), 0),
+  );
   expect(value("zeroPage")).toBe(Math.max(...views.map((view) => integer(view.zeroPageBytes))));
   const physical = (kind: string) =>
     Math.max(

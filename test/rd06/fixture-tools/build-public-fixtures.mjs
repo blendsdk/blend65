@@ -64,10 +64,53 @@ function koala({ bitmap, screen, color, background }) {
   ]);
 }
 
+/** Build one synthetic SpritePad v5 project with one sprite and no tiles. */
+function spritepad() {
+  const header = Buffer.alloc(20);
+  header.write("SPD", 0, "ascii");
+  header[3] = 5;
+  header[4] = 0;
+  header.writeUInt16LE(1, 5);
+  header.writeUInt16LE(0, 7);
+  const sprite = patterned(64, 23);
+  return { bytes: Buffer.concat([header, sprite]), sprite };
+}
+
+/** Build one synthetic CharPad v9 project with two characters and one map cell. */
+function charpad() {
+  const header = Buffer.alloc(19);
+  header.write("CTM", 0, "ascii");
+  header[3] = 9;
+  header[4] = 1;
+  header[5] = 0;
+  header[6] = 0;
+  header.writeUInt16LE(1, 7);
+  header.writeUInt16LE(1, 9);
+  const charset = patterned(16, 29);
+  const attributes = Buffer.from([0x01, 0x02]);
+  const block = (number) => Buffer.from([0xda, 0xb0 | (number & 0x0f)]);
+  const count = (items) => Buffer.from([(items - 1) & 0xff, ((items - 1) >> 8) & 0xff]);
+  return {
+    bytes: Buffer.concat([
+      header,
+      block(0),
+      count(2),
+      charset,
+      block(1),
+      attributes,
+      block(2),
+      Buffer.from([1, 0, 1, 0, 1, 0]),
+    ]),
+    charset,
+  };
+}
+
 const fixtureDir = join(fixturesRoot, "public");
 await mkdir(join(fixtureDir, "raw"), { recursive: true });
 await mkdir(join(fixtureDir, "psid"), { recursive: true });
 await mkdir(join(fixtureDir, "koala"), { recursive: true });
+await mkdir(join(fixtureDir, "spritepad"), { recursive: true });
+await mkdir(join(fixtureDir, "charpad"), { recursive: true });
 
 const entries = [];
 const write = async (relativePath, bytes) => {
@@ -212,6 +255,79 @@ for (const item of koalaCases) {
     derivation: null,
   });
 }
+
+const spritepadFixture = spritepad();
+const spritepadWritten = await write("spritepad/synthetic-basic.spd", spritepadFixture.bytes);
+entries.push({
+  id: "spritepad-synthetic-basic",
+  family: "spritepad",
+  ...spritepadWritten,
+  provenance: constructed(
+    "SpritePad Pro v5 structural subset (one sprite, no tiles)",
+    sha256(Buffer.from("synthetic-basic-spd")),
+  ),
+  producer: null,
+  producerVersion: null,
+  settings: {},
+  license,
+  expected: {
+    parse: "accept",
+    selectors: {
+      sprites: {
+        type: "byte[]",
+        length: 64,
+        sha256: sha256(spritepadFixture.sprite),
+      },
+      count: { type: "word", value: 1 },
+      sprite_attributes: {
+        type: "byte[]",
+        length: 1,
+        sha256: sha256(Buffer.from([spritepadFixture.sprite[63]])),
+      },
+    },
+  },
+  malformedOf: null,
+  derivation: null,
+});
+
+const charpadFixture = charpad();
+const charpadWritten = await write("charpad/synthetic-basic.ctm", charpadFixture.bytes);
+entries.push({
+  id: "charpad-synthetic-basic",
+  family: "charpad",
+  ...charpadWritten,
+  provenance: constructed(
+    "CharPad C64 Pro v9 structural subset (two characters, one map cell)",
+    sha256(Buffer.from("synthetic-basic-ctm")),
+  ),
+  producer: null,
+  producerVersion: null,
+  settings: {},
+  license,
+  expected: {
+    parse: "accept",
+    selectors: {
+      charset: {
+        type: "byte[]",
+        length: 16,
+        sha256: sha256(charpadFixture.charset),
+      },
+      map: { type: "byte[]", length: 1, sha256: sha256(Buffer.from([1])) },
+      map_low: { type: "byte[]", length: 1, sha256: sha256(Buffer.from([1])) },
+      map_high: { type: "byte[]", length: 1, sha256: sha256(Buffer.from([0])) },
+      map_packed12: {
+        type: "byte[]",
+        length: 2,
+        sha256: sha256(Buffer.from([1, 0])),
+      },
+      charset_count: { type: "word", value: 2 },
+      map_width: { type: "word", value: 1 },
+      map_height: { type: "word", value: 1 },
+    },
+  },
+  malformedOf: null,
+  derivation: null,
+});
 
 entries.sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0));
 await writeFile(

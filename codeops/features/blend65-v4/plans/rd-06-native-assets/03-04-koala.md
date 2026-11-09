@@ -110,6 +110,7 @@ separately when the source contains it.
 - `.kla` and `.koa` both dispatch to the same handler.
 - Bitmap 8-KiB and screen 1-KiB alignment, same-bank visibility, character-ROM avoidance and exact
   derived `$D018` field constants, including an OR-combined bitmap+screen value.
-- Bounded VICE check that the bitmap/screen data is visible and the user transfer of Color RAM reaches
-  `$D800` with the reported cost.
+- Bounded VICE check that the bitmap/screen bytes reach their resident addresses and the user
+  transfer of Color RAM reaches `$D800` with the reported cost; rendered-pixel visibility is not
+  claimed and remains `Unknown`.
 - No handler-injected transfer or duplicate image.

@@ -10,6 +10,31 @@ const fixture = readFileSync(
 );
 
 describe("native asset aliasing", () => {
+  // A loadable sibling has no resident address and must not suppress the warning
+  // for the resident declarations that do share one.
+  it("should warn for resident aliases with a loadable sibling", async () => {
+    const source = `module Game;
+const FIRST: byte[] = embed("table.bin");
+const SECOND: byte[] = embed("table.bin");
+loadable const THIRD: byte[] = embed("table.bin");
+function main(): void { poke($0400, FIRST[0] + SECOND[0]); }
+`;
+    await withProject(
+      source,
+      [{ path: "table.bin", bytes: Uint8Array.from([9, 8, 7, 6]) }],
+      async (project) => {
+        const built = await buildProject({ project });
+        expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+          "success",
+        );
+        if (built.kind !== "success") throw new Error("Expected the loadable-sibling build");
+        const warning = built.diagnostics.find(({ code }) => code === "W10151");
+        expect(warning?.message).toContain("2 declarations");
+        expect(warning?.message).toContain("selector 'raw'");
+      },
+    );
+  }, 60_000);
+
   // Two declarations of one selector share a single resident object and warn.
   it("should merge duplicate selector declarations into one asset", async () => {
     const source = `module Game;

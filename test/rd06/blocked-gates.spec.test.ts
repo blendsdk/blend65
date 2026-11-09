@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { validateProducerCheckpoint } from "./fixture-tools/producer-checkpoint.js";
@@ -32,8 +32,25 @@ describe("producer evidence honesty", () => {
       expect(fixture.path).toMatch(/^(SpritePad|CharPad) C64 3\.80 Pro\//u);
       expect(fixture.sha256).toMatch(/^[0-9a-f]{64}$/u);
     }
-    for (const family of ["spritepad", "charpad"]) {
-      expect(existsSync(join(repository, "test/rd06/fixtures/public", family))).toBe(false);
+    const publicManifest = JSON.parse(
+      readFileSync(join(repository, "test/rd06/fixtures/manifest.json"), "utf8"),
+    ) as {
+      fixtures: {
+        family: string;
+        sha256: string;
+        provenance: { kind: string };
+        producer: string | null;
+        producerVersion: string | null;
+      }[];
+    };
+    const producerHashes = new Set(producer.fixtures.map(({ sha256 }) => sha256));
+    for (const entry of publicManifest.fixtures.filter(
+      ({ family }) => family === "spritepad" || family === "charpad",
+    )) {
+      expect(entry.provenance.kind).toBe("constructed");
+      expect(entry.producer).toBeNull();
+      expect(entry.producerVersion).toBeNull();
+      expect(producerHashes.has(entry.sha256)).toBe(false);
     }
   });
 

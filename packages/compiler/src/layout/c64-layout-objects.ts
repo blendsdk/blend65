@@ -149,6 +149,17 @@ function foldConstantImmediateOps(
         ...previous,
         operand: Object.freeze({ kind: "immediate" as const, value: value & 0xff }),
       });
+      // Keep the logical instruction with its identity operand. Removing it
+      // would shorten the block after sizing and leave executable zero fill at
+      // the next fallthrough target. The size-neutral identity form preserves
+      // the folded value while a dedicated sizing pass owns the real byte win.
+      const identity = instruction.opcode === "and" ? 0xff : 0;
+      folded.push(
+        Object.freeze({
+          ...instruction,
+          operand: Object.freeze({ kind: "immediate" as const, value: identity }),
+        }),
+      );
       continue;
     }
     folded.push(instruction);

@@ -63,18 +63,20 @@ Each layout object carries:
 | View | Range | Purpose |
 | --- | --- | --- |
 | `cpu16-resident` | `$0000-$10000` (resident allocation limited to `$0801-$CFFF`) | Complete CPU address space and resident allocation |
-| `vic-bank-0` | `$0000-$3FFF` | Bank-relative VIC view; every bank-0 interval is present and VIC-visible intervals carry the `vic` field |
+| `vic-bank-0` | `$0000-$3FFF` | Bank-relative VIC view; every bank-0 interval that does not cross the bank end is present and VIC-visible intervals carry the `vic` field (crossing projections are `T-26`) |
 | `color-ram` | `$D800-$DBFF` in a separate `colorram4` address space | 1,024 hardware addresses; 1,000 visible cells |
 
-The `vic-bank-0` view uses the same `cpu16` address space and includes every bank-0 interval, so a
-VIC asset, the active screen and the character-ROM reservation all reconcile in one view. The
+The `vic-bank-0` view uses the same `cpu16` address space and includes every bank-0 interval that
+does not cross `$4000`, so a VIC asset, the active screen and uncovered character-ROM gaps reconcile
+in one view. An interval crossing the bank end is a known `T-26` projection gap, not silently
+clipped. The
 `color-ram` view uses a distinct address space and one reserved `color-ram.hardware` interval; the
 1,000 selected Koala bytes remain ordinary resident data and are never double-counted as Color RAM.
 
 The `vic-bank-0` view includes:
 
 - screen `$0400-$07FF`, whose final eight bytes are the sprite-pointer table;
-- character ROM `$1000-$1FFF`, which is VIC-invisible;
+- character ROM `$1000-$1FFF`, whose uncovered gaps are reserved for VIC placement while CPU code/data may span the window as RAM in the cooperative mapping;
 - sprite records, charset, bitmap and any other VIC-visible object;
 - free intervals, total free bytes and the largest contiguous hole.
 
@@ -109,7 +111,7 @@ Both name every contributing requirement and the occupied ranges relevant to the
 | PSID `data` | 1 byte | CPU-resident at effective load address |
 | Raw bytes | 1 byte | CPU-resident only |
 | Active screen | 1,024 bytes | Reserved; includes `$07F8-$07FF` pointer table |
-| Character ROM | 4,096 bytes | Reserved for **all** CPU and VIC placement and VIC-invisible while CHAREN=1 |
+| Character ROM | 4,096 bytes | Uncovered gaps reserved for VIC placement; CPU code/data may span the window as RAM. VIC character-ROM fetch in banks 0/2 is independent of the CPU CHAREN bit |
 | Color RAM | 1,024 addresses | Separate hardware view |
 
 ### Derived hardware fields

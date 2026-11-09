@@ -45,6 +45,8 @@ describe("fixture manifest", () => {
     expect(entries.filter(({ family }) => family === "raw")).toHaveLength(4);
     expect(entries.filter(({ family }) => family === "psid")).toHaveLength(8);
     expect(entries.filter(({ family }) => family === "koala")).toHaveLength(4);
+    expect(entries.filter(({ family }) => family === "spritepad")).toHaveLength(1);
+    expect(entries.filter(({ family }) => family === "charpad")).toHaveLength(1);
     for (const entry of entries) {
       expect(entry.provenance.kind).toBe("constructed");
       expect(entry.license.disposition).toBe("redistributable");

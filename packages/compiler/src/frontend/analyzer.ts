@@ -294,17 +294,46 @@ class ModuleAnalyzer {
     type: SemanticType,
     rootName = `${initializer.span.sourceId}:${initializer.span.start}`,
   ): TypedExpr | null {
+    let invokesComptime = false;
+    let hasBinding = false;
+    visitExpressionBindings(initializer, (binding) => {
+      hasBinding = true;
+      invokesComptime ||=
+        this.functionByKey.get(bindingIdentityKey(binding))?.declaration.mode === "comptime";
+    });
     if (type.kind === "array" || type.kind === "struct") {
-      let invokesComptime = false;
-      visitExpressionBindings(initializer, (binding) => {
-        invokesComptime ||=
-          this.functionByKey.get(bindingIdentityKey(binding))?.declaration.mode === "comptime";
-      });
-      if (!invokesComptime) return initializer;
+      if (!invokesComptime) {
+        // Direct literal forms are already fully encodable. Named aggregates,
+        // scalar constants and embedded values need the evaluator so a legal
+        // const never falls through to uninitialized BSS.
+        const mentionsEmbedded = (expression: TypedExpr): boolean =>
+          (expression.elements?.some(
+            (element) => element.embedded !== undefined || mentionsEmbedded(element),
+          ) ??
+            false) ||
+          (expression.fields?.some(
+            ({ value }) => value.embedded !== undefined || mentionsEmbedded(value),
+          ) ??
+            false) ||
+          (expression.fill
+            ? expression.fill.embedded !== undefined || mentionsEmbedded(expression.fill)
+            : false);
+        if (!hasBinding && !mentionsEmbedded(initializer)) return initializer;
+        if (initializerBytes(initializer, type) !== null) return initializer;
+      }
     }
     const value = this.evaluator.evaluateRoot(initializer, type, rootName);
-    if (value === null) return null;
+    if (value === null) {
+      return type.kind === "array" || type.kind === "struct"
+        ? invokesComptime
+          ? null
+          : initializer
+        : null;
+    }
     if (typeof value === "object") {
+      // An incomplete literal keeps its existing diagnostic path instead of
+      // being published as a partially initialized aggregate.
+      if (value.some((byte) => byte < 0 || byte > 255)) return initializer;
       return Object.freeze({
         ...initializer,
         encodedBytes: Object.freeze([...value]),

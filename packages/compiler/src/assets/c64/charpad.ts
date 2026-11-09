@@ -570,7 +570,10 @@ export const charpadHandler: AssetHandler = Object.freeze({
             0,
             "packed-12 needs a map whose values all fit in 12 bits",
           );
-        return arrayOutput(pack12(mapValues), byteArray(mapValues.length), "ctm-map-packed12");
+        {
+          const packed = pack12(mapValues);
+          return arrayOutput(packed, byteArray(packed.length), "ctm-map-packed12");
+        }
       default:
         return Object.freeze({
           kind: "failure",

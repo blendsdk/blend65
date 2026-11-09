@@ -88,6 +88,8 @@ function main(): void { poke($D015, 1); while (true) { poke($D020, 0); } }
   }, 60_000);
 
   // CharPad charset bytes appear at their 2-KiB-aligned resident address.
+  // This observes CPU memory, not a rendered VIC frame; the register write only
+  // keeps the selected charset addressable.
   it("should observe CharPad charset bytes", async () => {
     const asset = producer(CTM, "level.ctm");
     const source =

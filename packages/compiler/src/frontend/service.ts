@@ -610,6 +610,7 @@ function semanticAssetFromOutput(
     handler,
     scalarType: output.value.kind === "embedded-scalar" ? output.value.type : null,
     scalarValue: output.value.kind === "embedded-scalar" ? output.value.value : null,
+    ...(output.value.kind === "embedded" ? { arrayType: output.value.type } : {}),
     constraints: output.constraints,
   }) satisfies ScalarAsset;
 }
@@ -780,6 +781,7 @@ async function analyzePreparedProjectWithAssets(
     aliases.push(request);
     assetRequests.set(result.asset.id, aliases);
     assets.set(result.asset.id, result.asset);
+    resolvedSelectors.set(result.asset.id, result.asset.handler.selector);
   }
   const repeatedAssets: ProjectDiagnostic[] = [];
   for (const [assetId, requests] of assetRequests) {
@@ -800,7 +802,7 @@ async function analyzePreparedProjectWithAssets(
       ),
     );
     const sites = declarations.flatMap((declaration) =>
-      declaration.kind === "variable" ? [declaration.nameSpan] : [],
+      declaration.kind === "variable" && !declaration.loadable ? [declaration.nameSpan] : [],
     );
     if (sites.length < 2) continue;
     const request = requests[0]!;

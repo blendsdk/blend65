@@ -44,6 +44,64 @@ function output(id: string, selector: string | null = null) {
   return result;
 }
 
+/** Build a request over exact committed synthetic bytes. */
+function synthetic(bytes: readonly number[], selector: string | null = null): AssetHandlerRequest {
+  const frozen = Object.freeze([...bytes]);
+  return Object.freeze({
+    sourceId: "src/game.blend",
+    literalPath: "assets/synthetic.spd",
+    resolvedPath: "assets/synthetic.spd",
+    selector,
+    owner: "resident",
+    span: Object.freeze({ sourceId: "src/game.blend", start: 0, end: 10 }),
+    declaration: "SPRITES",
+    profileId: "c64-pal-prg-kernal-6581",
+    bytes: frozen,
+    inputSha256: createHash("sha256").update(Buffer.from(frozen)).digest("hex"),
+  });
+}
+
+const syntheticBytes = [
+  ...readFileSync(
+    new URL(
+      "../../../../../test/rd06/fixtures/public/spritepad/synthetic-basic.spd",
+      import.meta.url,
+    ),
+  ),
+];
+
+describe("SpritePad SPD v5 structural cases", () => {
+  // An unknown or unavailable selector fails with the closed inventory.
+  it("should reject unknown and unavailable selectors", () => {
+    for (const selector of ["nope", "tiles"]) {
+      const result = spritepadHandler.parse(synthetic(syntheticBytes, selector));
+      expect(result.kind, selector).toBe("failure");
+      if (result.kind !== "failure") throw new Error(`Expected ${selector} failure`);
+      expect(result.diagnostic.code).toBe("E10133");
+    }
+  });
+
+  // The declared sprite count controls the exact record boundary.
+  it("should reject a declared count that exceeds the record data", () => {
+    const bytes = [...syntheticBytes];
+    bytes[5] = 2;
+    const result = spritepadHandler.parse(synthetic(bytes));
+    expect(result.kind).toBe("failure");
+    if (result.kind !== "failure") throw new Error("Expected count failure");
+    expect(result.diagnostic.code).toBe("E10204");
+  });
+
+  // Truncation and unexplained trailing bytes are exact structural failures.
+  it("should reject truncated and trailing bytes", () => {
+    for (const bytes of [syntheticBytes.slice(0, -1), [...syntheticBytes, 0]]) {
+      const result = spritepadHandler.parse(synthetic(bytes));
+      expect(result.kind).toBe("failure");
+      if (result.kind !== "failure") throw new Error("Expected structural failure");
+      expect(result.diagnostic.code).toBe("E10204");
+    }
+  });
+});
+
 describe.skipIf(!available)("SpritePad 3.80 SPD v5 producer examples", () => {
   // A plain sprite sheet uses the default sprite selector and exact records.
   it("should parse ChromeFont with the default sprites selector", () => {

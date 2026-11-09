@@ -15,7 +15,6 @@ function main(): void {
   poke($D011, $3b);
   poke($D016, $18);
   poke($D018, c64.vic.vicBitmapSelect(&BITMAP) | c64.vic.vicScreenSelect(&SCREEN));
-  poke($DD00, $17);
   poke($0400, byte(MUSIC_INIT));
   poke($0401, SPRITES[0]);
   poke($0402, MUSIC[0]);

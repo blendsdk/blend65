@@ -2,6 +2,70 @@
   "schemaVersion": 1,
   "fixtures": [
     {
+      "id": "charpad-synthetic-basic",
+      "family": "charpad",
+      "path": "public/charpad/synthetic-basic.ctm",
+      "sha256": "bee0347b64b404065efaa3545f5a2a828eb972050a068160730fd2afab2d4c33",
+      "provenance": {
+        "kind": "constructed",
+        "source": "CharPad C64 Pro v9 structural subset (two characters, one map cell)",
+        "sourceSha256": "39818119f117f47c44e7d9655dda2ee1cd5d1e979460b6d93d4f21c574a7c163",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "charset": {
+            "type": "byte[]",
+            "length": 16,
+            "sha256": "c519ef079e6996e6246c64af3e0650a960f7b79a2fb014ea3315242444ad1999"
+          },
+          "map": {
+            "type": "byte[]",
+            "length": 1,
+            "sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+          },
+          "map_low": {
+            "type": "byte[]",
+            "length": 1,
+            "sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+          },
+          "map_high": {
+            "type": "byte[]",
+            "length": 1,
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+          },
+          "map_packed12": {
+            "type": "byte[]",
+            "length": 2,
+            "sha256": "47dc540c94ceb704a23875c11273e16bb0b8a87aed84de911f2133568115f254"
+          },
+          "charset_count": {
+            "type": "word",
+            "value": 2
+          },
+          "map_width": {
+            "type": "word",
+            "value": 1
+          },
+          "map_height": {
+            "type": "word",
+            "value": 1
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
       "id": "koala-background-high-nibble",
       "family": "koala",
       "path": "public/koala/koala-background-high-nibble.kla",
@@ -621,6 +685,47 @@
             "type": "byte[]",
             "length": 8,
             "sha256": "55c53f5d490297900cefa825d0c8e8e9532ee8a118abe7d8570762cd38be9818"
+          }
+        }
+      },
+      "malformedOf": null,
+      "derivation": null
+    },
+    {
+      "id": "spritepad-synthetic-basic",
+      "family": "spritepad",
+      "path": "public/spritepad/synthetic-basic.spd",
+      "sha256": "ed878a8d8c16bf26a6219d8afedafd528a374f6accc3dbc350cfaba4dd3e0512",
+      "provenance": {
+        "kind": "constructed",
+        "source": "SpritePad Pro v5 structural subset (one sprite, no tiles)",
+        "sourceSha256": "dc9d1aca328f7c8bc806eefe2a7cbd7b9cb7d2e2dbdaa212c75e8518c3cd2cc1",
+        "author": "Blend65 compiler team",
+        "date": "2026-11-08"
+      },
+      "producer": null,
+      "producerVersion": null,
+      "settings": {},
+      "license": {
+        "disposition": "redistributable",
+        "text": "Synthetic public-format fixture; no third-party content."
+      },
+      "expected": {
+        "parse": "accept",
+        "selectors": {
+          "sprites": {
+            "type": "byte[]",
+            "length": 64,
+            "sha256": "b4a591d116082b874e5a04f23f74708eb2e41a1ba0bce19f9b74fedaad86f451"
+          },
+          "count": {
+            "type": "word",
+            "value": 1
+          },
+          "sprite_attributes": {
+            "type": "byte[]",
+            "length": 1,
+            "sha256": "8a331fdde7032f33a71e1b2e257d80166e348e00fcb17914f48bdb57a1c63007"
           }
         }
       },

@@ -10,7 +10,7 @@ const fixture = readFileSync(
   join(process.cwd(), "test/rd06/fixtures/public/koala/koala-patterned.kla"),
 );
 
-describe.sequential("Koala visibility in native VICE", () => {
+describe.sequential("Koala placement and bytes in native VICE", () => {
   // Bitmap, screen and Color RAM transfer reach their exact resident addresses.
   it("should observe the bitmap, screen and Color RAM transfer", async () => {
     const source = `module Game;

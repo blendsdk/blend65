@@ -19,6 +19,70 @@ const SPD_TILES_PATH =
   "SpritePad C64 3.80 Pro/Examples (SPD5)/Tile Sheets (Subchrist)/Expanded Sprite Test.spd";
 const CTM_PATH = "CharPad C64 3.80 Pro/Examples (CTM9)/Maps (Subchrist)/Hexagone (5x5).ctm";
 
+describe("synthetic native assets in the frontend", () => {
+  // The committed synthetic SPD fixture covers the v5 path without vendor files.
+  it("should build the synthetic SpritePad fixture", async () => {
+    const bytes = readFileSync(
+      join(process.cwd(), "test/rd06/fixtures/public/spritepad/synthetic-basic.spd"),
+    );
+    const source = `module Game;\n\nconst SPRITES: byte[] = embed("player.spd");\nconst COUNT: word = embed("player.spd", "count");\n${MAIN}`;
+    await withProject(source, [{ path: "player.spd", bytes }], async (project) => {
+      const built = await buildProject({ project });
+      expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+        "success",
+      );
+      if (built.kind !== "success") throw new Error("Expected synthetic SpritePad build");
+      const assets = JSON.parse(
+        await readFile(join(built.generation.directory, ".assets.json"), "utf8"),
+      ) as {
+        assets: {
+          handler: string;
+          selector: string;
+          payloadBytes: number;
+          placement: { kind: string; range?: { alignmentBytes: number; visibility: string[] } };
+        }[];
+      };
+      const sprites = assets.assets.find(({ selector }) => selector === "sprites")!;
+      expect(sprites).toMatchObject({
+        handler: "spritepad",
+        payloadBytes: 64,
+        placement: { kind: "single" },
+      });
+      expect(sprites.placement.range).toMatchObject({ alignmentBytes: 64, visibility: ["vic"] });
+      expect(assets.assets.find(({ selector }) => selector === "count")).toMatchObject({
+        handler: "spritepad",
+        placement: { kind: "compileTime" },
+      });
+    });
+  }, 60_000);
+
+  // The committed synthetic CTM fixture covers charset and map evidence in-repo.
+  it("should build the synthetic CharPad fixture", async () => {
+    const bytes = readFileSync(
+      join(process.cwd(), "test/rd06/fixtures/public/charpad/synthetic-basic.ctm"),
+    );
+    const source = `module Game;\n\nconst CHARSET: byte[] = embed("level.ctm", "charset");\nconst MAP: byte[] = embed("level.ctm", "map_packed12");\n${MAIN}`;
+    await withProject(source, [{ path: "level.ctm", bytes }], async (project) => {
+      const built = await buildProject({ project });
+      expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+        "success",
+      );
+      if (built.kind !== "success") throw new Error("Expected synthetic CharPad build");
+      const assets = JSON.parse(
+        await readFile(join(built.generation.directory, ".assets.json"), "utf8"),
+      ) as { assets: { selector: string; payloadBytes: number; shape: number[] }[] };
+      expect(assets.assets.find(({ selector }) => selector === "charset")).toMatchObject({
+        payloadBytes: 16,
+        shape: [16],
+      });
+      expect(assets.assets.find(({ selector }) => selector === "map_packed12")).toMatchObject({
+        payloadBytes: 2,
+        shape: [2],
+      });
+    });
+  }, 60_000);
+});
+
 describe.skipIf(!available)("native producer assets in the frontend", () => {
   // SpritePad sprites become one 64-byte-aligned VIC-visible resident object.
   it("should build SpritePad sprites with exact handler evidence", async () => {

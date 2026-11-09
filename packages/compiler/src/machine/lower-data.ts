@@ -11,6 +11,7 @@ import type {
 import { machineInstruction } from "./lower-control.js";
 import { createC64StartupStateData } from "../layout/startup.js";
 import { typeBytes, bindingLabel, loweringFailure } from "./lower-state.js";
+import { vicConsumerAlignment, vicConsumerBytes, type VicFieldTransform } from "./vic-fields.js";
 
 /**
  * Lower a side-effect-free constant module initializer to inline runtime stores.
@@ -99,18 +100,16 @@ export function lowerData(
         if (instruction.operand?.kind === "label") referenced.add(instruction.operand.label);
         if (instruction.operand?.kind === "storage") referenced.add(instruction.operand.requestId);
       }
-  const spriteAssets = new Set(
-    [...functions, startup].flatMap((fn) =>
-      fn.blocks.flatMap((block) =>
-        block.instructions.flatMap((instruction) =>
-          instruction.operand?.kind === "label" &&
-          instruction.operand.transform === "vic-sprite-block"
-            ? [instruction.operand.label]
-            : [],
-        ),
-      ),
-    ),
-  );
+  const assetTransforms = new Map<string, Set<VicFieldTransform>>();
+  for (const fn of [...functions, startup])
+    for (const block of fn.blocks)
+      for (const instruction of block.instructions) {
+        const operand = instruction.operand;
+        if (operand?.kind !== "label" || operand.transform === undefined) continue;
+        const transforms = assetTransforms.get(operand.label) ?? new Set<VicFieldTransform>();
+        transforms.add(operand.transform);
+        assetTransforms.set(operand.label, transforms);
+      }
   const globals = program.semantic.globals
     .filter(
       (global) =>
@@ -154,23 +153,40 @@ export function lowerData(
       (asset): asset is ResidentAsset => asset.kind === "resident-asset" && reachable.has(asset.id),
     )
     .map((asset) => {
-      const vicSpriteBlocks = spriteAssets.has(`asset.${asset.id}`);
+      const transforms = assetTransforms.get(`asset.${asset.id}`) ?? new Set<VicFieldTransform>();
+      const vicSpriteBlocks = transforms.has("vic-sprite-block");
       const handlerAlignment = asset.constraints.reduce(
         (maximum, constraint) =>
           constraint.kind === "align" ? Math.max(maximum, constraint.bytes) : maximum,
         1,
       );
-      const vicVisible = asset.constraints.some(
-        (constraint) => constraint.kind === "visibility" && constraint.consumer === "vic",
+      const consumerAlignment = Math.max(
+        1,
+        ...[...transforms].map((transform) => vicConsumerAlignment(transform)),
       );
+      // The charset window is 2 KiB, but a source may use only its first
+      // characters; partial charsets are legal. Bitmap and screen consumers
+      // fetch the complete object, so their extent is enforced.
+      const consumerBytes = Math.max(
+        0,
+        ...[...transforms]
+          .filter((transform) => transform !== "vic-charset-select")
+          .map((transform) => vicConsumerBytes(transform)),
+      );
+      const vicVisible =
+        transforms.size > 0 ||
+        asset.constraints.some(
+          (constraint) => constraint.kind === "visibility" && constraint.consumer === "vic",
+        );
       return Object.freeze({
         id: `asset.${asset.id}`,
         kind: "asset" as const,
         assetId: asset.id,
         sourceName: asset.sourcePath,
         vicSpriteBlocks,
-        vicVisible: vicVisible || vicSpriteBlocks,
-        alignment: vicSpriteBlocks ? Math.max(64, handlerAlignment) : handlerAlignment,
+        vicVisible,
+        ...(consumerBytes === 0 ? {} : { vicConsumerBytes: consumerBytes }),
+        alignment: Math.max(handlerAlignment, consumerAlignment),
         bytes: asset.bytes,
         ...(asset.placement === undefined ? {} : { placement: asset.placement }),
       });

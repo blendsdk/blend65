@@ -14,6 +14,9 @@ function ctm(options: {
   readonly displayMode?: number;
   readonly colorMethod?: number;
   readonly mapCell?: number;
+  readonly mapWidth?: number;
+  readonly mapHeight?: number;
+  readonly mapCells?: readonly number[];
 }): Buffer {
   const header = Buffer.alloc(19);
   header.write("CTM", 0, "ascii");
@@ -42,10 +45,13 @@ function ctm(options: {
     parts.push(block(next++), Buffer.from([1]));
     parts.push(block(next++), Buffer.from([0]));
   }
+  const width = options.mapWidth ?? 1;
+  const height = options.mapHeight ?? 1;
+  const cells = options.mapCells ?? [options.mapCell ?? 0];
   parts.push(
     block(next++),
-    Buffer.from([1, 0, 1, 0]),
-    Buffer.from([(options.mapCell ?? 0) & 0xff, ((options.mapCell ?? 0) >> 8) & 0xff]),
+    Buffer.from([width & 0xff, (width >> 8) & 0xff, height & 0xff, (height >> 8) & 0xff]),
+    Buffer.from(cells.flatMap((cell) => [cell & 0xff, (cell >> 8) & 0xff])),
   );
   return Buffer.concat([header, ...parts]);
 }
@@ -90,12 +96,36 @@ describe("CharPad internals", () => {
     expect(packed.kind).toBe("output");
     if (packed.kind !== "output") throw new Error("Expected packed map");
     expect(packed.value).toMatchObject({ kind: "embedded", bytes: [0x23, 0x01] });
+    expect(packed.value.type).toMatchObject({ kind: "array", length: 2, size: 2 });
     const unavailable = charpadHandler.parse(
       request(ctm({ chars: 4097, tileMode: false, mapCell: 4096 }), "map_packed12"),
     );
     expect(unavailable.kind).toBe("failure");
     if (unavailable.kind !== "failure") throw new Error("Expected packed map rejection");
     expect(unavailable.diagnostic.code).toBe("E10133");
+  });
+
+  // Packed-12 output types must describe the packed byte count, including the
+  // trailing high-nibble byte for an odd cell count.
+  it("should type map packed-12 with its complete packed length", () => {
+    const packed = charpadHandler.parse(
+      request(
+        ctm({
+          chars: 4097,
+          tileMode: false,
+          mapWidth: 3,
+          mapHeight: 1,
+          mapCells: [0x123, 0x456, 0x789],
+        }),
+        "map_packed12",
+      ),
+    );
+    expect(packed.kind).toBe("output");
+    if (packed.kind !== "output") throw new Error("Expected packed map");
+    expect(packed.value.kind).toBe("embedded");
+    if (packed.value.kind !== "embedded") throw new Error("Expected packed bytes");
+    expect(packed.value.bytes).toEqual([0x23, 0x56, 0x89, 0x41, 0x07]);
+    expect(packed.value.type).toMatchObject({ kind: "array", length: 5, size: 5 });
   });
 
   // A no-tile project still exposes the map and the default tile dimensions.

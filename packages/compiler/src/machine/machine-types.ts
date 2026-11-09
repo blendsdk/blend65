@@ -592,6 +592,8 @@ export interface MachineDataObject {
   readonly vicSpriteBlocks?: boolean;
   /** True when the handler requires this object to be visible to the VIC. */
   readonly vicVisible?: boolean;
+  /** Exact bytes the VIC consumer reads from this object, when derived. */
+  readonly vicConsumerBytes?: number;
   /** Required byte alignment. */
   readonly alignment: number;
   /** Exact resident bytes; BSS bytes are explicit zeroes in this phase. */

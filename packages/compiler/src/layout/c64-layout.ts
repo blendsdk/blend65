@@ -474,14 +474,15 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
       const rightFixed = right.placement?.at != null;
       return leftFixed === rightFixed ? compareIds(left, right) : leftFixed ? -1 : 1;
     });
-  let cursor = input.profile.packager.startupAddress;
+  let cursor: number = input.profile.packager.startupAddress;
   for (const data of nonAssets) {
     const bytes = dataBytes(data);
     if (
       bytes === null ||
       !Number.isInteger(data.alignment) ||
       data.alignment <= 0 ||
-      (data.alignment & (data.alignment - 1)) !== 0
+      (data.alignment & (data.alignment - 1)) !== 0 ||
+      (data.vicConsumerBytes !== undefined && bytes.length < data.vicConsumerBytes)
     ) {
       return Object.freeze({ kind: "error", reason: "invalid-data", objectId: data.id });
     }
@@ -507,8 +508,17 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
         },
       );
     }
+    // Hardware-constrained data searches the whole legal VIC window instead of
+    // waiting behind ordinary code/data. This keeps feasibility independent of
+    // content-hash ordering and honors R6.39's no-hidden-code-priority rule.
+    const searchStart =
+      visible && !fixed
+        ? Math.max(input.profile.machine.vicBankStart, input.profile.packager.residentStart)
+        : visible
+          ? Math.max(cursor, input.profile.machine.vicBankStart)
+          : cursor;
     const start = freeSourceStart(
-      visible ? Math.max(cursor, input.profile.machine.vicBankStart) : cursor,
+      searchStart,
       bytes.length,
       data.alignment,
       data.placement,
@@ -541,7 +551,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     ) {
       return Object.freeze({ kind: "error", reason: "data-conflict", objectId: data.id });
     }
-    if (!fixed) cursor = start + bytes.length;
+    if (!fixed) cursor = Math.max(cursor, start + bytes.length);
   }
 
   const spriteBlocks: number[] = [];
@@ -555,7 +565,9 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     }
     const occupied: { readonly start: number; readonly end: number }[] = [
       ...intervals,
-      ...fixedData,
+      // A fixed sprite is its own placement request; its reserved range must not
+      // be mistaken for a conflicting object while it is being placed.
+      ...fixedData.filter(({ id }) => id !== asset.id),
       {
         start: input.profile.machine.characterRomStart,
         end: input.profile.machine.characterRomEnd,

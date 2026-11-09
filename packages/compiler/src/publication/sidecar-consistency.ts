@@ -101,7 +101,12 @@ function standardMemoryResources(memory: MemoryEvidence): ReadonlyMap<string, nu
     ),
   );
   const scratch = maximum(
-    views.map((view) => activeTotal(view, (interval) => interval.kind === "scratch")),
+    views.map((view) =>
+      activeTotal(view, (interval) => {
+        const owner = interval.owner as Record<string, unknown>;
+        return interval.kind === "scratch" || owner.kind === "helper";
+      }),
+    ),
   );
   const zeroPage = maximum(views.map(({ zeroPageBytes }) => zeroPageBytes as number));
   const hardwareStack = maximum(

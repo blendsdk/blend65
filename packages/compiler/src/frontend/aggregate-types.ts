@@ -330,6 +330,19 @@ export class AggregateRegistry {
       ) {
         const embeddedLength = this.host.embeddedExtent?.(initializer);
         if (embeddedLength !== null && embeddedLength !== undefined) return embeddedLength;
+        const embeddedScalar = this.host.embeddedScalar?.(initializer);
+        if (embeddedScalar !== null && embeddedScalar !== undefined) {
+          if (report) {
+            this.host.diagnose(
+              projectDiagnostic(
+                "E10144",
+                `Embedded selector produces '${semanticTypeName(embeddedScalar.type)}' — expected an array selector for '${this.host.sourceText(syntax.span)}'`,
+                syntax.span,
+              ),
+            );
+          }
+          return null;
+        }
       }
       if (initializer?.kind === "array-literal" && initializer.fill === null) {
         return initializer.elements.length;

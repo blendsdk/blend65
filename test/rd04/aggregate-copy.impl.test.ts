@@ -130,10 +130,11 @@ describe.sequential("aggregate copy machine implementation", () => {
           .reduce((total, symbol) => total + Number(symbol.byteWidth), 0);
         expect(pointerBytes).toBeLessThanOrEqual(Number(budget.zeroPagePointerBytes));
       }
-      const views = (memory.views as Record<string, unknown>[]).filter(
-        (view) => view.consumer === "cpu",
-      );
-      const residentRam = Math.max(0, ...views.map((view) => Number(view.occupiedBytes)));
+      const residentRam = (memory.intervals as Record<string, unknown>[])
+        .filter(
+          (interval) => interval.addressSpaceId === "cpu16" && interval.kind !== "reservation",
+        )
+        .reduce((total, interval) => total + Number(interval.size), 0);
       expect(resourceRecords.find(({ id }) => id === "residentRam")?.value).toBe(residentRam);
       expect(resourceRecords.find(({ id }) => id === "zeroPage")?.value).toBe(
         physical

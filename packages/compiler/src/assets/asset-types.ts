@@ -91,6 +91,8 @@ export interface ScalarAsset {
   readonly handler: AssetProvenance;
   /** Declared scalar type, or null for a zero-byte non-scalar output. */
   readonly scalarType: ScalarType | null;
+  /** Exact selected array type when a zero-byte array is compile-time-only. */
+  readonly arrayType?: ArrayType;
   /** Exact compile-time value, or null for a zero-byte non-scalar output. */
   readonly scalarValue: bigint | boolean | null;
   /** Handler-owned consumer constraints (never a resident placement). */

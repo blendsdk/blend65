@@ -19,6 +19,20 @@ export function vicConsumerBytes(transform: VicFieldTransform): number {
   }
 }
 
+/** Required address alignment for one VIC field operation. */
+export function vicConsumerAlignment(transform: VicFieldTransform): number {
+  switch (transform) {
+    case "vic-sprite-block":
+      return 64;
+    case "vic-charset-select":
+      return 2_048;
+    case "vic-bitmap-select":
+      return 8_192;
+    case "vic-screen-select":
+      return 1_024;
+  }
+}
+
 /**
  * Compute one pure VIC field constant from a final bank-relative address.
  *

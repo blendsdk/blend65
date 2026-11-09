@@ -72,6 +72,33 @@ function main(): void { poke($D018, c64.vic.vicBitmapSelect(&BITMAP) | c64.vic.v
       expect(bank.freeIntervals.some(({ start, end }) => start < 0x2000 && end > 0x2000)).toBe(
         false,
       );
+      const cpu = memory.views.find(({ id }) => id === "cpu16-resident")!;
+      for (const range of cpu.freeIntervals) {
+        expect(range.start).toBeGreaterThanOrEqual(0x0801);
+        expect(range.end).toBeLessThanOrEqual(0xd000);
+      }
+      expect(memory.intervals).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "platform.cpu-high.d000", kind: "reservation" }),
+          expect.objectContaining({ id: "platform.screen.0400", kind: "reservation" }),
+        ]),
+      );
+      // Character ROM is either covered by PRG fill or explicitly reserved; it
+      // must never appear as a free VIC allocation hole.
+      expect(cpu.freeIntervals.some(({ start, end }) => start < 0x2000 && end > 0x1000)).toBe(
+        false,
+      );
+      const costs = JSON.parse(
+        await readFile(join(built.generation.directory, ".costs.json"), "utf8"),
+      ) as { totals: { resources: { id: string; value: number }[] } };
+      const residentRam = costs.totals.resources.find(({ id }) => id === "residentRam")!.value;
+      expect(residentRam).toBe(
+        memory.intervals
+          .filter(
+            ({ addressSpaceId, kind }) => addressSpaceId === "cpu16" && kind !== "reservation",
+          )
+          .reduce((total, interval) => total + interval.size, 0),
+      );
       const color = memory.views.find(({ id }) => id === "color-ram")!;
       expect(color).toMatchObject({
         consumer: "vic",
@@ -122,6 +149,152 @@ function main(): void { c64.vic.setSpriteEnabled(0, true); c64.vic.setSpritePoin
         ) as { assets: { placement: { range: { start: number; visibility: string[] } } }[] };
         expect(assets.assets[0]?.placement.range.start).toBe(0x2000);
         expect(assets.assets[0]?.placement.range.visibility).toEqual(["vic"]);
+      },
+    );
+  }, 60_000);
+
+  // Automatic placement must not depend on content-hash order: the bitmap needs
+  // an 8-KiB slot and the screen a 1-KiB slot, and both fit in bank 0.
+  it("should place an unplaced bitmap and screen in bank 0", async () => {
+    const bytes = readFileSync(
+      join(process.cwd(), "test/rd06/fixtures/public/koala/koala-patterned.kla"),
+    );
+    const source = `module Game;
+const BITMAP: byte[] = embed("level.kla", "bitmap");
+const SCREEN: byte[] = embed("level.kla", "screen");
+function main(): void { poke($D018, c64.vic.vicBitmapSelect(&BITMAP) | c64.vic.vicScreenSelect(&SCREEN)); }
+`;
+    await withProject(source, [{ path: "level.kla", bytes }], async (project) => {
+      const built = await buildProject({ project });
+      expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+        "success",
+      );
+      if (built.kind !== "success") throw new Error("Expected automatic VIC placement");
+      const assets = JSON.parse(
+        await readFile(join(built.generation.directory, ".assets.json"), "utf8"),
+      ) as { assets: { selector: string; placement: { range: { start: number } } }[] };
+      expect(
+        assets.assets.find(({ selector }) => selector === "bitmap")?.placement.range.start,
+      ).toBe(0x2000);
+      expect(
+        assets.assets.find(({ selector }) => selector === "screen")?.placement.range.start,
+      ).toBe(0x0c00);
+    });
+  }, 60_000);
+
+  // A fixed sprite request must not collide with its own reserved range.
+  it("should honor an explicit sprite address", async () => {
+    const source = `module Game;
+place(at: $3000) const SPRITES: byte[] = embed("sprites.bin");
+function main(): void { c64.vic.setSpriteEnabled(0, true); c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES)); }
+`;
+    await withProject(
+      source,
+      [{ path: "sprites.bin", bytes: patternedBytes(2 * 64, 9) }],
+      async (project) => {
+        const built = await buildProject({ project });
+        expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+          "success",
+        );
+        if (built.kind !== "success") throw new Error("Expected fixed sprite placement");
+        const assets = JSON.parse(
+          await readFile(join(built.generation.directory, ".assets.json"), "utf8"),
+        ) as { assets: { placement: { range: { start: number } } }[] };
+        expect(assets.assets[0]?.placement.range.start).toBe(0x3000);
+      },
+    );
+  }, 60_000);
+
+  // A raw charset used by a VIC field operation receives its consumer alignment.
+  it("should align a raw charset for vicCharsetSelect", async () => {
+    const source = `module Game;
+const CHARSET: byte[] = embed("charset.bin");
+function main(): void { poke($D018, c64.vic.vicCharsetSelect(&CHARSET)); }
+`;
+    await withProject(
+      source,
+      [{ path: "charset.bin", bytes: patternedBytes(2048, 11) }],
+      async (project) => {
+        const built = await buildProject({ project });
+        expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+          "success",
+        );
+        if (built.kind !== "success") throw new Error("Expected charset placement");
+        const assets = JSON.parse(
+          await readFile(join(built.generation.directory, ".assets.json"), "utf8"),
+        ) as { assets: { placement: { range: { start: number; visibility: string[] } } }[] };
+        const range = assets.assets[0]!.placement.range;
+        expect(range.start % 2048).toBe(0);
+        expect(range.start).toBeGreaterThanOrEqual(0x0801);
+        expect(range.start + 2048).toBeLessThanOrEqual(0x4000);
+        expect(range.visibility).toEqual(["vic"]);
+      },
+    );
+  }, 60_000);
+
+  // A pure VIC field combined with an ordinary constant must fold to one
+  // immediate and must not leave executable zero fill before a fallthrough.
+  it("should fold a VIC field OR and preserve fallthrough bytes", async () => {
+    const source = `module Game;
+const CHARSET: byte[] = embed("charset.bin");
+function main(): void { poke($D018, $10 | c64.vic.vicCharsetSelect(&CHARSET)); while (true) { poke($D020, 0); } }
+`;
+    await withProject(
+      source,
+      [{ path: "charset.bin", bytes: patternedBytes(2048, 13) }],
+      async (project) => {
+        const built = await buildProject({ project });
+        expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+          "success",
+        );
+        if (built.kind !== "success") throw new Error("Expected VIC OR build");
+        const directory = built.generation.directory;
+        const asm = await readFile(join(directory, ".asm"), "utf8");
+        expect(asm).toMatch(/lda #\$18\b/iu);
+        expect(asm).not.toMatch(/ora #\$30/iu);
+        const labels = await readFile(join(directory, ".labels"), "utf8");
+        const loop = /b65_Game_main_block_2_[A-Za-z0-9_]+\s*=\s*\$([0-9a-f]+)/iu.exec(labels);
+        expect(loop).not.toBeNull();
+        const address = Number.parseInt(loop![1]!, 16);
+        const prg = await readFile(join(directory, built.generation.primaryArtifact));
+        const offset = address - 0x0801 + 2;
+        // The loop body must start immediately after `sta $d018` (8D 18 D0).
+        expect([...prg.subarray(offset - 3, offset)]).toEqual([0x8d, 0x18, 0xd0]);
+      },
+    );
+  }, 60_000);
+
+  // A partial charset is legal: only the used characters are fetched, while
+  // the 2-KiB slot above it remains addressable.
+  it("should accept a charset smaller than the VIC window", async () => {
+    const source = `module Game;
+const CHARSET: byte[] = embed("charset.bin");
+function main(): void { poke($D018, c64.vic.vicCharsetSelect(&CHARSET)); }
+`;
+    await withProject(
+      source,
+      [{ path: "charset.bin", bytes: patternedBytes(64, 17) }],
+      async (project) => {
+        const built = await buildProject({ project });
+        expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+          "success",
+        );
+      },
+    );
+  }, 60_000);
+
+  // A bitmap fetch reads the complete 8,000-byte object; a smaller asset is invalid.
+  it("should reject a bitmap smaller than the VIC consumer window", async () => {
+    const source = `module Game;
+const BITMAP: byte[] = embed("bitmap.bin");
+function main(): void { poke($D018, c64.vic.vicBitmapSelect(&BITMAP)); }
+`;
+    await withProject(
+      source,
+      [{ path: "bitmap.bin", bytes: patternedBytes(64, 19) }],
+      async (project) => {
+        const built = await buildProject({ project });
+        expect(built.kind).toBe("failure");
       },
     );
   }, 60_000);

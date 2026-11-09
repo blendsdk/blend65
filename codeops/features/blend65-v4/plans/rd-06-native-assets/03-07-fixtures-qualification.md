@@ -121,8 +121,8 @@ the synthetic fixtures and records the derivation recipe.
 - Use the pinned VICE 3.10 `x64sc` and the four cooperative profiles.
 - Run sequentially so concurrent `x64sc` instances do not contend.
 - Check only hardware-facing consumption: PSID data at the effective load address, Koala bitmap/
-  screen visibility and derived fields, Color RAM transfer, Q-P15 draw order/occlusion/update, and
-  player calls/effects when a contract exists.
+  screen bytes at their resident addresses (rendered-pixel visibility `Unknown`), Color RAM
+  transfer, Q-P15 draw order/occlusion/update, and player calls/effects when a contract exists.
 - VICE observation supports but does not replace the typed/byte behavior oracle or the final
   artifact/cost oracle.
 - Report `VICE-verified / hardware-unverified`.

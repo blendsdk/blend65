@@ -11,6 +11,7 @@ import { acmeLabelName, acmeLabelNames } from "../artifacts/acme-labels.js";
 import type { EvidenceRecord } from "../artifacts/evidence-types.js";
 import type { ResidentAsset, ScalarAsset } from "../assets/asset-types.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { SCALAR_TYPES } from "../frontend/constants.js";
 import { canonicalEvidenceJson } from "../artifacts/evidence-validation.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { ProjectSnapshot, SourceSpan } from "../project/types.js";
@@ -578,15 +579,25 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     });
   }
   for (const asset of input.program.semantic.assets.filter(
-    (asset): asset is ScalarAsset => asset.kind === "scalar-asset" && asset.scalarType !== null,
+    (asset): asset is ScalarAsset => asset.kind === "scalar-asset",
   )) {
+    // A zero-byte selected array is still a compile-time object: it owns no
+    // storage but must stay visible in debug and cost evidence. Its exact
+    // selected element type and zero extent are preserved.
+    const type: SemanticType = asset.scalarType ??
+      asset.arrayType ?? {
+        kind: "array",
+        element: SCALAR_TYPES.byte,
+        length: 0,
+        size: 0,
+      };
     symbolDrafts.push({
       name: asset.id,
       qualifiedName: assetSymbolName(asset.id),
       kind: "asset",
-      type: typeText(asset.scalarType!),
-      byteWidth: typeBytes(asset.scalarType!),
-      shape: typeShape(asset.scalarType!),
+      type: typeText(type),
+      byteWidth: typeBytes(type),
+      shape: typeShape(type),
       scope: "asset",
       origin: Object.freeze({ kind: "generated", cause: "asset" }),
       linkage: "internal",

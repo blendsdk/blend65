@@ -138,20 +138,33 @@ export function placeSemanticAssets(
   for (const declaration of declarations) {
     const embedded = declaration.initializer?.embedded;
     const next = declaration.placement;
-    if (
-      declaration.loadable ||
-      embedded === undefined ||
-      embedded.kind !== "embedded" ||
-      embedded.bytes.length === 0 ||
-      next == null
-    )
+    if (next == null || embedded === undefined || embedded.kind !== "embedded") continue;
+    const span =
+      sourceSpans.get(bindingIdentityKey(declaration.binding)) ?? declaration.binding.span;
+    if (declaration.loadable) {
+      diagnostics.push(
+        projectDiagnostic(
+          "E10272",
+          "Loadable assets have no resident placement — remove place(...) or declare a resident asset",
+          span,
+        ),
+      );
       continue;
+    }
+    if (embedded.bytes.length === 0) {
+      diagnostics.push(
+        projectDiagnostic(
+          "E10272",
+          "A zero-byte selected output has no resident placement — remove place(...) or choose a non-empty selector",
+          span,
+        ),
+      );
+      continue;
+    }
     const asset = byId.get(embedded.assetId);
     if (asset?.kind !== "resident-asset") continue;
     const previous = placements.get(embedded.assetId) ?? noPlacement();
     const base = handlerBase.get(embedded.assetId) ?? noPlacement();
-    const span =
-      sourceSpans.get(bindingIdentityKey(declaration.binding)) ?? declaration.binding.span;
     const combined: PlacementConstraints = {
       at: previous.at ?? next.at,
       align: Math.max(previous.align, next.align),

@@ -14,7 +14,7 @@ import {
 import type { EvidenceIdentity, EvidenceRecord } from "../artifacts/evidence-types.js";
 import { canonicalEvidenceHash, canonicalEvidenceJson } from "../artifacts/evidence-validation.js";
 import type { ResidentAsset, ScalarAsset, SemanticAsset } from "../assets/asset-types.js";
-import { freeIntervalsInWindow } from "../layout/c64-layout-objects.js";
+import { freeIntervalsInWindow, storageIntervals } from "../layout/c64-layout-objects.js";
 import { BUILD_INFO } from "../build-info.js";
 import type { ProjectSnapshot } from "../project/types.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
@@ -153,14 +153,21 @@ async function writeEncoded(
 
 /** Exact source-language type of one selected asset. */
 function assetLogicalType(asset: SemanticAsset): string {
-  if (asset.kind === "resident-asset")
-    return `const ${asset.arrayType.element.kind === "scalar" ? asset.arrayType.element.name : "byte"}[]`;
-  return asset.scalarType === null ? "const byte[]" : `const ${asset.scalarType.name}`;
+  const arrayType =
+    asset.kind === "resident-asset"
+      ? asset.arrayType
+      : asset.scalarType === null
+        ? asset.arrayType
+        : undefined;
+  if (arrayType !== undefined)
+    return `const ${arrayType.element.kind === "scalar" ? arrayType.element.name : "byte"}[]`;
+  return asset.kind === "resident-asset" ? "const byte[]" : `const ${asset.scalarType!.name}`;
 }
 
 /** Exact logical shape of one selected asset. */
 function assetShape(asset: SemanticAsset): readonly number[] {
-  return asset.kind === "resident-asset" ? [asset.arrayType.length] : [];
+  if (asset.kind === "resident-asset") return [asset.arrayType.length];
+  return asset.scalarType === null && asset.arrayType !== undefined ? [asset.arrayType.length] : [];
 }
 
 /** Produce the deterministic evidence identity used by the asset sidecar schema. */
@@ -300,6 +307,29 @@ function reservation(
   });
 }
 
+/** Fill one bounded window with reservations for every still-uncovered gap. */
+function reserveUncovered(
+  prefix: string,
+  start: number,
+  end: number,
+  covered: readonly { readonly start: number; readonly end: number }[],
+): readonly EvidenceRecord[] {
+  return freeIntervalsInWindow(start, end, covered).map((gap) =>
+    reservation(
+      `${prefix}.${gap.start.toString(16).padStart(4, "0")}`,
+      gap.start,
+      gap.end,
+      "cpu16",
+    ),
+  );
+}
+
+/** Return whether one interval is owned by a compiler helper routine. */
+function helperOwned(interval: EvidenceRecord): boolean {
+  const owner = interval.owner;
+  return typeof owner === "object" && owner !== null && "kind" in owner && owner.kind === "helper";
+}
+
 /** Map one loaded interval to its direct program-byte accounting component. */
 function programComponent(kind: CompleteC64Layout["intervals"][number]["kind"]): string {
   if (kind === "stub") return "startup";
@@ -324,15 +354,19 @@ export function sizeCostVector(
     .filter(({ start, end }) => start >= 0 && end < 0x100)
     .reduce((total, interval) => total + size(interval), 0);
   const residentRam = intervals.reduce((total, interval) => total + size(interval), 0);
-  const scratch = intervals
-    .filter(({ kind, start, end }) => {
-      if (kind !== "sfa" || end >= 0x100) return false;
-      const homes = certificate.homes.filter(
-        (home) => home.address <= end && home.address + home.bytes - 1 >= start,
-      );
-      return homes.length > 0 && homes.every(({ requestId }) => helperIds.has(requestId));
-    })
-    .reduce((total, interval) => total + size(interval), 0);
+  // Scratch is the complete all-helper physical view. Counting grouped
+  // intervals avoids double-counting helper homes that overlay across calls.
+  const helperIntervals = (storageIntervals(certificate) ?? []).filter(({ kind, start, end }) => {
+    if (kind !== "sfa") return false;
+    const homes = certificate.homes.filter(
+      (home) => home.address <= end && home.address + home.bytes - 1 >= start,
+    );
+    return homes.length > 0 && homes.every(({ requestId }) => helperIds.has(requestId));
+  });
+  const scratch = helperIntervals.reduce(
+    (total, interval) => total + (interval.end - interval.start + 1),
+    0,
+  );
   const nmiEntryPeaks = certificate.nmiEntryPeaks ?? [];
   const hardwareStack = nmiEntryPeaks.reduce(
     (peak, entry) => Math.max(peak, entry.bytes),
@@ -388,6 +422,15 @@ export async function prepareEvidence(
       Buffer.compare(Buffer.from(left.sourcePath), Buffer.from(right.sourcePath)),
     );
   const assetIds = new Map(semanticAssets.map((asset) => [asset.id, assetEvidenceId(asset)]));
+  const loadedPayloads = input.layout.intervals
+    .filter(({ kind, bytes }) => kind !== "fill" && bytes !== null)
+    .sort((left, right) => left.start - right.start);
+  const paddingBefore = (start: number): number => {
+    const previous = loadedPayloads.filter(({ end }) => end < start).at(-1);
+    return previous === undefined
+      ? Math.max(0, start - input.layout.loadRange.start)
+      : Math.max(0, start - previous.end - 1);
+  };
   const residentRecords = semanticAssets.map((asset) => {
     const placement = input.layout.intervals.find(({ id }) => id === `asset.${asset.id}`);
     if (placement === undefined) throw new Error("Reachable asset has no final placement");
@@ -431,7 +474,7 @@ export async function prepareEvidence(
           start: placement.start,
           end: placement.end + 1,
           alignmentBytes,
-          paddingBeforeBytes: 0,
+          paddingBeforeBytes: paddingBefore(placement.start),
           residencyId: "resident",
           visibility: Object.freeze(visibility),
           writableRanges: Object.freeze([]),
@@ -482,8 +525,30 @@ export async function prepareEvidence(
   // reservations are layout constraints, but cannot become CPU intervals while
   // the contiguous PRG legitimately spans those addresses as RAM.
   const colorRam = reservation("color-ram.hardware", 0, 0x400, "colorram4");
+  const cpuLayout = layoutIntervals.filter(({ addressSpaceId }) => addressSpaceId === "cpu16");
+  const reserved: EvidenceRecord[] = [];
+  const reserveGaps = (prefix: string, start: number, end: number): void => {
+    reserved.push(
+      ...reserveUncovered(
+        prefix,
+        start,
+        end,
+        [...cpuLayout, ...reserved].map(({ start: itemStart, end: itemEnd }) => ({
+          start: itemStart as number,
+          end: (itemEnd as number) - 1,
+        })),
+      ),
+    );
+  };
+  // The CPU free partition is bounded to the allocatable resident window.
+  // Everything outside it is reported as reserved hardware/OS address space.
+  reserveGaps("platform.cpu-low", 0x0000, 0x0400);
+  reserveGaps("platform.screen", 0x0400, 0x0800);
+  reserveGaps("platform.cpu-low", 0x0800, 0x0801);
+  reserveGaps("platform.character-rom", 0x1000, 0x2000);
+  reserveGaps("platform.cpu-high", 0xd000, 0x10000);
   const intervals = Object.freeze(
-    [...layoutIntervals, colorRam].sort((left, right) => {
+    [...layoutIntervals, ...reserved, colorRam].sort((left, right) => {
       const address = Buffer.compare(
         Buffer.from(String(left.addressSpaceId)),
         Buffer.from(String(right.addressSpaceId)),
@@ -632,7 +697,7 @@ export async function prepareEvidence(
   // Final resources reconcile with the CPU program image. Hardware
   // reservations live in their own address space and never inflate program RAM.
   const residentRam = intervals
-    .filter(({ addressSpaceId }) => addressSpaceId === "cpu16")
+    .filter(({ addressSpaceId, kind }) => addressSpaceId === "cpu16" && kind !== "reservation")
     .reduce((total, interval) => total + (interval.size as number), 0);
   const zeroPage = intervals
     .filter(
@@ -641,7 +706,11 @@ export async function prepareEvidence(
     )
     .reduce((total, interval) => total + (interval.size as number), 0);
   const scratch = intervals
-    .filter(({ addressSpaceId, kind }) => addressSpaceId === "cpu16" && kind === "scratch")
+    .filter(
+      (interval) =>
+        interval.addressSpaceId === "cpu16" &&
+        (interval.kind === "scratch" || helperOwned(interval)),
+    )
     .reduce((total, interval) => total + (interval.size as number), 0);
   const finalVector: SizeCostVector = Object.freeze({
     programBytes: Math.max(0, primaryBytes.byteLength - 2),
