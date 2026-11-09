@@ -15,6 +15,7 @@ import type {
   MachineInstruction,
   MachineMemoryEffect,
 } from "./machine-types.js";
+import type { C64ActiveScreenFact } from "./active-screen.js";
 import { loweringFailure } from "./lower-state.js";
 import { vicFieldValue, type VicFieldTransform } from "./vic-fields.js";
 export {
@@ -25,6 +26,8 @@ export {
 
 /** Direct storage callback for a dynamic shared-register update. */
 export interface C64LoweringSupport {
+  /** Unique active VIC screen relation, when the program proves one. */
+  readonly activeScreen?: C64ActiveScreenFact;
   /** Request one finite function-owned temporary. */
   readonly requestScratch: (
     suffix: string,
@@ -704,18 +707,80 @@ export function lowerC64Operation(
   ) {
     const value = argument(operation, values, 1);
     const pointer = operation.capability === "c64.vic.setSpritePointer";
-    const base = pointer ? machine.spritePointerBase : machine.spriteColorBase;
+    if (pointer) {
+      const active = support.activeScreen ?? Object.freeze({ kind: "default" as const });
+      if (active.kind === "unproved") {
+        throw loweringFailure(
+          "Cannot prove one active VIC screen for 'setSpritePointer' — select one screen with 'vicScreenSelect' or set the pointer table explicitly",
+          source,
+          {
+            code: "E10273",
+            contributors: ["c64.vic.setSpritePointer", "c64.vic.vicScreenSelect"],
+          },
+        );
+      }
+      if (active.kind === "label") {
+        // The label is the screen asset. The pointer table is its final
+        // eighth-KiB tail; a later layout pass resolves the symbolic address.
+        const offset = 0x3f8 + (index ?? 0);
+        const instructions: MachineInstruction[] = [];
+        if (index === null) loadSpriteIndexX(instructions, profile, indexValue, source);
+        loadA(instructions, profile, value, 0, source);
+        instructions.push(
+          machineInstruction(
+            cpu,
+            "sta",
+            index === null ? "absolute-x" : "absolute",
+            Object.freeze({
+              kind: "label",
+              label: active.label,
+              offset,
+              addressTransform: "sprite-pointer-table",
+            }),
+            [
+              Object.freeze({
+                kind: "write",
+                address: Object.freeze({
+                  kind: "symbolic",
+                  label: active.label,
+                  offset,
+                }),
+                width: 1,
+                volatile: true,
+                order: 0,
+              }),
+            ],
+            source,
+          ),
+        );
+        return Object.freeze({
+          instructions: Object.freeze(instructions),
+          result: null,
+          data: Object.freeze([]),
+        });
+      }
+      const base = active.kind === "constant" ? active.address + 0x3f8 : machine.spritePointerBase;
+      const instructions: MachineInstruction[] = [];
+      if (index === null) loadSpriteIndexX(instructions, profile, indexValue, source);
+      loadA(instructions, profile, value, 0, source);
+      instructions.push(
+        index === null
+          ? storeIndexed(profile, base, "vic.sprite-pointer[index]", source)
+          : store(profile, base + index, source),
+      );
+      return Object.freeze({
+        instructions: Object.freeze(instructions),
+        result: null,
+        data: Object.freeze([]),
+      });
+    }
+    const base = machine.spriteColorBase;
     const instructions: MachineInstruction[] = [];
     if (index === null) loadSpriteIndexX(instructions, profile, indexValue, source);
     loadA(instructions, profile, value, 0, source);
     instructions.push(
       index === null
-        ? storeIndexed(
-            profile,
-            base,
-            pointer ? "vic.sprite-pointer[index]" : "vic.sprite-color[index]",
-            source,
-          )
+        ? storeIndexed(profile, base, "vic.sprite-color[index]", source)
         : store(profile, base + index, source),
     );
     return Object.freeze({

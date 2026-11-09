@@ -46,11 +46,24 @@ export type { AggregateAddressCache } from "./machine-types.js";
 export interface LoweringFailure extends Error {
   /** Source which selected the unsupported or inconsistent operation. */
   readonly source: SourceSpan | null;
+  /** Exact user-facing code when the failure is a proved source/layout constraint. */
+  readonly code?: "E10143" | "E10273";
+  /** Named objects, addresses or intervals which contributed to the failure. */
+  readonly contributors?: readonly string[];
 }
 
 /** Construct one proving failure without adding an exception-class hierarchy. */
-export function loweringFailure(message: string, source: SourceSpan | null): LoweringFailure {
-  return Object.assign(new Error(message), { name: "LoweringFailure", source });
+export function loweringFailure(
+  message: string,
+  source: SourceSpan | null,
+  details?: { readonly code?: "E10143" | "E10273"; readonly contributors?: readonly string[] },
+): LoweringFailure {
+  return Object.assign(new Error(message), {
+    name: "LoweringFailure",
+    source,
+    ...(details?.code === undefined ? {} : { code: details.code }),
+    ...(details?.contributors === undefined ? {} : { contributors: details.contributors }),
+  });
 }
 
 /** Recognize a proving failure at the public lowering boundary. */

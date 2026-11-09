@@ -701,7 +701,13 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
     });
   } catch (error) {
     if (isLoweringFailure(error)) {
-      return Object.freeze({ kind: "error", reason: error.message, source: error.source });
+      return Object.freeze({
+        kind: "error",
+        reason: error.message,
+        source: error.source,
+        ...(error.code === undefined ? {} : { code: error.code }),
+        ...(error.contributors === undefined ? {} : { contributors: error.contributors }),
+      });
     }
     throw error;
   }

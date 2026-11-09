@@ -1,5 +1,6 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { C64_STARTUP_STATE_ID, type C64StartupPolicy } from "../layout/startup.js";
+import { deriveC64ActiveScreen } from "../machine/active-screen.js";
 import { bindMachineProgram } from "../machine/bind.js";
 import { deriveByteComplementFacts } from "../machine/byte-value-availability.js";
 import { lowerMachineProgram } from "../machine/lower.js";
@@ -194,6 +195,25 @@ export type SizeCandidateResult =
     };
 
 /** Construct the unchanged public failure without exposing a partial internal result. */
+/** Preserve a proved lowering code, source span and named contributors. */
+function loweringDiagnostic(failure: {
+  readonly reason: string;
+  readonly source: SourceSpan | null;
+  readonly code?: "E10143" | "E10273";
+  readonly contributors?: readonly string[];
+}): ProjectDiagnostic {
+  return projectDiagnostic(
+    failure.code ?? "COMPILER_LOWERING",
+    failure.reason,
+    failure.source,
+    null,
+    [],
+    failure.contributors === undefined || failure.contributors.length === 0
+      ? null
+      : `Contributors: ${failure.contributors.join("; ")}`,
+  );
+}
+
 function terminal(category: FailureCategory, diagnostics: readonly ProjectDiagnostic[]) {
   return Object.freeze({
     kind: "failure" as const,
@@ -337,6 +357,7 @@ export function closeCanonicalStorage(
       objectId: provisional.requestId,
     });
   const placement = provisional.placement;
+  const activeScreen = deriveC64ActiveScreen(reserved.program);
   const lower = (facts: OptimizationFacts | undefined) =>
     lowerMachineProgram({
       ...(startupPolicy === undefined ? {} : { startupPolicy }),
@@ -348,6 +369,7 @@ export function closeCanonicalStorage(
       preferZeroPage: input.snapshot.manifest.optimization !== "none",
       bindingNames: input.bindingNames,
       program: reserved.program,
+      c64ActiveScreen: activeScreen,
       placement,
       profile: allocationProfile,
       boundsCheck: snapshot.manifest.boundsCheck,
@@ -355,8 +377,7 @@ export function closeCanonicalStorage(
       sourceText: input.sourceText,
     });
   let lowered = lower(optimizationFacts);
-  if (lowered.kind === "error")
-    return terminal("compiler", [projectDiagnostic("COMPILER_LOWERING", lowered.reason, null)]);
+  if (lowered.kind === "error") return terminal("compiler", [loweringDiagnostic(lowered)]);
   // The canonical reference decides which private temporary homes no rule keeps
   // readable. Every admitted representation receives that same set, so removing a
   // dead store can never make two layouts structurally disagree.
@@ -365,8 +386,7 @@ export function closeCanonicalStorage(
     const dead = deadTemporaryHomes(lowered.program);
     if (dead.size > 0) {
       const cleaned = lower(Object.freeze({ ...optimizationFacts, deadHomes: dead }));
-      if (cleaned.kind === "error")
-        return terminal("compiler", [projectDiagnostic("COMPILER_LOWERING", cleaned.reason, null)]);
+      if (cleaned.kind === "error") return terminal("compiler", [loweringDiagnostic(cleaned)]);
       lowered = cleaned;
       deadHomes = dead;
     }
@@ -628,6 +648,7 @@ export function closeCanonicalObjectStorage(
     metadataOnly: true,
     bindingNames: input.bindingNames,
     program: reserved.program,
+    c64ActiveScreen: deriveC64ActiveScreen(reserved.program),
     profile: allocationProfile,
     logicalStorage: inventory,
     sourceFacts,
@@ -639,8 +660,7 @@ export function closeCanonicalObjectStorage(
   if (lowered.kind === "error")
     return Object.freeze({
       kind: "failure",
-      failure: terminal("compiler", [projectDiagnostic("COMPILER_LOWERING", lowered.reason, null)])
-        .failure,
+      failure: terminal("compiler", [loweringDiagnostic(lowered)]).failure,
     });
   if (!validStorageDemands(lowered.program.requiredStorage))
     return Object.freeze({
@@ -850,6 +870,7 @@ export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResu
     observerEvidence: true,
     bindingNames: checked.bindingNames,
     program: reserved.program,
+    c64ActiveScreen: deriveC64ActiveScreen(reserved.program),
     profile: allocationProfile,
     logicalStorage: inventory,
     sourceFacts: plan.sourceFacts,

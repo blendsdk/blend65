@@ -185,6 +185,7 @@ export function lowerData(
         sourceName: asset.sourcePath,
         vicSpriteBlocks,
         vicVisible,
+        ...(transforms.has("vic-screen-select") ? { vicScreenRole: true } : {}),
         ...(consumerBytes === 0 ? {} : { vicConsumerBytes: consumerBytes }),
         alignment: Math.max(handlerAlignment, consumerAlignment),
         bytes: asset.bytes,

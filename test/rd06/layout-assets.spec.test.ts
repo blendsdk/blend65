@@ -317,3 +317,146 @@ function main(): void { c64.vic.setSpriteEnabled(0, true); c64.vic.setSpritePoin
     );
   }, 60_000);
 });
+
+describe("relocated-screen sprite pointer base", () => {
+  const screen = patternedBytes(1000, 31);
+  const sprites = patternedBytes(64, 32);
+
+  /** Build one program with an explicit screen and one sprite record. */
+  async function buildScreen(source: string) {
+    return withProject(
+      source,
+      [
+        { path: "screen.bin", bytes: screen },
+        { path: "sprites.bin", bytes: sprites },
+      ],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") {
+          throw new Error(JSON.stringify(built.diagnostics));
+        }
+        const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
+        const memory = JSON.parse(
+          await readFile(join(built.generation.directory, ".memory.json"), "utf8"),
+        ) as { intervals: { id: string; start: number; end: number; size: number }[] };
+        return { assembly, memory };
+      },
+    );
+  }
+
+  it("should derive the pointer table from a relocated screen", async () => {
+    const { assembly, memory } = await buildScreen(`module Game;
+place(at: $0C00) const SCREEN: byte[] = embed("screen.bin");
+const SPRITES: byte[] = embed("sprites.bin");
+function main(): void {
+  poke($D018, c64.vic.vicScreenSelect(&SCREEN));
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+}
+`);
+    expect(assembly).toMatch(/sta \$0ff8\b/iu);
+    expect(memory.intervals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "screen.c00.pointer-table",
+          start: 0x0ff8,
+          end: 0x1000,
+          size: 8,
+        }),
+      ]),
+    );
+  }, 60_000);
+
+  it("should keep the default screen pointer table at $07F8", async () => {
+    const { assembly } = await buildScreen(`module Game;
+const SPRITES: byte[] = embed("sprites.bin");
+function main(): void {
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+}
+`);
+    expect(assembly).toMatch(/sta \$07f8\b/iu);
+  }, 60_000);
+
+  it("should recognize a constant screen selection", async () => {
+    const { assembly } = await buildScreen(`module Game;
+const SPRITES: byte[] = embed("sprites.bin");
+function main(): void {
+  poke($D018, c64.vic.vicScreenSelect($0C00));
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+}
+`);
+    expect(assembly).toMatch(/sta \$0ff8\b/iu);
+  }, 60_000);
+
+  it("should keep a 1,024-byte screen pointer table inside the asset", async () => {
+    const fullScreen = patternedBytes(1024, 33);
+    await withProject(
+      `module Game;
+place(at: $0C00) const SCREEN: byte[] = embed("screen.bin");
+const SPRITES: byte[] = embed("sprites.bin");
+function main(): void {
+  poke($D018, c64.vic.vicScreenSelect(&SCREEN));
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+}
+`,
+      [
+        { path: "screen.bin", bytes: fullScreen },
+        { path: "sprites.bin", bytes: sprites },
+      ],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+        const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
+        expect(assembly).toMatch(/sta \$0ff8\b/iu);
+      },
+    );
+  }, 60_000);
+
+  it("should derive the bank-end pointer table at $3FF8", async () => {
+    await withProject(
+      `module Game;
+place(at: $3C00) const SCREEN: byte[] = embed("screen.bin");
+const SPRITES: byte[] = embed("sprites.bin");
+function main(): void {
+  poke($D018, c64.vic.vicScreenSelect(&SCREEN));
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+}
+`,
+      [
+        { path: "screen.bin", bytes: screen },
+        { path: "sprites.bin", bytes: sprites },
+      ],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+        const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
+        expect(assembly).toMatch(/sta \$3ff8\b/iu);
+      },
+    );
+  }, 60_000);
+
+  it("should reject two distinct active screens", async () => {
+    const source = `module Game;
+place(at: $0800) const FIRST: byte[] = embed("screen.bin");
+place(at: $0C00) const SECOND: byte[] = embed("screen.bin");
+const SPRITES: byte[] = embed("sprites.bin");
+function main(): void {
+  poke($D018, c64.vic.vicScreenSelect(&FIRST) | c64.vic.vicScreenSelect(&SECOND));
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+}
+`;
+    await withProject(
+      source,
+      [
+        { path: "screen.bin", bytes: screen },
+        { path: "sprites.bin", bytes: sprites },
+      ],
+      async (project) => {
+        const built = await buildProject({ project });
+        expect(built.kind).toBe("failure");
+        const conflict = built.diagnostics.find(({ code }) => code === "E10273");
+        expect(conflict).toBeDefined();
+        expect(conflict?.primarySpan).not.toBeNull();
+      },
+    );
+  }, 60_000);
+});

@@ -102,6 +102,38 @@ function placeStartupPath(
   );
 }
 
+/** Add the zero-filled remainder of one active screen's complete 1 KiB block. */
+function addScreenTail(
+  intervals: C64LayoutInterval[],
+  start: number,
+  payloadBytes: number,
+): boolean {
+  if (payloadBytes >= 1024) return true;
+  const tailStart = start + payloadBytes;
+  const pointerStart = start + 0x3f8;
+  if (tailStart < pointerStart) {
+    if (
+      !addInterval(intervals, {
+        id: `screen.${start.toString(16)}.tail`,
+        kind: "fill",
+        start: tailStart,
+        end: pointerStart - 1,
+        bytes: Object.freeze(new Array<number>(pointerStart - tailStart).fill(0)),
+      })
+    ) {
+      return false;
+    }
+  }
+  const pointerTableStart = Math.max(tailStart, pointerStart);
+  return addInterval(intervals, {
+    id: `screen.${start.toString(16)}.pointer-table`,
+    kind: "fill",
+    start: pointerTableStart,
+    end: start + 0x3ff,
+    bytes: Object.freeze(new Array<number>(start + 0x400 - pointerTableStart).fill(0)),
+  });
+}
+
 /**
  * Place startup/code, data, final SFA homes and VIC-visible sprite data deterministically.
  * @param input Bound program, final certificate and exact selected profile.
@@ -178,10 +210,10 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   }
   const fixedData = input.program.data
     .filter(({ zeropage, placement }) => !zeropage && placement?.at != null)
-    .map(({ id, bytes, placement }) => ({
+    .map(({ id, bytes, placement, vicScreenRole }) => ({
       id,
       start: placement!.at!,
-      end: placement!.at! + bytes.length - 1,
+      end: placement!.at! + (vicScreenRole === true ? 1024 : bytes.length) - 1,
     }));
   const fixedFunctions = new Map<
     string,
@@ -486,9 +518,11 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     ) {
       return Object.freeze({ kind: "error", reason: "invalid-data", objectId: data.id });
     }
+    const screenRole = data.vicScreenRole === true;
+    const placementBytes = screenRole ? 1024 : bytes.length;
     if (
       data.placement?.at == null &&
-      bytes.length > input.profile.packager.residentEnd - input.profile.packager.residentStart + 1
+      placementBytes > input.profile.packager.residentEnd - input.profile.packager.residentStart + 1
     )
       return Object.freeze({ kind: "error", reason: "resident-range", objectId: null });
     const fixed = data.placement?.at != null;
@@ -519,7 +553,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
           : cursor;
     const start = freeSourceStart(
       searchStart,
-      bytes.length,
+      placementBytes,
       data.alignment,
       data.placement,
       occupied,
@@ -529,7 +563,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
       start === null ||
       (visible &&
         (start < input.profile.machine.vicBankStart ||
-          start + bytes.length - 1 > input.profile.machine.vicBankEnd))
+          start + placementBytes - 1 > input.profile.machine.vicBankEnd))
     ) {
       return Object.freeze({
         kind: "error",
@@ -551,7 +585,10 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     ) {
       return Object.freeze({ kind: "error", reason: "data-conflict", objectId: data.id });
     }
-    if (!fixed) cursor = Math.max(cursor, start + bytes.length);
+    if (screenRole && !addScreenTail(intervals, start, bytes.length)) {
+      return Object.freeze({ kind: "error", reason: "data-conflict", objectId: data.id });
+    }
+    if (!fixed) cursor = Math.max(cursor, start + placementBytes);
   }
 
   const spriteBlocks: number[] = [];
@@ -563,6 +600,10 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     if (bytes === null || bytes.length === 0 || bytes.length % 64 !== 0) {
       return Object.freeze({ kind: "error", reason: "invalid-asset", objectId: asset.id });
     }
+    // An active screen owns its complete 1 KiB block: 1,000 payload bytes,
+    // 16 zero bytes in the same block and the final eight pointer bytes.
+    const screenRole = asset.vicScreenRole === true;
+    const placementBytes = screenRole ? 1024 : bytes.length;
     const occupied: { readonly start: number; readonly end: number }[] = [
       ...intervals,
       // A fixed sprite is its own placement request; its reserved range must not
@@ -580,7 +621,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     const candidate = (from: number): number | null => {
       const value = freeSourceStart(
         from,
-        bytes.length,
+        placementBytes,
         Math.max(64, asset.placement?.align ?? 1),
         asset.placement,
         occupied,
@@ -588,7 +629,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
       );
       return value !== null &&
         value >= input.profile.machine.vicBankStart &&
-        value + bytes.length - 1 <= input.profile.machine.vicBankEnd
+        value + placementBytes - 1 <= input.profile.machine.vicBankEnd
         ? value
         : null;
     };
@@ -612,6 +653,9 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
         requiredAlignment: 64,
       })
     ) {
+      return Object.freeze({ kind: "error", reason: "asset-conflict", objectId: asset.id });
+    }
+    if (screenRole && !addScreenTail(intervals, start, bytes.length)) {
       return Object.freeze({ kind: "error", reason: "asset-conflict", objectId: asset.id });
     }
     for (let offset = 0; offset < bytes.length; offset += 64) {

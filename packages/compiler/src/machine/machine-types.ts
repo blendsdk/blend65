@@ -25,6 +25,7 @@ import type {
 } from "../semantic/operations.js";
 import type { SemanticPosition } from "../semantic/whole-program.js";
 import type { LoweredValue } from "./lower-control.js";
+import type { C64ActiveScreenFact } from "./active-screen.js";
 import type { ValueLifetime } from "../semantic/whole-program.js";
 import type { FunctionStorageSelection } from "../storage/selection.js";
 import type { BooleanCallProof } from "./lower-call.js";
@@ -362,6 +363,8 @@ export type MachineOperand =
       readonly offset?: number;
       readonly addressByte?: "low" | "high";
       readonly transform?: VicFieldTransform;
+      /** Layout-owned address relation resolved after final placement. */
+      readonly addressTransform?: "sprite-pointer-table";
     }
   | {
       readonly kind: "storage";
@@ -592,6 +595,8 @@ export interface MachineDataObject {
   readonly vicSpriteBlocks?: boolean;
   /** True when the handler requires this object to be visible to the VIC. */
   readonly vicVisible?: boolean;
+  /** True when this object is the program's active VIC screen matrix. */
+  readonly vicScreenRole?: boolean;
   /** Exact bytes the VIC consumer reads from this object, when derived. */
   readonly vicConsumerBytes?: number;
   /** Required byte alignment. */
@@ -647,6 +652,8 @@ export interface MachineLoweringInput {
   readonly bindingNames?: ReadonlyMap<string, string>;
   /** Closed reachable semantic program. */
   readonly program: WholeProgram;
+  /** Unique active VIC screen relation, when already derived from the program. */
+  readonly c64ActiveScreen?: C64ActiveScreenFact;
   /** Precomputed source facts for a selected attempt; absent on direct none lowering. */
   readonly sourceFacts?: MachineSourceFacts;
   /** Existing constructor selected by a canonical resource retry; recipe facts take precedence. */
@@ -682,7 +689,15 @@ export type MachineLoweringResult =
       /** Warnings that depend on the machine sequence actually selected. */
       readonly diagnostics: readonly ProjectDiagnostic[];
     }
-  | { readonly kind: "error"; readonly reason: string; readonly source: SourceSpan | null };
+  | {
+      readonly kind: "error";
+      readonly reason: string;
+      readonly source: SourceSpan | null;
+      /** Exact user-facing code selected by a structured lowering failure. */
+      readonly code?: "E10143" | "E10273";
+      /** Named objects, addresses or intervals which contributed to the failure. */
+      readonly contributors?: readonly string[];
+    };
 
 /** Bound machine program or a terminal post-closure-storage failure. */
 export type MachineBindingResult =

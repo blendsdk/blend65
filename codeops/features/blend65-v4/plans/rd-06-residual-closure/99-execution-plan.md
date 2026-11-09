@@ -3,9 +3,9 @@
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: RD-06 residual parity and evidence debt; [issue #140](https://github.com/blendsdk/blend65/issues/140)
 > **Created**: 2026-11-09 15:19
-> **Progress**: 0/8 tasks (0%)
-> **Status**: Preflight passed; ready for execution
-> **Last Updated**: 2026-11-09 16:30
+> **Progress**: 1/8 tasks (13%)
+> **Status**: Executing
+> **Last Updated**: 2026-11-09 16:20
 > **Phase baseline tree**: `2e7b02bd5ba632ef9b29cf5562a670caf16cf61a`
 > **Scope mode**: strict; the exact source and test paths are listed in the modification set below
 > **Reasoning**: high — lowering, layout, volatile-effect and cost-oracle changes with hardware-visible consequences
@@ -113,10 +113,10 @@ New exported types, functions and properties receive JSDoc in the project style.
 
 ### T-27 — Relocated-screen sprite-pointer base
 
-- [ ] T-27.1 Write RED coverage: a screen at `$0C00` with `setSpritePointer` emits `$0FF8` (and `$0FF8,x` when indexed); the canonical `const SCREEN_SELECT: byte = vicScreenSelect(&SCREEN)` initializer form is recognized; default `$0400` still emits `$07F8`; a constant `vicScreenSelect($0C00)` resolves `$0FF8` without creating a layout footprint; two distinct active screens fail with source-linked E10273 through the existing placement-failure path; a 1,024-byte screen and a screen at `$3C00` keep the pointer table at `$3FF8`.
-- [ ] T-27.2 Write the sequential VICE regression: after a screen-at-`$0C00` build, `$0FF8` contains the written pointer byte and `$D018` selects the `$0C00` screen field.
-- [ ] T-27.3 Mark the screen role, occupy its full 1,024-byte footprint during placement, add the 16-byte zero tail and 8-byte pointer table, and resolve the symbolic pointer-table operand/effect after layout.
-- [ ] T-27.4 Record the ambiguous multi-screen rejection in the expressiveness ledger and verify the default-screen, relocated-screen, bank-end, collision, VICE and unchanged startup `$07F8` preservation cases.
+- [x] T-27.1 Write RED coverage: a screen at `$0C00` with `setSpritePointer` emits `$0FF8` (and `$0FF8,x` when indexed); the canonical `const SCREEN_SELECT: byte = vicScreenSelect(&SCREEN)` initializer form is recognized; default `$0400` still emits `$07F8`; a constant `vicScreenSelect($0C00)` resolves `$0FF8` without creating a layout footprint; two distinct active screens fail with source-linked E10273 through the existing placement-failure path; a 1,024-byte screen and a screen at `$3C00` keep the pointer table at `$3FF8`. ✅ (completed: 2026-11-09 16:18)
+- [x] T-27.2 Write the sequential VICE regression: after a screen-at-`$0C00` build, `$0FF8` contains the written pointer byte and `$D018` selects the `$0C00` screen field. ✅ (completed: 2026-11-09 16:18)
+- [x] T-27.3 Mark the screen role, occupy its full 1,024-byte footprint during placement, add the 16-byte zero tail and 8-byte pointer table, and resolve the symbolic pointer-table operand/effect after layout. ✅ (completed: 2026-11-09 16:18)
+- [x] T-27.4 Record the ambiguous multi-screen rejection in the expressiveness ledger and verify the default-screen, relocated-screen, bank-end, collision, VICE and unchanged startup `$07F8` preservation cases. ✅ (completed: 2026-11-09 16:18)
 
 ### T-24 — Source-linked VIC field diagnostics
 

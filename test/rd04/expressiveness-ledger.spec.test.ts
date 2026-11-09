@@ -167,6 +167,27 @@ function leaf(): void { ${saves(226)} }
 function main(): void { asm_cli(); asm_nop(); ${main} }`,
     ),
   },
+  {
+    id: "v4-multi-screen-sprite-pointer",
+    assets: [
+      { path: "first.bin", bytes: Uint8Array.from({ length: 1000 }, (_, index) => index & 0xff) },
+      {
+        path: "second.bin",
+        bytes: Uint8Array.from({ length: 1000 }, (_, index) => 0xff - (index & 0xff)),
+      },
+      { path: "sprites.bin", bytes: Uint8Array.from({ length: 64 }, (_, index) => index & 0xff) },
+    ],
+    sources: [
+      `module Game;
+place(at: $0800) const FIRST: byte[] = embed("first.bin");
+place(at: $0C00) const SECOND: byte[] = embed("second.bin");
+const SPRITES: byte[] = embed("sprites.bin");
+function main(): void {
+  poke($D018, c64.vic.vicScreenSelect(&FIRST) | c64.vic.vicScreenSelect(&SECOND));
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+}`,
+    ],
+  },
 ];
 
 /**

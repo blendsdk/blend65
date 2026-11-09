@@ -174,12 +174,61 @@ export function resolvePlacementTransforms(
   profile: TargetProfile,
 ): MachineProgram | null {
   const placed = new Map(intervals.map((interval) => [interval.id, interval] as const));
+  const screenLabels = new Set<string>();
+  for (const fn of [program.startup, ...program.functions]) {
+    for (const block of fn.blocks) {
+      for (const instruction of block.instructions) {
+        const operand = instruction.operand;
+        if (operand?.kind === "label" && operand.transform === "vic-screen-select") {
+          screenLabels.add(operand.label);
+        }
+      }
+    }
+  }
+  const activeScreenLabel = screenLabels.size === 1 ? [...screenLabels][0]! : null;
+  const resolveEffect = (effect: MachineInstruction["memory"][number]) => {
+    if (effect.address.kind !== "symbolic" || effect.address.label !== activeScreenLabel) {
+      return effect;
+    }
+    const interval = placed.get(effect.address.label);
+    if (interval === undefined || interval.kind !== "asset") return null;
+    return Object.freeze({
+      ...effect,
+      address: Object.freeze({
+        kind: "absolute" as const,
+        value: interval.start + (effect.address.offset ?? 0),
+      }),
+    });
+  };
   const resolveFunction = (fn: MachineFunction): MachineFunction | null => {
     const blocks = fn.blocks.map((block) => {
       const instructions = block.instructions.map((instruction) => {
         const operand = instruction.operand;
+        if (operand?.kind === "label" && operand.addressTransform === "sprite-pointer-table") {
+          if (activeScreenLabel === null) return null;
+          const interval = placed.get(activeScreenLabel);
+          if (interval === undefined || interval.kind !== "asset") return null;
+          const address = interval.start + (operand.offset ?? 0);
+          if (address < 0 || address > 0xffff) return null;
+          const memory = instruction.memory.map(resolveEffect);
+          if (memory.some((effect) => effect === null)) return null;
+          return Object.freeze({
+            ...instruction,
+            operand: Object.freeze({ kind: "absolute" as const, value: address }),
+            memory: Object.freeze(
+              memory.filter((effect): effect is NonNullable<typeof effect> => effect !== null),
+            ),
+          });
+        }
         if (operand?.kind !== "label" || operand.transform === undefined) {
-          return instruction;
+          const memory = instruction.memory.map(resolveEffect);
+          if (memory.some((effect) => effect === null)) return null;
+          return Object.freeze({
+            ...instruction,
+            memory: Object.freeze(
+              memory.filter((effect): effect is NonNullable<typeof effect> => effect !== null),
+            ),
+          });
         }
         const interval = placed.get(operand.label);
         const address = interval === undefined ? -1 : interval.start + (operand.offset ?? 0);
@@ -192,9 +241,14 @@ export function resolvePlacementTransforms(
           profile.machine.characterRomEnd,
         );
         if (value === null) return null;
+        const memory = instruction.memory.map(resolveEffect);
+        if (memory.some((effect) => effect === null)) return null;
         return Object.freeze({
           ...instruction,
           operand: Object.freeze({ kind: "immediate" as const, value }),
+          memory: Object.freeze(
+            memory.filter((effect): effect is NonNullable<typeof effect> => effect !== null),
+          ),
         });
       });
       if (instructions.some((instruction) => instruction === null)) return null;

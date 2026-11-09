@@ -10,6 +10,7 @@ import { c64InterruptEntryLabel } from "./lower-c64.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import type { MachineInstruction } from "./machine-types.js";
 import {
+  isLoweringFailure,
   loweringFailure,
   requestStorage,
   retainMachineValue,
@@ -91,6 +92,9 @@ export function lowerPlatformOperation(
 ): readonly MachineInstruction[] {
   try {
     const lowered = lowerC64Operation(operation, state.values, state.input.profile, {
+      ...(state.input.c64ActiveScreen === undefined
+        ? {}
+        : { activeScreen: state.input.c64ActiveScreen }),
       requestScratch: (suffix, bytes, source, reason) =>
         requestStorage(state, suffix, "temporary", bytes, "ram", source, reason),
       interruptBinding: (sourceOperation) => {
@@ -224,6 +228,7 @@ export function lowerPlatformOperation(
     }
     return sequence;
   } catch (error) {
+    if (isLoweringFailure(error)) throw error;
     throw loweringFailure(
       error instanceof Error ? error.message : "Cannot lower platform operation",
       operation.span,
