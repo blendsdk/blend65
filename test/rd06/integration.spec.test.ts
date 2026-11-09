@@ -218,7 +218,7 @@ function main(): void { poke($0400, T[0][0]); poke($0401, E[0][0]); }
 const ROW: byte[4] = embed("row.bin");
 const TABLE: byte[1][4] = [ROW];
 const ALIAS: byte[4] = ROW;
-function main(): void { poke($0400, TABLE[0][0]); poke($0401, ALIAS[0]); poke($0402, peek(&ROW)); }
+function main(): void { let address: word = &ROW; poke($0400, TABLE[0][0]); poke($0401, ALIAS[0]); poke($0402, peek(address)); }
 `;
     await withProject(
       source,

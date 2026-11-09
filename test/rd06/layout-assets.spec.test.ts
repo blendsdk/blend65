@@ -363,6 +363,62 @@ function main(): void {
   }, 60_000);
 });
 
+describe("post-layout VIC constant arithmetic", () => {
+  it("should fold a VIC field plus an ordinary constant", async () => {
+    await withProject(
+      `module Game;
+place(at: $2040) const SPRITES: byte[] = embed("sprites.bin");
+function main(): void { poke($D018, c64.vic.vicSpriteBlock(&SPRITES) + 1); }
+`,
+      [{ path: "sprites.bin", bytes: patternedBytes(64, 71) }],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+        const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
+        expect(assembly).toMatch(/lda #\$82\b/iu);
+        expect(assembly).not.toMatch(/clc\b[\s\S]{0,40}adc #\$01\b/iu);
+      },
+    );
+  }, 60_000);
+
+  it("should fold a VIC field shift", async () => {
+    await withProject(
+      `module Game;
+place(at: $2040) const SPRITES: byte[] = embed("sprites.bin");
+function main(): void { poke($D018, c64.vic.vicSpriteBlock(&SPRITES) << 1); }
+`,
+      [{ path: "sprites.bin", bytes: patternedBytes(64, 72) }],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+        const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
+        expect(assembly).toMatch(/lda #\$02\b/iu);
+      },
+    );
+  }, 60_000);
+
+  it("should keep the arithmetic chain when php observes its flags", async () => {
+    await withProject(
+      `module Game;
+place(at: $2040) const SPRITES: byte[] = embed("sprites.bin");
+function main(): void {
+  let value: byte = c64.vic.vicSpriteBlock(&SPRITES) + 1;
+  asm_php();
+  asm_plp();
+  poke($D020, value);
+}
+`,
+      [{ path: "sprites.bin", bytes: patternedBytes(64, 73) }],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+        const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
+        expect(assembly).toMatch(/clc\b[\s\S]{0,40}adc #\$01\b/iu);
+      },
+    );
+  }, 60_000);
+});
+
 describe("relocated-screen sprite pointer base", () => {
   const screen = patternedBytes(1000, 31);
   const sprites = patternedBytes(64, 32);

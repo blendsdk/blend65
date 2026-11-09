@@ -420,6 +420,8 @@ export interface MachineInstruction {
   readonly sourceIteration?: number;
   /** Size-neutral identity operand retained only until post-layout compaction. */
   readonly foldedIdentity?: true;
+  /** Immediate value produced by one final-placement VIC field transform. */
+  readonly foldedVicField?: true;
 }
 
 /** Unconditional transfer to another structured block. */

@@ -3,9 +3,9 @@
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: RD-06 residual parity and evidence debt; [issue #140](https://github.com/blendsdk/blend65/issues/140)
 > **Created**: 2026-11-09 15:19
-> **Progress**: 5/8 tasks (63%)
+> **Progress**: 6/8 tasks (75%)
 > **Status**: Executing
-> **Last Updated**: 2026-11-09 16:40
+> **Last Updated**: 2026-11-09 16:44
 > **Phase baseline tree**: `2e7b02bd5ba632ef9b29cf5562a670caf16cf61a`
 > **Scope mode**: strict; the exact source and test paths are listed in the modification set below
 > **Reasoning**: high — lowering, layout, volatile-effect and cost-oracle changes with hardware-visible consequences
@@ -148,9 +148,9 @@ New exported types, functions and properties receive JSDoc in the project style.
 
 ### T-23 — VIC field constant arithmetic
 
-- [ ] T-23.1 Write RED coverage: `vicSpriteBlock(&S) + 1` emits one immediate `lda #$81` with no `clc`/`adc`; the subtract and accumulator-shift forms fold; a following C/V-reading consumer, `php`/`plp`, call, branch or block boundary keeps the original chain.
-- [ ] T-23.2 Extend the post-layout fold to adjacent immediate `clc`/`adc`, `sec`/`sbc` and `asl`/`lsr` chains with a forward C/V-liveness proof; reuse T-21's fixed-origin compaction and leave startup untouched.
-- [ ] T-23.3 Verify exact byte/cycle costs, the flag-unsafe rejection cases, the branch/fallthrough repair and the unchanged logical fold behavior from T-21.
+- [x] T-23.1 Write RED coverage: `vicSpriteBlock(&S) + 1` emits one immediate `lda` with no `clc`/`adc`; the subtract and accumulator-shift forms fold; a following C/V-reading consumer, `php`/`plp`, call, branch or block boundary keeps the original chain. ✅ (completed: 2026-11-09 16:44)
+- [x] T-23.2 Extend the post-layout fold to adjacent immediate `clc`/`adc`, `sec`/`sbc` and `asl`/`lsr` chains with a forward C/V-liveness proof; reuse T-21's fixed-origin compaction and leave startup untouched. ✅ (completed: 2026-11-09 16:44)
+- [x] T-23.3 Verify exact byte/cycle costs, the flag-unsafe rejection cases, the branch/fallthrough repair and the unchanged logical fold behavior from T-21. ✅ (completed: 2026-11-09 16:44)
 
 ### T-25 — Handler inventory and remedy accuracy
 

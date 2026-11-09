@@ -5,6 +5,7 @@ import { repairMachineBranches } from "../machine/block-layout.js";
 import { vicFieldFailure, vicFieldValue } from "../machine/vic-fields.js";
 import type { MachineInstruction } from "../machine/machine-types.js";
 import type {
+  MachineBlock,
   MachineDataObject,
   MachineFunction,
   MachineProgram,
@@ -332,6 +333,7 @@ export function resolvePlacementTransforms(
         return Object.freeze({
           ...instruction,
           operand: Object.freeze({ kind: "immediate" as const, value }),
+          foldedVicField: true as const,
           memory: Object.freeze(
             memory.filter((effect): effect is NonNullable<typeof effect> => effect !== null),
           ),
@@ -385,16 +387,117 @@ export function resolvePlacementTransforms(
  * is never rejected for a two-byte code-payload win.
  */
 export function compactFoldedFunctions(program: MachineProgram): MachineProgram {
+  const foldArithmetic = (blocks: readonly MachineBlock[]): readonly MachineBlock[] => {
+    const byLabel = new Map(blocks.map((block) => [block.label, block] as const));
+    const memo = new Map<string, boolean>();
+    const visiting = new Set<string>();
+    const flagsSafe = (label: string, index: number): boolean => {
+      const key = `${label}\0${index}`;
+      const cached = memo.get(key);
+      if (cached !== undefined) return cached;
+      if (visiting.has(key)) return false;
+      visiting.add(key);
+      const block = byLabel.get(label);
+      if (block === undefined) return true;
+      let safe = true;
+      for (let cursor = index; cursor < block.instructions.length; cursor += 1) {
+        const instruction = block.instructions[cursor]!;
+        if (instruction.uses.flags.some((flag) => flag === "c" || flag === "v")) {
+          safe = false;
+          break;
+        }
+        if (
+          instruction.opcode === "jsr" ||
+          instruction.defines.flags.some((flag) => flag === "c" || flag === "v")
+        ) {
+          safe = true;
+          break;
+        }
+      }
+      if (safe) {
+        const terminal = block.terminator;
+        if (terminal.kind === "branch" || terminal.kind === "long-branch") {
+          const target = terminal.kind === "branch" ? terminal.target : terminal.jump.target;
+          safe =
+            !terminal.uses.flags.some((flag) => flag === "c" || flag === "v") &&
+            flagsSafe(target, 0) &&
+            flagsSafe(terminal.fallthrough, 0);
+        } else if (terminal.kind === "jump") {
+          safe = flagsSafe(terminal.target, 0);
+        }
+      }
+      visiting.delete(key);
+      memo.set(key, safe);
+      return safe;
+    };
+    return blocks.map((block) => {
+      const instructions: MachineInstruction[] = [];
+      const source = block.instructions;
+      for (let index = 0; index < source.length; index += 1) {
+        const first = source[index]!;
+        if (
+          first.opcode === "lda" &&
+          first.mode === "immediate" &&
+          first.operand?.kind === "immediate" &&
+          first.foldedVicField === true
+        ) {
+          const second = source[index + 1];
+          const third = source[index + 2];
+          const left = first.operand.value;
+          let folded: number | undefined;
+          let consumed = 0;
+          if (
+            second?.opcode === "clc" &&
+            third?.opcode === "adc" &&
+            third.mode === "immediate" &&
+            third.operand?.kind === "immediate"
+          ) {
+            folded = (left + third.operand.value) & 0xff;
+            consumed = 2;
+          } else if (
+            second?.opcode === "sec" &&
+            third?.opcode === "sbc" &&
+            third.mode === "immediate" &&
+            third.operand?.kind === "immediate"
+          ) {
+            folded = (left - third.operand.value) & 0xff;
+            consumed = 2;
+          } else if (second?.opcode === "asl" && second.mode === "accumulator") {
+            folded = (left << 1) & 0xff;
+            consumed = 1;
+          } else if (second?.opcode === "lsr" && second.mode === "accumulator") {
+            folded = (left >> 1) & 0xff;
+            consumed = 1;
+          }
+          if (folded !== undefined && flagsSafe(block.label, index + consumed + 1)) {
+            instructions.push(
+              Object.freeze({
+                ...first,
+                operand: Object.freeze({ kind: "immediate" as const, value: folded }),
+              }),
+            );
+            index += consumed;
+            continue;
+          }
+        }
+        instructions.push(first);
+      }
+      return Object.freeze({ ...block, instructions: Object.freeze(instructions) });
+    });
+  };
   const compact = (fn: MachineFunction): MachineFunction => {
     if (
       fn.origin === undefined ||
       !fn.blocks.some((block) =>
-        block.instructions.some((instruction) => instruction.foldedIdentity === true),
+        block.instructions.some(
+          (instruction) =>
+            instruction.foldedIdentity === true || instruction.foldedVicField === true,
+        ),
       )
     ) {
       return fn;
     }
-    const blocks = fn.blocks.map((block) =>
+    const stripped = fn.blocks.map((block) =>
       Object.freeze({
         ...block,
         instructions: Object.freeze(
@@ -402,6 +505,7 @@ export function compactFoldedFunctions(program: MachineProgram): MachineProgram 
         ),
       }),
     );
+    const blocks = foldArithmetic(stripped);
     const repaired = repairMachineBranches(Object.freeze({ ...fn, blocks }), fn.origin);
     if (repaired.kind === "error") return fn;
     const original = functionBytes(fn);
