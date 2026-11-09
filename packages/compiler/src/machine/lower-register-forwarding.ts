@@ -106,6 +106,8 @@ export function selectRegisterForwarding(
   readonly byteOrdinalAdditions: ReadonlySet<string>;
   /** Proved `constant + byte index` addresses consumed only by their next raw read. */
   readonly ordinalRawReads: ReadonlyMap<string, { readonly base: number; readonly index: string }>;
+  /** Proved `constant + byte index` addresses consumed only by their next raw write. */
+  readonly ordinalRawWrites: ReadonlyMap<string, { readonly base: number; readonly index: string }>;
   /** Word decimal results constructed directly in their final fixed-address destination. */
   readonly directBcdWrites: ReadonlyMap<string, MemoryWriteOperation>;
   /** Second byte operands read into X to preserve the first operand in A. */
@@ -159,9 +161,17 @@ export function selectRegisterForwarding(
     index: number,
   ): SemanticBlock["operations"][number] | undefined =>
     block.operations[nextMachineOperationIndex(block, index)];
+  /** Follow one code-free conversion to the value whose use-site bound was proved. */
+  const convertedSource = (block: SemanticBlock, value: string): string => {
+    const definition = block.operations.find(
+      (operation) => operation.kind === "convert" && operation.result === value,
+    );
+    return definition?.kind === "convert" ? definition.operand : value;
+  };
   const forwardedRegisterValues = new Set<string>();
   const byteOrdinalAdditions = new Set<string>();
   const ordinalRawReads = new Map<string, { readonly base: number; readonly index: string }>();
+  const ordinalRawWrites = new Map<string, { readonly base: number; readonly index: string }>();
   const directBcdWrites = new Map<string, MemoryWriteOperation>();
   const subtractRightInX = new Set<string>();
   const wordAddLeftHighInY = new Set<string>();
@@ -281,6 +291,63 @@ export function selectRegisterForwarding(
               // Ordinary RAM only: the indexed form annotates its anchor byte
               // and must never stand in for an unproved device access.
               ordinalRawReads.set(producer.result, {
+                base: Number(base),
+                index: indexValue,
+              });
+              break;
+            }
+          }
+        }
+      }
+      if (
+        producer.kind === "binary" &&
+        producer.operator === "+" &&
+        producer.integer?.width === 16 &&
+        producer.integer.signed === false &&
+        singleUseValues.has(producer.result)
+      ) {
+        const consumerIndex = block.operations.findIndex(
+          (operation, candidateIndex) =>
+            candidateIndex > index &&
+            operation.kind === "memory-write" &&
+            operation.width === 1 &&
+            operation.address === producer.result,
+        );
+        const consumer = block.operations[consumerIndex];
+        const intervening = block.operations.slice(index + 1, consumerIndex);
+        const writesMemory = intervening.some(
+          (operation) =>
+            operation.kind === "store" ||
+            operation.kind === "memory-write" ||
+            operation.kind === "call" ||
+            operation.kind === "indirect-call" ||
+            operation.kind === "platform" ||
+            (operation.kind === "aggregate" &&
+              operation.destination?.kind === "place" &&
+              operation.destination.place.path.length > 0),
+        );
+        if (consumer?.kind === "memory-write" && !writesMemory) {
+          for (const [baseValue, indexValue] of [
+            [producer.left, producer.right],
+            [producer.right, producer.left],
+          ] as const) {
+            const base = literals.get(baseValue);
+            const maximum =
+              ordinalBounds.get(consumer)?.get(indexValue) ??
+              ordinalBounds.get(consumer)?.get(convertedSource(block, indexValue));
+            if (
+              base !== undefined &&
+              base >= 0x0400n &&
+              base <= 0xffffn &&
+              maximum !== undefined &&
+              maximum >= 0n &&
+              maximum <= 255n &&
+              base + maximum <= 0xcfffn
+            ) {
+              // The interval proof is the same ordinary-RAM rule as the read
+              // path. The value evaluation may intervene, but the index home is
+              // immutable across it and the value must load into A after X.
+              ordinalRawWrites.set(producer.result, {
                 base: Number(base),
                 index: indexValue,
               });
@@ -708,6 +775,7 @@ export function selectRegisterForwarding(
     forwardedRegisterValues,
     byteOrdinalAdditions,
     ordinalRawReads,
+    ordinalRawWrites,
     directBcdWrites,
     subtractRightInX,
     wordAddLeftHighInY,

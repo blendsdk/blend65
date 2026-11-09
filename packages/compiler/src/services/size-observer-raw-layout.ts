@@ -246,6 +246,36 @@ function rawIndexed(
   if (input === undefined)
     return failure("rejected", "Raw indexed read has no retained index representation", span);
   const index = input.kind === "zero-extended" ? input.low : input;
+  if (origin.operation.kind === "memory-write") {
+    const access = sequence.at(-1);
+    if (
+      access?.opcode !== "sta" ||
+      access.mode !== "absolute-x" ||
+      access.operand?.kind !== "absolute"
+    )
+      return failure("error", "Raw indexed write does not end in one native indexed store", span);
+    if (heldCounter) {
+      if (sequence.length !== 1 || index.kind !== "register" || index.registers !== "x")
+        return failure("error", "Held-counter raw write is not one native absolute-X store", span);
+      return access.operand.value;
+    }
+    if (sequence.length !== 2)
+      return failure(
+        "error",
+        "Raw indexed write is not one index load and one absolute-X store",
+        span,
+      );
+    const load = sequence[0];
+    if (
+      (load?.opcode === "ldx" &&
+        load.mode === modeForValue(index, 0) &&
+        JSON.stringify(load.operand) === JSON.stringify(operandForValue(index, 0))) ||
+      (index.kind === "register" && index.registers === "a" && load?.opcode === "tax")
+    ) {
+      return access.operand.value;
+    }
+    return failure("error", "Raw indexed write does not load its proved source index", span);
+  }
   /**
    * A loop counter proved live in X already holds the exact index. Its read
    * supplies no separate load instruction, so the sequence is only the access.

@@ -47,23 +47,36 @@ function observeRawSequence(
         ? "raw-indexed"
         : "raw-indirect";
   const addressInput = address?.kind === "ordinal-address" ? address.index : address!;
+  const ordinalWrite = operation.kind === "memory-write" && address?.kind === "ordinal-address";
+  const rawLength = ordinalWrite ? Math.min(2, sequence.length) : sequence.length;
   return Object.freeze(
-    sequence.map((instruction, position) =>
-      Object.freeze({
+    sequence.map((instruction, position) => {
+      // A proved write evaluates its value between the index setup and the
+      // volatile store. The value is ordinary lowering work, not one byte of
+      // the raw access, so it keeps no raw association.
+      if (ordinalWrite && position > 0 && position < sequence.length - 1) {
+        return instruction;
+      }
+      const rawPosition = ordinalWrite
+        ? position === sequence.length - 1
+          ? rawLength - 1
+          : 0
+        : position;
+      return Object.freeze({
         ...instruction,
         observerOrigins: Object.freeze([
           Object.freeze({
             kind: "raw" as const,
             operation,
             recipe,
-            position,
-            length: sequence.length,
+            position: rawPosition,
+            length: rawLength,
             byte: instruction.memory.find((effect) => effect.volatile)?.order ?? null,
             addressInput,
           }),
         ]),
-      }),
-    ),
+      });
+    }),
   );
 }
 
@@ -286,6 +299,52 @@ export function lowerMemoryWrite(
     value.kind === "condition"
   ) {
     throw new Error("Raw-memory write has no stable lowered address/value");
+  }
+  if (address.kind === "ordinal-address") {
+    if (operation.width !== 1) {
+      throw new Error("Proved ordinal raw address is only selected for byte writes");
+    }
+    const index = address.index.kind === "zero-extended" ? address.index.low : address.index;
+    const instructions: MachineInstruction[] = [];
+    if (index.kind === "register" && index.registers === "x") {
+      // The proved counter already holds this exact ordinal in X.
+    } else if (index.kind === "register" && index.registers === "a") {
+      instructions.push(
+        machineInstruction(context.cpu, "tax", "implied", null, [], operation.span),
+      );
+    } else {
+      instructions.push(
+        machineInstruction(
+          context.cpu,
+          "ldx",
+          modeForValue(index),
+          operandForValue(index),
+          [],
+          operation.span,
+        ),
+      );
+    }
+    if (value.kind === "register" && value.registers === "x") {
+      if (!(index.kind === "register" && index.registers === "x")) {
+        throw new Error("Ordinal raw write cannot preserve a distinct X-held value");
+      }
+      instructions.push(
+        machineInstruction(context.cpu, "txa", "implied", null, [], operation.span),
+      );
+    } else if (!(value.kind === "register" && value.registers === "a")) {
+      instructions.push(loadA(value, 0, context.cpu, operation.span));
+    }
+    instructions.push(
+      machineInstruction(
+        context.cpu,
+        "sta",
+        "absolute-x",
+        Object.freeze({ kind: "absolute", value: address.base }),
+        [absoluteEffect("write", address.base, 0)],
+        operation.span,
+      ),
+    );
+    return observeRawSequence(instructions, operation, context);
   }
   if (address.kind === "constant") {
     const instructions: MachineInstruction[] = [];

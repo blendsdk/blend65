@@ -129,6 +129,11 @@ export interface FunctionLoweringState {
   readonly byteOrdinalAdditions?: ReadonlySet<string>;
   /** Proved `constant + byte index` raw-read addresses; absent without size observers. */
   readonly ordinalRawReads?: ReadonlyMap<string, { readonly base: number; readonly index: string }>;
+  /** Proved `constant + byte index` raw-write addresses in every non-metadata mode. */
+  readonly ordinalRawWrites?: ReadonlyMap<
+    string,
+    { readonly base: number; readonly index: string }
+  >;
   /** One adjacent fixed byte read delivered by its proved store or bitwise consumer. */
   adjacentByteRead?: {
     /** Sole consuming operation's semantic value identity. */

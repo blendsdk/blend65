@@ -269,3 +269,58 @@ describe("proved ordinal-address byte reads", () => {
     );
   });
 });
+
+describe("proved ordinal-address byte writes", () => {
+  /** Add one already-evaluated value to the ordinal write context. */
+  function writeContext(index: LoweredValue, value: LoweredValue): RawMemoryLoweringContext {
+    const base = ordinalContext(index);
+    return { ...base, values: new Map([...base.values, ["value", value]]) };
+  }
+
+  it("should write through one absolute,X store with a storage index", () => {
+    const index: LoweredValue = { kind: "storage", requestId: "counter", bytes: 1 };
+    const stored = lowerMemoryWrite(
+      write(1),
+      writeContext(index, { kind: "constant", value: 0x5a, bytes: 1 }),
+    );
+    expect(stored.map(({ opcode }) => opcode)).toEqual(["ldx", "lda", "sta"]);
+    expect(stored.map(({ mode }) => mode)).toEqual(["storage", "immediate", "absolute-x"]);
+    expect(stored[2]!.operand).toEqual({ kind: "absolute", value: 0xc110 });
+    expect(stored[2]!.memory).toEqual([
+      {
+        kind: "write",
+        address: { kind: "absolute", value: 0xc110 },
+        width: 1,
+        volatile: true,
+        order: 0,
+      },
+    ]);
+    expect(stored[2]!.observerOrigins?.[0]).toMatchObject({
+      kind: "raw",
+      recipe: "raw-indexed",
+      position: 1,
+      length: 2,
+      byte: 0,
+      addressInput: index,
+    });
+    expect(stored.reduce((sum, instruction) => sum + instruction.cost.bytes, 0)).toBe(8);
+    expect(stored.reduce((sum, instruction) => sum + instruction.cost.minCycles, 0)).toBe(11);
+  });
+
+  it("should write a live accumulator value with an X-held index in one store", () => {
+    const index: LoweredValue = { kind: "register", registers: "x", bytes: 1, signed: false };
+    const stored = lowerMemoryWrite(
+      write(1),
+      writeContext(index, { kind: "register", registers: "a", bytes: 1, signed: false }),
+    );
+    expect(stored.map(({ opcode }) => opcode)).toEqual(["sta"]);
+    expect(stored[0]!.mode).toBe("absolute-x");
+  });
+
+  it("should reject a word write because the rule only proves one byte", () => {
+    const index: LoweredValue = { kind: "storage", requestId: "counter", bytes: 1 };
+    expect(() =>
+      lowerMemoryWrite(write(2), writeContext(index, { kind: "constant", value: 1, bytes: 2 })),
+    ).toThrow("Proved ordinal raw address is only selected for byte writes");
+  });
+});

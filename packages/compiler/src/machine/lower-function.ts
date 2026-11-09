@@ -122,6 +122,7 @@ export function lowerFunction(
     forwardedRegisterValues,
     byteOrdinalAdditions,
     ordinalRawReads,
+    ordinalRawWrites,
     directBcdWrites,
     subtractRightInX,
     wordAddLeftHighInY,
@@ -160,7 +161,7 @@ export function lowerFunction(
     forwardedRegisterValues: new Set(forwardedRegisterValues),
     byteOrdinalAdditions,
     ...(input.observerEvidence === true && input.optimizationFacts !== undefined
-      ? { ordinalRawReads }
+      ? { ordinalRawReads, ordinalRawWrites }
       : {}),
     directBcdWrites,
     subtractRightInX,

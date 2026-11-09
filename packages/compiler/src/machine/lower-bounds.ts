@@ -529,7 +529,13 @@ export function ordinalBoundsForFunction(
           address.integer.signed === false
         )
           for (const ordinal of [address.right, address.left]) {
-            const maximum = maximumAt(operation, ordinal) ?? sourceBounds.get(ordinal);
+            const definition = definitions.get(ordinal);
+            const source = definition?.kind === "convert" ? definition.operand : ordinal;
+            const maximum =
+              maximumAt(operation, source) ??
+              sourceBounds.get(source) ??
+              maximumAt(operation, ordinal) ??
+              sourceBounds.get(ordinal);
             if (maximum !== undefined) {
               ordinals.set(ordinal, maximum);
               break;

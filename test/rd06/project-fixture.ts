@@ -16,6 +16,7 @@ export async function withProject<T>(
   assets: readonly ProjectAsset[],
   inspect: (project: string, root: string) => Promise<T>,
   target = "c64-pal-prg-kernal-6581",
+  optimization: "none" | "balanced" | "speed" | "size" = "none",
 ): Promise<T> {
   const root = await mkdtemp(join(tmpdir(), "blend65-rd06-"));
   try {
@@ -37,7 +38,7 @@ export async function withProject<T>(
         target,
         assetPaths: ["assets"],
         outDir: "out",
-        optimization: "none",
+        optimization,
       }),
     );
     return await inspect(join(root, "blend65.json"), root);

@@ -111,6 +111,15 @@ ordinal writes are an RD-08 value transform; reconciled by RD-04 AC-37 and the u
 fixture. Confidence: High. Hardening: independent challenger verdict Justified (choose B). Reopen if
 the pinned none fixture changes unintentionally or the proof cannot accept the Q-P15 index shapes.
 
+**Runtime correction (2026-11-09 16:36):** PF-001 reopened during execution. The `none` bounds
+pass has no fixed-loop facts (`prepareFixedLoops` only derives counter facts when a loop policy
+exists), so the ordinal write proof cannot be installed for `none` without a separate loop-bound
+source. The plan now installs ordinal writes under the existing optimized-mode gate, keeps Q-P15
+and the pinned none identity at the T-21 383 baseline, and records the none-mode extension as
+tracked debt. Authority: AI — delegated by `--auto-design`; evidence:
+`machine/fixed-loop-selection.ts` counter-fact gate and the observed pre-change Q-P15 assembly.
+This narrows the accepted scope rather than expanding it; no oracle is weakened.
+
 ### PF-002: T-20's "mirror the read adjacency" is false for writes 🟠 MAJOR
 
 **Dimension:** Implicit Assumption / Edge Case

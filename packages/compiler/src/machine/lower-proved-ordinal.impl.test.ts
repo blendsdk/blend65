@@ -215,12 +215,60 @@ function selectRawRead(
   );
 }
 
+/** One proved byte write through `constantBase + boundedIndex`. */
+const rawWrite: Extract<SemanticOperation, { readonly kind: "memory-write" }> = {
+  kind: "memory-write",
+  address: "address",
+  value: "value",
+  width: 1,
+  byteOrder: "low-first",
+  volatile: true,
+  span,
+};
+const valueLiteral: Extract<SemanticOperation, { readonly kind: "constant" }> = {
+  ...literal,
+  result: "value",
+  value: 0x5an,
+};
+
+/** Select the ordinal raw-write fact for one exact address addition. */
+function selectRawWrite(
+  maximum: bigint | null = 7n,
+  singleUse = true,
+  write: Extract<SemanticOperation, { readonly kind: "memory-write" }> = rawWrite,
+  base = baseLiteral,
+) {
+  const sum = { ...addition, result: "address", left: "base", right: "index" };
+  return selectRegisterForwarding(
+    [semanticBlock("entry", [base, sum, valueLiteral, write], { kind: "return", value: null })],
+    new Set(singleUse ? ["address"] : []),
+    new Map([[write, new Map<string, bigint>(maximum === null ? [] : [["index", maximum]])]]),
+  );
+}
+
 describe("proved ordinal raw addresses", () => {
   it("selects only a fixed ordinary-RAM base plus one bounded byte index", () => {
     expect(selectRawRead().ordinalRawReads.get("address")).toEqual({
       base: 0xc110,
       index: "index",
     });
+  });
+
+  it("selects the same proof for a single-byte raw write", () => {
+    expect(selectRawWrite().ordinalRawWrites.get("address")).toEqual({
+      base: 0xc110,
+      index: "index",
+    });
+  });
+
+  it("rejects an unproved or word raw write", () => {
+    expect(selectRawWrite(null).ordinalRawWrites.size).toBe(0);
+    expect(selectRawWrite(256n).ordinalRawWrites.size).toBe(0);
+    expect(selectRawWrite(7n, true, { ...rawWrite, width: 2 }).ordinalRawWrites.size).toBe(0);
+    expect(selectRawWrite(7n, false).ordinalRawWrites.size).toBe(0);
+    expect(
+      selectRawWrite(7n, true, rawWrite, { ...baseLiteral, value: 0x300n }).ordinalRawWrites.size,
+    ).toBe(0);
   });
 
   it.each([
