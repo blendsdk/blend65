@@ -657,7 +657,12 @@ export function lowerOperation(
       state.values.set(operation.result, captured.result);
       return captured.instructions;
     }
-    if (state.staticRawAddresses?.has(operation.result) && operation.place.path.length === 0) {
+    if (
+      state.staticRawAddresses?.has(operation.result) &&
+      operation.place.path.length === 0 &&
+      (operation.place.rootType?.kind === "array" || operation.place.rootType?.kind === "struct") &&
+      !isReturnedLocalPlace(operation.place, state)
+    ) {
       const owner = state.input.program.semantic.functions.find(
         ({ id }) => bindingIdentityKey(id) === bindingIdentityKey(state.owner),
       );
@@ -685,8 +690,9 @@ export function lowerOperation(
             kind: "static-address" as const,
             label: placed.label,
             offset: placed.offset ?? 0,
-            bytes: 2 as const,
-            signed: false as const,
+            bytes: 2,
+            signed: false,
+            ...(placed.zeroPage === true ? { zeroPage: true } : {}),
           }),
         );
         return Object.freeze([]);

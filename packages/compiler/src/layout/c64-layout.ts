@@ -842,7 +842,9 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
       objectId: null,
       diagnostic: projectDiagnostic(
         "E10273",
-        resolved.message,
+        resolved.message.startsWith("Cannot place")
+          ? resolved.message
+          : `Cannot place 'VIC field' — ${resolved.message}; change the field address or placement constraint`,
         resolved.source,
         null,
         [],

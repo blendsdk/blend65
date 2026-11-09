@@ -1,5 +1,5 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
-import type { SemanticOperation, SemanticProgram } from "../semantic/operations.js";
+import type { SemanticBlock, SemanticOperation } from "../semantic/operations.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
 
 /**
@@ -29,15 +29,10 @@ function screenIdentity(fact: ScreenValueFact): string | null {
   return null;
 }
 
-/** Resolve one value identity inside its owning function. */
-function functionValues(
-  program: SemanticProgram,
-  functionId: string,
-): ReadonlyMap<string, ScreenValueFact> {
+/** Resolve one value identity inside one executable block list. */
+function blockValues(blocks: readonly SemanticBlock[]): ReadonlyMap<string, ScreenValueFact> {
   const values = new Map<string, ScreenValueFact>();
-  const fn = program.functions.find(({ id }) => bindingIdentityKey(id) === functionId);
-  if (fn === undefined) return values;
-  for (const block of fn.blocks) {
+  for (const block of blocks) {
     for (const operation of block.operations) {
       if (operation.kind === "constant") {
         if (typeof operation.value === "bigint") {
@@ -76,16 +71,16 @@ function screenArgument(
 /**
  * Derive the unique active VIC screen relation from a closed semantic program.
  *
- * The scan is deliberately source-level: the field operation itself may be
- * folded into a const initializer before machine lowering. No runtime lookup or
- * public API is introduced.
+ * The scan covers the reachable function bodies and the reachable module
+ * initializer blocks. Dead functions cannot select a screen. No runtime lookup
+ * or public API is introduced.
  */
 export function deriveC64ActiveScreen(program: WholeProgram): C64ActiveScreenFact {
   const facts: ScreenValueFact[] = [];
   let unproved = false;
-  for (const fn of program.semantic.functions) {
-    const values = functionValues(program.semantic, bindingIdentityKey(fn.id));
-    for (const block of fn.blocks) {
+  const scan = (blocks: readonly SemanticBlock[]): void => {
+    const values = blockValues(blocks);
+    for (const block of blocks) {
       for (const operation of block.operations) {
         if (operation.kind !== "platform") continue;
         const fact = screenArgument(operation, values);
@@ -94,6 +89,14 @@ export function deriveC64ActiveScreen(program: WholeProgram): C64ActiveScreenFac
         else facts.push(fact);
       }
     }
+  };
+  const reachable = new Set(program.reachableFunctions.map(bindingIdentityKey));
+  for (const fn of program.semantic.functions) {
+    if (reachable.has(bindingIdentityKey(fn.id))) scan(fn.blocks);
+  }
+  const initializerIds = new Set(program.semantic.initializerOrder.map(bindingIdentityKey));
+  for (const global of program.semantic.globals) {
+    if (initializerIds.has(bindingIdentityKey(global.id))) scan(global.blocks);
   }
   const identities = new Set(facts.map((fact) => screenIdentity(fact)!));
   if (unproved || identities.size > 1) return Object.freeze({ kind: "unproved" });

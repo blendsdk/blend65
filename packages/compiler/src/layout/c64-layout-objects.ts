@@ -391,39 +391,47 @@ export function compactFoldedFunctions(program: MachineProgram): MachineProgram 
     const byLabel = new Map(blocks.map((block) => [block.label, block] as const));
     const memo = new Map<string, boolean>();
     const visiting = new Set<string>();
-    const flagsSafe = (label: string, index: number): boolean => {
-      const key = `${label}\0${index}`;
+    const flagsSafe = (label: string, index: number, deadC = false, deadV = false): boolean => {
+      const key = `${label}\0${index}\0${deadC ? 1 : 0}\0${deadV ? 1 : 0}`;
       const cached = memo.get(key);
       if (cached !== undefined) return cached;
       if (visiting.has(key)) return false;
       visiting.add(key);
       const block = byLabel.get(label);
       if (block === undefined) return true;
+      let c = deadC;
+      let v = deadV;
       let safe = true;
       for (let cursor = index; cursor < block.instructions.length; cursor += 1) {
         const instruction = block.instructions[cursor]!;
-        if (instruction.uses.flags.some((flag) => flag === "c" || flag === "v")) {
+        if (c && v) break;
+        if (instruction.opcode === "jsr") {
+          c = true;
+          v = true;
+          break;
+        }
+        if (!c && instruction.uses.flags.includes("c")) {
           safe = false;
           break;
         }
-        if (
-          instruction.opcode === "jsr" ||
-          instruction.defines.flags.some((flag) => flag === "c" || flag === "v")
-        ) {
-          safe = true;
+        if (!v && instruction.uses.flags.includes("v")) {
+          safe = false;
           break;
         }
+        if (instruction.defines.flags.includes("c")) c = true;
+        if (instruction.defines.flags.includes("v")) v = true;
       }
-      if (safe) {
+      if (safe && !(c && v)) {
         const terminal = block.terminator;
         if (terminal.kind === "branch" || terminal.kind === "long-branch") {
           const target = terminal.kind === "branch" ? terminal.target : terminal.jump.target;
           safe =
-            !terminal.uses.flags.some((flag) => flag === "c" || flag === "v") &&
-            flagsSafe(target, 0) &&
-            flagsSafe(terminal.fallthrough, 0);
-        } else if (terminal.kind === "jump") {
-          safe = flagsSafe(terminal.target, 0);
+            (c || !terminal.uses.flags.includes("c")) &&
+            (v || !terminal.uses.flags.includes("v")) &&
+            flagsSafe(target, 0, c, v) &&
+            flagsSafe(terminal.fallthrough, 0, c, v);
+        } else if (terminal.kind === "jump" || terminal.kind === "fallthrough") {
+          safe = flagsSafe(terminal.target, 0, c, v);
         }
       }
       visiting.delete(key);
@@ -488,6 +496,7 @@ export function compactFoldedFunctions(program: MachineProgram): MachineProgram 
   const compact = (fn: MachineFunction): MachineFunction => {
     if (
       fn.origin === undefined ||
+      fn.nmiPublicationEntry === true ||
       !fn.blocks.some((block) =>
         block.instructions.some(
           (instruction) =>

@@ -82,7 +82,12 @@ describe("selected numerical resource evidence", () => {
       expect(record(memory).acmeReconciled).toBe(true);
 
       const shared = records(record(memory).intervals)
-        .filter((interval) => bytes(interval.start) >= origin && bytes(interval.end) <= 0xd000)
+        .filter(
+          (interval) =>
+            interval.bankId === undefined &&
+            bytes(interval.start) >= origin &&
+            bytes(interval.end) <= 0xd000,
+        )
         .sort((left, right) => bytes(left.start) - bytes(right.start));
       expect(shared.length).toBeGreaterThan(0);
       let cursor = origin;

@@ -202,9 +202,13 @@ function loweringDiagnostic(failure: {
   readonly code?: "E10143" | "E10273";
   readonly contributors?: readonly string[];
 }): ProjectDiagnostic {
+  const message =
+    failure.code === "E10273" && !failure.reason.startsWith("Cannot place")
+      ? `Cannot place 'VIC field' — ${failure.reason}; change the field address or placement constraint`
+      : failure.reason;
   return projectDiagnostic(
     failure.code ?? "COMPILER_LOWERING",
-    failure.reason,
+    message,
     failure.source,
     null,
     [],
@@ -377,7 +381,10 @@ export function closeCanonicalStorage(
       sourceText: input.sourceText,
     });
   let lowered = lower(optimizationFacts);
-  if (lowered.kind === "error") return terminal("compiler", [loweringDiagnostic(lowered)]);
+  if (lowered.kind === "error")
+    return terminal(lowered.code === undefined ? "compiler" : "source", [
+      loweringDiagnostic(lowered),
+    ]);
   // The canonical reference decides which private temporary homes no rule keeps
   // readable. Every admitted representation receives that same set, so removing a
   // dead store can never make two layouts structurally disagree.
@@ -386,7 +393,10 @@ export function closeCanonicalStorage(
     const dead = deadTemporaryHomes(lowered.program);
     if (dead.size > 0) {
       const cleaned = lower(Object.freeze({ ...optimizationFacts, deadHomes: dead }));
-      if (cleaned.kind === "error") return terminal("compiler", [loweringDiagnostic(cleaned)]);
+      if (cleaned.kind === "error")
+        return terminal(cleaned.code === undefined ? "compiler" : "source", [
+          loweringDiagnostic(cleaned),
+        ]);
       lowered = cleaned;
       deadHomes = dead;
     }
@@ -663,7 +673,9 @@ export function closeCanonicalObjectStorage(
   if (lowered.kind === "error")
     return Object.freeze({
       kind: "failure",
-      failure: terminal("compiler", [loweringDiagnostic(lowered)]).failure,
+      failure: terminal(lowered.code === undefined ? "compiler" : "source", [
+        loweringDiagnostic(lowered),
+      ]).failure,
     });
   if (!validStorageDemands(lowered.program.requiredStorage))
     return Object.freeze({

@@ -186,7 +186,12 @@ function accounting(artifacts: Artifacts) {
   ).toBeGreaterThan(0);
   expect(value("residentRam")).toBe(
     intervals
-      .filter((interval) => interval.addressSpaceId === "cpu16" && interval.kind !== "reservation")
+      .filter(
+        (interval) =>
+          interval.addressSpaceId === "cpu16" &&
+          interval.bankId === undefined &&
+          interval.kind !== "reservation",
+      )
       .reduce((total, interval) => total + integer(interval.size), 0),
   );
   expect(value("zeroPage")).toBe(Math.max(...views.map((view) => integer(view.zeroPageBytes))));

@@ -132,13 +132,18 @@ describe.sequential("aggregate copy machine implementation", () => {
       }
       const residentRam = (memory.intervals as Record<string, unknown>[])
         .filter(
-          (interval) => interval.addressSpaceId === "cpu16" && interval.kind !== "reservation",
+          (interval) =>
+            interval.addressSpaceId === "cpu16" &&
+            interval.bankId === undefined &&
+            interval.kind !== "reservation",
         )
         .reduce((total, interval) => total + Number(interval.size), 0);
       expect(resourceRecords.find(({ id }) => id === "residentRam")?.value).toBe(residentRam);
       expect(resourceRecords.find(({ id }) => id === "zeroPage")?.value).toBe(
         physical
-          .filter(({ resourceClass }) => resourceClass === "zeroPage")
+          .filter(
+            ({ resourceClass, bankId }) => resourceClass === "zeroPage" && bankId === undefined,
+          )
           .reduce((total, item) => total + Number(item.size), 0),
       );
       expect(functions.map((item) => evidenceRecord(item).qualifiedName)).toEqual(

@@ -100,6 +100,17 @@
 | SR-827 | 5 | MINOR | evidence/padding | fixed — `paddingBeforeBytes` is derived from the preceding loaded payload and reported per asset |
 | SR-828 | 6 | MINOR | qualification/red-phase | accepted gap — no preserved pre-implementation red log exists for the final fixture/example/integration/aliasing/blocked-gate files; green run is 14/14 and observed failure modes are recorded in 08-host-observations |
 
+## RD-06 residual closure (T-20–T-27)
+
+The rows below that deferred work to `T-20`–`T-27` were closed by the
+[residual plan](../rd-06-residual-closure/99-execution-plan.md) and its
+[findings ledger](../rd-06-residual-closure/05-findings.md):
+SR-210/SR-507 (T-27), SR-301 (T-20), SR-506/SR-813 (T-26), SR-818/SR-819 (T-24),
+SR-826 (T-25), P10-09/P10-11/P10-12/P10-17/P10-18/P10-20/P10-21/P10-23.
+T-20 is verified in optimized mode; the `none` loop-bound gap and the
+multi-screen `setSpritePointer` restriction remain tracked debt. SR-828 and the
+CharPad 3.88 release qualification remain outside this closure.
+
 ## Phase 10 independent review dispositions
 
 Five independent read-only reviews covered phases 1–8 at HEAD `29099741`: correctness, semantics,

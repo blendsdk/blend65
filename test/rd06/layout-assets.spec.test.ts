@@ -69,7 +69,11 @@ function main(): void { poke($D018, c64.vic.vicBitmapSelect(&BITMAP) | c64.vic.v
         );
       }
       const bank = memory.views.find(({ id }) => id === "vic-bank-0")!;
-      expect(bank).toMatchObject({ consumer: "vic", addressSpaceId: "cpu16", end: 0x4000 });
+      expect(bank).toMatchObject({
+        consumer: "vic",
+        addressSpaceId: "cpu16-vic",
+        end: 0x4000,
+      });
       expect(bank.freeIntervals.some(({ start, end }) => start < 0x2000 && end > 0x2000)).toBe(
         false,
       );
@@ -134,10 +138,11 @@ function main(): void { poke($D018, c64.vic.vicBitmapSelect(&BITMAP) | c64.vic.v
   it("should clip crossings and publish explicit VIC reservations", async () => {
     await withProject(
       `module Game;
+place(at: $0C00) const SCREEN: byte[] = embed("screen.bin");
 place(at: $3FF0) const CROSSING: byte[32] = [; 0];
-function main(): void { poke($D020, 0); }
+function main(): void { poke($D018, c64.vic.vicScreenSelect(&SCREEN)); }
 `,
-      [],
+      [{ path: "screen.bin", bytes: patternedBytes(1000, 33) }],
       async (project) => {
         const built = await buildProject({ project });
         if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
@@ -155,7 +160,7 @@ function main(): void { poke($D020, 0); }
               end: 0x4000,
               bankId: "vic-bank-0",
             }),
-            expect.objectContaining({ id: "vic.screen.400", bankId: "vic-bank-0" }),
+            expect.objectContaining({ id: "vic.screen.c00", bankId: "vic-bank-0" }),
             expect.objectContaining({ id: "vic.character-rom.1000", bankId: "vic-bank-0" }),
           ]),
         );
@@ -433,6 +438,26 @@ function main(): void { poke($D018, c64.vic.vicSpriteBlock(&SPRITES) << 1); }
     );
   }, 60_000);
 
+  it("should fold a VIC field subtract and a logical shift", async () => {
+    await withProject(
+      `module Game;
+place(at: $2040) const SPRITES: byte[] = embed("sprites.bin");
+function main(): void {
+  poke($D018, c64.vic.vicSpriteBlock(&SPRITES) - 1);
+  poke($D019, c64.vic.vicSpriteBlock(&SPRITES) >> 1);
+}
+`,
+      [{ path: "sprites.bin", bytes: patternedBytes(64, 74) }],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+        const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
+        expect(assembly).toMatch(/lda #\$80\b/iu);
+        expect(assembly).toMatch(/lda #\$40\b/iu);
+      },
+    );
+  }, 60_000);
+
   it("should keep the arithmetic chain when php observes its flags", async () => {
     await withProject(
       `module Game;
@@ -571,10 +596,49 @@ function main(): void {
     );
   }, 60_000);
 
+  it("should recognize a runtime module-initializer screen selection", async () => {
+    const { assembly } = await buildScreen(`module Game;
+place(at: $0C00) const SCREEN: byte[] = embed("screen.bin");
+const SPRITES: byte[] = embed("sprites.bin");
+let SELECT: byte = c64.vic.vicScreenSelect(&SCREEN);
+function main(): void {
+  poke($D018, SELECT);
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+}
+`);
+    expect(assembly).toMatch(/sta \$0ff8\b/iu);
+  }, 60_000);
+
+  it("should ignore a screen selection in dead code", async () => {
+    await withProject(
+      `module Game;
+place(at: $0C00) const SCREEN: byte[] = embed("screen.bin");
+place(at: $2400) const OTHER: byte[] = embed("other.bin");
+const SPRITES: byte[] = embed("sprites.bin");
+function dead(): void { poke($D018, c64.vic.vicScreenSelect(&OTHER)); }
+function main(): void {
+  poke($D018, c64.vic.vicScreenSelect(&SCREEN));
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+}
+`,
+      [
+        { path: "screen.bin", bytes: screen },
+        { path: "other.bin", bytes: patternedBytes(1000, 35) },
+        { path: "sprites.bin", bytes: sprites },
+      ],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+        const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
+        expect(assembly).toMatch(/sta \$0ff8\b/iu);
+      },
+    );
+  }, 60_000);
+
   it("should reject two distinct active screens", async () => {
     const source = `module Game;
-place(at: $0800) const FIRST: byte[] = embed("screen.bin");
-place(at: $0C00) const SECOND: byte[] = embed("screen.bin");
+place(at: $0C00) const FIRST: byte[] = embed("screen.bin");
+place(at: $2400) const SECOND: byte[] = embed("other.bin");
 const SPRITES: byte[] = embed("sprites.bin");
 function main(): void {
   poke($D018, c64.vic.vicScreenSelect(&FIRST) | c64.vic.vicScreenSelect(&SECOND));
@@ -585,6 +649,7 @@ function main(): void {
       source,
       [
         { path: "screen.bin", bytes: screen },
+        { path: "other.bin", bytes: patternedBytes(1000, 35) },
         { path: "sprites.bin", bytes: sprites },
       ],
       async (project) => {
@@ -593,6 +658,7 @@ function main(): void {
         const conflict = built.diagnostics.find(({ code }) => code === "E10273");
         expect(conflict).toBeDefined();
         expect(conflict?.primarySpan).not.toBeNull();
+        expect(conflict?.message).toMatch(/Cannot prove one active VIC screen/u);
       },
     );
   }, 60_000);

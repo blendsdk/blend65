@@ -190,6 +190,7 @@ export function libraryGlobalIntervals(
     }),
   );
   const intervals = profileRecords(artifacts.memory.intervals).filter((interval) => {
+    if (interval.bankId !== undefined) return false;
     const owner = profileRecord(interval.owner);
     if (owner.kind !== "symbol") return false;
     if (typeof owner.id !== "string")

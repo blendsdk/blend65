@@ -84,7 +84,10 @@ describe("final shared resource accounting", () => {
         expect(memory.acmeReconciled).toBe(true);
         const intervals = records(memory.intervals);
         const shared = intervals.filter(
-          (interval) => Number(interval.start) >= origin && Number(interval.end) <= 0xd000,
+          (interval) =>
+            interval.bankId === undefined &&
+            Number(interval.start) >= origin &&
+            Number(interval.end) <= 0xd000,
         );
         const emitted = shared.filter((interval) => Number(interval.start) < 0xa001);
         const suffix = shared.filter((interval) => Number(interval.start) >= 0xa001);

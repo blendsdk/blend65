@@ -95,18 +95,18 @@ directed suites re-run green.
 
 | Deferral | Rationale when recorded | Expired by RD-06? | New owner |
 | --- | --- | --- | --- |
-| SR-301 ordinal write | `poke(base+index)` still uses the indirect path; parity work belongs to a dedicated lowering slice | No — RD-06 did not add ordinal write lowering | `T-20` |
-| SR-506 screen/character-ROM reservations | A contiguous PRG spans those addresses as CPU RAM; adding disjoint CPU intervals would double-count bytes | No — the CPU view is now bounded and reserved; the VIC crossing projection remains separate | `T-26` |
-| SR-507 relocated screen tail | Pointer table base is layout-derived work not present in the selected profile API | No — RD-06 added no relocated-screen pointer table | `T-27` |
+| SR-301 ordinal write | `poke(base+index)` still uses the indirect path; parity work belongs to a dedicated lowering slice | **Yes — expired** | fixed by T-20 in optimized mode; none-mode loop-bound gap tracked |
+| SR-506 screen/character-ROM reservations | A contiguous PRG spans those addresses as CPU RAM; adding disjoint CPU intervals would double-count bytes | **Yes — expired** | fixed by T-26 with `cpu16-vic` projections and explicit reservations |
+| SR-507 relocated screen tail | Pointer table base is layout-derived work not present in the selected profile API | **Yes — expired** | fixed by T-27 with the full 1 KiB active-screen footprint |
 | SR-703 synthetic SPD/CTM fixtures | Committed synthetic fixtures were not generated | **Yes — expired** | fixed in this RD |
 | SR-804 closeout coverage | Synthetic fixtures, focused examples, sidecar tests and formal reviews remained | **Yes — expired** | fixed in this RD |
-| SR-818/SR-819 diagnostics | VIC field failures still use generic lowering/layout diagnostics | No — the source-linked diagnostic path is separate | `T-24` |
-| SR-826 dynamic inventory types | Handler inventories advertise zero-length arrays | No — inventory typing is separate | `T-25` |
+| SR-818/SR-819 diagnostics | VIC field failures still use generic lowering/layout diagnostics | **Yes — expired** | fixed by T-24 with source-linked E10273/E10143 |
+| SR-826 dynamic inventory types | Handler inventories advertise zero-length arrays | **Yes — expired** | fixed by T-25 with exact parsed extents |
 | SR-827 asset padding | `paddingBeforeBytes` was hardcoded to zero | **Yes — expired** | fixed in this RD |
 | SR-828 red-phase log | No pre-implementation red log exists for five final spec files | No — accepted qualification gap; the green run and observed failure modes are recorded | RD-06 record |
-| P10-17 post-fold padding | VIC folding runs after sizing | No — layout/machine sizing slice | `T-21` |
-| P10-18 static raw address | Static `poke(&place)` still uses an indirect pair | No — lowering slice | `T-22` |
-| P10-23 VIC constant arithmetic | Pure field plus ordinary constant emits runtime arithmetic | No — optimization slice | `T-23` |
+| P10-17 post-fold padding | VIC folding runs after sizing | **Yes — expired** | fixed by T-21 with fixed-origin compaction |
+| P10-18 static raw address | Static `poke(&place)` still uses an indirect pair | **Yes — expired** | fixed by T-22 for asset/aggregate static stores |
+| P10-23 VIC constant arithmetic | Pure field plus ordinary constant emits runtime arithmetic | **Yes — expired** | fixed by T-23 with C/V-safe immediate folding |
 | P10-24 CharPad 3.80 pin | Only CharPad 3.80 is installed locally; the frozen specification names 3.88 | No — release qualification must obtain 3.88 evidence or record an approved deviation | release owner |
 
 No deferral names RD-06 as its future landing place. Residual parity and evidence
@@ -151,11 +151,9 @@ changed impact set.
 
 | Risk | Level | Owner |
 | --- | --- | --- |
-| Q-P15 renderer remains slower/larger than an expert ordinal write | Medium | `T-20` |
-| Two-byte post-fold code padding and mixed segment/executed byte reporting | Low | `T-21` |
-| Static `poke(&place)` uses an indirect pair | Low | `T-22` |
-| VIC field diagnostics remain generic | Low | `T-24` |
-| VIC view crossing intervals / reservations | Low | `T-26` |
+| Q-P15 `none` ordinal writes remain indirect; optimized writes are verified | Medium | future loop-bound/optimization slice |
+| Multi-screen `setSpritePointer` fails closed without a per-call relation | Low | `T-27` follow-up / issue #140 |
+| Frozen compile-time `const` VIC field still reports E10191 | Low | frontend language debt |
 | CharPad 3.88 release qualification absent | Medium | release owner |
 
 ## Task record

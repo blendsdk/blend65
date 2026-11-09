@@ -179,8 +179,8 @@ function main(): void { asm_cli(); asm_nop(); ${main} }`,
     ],
     sources: [
       `module Game;
-place(at: $0800) const FIRST: byte[] = embed("first.bin");
-place(at: $0C00) const SECOND: byte[] = embed("second.bin");
+place(at: $0C00) const FIRST: byte[] = embed("first.bin");
+place(at: $2400) const SECOND: byte[] = embed("second.bin");
 const SPRITES: byte[] = embed("sprites.bin");
 function main(): void {
   poke($D018, c64.vic.vicScreenSelect(&FIRST) | c64.vic.vicScreenSelect(&SECOND));

@@ -89,7 +89,9 @@ export function profileRecord(value: unknown): Record<string, unknown> {
 /** Require an actual array of records instead of accepting missing evidence. */
 export function profileRecords(value: unknown): Record<string, unknown>[] {
   if (!Array.isArray(value)) throw new TypeError("Expected profile evidence records");
-  return value.map(profileRecord);
+  // VIC projections duplicate CPU addresses in a dedicated address space; the
+  // profile suites inspect the CPU/resident ledger only.
+  return value.map(profileRecord).filter((record) => record.addressSpaceId !== "cpu16-vic");
 }
 
 /** Read artifacts only from the exact successful generation returned by the public build. */

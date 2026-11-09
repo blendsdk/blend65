@@ -170,6 +170,23 @@ export function selectRegisterForwarding(
     );
     return definition?.kind === "convert" ? definition.operand : value;
   };
+  /**
+   * A write index must survive value evaluation in its own home. Constants and
+   * loads qualify; computed temporaries may be overlaid by the value temporary.
+   */
+  const stableWriteIndex = (block: SemanticBlock, value: string): boolean => {
+    let current = value;
+    for (let depth = 0; depth < 4; depth += 1) {
+      const definition = block.operations.find(
+        (operation) => "result" in operation && operation.result === current,
+      );
+      if (definition === undefined) return false;
+      if (definition.kind === "constant" || definition.kind === "load") return true;
+      if (definition.kind !== "convert") return false;
+      current = definition.operand;
+    }
+    return false;
+  };
   const forwardedRegisterValues = new Set<string>();
   const byteOrdinalAdditions = new Set<string>();
   const ordinalRawReads = new Map<string, { readonly base: number; readonly index: string }>();
@@ -186,11 +203,12 @@ export function selectRegisterForwarding(
       if (
         producer.kind === "place-address" &&
         producer.place.path.length === 0 &&
+        (producer.place.rootType?.kind === "array" || producer.place.rootType?.kind === "struct") &&
         singleUseValues.has(producer.result) &&
         block.operations.some(
           (operation, candidateIndex) =>
             candidateIndex > index &&
-            (operation.kind === "memory-read" || operation.kind === "memory-write") &&
+            operation.kind === "memory-write" &&
             operation.address === producer.result,
         )
       ) {
@@ -347,6 +365,7 @@ export function selectRegisterForwarding(
             [producer.left, producer.right],
             [producer.right, producer.left],
           ] as const) {
+            if (!stableWriteIndex(block, indexValue)) continue;
             const base = literals.get(baseValue);
             const maximum =
               ordinalBounds.get(consumer)?.get(indexValue) ??

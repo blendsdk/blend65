@@ -350,7 +350,12 @@ function vicProjection(record: EvidenceRecord): EvidenceRecord {
     Math.max(0, record.start as number),
     Math.min(0x4000, record.end as number),
   );
-  return Object.freeze({ ...clipped, id: `vic.${String(record.id)}`, bankId: "vic-bank-0" });
+  return Object.freeze({
+    ...clipped,
+    id: `vic.${String(record.id)}`,
+    addressSpaceId: "cpu16-vic",
+    bankId: "vic-bank-0",
+  });
 }
 
 /** Replace one reservation window in a VIC projection with one explicit record. */
@@ -388,6 +393,7 @@ function overlayVicReservation(
   result.push(
     Object.freeze({
       ...reservation(id, start, end),
+      addressSpaceId: "cpu16-vic",
       bankId: "vic-bank-0",
     }),
   );
@@ -621,24 +627,24 @@ export async function prepareEvidence(
   reserveGaps("platform.cpu-high", 0xd000, 0x10000);
   const baseIntervals = [...layoutIntervals, ...reserved, colorRam];
   const cpu = baseIntervals.filter(({ addressSpaceId }) => addressSpaceId === "cpu16");
-  const activeScreen = input.layout.program.data.find(
-    ({ vicScreenRole }) => vicScreenRole === true,
-  );
-  const activeScreenInterval =
-    activeScreen === undefined
-      ? undefined
-      : input.layout.intervals.find(({ id }) => id === activeScreen.id);
-  const screenStart = activeScreenInterval?.start ?? input.profile.machine.screenAddress;
-  const screenEnd = screenStart + 0x400;
+  const screenStarts = input.layout.program.data
+    .filter(({ vicScreenRole }) => vicScreenRole === true)
+    .map(({ id }) => input.layout.intervals.find((interval) => interval.id === id)?.start)
+    .filter((start): start is number => start !== undefined);
+  const activeScreens =
+    screenStarts.length === 0 ? [input.profile.machine.screenAddress] : [...new Set(screenStarts)];
   const projections = cpu
     .filter(({ start, end }) => (start as number) < 0x4000 && (end as number) > 0)
     .map(vicProjection);
-  let vic = overlayVicReservation(
-    projections,
-    screenStart,
-    screenEnd,
-    `vic.screen.${screenStart.toString(16)}`,
-  );
+  let vic: readonly EvidenceRecord[] = projections;
+  for (const screenStart of activeScreens) {
+    vic = overlayVicReservation(
+      vic,
+      screenStart,
+      screenStart + 0x400,
+      `vic.screen.${screenStart.toString(16)}`,
+    );
+  }
   vic = overlayVicReservation(
     vic,
     input.profile.machine.characterRomStart,
@@ -670,7 +676,7 @@ export async function prepareEvidence(
     [
       buildView("color-ram", "vic", "colorram4", 0, 0x400, [colorRam], ["color-ram"]),
       buildView("cpu16-resident", "cpu", "cpu16", 0, 0x10000, cpu, ["cpu"]),
-      buildView("vic-bank-0", "vic", "cpu16", 0, 0x4000, vic, ["vic"], "vic-bank-0"),
+      buildView("vic-bank-0", "vic", "cpu16-vic", 0, 0x4000, vic, ["vic"], "vic-bank-0"),
     ].sort((left, right) =>
       Buffer.compare(Buffer.from(String(left.id)), Buffer.from(String(right.id))),
     ),

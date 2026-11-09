@@ -35,12 +35,21 @@ export function lowerArithmetic(
 ): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
   const subtract = operation.operator === "-";
   const opcode = subtract ? "sbc" : "adc";
+  const writeOrdinal = subtract ? undefined : state.ordinalRawWrites?.get(operation.result);
   const ordinal = subtract
     ? undefined
-    : (state.ordinalRawReads?.get(operation.result) ??
-      state.ordinalRawWrites?.get(operation.result));
+    : (state.ordinalRawReads?.get(operation.result) ?? writeOrdinal);
   const ordinalIndex = ordinal === undefined ? undefined : state.values.get(ordinal.index);
-  if (ordinal !== undefined && ordinalIndex !== undefined && serveableOrdinalIndex(ordinalIndex)) {
+  const unsafeWriteIndex =
+    writeOrdinal !== undefined &&
+    ordinalIndex?.kind === "register" &&
+    ordinalIndex.registers === "a";
+  if (
+    ordinal !== undefined &&
+    ordinalIndex !== undefined &&
+    !unsafeWriteIndex &&
+    serveableOrdinalIndex(ordinalIndex)
+  ) {
     // The sole next raw read or write consumes this proved address directly.
     // Emitting no addition and no temporary word keeps the native indexed form free.
     return Object.freeze({

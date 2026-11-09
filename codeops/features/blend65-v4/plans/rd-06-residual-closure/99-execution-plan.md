@@ -4,8 +4,8 @@
 > **Owner**: RD-06 residual parity and evidence debt; [issue #140](https://github.com/blendsdk/blend65/issues/140)
 > **Created**: 2026-11-09 15:19
 > **Progress**: 8/8 tasks (100%)
-> **Status**: Executing final verification and independent review
-> **Last Updated**: 2026-11-09 16:55
+> **Status**: Complete after independent review fixes and final verification
+> **Last Updated**: 2026-11-09 19:40
 > **Phase baseline tree**: `2e7b02bd5ba632ef9b29cf5562a670caf16cf61a`
 > **Scope mode**: strict; the exact source and test paths are listed in the modification set below
 > **Reasoning**: high — lowering, layout, volatile-effect and cost-oracle changes with hardware-visible consequences
@@ -80,14 +80,14 @@ Measured residual deltas from issue #140:
 
 | Task | Selected design | Rejected alternative and reason |
 |---|---|---|
-| T-27 | Derive one active screen from a unique `vicScreenSelect` argument (label or constant), including the canonical link-time const-initializer form. For a label/asset screen, resolve `setSpritePointer` to `screenStart + $3F8 + index` and occupy the full 1,024-byte footprint with a 16-byte zero tail and an 8-byte pointer-table interval. A constant selection resolves the same pointer base but creates no layout footprint; it remains user-owned like raw `$D018`. Default `$07F8` when no screen is selected; more than one distinct base is a source-linked E10273 recorded in the expressiveness ledger. | A new `setSpritePointer(screen, ...)` API is a frozen-API break; runtime table discovery is not compile-time; post-placement 8-byte reservation cannot prevent collisions; silent choice among screens is wrong; reserving a constant raw window would force a 1 KiB PRG fill the user did not request. |
+| T-27 | Derive one active screen from a unique `vicScreenSelect` argument (label or constant) in reachable function bodies and reachable module initializer blocks. The frozen compile-time `const` field form is rejected earlier by E10191 and is recorded as existing language debt, not claimed here. For a label/asset screen, resolve `setSpritePointer` to `screenStart + $3F8 + index` and occupy the full 1,024-byte footprint with a 16-byte zero tail and an 8-byte pointer-table interval. A constant selection resolves the same pointer base but creates no layout footprint; it remains user-owned like raw `$D018`. Default `$07F8` when no screen is selected; more than one distinct base is a source-linked E10273 recorded in the expressiveness ledger. | A new `setSpritePointer(screen, ...)` API is a frozen-API break; runtime table discovery is not compile-time; post-placement 8-byte reservation cannot prevent collisions; silent choice among screens is wrong; reserving a constant raw window would force a 1 KiB PRG fill the user did not request; scanning unreachable functions would let dead code change live layout. |
 | T-24 | Carry a structured diagnostic code, source span and named contributors out of VIC lowering and layout. E10143 stays the one-object asset alignment/visibility placement diagnostic; constant field failures, out-of-bank, character-ROM, cross-object, non-asset and explicit-place conflicts use E10273. | Keeping `COMPILER_*` with only a span hides the required code and contributors; mapping constant fields to E10143 conflicts with the frozen asset-placement trigger/template. |
 | T-21 | Remove the identity logical op after the post-layout transform in ordinary functions in both the draft and final layouts, using the same fold and compaction so the shared-storage stability shape matches; repair at fixed origins to a monotonic fixed point; recompute code intervals and fill without moving any asset or data address. Keep the identity form for a function that cannot shrink without growth and file the gap; leave the startup path untouched. | Full fixed-point re-layout can move assets, invalidate resolved VIC addresses and oscillate; a hard build failure rejects a program that previously compiled; compacting only the final layout fails the existing draft/final stability shape gate. |
 | T-20 | Extend the proved `constant base + bounded byte index` selection to single-byte volatile writes and emit `sta absolute,x` in the existing optimized-mode proof. The write proof admits only an immutable index and a value that can be loaded into A after X is set; conflicting ownership falls back to the indirect path. The `none` bounds pass has no fixed-loop facts, so none keeps the T-21 383 baseline and the extension is recorded as a tracked gap. | Enabling none would require a new loop-bound source for the unoptimized pass, which is outside this residual slice; device-window bases are not admitted by the current raw observer proof and remain a tracked gap. |
-| T-22 | Select a direct absolute store for `&asset` symbol addresses and statically resolved local/global places whose home is not a parameter or borrowed base; keep the indirect path for genuinely dynamic addresses. | Reusing a certified zero-page pair removes only the copy and still misses the expert 5-byte/6-cycle result; a broad `storage` acceptance could store through a pointer home. |
+| T-22 | Select a direct absolute store for symbol addresses and statically resolved local/global places whose home is not a parameter, returned-local base or borrowed pointer; keep the indirect path for genuinely dynamic addresses. Read-only assets remain E10123; the symbol-address lowering path is covered by unit tests. | Reusing a certified zero-page pair removes only the copy and still misses the expert 5-byte/6-cycle result; a broad `storage` acceptance could store through a pointer home. |
 | T-23 | Extend the post-layout immediate fold to adjacent `lda #a; clc; adc #b`, `lda #a; sec; sbc #b` and accumulator shift chains when a complete forward C/V-liveness proof reaches the next definition without a read; reuse T-21's fixed-origin compaction. | Folding without a flag proof can change a later branch or word-add carry; keeping the chain misses the parity target. |
 | T-25 | Build inventories from parsed extents and list only available selectors in remedies. Exact lengths come from the actual parsed slices, including packed-12 `cells + ceil(cells/2)` and canonical byte/word cell widths. | Keeping zero-length placeholders and filtering only at dispatch leaves misleading inventory evidence. |
-| T-26 | Add VIC-scoped projection records in the global `intervals` with `bankId: "vic-bank-0"`: every CPU interval clipped to `[0,$4000)`, split into screen/character-ROM reservation fragments so each address appears once. The CPU view and the resident-RAM/zero-page/scratch/SFA-hash consumers select only records without `bankId`; the VIC view selects only `bankId: "vic-bank-0"` records; the evidence sort includes `bankId`. | Overlapping reservations double-count; dropping crossings leaves the view incomplete; a per-view schema is a frozen version-1 change. |
+| T-26 | Add VIC-scoped projection records in the global `intervals` under the dedicated `cpu16-vic` projection space with `bankId: "vic-bank-0"`: every CPU interval clipped to `[0,$4000)`, split into screen/character-ROM reservation fragments so each address appears once. The CPU view and the resident-RAM/zero-page/scratch/SFA-hash consumers remain on `cpu16`; the VIC view reads `cpu16-vic`; the evidence sort includes `bankId`. | Overlapping reservations double-count; dropping crossings leaves the view incomplete; reusing `cpu16` makes every legacy CPU consumer count the projection twice; a per-view schema is a frozen version-1 change. |
 
 No task adds a new compiler pass, runtime helper, dependency, public schema or generalized support
 framework. The new diagnostic plumbing, static-address marker and fixed-origin compaction are
@@ -97,7 +97,7 @@ direct producers inside existing owners.
 
 | Task | Source files | Test files |
 |---|---|---|
-| T-27 | `packages/compiler/src/machine/lower-c64.ts`, `lower-control.ts`, `lower-state.ts`, `machine-types.ts`, `lower-data.ts`, `packages/compiler/src/layout/c64-layout.ts`, `c64-layout-objects.ts`, `packages/compiler/src/services/evidence.ts`, `packages/compiler/src/artifacts/acme-serializer.ts` (only if the operand/effect needs a binding spelling) | `packages/compiler/src/layout/c64-layout.impl.test.ts`, `test/rd06/layout-assets.spec.test.ts`, new `test/rd06/vice-sprite-pointer.spec.test.ts`, `test/rd04/expressiveness-ledger.json` and its gate |
+| T-27 | `packages/compiler/src/machine/active-screen.ts`, `lower-c64.ts`, `lower-control.ts`, `lower-state.ts`, `machine-types.ts`, `lower-data.ts`, `packages/compiler/src/layout/c64-layout.ts`, `c64-layout-objects.ts`, `packages/compiler/src/services/evidence.ts`, `packages/compiler/src/artifacts/acme-serializer.ts` (only if the operand/effect needs a binding spelling) | `packages/compiler/src/layout/c64-layout.impl.test.ts`, `test/rd06/layout-assets.spec.test.ts`, new `test/rd06/vice-sprite-pointer.spec.test.ts`, `test/rd04/expressiveness-ledger.json` and its gate |
 | T-24 | `packages/compiler/src/machine/lower-state.ts`, `lower-c64.ts`, `lower.ts`, `vic-fields.ts`, `packages/compiler/src/layout/c64-layout.ts`, `c64-layout-objects.ts`, `packages/compiler/src/services/size-selection.ts`, `resource-diagnostics.ts` | New `test/rd06/vic-diagnostics.spec.test.ts`, `packages/compiler/src/machine/lowering.spec.test.ts`, `packages/compiler/src/layout/c64-layout.impl.test.ts` |
 | T-21 | `packages/compiler/src/layout/c64-layout-objects.ts`, `c64-layout.ts` | `packages/compiler/src/layout/c64-layout.impl.test.ts`, `test/rd06/qp15.spec.test.ts`, `test/rd06/qualification/q-p15/expected.json` |
 | T-20 | `packages/compiler/src/machine/lower-register-forwarding.ts`, `lower-arithmetic.ts`, `lower-memory.ts`, `lower-state.ts`, `lower-operation.ts`, `lower-function.ts`, `lower-bounds.ts`, `lower-control.ts` (ordinal-address comment only), `packages/compiler/src/services/size-observer-raw-layout.ts` (write sequence) | `packages/compiler/src/machine/lower-proved-ordinal.impl.test.ts`, `lower-memory-addressing.impl.test.ts`, `test/rd06/qp15.spec.test.ts` and `expected.json`, new `test/rd06/residual-write-cost.spec.test.ts`, `test/rd06/project-fixture.ts` (optional optimization fixture) |
@@ -113,7 +113,7 @@ New exported types, functions and properties receive JSDoc in the project style.
 
 ### T-27 — Relocated-screen sprite-pointer base
 
-- [x] T-27.1 Write RED coverage: a screen at `$0C00` with `setSpritePointer` emits `$0FF8` (and `$0FF8,x` when indexed); the canonical `const SCREEN_SELECT: byte = vicScreenSelect(&SCREEN)` initializer form is recognized; default `$0400` still emits `$07F8`; a constant `vicScreenSelect($0C00)` resolves `$0FF8` without creating a layout footprint; two distinct active screens fail with source-linked E10273 through the existing placement-failure path; a 1,024-byte screen and a screen at `$3C00` keep the pointer table at `$3FF8`. ✅ (completed: 2026-11-09 16:18)
+- [x] T-27.1 Write RED coverage: a screen at `$0C00` with `setSpritePointer` emits `$0FF8` (and `$0FF8,x` when indexed); a runtime module-initializer `let` selection is recognized; dead-function selections are ignored; default `$0400` still emits `$07F8`; a constant `vicScreenSelect($0C00)` resolves `$0FF8` without creating a layout footprint; two distinct active screens fail with source-linked E10273 through the existing placement-failure path; a 1,024-byte screen and a screen at `$3C00` keep the pointer table at `$3FF8`. The frozen compile-time `const` field form remains E10191 language debt and is not claimed. ✅ (completed: 2026-11-09 17:45)
 - [x] T-27.2 Write the sequential VICE regression: after a screen-at-`$0C00` build, `$0FF8` contains the written pointer byte and `$D018` selects the `$0C00` screen field. ✅ (completed: 2026-11-09 16:18)
 - [x] T-27.3 Mark the screen role, occupy its full 1,024-byte footprint during placement, add the 16-byte zero tail and 8-byte pointer table, and resolve the symbolic pointer-table operand/effect after layout. ✅ (completed: 2026-11-09 16:18)
 - [x] T-27.4 Record the ambiguous multi-screen rejection in the expressiveness ledger and verify the default-screen, relocated-screen, bank-end, collision, VICE and unchanged startup `$07F8` preservation cases. ✅ (completed: 2026-11-09 16:18)
@@ -142,8 +142,8 @@ New exported types, functions and properties receive JSDoc in the project style.
 ### T-22 — Static raw-address direct store
 
 - [x] T-22.1 Write RED coverage: `poke(&asset, value)`, `poke(&local, value)` in RAM and zero-page homes, and `poke(&global, value)` select a direct absolute store with no dynamic pointer request; a RAM home is 5 bytes/6 cycles, a zero-page home is 4 bytes/5 cycles; parameter and borrowed bases keep the indirect path. ✅ (completed: 2026-11-09 16:40)
-- [x] T-22.2 Add a static-address selector/`LoweredValue` kind for symbol addresses and statically resolved places; consume it only in the next raw read/write and suppress the pointer-pair construction. ✅ (completed: 2026-11-09 16:40)
-- [x] T-22.3 Lower static byte and word writes with direct storage/label operands, preserving low-first order and volatile effects; publish the static recipe in observer evidence. ✅ (completed: 2026-11-09 16:40)
+- [x] T-22.2 Add a static-address selector/`LoweredValue` kind for symbol addresses and statically resolved places consumed by the next raw write; suppress the pointer-pair construction for the store while leaving ordinary reads on their existing path. ✅ (completed: 2026-11-09 19:10)
+- [x] T-22.3 Lower static byte and word writes with direct storage/label operands, preserving low-first order and volatile effects; publish the static recipe in observer evidence. ✅ (completed: 2026-11-09 19:10)
 - [x] T-22.4 Verify exact costs, absence of the dynamic pointer request, unchanged behavior, and the existing raw-address negative cases; update RD-05 cost expectations only where they pin the changed construct. ✅ (completed: 2026-11-09 16:40)
 
 ### T-23 — VIC field constant arithmetic
@@ -166,19 +166,19 @@ New exported types, functions and properties receive JSDoc in the project style.
 
 ## Independent Review and Closeout
 
-- [ ] Run the project's required independent review over the whole task diff: correctness reviewer, machine-code auditor, target-platform auditor, SFA/ABI auditor and semantics reviewer; fix every critical/major finding and re-verify.
-- [ ] Update the RD-06 `05-findings.md` dispositions and `09-closeout.md` residual table with the exact verified evidence; do not leave stale "deferred to T-20…T-27" rows.
-- [ ] Propose issue #140 closure with the evidence; close it only on explicit user instruction.
-- [ ] Update the roadmap T-20–T-27 rows to Done with the verified evidence.
+- [x] Run the project's required independent review over the whole task diff: correctness reviewer, machine-code auditor, target-platform auditor, SFA/ABI auditor and semantics reviewer; fix every critical/major finding and re-verify. ✅ (completed: 2026-11-09 19:40; dispositions in [05-findings.md](05-findings.md))
+- [x] Update the RD-06 `05-findings.md` dispositions and `09-closeout.md` residual table with the exact verified evidence; do not leave stale "deferred to T-20…T-27" rows. ✅ (completed: 2026-11-09 19:40)
+- [x] Propose issue #140 closure with the evidence; close it only on explicit user instruction. ✅ (proposal recorded; no external issue mutation made)
+- [x] Update the roadmap T-20–T-27 rows to Done with the verified evidence. ✅ (completed: 2026-11-09 19:40)
 
 ## Final Verification
 
-- [ ] Run `yarn install --frozen-lockfile`, `yarn build` and `yarn typecheck` from the repository root.
-- [ ] Run the complete compiler package suite and the directed RD-04/M1/RD-06 plus VICE suites; run VICE cases sequentially.
-- [ ] Run the affected RD-05 raw-address/mutable-value/source-library suites and the RD-08 exact-output identity test.
-- [ ] Attempt the complete root `yarn test` suite and record the actual coverage if the known 90-minute host limit is reached; a known flake must be rerun to green and the rerun recorded, never waived.
-- [ ] Run `yarn prettier --check` on every touched source, test and Markdown file.
-- [ ] Confirm `spec/` remains untouched, the tree is clean after the final commit, and no push is made.
+- [x] Run `yarn install --frozen-lockfile`, `yarn build` and `yarn typecheck` from the repository root. ✅
+- [x] Run the complete compiler package suite and the directed RD-04/M1/RD-06 plus VICE suites; run VICE cases sequentially. ✅ compiler 3,644 passed/2 skipped; RD-04 + M1 + RD-06 714/714.
+- [x] Run the affected RD-05 raw-address/mutable-value/source-library suites and the RD-08 exact-output identity test. ✅ affected RD-05 377/377 plus joystick 220/220 and raw footprints 100/100; RD-08 exact identities unchanged.
+- [x] Attempt the complete root `yarn test` suite and record the actual coverage if the known 90-minute host limit is reached; a known flake must be rerun to green and the rerun recorded, never waived. ✅ attempt recorded in the execution summary; VIC collision 16/16 on a clean sequential rerun.
+- [x] Run `yarn prettier --check` on every touched source, test and Markdown file. ✅
+- [x] Confirm `spec/` remains untouched, the tree is clean after the final commit, and no push is made. ✅
 
 ## Recorded Rulings
 

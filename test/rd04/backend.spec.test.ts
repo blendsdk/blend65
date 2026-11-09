@@ -269,6 +269,7 @@ describe("complete direct backend publication", () => {
       const closure = intervals
         .filter(
           (interval) =>
+            interval.bankId === undefined &&
             ["sfa", "zeroPage", "scratch"].includes(String(interval.kind)) &&
             ["function", "helper"].includes(String(record(interval.owner).kind)),
         )

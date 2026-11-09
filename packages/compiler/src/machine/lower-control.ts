@@ -88,6 +88,8 @@ export type LoweredValue =
       readonly offset: number;
       readonly bytes: number;
       readonly signed: boolean;
+      /** Source-owned zero-page data has a proved one-byte physical address. */
+      readonly zeroPage?: boolean;
     }
   | {
       readonly kind: "condition";

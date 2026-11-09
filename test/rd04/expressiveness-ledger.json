@@ -51,8 +51,8 @@
       "status": "deferred",
       "sourceForm": "setSpritePointer with more than one distinct vicScreenSelect screen",
       "diagnostic": "E10273",
-      "reason": "The frozen setSpritePointer API has no screen argument. A unique compile-time screen base is required for a layout-derived pointer table; a program that selects two distinct screens cannot be resolved without a per-call screen relation. The rejection names both screen selections and fails closed rather than writing the wrong table.",
-      "owner": "RD-06 T-27 residual closure; future per-call screen relation",
+      "reason": "The frozen setSpritePointer API has no screen argument. A unique compile-time screen base is required for a layout-derived pointer table; a program that selects two distinct screens cannot be resolved without a per-call screen relation. The rejection fails closed rather than writing the wrong table.",
+      "owner": "T-27 follow-up / issue #140; future per-call screen relation",
       "decision": "RD-06 residual plan; single active screen is supported, multi-screen pointer-table selection remains tracked debt"
     }
   ]

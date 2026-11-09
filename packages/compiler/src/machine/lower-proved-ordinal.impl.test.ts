@@ -239,8 +239,18 @@ function selectRawWrite(
   base = baseLiteral,
 ) {
   const sum = { ...addition, result: "address", left: "base", right: "index" };
+  const indexLiteral: Extract<SemanticOperation, { readonly kind: "constant" }> = {
+    ...literal,
+    result: "index",
+    value: 0n,
+  };
   return selectRegisterForwarding(
-    [semanticBlock("entry", [base, sum, valueLiteral, write], { kind: "return", value: null })],
+    [
+      semanticBlock("entry", [base, indexLiteral, sum, valueLiteral, write], {
+        kind: "return",
+        value: null,
+      }),
+    ],
     new Set(singleUse ? ["address"] : []),
     new Map([[write, new Map<string, bigint>(maximum === null ? [] : [["index", maximum]])]]),
   );

@@ -293,11 +293,11 @@ describe("static raw-address writes", () => {
     );
     expect(stored.map(({ opcode }) => opcode)).toEqual(["lda", "sta"]);
     expect(stored[1]!.mode).toBe("absolute");
-    expect(stored[1]!.operand).toEqual({ kind: "label", label: "asset.S" });
+    expect(stored[1]!.operand).toEqual({ kind: "label", label: "asset.S", offset: 0 });
     expect(stored[1]!.memory).toEqual([
       {
         kind: "write",
-        address: { kind: "symbolic", label: "asset.S" },
+        address: { kind: "symbolic", label: "asset.S", offset: 0 },
         width: 1,
         volatile: true,
         order: 0,
@@ -305,6 +305,23 @@ describe("static raw-address writes", () => {
     ]);
     expect(stored.reduce((sum, instruction) => sum + instruction.cost.bytes, 0)).toBe(5);
     expect(stored.reduce((sum, instruction) => sum + instruction.cost.minCycles, 0)).toBe(6);
+  });
+
+  it("should use zero-page mode for a proved static label home", () => {
+    const stored = lowerMemoryWrite(
+      write(1),
+      staticContext({
+        kind: "static-address",
+        label: "global.g",
+        offset: 0,
+        bytes: 2,
+        signed: false,
+        zeroPage: true,
+      }),
+    );
+    expect(stored[1]!.mode).toBe("zero-page");
+    expect(stored.reduce((sum, instruction) => sum + instruction.cost.bytes, 0)).toBe(4);
+    expect(stored.reduce((sum, instruction) => sum + instruction.cost.minCycles, 0)).toBe(5);
   });
 
   it("should store directly through a certified static home", () => {

@@ -5,7 +5,7 @@ import { buildProject } from "@blend65/compiler";
 import { withProject } from "./project-fixture.js";
 
 describe("proved ordinal raw-write selection", () => {
-  it("should emit sta absolute,x for a bounded byte index in none mode", async () => {
+  it("should emit sta absolute,x for a bounded byte index in an optimized mode", async () => {
     await withProject(
       `module Game;
 function main(): void {
@@ -27,12 +27,34 @@ function main(): void {
     );
   }, 60_000);
 
+  it("should write a constant value with a bounded counter", async () => {
+    await withProject(
+      `module Game;
+function main(): void {
+  for (let index: word = 0; index < 8; index += 1) {
+    poke($0C00 + index, $55);
+  }
+}
+`,
+      [],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+        const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
+        expect(assembly).toMatch(/sta(?:\+\d+)? \$0c00,x\b/iu);
+        expect(assembly).not.toMatch(/sta \(/iu);
+      },
+      "c64-pal-prg-kernal-6581",
+      "balanced",
+    );
+  }, 60_000);
+
   it("should store directly through an asset and a local address", async () => {
     await withProject(
       `module Game;
 let DATA: byte[64] = [; 0];
 function main(): void {
-  let value: byte = 1;
+  let value: byte[4] = [; 0];
   poke(&DATA, $55);
   poke(&value, $66);
 }

@@ -14,20 +14,27 @@ function memoryIntervals(value: unknown): { kind: string; start: number; end: nu
     !Array.isArray(value.intervals)
   )
     throw new Error("Expected memory intervals");
-  return value.intervals.map((interval: unknown) => {
-    if (
-      interval === null ||
-      typeof interval !== "object" ||
-      !("kind" in interval) ||
-      typeof interval.kind !== "string" ||
-      !("start" in interval) ||
-      typeof interval.start !== "number" ||
-      !("end" in interval) ||
-      typeof interval.end !== "number"
+  return value.intervals
+    .filter(
+      (interval: unknown) =>
+        interval !== null &&
+        typeof interval === "object" &&
+        !("bankId" in interval && interval.bankId !== undefined),
     )
-      throw new Error("Expected a numeric memory interval");
-    return { kind: interval.kind, start: interval.start, end: interval.end };
-  });
+    .map((interval: unknown) => {
+      if (
+        interval === null ||
+        typeof interval !== "object" ||
+        !("kind" in interval) ||
+        typeof interval.kind !== "string" ||
+        !("start" in interval) ||
+        typeof interval.start !== "number" ||
+        !("end" in interval) ||
+        typeof interval.end !== "number"
+      )
+        throw new Error("Expected a numeric memory interval");
+      return { kind: interval.kind, start: interval.start, end: interval.end };
+    });
 }
 
 it("reads one resident asset directly across byte and word indices without an SFA copy", async () => {

@@ -454,9 +454,11 @@ T-24.2 explicitly copies the structured fields through the catch.
 **Problem:** VIC-scoped projections would inflate CPU-view aggregates, double-count costs, and fail
 interval ordering; the VIC view could not select the projections.
 **Resolution:** ✅ Resolved — the plan now requires CPU view and cost sums to select only
-non-`bankId` records, the VIC view to select only `bankId: "vic-bank-0"` records, `buildView` to be
-bank-aware, and the evidence sort to include `bankId`. A directed test asserts CPU sums are unchanged
-and both views reconcile.
+non-projection records, the VIC view to select only `bankId: "vic-bank-0"` records, `buildView` to
+be bank-aware, and the evidence sort to include `bankId`. Execution review showed that reusing
+`cpu16` made legacy CPU consumers double-count; VIC projections therefore use a dedicated
+`cpu16-vic` projection space, while the CPU/resident/cost/SFA consumers stay on `cpu16`. A directed
+test asserts CPU sums are unchanged and both views reconcile.
 
 ### PF-030: T-22's static selector is never installed in lowering state 🟡 MINOR
 
@@ -493,8 +495,14 @@ only; the value kind and behavior are unchanged.
 **Codebase Evidence:** the frozen F015 pattern uses
 `const SCREEN_SELECT: byte = vicScreenSelect(&BMP_SCREEN)` and later writes it to `$D018`
 (`spec/evaluations/F015-data-inclusion.md:851–859`).
-**Resolution:** ✅ Resolved — T-27.1 now includes the const-initializer form and requires the
-active-screen scan to cover the `lower-data.ts` path.
+**Resolution:** ✅ Resolved — T-27.1 now includes the module-initializer form and requires the
+active-screen scan to cover reachable initializer blocks. Runtime correction after implementation:
+the frozen `const SCREEN_SELECT: byte = vicScreenSelect(&SCREEN)` form is rejected earlier by
+E10191 because pure profile capabilities are not compile-time evaluable. The plan now claims only
+the runtime `let` initializer and records the const form as existing language debt; it does not
+weaken T-27. Dead-function selections are ignored by scanning reachable functions and initializer
+blocks only. Authority: AI — delegated by `--auto-design`; evidence:
+`frontend/analyzer-scalars.ts:95–108` and the observed frontend diagnostic.
 
 ---
 
@@ -529,5 +537,20 @@ observations accepted with wording fixes.
 **Residual notes:** the `$D800` Color-RAM ordinal-write gap and the ambiguous multi-screen
 `setSpritePointer` restriction remain tracked, reopenable debts. Runtime status remains
 `VICE-verified / hardware-unverified`.
+
+## Execution Review
+
+The whole-task diff was independently reviewed by correctness, machine-code, target-platform,
+SFA/ABI and semantics roles. The review found three critical/lifecycle defects and several major
+gaps; all were dispositioned in [05-findings.md](05-findings.md). Key corrections: T-22 became a
+store-only direct path (static reads keep the existing indirect path), the active-screen scan now
+covers only reachable functions and initializer blocks, ordinal writes require a stable
+load/constant index, the T-23 C/V proof tracks both flags and fallthrough, and VIC evidence
+projections use the dedicated `cpu16-vic` space so CPU consumers never double-count.
+
+**Review verification:** compiler 3,644 passed/2 skipped; RD-04 + M1 + RD-06 714/714 including
+VICE; affected RD-05 suites 377/377; Q-P15 383; pinned none/saved/acquisition PRG identities
+unchanged. The complete root suite remains bounded by the host time limit and is recorded in the
+execution plan.
 
 **Artifact hash after iteration-3 fixes:** `89d280bae3c3e3f8968f9bc3f584c28cde4977925de9315ba27a44198eb722d3`.

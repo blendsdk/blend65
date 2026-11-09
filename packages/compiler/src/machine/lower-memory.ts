@@ -56,19 +56,25 @@ function observeRawSequence(
         : "raw-indirect";
   const addressInput = address?.kind === "ordinal-address" ? address.index : address!;
   const ordinalWrite = operation.kind === "memory-write" && address?.kind === "ordinal-address";
-  const rawLength = ordinalWrite ? Math.min(2, sequence.length) : sequence.length;
+  const index = address?.kind === "ordinal-address" ? address.index : undefined;
+  const normalizedIndex = index?.kind === "zero-extended" ? index.low : index;
+  const indexPrefix =
+    ordinalWrite && normalizedIndex?.kind === "register" && normalizedIndex.registers === "x"
+      ? 0
+      : 1;
+  const rawLength = ordinalWrite ? Math.min(indexPrefix + 1, sequence.length) : sequence.length;
   return Object.freeze(
     sequence.map((instruction, position) => {
       // A proved write evaluates its value between the index setup and the
       // volatile store. The value is ordinary lowering work, not one byte of
       // the raw access, so it keeps no raw association.
-      if (ordinalWrite && position > 0 && position < sequence.length - 1) {
+      if (ordinalWrite && position >= indexPrefix && position < sequence.length - 1) {
         return instruction;
       }
       const rawPosition = ordinalWrite
         ? position === sequence.length - 1
           ? rawLength - 1
-          : 0
+          : position
         : position;
       return Object.freeze({
         ...instruction,
@@ -176,8 +182,8 @@ function staticAddressForm(
   if (address.kind === "symbol-address") {
     return {
       mode: "absolute",
-      operand: Object.freeze({ kind: "label", label: address.label }),
-      effect: Object.freeze({ kind: "symbolic", label: address.label }),
+      operand: Object.freeze({ kind: "label", label: address.label, offset }),
+      effect: Object.freeze({ kind: "symbolic", label: address.label, offset }),
     };
   }
   if (address.kind === "label") {
@@ -191,7 +197,7 @@ function staticAddressForm(
   if (address.requestId === undefined || address.label !== undefined) {
     const displacement = address.offset + offset;
     return {
-      mode: "absolute",
+      mode: address.zeroPage === true ? "zero-page" : "absolute",
       operand: Object.freeze({
         kind: "label",
         label: address.label!,
@@ -220,35 +226,6 @@ export function lowerMemoryRead(
   const address = context.values.get(operation.address);
   if (address === undefined || address.kind === "register" || address.kind === "condition") {
     throw new Error("Raw-memory address has no stable lowered value");
-  }
-  if (
-    address.kind === "static-address" ||
-    address.kind === "symbol-address" ||
-    address.kind === "label"
-  ) {
-    const instructions: MachineInstruction[] = [];
-    for (let offset = 0; offset < operation.width; offset += 1) {
-      const form = staticAddressForm(address, offset);
-      instructions.push(
-        machineInstruction(
-          context.cpu,
-          operation.width === 1 && context.byteRegister === "x" ? "ldx" : "lda",
-          form.mode,
-          form.operand,
-          [
-            Object.freeze({
-              kind: "read",
-              address: form.effect,
-              width: 1,
-              volatile: true,
-              order: offset,
-            }),
-          ],
-          operation.span,
-        ),
-      );
-    }
-    return observeRawSequence(instructions, operation, context);
   }
   if (address.kind === "ordinal-address") {
     if (operation.width !== 1)
@@ -385,11 +362,7 @@ export function lowerMemoryWrite(
   ) {
     throw new Error("Raw-memory write has no stable lowered address/value");
   }
-  if (
-    address.kind === "static-address" ||
-    address.kind === "symbol-address" ||
-    address.kind === "label"
-  ) {
+  if (address.kind === "static-address" || address.kind === "symbol-address") {
     const instructions: MachineInstruction[] = [];
     for (let offset = 0; offset < operation.width; offset += 1) {
       const form = staticAddressForm(address, offset);
