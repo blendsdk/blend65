@@ -63,7 +63,10 @@ export function analyzeScalarUnary(
             )
           : null;
     if (functionName?.node?.binding !== null && functionName?.node?.binding !== undefined) {
-      if (functionName.node.binding.sourceId.startsWith("profile:")) {
+      if (
+        functionName.node.binding.sourceId.startsWith("profile:") &&
+        analyzer.host.isFunction(functionName.node.binding)
+      ) {
         analyzer.host.diagnose(
           error(
             "E10043",

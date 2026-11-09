@@ -291,6 +291,8 @@ describe.each(profiles)("real terminal admission on %s", (target) => {
     for (const interval of intervals) {
       expect(typeof interval.start).toBe("number");
       expect(typeof interval.end).toBe("number");
+      // Device reservations describe non-allocatable address space.
+      if (interval.kind === "reservation") continue;
       if (Number(interval.start) >= 0x0801)
         expect(Number(interval.end)).toBeLessThanOrEqual(0xd000);
     }

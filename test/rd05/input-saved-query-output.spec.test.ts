@@ -72,6 +72,9 @@ describe.each(sourceLibraryProfiles)("saved input output on %s", (profile) => {
       // Stable qualification RAM is outside every allocated code/data/frame home.
       expect(end <= 0xc100 || start >= 0xc105).toBe(true);
       expect(end <= 0xc110 || start >= 0xc11b).toBe(true);
+      // Device reservations describe non-allocatable address space; they are
+      // not program homes.
+      if (interval.kind === "reservation") continue;
       if (interval.resourceClass === "zeroPage") {
         expect(start).toBeGreaterThanOrEqual(0x02);
         expect(end).toBeLessThanOrEqual(0x90);

@@ -75,7 +75,7 @@ SFA/ABI, machine code and target platform. All findings are dispositioned in
 | Critical findings fixed | 3 (including one incomplete-fix follow-up) |
 | Major findings fixed | 7 |
 | Major findings partially fixed with owned residual | 2 |
-| Minor follow-up findings fixed | 5 |
+| Minor follow-up findings fixed | 7 |
 | Findings accepted with rationale | 4 |
 | Findings deferred to owned roadmap rows | 6 |
 
@@ -135,6 +135,17 @@ and the `T-20`–`T-27` roadmap rows.
 - **Review boundary.** Reviews were static. The green compiler/directed/VICE runs
   are the execution evidence; the reviewers did not re-run emulators or physical
   hardware.
+
+### Supplementary RD-05 corpus observation
+
+The 182-file RD-05 corpus was also run while closeout work was in progress. It
+reported 5,215 passed and 17 failed in five files. Four failures were test
+assumptions that every `cpu16` interval is a program home; those checks now skip
+device reservation intervals. The fifth was a VIC collision timing timeout; it
+passed 16/16 when rerun alone on an unloaded host. The four affected suites pass
+84/84 after the adjustment, and the collision suite passes 16/16. The full
+182-file corpus was not rerun end-to-end; it is RD-05-owned and outside RD-06's
+changed impact set.
 
 ## Residual risk
 

@@ -141,3 +141,5 @@ carry a directed regression test; deferred findings are re-owned by a named road
 | P10-31 (SA-04) | MINOR | resources/scratch | fixed — `sizeCostVector` uses grouped all-helper physical intervals, matching the published `.costs`/reconciliation definition and avoiding overlay double counting |
 | P10-32 (MC-10) | MINOR | VIC consumer extent | fixed — bitmap (8,000) and screen (1,000) consumers reject assets smaller than the bytes the VIC reads; a partial charset remains legal because only the used characters are fetched. Positive partial-charset and negative bitmap cases cover both rules |
 | P10-33 (TP-06) | MINOR | plan/evidence text | fixed — plan wording now states bounded CPU free reporting, uncovered character-ROM reservations, CHAREN independence and placement/readback VICE scope |
+| P10-34 | MINOR | frontend/diagnostics | fixed — `&c64.profile.<scalar>` keeps E10040 (address of a compile-time scalar); only profile operations/functions remain E10043 |
+| P10-35 | MINOR | RD-05 evidence compatibility | fixed — RD-05 program-home checks skip device reservation intervals; the VIC collision timing timeout was host-load flake and passed on a clean rerun |
