@@ -644,6 +644,7 @@ export function memoryEvidenceValue(
   const projection = intervals
     .filter(
       (item) =>
+        item.bankId === undefined &&
         new Set(["sfa", "zeroPage", "scratch"]).has(String(item.kind)) &&
         new Set(["function", "helper"]).has(String((item.owner as Record<string, unknown>).kind)),
     )

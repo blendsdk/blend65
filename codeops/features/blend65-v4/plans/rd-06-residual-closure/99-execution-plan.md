@@ -3,9 +3,9 @@
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: RD-06 residual parity and evidence debt; [issue #140](https://github.com/blendsdk/blend65/issues/140)
 > **Created**: 2026-11-09 15:19
-> **Progress**: 7/8 tasks (88%)
-> **Status**: Executing
-> **Last Updated**: 2026-11-09 16:47
+> **Progress**: 8/8 tasks (100%)
+> **Status**: Executing final verification and independent review
+> **Last Updated**: 2026-11-09 16:55
 > **Phase baseline tree**: `2e7b02bd5ba632ef9b29cf5562a670caf16cf61a`
 > **Scope mode**: strict; the exact source and test paths are listed in the modification set below
 > **Reasoning**: high — lowering, layout, volatile-effect and cost-oracle changes with hardware-visible consequences
@@ -160,9 +160,9 @@ New exported types, functions and properties receive JSDoc in the project style.
 
 ### T-26 — VIC view crossing intervals and reservations
 
-- [ ] T-26.1 Write RED coverage: an interval crossing `$4000` appears in `vic-bank-0` as a VIC-scoped record covering `[start,$4000)`, with last address `$3FFF`; a relocated active screen and the character-ROM window appear as explicit reservation fragments even when CPU PRG fill covers them; each address appears once and the view still reconciles.
-- [ ] T-26.2 Add VIC-scoped projection records with `bankId: "vic-bank-0"`; clip at `$4000` and split around screen/character-ROM reservation fragments; make `buildView` bank-aware; select only non-`bankId` records for the CPU view and the resident-RAM/zero-page/scratch/SFA-hash consumers; include `bankId` in the evidence sort.
-- [ ] T-26.3 Verify both views reconcile, free-interval math is exact, `.costs` resident RAM/zero-page/scratch are unchanged, the updated evidence formula excludes projections, and the existing RD-06 layout cases pass.
+- [x] T-26.1 Write RED coverage: an interval crossing `$4000` appears in `vic-bank-0` as a VIC-scoped record covering `[start,$4000)`, with last address `$3FFF`; a relocated active screen and the character-ROM window appear as explicit reservation fragments even when CPU PRG fill covers them; each address appears once and the view still reconciles. ✅ (completed: 2026-11-09 16:55)
+- [x] T-26.2 Add VIC-scoped projection records with `bankId: "vic-bank-0"`; clip at `$4000` and split around screen/character-ROM reservation fragments; make `buildView` bank-aware; select only non-`bankId` records for the CPU view and the resident-RAM/zero-page/scratch/SFA-hash consumers; include `bankId` in the evidence sort. ✅ (completed: 2026-11-09 16:55)
+- [x] T-26.3 Verify both views reconcile, free-interval math is exact, `.costs` resident RAM/zero-page/scratch are unchanged, the updated evidence formula excludes projections, and the existing RD-06 layout cases pass. ✅ (completed: 2026-11-09 16:55)
 
 ## Independent Review and Closeout
 

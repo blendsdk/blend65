@@ -245,6 +245,7 @@ function buildView(
   end: number,
   covered: readonly EvidenceRecord[],
   visibility: readonly string[],
+  bankId?: string,
 ): EvidenceRecord {
   const free = freeIntervalsInWindow(
     start,
@@ -260,6 +261,7 @@ function buildView(
     id,
     consumer,
     addressSpaceId,
+    ...(bankId === undefined ? {} : { bankId }),
     start,
     end,
     activeResidencyIds: Object.freeze(["resident"]),
@@ -321,6 +323,76 @@ function reserveUncovered(
       gap.end,
       "cpu16",
     ),
+  );
+}
+
+/** Resize one evidence record to a clipped half-open range without changing its class. */
+function resizeRecord(record: EvidenceRecord, start: number, end: number): EvidenceRecord {
+  const size = end - start;
+  const padding = record.kind === "padding";
+  const reserved =
+    record.kind === "reservation" || record.kind === "scratch" || record.kind === "sfa";
+  return Object.freeze({
+    ...record,
+    start,
+    end,
+    size,
+    payloadBytes: padding || reserved ? 0 : size,
+    paddingBytes: padding ? size : 0,
+    reservedBytes: reserved ? size : 0,
+  });
+}
+
+/** Project one CPU record into the VIC bank with an explicit bank identity. */
+function vicProjection(record: EvidenceRecord): EvidenceRecord {
+  const clipped = resizeRecord(
+    record,
+    Math.max(0, record.start as number),
+    Math.min(0x4000, record.end as number),
+  );
+  return Object.freeze({ ...clipped, id: `vic.${String(record.id)}`, bankId: "vic-bank-0" });
+}
+
+/** Replace one reservation window in a VIC projection with one explicit record. */
+function overlayVicReservation(
+  records: readonly EvidenceRecord[],
+  windowStart: number,
+  windowEnd: number,
+  id: string,
+): readonly EvidenceRecord[] {
+  if (windowEnd <= 0 || windowStart >= 0x4000) return records;
+  const start = Math.max(0, windowStart);
+  const end = Math.min(0x4000, windowEnd);
+  if (end <= start) return records;
+  const result: EvidenceRecord[] = [];
+  for (const record of records) {
+    const recordStart = record.start as number;
+    const recordEnd = record.end as number;
+    if (recordEnd <= start || recordStart >= end) {
+      result.push(record);
+      continue;
+    }
+    if (recordStart < start) {
+      result.push({
+        ...resizeRecord(record, recordStart, start),
+        id: `${String(record.id)}.before`,
+      });
+    }
+    if (recordEnd > end) {
+      result.push({
+        ...resizeRecord(record, end, recordEnd),
+        id: `${String(record.id)}.after`,
+      });
+    }
+  }
+  result.push(
+    Object.freeze({
+      ...reservation(id, start, end),
+      bankId: "vic-bank-0",
+    }),
+  );
+  return Object.freeze(
+    result.sort((left, right) => (left.start as number) - (right.start as number)),
   );
 }
 
@@ -547,26 +619,58 @@ export async function prepareEvidence(
   reserveGaps("platform.cpu-low", 0x0800, 0x0801);
   reserveGaps("platform.character-rom", 0x1000, 0x2000);
   reserveGaps("platform.cpu-high", 0xd000, 0x10000);
+  const baseIntervals = [...layoutIntervals, ...reserved, colorRam];
+  const cpu = baseIntervals.filter(({ addressSpaceId }) => addressSpaceId === "cpu16");
+  const activeScreen = input.layout.program.data.find(
+    ({ vicScreenRole }) => vicScreenRole === true,
+  );
+  const activeScreenInterval =
+    activeScreen === undefined
+      ? undefined
+      : input.layout.intervals.find(({ id }) => id === activeScreen.id);
+  const screenStart = activeScreenInterval?.start ?? input.profile.machine.screenAddress;
+  const screenEnd = screenStart + 0x400;
+  const projections = cpu
+    .filter(({ start, end }) => (start as number) < 0x4000 && (end as number) > 0)
+    .map(vicProjection);
+  let vic = overlayVicReservation(
+    projections,
+    screenStart,
+    screenEnd,
+    `vic.screen.${screenStart.toString(16)}`,
+  );
+  vic = overlayVicReservation(
+    vic,
+    input.profile.machine.characterRomStart,
+    input.profile.machine.characterRomEnd + 1,
+    `vic.character-rom.${input.profile.machine.characterRomStart.toString(16)}`,
+  );
   const intervals = Object.freeze(
-    [...layoutIntervals, ...reserved, colorRam].sort((left, right) => {
-      const address = Buffer.compare(
-        Buffer.from(String(left.addressSpaceId)),
-        Buffer.from(String(right.addressSpaceId)),
-      );
+    [...baseIntervals, ...vic].sort((left, right) => {
+      const text = (value: unknown): Buffer => Buffer.from(String(value ?? ""));
+      const address = Buffer.compare(text(left.addressSpaceId), text(right.addressSpaceId));
       if (address !== 0) return address;
+      const bank = Buffer.compare(text(left.bankId), text(right.bankId));
+      if (bank !== 0) return bank;
       const start = (left.start as number) - (right.start as number);
-      return start !== 0
-        ? start
-        : Buffer.compare(Buffer.from(String(left.id)), Buffer.from(String(right.id)));
+      if (start !== 0) return start;
+      const end = (left.end as number) - (right.end as number);
+      if (end !== 0) return end;
+      const leftOwner = left.owner as { readonly kind: string; readonly id: string };
+      const rightOwner = right.owner as { readonly kind: string; readonly id: string };
+      return (
+        Buffer.compare(text(left.kind), text(right.kind)) ||
+        Buffer.compare(text(leftOwner.kind), text(rightOwner.kind)) ||
+        Buffer.compare(text(leftOwner.id), text(rightOwner.id)) ||
+        Buffer.compare(text(left.id), text(right.id))
+      );
     }),
   );
-  const cpu = intervals.filter(({ addressSpaceId }) => addressSpaceId === "cpu16");
-  const bank0 = cpu.filter(({ start, end }) => (start as number) >= 0 && (end as number) <= 0x4000);
   const views = Object.freeze(
     [
       buildView("color-ram", "vic", "colorram4", 0, 0x400, [colorRam], ["color-ram"]),
       buildView("cpu16-resident", "cpu", "cpu16", 0, 0x10000, cpu, ["cpu"]),
-      buildView("vic-bank-0", "vic", "cpu16", 0, 0x4000, bank0, ["vic"]),
+      buildView("vic-bank-0", "vic", "cpu16", 0, 0x4000, vic, ["vic"], "vic-bank-0"),
     ].sort((left, right) =>
       Buffer.compare(Buffer.from(String(left.id)), Buffer.from(String(right.id))),
     ),
@@ -697,18 +801,22 @@ export async function prepareEvidence(
   // Final resources reconcile with the CPU program image. Hardware
   // reservations live in their own address space and never inflate program RAM.
   const residentRam = intervals
-    .filter(({ addressSpaceId, kind }) => addressSpaceId === "cpu16" && kind !== "reservation")
+    .filter(
+      ({ addressSpaceId, bankId, kind }) =>
+        addressSpaceId === "cpu16" && bankId === undefined && kind !== "reservation",
+    )
     .reduce((total, interval) => total + (interval.size as number), 0);
   const zeroPage = intervals
     .filter(
-      ({ addressSpaceId, resourceClass }) =>
-        addressSpaceId === "cpu16" && resourceClass === "zeroPage",
+      ({ addressSpaceId, bankId, resourceClass }) =>
+        addressSpaceId === "cpu16" && bankId === undefined && resourceClass === "zeroPage",
     )
     .reduce((total, interval) => total + (interval.size as number), 0);
   const scratch = intervals
     .filter(
       (interval) =>
         interval.addressSpaceId === "cpu16" &&
+        interval.bankId === undefined &&
         (interval.kind === "scratch" || helperOwned(interval)),
     )
     .reduce((total, interval) => total + (interval.size as number), 0);

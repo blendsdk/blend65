@@ -190,8 +190,12 @@ function main(): void { poke($0400, T[0][0]); poke($0401, E[0][0]); }
         if (built.kind !== "success") throw new Error("Expected mixed aggregate build");
         const memory = JSON.parse(
           await readFile(join(built.generation.directory, ".memory.json"), "utf8"),
-        ) as { intervals: { id: string; start: number; end: number; kind: string }[] };
-        const globals = memory.intervals.filter(({ kind }) => kind === "initializedData");
+        ) as {
+          intervals: { id: string; bankId?: string; start: number; end: number; kind: string }[];
+        };
+        const globals = memory.intervals.filter(
+          ({ kind, bankId }) => kind === "initializedData" && bankId === undefined,
+        );
         // A (2 bytes), T (4 bytes) and E (4 bytes) are initialized.
         expect(globals).toHaveLength(3);
         const prg = await readFile(
@@ -231,8 +235,12 @@ function main(): void { let address: word = &ROW; poke($0400, TABLE[0][0]); poke
         if (built.kind !== "success") throw new Error("Expected the aggregate build");
         const memory = JSON.parse(
           await readFile(join(built.generation.directory, ".memory.json"), "utf8"),
-        ) as { intervals: { id: string; start: number; end: number; kind: string }[] };
-        const globals = memory.intervals.filter(({ kind }) => kind === "initializedData");
+        ) as {
+          intervals: { id: string; bankId?: string; start: number; end: number; kind: string }[];
+        };
+        const globals = memory.intervals.filter(
+          ({ kind, bankId }) => kind === "initializedData" && bankId === undefined,
+        );
         expect(globals).toHaveLength(2);
         for (const global of globals) expect(global.end - global.start).toBe(4);
         const asm = await readFile(join(built.generation.directory, ".asm"), "utf8");

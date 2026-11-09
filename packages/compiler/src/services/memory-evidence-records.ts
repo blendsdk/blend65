@@ -304,6 +304,7 @@ export function sfaClosureHash(intervals: readonly EvidenceRecord[]): string {
       .filter((interval) => {
         const owner = interval.owner as EvidenceRecord;
         return (
+          interval.bankId === undefined &&
           ["sfa", "zeroPage", "scratch"].includes(String(interval.kind)) &&
           ["function", "helper"].includes(String(owner.kind))
         );

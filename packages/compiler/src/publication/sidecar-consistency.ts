@@ -143,6 +143,7 @@ function assetPlacementsMatchMemory(
       const owner = interval.owner as Record<string, unknown>;
       const origin = interval.origin as Record<string, unknown>;
       return (
+        interval.bankId === undefined &&
         owner.kind === "asset" &&
         owner.id === asset.id &&
         origin.kind === "asset" &&

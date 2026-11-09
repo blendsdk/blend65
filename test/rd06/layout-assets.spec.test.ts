@@ -30,6 +30,7 @@ function main(): void { poke($D018, c64.vic.vicBitmapSelect(&BITMAP) | c64.vic.v
         intervals: {
           id: string;
           addressSpaceId: string;
+          bankId?: string;
           start: number;
           end: number;
           size: number;
@@ -95,7 +96,8 @@ function main(): void { poke($D018, c64.vic.vicBitmapSelect(&BITMAP) | c64.vic.v
       expect(residentRam).toBe(
         memory.intervals
           .filter(
-            ({ addressSpaceId, kind }) => addressSpaceId === "cpu16" && kind !== "reservation",
+            ({ addressSpaceId, bankId, kind }) =>
+              addressSpaceId === "cpu16" && bankId === undefined && kind !== "reservation",
           )
           .reduce((total, interval) => total + interval.size, 0),
       );
@@ -125,6 +127,40 @@ function main(): void { poke($D018, c64.vic.vicBitmapSelect(&BITMAP) | c64.vic.v
         ).toBe(true);
       }
     });
+  }, 60_000);
+
+  // Crossing CPU data is clipped into the VIC bank and explicit reservations
+  // account for the screen and character-ROM windows exactly once.
+  it("should clip crossings and publish explicit VIC reservations", async () => {
+    await withProject(
+      `module Game;
+place(at: $3FF0) const CROSSING: byte[32] = [; 0];
+function main(): void { poke($D020, 0); }
+`,
+      [],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+        const memory = JSON.parse(
+          await readFile(join(built.generation.directory, ".memory.json"), "utf8"),
+        ) as {
+          intervals: { id: string; bankId?: string; start: number; end: number; size: number }[];
+          views: { id: string; bankId?: string; occupiedBytes: number; freeBytes: number }[];
+        };
+        expect(memory.views.find(({ id }) => id === "vic-bank-0")?.bankId).toBe("vic-bank-0");
+        expect(memory.intervals).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              start: 0x3ff0,
+              end: 0x4000,
+              bankId: "vic-bank-0",
+            }),
+            expect.objectContaining({ id: "vic.screen.400", bankId: "vic-bank-0" }),
+            expect.objectContaining({ id: "vic.character-rom.1000", bankId: "vic-bank-0" }),
+          ]),
+        );
+      },
+    );
   }, 60_000);
 });
 
