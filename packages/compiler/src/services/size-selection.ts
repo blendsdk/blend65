@@ -564,17 +564,20 @@ export function closeCanonicalReference(
       { ...facts, measured: shared.used },
     );
   if (shared.kind === "error") {
-    const failed = terminal("compiler", [
-      shared.reason === "source-placement" ||
-      shared.reason === "vic-visibility" ||
-      shared.reason === "character-rom"
-        ? sourcePlacementFailure(lowered.program, resourceSpans, shared.objectId)
-        : projectDiagnostic(
-            "COMPILER_LAYOUT",
-            `Platform layout failed: ${shared.reason}${shared.objectId === null ? "" : ` (${shared.objectId})`}`,
-            null,
-          ),
-    ]);
+    const failed =
+      shared.diagnostic !== undefined
+        ? terminal("source", [shared.diagnostic])
+        : terminal("compiler", [
+            shared.reason === "source-placement" ||
+            shared.reason === "vic-visibility" ||
+            shared.reason === "character-rom"
+              ? sourcePlacementFailure(lowered.program, resourceSpans, shared.objectId)
+              : projectDiagnostic(
+                  "COMPILER_LAYOUT",
+                  `Platform layout failed: ${shared.reason}${shared.objectId === null ? "" : ` (${shared.objectId})`}`,
+                  null,
+                ),
+          ]);
     // These are actual placement/capacity outcomes. Unknown reason strings cannot
     // turn an internal error into an optimization opportunity.
     return shared.reason === "resident-range" ||

@@ -3,9 +3,9 @@
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: RD-06 residual parity and evidence debt; [issue #140](https://github.com/blendsdk/blend65/issues/140)
 > **Created**: 2026-11-09 15:19
-> **Progress**: 1/8 tasks (13%)
+> **Progress**: 2/8 tasks (25%)
 > **Status**: Executing
-> **Last Updated**: 2026-11-09 16:20
+> **Last Updated**: 2026-11-09 16:22
 > **Phase baseline tree**: `2e7b02bd5ba632ef9b29cf5562a670caf16cf61a`
 > **Scope mode**: strict; the exact source and test paths are listed in the modification set below
 > **Reasoning**: high — lowering, layout, volatile-effect and cost-oracle changes with hardware-visible consequences
@@ -120,10 +120,10 @@ New exported types, functions and properties receive JSDoc in the project style.
 
 ### T-24 — Source-linked VIC field diagnostics
 
-- [ ] T-24.1 Write RED coverage: a constant misaligned or out-of-bank field, character-ROM overlap, a non-asset argument and an explicit-place conflict are source-linked E10273; a compiler-placed one-object asset alignment/visibility failure remains E10143; every message names the field, object/address, required alignment/visibility and conflicting intervals or holes.
-- [ ] T-24.2 Return a structured failure reason from `vic-fields.ts`; extend the lowering failure contract with a diagnostic code and contributors; copy those fields through the `lower.ts` catch boundary and preserve the source span through `size-selection.ts`.
-- [ ] T-24.3 Return a structured transform failure from `resolvePlacementTransforms` and `layoutC64Program`, then map it to source-linked E10273 with the placed label, final address, transform and conflicting intervals.
-- [ ] T-24.4 Verify the new negative cases, every existing E10143/E10273 positive case, and the unchanged generic `COMPILER_*` fallback for non-VIC failures.
+- [x] T-24.1 Write RED coverage: a constant misaligned or out-of-bank field, character-ROM overlap, a non-asset argument and an explicit-place conflict are source-linked E10273; a compiler-placed one-object asset alignment/visibility failure remains E10143; every message names the field, object/address, required alignment/visibility and conflicting intervals or holes. ✅ (completed: 2026-11-09 16:22)
+- [x] T-24.2 Return a structured failure reason from `vic-fields.ts`; extend the lowering failure contract with a diagnostic code and contributors; copy those fields through the `lower.ts` catch boundary and preserve the source span through `size-selection.ts`. ✅ (completed: 2026-11-09 16:22)
+- [x] T-24.3 Return a structured transform failure from `resolvePlacementTransforms` and `layoutC64Program`, then map it to source-linked E10273 with the placed label, final address, transform and conflicting intervals. ✅ (completed: 2026-11-09 16:22)
+- [x] T-24.4 Verify the new negative cases, every existing E10143/E10273 positive case, and the unchanged generic `COMPILER_*` fallback for non-VIC failures. ✅ (completed: 2026-11-09 16:22)
 
 ### T-21 — Post-layout VIC fold sizing
 

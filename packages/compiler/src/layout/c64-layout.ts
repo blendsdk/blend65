@@ -5,6 +5,8 @@ import { repairMachineBranches } from "../machine/block-layout.js";
 import { validateMachineProgram } from "../machine/bind.js";
 import { machineInstruction } from "../machine/lower-control.js";
 import type { MachineBlock, MachineFunction, MachineProgram } from "../machine/machine-types.js";
+import { projectDiagnostic } from "../project/diagnostics.js";
+import type { ProjectDiagnostic } from "../project/types.js";
 import {
   freeSourceStart,
   overlaps,
@@ -52,7 +54,13 @@ export type C64LayoutResult =
       readonly loadRange: { readonly start: number; readonly end: number };
       readonly program: MachineProgram;
     }
-  | { readonly kind: "error"; readonly reason: string; readonly objectId: string | null };
+  | {
+      readonly kind: "error";
+      readonly reason: string;
+      readonly objectId: string | null;
+      /** Complete source-linked diagnostic when the reason has one exact owner. */
+      readonly diagnostic?: ProjectDiagnostic;
+    };
 
 import {
   functionBytes,
@@ -758,13 +766,27 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   ) {
     return Object.freeze({ kind: "error", reason: "resident-range", objectId: null });
   }
-  const resolvedProgram = resolvePlacementTransforms(laidOutProgram, ordered, input.profile);
-  if (resolvedProgram === null) {
-    return Object.freeze({ kind: "error", reason: "placement-transform", objectId: null });
+  const resolved = resolvePlacementTransforms(laidOutProgram, ordered, input.profile);
+  if (resolved.kind === "error") {
+    return Object.freeze({
+      kind: "error",
+      reason: "placement-transform",
+      objectId: null,
+      diagnostic: projectDiagnostic(
+        "E10273",
+        resolved.message,
+        resolved.source,
+        null,
+        [],
+        resolved.contributors.length === 0
+          ? null
+          : `Contributors: ${resolved.contributors.join("; ")}`,
+      ),
+    });
   }
   if (
-    resolvedProgram.storageInventoryHash !== undefined &&
-    !validateMachineProgram(resolvedProgram)
+    resolved.program.storageInventoryHash !== undefined &&
+    !validateMachineProgram(resolved.program)
   ) {
     return Object.freeze({ kind: "error", reason: "placement-transform", objectId: null });
   }
@@ -773,6 +795,6 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     intervals: ordered,
     spriteBlocks: Object.freeze(spriteBlocks),
     loadRange: Object.freeze({ start: loaded[0]!.start, end: loaded.at(-1)!.end }),
-    program: resolvedProgram,
+    program: resolved.program,
   });
 }

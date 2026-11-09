@@ -1,6 +1,7 @@
+import type { SourceSpan } from "../project/types.js";
 import type { StorageClosureCertificate } from "../storage/storage-types.js";
 import type { TargetProfile } from "../target/profile.js";
-import { vicFieldValue } from "../machine/vic-fields.js";
+import { vicFieldFailure, vicFieldValue } from "../machine/vic-fields.js";
 import type { MachineInstruction } from "../machine/machine-types.js";
 import type {
   MachineDataObject,
@@ -167,13 +168,37 @@ function foldConstantImmediateOps(
   return Object.freeze(folded);
 }
 
+/** Detailed placement-transform outcome with the exact failing source and contributors. */
+export type PlacementTransformResult =
+  | { readonly kind: "complete"; readonly program: MachineProgram }
+  | {
+      readonly kind: "error";
+      readonly message: string;
+      readonly source: SourceSpan | null;
+      readonly contributors: readonly string[];
+    };
+
 /** Resolve one layout-owned immediate transform after every asset has a final address. */
 export function resolvePlacementTransforms(
   program: MachineProgram,
   intervals: readonly C64LayoutInterval[],
   profile: TargetProfile,
-): MachineProgram | null {
+): PlacementTransformResult {
   const placed = new Map(intervals.map((interval) => [interval.id, interval] as const));
+  let failure: Extract<PlacementTransformResult, { kind: "error" }> | null = null;
+  const fail = (
+    instruction: MachineInstruction,
+    message: string,
+    contributors: readonly string[],
+  ): null => {
+    failure ??= Object.freeze({
+      kind: "error" as const,
+      message,
+      source: instruction.source,
+      contributors: Object.freeze([...contributors]),
+    });
+    return null;
+  };
   const screenLabels = new Set<string>();
   for (const fn of [program.startup, ...program.functions]) {
     for (const block of fn.blocks) {
@@ -186,12 +211,21 @@ export function resolvePlacementTransforms(
     }
   }
   const activeScreenLabel = screenLabels.size === 1 ? [...screenLabels][0]! : null;
-  const resolveEffect = (effect: MachineInstruction["memory"][number]) => {
+  const resolveEffect = (
+    effect: MachineInstruction["memory"][number],
+    instruction: MachineInstruction,
+  ) => {
     if (effect.address.kind !== "symbolic" || effect.address.label !== activeScreenLabel) {
       return effect;
     }
     const interval = placed.get(effect.address.label);
-    if (interval === undefined || interval.kind !== "asset") return null;
+    if (interval === undefined || interval.kind !== "asset") {
+      return fail(
+        instruction,
+        `VIC pointer table '${effect.address.label}' has no placed screen asset`,
+        [`label=${effect.address.label}`, "field=sprite-pointer-table"],
+      );
+    }
     return Object.freeze({
       ...effect,
       address: Object.freeze({
@@ -205,12 +239,30 @@ export function resolvePlacementTransforms(
       const instructions = block.instructions.map((instruction) => {
         const operand = instruction.operand;
         if (operand?.kind === "label" && operand.addressTransform === "sprite-pointer-table") {
-          if (activeScreenLabel === null) return null;
+          if (activeScreenLabel === null) {
+            return fail(
+              instruction,
+              "Sprite pointer table requires exactly one active VIC screen selected by 'vicScreenSelect'",
+              ["field=sprite-pointer-table", "c64.vic.vicScreenSelect"],
+            );
+          }
           const interval = placed.get(activeScreenLabel);
-          if (interval === undefined || interval.kind !== "asset") return null;
+          if (interval === undefined || interval.kind !== "asset") {
+            return fail(
+              instruction,
+              `Active screen '${activeScreenLabel}' has no placed VIC asset`,
+              [`label=${activeScreenLabel}`, "field=sprite-pointer-table"],
+            );
+          }
           const address = interval.start + (operand.offset ?? 0);
-          if (address < 0 || address > 0xffff) return null;
-          const memory = instruction.memory.map(resolveEffect);
+          if (address < 0 || address > 0xffff) {
+            return fail(
+              instruction,
+              `Sprite pointer table address $${address.toString(16)} is outside cpu16`,
+              [`label=${activeScreenLabel}`, "field=sprite-pointer-table"],
+            );
+          }
+          const memory = instruction.memory.map((effect) => resolveEffect(effect, instruction));
           if (memory.some((effect) => effect === null)) return null;
           return Object.freeze({
             ...instruction,
@@ -221,7 +273,7 @@ export function resolvePlacementTransforms(
           });
         }
         if (operand?.kind !== "label" || operand.transform === undefined) {
-          const memory = instruction.memory.map(resolveEffect);
+          const memory = instruction.memory.map((effect) => resolveEffect(effect, instruction));
           if (memory.some((effect) => effect === null)) return null;
           return Object.freeze({
             ...instruction,
@@ -232,7 +284,34 @@ export function resolvePlacementTransforms(
         }
         const interval = placed.get(operand.label);
         const address = interval === undefined ? -1 : interval.start + (operand.offset ?? 0);
-        if (interval?.kind !== "asset") return null;
+        if (interval?.kind !== "asset") {
+          return fail(
+            instruction,
+            `VIC field '${operand.transform}' requires a VIC-visible asset; '${operand.label}' is not a placed asset`,
+            [
+              `field=${operand.transform}`,
+              `label=${operand.label}`,
+              `interval=${interval?.kind ?? "missing"}`,
+            ],
+          );
+        }
+        const fieldFailure = vicFieldFailure(
+          operand.transform,
+          address,
+          profile.machine.vicBankStart,
+          profile.machine.characterRomStart,
+          profile.machine.characterRomEnd,
+        );
+        if (fieldFailure !== null) {
+          return fail(instruction, fieldFailure.message, [
+            `field=${operand.transform}`,
+            `label=${operand.label}`,
+            `address=$${address.toString(16).padStart(4, "0")}`,
+            `reason=${fieldFailure.reason}`,
+            `vic-bank=$${profile.machine.vicBankStart.toString(16)}-$${(profile.machine.vicBankStart + 0x3fff).toString(16)}`,
+            `character-rom=$${profile.machine.characterRomStart.toString(16)}-$${profile.machine.characterRomEnd.toString(16)}`,
+          ]);
+        }
         const value = vicFieldValue(
           operand.transform,
           address,
@@ -240,8 +319,13 @@ export function resolvePlacementTransforms(
           profile.machine.characterRomStart,
           profile.machine.characterRomEnd,
         );
-        if (value === null) return null;
-        const memory = instruction.memory.map(resolveEffect);
+        if (value === null) {
+          return fail(instruction, `VIC field '${operand.transform}' cannot be derived`, [
+            `field=${operand.transform}`,
+            `label=${operand.label}`,
+          ]);
+        }
+        const memory = instruction.memory.map((effect) => resolveEffect(effect, instruction));
         if (memory.some((effect) => effect === null)) return null;
         return Object.freeze({
           ...instruction,
@@ -269,11 +353,23 @@ export function resolvePlacementTransforms(
   };
   const startup = resolveFunction(program.startup);
   const functions = program.functions.map(resolveFunction);
-  if (startup === null || functions.some((fn) => fn === null)) return null;
+  if (startup === null || functions.some((fn) => fn === null)) {
+    return (
+      failure ?? {
+        kind: "error",
+        message: "Placement transform could not be resolved",
+        source: null,
+        contributors: [],
+      }
+    );
+  }
   return Object.freeze({
-    ...program,
-    startup,
-    functions: Object.freeze(functions.filter((fn) => fn !== null)),
+    kind: "complete" as const,
+    program: Object.freeze({
+      ...program,
+      startup,
+      functions: Object.freeze(functions.filter((fn) => fn !== null)),
+    }),
   });
 }
 

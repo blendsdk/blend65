@@ -17,7 +17,7 @@ import type {
 } from "./machine-types.js";
 import type { C64ActiveScreenFact } from "./active-screen.js";
 import { loweringFailure } from "./lower-state.js";
-import { vicFieldValue, type VicFieldTransform } from "./vic-fields.js";
+import { vicFieldFailure, vicFieldValue, type VicFieldTransform } from "./vic-fields.js";
 export {
   c64InterruptEntryLabel,
   createC64InterruptEntry,
@@ -487,7 +487,28 @@ export function lowerC64Operation(
       throw loweringFailure(
         `VIC field '${vicTransform}' requires a constant or symbolic address`,
         source,
+        {
+          code: "E10273",
+          contributors: [`field=${vicTransform}`],
+        },
       );
+    }
+    const failure = vicFieldFailure(
+      vicTransform,
+      address,
+      machine.vicBankStart,
+      machine.characterRomStart,
+      machine.characterRomEnd,
+    );
+    if (failure !== null) {
+      throw loweringFailure(failure.message, source, {
+        code: "E10273",
+        contributors: [
+          `field=${vicTransform}`,
+          `address=$${address.toString(16).padStart(4, "0")}`,
+          `reason=${failure.reason}`,
+        ],
+      });
     }
     const value = vicFieldValue(
       vicTransform,
@@ -500,6 +521,7 @@ export function lowerC64Operation(
       throw loweringFailure(
         `VIC field '${vicTransform}' requires an aligned, VIC-visible address in the selected VIC bank`,
         source,
+        { code: "E10273", contributors: [`field=${vicTransform}`] },
       );
     }
     return Object.freeze({
