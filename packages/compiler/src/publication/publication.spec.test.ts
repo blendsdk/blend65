@@ -113,6 +113,7 @@ function fixedEvidenceFiles(): Map<string, Uint8Array> {
         residencies: [],
         unboundedEffects: [],
         intervals: [],
+        loadStates: [],
         views: [],
         stackDomains: [],
       }),

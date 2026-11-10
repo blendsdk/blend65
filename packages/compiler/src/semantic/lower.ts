@@ -6,6 +6,7 @@ import { ControlFlowBuilder } from "./cfg.js";
 import { ExpressionLowerer } from "./lower-expressions.js";
 import { initializerBytes } from "./lower-data.js";
 import { sinkTerminalChoice } from "./lower-control.js";
+import { checkLoadQuiescence } from "./load-quiescence.js";
 import type {
   AggregateDestination,
   SemanticFunction,
@@ -247,33 +248,39 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
       );
     }
   }
-  return Object.freeze({
-    kind: "complete",
-    program: Object.freeze({
-      main: mainCandidates[0]!.id,
-      globals: Object.freeze(globals),
-      functions: Object.freeze(
-        functions.map((fn) => sinkTerminalChoice(fn, functions, bindingsByKey)),
-      ),
-      effects: frontend.effects,
-      assets: frontend.assets,
-      loadUnits: frontend.loadUnits,
-      residentAssetRoots: Object.freeze([
-        ...new Set(
-          frontend.declarations.flatMap((declaration) =>
-            !declaration.loadable &&
-            declaration.initializer?.embedded?.kind === "embedded" &&
-            declaration.initializer.embedded.bytes.length > 0
-              ? [declaration.initializer.embedded.assetId]
-              : [],
-          ),
-        ),
-      ]),
-      initializerOrder: Object.freeze(
-        frontend.initializerOrder.filter(
-          (binding) => !embeddedBindings.has(bindingIdentityKey(binding)),
+  const program: SemanticProgram = Object.freeze({
+    main: mainCandidates[0]!.id,
+    globals: Object.freeze(globals),
+    functions: Object.freeze(
+      functions.map((fn) => sinkTerminalChoice(fn, functions, bindingsByKey)),
+    ),
+    effects: frontend.effects,
+    assets: frontend.assets,
+    loadUnits: frontend.loadUnits,
+    residentAssetRoots: Object.freeze([
+      ...new Set(
+        frontend.declarations.flatMap((declaration) =>
+          !declaration.loadable &&
+          declaration.initializer?.embedded?.kind === "embedded" &&
+          declaration.initializer.embedded.bytes.length > 0
+            ? [declaration.initializer.embedded.assetId]
+            : [],
         ),
       ),
-    }),
+    ]),
+    initializerOrder: Object.freeze(
+      frontend.initializerOrder.filter(
+        (binding) => !embeddedBindings.has(bindingIdentityKey(binding)),
+      ),
+    ),
   });
+  const quiescence = checkLoadQuiescence(program);
+  if (quiescence !== null) {
+    return Object.freeze({
+      kind: "error",
+      diagnostics: Object.freeze([quiescence]),
+      inputs: analysis.inputs,
+    });
+  }
+  return Object.freeze({ kind: "complete", program });
 }

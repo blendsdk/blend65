@@ -99,21 +99,39 @@ export function mergeScalarFacts(
   }
 }
 
+/** Credit one captured range as definitely initialized. */
+function creditRange(destination: ScalarValueState, range: InitializedRange): void {
+  destination.initializedRanges = Object.freeze(
+    normalizeRanges([...destination.initializedRanges, range]),
+  );
+  const type = destination.binding.type;
+  if (type?.kind === "array") {
+    destination.initialized = destination.initializedRanges.some(
+      (initialized) => initialized.start === 0 && initialized.end >= type.length,
+    );
+  } else {
+    destination.initialized = true;
+  }
+}
+
 /** Credit a proved captured write only on the matching stored result's true path. */
 export function creditConditionalSuccess(result: ScalarValueState, resultId: string): void {
   const effect = result.conditionalEffect;
   if (result.known !== true || effect === undefined || effect === null) return;
   if (effect.resultId !== resultId) return;
-  const destination = effect.destination;
-  destination.initializedRanges = Object.freeze(
-    normalizeRanges([...destination.initializedRanges, effect.capturedRange]),
-  );
-  const type = destination.binding.type;
-  if (type?.kind === "array") {
-    destination.initialized = destination.initializedRanges.some(
-      (range) => range.start === 0 && range.end >= type.length,
-    );
-  }
+  creditRange(effect.destination, effect.capturedRange);
+}
+
+/** Publish one captured destination range on the successful load edge. */
+export function creditLoadCapture(capture: import("./semantic-types.js").ScalarLoadCapture): void {
+  creditRange(capture.destination, capture.range);
+}
+
+/** Publish one stored conditional effect on its true edge. */
+export function creditConditionalEffect(
+  effect: import("./semantic-types.js").ScalarConditionalEffect,
+): void {
+  creditRange(effect.destination, effect.capturedRange);
 }
 
 /** Forget mutable scalar values after an operation with unknown writes. */

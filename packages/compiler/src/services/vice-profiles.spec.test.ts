@@ -180,6 +180,36 @@ describe.sequential("generation-owned interactive VICE profiles", () => {
     30_000,
   );
 
+  // The D64 profile launches its fresh pinned disk image as the primary artifact.
+  it("should launch the fresh D64 image through the same fixed VICE path", async () => {
+    const data = await fixture("c64-pal-d64-kernal-6581");
+    const result = await runProject({ project: data.project, optimization: "none" });
+    expect(result.kind, JSON.stringify(result.diagnostics)).toBe("success");
+    if (result.kind !== "success") throw new Error("Expected an interactive run");
+    expect(result.generation.primaryArtifact.endsWith(".d64")).toBe(true);
+    const calls = await invocations(data.log);
+    expect(calls).toHaveLength(2);
+    expect(calls[1]!.args).toEqual([
+      "-default",
+      "-model",
+      "c64",
+      "-pal",
+      "-VICIImodel",
+      "6569",
+      "-sidmodel",
+      "0",
+      "-ciamodel",
+      "0",
+      "-autostart",
+      join(result.generation.directory, result.generation.primaryArtifact),
+    ]);
+    for (const call of calls) {
+      expect(call.pins).toHaveLength(1);
+      expect(call.pins[0]![0]).toBe(result.generation.generationId);
+    }
+    expect(await pinFiles(data.out)).toEqual([]);
+  }, 30_000);
+
   // Editing a manifest after the build cannot relabel the generation already pinned for launch.
   it("should retain the fresh NTSC 8580 identity when the manifest changes during the probe", async () => {
     const data = await fixture(profiles[3][0], "mutate");

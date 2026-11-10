@@ -1,6 +1,6 @@
 import { projectDiagnostic as error } from "../project/diagnostics.js";
 import { SCALAR_TYPES } from "./constants.js";
-import { semanticTypesEqual } from "./semantic-type-relations.js";
+import { semanticTypesEqual, semanticTypeSize } from "./semantic-type-relations.js";
 import type { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
 import type {
   ScalarExpressionContext,
@@ -39,8 +39,7 @@ export function analyzeLoadUnitCall(
   }
   const unitArg = expression.arguments[0]!;
   const destinationArg = expression.arguments[1]!;
-  const declaration =
-    unitArg.kind === "name" ? host.resolveName(unitArg.name, context) : null;
+  const declaration = unitArg.kind === "name" ? host.resolveName(unitArg.name, context) : null;
   if (declaration === null || declaration.binding.loadable !== true) {
     host.diagnose(
       error(
@@ -56,7 +55,10 @@ export function analyzeLoadUnitCall(
     return { node: null, exact: null };
   }
   const unit = analyzer.analyze(unitArg, null, { ...context, compileTimeQuery: true });
-  const destination = analyzer.analyze(destinationArg, null, context);
+  const destination = analyzer.analyze(destinationArg, null, {
+    ...context,
+    placeContext: true,
+  });
   if (unit.node === null || destination.node === null) return { node: null, exact: null };
   const place = destination.node.place;
   if (place === null || place.readonly) {
@@ -81,6 +83,44 @@ export function analyzeLoadUnitCall(
     );
     return { node: null, exact: null };
   }
+  const destinationState = host.stateFor?.(place.binding) ?? null;
+  if (destinationState === null) {
+    host.diagnose(
+      error(
+        "E10275",
+        `Cannot load '${display(host, unitArg)}' into '${display(host, destinationArg)}' — the compiler cannot retain the destination's reaching state`,
+        expression.span,
+      ),
+    );
+    return { node: null, exact: null };
+  }
+  const range = place.byteRange ?? {
+    start: 0,
+    end: semanticTypeSize(unit.node.type),
+  };
+  const resultId = `load:${expression.span.sourceId}:${expression.span.start}:${expression.span.end}`;
+  const capture = Object.freeze({
+    resultId,
+    unitId: declaration.binding.qualifiedName ?? declaration.binding.name,
+    destination: destinationState,
+    range: Object.freeze({ start: range.start, end: range.end }),
+    callSpan: expression.span,
+  });
+  // Entering the call may overwrite part of the destination, so its captured range is no longer
+  // definitely initialized until the true result edge publishes it.
+  destinationState.initializedRanges = Object.freeze(
+    destinationState.initializedRanges.filter(
+      (initialized) => initialized.end <= range.start || initialized.start >= range.end,
+    ),
+  );
+  const type = destinationState.binding.type;
+  destinationState.initialized =
+    type?.kind === "array"
+      ? destinationState.initializedRanges.some(
+          (initialized) => initialized.start === 0 && initialized.end >= type.length,
+        )
+      : false;
+  host.recordLoadCapture?.(capture);
   return {
     node: Object.freeze({
       kind: "call",
@@ -94,6 +134,7 @@ export function analyzeLoadUnitCall(
       calleeDisplay: "c64.loader.load",
       arguments: Object.freeze([unit.node, destination.node]),
       loadUnit: Object.freeze({ unit: declaration.binding.id, destination: destination.node }),
+      loadCapture: capture,
     }),
     exact: false,
   };

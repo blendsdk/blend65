@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 10:38
-> **Progress**: 52/131 tasks (40%)
+> **Last Updated**: 2026-11-10 11:03
+> **Progress**: 66/131 tasks (50%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -145,23 +145,23 @@ illegal uses, and tooling handoff before implementation.
 **Reference**: [03-02](03-02-load-operation-and-publication.md) · ST-31..ST-50, ST-150 · AR-P4, AR-P5
 **Objective**: Pin capture/result identity, every flow join, alias class, and route proof.
 
-- [ ] 3.1.1 [spec-author] Write specification tests from ST-31..ST-50, ST-150 — `test/rd07/load-publication.spec.test.ts`, `test/rd07/load-quiescence.spec.test.ts`
-- [ ] 3.1.2 Run the new spec suites and record the red phase
+- [x] 3.1.1 [spec-author] Write specification tests from ST-31..ST-50, ST-150 — `test/rd07/load-publication.spec.test.ts`, `test/rd07/load-quiescence.spec.test.ts` ✅ (completed: 2026-11-10 11:03)
+- [x] 3.1.2 Run the new spec suites and record the red phase ✅ (completed: 2026-11-10 11:03)
 
 ### Step 3.2: Implementation
 
 **Reference**: [03-02](03-02-load-operation-and-publication.md) §Publication rules, §Alias model, §Quiescence
 
-- [ ] 3.2.1 Add the `LoadCapture` fact, fresh result identity, and all flow-copy points — `packages/compiler/src/frontend/semantic-types.ts`, `packages/compiler/src/frontend/flow-facts.ts`
-- [ ] 3.2.2 Wire the true/false edges — `packages/compiler/src/frontend/flow-facts.ts`
-- [ ] 3.2.3 Preserve/drop the capture across joins — `packages/compiler/src/frontend/flow-facts.ts`
+- [x] 3.2.1 Add the `LoadCapture` fact, fresh result identity, and all flow-copy points — `packages/compiler/src/frontend/semantic-types.ts`, `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
+- [x] 3.2.2 Wire the true/false edges — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
+- [x] 3.2.3 Preserve/drop the capture across joins — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
 - [ ] 3.2.4 Preserve/drop the capture across loops and retries — `packages/compiler/src/frontend/flow-loops.ts`
-- [ ] 3.2.5 Follow the capture through stored results — `packages/compiler/src/frontend/flow-facts.ts`
+- [x] 3.2.5 Follow the capture through stored results — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
 - [ ] 3.2.6 Implement must/may/partial alias propagation — `packages/compiler/src/frontend/address-provenance.ts`, `packages/compiler/src/frontend/flow-facts.ts`
-- [ ] 3.2.7 Implement E10276 with read, load, and blocking-edge spans — `packages/compiler/src/frontend/flow-facts.ts`
-- [ ] 3.2.8 Query ownership depth at the call — `packages/compiler/src/semantic/interrupt-ownership.ts`, `packages/compiler/src/frontend/load-quiescence.ts`
-- [ ] 3.2.9 Implement the quiescence E10275 diagnostic and remedy — `packages/compiler/src/frontend/load-quiescence.ts`
-- [ ] 3.2.10 Run ST-31..ST-50, ST-150 and record the green phase
+- [x] 3.2.7 Implement E10276 with read, load, and blocking-edge spans — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
+- [x] 3.2.8 Query ownership depth at the call — `packages/compiler/src/semantic/interrupt-ownership.ts`, `packages/compiler/src/frontend/load-quiescence.ts` ✅ (completed: 2026-11-10 11:03)
+- [x] 3.2.9 Implement the quiescence E10275 diagnostic and remedy — `packages/compiler/src/frontend/load-quiescence.ts` ✅ (completed: 2026-11-10 11:03)
+- [~] 3.2.10 Run ST-31..ST-50, ST-150 and record the green phase ⏳ (implemented: 2026-11-10 11:03)
 
 ### Step 3.3: Implementation Tests and Verification
 
@@ -240,10 +240,10 @@ illegal uses, and tooling handoff before implementation.
 - [ ] 5.2.4 Prove CPU/VIC visibility and BASIC-ROM banking — `packages/compiler/src/layout/c64-layout.ts`
 - [ ] 5.2.5 Derive VIC fields from the destination — `packages/compiler/src/machine/vic-fields.ts`
 - [ ] 5.2.6 Add per-destination/per-candidate exclusive residencies — `packages/compiler/src/services/evidence.ts`
-- [ ] 5.2.7 Emit state views and the additive `loadStates` records — `packages/compiler/src/services/evidence.ts`
+- [~] 5.2.7 Emit state views and the additive `loadStates` records — `packages/compiler/src/services/evidence.ts` ⏳ (implemented: 2026-11-10 11:03)
 - [ ] 5.2.8 Emit loader/destination/KERNAL records, free-space facts, and stack domains — `packages/compiler/src/services/memory-evidence-records.ts`
-- [ ] 5.2.9 Add `loadStates` to the `MemoryEvidence` type and the exact-key memory validator — `packages/compiler/src/artifacts/evidence-types.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts`
-- [ ] 5.2.10 Run ST-65..ST-76 and record the green phase
+- [x] 5.2.9 Add `loadStates` to the `MemoryEvidence` type and the exact-key memory validator — `packages/compiler/src/artifacts/evidence-types.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts` ✅ (completed: 2026-11-10 11:03)
+- [~] 5.2.10 Run ST-65..ST-76 and record the green phase ⏳ (implemented: 2026-11-10 11:03)
 
 ### Step 5.3: Implementation Tests and Verification
 
@@ -328,7 +328,7 @@ illegal uses, and tooling handoff before implementation.
 - [x] 7.2.3 Accept the D64 primary in publication and the D64 `evidenceAgrees` branch — `packages/compiler/src/publication/current-record.ts` ✅ (completed: 2026-11-10 10:38)
 - [x] 7.2.4 Write the eight-file generation and D64 `.build.json` package with `loaderStrategyId` and ordered components — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 10:38)
 - [ ] 7.2.5 Probe VICE 3.10 and freeze the exact drive-8/autostart argv — `packages/compiler/src/services/vice.ts`
-- [ ] 7.2.6 Bind `run` to the pinned fresh image and first boot entry — `packages/compiler/src/services/services.ts`, `packages/compiler/src/services/vice.ts`
+- [x] 7.2.6 Bind `run` to the pinned fresh image and first boot entry — `packages/compiler/src/services/services.ts`, `packages/compiler/src/services/vice.ts` ✅ (completed: 2026-11-10 11:03)
 - [ ] 7.2.7 Separate build/pin/mount/autostart/runtime/timeout/cancellation failures — `packages/compiler/src/services/services.ts`
 - [ ] 7.2.8 Retire the expressiveness-ledger row with the end-to-end load test — `test/rd04/expressiveness-ledger.json`, `test/rd07/d64-e2e.spec.test.ts`
 - [ ] 7.2.9 Run ST-97..ST-108, ST-134, ST-140, ST-127..ST-131 and record the green phase
@@ -365,13 +365,13 @@ illegal uses, and tooling handoff before implementation.
 **Reference**: [03-07](03-07-evidence-and-costs.md) §Implementation Details
 
 - [ ] 8.2.1 Emit loadable asset placements, constraints, and aliases — `packages/compiler/src/services/evidence.ts`
-- [ ] 8.2.2 Emit the boot/loader/filename/call-site/disk/KERNAL cost split with `{kind:"unknown"}` timing — `packages/compiler/src/services/evidence.ts`
-- [ ] 8.2.3 Populate debug load units by component id and `loadUnitIndex` ranges — `packages/compiler/src/services/evidence-records.ts`
+- [x] 8.2.2 Emit the boot/loader/filename/call-site/disk/KERNAL cost split with `{kind:"unknown"}` timing — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 11:03)
+- [x] 8.2.3 Populate debug load units by component id and `loadUnitIndex` ranges — `packages/compiler/src/services/evidence-records.ts` ✅ (completed: 2026-11-10 11:03)
 - [ ] 8.2.4 Assert the D64 package component sources, aliases, and ordered components emitted in Phase 7; fix only the evidence projection — `packages/compiler/src/services/evidence.ts`
 - [ ] 8.2.5 Add the `loadStates` cross-check and extended loadable destination matcher — `packages/compiler/src/publication/sidecar-consistency.ts`
 - [ ] 8.2.6 Add the build-only `LoadableBuildView` as a sidecar-derived shape — `packages/compiler/src/services/handoff.ts`
-- [ ] 8.2.7 Add `loaderStrategyId` to the `BuildEvidence` type and the exact-key build validator — `packages/compiler/src/artifacts/evidence-types.ts`, `packages/compiler/src/artifacts/build-evidence-validator.ts`
-- [ ] 8.2.8 Run ST-109..ST-115, ST-133, ST-138 and record the green phase
+- [x] 8.2.7 Add `loaderStrategyId` to the `BuildEvidence` type and the exact-key build validator — `packages/compiler/src/artifacts/evidence-types.ts`, `packages/compiler/src/artifacts/build-evidence-validator.ts` ✅ (completed: 2026-11-10 11:03)
+- [~] 8.2.8 Run ST-109..ST-115, ST-133, ST-138 and record the green phase ⏳ (implemented: 2026-11-10 11:03)
 
 ### Step 8.3: Implementation Tests and Verification
 

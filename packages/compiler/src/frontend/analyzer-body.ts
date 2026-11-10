@@ -48,6 +48,8 @@ export interface BodyAnalysisHost {
   ) => TypedVariableStatement | null;
   /** Retain a statement whose implementation is not available. */
   readonly addObligation: (span: SourceSpan, message: string) => void;
+  /** Resolve the reaching state of one already-resolved binding, when retained. */
+  readonly stateFor?: (binding: BindingId) => import("./semantic-types.js").ScalarValueState | null;
 }
 
 /** Check structured statements while keeping loop-exit facts local to each body. */
@@ -296,6 +298,7 @@ export class BodyAnalyzer {
       analyzeLocal: (declaration: VariableDeclaration, scope: Scope, context: ExpressionContext) =>
         this.host.analyzeLocal(declaration, scope, context),
       diagnose: (diagnostic: ProjectDiagnostic) => this.host.diagnostics.push(diagnostic),
+      ...(this.host.stateFor === undefined ? {} : { stateFor: this.host.stateFor }),
     };
   }
 

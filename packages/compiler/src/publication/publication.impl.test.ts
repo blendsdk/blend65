@@ -107,6 +107,7 @@ async function prepared(snapshot: ProjectSnapshot): Promise<PreparedGeneration> 
           residencies: [],
           unboundedEffects: [],
           intervals: [],
+          loadStates: [],
           views: [],
           stackDomains: [],
         }),

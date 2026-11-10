@@ -148,6 +148,7 @@ describe("version-1 evidence invariants", () => {
         residencies: [],
         unboundedEffects: [],
         intervals: [],
+        loadStates: [],
         views: [],
         stackDomains: [],
       }),

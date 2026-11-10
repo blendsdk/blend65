@@ -439,6 +439,7 @@ export function memoryEvidenceValue(
       "residencies",
       "unboundedEffects",
       "intervals",
+      "loadStates",
       "views",
       "stackDomains",
     ])
@@ -530,6 +531,50 @@ export function memoryEvidenceValue(
   }
   if (!isEvidenceOrdered(value.intervals as Record<string, unknown>[], intervalKey)) {
     invalid?.(["intervals"], "intervals must be unique and in canonical order");
+    return false;
+  }
+  if (
+    !evidenceItems(
+      value.loadStates,
+      (item, _index, report) => {
+        if (
+          !isEvidenceRecord(item) ||
+          !hasExactEvidenceKeys(item, [
+            "callSite",
+            "unitId",
+            "destinationIntervalIds",
+            "quiescence",
+            "publicationPoint",
+          ])
+        )
+          return false;
+        if (!sourceSite(item.callSite, (path, detail) => report(["callSite", ...path], detail)))
+          return false;
+        if (!isEvidenceText(item.unitId, report, ["unitId"])) return false;
+        if (!areEvidenceStringsOrdered(item.destinationIntervalIds)) return false;
+        if (
+          !isEvidenceRecord(item.quiescence) ||
+          !hasExactEvidenceKeys(item.quiescence, ["routes", "status"]) ||
+          !areEvidenceStringsOrdered(item.quiescence.routes) ||
+          item.quiescence.status !== "proved"
+        )
+          return false;
+        if (
+          !isEvidenceRecord(item.publicationPoint) ||
+          !hasExactEvidenceKeys(item.publicationPoint, ["callSite", "resultEdge"]) ||
+          !sourceSite(item.publicationPoint.callSite, (path, detail) =>
+            report(["publicationPoint", "callSite", ...path], detail),
+          ) ||
+          item.publicationPoint.resultEdge !== "true"
+        )
+          return false;
+        return true;
+      },
+      invalid,
+      ["loadStates"],
+      "expected a load call site, unit identity, destination intervals, quiescence and true-edge publication point",
+    )
+  ) {
     return false;
   }
   if (

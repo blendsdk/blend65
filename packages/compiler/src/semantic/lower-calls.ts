@@ -61,6 +61,7 @@ export class CallLowerer {
           kind: "load-unit",
           result,
           unit: expression.loadUnit.unit,
+          destinationBinding: expression.loadUnit.destination.place!.binding,
           unitId: record.id,
           unitName: Object.freeze([...record.diskName].map((character) => character.charCodeAt(0))),
           destination: address,

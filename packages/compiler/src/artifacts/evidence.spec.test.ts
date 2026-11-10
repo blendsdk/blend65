@@ -128,6 +128,7 @@ function memoryEvidence(): MemoryEvidence {
     residencies: Object.freeze([]),
     unboundedEffects: Object.freeze([]),
     intervals: Object.freeze([]),
+    loadStates: Object.freeze([]),
     views: Object.freeze([]),
     stackDomains: Object.freeze([]),
   });

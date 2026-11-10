@@ -7,6 +7,8 @@ export { proveWrappingForLoop, blockHasExplicitExit } from "./loop-proof.js";
 import {
   captureBranchFacts,
   clearMutableScalarFacts,
+  creditConditionalEffect,
+  creditLoadCapture,
   mergeScalarFacts,
   restoreScalarFacts,
   snapshotScalarFacts,
@@ -304,6 +306,8 @@ interface StructuredFlowHost {
   ): TypedVariableStatement | null;
   /** Append one proving diagnostic. */
   diagnose(diagnostic: ProjectDiagnostic): void;
+  /** Resolve the reaching state of one already-resolved binding, when retained. */
+  stateFor?: (binding: BindingId) => ScalarValueState | null;
 }
 
 /** Analyze an if/else chain and conservatively join reaching values. */
@@ -337,9 +341,37 @@ export function analyzeStructuredIf(
       );
   }
   const baseline = snapshotScalarFacts(scope);
+  const inverted = condition?.kind === "unary" && condition.operator === "!";
+  const directCapture =
+    condition?.loadCapture ??
+    (inverted &&
+    condition?.kind === "unary" &&
+    typeof condition.operand === "object" &&
+    "loadCapture" in condition.operand
+      ? condition.operand.loadCapture
+      : undefined);
+  const resultBinding =
+    condition?.kind === "name"
+      ? condition.binding
+      : inverted &&
+          condition?.kind === "unary" &&
+          typeof condition.operand === "object" &&
+          "binding" in condition.operand
+        ? condition.operand.binding
+        : null;
+  const storedEffect =
+    resultBinding === null || resultBinding === undefined
+      ? null
+      : (host.stateFor?.(resultBinding)?.conditionalEffect ?? null);
+  const creditSuccess = (): void => {
+    if (directCapture !== undefined) creditLoadCapture(directCapture);
+    else if (storedEffect !== null) creditConditionalEffect(storedEffect);
+  };
+  if (!inverted) creditSuccess();
   const then = host.analyzeBlock(statement.then, scope, module, caller, returnType, loopDepth);
   const thenFacts = captureBranchFacts(baseline);
   restoreScalarFacts(baseline);
+  if (inverted) creditSuccess();
   let otherwise: TypedBlock | TypedIfStatement | null = null;
   if (statement.otherwise?.kind === "block") {
     otherwise = host.analyzeBlock(

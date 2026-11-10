@@ -316,6 +316,8 @@ export interface TypedExpr {
     /** Already-evaluated mutable destination place. */
     readonly destination: TypedExpr;
   };
+  /** Compiler-only publication fact for one load call. */
+  readonly loadCapture?: ScalarLoadCapture;
   /** Resolved direct-call signature. */
   readonly signature?: FunctionSignature;
   /** Indexed or selected aggregate object. */
@@ -557,6 +559,20 @@ export interface ScalarConditionalEffect {
   readonly capturedRange: InitializedRange;
 }
 
+/** Compiler-only publication fact produced by one load call. */
+export interface ScalarLoadCapture {
+  /** Fresh identity for this call. */
+  readonly resultId: string;
+  /** Exact packaged unit identity. */
+  readonly unitId: string;
+  /** Destination state whose range is published on success. */
+  readonly destination: ScalarValueState;
+  /** Exact half-open range captured by this call. */
+  readonly range: InitializedRange;
+  /** Complete load-call span, used as the governing source relation. */
+  readonly callSpan: SourceSpan;
+}
+
 /** One lexical value scope used by direct expression lookup. */
 export interface ScalarScope {
   /** Enclosing lexical scope. */
@@ -626,6 +642,10 @@ export interface ScalarExpressionHost {
   readonly profileId?: string | null;
   /** Resolve a source name under the current scopes. */
   resolveName(name: string, context: ScalarExpressionContext): ScalarValueState | null;
+  /** Resolve the reaching state of one already-resolved binding, when retained. */
+  stateFor?(binding: BindingId): ScalarValueState | null;
+  /** Retain one compiler-only load publication fact for later reads and branches. */
+  recordLoadCapture?(capture: import("./semantic-types.js").ScalarLoadCapture): void;
   /** Resolve a source type and report an unknown type when needed. */
   resolveType(type: TypeSyntax | null, context: ScalarExpressionContext): SemanticType | null;
   /** Return a direct function signature for a resolved binding. */

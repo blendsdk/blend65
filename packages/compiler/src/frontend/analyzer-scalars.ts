@@ -97,6 +97,13 @@ export function analyzeScalarModuleVariable(
     }
     state.known = initializer?.constant ?? null;
     updateInitializedState(state, result.node);
+    if (result.node?.loadCapture !== undefined) {
+      state.conditionalEffect = Object.freeze({
+        resultId: result.node.loadCapture.resultId,
+        destination: result.node.loadCapture.destination,
+        capturedRange: result.node.loadCapture.range,
+      });
+    }
     if (declaration.loadable && initializer !== null && type !== null) {
       host.loadableInitializers?.push({ binding: state.binding, type, initializer });
     }
@@ -257,6 +264,13 @@ export function analyzeScalarLocal(
     initializedPaths: Object.freeze([]),
   };
   updateInitializedState(state, initializer);
+  if (initializer?.loadCapture !== undefined) {
+    state.conditionalEffect = Object.freeze({
+      resultId: initializer.loadCapture.resultId,
+      destination: initializer.loadCapture.destination,
+      capturedRange: initializer.loadCapture.range,
+    });
+  }
   scope.values.set(declaration.name, state);
   host.stateByKey.set(bindingIdentityKey(binding.id), state);
   if (declaration.loadable && initializer !== null) {

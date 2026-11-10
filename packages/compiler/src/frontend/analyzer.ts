@@ -52,6 +52,7 @@ import type {
   ModuleAnalysisResult,
   ModuleGraph,
   ScalarExpressionContext as ExpressionContext,
+  ScalarLoadCapture,
   ScalarScope as Scope,
   ScalarValueState as ValueState,
   SemanticBinding,
@@ -78,6 +79,8 @@ class ModuleAnalyzer {
   readonly bindings: SemanticBinding[];
   readonly declarations: AnalyzedDeclaration[] = [];
   readonly loadableInitializers: LoadableInitializer[] = [];
+  /** Compiler-only load publication facts by destination binding. */
+  readonly loadCaptures = new Map<string, ScalarLoadCapture[]>();
   readonly calls: CallEdge[] = [];
   readonly sources: ReadonlyMap<string, SourceRecord>;
   readonly bindingByKey: Map<string, SemanticBinding>;
@@ -166,8 +169,20 @@ class ModuleAnalyzer {
         call: (edge) => this.calls.push(edge),
         sourceText: (span) => sourceText(this.sources, span),
         read: (place, span) => {
-          const diagnostic = uninitializedReadDiagnostic(place, span, this.stateByKey);
+          const diagnostic = uninitializedReadDiagnostic(
+            place,
+            span,
+            this.stateByKey,
+            this.loadCaptures,
+          );
           if (diagnostic !== null) this.diagnostics.push(diagnostic);
+        },
+        stateFor: (binding) => this.stateByKey.get(bindingIdentityKey(binding)) ?? null,
+        recordLoadCapture: (capture) => {
+          const key = bindingIdentityKey(capture.destination.binding.id);
+          const captures = this.loadCaptures.get(key) ?? [];
+          captures.push(capture);
+          this.loadCaptures.set(key, captures);
         },
         embeddedValue: (expression) =>
           this.embeddedValues.get(
@@ -194,6 +209,7 @@ class ModuleAnalyzer {
       functionByKey: this.functionByKey,
       analyzeLocal: (declaration, scope, context) => this.analyzeLocal(declaration, scope, context),
       addObligation: (span, message) => this.addObligation(span, message),
+      stateFor: (binding) => this.stateByKey.get(bindingIdentityKey(binding)) ?? null,
     });
   }
 

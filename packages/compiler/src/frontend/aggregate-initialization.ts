@@ -2,7 +2,14 @@ import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import { scalarWarning } from "./constants.js";
 import { bindingIdentityKey } from "./semantic-types.js";
-import type { Place, ScalarValueState, SemanticType, TypedExpr } from "./semantic-types.js";
+import type {
+  Place,
+  ScalarLoadCapture,
+  ScalarValueState,
+  SemanticType,
+  TypedExpr,
+} from "./semantic-types.js";
+import { semanticTypeSize } from "./semantic-type-relations.js";
 import type { VariableDeclaration } from "./syntax.js";
 
 /** Append declaration diagnostics which depend on fixed-array coverage. */
@@ -85,11 +92,43 @@ export function uninitializedReadDiagnostic(
   place: Place,
   span: SourceSpan,
   states: ReadonlyMap<string, ScalarValueState>,
+  loadCaptures?: ReadonlyMap<string, readonly ScalarLoadCapture[]>,
 ): ProjectDiagnostic | null {
-  const state = states.get(bindingIdentityKey(place.binding));
+  const key = bindingIdentityKey(place.binding);
+  const state = states.get(key);
+  const readRange =
+    place.byteRange ??
+    (state?.binding.type === null || state?.binding.type === undefined
+      ? null
+      : { start: 0, end: semanticTypeSize(state.binding.type) });
+  const blocking =
+    loadCaptures === undefined || state === undefined || readRange === null
+      ? undefined
+      : loadCaptures
+          .get(key)
+          ?.find(
+            (capture) =>
+              capture.range.start < readRange.end &&
+              readRange.start < capture.range.end &&
+              !state.initializedRanges.some(
+                (range) => range.start <= readRange.start && range.end >= readRange.end,
+              ),
+          );
+  if (blocking !== undefined && state !== undefined) {
+    return projectDiagnostic(
+      "E10276",
+      `Cannot prove '${state.binding.name}' is the complete initialized value from load '${blocking.unitId}' — the load result was false or the range was not definitely initialized on every reaching path; reassign the destination or check the load result`,
+      span,
+      null,
+      [
+        { span: blocking.callSpan, message: "Load operation is here" },
+        { span: state.nameSpan, message: "Destination is declared here" },
+      ],
+    );
+  }
   if (state === undefined || state.binding.storage !== "local" || state.initialized) return null;
-  const key = initializedPlaceKey(place);
-  if (key !== null && state.initializedPaths.includes(key)) return null;
+  const pathKey = initializedPlaceKey(place);
+  if (pathKey !== null && state.initializedPaths.includes(pathKey)) return null;
   if (state.binding.type?.kind === "array" && place.path.length > 0) {
     const index = place.path[0];
     const constant = typeof index === "string" ? null : index.constant;

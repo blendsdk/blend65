@@ -115,6 +115,7 @@ export interface SizeEvidenceDecision {
 }
 
 import { paddedD64Name } from "../packaging/d64/index.js";
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { D64Image } from "../packaging/d64/index.js";
 
 interface D64EvidenceInput {
@@ -789,6 +790,41 @@ export async function prepareEvidence(
       }),
     ]),
     intervals,
+    loadStates: Object.freeze(
+      input.program.semantic.functions.flatMap((fn) =>
+        fn.blocks.flatMap((block) =>
+          block.operations
+            .filter(
+              (operation): operation is Extract<typeof operation, { kind: "load-unit" }> =>
+                operation.kind === "load-unit",
+            )
+            .map((operation) => {
+              const key = bindingIdentityKey(operation.destinationBinding);
+              const destination = intervals.find((interval) => String(interval.id).includes(key));
+              const site = Object.freeze({
+                path: operation.span.sourceId,
+                startByte: operation.span.start,
+                endByte: operation.span.end,
+              });
+              return Object.freeze({
+                callSite: site,
+                unitId: operation.unitId,
+                destinationIntervalIds: Object.freeze(
+                  destination === undefined ? [] : [String(destination.id)],
+                ),
+                quiescence: Object.freeze({
+                  routes: Object.freeze([]),
+                  status: "proved" as const,
+                }),
+                publicationPoint: Object.freeze({
+                  callSite: site,
+                  resultEdge: "true" as const,
+                }),
+              });
+            }),
+        ),
+      ),
+    ),
     views,
     stackDomains: Object.freeze(
       [
@@ -854,11 +890,51 @@ export async function prepareEvidence(
       dependencyIds: Object.freeze([]),
     }),
   );
-  const costEntries = [...residentCostEntries, ...compileTimeCostEntries].sort((left, right) => {
-    const leftKey = `${left.accounting}\0${left.component}\0${left.owner.kind}\0${left.owner.id}\0${left.id}`;
-    const rightKey = `${right.accounting}\0${right.component}\0${right.owner.kind}\0${right.owner.id}\0${right.id}`;
-    return Buffer.compare(Buffer.from(leftKey), Buffer.from(rightKey));
-  });
+  const diskCostEntries =
+    input.d64 === undefined
+      ? []
+      : [
+          Object.freeze({
+            kind: "bytes" as const,
+            id: "loader:kernal-existing-rom",
+            owner: Object.freeze({ kind: "platform" as const, id: "kernal-load" }),
+            component: "existingRom" as const,
+            accounting: "existingRom" as const,
+            bytes: 0,
+            sourceSites: Object.freeze([]),
+            dependencyIds: Object.freeze([]),
+          }),
+          ...input.d64.image.files
+            .filter(({ file }) => file.id !== input.d64!.bootComponentId)
+            .map(({ file }) =>
+              Object.freeze({
+                kind: "bytes" as const,
+                id: `disk-file:${file.id}`,
+                owner: Object.freeze({ kind: "loadUnit" as const, id: file.id }),
+                component: "diskFile" as const,
+                accounting: "diskFile" as const,
+                bytes: file.body.length,
+                sourceSites: Object.freeze([]),
+                dependencyIds: Object.freeze([]),
+              }),
+            ),
+          Object.freeze({
+            kind: "blocks" as const,
+            id: "disk:d64-container",
+            owner: Object.freeze({ kind: "compiler" as const, id: "packager" }),
+            component: "sectorOverhead" as const,
+            blocks: input.d64.image.usedBlocks,
+            sourceSites: Object.freeze([]),
+            dependencyIds: Object.freeze([]),
+          }),
+        ];
+  const costEntries = [...residentCostEntries, ...compileTimeCostEntries, ...diskCostEntries].sort(
+    (left, right) => {
+      const leftKey = `${left.kind}\0${"accounting" in left ? left.accounting : ""}\0${left.component}\0${left.owner.kind}\0${left.owner.id}\0${left.id}`;
+      const rightKey = `${right.kind}\0${"accounting" in right ? right.accounting : ""}\0${right.component}\0${right.owner.kind}\0${right.owner.id}\0${right.id}`;
+      return Buffer.compare(Buffer.from(leftKey), Buffer.from(rightKey));
+    },
+  );
   const completePathId = "program.entry-to-return";
   const unknownMeasurement = Object.freeze({ kind: "unknown" as const });
   const finalPathCycles = sizeCostVector(input.layout, input.certificate).pathCycles;
@@ -1020,7 +1096,26 @@ export async function prepareEvidence(
     locations: debug.locations,
     ranges: debug.ranges,
     optimizations: debug.optimizations,
-    loadUnits: Object.freeze([]),
+    loadUnits: Object.freeze(
+      input.d64 === undefined
+        ? []
+        : input.d64.image.files
+            .map(({ file }) => {
+              const boot = file.id === input.d64!.bootComponentId;
+              return Object.freeze({
+                name: file.id,
+                kind: boot ? ("resident" as const) : ("loadable" as const),
+                publication: boot ? ("primary" as const) : ("contained" as const),
+                artifact: Object.freeze({
+                  path: primaryArtifact,
+                  kind: boot ? ("primary" as const) : ("contained" as const),
+                  sha256: input.d64!.sha256,
+                }),
+                residence: Object.freeze([]),
+              });
+            })
+            .sort((left, right) => Buffer.compare(Buffer.from(left.name), Buffer.from(right.name))),
+    ),
   });
 
   try {

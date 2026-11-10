@@ -306,6 +306,8 @@ export interface LoadUnitOperation extends ValueOperation {
   readonly kind: "load-unit";
   /** Exact loadable declaration identity. */
   readonly unit: BindingId;
+  /** Destination root binding, used by lifetime/publication evidence. */
+  readonly destinationBinding: BindingId;
   /** Stable packaged unit identity. */
   readonly unitId: string;
   /** Exact uncompressed directory-name bytes passed to SETNAM. */

@@ -124,6 +124,8 @@ export interface MemoryEvidence {
   readonly unboundedEffects: readonly EvidenceRecord[];
   /** Canonically ordered physical intervals. */
   readonly intervals: readonly EvidenceRecord[];
+  /** Load-call publication and quiescence records. */
+  readonly loadStates: readonly EvidenceRecord[];
   /** Reconciled consumer views. */
   readonly views: readonly EvidenceRecord[];
   /** Bounded hardware-stack routes. */
