@@ -4,7 +4,7 @@
 > **Status**: In Progress
 > **Created**: 2026-09-10
 > **Last Updated**: 2026-11-10
-> **Progress**: 7 / 10 (70%)
+> **Progress**: 8 / 10 (80%)
 > **Execution Prerequisite**: Phase 0 complete; see
 > [bootstrap and session handoff](00-phase-0-handoff.md)
 > **CodeOps Artifact Schema**: 1
@@ -14,16 +14,17 @@
 The v4 correctness track and the optimizer track are separate. The default `none`
 compiler is the release baseline. RD-08's saved/acquisition gates pass with the
 unchanged 963/725 limits; all four modes are wired, and balanced/speed publish
-the validated size-quality output. RD-01 through RD-06 and RD-08 are done; RD-07
-is next. RD-06 closed at 151/151, and its T-20–T-27 residual closure is complete:
-optimized ordinal writes, compacted VIC folds, direct static stores, source-linked
-VIC diagnostics, exact handler inventories, clipped VIC views and relocated-screen
-pointer tables are verified. The complete root suite reports 6,432 of 6,433 tests
-passing; the only failure is the known host-load VIC collision timing case, which
-passed 16/16 on a sequential high-priority rerun. The none-mode ordinal-write gap,
-the multi-screen `setSpritePointer` restriction and the frozen compile-time `const`
-VIC field remain tracked debt. The GoatTracker 2.77 adapter remains a separate
-follow-up feature.
+the validated size-quality output. RD-01 through RD-08 are done; RD-09 is next
+and has no execution plan yet. RD-06 closed at 151/151 and RD-07 closed at
+131/131: loadable units, a deterministic D64 serializer, the KERNAL loader,
+destination constraints and per-candidate failure precision, exact field memory
+states, evidence and bounded VICE runtime proof are delivered. The complete root
+suite reports 314 files passed and 6,531 tests passing, with the one opt-in VICE
+file skipped. RD-06 and RD-08 residual output debt remains tracked in open
+issues. The none-mode ordinal-write gap, the multi-screen `setSpritePointer`
+restriction and the frozen compile-time `const` VIC field remain tracked debt.
+The GoatTracker 2.77 adapter remains a separate follow-up feature. RD-10 owns
+native user-host and physical-hardware qualification.
 No oracle, source contract, behavior assertion or limit is waived or deleted.
 
 ## Legend
