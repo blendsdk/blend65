@@ -1,0 +1,21 @@
+module Game;
+
+struct LevelData {
+    map: byte[16];
+    charset: byte[16];
+}
+
+loadable const LEVEL_2: LevelData = {
+    map: embed("level2.map"),
+    charset: embed("level2.charset")
+};
+
+let currentLevel: LevelData;
+
+function main(): void {
+    if (!c64.loader.load(LEVEL_2, currentLevel)) {
+        return;
+    }
+
+    let first: byte = currentLevel.map[0];
+}

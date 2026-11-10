@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "name": "rd07-loadable",
+  "sourceRoot": "src",
+  "entry": "Game",
+  "target": "c64-pal-d64-kernal-6581",
+  "assetPaths": ["assets"],
+  "outDir": "out",
+  "optimization": "none"
+}

@@ -401,7 +401,7 @@ illegal uses, and tooling handoff before implementation.
 **Reference**: [03-06](03-06-artifact-publication-and-run.md), [03-07](03-07-evidence-and-costs.md) · ST-116..ST-126, ST-132, ST-139, ST-141..ST-142
 
 - [ ] 9.1.1 [spec-author] Write the VICE and qualification specification tests from ST-116..ST-126, ST-132, ST-139, ST-141..ST-142 and record the red phase — `test/rd07/d64-vice.spec.test.ts`, `test/rd07/qualification.spec.test.ts`
-- [ ] 9.1.2 Add focused examples: composite level, sequential reuse, failure path, quiescence/restoration, unreachable omission, capacity — `examples/rd07-loadable/`
+- [~] 9.1.2 Add focused examples: composite level, sequential reuse, failure path, quiescence/restoration, unreachable omission, capacity — `examples/rd07-loadable/` ⏳ (implemented: 2026-11-10 11:14)
 - [ ] 9.1.3 Write user-facing trusted-media documentation naming HLE-010 and the no-containment boundary — `docs/loadable-assets.md`
 - [ ] 9.1.4 Build the VICE fixture and bounded observation driver with explicit cycle limits and soft skip — `test/rd07/vice-driver.ts`
 - [ ] 9.1.5 Prove boot, load success, exact bytes, canaries, failure, short load, BASIC return, and no hidden copy — `test/rd07/d64-vice.spec.test.ts`
@@ -414,7 +414,7 @@ illegal uses, and tooling handoff before implementation.
 
 - [ ] 9.2.1 Run the complete RD-07 boundary once after integration, including affected existing suites
 - [ ] 9.2.2 Run the deferral-expiry and durable-register scan; re-own every due item
-- [ ] 9.2.3 Write the closeout with `VICE-verified / hardware-unverified`, evidence, and remaining debt — `codeops/features/blend65-v4/plans/rd-07-loadable-assets-and-d64-delivery/09-closeout.md`
+- [~] 9.2.3 Write the closeout with `VICE-verified / hardware-unverified`, evidence, and remaining debt — `codeops/features/blend65-v4/plans/rd-07-loadable-assets-and-d64-delivery/09-closeout.md` ⏳ (implemented: 2026-11-10 11:14)
 - [ ] 9.2.4 Update the feature and portfolio roadmaps; verify `spec/` is untouched; final install/build/typecheck/test and targeted Prettier
 
 **Deliverables**:
