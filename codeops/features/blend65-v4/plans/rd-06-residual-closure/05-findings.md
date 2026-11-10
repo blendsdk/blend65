@@ -18,7 +18,7 @@
 | MC-006 | machine | MINOR | T-22 returned-local base | fixed — returned-local places are excluded from the static store path. |
 | TP-003 | platform | MINOR | T-21 NMI wrapper compaction | fixed — NMI publication wrappers keep their identity form. |
 | TP-002 / SM-004 | platform / semantics | MAJOR | E10273 message/category | fixed — constant/field messages use the `Cannot place …; change …` shape and lowering E10273 is categorized as a source failure. Contributors remain explicit help text. |
-| SM-005 | semantics | MAJOR | VIC projection consumers | fixed — VIC projections use a dedicated `cpu16-vic` address space, so CPU/resident consumers and legacy tests do not double-count. |
+| SM-005 | semantics | MAJOR | VIC projection consumers | fixed — VIC projections use a dedicated `cpu16-vic` address space, so CPU/resident consumers and legacy tests do not double-count; RD-08 saved/acquisition evidence consumers now reconcile views against the full ledger and resources against CPU intervals only. |
 | SM-007 | semantics | MINOR | ledger/test addresses | fixed — multi-screen probes use valid `$0C00`/`$2400` screens and assert the active-screen message. |
 | SM-008 | semantics | MINOR | ledger ownership | fixed — owner changed to `T-27 follow-up / issue #140`. |
 | SM-010 / MC-007 | semantics / machine | MINOR | T-22 evidence | fixed — `test/rd04/raw-static-address.spec.test.ts` added; zero-page and aggregate-store costs covered; plan no longer claims read-only asset stores. |

@@ -549,8 +549,9 @@ load/constant index, the T-23 C/V proof tracks both flags and fallthrough, and V
 projections use the dedicated `cpu16-vic` space so CPU consumers never double-count.
 
 **Review verification:** compiler 3,644 passed/2 skipped; RD-04 + M1 + RD-06 714/714 including
-VICE; affected RD-05 suites 377/377; Q-P15 383; pinned none/saved/acquisition PRG identities
-unchanged. The complete root suite remains bounded by the host time limit and is recorded in the
-execution plan.
+VICE; affected RD-05 suites 377/377 plus joystick 220/220 and raw footprints 100/100; RD-08
+saved/acquisition output 29/29; Q-P15 383; pinned none/saved/acquisition PRG identities unchanged.
+Complete root suite: 300/301 files and 6,432/6,433 tests; the single failure was the known
+host-load VIC collision timing case, rerun sequentially with elevated priority to 16/16 green.
 
 **Artifact hash after iteration-3 fixes:** `89d280bae3c3e3f8968f9bc3f584c28cde4977925de9315ba27a44198eb722d3`.

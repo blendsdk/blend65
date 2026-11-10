@@ -176,7 +176,7 @@ New exported types, functions and properties receive JSDoc in the project style.
 - [x] Run `yarn install --frozen-lockfile`, `yarn build` and `yarn typecheck` from the repository root. ✅
 - [x] Run the complete compiler package suite and the directed RD-04/M1/RD-06 plus VICE suites; run VICE cases sequentially. ✅ compiler 3,644 passed/2 skipped; RD-04 + M1 + RD-06 714/714.
 - [x] Run the affected RD-05 raw-address/mutable-value/source-library suites and the RD-08 exact-output identity test. ✅ affected RD-05 377/377 plus joystick 220/220 and raw footprints 100/100; RD-08 exact identities unchanged.
-- [x] Attempt the complete root `yarn test` suite and record the actual coverage if the known 90-minute host limit is reached; a known flake must be rerun to green and the rerun recorded, never waived. ✅ attempt recorded in the execution summary; VIC collision 16/16 on a clean sequential rerun.
+- [x] Attempt the complete root `yarn test` suite and record the actual coverage if the known 90-minute host limit is reached; a known flake must be rerun to green and the rerun recorded, never waived. ✅ root run 300/301 files and 6,432/6,433 tests; the only failure was the known host-load VIC collision timing case, which passed 16/16 when rerun sequentially with elevated process priority. No failure was waived.
 - [x] Run `yarn prettier --check` on every touched source, test and Markdown file. ✅
 - [x] Confirm `spec/` remains untouched, the tree is clean after the final commit, and no push is made. ✅
 
