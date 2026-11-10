@@ -10,6 +10,7 @@ import type {
   TypedExpr,
 } from "./semantic-types.js";
 import { semanticTypeSize } from "./semantic-type-relations.js";
+import { placeAliasKey } from "./load-units.js";
 import type { VariableDeclaration } from "./syntax.js";
 
 /** Append declaration diagnostics which depend on fixed-array coverage. */
@@ -101,19 +102,24 @@ export function uninitializedReadDiagnostic(
     (state?.binding.type === null || state?.binding.type === undefined
       ? null
       : { start: 0, end: semanticTypeSize(state.binding.type) });
-  const blocking =
-    loadCaptures === undefined || state === undefined || readRange === null
-      ? undefined
-      : loadCaptures
-          .get(key)
-          ?.find(
-            (capture) =>
-              capture.range.start < readRange.end &&
-              readRange.start < capture.range.end &&
-              !state.initializedRanges.some(
-                (range) => range.start <= readRange.start && range.end >= readRange.end,
-              ),
-          );
+  const readKey = placeAliasKey(
+    place,
+    (binding) => states.get(bindingIdentityKey(binding)) ?? null,
+  );
+  const captures = loadCaptures?.get(key) ?? [];
+  const readCovered =
+    readRange !== null &&
+    state !== undefined &&
+    state.initializedRanges.some(
+      (range) => range.start <= readRange.start && range.end >= readRange.end,
+    );
+  const dynamicMatch =
+    state?.loadPublications?.some(
+      (publication) =>
+        readKey !== null &&
+        (readKey === publication.aliasKey || readKey.startsWith(`${publication.aliasKey}|`)),
+    ) === true;
+  const blocking = captures.length > 0 && !readCovered && !dynamicMatch ? captures[0] : undefined;
   if (blocking !== undefined && state !== undefined) {
     return projectDiagnostic(
       "E10276",

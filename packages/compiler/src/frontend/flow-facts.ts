@@ -23,6 +23,9 @@ export function snapshotScalarFacts(scope: ScalarScope): ScalarFactSnapshot {
             initializedRanges: state.initializedRanges,
             initializedPaths: state.initializedPaths,
             conditionalEffect: state.conditionalEffect ?? null,
+            ...(state.loadPublications === undefined
+              ? {}
+              : { loadPublications: state.loadPublications }),
           }),
         );
       }
@@ -41,6 +44,8 @@ export function restoreScalarFacts(snapshot: ScalarFactSnapshot): void {
     state.initializedRanges = fact.initializedRanges;
     state.initializedPaths = fact.initializedPaths;
     state.conditionalEffect = fact.conditionalEffect ?? null;
+    if (fact.loadPublications === undefined) delete state.loadPublications;
+    else state.loadPublications = fact.loadPublications;
   }
 }
 
@@ -57,6 +62,9 @@ export function captureBranchFacts(snapshot: ScalarFactSnapshot): ScalarFactSnap
         initializedRanges: state.initializedRanges,
         initializedPaths: state.initializedPaths,
         conditionalEffect: state.conditionalEffect ?? null,
+        ...(state.loadPublications === undefined
+          ? {}
+          : { loadPublications: state.loadPublications }),
       }),
     ]),
   );
@@ -96,6 +104,16 @@ export function mergeScalarFacts(
       })
         ? effect
         : null;
+    const firstPublications = first.loadPublications ?? [];
+    state.loadPublications = Object.freeze(
+      firstPublications.filter((publication) =>
+        candidates.every((fact) =>
+          (fact.loadPublications ?? []).some(
+            (candidate) => candidate.resultId === publication.resultId,
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -124,6 +142,13 @@ export function creditConditionalSuccess(result: ScalarValueState, resultId: str
 
 /** Publish one captured destination range on the successful load edge. */
 export function creditLoadCapture(capture: import("./semantic-types.js").ScalarLoadCapture): void {
+  if (capture.dynamic) {
+    capture.destination.loadPublications = Object.freeze([
+      ...(capture.destination.loadPublications ?? []),
+      capture,
+    ]);
+    return;
+  }
   creditRange(capture.destination, capture.range);
 }
 

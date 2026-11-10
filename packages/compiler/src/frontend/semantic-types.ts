@@ -547,6 +547,10 @@ export interface ScalarValueState {
   initializedPaths: readonly string[];
   /** A stored Boolean's guarded destination, if a producer proved one. */
   conditionalEffect?: ScalarConditionalEffect | null;
+  /** Monotone write counter used by the dynamic-destination alias proof. */
+  version?: number;
+  /** Published load captures whose selected candidate is not a single static range. */
+  loadPublications?: readonly ScalarLoadCapture[];
 }
 
 /** Correlation between a stored Boolean result and a captured destination range. */
@@ -569,6 +573,10 @@ export interface ScalarLoadCapture {
   readonly destination: ScalarValueState;
   /** Exact half-open range captured by this call. */
   readonly range: InitializedRange;
+  /** Stable alias key of the evaluated destination place. */
+  readonly aliasKey: string;
+  /** True when a runtime index makes the selected candidate unknown. */
+  readonly dynamic: boolean;
   /** Complete load-call span, used as the governing source relation. */
   readonly callSpan: SourceSpan;
 }
@@ -597,6 +605,8 @@ export interface ScalarValueFact {
   readonly initializedPaths: readonly string[];
   /** Guarded write retained only when all paths agree on its result and range. */
   readonly conditionalEffect?: ScalarConditionalEffect | null;
+  /** Dynamic-destination captures published on this path. */
+  readonly loadPublications?: readonly ScalarLoadCapture[];
 }
 
 /** Reaching values captured at one control-flow split. */

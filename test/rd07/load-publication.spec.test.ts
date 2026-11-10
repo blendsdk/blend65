@@ -100,3 +100,72 @@ describe("load publication", () => {
     ).toEqual([]);
   });
 });
+
+const DYNAMIC_HEADER = [
+  "module Game;",
+  "",
+  "loadable const DATA: byte[4] = [1, 2, 3, 4];",
+  "struct Slot { data: byte[4]; }",
+  "let slots: Slot[2];",
+  "",
+].join("\n");
+
+/** Check one dynamic-destination source and return its error codes. */
+async function dynamicErrors(body: string): Promise<readonly string[]> {
+  return withProject(
+    `${DYNAMIC_HEADER}${body}\n`,
+    [],
+    async (project) => {
+      const checked = await checkProject({ project });
+      return checked.kind === "success"
+        ? []
+        : checked.diagnostics
+            .filter(({ severity }) => severity === "error")
+            .map(({ code }) => code);
+    },
+    "c64-pal-d64-kernal-6581",
+  );
+}
+
+describe("dynamic destination publication", () => {
+  // The same stable runtime index is a must-alias with the captured candidate.
+  it("should allow a read through the same runtime index", async () => {
+    expect(
+      await dynamicErrors(
+        "function loadAndRead(i: byte): byte { if (c64.loader.load(DATA, slots[i].data)) { return slots[i].data[0]; } return 0; } function main(): void { let x: byte = loadAndRead(1); }",
+      ),
+    ).toEqual([]);
+  });
+
+  // A different runtime index is only a may-alias and receives no publication credit.
+  it("should reject a read through a different runtime index", async () => {
+    expect(
+      await dynamicErrors(
+        "function loadAndRead(i: byte, j: byte): byte { if (c64.loader.load(DATA, slots[i].data)) { return slots[j].data[0]; } return 0; } function main(): void { let x: byte = loadAndRead(1, 0); }",
+      ),
+    ).toEqual(["E10276"]);
+  });
+
+  // Changing the index invalidates the must-alias relation.
+  it("should reject a read after the runtime index changes", async () => {
+    expect(
+      await dynamicErrors(
+        "function loadAndRead(i: byte): byte { if (c64.loader.load(DATA, slots[i].data)) { i = 0; return slots[i].data[0]; } return 0; } function main(): void { let x: byte = loadAndRead(1); }",
+      ),
+    ).toEqual(["E10276"]);
+  });
+
+  // A static candidate load publishes only that candidate.
+  it("should allow the same static candidate and reject a different one", async () => {
+    expect(
+      await dynamicErrors(
+        "function main(): void { if (c64.loader.load(DATA, slots[1].data)) { let x: byte = slots[1].data[0]; } }",
+      ),
+    ).toEqual([]);
+    expect(
+      await dynamicErrors(
+        "function main(): void { if (c64.loader.load(DATA, slots[1].data)) { let x: byte = slots[0].data[0]; } }",
+      ),
+    ).toEqual(["E10276"]);
+  });
+});

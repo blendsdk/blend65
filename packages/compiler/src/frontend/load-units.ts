@@ -4,7 +4,13 @@ import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import { initializerBytes } from "./constant-bytes.js";
 import { semanticTypeSize } from "./semantic-type-relations.js";
 import { bindingIdentityKey, semanticTypeKey } from "./semantic-types.js";
-import type { SemanticBinding, SemanticType, TypedExpr } from "./semantic-types.js";
+import type {
+  Place,
+  ScalarValueState,
+  SemanticBinding,
+  SemanticType,
+  TypedExpr,
+} from "./semantic-types.js";
 import type { TypedDeclaration } from "./semantic-analysis-types.js";
 
 /** Where a load unit's exact bytes came from. */
@@ -82,6 +88,37 @@ export function loadUnitIdentity(
 /** Derive the deterministic uppercase disk name for one unit identity. */
 export function loadUnitDiskName(identity: string): string {
   return `L${identity.slice(0, 12).toUpperCase()}`;
+}
+
+/**
+ * Build a stable alias key for one destination place.
+ *
+ * Constant indices use their value; a runtime index uses the index binding and its monotone write
+ * version. A later assignment to the index changes the key, so the old load can no longer prove a
+ * must-alias. A non-simple index expression has no proved key.
+ */
+export function placeAliasKey(
+  place: Place,
+  stateFor: (binding: import("./module-graph-types.js").BindingId) => ScalarValueState | null,
+): string | null {
+  const parts = [bindingIdentityKey(place.binding)];
+  for (const item of place.path) {
+    if (typeof item === "string") {
+      parts.push(`f:${item}`);
+      continue;
+    }
+    if (item.constant !== null && typeof item.constant === "bigint") {
+      parts.push(`i:${item.constant}`);
+      continue;
+    }
+    if (item.binding !== null) {
+      const state = stateFor(item.binding);
+      parts.push(`n:${bindingIdentityKey(item.binding)}:${state?.version ?? 0}`);
+      continue;
+    }
+    return null;
+  }
+  return parts.join("|");
 }
 
 /** Build one unit record from a typed declaration and its exact initializer. */
@@ -215,9 +252,7 @@ export function loadableHandoff(
         .filter((diagnostic) => diagnostic.code === "E10274")
         .map((diagnostic) => ({
           code: diagnostic.code,
-          span:
-            diagnostic.primarySpan ??
-            Object.freeze({ sourceId: "", start: 0, end: 0 }),
+          span: diagnostic.primarySpan ?? Object.freeze({ sourceId: "", start: 0, end: 0 }),
           message: diagnostic.message,
         })),
     ),

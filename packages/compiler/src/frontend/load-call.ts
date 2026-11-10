@@ -1,6 +1,7 @@
 import { projectDiagnostic as error } from "../project/diagnostics.js";
 import { SCALAR_TYPES } from "./constants.js";
 import { semanticTypesEqual, semanticTypeSize } from "./semantic-type-relations.js";
+import { placeAliasKey } from "./load-units.js";
 import type { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
 import type {
   ScalarExpressionContext,
@@ -98,12 +99,36 @@ export function analyzeLoadUnitCall(
     start: 0,
     end: semanticTypeSize(unit.node.type),
   };
+  const dynamic = place.byteRange === null;
+  const aliasKey = placeAliasKey(place, (binding) => host.stateFor?.(binding) ?? null);
+  if (dynamic && aliasKey === null) {
+    host.diagnose(
+      error(
+        "E10275",
+        `Cannot load '${display(host, unitArg)}' into '${display(host, destinationArg)}' — the runtime destination index is not a stable simple expression, so the compiler cannot prove which fixed candidate is selected`,
+        expression.span,
+      ),
+    );
+    return { node: null, exact: null };
+  }
   const resultId = `load:${expression.span.sourceId}:${expression.span.start}:${expression.span.end}`;
   const capture = Object.freeze({
     resultId,
     unitId: declaration.binding.qualifiedName ?? declaration.binding.name,
     destination: destinationState,
-    range: Object.freeze({ start: range.start, end: range.end }),
+    range: Object.freeze(
+      dynamic
+        ? {
+            start: 0,
+            end:
+              destinationState.binding.type === null
+                ? range.end
+                : semanticTypeSize(destinationState.binding.type),
+          }
+        : { start: range.start, end: range.end },
+    ),
+    aliasKey: aliasKey ?? "",
+    dynamic,
     callSpan: expression.span,
   });
   // Entering the call may overwrite part of the destination, so its captured range is no longer

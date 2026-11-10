@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 11:03
-> **Progress**: 66/131 tasks (50%)
+> **Last Updated**: 2026-11-10 11:22
+> **Progress**: 68/131 tasks (52%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -112,9 +112,9 @@ illegal uses, and tooling handoff before implementation.
 - [x] 2.2.2 Admit exact D64 selection and narrow the existing E10275 guard to PRG packagers — `packages/compiler/src/target/profile.ts`, `packages/compiler/src/frontend/scalar-expressions.ts` ✅ (completed: 2026-11-10 10:12)
 - [x] 2.2.3 Accept `cbm-d64` in the ACME input validator — `packages/compiler/src/artifacts/acme-validate.ts` ✅ (completed: 2026-11-10 10:12)
 - [x] 2.2.4 Add the `c64.loader.load` special form and the `load-unit` semantic operation — `packages/compiler/src/frontend/scalar-expressions.ts`, `packages/compiler/src/semantic/operations.ts` ✅ (completed: 2026-11-10 10:25)
-- [~] 2.2.5 Resolve the second argument to a mutable fixed place — `packages/compiler/src/frontend/load-call.ts` ⏳ (implemented: 2026-11-10 10:25)
+- [x] 2.2.5 Resolve the second argument to a mutable fixed place — `packages/compiler/src/frontend/load-call.ts` ✅ (completed: 2026-11-10 11:22)
 - [x] 2.2.6 Evaluate the destination exactly once — `packages/compiler/src/frontend/load-call.ts` ✅ (completed: 2026-11-10 10:25)
-- [ ] 2.2.7 Build the finite candidate set for a runtime fixed-array index; reject non-finite sets — `packages/compiler/src/semantic/load-destination.ts`
+- [~] 2.2.7 Build the finite candidate set for a runtime fixed-array index; reject non-finite sets — `packages/compiler/src/semantic/load-destination.ts` ⏳ (implemented: 2026-11-10 11:22)
 - [~] 2.2.8 Prove exact type, size, mutability, and lifetime — `packages/compiler/src/semantic/load-destination.ts` ⏳ (implemented: 2026-11-10 10:25)
 - [ ] 2.2.9 Prove alignment, visibility, end address, and KERNAL-ROM exclusion — `packages/compiler/src/semantic/load-destination.ts`
 - [~] 2.2.10 Implement E10275 reasons and E10279 profile behavior; preserve E10274 — `packages/compiler/src/frontend/scalar-expressions.ts` ⏳ (implemented: 2026-11-10 10:25)
@@ -157,7 +157,7 @@ illegal uses, and tooling handoff before implementation.
 - [x] 3.2.3 Preserve/drop the capture across joins — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
 - [ ] 3.2.4 Preserve/drop the capture across loops and retries — `packages/compiler/src/frontend/flow-loops.ts`
 - [x] 3.2.5 Follow the capture through stored results — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
-- [ ] 3.2.6 Implement must/may/partial alias propagation — `packages/compiler/src/frontend/address-provenance.ts`, `packages/compiler/src/frontend/flow-facts.ts`
+- [~] 3.2.6 Implement must/may/partial alias propagation — `packages/compiler/src/frontend/address-provenance.ts`, `packages/compiler/src/frontend/flow-facts.ts` ⏳ (implemented: 2026-11-10 11:22)
 - [x] 3.2.7 Implement E10276 with read, load, and blocking-edge spans — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 3.2.8 Query ownership depth at the call — `packages/compiler/src/semantic/interrupt-ownership.ts`, `packages/compiler/src/frontend/load-quiescence.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 3.2.9 Implement the quiescence E10275 diagnostic and remedy — `packages/compiler/src/frontend/load-quiescence.ts` ✅ (completed: 2026-11-10 11:03)
@@ -402,9 +402,9 @@ illegal uses, and tooling handoff before implementation.
 
 - [ ] 9.1.1 [spec-author] Write the VICE and qualification specification tests from ST-116..ST-126, ST-132, ST-139, ST-141..ST-142 and record the red phase — `test/rd07/d64-vice.spec.test.ts`, `test/rd07/qualification.spec.test.ts`
 - [~] 9.1.2 Add focused examples: composite level, sequential reuse, failure path, quiescence/restoration, unreachable omission, capacity — `examples/rd07-loadable/` ⏳ (implemented: 2026-11-10 11:14)
-- [ ] 9.1.3 Write user-facing trusted-media documentation naming HLE-010 and the no-containment boundary — `docs/loadable-assets.md`
-- [ ] 9.1.4 Build the VICE fixture and bounded observation driver with explicit cycle limits and soft skip — `test/rd07/vice-driver.ts`
-- [ ] 9.1.5 Prove boot, load success, exact bytes, canaries, failure, short load, BASIC return, and no hidden copy — `test/rd07/d64-vice.spec.test.ts`
+- [x] 9.1.3 Write user-facing trusted-media documentation naming HLE-010 and the no-containment boundary — `docs/loadable-assets.md` ✅ (completed: 2026-11-10 11:22)
+- [~] 9.1.4 Build the VICE fixture and bounded observation driver with explicit cycle limits and soft skip — `test/rd07/vice-driver.ts` ⏳ (implemented: 2026-11-10 11:22)
+- [~] 9.1.5 Prove boot, load success, exact bytes, canaries, failure, short load, BASIC return, and no hidden copy — `test/rd07/d64-vice.spec.test.ts` ⏳ (implemented: 2026-11-10 11:22)
 - [ ] 9.1.6 Run the bounded longer-replacement observation with an isolated destination and canaries — `test/rd07/d64-vice.spec.test.ts`
 - [ ] 9.1.7 Record D64 serialization, decode, flow analysis, build, and bounded-run host observations — `test/rd07/qualification.spec.test.ts`
 - [ ] 9.1.8 Run the end-to-end, capacity, and PRG-regression integration suites — `test/rd07/d64-e2e.spec.test.ts`, `test/rd07/d64-capacity.spec.test.ts`, `test/rd07/prg-regression.spec.test.ts`

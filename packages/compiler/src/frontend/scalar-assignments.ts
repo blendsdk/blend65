@@ -229,6 +229,7 @@ export function analyzeScalarAssignment(
       target.node.place.path.length === 0 ? resultOrigins : state.addressOrigins;
     state.addressPlaces = target.node.place.path.length === 0 ? resultPlaces : state.addressPlaces;
     if (target.node.place.path.length === 0) state.conditionalEffect = null;
+    state.version = (state.version ?? 0) + 1;
     markPlaceInitialized(state, target.node.place);
   }
   return {
