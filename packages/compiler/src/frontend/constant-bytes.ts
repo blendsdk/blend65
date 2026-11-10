@@ -34,6 +34,12 @@ export function initializerBytes(
   expression: TypedExpr,
   type: SemanticType,
 ): readonly number[] | null {
+  if (expression.embedded !== undefined && expression.embedded.kind === "embedded") {
+    return expression.embedded.bytes.length ===
+      (type.kind === "struct" || type.kind === "array" ? type.size : 0)
+      ? expression.embedded.bytes
+      : null;
+  }
   if (expression.encodedBytes !== undefined) {
     return expression.encodedBytes.length ===
       (type.kind === "struct" || type.kind === "array" ? type.size : 0)

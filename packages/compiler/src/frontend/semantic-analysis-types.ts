@@ -75,6 +75,8 @@ export interface ModuleAnalysisResult {
   readonly types: readonly SemanticType[];
   /** Checked and retained declarations in deterministic source order. */
   readonly declarations: readonly AnalyzedDeclaration[];
+  /** Locally declared loadable initializers retained for the handoff. */
+  readonly loadableInitializers: readonly import("./load-units.js").LoadableInitializer[];
   /** Actual direct call edges in source order. */
   readonly calls: readonly CallEdge[];
   /** Proving diagnostics in stable source/span/code order. */

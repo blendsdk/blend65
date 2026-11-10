@@ -21,6 +21,8 @@ export type {
   NameValidationResult,
 } from "./project/types.js";
 export type { PublishedGeneration } from "./publication/publication.js";
+export { buildD64Image } from "./packaging/d64/index.js";
+export type { D64Image, D64InputFile, D64PlacedFile, D64SectorRef } from "./packaging/d64/index.js";
 export type {
   BuildOptions,
   BuildResult,

@@ -42,6 +42,8 @@ import type {
 import { applySourceOverlays } from "./overlay.js";
 import type { SourceOverlay } from "./overlay.js";
 import { prepareAnalysisInputs } from "./bundled-sources.js";
+import { collectLoadUnits, loadableHandoff } from "./load-units.js";
+import type { LoadableHandoff, LoadUnitRecord } from "./load-units.js";
 
 /** Maximum number of proving errors returned by one whole-project analysis. */
 const MAX_ANALYSIS_ERRORS = 20;
@@ -76,6 +78,10 @@ export interface TypedProgram {
   readonly effects: readonly EffectSummary[];
   /** Runtime module initializers in proved execution order. */
   readonly initializerOrder: readonly TypedDeclaration["binding"][];
+  /** Exact nonresident load units retained for packaging. */
+  readonly loadUnits: readonly LoadUnitRecord[];
+  /** Frontend-safe tooling view of loadable facts and illegal uses. */
+  readonly loadableHandoff: LoadableHandoff;
 }
 
 /** Stage-owned outcome before the public entry point attaches its admitted input evidence. */
@@ -495,6 +501,12 @@ function analyzeResolvedProject(
       diagnostics: sortAnalysisDiagnostics([...diagnostics, ...placedAssets.diagnostics]),
     });
   }
+  const loadUnits = collectLoadUnits(
+    declarations,
+    analysis.bindings,
+    analysis.loadableInitializers,
+    placedAssets.assets,
+  );
   const program: TypedProgram = Object.freeze({
     profile,
     assets: placedAssets.assets,
@@ -505,6 +517,8 @@ function analyzeResolvedProject(
     calls: analysis.calls,
     effects: effects.effects,
     initializerOrder: effects.initializerOrder,
+    loadUnits,
+    loadableHandoff: loadableHandoff(loadUnits, diagnostics),
   });
   return Object.freeze({
     kind: ANALYSIS_RESULT_KIND.complete,
@@ -655,7 +669,7 @@ async function analyzeNativeRequest(
     bytes: Object.freeze([]) as readonly number[],
     inputSha256: "",
   });
-  if (request.owner === "loadable" || findAssetHandler(handlers, request.literalPath) === null) {
+  if (findAssetHandler(handlers, request.literalPath) === null) {
     const failure = dispatchAsset(empty, handlers, reservedExtensions);
     return failure.kind === "failure"
       ? Object.freeze({ kind: "error", diagnostics: Object.freeze([failure.diagnostic]) })

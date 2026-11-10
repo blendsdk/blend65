@@ -26,6 +26,7 @@ export function assembleModuleAnalysis(
   aggregates: AggregateRegistry,
   bindingsInput: readonly SemanticBinding[],
   declarationsInput: readonly AnalyzedDeclaration[],
+  loadableInitializersInput: readonly import("./load-units.js").LoadableInitializer[],
   callsInput: readonly CallEdge[],
   diagnosticsInput: readonly ProjectDiagnostic[],
   obligationsInput: readonly AnalysisObligation[],
@@ -56,6 +57,11 @@ export function assembleModuleAnalysis(
     bindings,
     types: Object.freeze([...Object.values(SCALAR_TYPES), ...aggregates.types()]),
     declarations,
+    loadableInitializers: Object.freeze(
+      [...loadableInitializersInput].sort((left, right) =>
+        compareSpans(left.binding.declaration, right.binding.declaration),
+      ),
+    ),
     calls,
     diagnostics,
     obligations,

@@ -66,13 +66,6 @@ export function dispatchAsset(
 ): AssetHandlerOutput | AssetHandlerFailure {
   const extension = canonicalAssetExtension(request.literalPath);
   const handler = findAssetHandler(handlers, request.literalPath);
-  if (request.owner === "loadable") {
-    return failure(
-      "E10204",
-      `Native asset '${escapeDiagnosticText(request.literalPath)}' cannot initialize a loadable const — loadable delivery of native assets is not supported; declare an ordinary resident const instead`,
-      request.span,
-    );
-  }
   if (handler === null) {
     if (reservedExtensions.has(extension)) {
       return failure(

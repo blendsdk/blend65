@@ -67,6 +67,7 @@ import type {
   VariableDeclaration,
 } from "./syntax.js";
 import type { EmbeddedValue } from "../assets/asset-types.js";
+import type { LoadableInitializer } from "./load-units.js";
 
 /** Direct scalar and structured-flow analyzer over an already resolved module graph. */
 class ModuleAnalyzer {
@@ -76,6 +77,7 @@ class ModuleAnalyzer {
   readonly obligations: AnalysisObligation[] = [];
   readonly bindings: SemanticBinding[];
   readonly declarations: AnalyzedDeclaration[] = [];
+  readonly loadableInitializers: LoadableInitializer[] = [];
   readonly calls: CallEdge[] = [];
   readonly sources: ReadonlyMap<string, SourceRecord>;
   readonly bindingByKey: Map<string, SemanticBinding>;
@@ -220,6 +222,7 @@ class ModuleAnalyzer {
       this.aggregates,
       this.bindings,
       this.declarations,
+      this.loadableInitializers,
       this.calls,
       this.diagnostics,
       this.obligations,
@@ -372,6 +375,7 @@ class ModuleAnalyzer {
       evaluateConstant: (initializer, type) => {
         return this.evaluateComptimeExpression(initializer, type, `${module}.${declaration.name}`);
       },
+      loadableInitializers: this.loadableInitializers,
     });
     if (
       declaration.declarationKind === "const" &&
@@ -541,6 +545,7 @@ class ModuleAnalyzer {
       errorCount: () => this.errorCount(),
       createBinding: (name, span, storage, type, loadable) =>
         this.createBodyBinding(name, span, storage, type, loadable),
+      loadableInitializers: this.loadableInitializers,
     });
     if (
       !inComptime &&

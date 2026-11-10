@@ -5,6 +5,18 @@ import type { ProjectLoadOptions, ProjectLoadResult } from "../project/types.js"
 export { ANALYSIS_RESULT_KIND, analyzeProject, analyzeProjectOverlay } from "./service.js";
 export type { AnalysisResult, TypedProgram } from "./service.js";
 export type { SourceOverlay } from "./overlay.js";
+export {
+  collectLoadUnits,
+  loadableHandoff,
+  loadUnitDiskName,
+  loadUnitIdentity,
+} from "./load-units.js";
+export type {
+  LoadUnitRecord,
+  LoadUnitProvenance,
+  LoadableHandoff,
+  LoadableInitializer,
+} from "./load-units.js";
 
 /** Project-input helpers which do not import compiler backend stages. */
 export { byteOffsetToPosition } from "./positions.js";

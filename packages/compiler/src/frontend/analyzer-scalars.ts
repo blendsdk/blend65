@@ -16,6 +16,7 @@ import type {
 } from "./semantic-types.js";
 import type { VariableDeclaration } from "./syntax.js";
 import type { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
+import type { LoadableInitializer } from "./load-units.js";
 
 /** The existing analyzer services needed to check one local declaration. */
 export interface ScalarLocalHost {
@@ -44,6 +45,8 @@ export interface ScalarLocalHost {
     type: SemanticType,
     loadable?: boolean,
   ) => SemanticBinding;
+  /** Loadable initializers retained for the frontend handoff. */
+  readonly loadableInitializers?: LoadableInitializer[];
 }
 
 /** Services needed to check one module variable or constant. */
@@ -60,6 +63,8 @@ export interface ScalarModuleHost {
   readonly obligationCount: () => number;
   /** Evaluate and meter one typed scalar constant before publishing it. */
   readonly evaluateConstant?: (initializer: TypedExpr, type: SemanticType) => TypedExpr | null;
+  /** Loadable initializers retained for the frontend handoff. */
+  readonly loadableInitializers?: LoadableInitializer[];
 }
 
 /** Check one module initializer while preserving exact const versus runtime context. */
@@ -92,6 +97,9 @@ export function analyzeScalarModuleVariable(
     }
     state.known = initializer?.constant ?? null;
     updateInitializedState(state, result.node);
+    if (declaration.loadable && initializer !== null && type !== null) {
+      host.loadableInitializers?.push({ binding: state.binding, type, initializer });
+    }
     if (
       declaration.declarationKind === "const" &&
       (type.kind === "scalar" || type.kind === "enum") &&
@@ -251,6 +259,9 @@ export function analyzeScalarLocal(
   updateInitializedState(state, initializer);
   scope.values.set(declaration.name, state);
   host.stateByKey.set(bindingIdentityKey(binding.id), state);
+  if (declaration.loadable && initializer !== null) {
+    host.loadableInitializers?.push({ binding, type, initializer });
+  }
   if (declaration.loadable) return null;
   return Object.freeze({
     kind: "variable",

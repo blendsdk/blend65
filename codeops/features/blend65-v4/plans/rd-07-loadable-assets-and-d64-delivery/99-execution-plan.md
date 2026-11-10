@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 09:20
-> **Progress**: 0/131 tasks (0%)
+> **Last Updated**: 2026-11-10 09:46
+> **Progress**: 32/131 tasks (24%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -51,35 +51,35 @@ can use `checkProject`; full D64 build/publication is Phase 7.
 
 ### Step 1.1: Specification Tests
 
-**Reference**: [03-01](03-01-loadable-unit-model.md) · ST-1..ST-12, ST-136, ST-143..ST-149 · AR-P1, AR-P16, AR-P17, AR-P24
-**Objective**: Define the exact unit record, bytes, identity, aliasing, reachability, native asset
-behavior, illegal uses, and tooling handoff before implementation.
+**Reference**: [03-01](03-01-loadable-unit-model.md) · ST-1..ST-7, ST-9..ST-11, ST-143..ST-149 · AR-P1, AR-P16, AR-P17, AR-P24
+**Objective**: Define the exact unit record, bytes, identity, aliasing, native asset behavior,
+illegal uses, and tooling handoff before implementation.
 
-- [ ] 1.1.1 [spec-author] Write specification tests from ST-1..ST-12, ST-136, ST-143..ST-149 — `test/rd07/loadable-model.spec.test.ts`
-- [ ] 1.1.2 [spec-author] Extend the import-boundary spec for the packaging-free frontend handoff — `test/import-boundary.spec.test.ts`
-- [ ] 1.1.3 Run the new spec suites and record the red phase
+- [x] 1.1.1 [spec-author] Write specification tests from ST-1..ST-7, ST-9..ST-11, ST-143..ST-149 — `test/rd07/loadable-model.spec.test.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 1.1.2 [spec-author] Extend the import-boundary spec for the packaging-free frontend handoff — `test/import-boundary.spec.test.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 1.1.3 Run the new spec suites and record the red phase ✅ (completed: 2026-11-10 09:46)
 
 ### Step 1.2: Implementation
 
 **Reference**: [03-01](03-01-loadable-unit-model.md) §Implementation Details
 
-- [ ] 1.2.1 Add the immutable `LoadUnitRecord`, provenance, and identity helper — `packages/compiler/src/semantic/load-units.ts`
-- [ ] 1.2.2 Materialize scalar unit bytes — `packages/compiler/src/semantic/load-units.ts`
-- [ ] 1.2.3 Materialize fixed array/struct unit bytes — `packages/compiler/src/semantic/load-units.ts`
-- [ ] 1.2.4 Materialize embedded/composed bytes and carry RD-06 destination constraints — `packages/compiler/src/semantic/load-units.ts`
-- [ ] 1.2.5 Collect module-level loadable declarations — `packages/compiler/src/frontend/analyzer.ts`
-- [ ] 1.2.6 Collect local loadable declarations with function-qualified identity — `packages/compiler/src/frontend/analyzer-scalars.ts`
-- [ ] 1.2.7 Merge import aliases by declaration identity — `packages/compiler/src/semantic/load-units.ts`
-- [ ] 1.2.8 Extend whole-program reachability to units referenced by reachable load calls — `packages/compiler/src/semantic/whole-program.ts`
-- [ ] 1.2.9 Allow native/raw assets under `loadable const`; keep the expressiveness-ledger row deferred until Phase 7 — `packages/compiler/src/assets/asset-dispatch.ts`
-- [ ] 1.2.10 Prove zero resident bytes and resident/loadable separation — `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/machine/lower-data.ts`
-- [ ] 1.2.11 Add the frontend-safe `LoadableHandoff` view — `packages/compiler/src/frontend/handoff.ts`
-- [ ] 1.2.12 Run ST-1..ST-12, ST-136, ST-143..ST-149 and record the green phase
+- [x] 1.2.1 Add the immutable `LoadUnitRecord`, provenance, and identity helper — `packages/compiler/src/semantic/load-units.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 1.2.2 Materialize scalar unit bytes — `packages/compiler/src/semantic/load-units.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 1.2.3 Materialize fixed array/struct unit bytes — `packages/compiler/src/semantic/load-units.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 1.2.4 Materialize embedded/composed bytes and carry RD-06 destination constraints — `packages/compiler/src/semantic/load-units.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 1.2.5 Collect module-level loadable declarations — `packages/compiler/src/frontend/analyzer.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 1.2.6 Collect local loadable declarations with function-qualified identity — `packages/compiler/src/frontend/analyzer-scalars.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 1.2.7 Merge import aliases by declaration identity — `packages/compiler/src/semantic/load-units.ts` ✅ (completed: 2026-11-10 09:46)
+- [ ] 1.2.8 Extend whole-program reachability to units referenced by reachable load calls — `packages/compiler/src/semantic/whole-program.ts` `[!] Blocked: needs the Phase 3 load operation`
+- [x] 1.2.9 Allow native/raw assets under `loadable const`; keep the expressiveness-ledger row deferred until Phase 7 — `packages/compiler/src/assets/asset-dispatch.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 1.2.10 Prove zero resident bytes and resident/loadable separation — `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/machine/lower-data.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 1.2.11 Add the frontend-safe `LoadableHandoff` view — `packages/compiler/src/frontend/handoff.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 1.2.12 Run ST-1..ST-7, ST-9..ST-11, ST-143..ST-149 and record the green phase ✅ (completed: 2026-11-10 09:46)
 
 ### Step 1.3: Implementation Tests and Verification
 
-- [ ] 1.3.1 Write implementation tests for byte order, alias merging, provenance, constraint carry, and local identity — `packages/compiler/src/semantic/load-units.impl.test.ts`
-- [ ] 1.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier
+- [x] 1.3.1 Write implementation tests for byte order, alias merging, provenance, constraint carry, and local identity — `packages/compiler/src/semantic/load-units.impl.test.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 1.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier ✅ (completed: 2026-11-10 09:46)
 
 **Deliverables**:
 - [ ] Unit inventory survives to semantic lowering
@@ -97,10 +97,10 @@ behavior, illegal uses, and tooling handoff before implementation.
 
 ### Step 2.1: Specification Tests
 
-**Reference**: [03-02](03-02-load-operation-and-publication.md), [03-06](03-06-artifact-publication-and-run.md) · ST-13..ST-30 · AR-P2, AR-P3, AR-P21
+**Reference**: [03-02](03-02-load-operation-and-publication.md), [03-06](03-06-artifact-publication-and-run.md) · ST-8, ST-12, ST-13..ST-30, ST-136 · AR-P2, AR-P3, AR-P21
 **Objective**: Admit the D64 profile early and pin every accepted/rejected destination form.
 
-- [ ] 2.1.1 [spec-author] Write specification tests from ST-13..ST-30 — `test/rd07/load-destination.spec.test.ts`
+- [ ] 2.1.1 [spec-author] Write specification tests from ST-8, ST-12, ST-13..ST-30, ST-136 — `test/rd07/load-destination.spec.test.ts`
 - [ ] 2.1.2 [spec-author] Update the existing D64 profile expectation to admit the executable profile — `packages/compiler/src/target/cooperative-profiles.spec.test.ts`
 - [ ] 2.1.3 Run the new spec suites and record the red phase
 
@@ -269,31 +269,31 @@ behavior, illegal uses, and tooling handoff before implementation.
 **Reference**: [03-05](03-05-d64-packager.md) · ST-77..ST-96, ST-135, ST-137 · AR-P9..AR-P13
 **Objective**: Build the independent decoder and pin every byte-level D64 rule.
 
-- [ ] 6.1.1 [spec-author] Write the independent D64 decoder with no production-serializer import — `test/rd07/d64-decoder.ts`
-- [ ] 6.1.2 [spec-author] Write specification tests from ST-77..ST-96, ST-135, ST-137 — `test/rd07/d64-codec.spec.test.ts`, `test/rd07/d64-capacity.spec.test.ts`
-- [ ] 6.1.3 Run the new spec suites and record the red phase
+- [x] 6.1.1 [spec-author] Write the independent D64 decoder with no production-serializer import — `test/rd07/d64-decoder.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.1.2 [spec-author] Write specification tests from ST-77..ST-96, ST-135, ST-137 — `test/rd07/d64-codec.spec.test.ts`, `test/rd07/d64-capacity.spec.test.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.1.3 Run the new spec suites and record the red phase ✅ (completed: 2026-11-10 09:46)
 
 ### Step 6.2: Implementation
 
 **Reference**: [03-05](03-05-d64-packager.md) §Format facts, §Directory, §File data
 
 - [ ] 6.2.1 Add a checked-in reference D64 fixture and measure the representative KERNAL load before serializer code; record it — `test/rd07/fixtures/reference.d64`, `codeops/features/blend65-v4/plans/rd-07-loadable-assets-and-d64-delivery/09-allocation-measurement.md`
-- [ ] 6.2.2 Implement geometry, offsets, and the 174,848-byte image buffer — `packages/compiler/src/packaging/d64/geometry.ts`
-- [ ] 6.2.3 Implement the BAM, standard header offsets, label, ID, DOS type, and free counts — `packages/compiler/src/packaging/d64/bam.ts`
-- [ ] 6.2.4 Implement the directory interleave-3 chain — `packages/compiler/src/packaging/d64/directory.ts`
-- [ ] 6.2.5 Implement directory entries, names, and `$A0` padding — `packages/compiler/src/packaging/d64/directory.ts`, `packages/compiler/src/packaging/d64/names.ts`
-- [ ] 6.2.6 Implement interleave-10 allocation — `packages/compiler/src/packaging/d64/allocator.ts`
-- [ ] 6.2.7 Implement 2-byte headers, 254-byte chunks, links, and final-sector lengths — `packages/compiler/src/packaging/d64/image.ts`
-- [ ] 6.2.8 Implement boot-first ordering, zero-byte units, and `$0000` headers — `packages/compiler/src/packaging/d64/image.ts`
-- [ ] 6.2.9 Implement `$00` fill and deterministic assembly — `packages/compiler/src/packaging/d64/image.ts`
-- [ ] 6.2.10 Implement capacity, name-collision, and structural validation — `packages/compiler/src/packaging/d64/validate.ts`
-- [ ] 6.2.11 Run ST-77..ST-96, ST-135, ST-137 and record the green phase
+- [x] 6.2.2 Implement geometry, offsets, and the 174,848-byte image buffer — `packages/compiler/src/packaging/d64/geometry.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.2.3 Implement the BAM, standard header offsets, label, ID, DOS type, and free counts — `packages/compiler/src/packaging/d64/bam.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.2.4 Implement the directory interleave-3 chain — `packages/compiler/src/packaging/d64/directory.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.2.5 Implement directory entries, names, and `$A0` padding — `packages/compiler/src/packaging/d64/directory.ts`, `packages/compiler/src/packaging/d64/names.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.2.6 Implement interleave-10 allocation — `packages/compiler/src/packaging/d64/allocator.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.2.7 Implement 2-byte headers, 254-byte chunks, links, and final-sector lengths — `packages/compiler/src/packaging/d64/image.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.2.8 Implement boot-first ordering, zero-byte units, and `$0000` headers — `packages/compiler/src/packaging/d64/image.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.2.9 Implement `$00` fill and deterministic assembly — `packages/compiler/src/packaging/d64/image.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.2.10 Implement capacity, name-collision, and structural validation — `packages/compiler/src/packaging/d64/image.ts`, `allocator.ts`, `names.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.2.11 Run ST-77..ST-96, ST-135, ST-137 and record the green phase ✅ (completed: 2026-11-10 09:46)
 
 ### Step 6.3: Implementation Tests and Verification
 
-- [ ] 6.3.1 Write implementation tests for allocator wrap, final-sector edges, name limits, and invariants — `packages/compiler/src/packaging/d64/d64.impl.test.ts`
-- [ ] 6.3.2 Run the independent decoder against the exact image; do not edit the spec file — `test/rd07/d64-codec.spec.test.ts`
-- [ ] 6.3.3 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier
+- [x] 6.3.1 Write implementation tests for allocator wrap, final-sector edges, name limits, and invariants — `packages/compiler/src/packaging/d64/d64.impl.test.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.3.2 Run the independent decoder against the exact image; do not edit the spec file — `test/rd07/d64-codec.spec.test.ts` ✅ (completed: 2026-11-10 09:46)
+- [x] 6.3.3 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier ✅ (completed: 2026-11-10 09:46)
 
 **Deliverables**:
 - [ ] Byte-exact deterministic D64

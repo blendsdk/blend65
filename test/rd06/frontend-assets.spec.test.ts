@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { checkProject } from "@blend65/compiler";
 import { analyzeProjectOverlay, loadProject } from "@blend65/compiler/frontend";
@@ -65,12 +67,16 @@ describe("frontend asset metadata", () => {
     expect(result[0]?.message).toMatch(/SPD|version|handler/iu);
   });
 
-  // A native asset may not initialize a loadable const in this release.
-  it("should reject a native loadable const with the resident-only boundary", async () => {
+  // A native asset may initialize a loadable const and is validated by its handler.
+  it("should accept a native loadable const through the handler", async () => {
+    const bytes = readFileSync(
+      join(process.cwd(), "test/rd06/fixtures/public/spritepad/synthetic-basic.spd"),
+    );
     const source = `module Game;\n\nloadable const SPRITES: byte[] = embed("player.spd");\n${MAIN}`;
-    const result = await diagnostics(source, [{ path: "player.spd", bytes: patternedBytes(64) }]);
-    expect(result.map(({ code }) => code)).toEqual(["E10204"]);
-    expect(result[0]?.message).toMatch(/loadable/iu);
+    await withProject(source, [{ path: "player.spd", bytes }], async (project) => {
+      const checked = await checkProject({ project });
+      expect(checked.kind, JSON.stringify(checked.diagnostics)).toBe("success");
+    });
   });
 
   // Missing files name only project-relative ordered roots, never the host path.
