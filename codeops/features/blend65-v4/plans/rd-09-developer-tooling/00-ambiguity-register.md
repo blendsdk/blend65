@@ -15,7 +15,7 @@ choice is decided here. Existing RD-03 through RD-08 contracts are consumed unch
 | 4 | Technical | Where do hover/definition/references/rename facts come from? | Extend `TypedProgram` inline / new frontend tooling index / duplicate editor analysis | Add `packages/compiler/src/frontend/tooling.ts`, a frontend-only index built from `AnalysisResult`, exported through `@blend65/compiler/frontend`. Stable binding identities and typed spans are reused; no backend import. | ✅ Resolved — smallest shared-query surface |
 | 5 | Data & state | Where is an open document's version tracked? | Extend `SourceOverlay` / server-owned map | The language server tracks URI → version and overlay text. `SourceOverlay` remains `{ sourceId, text }`; the compiler does not gain editor state. | ✅ Resolved — one owner for protocol state |
 | 6 | UX | What formatter policy is canonical? | Configurable style / token-stream canonical / AST pretty-printer | One token-stream formatter: four-space indent, LF, no options or range mode. It preserves comments, literals, and non-trivia token order, and rejects syntax-invalid input with no edits. | ✅ Resolved — R9.23 forbids style options |
-| 7 | Behavioral | Which code actions may be advertised? | Broad refactors / only proved edits / none | One action family only: add a missing import for `E10239` when exactly one exported declaration in the project can satisfy the name. Every other diagnostic returns no action. | ✅ Resolved — R9.22 forbids speculative edits |
+| 7 | Behavioral | Which code actions may be advertised? | Broad refactors / only proved edits / none | None. The provider returns an empty list because no current Specification 4 diagnostic supplies a closed, proved source edit. A missing-import action was rejected after evidence showed error/incomplete analysis carries no typed program to prove the target. | ✅ Resolved — R9.22 forbids speculative edits; execution correction recorded |
 | 8 | Data & state | Which semantic-token legend? | Custom rich legend / standard LSP legend | Standard LSP token types and modifiers only, with a fixed legend. Invalid regions use lexical fallback or no semantic modifier. | ✅ Resolved — avoids client-specific configuration |
 | 9 | Integration | How are banked/loadable identities represented in `.debug.json`? | New schema fields / populate existing contract fields / omit | Populate existing contract fields only. D64 load units receive `residence` records from the memory load states. Bank records are emitted only when a selected profile produces banks; no synthetic bank is invented. | ✅ Resolved — RD-03 version-1 contract is frozen |
 | 10 | Technical | How is zero target debug cost observed? | Public build option / internal test observer / no proof | An internal-only build path accepts a test observer flag that skips debug-evidence derivation; the public API always emits evidence. The test compares assembly, PRG/D64, labels, maps, totals, and VICE behavior. | ✅ Resolved — AC-30 permits a test observer |
@@ -40,10 +40,10 @@ VICE. The CLI JSON envelope is the typed boundary.
 does not add a parser, type system, module graph, or project model. It is the shared frontend query
 surface required by R9.1 and used only by the language server.
 
-**AR-7:** `E10239` identifies an undeclared name. The action searches the project's exported
-declarations for an exact name match. If zero or more than one candidate exists, no action is
-returned. The edit inserts one import declaration at the top of the importing source and is
-revalidated against the document version before return.
+**AR-7:** The frontend returns no typed program for `error`/`incomplete` results, so an
+`E10239` missing-import action cannot prove a unique target or a safe edit. Inventing one would
+violate the bounded code-action contract. The provider therefore returns no action. Reopen this
+decision if a future frontend exposes poison-safe declaration facts on incomplete analysis.
 
 **AR-9:** RD-03's debug contract already admits `bankIndex`, `loadUnitIndex`, `residence`, and
 `BankRecord`. The producer currently emits only `cpu16` and empty residence. RD-07's memory

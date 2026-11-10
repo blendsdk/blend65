@@ -41,7 +41,7 @@ and bundle tests. No test uses compiler output as its own semantic oracle.
 | ST-10 | Rename a user-owned local and a module export; rename a platform declaration, aliased import, or colliding name | Allowed renames return exact non-overlapping edits in every source; rejected renames return a typed reason and no edits | R9.19, AC-11, AR-16 |
 | ST-11 | Document and workspace symbol requests on a project with nested declarations | Document symbols preserve source order/nesting; workspace symbols are project-scoped, deterministic, and capped at 100 | R9.20, AC-12, AR-17 |
 | ST-12 | Semantic tokens on a valid document and on an invalid region | Valid tokens distinguish declaration/reference, readonly/mutable, compile-time, volatile, platform-owned, interrupt-only; invalid region uses lexical fallback or no modifier | R9.21, AC-12, AR-8 |
-| ST-13 | `E10239` with exactly one exported project candidate, zero candidates, and two candidates | Exactly one candidate yields an import-insertion quick fix with the expected edit; zero/two yield no action; stale version returns no action | R9.22, AC-13, AR-7 |
+| ST-13 | A missing import, a missing lowering, a hardware-policy diagnostic, and a poisoned declaration | The code-action provider returns an empty list for every case; no speculative refactor or source workaround appears | R9.22, AC-13, AR-7 |
 
 ### Language Server
 

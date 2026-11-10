@@ -18,6 +18,41 @@ export type {
   LoadableInitializer,
 } from "./load-units.js";
 
+/** Shared read-only editor facts derived from one analysis result. */
+export { buildToolingIndex, renderSemanticType, renderSymbol } from "./tooling.js";
+export {
+  codeActionsAt,
+  completionAt,
+  documentSymbols,
+  hoverAt,
+  referencesFor,
+  renameEdits,
+  semanticTokenFacts,
+  signatureAt,
+  symbolAt,
+  visibleSymbols,
+  workspaceSymbols,
+} from "./tooling-queries.js";
+export type {
+  CodeActionFact,
+  CompletionFact,
+  DocumentSymbolFact,
+  HoverFact,
+  RenameResult,
+  SemanticTokenFact,
+  SignatureFact,
+  ToolingCall,
+  ToolingEdit,
+  ToolingImport,
+  ToolingIndex,
+  ToolingModule,
+  ToolingOccurrence,
+  ToolingPosition,
+  ToolingProfile,
+  ToolingSymbol,
+  WorkspaceSymbolFact,
+} from "./tooling.js";
+
 /** Project-input helpers which do not import compiler backend stages. */
 export { byteOffsetToPosition } from "./positions.js";
 export { parseManifest } from "../project/manifest.js";

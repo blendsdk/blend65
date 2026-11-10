@@ -104,7 +104,7 @@ export interface ToolingIndex {
 | `workspaceSymbols(index, query, limit): readonly WorkspaceSymbolFact[]` | Deterministic name/qualified-name match, capped at the caller's bound. |
 | `renameEdits(index, symbolId, newName): RenameResult` | Closed edit set or a typed rejection reason. |
 | `semanticTokenFacts(index, sourceId): readonly SemanticTokenFact[]` | Lexical tokens classified by proved occurrences; lexical fallback only. |
-| `codeActionsAt(index, sourceId, offset): readonly CodeActionFact[]` | Only the unique `E10239` import insertion, or an empty list. |
+| `codeActionsAt(index, sourceId, offset): readonly CodeActionFact[]` | Always an empty list: no current diagnostic supplies a closed, proved edit. |
 
 ### Derivation Rules
 
@@ -162,11 +162,11 @@ revalidates document versions and source hashes before returning.
 
 ### Code Action Rule
 
-For an `E10239` diagnostic, extract the unresolved name. Search the project's exported bindings for
-that exact name. If exactly one module exports it and the importing source does not already import
-it, return one `WorkspaceEdit` inserting `import { Name } from Module.Name;` after the module header
-and existing imports. Zero or multiple candidates return no action. The action carries the
-diagnostic code and the document version as data; the server rejects stale application.
+The provider returns no action. The frontend does not expose a typed program for `error` or
+`incomplete` results, so a missing-import candidate cannot be proved unique and contained. R9.22
+forbids a speculative refactor or a workaround for a missing lowering. The provider is still
+registered so the capability shape is stable; it returns an empty list and never invents an edit.
+Revisit only when incomplete analysis exposes poison-safe declaration facts.
 
 ## Integration Points
 
@@ -184,7 +184,7 @@ diagnostic code and the document version as data; the server rejects stale appli
 | Duplicate binding name in scope | Keep distinct ids; `visibleSymbols` orders by narrowest scope | AR-16 |
 | Ambiguous rename | Reject with `ambiguous` reason | AR-16 |
 | Aliased import | Reject rename of the target | AR-16 |
-| No/multiple missing-import candidate | Return no code action | AR-7 |
+| Any diagnostic without a proved edit | Return no code action | AR-7 |
 
 ## Testing Requirements
 

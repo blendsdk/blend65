@@ -40,7 +40,7 @@
 | Shared editor facts | `frontend/tooling.ts` over `AnalysisResult` | AR-4 |
 | Editor document version | Server-owned map, not `SourceOverlay` | AR-5 |
 | Formatter policy | Token-stream, four spaces, LF, no options | AR-6, AR-18 |
-| Code actions | Unique `E10239` missing-import insertion only | AR-7 |
+| Code actions | Empty provider; no proved edit exists | AR-7 |
 | Semantic-token legend | Standard LSP types/modifiers | AR-8 |
 | Debug bank/load facts | Existing RD-03 fields populated; no schema change | AR-9 |
 | Zero-cost observation | Internal test observer only | AR-10 |

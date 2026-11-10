@@ -84,7 +84,7 @@ VS Code: Blend65: Open Build Evidence
 | Editor backend boundary      | Extension spawns packaged `blendc`; never imports compiler backend   |
 | Shared semantic source       | Frontend tooling index over `AnalysisResult`                         |
 | Formatter                    | Token-stream, four-space, LF, no options                             |
-| Code actions                 | Only unique `E10239` missing-import insertion                        |
+| Code actions                 | None advertised until a proved edit exists                           |
 | Debug bank/load facts        | Populate existing RD-03 fields; no schema change                     |
 | Adapter probe                | Bounded report; no owned DAP                                         |
 

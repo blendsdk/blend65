@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 22:12
-> **Progress**: 0/100 tasks (0%)
+> **Last Updated**: 2026-11-10 22:32
+> **Progress**: 16/100 tasks (16%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -49,31 +49,31 @@ CLI child; no compiler backend enters the editor.
 
 ### Step 1.1: Specification Tests
 
-- [ ] 1.1.1 [spec-author] Write tooling-index specification tests from ST-1–ST-5 — `test/rd09/tooling-index.spec.test.ts`
-- [ ] 1.1.2 [spec-author] Write query specification tests for completion, hover, signature, definition, references, rename, symbols, tokens, and code actions from ST-6–ST-13 — `test/rd09/tooling-queries.spec.test.ts`
-- [ ] 1.1.3 Run the new specification tests and record the RED evidence (missing module/functions) — `test/rd09/`
+- [x] 1.1.1 [spec-author] Write tooling-index specification tests from ST-1–ST-5 — `test/rd09/tooling-index.spec.test.ts` ✅ (completed: 2026-11-10 22:32)
+- [x] 1.1.2 [spec-author] Write query specification tests for completion, hover, signature, definition, references, rename, symbols, tokens, and code actions from ST-6–ST-13 — `test/rd09/tooling-queries.spec.test.ts` ✅ (completed: 2026-11-10 22:32)
+- [x] 1.1.3 Run the new specification tests and record the RED evidence (missing module/functions) — `test/rd09/` ✅ (completed: 2026-11-10 22:32)
 
 ### Step 1.2: Index and Symbols
 
-- [ ] 1.2.1 Create tooling types and `buildToolingIndex` derivation — `packages/compiler/src/frontend/tooling.ts`
-- [ ] 1.2.2 Derive declaration, local, parameter, module, field, and import symbols with stable scopes — `packages/compiler/src/frontend/tooling.ts`
-- [ ] 1.2.3 Derive reference occurrences from typed expressions, statements, initializers, and imports — `packages/compiler/src/frontend/tooling.ts`
-- [ ] 1.2.4 Implement `symbolAt`, `referencesFor`, and `visibleSymbols` with shadowing order — `packages/compiler/src/frontend/tooling.ts`
-- [ ] 1.2.5 Export the tooling surface from the frontend subpath — `packages/compiler/src/frontend/index.ts`
+- [x] 1.2.1 Create tooling types and `buildToolingIndex` derivation — `packages/compiler/src/frontend/tooling.ts` ✅ (completed: 2026-11-10 22:32)
+- [x] 1.2.2 Derive declaration, local, parameter, module, field, and import symbols with stable scopes — `packages/compiler/src/frontend/tooling.ts` ✅ (completed: 2026-11-10 22:32)
+- [x] 1.2.3 Derive reference occurrences from typed expressions, statements, initializers, and imports — `packages/compiler/src/frontend/tooling.ts` ✅ (completed: 2026-11-10 22:32)
+- [x] 1.2.4 Implement `symbolAt`, `referencesFor`, and `visibleSymbols` with shadowing order — `packages/compiler/src/frontend/tooling.ts` ✅ (completed: 2026-11-10 22:32)
+- [x] 1.2.5 Export the tooling surface from the frontend subpath — `packages/compiler/src/frontend/index.ts` ✅ (completed: 2026-11-10 22:32)
 
 ### Step 1.3: Queries
 
-- [ ] 1.3.1 Implement `completionAt` with ordinary, member, `embed()`, call-argument, type, and placement contexts — `packages/compiler/src/frontend/tooling.ts`
-- [ ] 1.3.2 Implement `hoverAt` and `signatureAt` with type/constant/effect/asset/placement facts — `packages/compiler/src/frontend/tooling.ts`
-- [ ] 1.3.3 Implement `documentSymbols` and `workspaceSymbols` with source order and the 100-result bound — `packages/compiler/src/frontend/tooling.ts`
-- [ ] 1.3.4 Implement `renameEdits` with containment, poison, collision, alias, and platform rejection — `packages/compiler/src/frontend/tooling.ts`
-- [ ] 1.3.5 Implement `semanticTokenFacts` with lexical fallback and `codeActionsAt` with the unique `E10239` rule — `packages/compiler/src/frontend/tooling.ts`
+- [x] 1.3.1 Implement `completionAt` with ordinary, member, `embed()`, call-argument, type, and placement contexts — `packages/compiler/src/frontend/tooling.ts` ✅ (completed: 2026-11-10 22:32)
+- [x] 1.3.2 Implement `hoverAt` and `signatureAt` with type/constant/effect/asset/placement facts — `packages/compiler/src/frontend/tooling.ts` ✅ (completed: 2026-11-10 22:32)
+- [x] 1.3.3 Implement `documentSymbols` and `workspaceSymbols` with source order and the 100-result bound — `packages/compiler/src/frontend/tooling.ts` ✅ (completed: 2026-11-10 22:32)
+- [x] 1.3.4 Implement `renameEdits` with containment, poison, collision, alias, and platform rejection — `packages/compiler/src/frontend/tooling.ts` ✅ (completed: 2026-11-10 22:32)
+- [x] 1.3.5 Implement `semanticTokenFacts` with lexical fallback and the empty bounded `codeActionsAt` provider — `packages/compiler/src/frontend/tooling.ts` ✅ (completed: 2026-11-10 22:32)
 
 ### Step 1.4: Implementation Tests and Verify
 
-- [ ] 1.4.1 Write implementation tests for ordering, occurrence containment, field identity, and rename collisions — `packages/compiler/src/frontend/tooling.impl.test.ts`
-- [ ] 1.4.2 Run the tooling specification and implementation tests green; confirm the boundary test still rejects backend imports — `test/rd09/`, `test/rd03-import-boundary.spec.test.ts`
-- [ ] 1.4.3 Run the compiler package suite and typecheck — `yarn workspace @blend65/compiler test`, `yarn typecheck`
+- [x] 1.4.1 Write implementation tests for ordering, occurrence containment, field identity, and rename collisions — `packages/compiler/src/frontend/tooling.impl.test.ts` ✅ (completed: 2026-11-10 22:32)
+- [x] 1.4.2 Run the tooling specification and implementation tests green; confirm the boundary test still rejects backend imports — `test/rd09/`, `test/rd03-import-boundary.spec.test.ts` ✅ (completed: 2026-11-10 22:32)
+- [x] 1.4.3 Run the compiler package suite and typecheck — `yarn workspace @blend65/compiler test`, `yarn typecheck` ✅ (completed: 2026-11-10 22:32)
 
 **Deliverables**: tooling index, all queries, spec/impl tests, green compiler package.
 
@@ -139,7 +139,7 @@ capability object, green diagnostics/protocol suites.
 - [ ] 3.2.2 Implement hover and signature-help handlers — `packages/language-server/src/queries/hover.ts`
 - [ ] 3.2.3 Implement definition, references, prepare-rename, and rename handlers with version revalidation — `packages/language-server/src/queries/navigation.ts`
 - [ ] 3.2.4 Implement document/workspace symbols and semantic-token handlers — `packages/language-server/src/queries/symbols.ts`
-- [ ] 3.2.5 Implement the unique `E10239` code action and the canonical formatter handler — `packages/language-server/src/queries/actions.ts`
+- [ ] 3.2.5 Implement the empty bounded code-action provider and the canonical formatter handler — `packages/language-server/src/queries/actions.ts`
 
 ### Step 3.3: Implementation Tests and Verify
 

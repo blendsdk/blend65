@@ -133,7 +133,7 @@ No pull-diagnostics, inline-completion, inlay-hint, or range-formatting capabili
 | `textDocument/documentSymbol` | `documentSymbols`; hierarchical `DocumentSymbol[]` |
 | `workspace/symbol` | `workspaceSymbols`; 100-result bound |
 | `textDocument/semanticTokens/full` | `semanticTokenFacts`; relative encoding |
-| `textDocument/codeAction` | Only the unique `E10239` import insertion; returns `[]` otherwise |
+| `textDocument/codeAction` | Always `[]`; no current diagnostic supplies a proved edit |
 | `textDocument/formatting` | Frontend formatter; `null` when syntax-invalid; one full-document edit |
 
 Every handler:
