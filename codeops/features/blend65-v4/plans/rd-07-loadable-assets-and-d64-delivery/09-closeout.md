@@ -35,8 +35,9 @@ complete publication, and bounded VICE runtime evidence.
 | Check | Command | Result |
 | --- | --- | --- |
 | Compiler suite | `yarn workspace @blend65/compiler test` | 3,656 passed / 2 skipped |
-| RD-07 directed suite | `yarn vitest run test/rd07` | 85 passed / 4 opt-in skipped (VICE) |
+| RD-07 directed suite | `yarn vitest run test/rd07` | 98 passed / 4 opt-in skipped (VICE) |
 | Affected root suites | RD-04/05/06 + M1 boundary | 146 passed |
+| Full root boundary | `yarn test` | turbo package suites + complete root corpus |
 | VICE runtime (opt-in) | `RD07_VICE=1 RD07_RUNTIME_DIR=<prebuilt> yarn vitest run test/rd07/d64-vice.spec.test.ts` | 4/4 passed |
 | D64 run argv | `src/services/vice-profiles.spec.test.ts` | 12 passed |
 | Frozen specification | `git status --porcelain spec/` | empty |
@@ -75,7 +76,7 @@ closeout were closed with code and tests, not deferred:
 | Issue | Gap | Resolution |
 | --- | --- | --- |
 | [#141](https://github.com/blendsdk/blend65/issues/141) | Partial/field destinations lacked an exact interval and state view | Destination boundaries now split the object; the load piece is an exact `loadDestination` interval with exclusive states; debug ranges reconcile contiguous same-owner pieces |
-| [#142](https://github.com/blendsdk/blend65/issues/142) | Failed dynamic load candidate precision | Ruled sound as conservative: a candidate is readable only when its range is provably disjoint; a runtime index can alias any candidate, so E10276 remains for those reads. The provably-unselected case is tested |
+| [#142](https://github.com/blendsdk/blend65/issues/142) | Failed dynamic load candidate precision | A proved runtime index selects one candidate; only that range is invalidated on failure and a prior-initialized disjoint candidate stays readable. An unknown index remains conservative E10276. Covered by `load-publication.spec.test.ts` |
 | [#143](https://github.com/blendsdk/blend65/issues/143) | Native-asset destination constraints | Alignment/no-cross/VIC requirements propagate before layout; `c64.vic.bank0-ram` skips character ROM; misaligned fields, constrained locals and ROM destinations reject with E10275 |
 | [#144](https://github.com/blendsdk/blend65/issues/144) | Allocation measurement | Recorded in `09-allocation-measurement.md`: 20 blocks, 5,000 bytes, 512 jiffies under pinned VICE 3.10 |
 

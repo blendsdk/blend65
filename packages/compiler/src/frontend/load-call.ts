@@ -14,6 +14,40 @@ import type {
 } from "./semantic-types.js";
 import type { Expr } from "./syntax.js";
 
+/** Compute one exact destination range when every runtime index has a proved value. */
+function knownPlaceRange(
+  place: import("./semantic-types.js").Place,
+  host: ScalarExpressionHost,
+  unitSize: number,
+): { readonly start: number; readonly end: number } | null {
+  let type = host.stateFor?.(place.binding)?.binding.type ?? null;
+  let offset = 0;
+  for (const item of place.path) {
+    if (type === null) return null;
+    if (typeof item === "string") {
+      if (type.kind !== "struct") return null;
+      const field = type.fields.find(({ name }) => name === item);
+      if (field === undefined) return null;
+      offset += field.offset;
+      type = field.type;
+      continue;
+    }
+    if (type.kind !== "array") return null;
+    const constant =
+      typeof item.constant === "bigint"
+        ? item.constant
+        : item.binding === null
+          ? null
+          : (host.stateFor?.(item.binding)?.known ?? null);
+    if (typeof constant !== "bigint") return null;
+    const index = Number(constant);
+    if (!Number.isSafeInteger(index) || index < 0 || index >= type.length) return null;
+    offset += index * semanticTypeSize(type.element);
+    type = type.element;
+  }
+  return { start: offset, end: offset + unitSize };
+}
+
 /** Format one source argument for a load diagnostic without inventing a value. */
 function display(host: ScalarExpressionHost, expression: Expr): string {
   return host.sourceText(expression.span);
@@ -110,11 +144,21 @@ export function analyzeLoadUnitCall(
     );
     return { node: null, exact: null };
   }
-  const range = place.byteRange ?? {
-    start: 0,
-    end: semanticTypeSize(unit.node.type),
-  };
-  const dynamic = place.byteRange === null;
+  const rootType = host.stateFor?.(place.binding)?.binding.type ?? null;
+  const rootSize =
+    rootType === null ? semanticTypeSize(unit.node.type) : semanticTypeSize(rootType);
+  // A runtime index with a proved value selects one candidate. Only a genuinely
+  // unknown index has to treat every candidate as may-written on the failure edge.
+  const knownRange =
+    place.byteRange === null
+      ? knownPlaceRange(place, host, semanticTypeSize(unit.node.type))
+      : null;
+  const range = knownRange ??
+    place.byteRange ?? {
+      start: 0,
+      end: rootSize,
+    };
+  const dynamic = place.byteRange === null && knownRange === null;
   const aliasKey = placeAliasKey(place, (binding) => host.stateFor?.(binding) ?? null);
   if (dynamic && aliasKey === null) {
     host.diagnose(

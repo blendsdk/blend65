@@ -172,6 +172,18 @@ export function enforceLoadDestinationConstraints(
               );
               continue;
             }
+            // The stock screen matrix is the default VIC consumer unless the
+            // destination is that active screen object, which a load unit is not.
+            if (physical <= 0x07ff && physicalEnd >= 0x0400) {
+              diagnostics.push(
+                constraintDiagnostic(
+                  unit,
+                  operation.span,
+                  `the placed destination at $${physical.toString(16)} overlaps the active screen matrix`,
+                ),
+              );
+              continue;
+            }
           }
         }
         const current = requirements.get(key);

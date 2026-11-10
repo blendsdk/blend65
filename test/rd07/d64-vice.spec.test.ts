@@ -84,7 +84,7 @@ async function observe(
   readonly target: readonly number[];
   readonly canary: readonly number[];
   readonly ok: number;
-  readonly pc: number;
+  readonly screen: readonly number[];
 }> {
   const identity = await viceRuntimeIdentity();
   if (identity === null) throw new Error("Pinned VICE 3.10 runtime is unavailable");
@@ -134,12 +134,11 @@ async function observe(
       const read = (address: number, length: number): readonly number[] => [
         ...memory.subarray(address - base, address - base + length),
       ];
-      const registers = await monitor.readCpuRegisters();
       return {
         target: read(fixture.target, 4),
         canary: read(fixture.canary, 2),
         ok: read(fixture.ok, 1)[0]!,
-        pc: registers.pc,
+        screen: [...(await monitor.readMemory(0x0400, 0x07e7))],
       };
     } finally {
       await monitor.quit();
@@ -189,6 +188,11 @@ describe.skipIf(process.env.RD07_VICE !== "1")("D64 loader runtime", () => {
   it("should return to the BASIC ROM after the program ends", async () => {
     const fixture = await prepareFixture();
     const observed = await observe(join(fixture.directory, "runtime.d64"), fixture, 4_000);
-    expect(observed.pc).toBeGreaterThanOrEqual(0xa000);
+    // BASIC prints READY. (screen codes R E A D Y .) after the program returns.
+    expect(
+      observed.screen.some((_, index) =>
+        [18, 5, 1, 4, 25, 46].every((code, offset) => observed.screen[index + offset] === code),
+      ),
+    ).toBe(true);
   }, 120_000);
 });

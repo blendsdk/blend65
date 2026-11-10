@@ -179,6 +179,27 @@ describe("load destination constraints", () => {
     expect(result.vic?.visibility).toContain("vic");
   });
 
+  // The active screen matrix is not a legal VIC-visible destination.
+  it("should reject an active-screen destination with E10275", async () => {
+    const result = await withProject(
+      [
+        "module Game;",
+        "",
+        'loadable const SPRITES: byte[64] = embed("player.spd");',
+        "place(at: $0400) let dest: byte[64];",
+        "function main(): void { if (c64.loader.load(SPRITES, dest)) { let x: byte = dest[0]; } }",
+        "",
+      ].join("\n"),
+      [{ path: "player.spd", bytes: spd }],
+      async (project) => await buildProject({ project }),
+      "c64-pal-d64-kernal-6581",
+    );
+    expect(result.kind).toBe("failure");
+    if (result.kind !== "failure") throw new Error("Expected a screen conflict");
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(["E10275"]);
+    expect(result.diagnostics[0]?.message).toMatch(/active screen matrix/u);
+  });
+
   // An unconstrained raw unit still accepts a local destination.
   it("should keep unconstrained raw units unrestricted", async () => {
     const result = await withProject(

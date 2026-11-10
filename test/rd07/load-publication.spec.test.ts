@@ -184,13 +184,59 @@ describe("dynamic destination publication", () => {
     ).toEqual(["E10276"]);
   });
 
-  // Changing the index invalidates the must-alias relation.
-  it("should reject a read after the runtime index changes", async () => {
+  // A changed unknown index cannot prove which candidate was selected.
+  it("should reject a read after an unknown runtime index changes", async () => {
     expect(
       await dynamicErrors(
-        "function loadAndRead(i: byte): byte { if (c64.loader.load(DATA, slots[i].data)) { i = 0; return slots[i].data[0]; } return 0; } function main(): void { let x: byte = loadAndRead(1); }",
+        "function loadAndRead(i: byte, next: byte): byte { if (c64.loader.load(DATA, slots[i].data)) { i = next; return slots[i].data[0]; } return 0; } function main(): void { let x: byte = loadAndRead(1, 0); }",
       ),
     ).toEqual(["E10276"]);
+  });
+
+  // A runtime index with a proved value selects exactly one candidate; a prior
+  // initialized sibling candidate stays readable after the failure edge.
+  it("should keep a provably different known candidate readable after failure", async () => {
+    expect(
+      await dynamicErrors(
+        [
+          "function main(): void {",
+          "  slots[0].data[0] = 1;",
+          "  slots[0].data[1] = 2;",
+          "  slots[0].data[2] = 3;",
+          "  slots[0].data[3] = 4;",
+          "  let i: byte = 1;",
+          "  if (!c64.loader.load(DATA, slots[i].data)) { let x: byte = slots[0].data[0]; }",
+          "}",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  // The selected known candidate may have been partially written on failure.
+  it("should reject a read of the selected known candidate after failure", async () => {
+    expect(
+      await dynamicErrors(
+        "function main(): void { let i: byte = 1; if (!c64.loader.load(DATA, slots[i].data)) { let x: byte = slots[i].data[0]; } }",
+      ),
+    ).toEqual(["E10276"]);
+  });
+
+  // Changing a proved index to a different initialized candidate is a disjoint read.
+  it("should allow a changed proved index targeting an initialized candidate", async () => {
+    expect(
+      await dynamicErrors(
+        [
+          "function main(): void {",
+          "  slots[0].data[0] = 1;",
+          "  slots[0].data[1] = 2;",
+          "  slots[0].data[2] = 3;",
+          "  slots[0].data[3] = 4;",
+          "  let i: byte = 1;",
+          "  if (c64.loader.load(DATA, slots[i].data)) { i = 0; let x: byte = slots[i].data[0]; }",
+          "}",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
   });
 
   // A static candidate load publishes only that candidate; a disjoint candidate is

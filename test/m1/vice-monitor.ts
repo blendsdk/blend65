@@ -60,8 +60,6 @@ export interface ViceCpuRegisters {
   readonly p: number;
   /** Hardware stack pointer. */
   readonly sp: number;
-  /** Program counter. */
-  readonly pc: number;
 }
 
 /** The small binary-monitor surface used by the M1 qualification driver. */
@@ -709,12 +707,6 @@ export async function openViceMonitor(port: number, processId: number): Promise<
         if (value > 0xff) throw new Error("VICE returned a non-byte CPU register value");
         return value;
       };
-      const word = (id: number): number => {
-        if (!registers.has(id)) throw new Error("VICE register response is incomplete");
-        const value = registers.get(id)!;
-        if (value > 0xffff) throw new Error("VICE returned a non-word CPU register value");
-        return value;
-      };
       if (offset !== response.body.length)
         throw new Error("VICE register response has trailing data");
       return Object.freeze({
@@ -723,7 +715,6 @@ export async function openViceMonitor(port: number, processId: number): Promise<
         y: byte(registerId(["Y"])),
         sp: byte(registerId(["SP"])),
         p: byte(registerId(["FL", "P"])),
-        pc: word(registerId(["PC"])),
       });
     },
     setJoystick1: async (value) => setJoystick(0, value),
