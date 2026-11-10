@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 12:21
-> **Progress**: 75/131 tasks (57%)
+> **Last Updated**: 2026-11-10 12:31
+> **Progress**: 84/131 tasks (64%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -234,20 +234,20 @@ illegal uses, and tooling handoff before implementation.
 
 **Reference**: [03-04](03-04-joint-layout-and-memory.md) §Destination intervals, §Exclusive memory states
 
-- [ ] 5.2.1 Prove and record every physical destination interval — `packages/compiler/src/layout/c64-layout.ts`
+- [x] 5.2.1 Prove and record every physical destination interval — `packages/compiler/src/layout/c64-layout.ts` ✅ (completed: 2026-11-10 12:31)
 - [ ] 5.2.2 Reject code/SFA/stack/vector/loader conflicts with every owner — `packages/compiler/src/layout/c64-layout.ts`
 - [ ] 5.2.3 Reject MMIO/ROM/player conflicts with every owner — `packages/compiler/src/layout/c64-layout.ts`
 - [ ] 5.2.4 Prove CPU/VIC visibility and BASIC-ROM banking — `packages/compiler/src/layout/c64-layout.ts`
 - [ ] 5.2.5 Derive VIC fields from the destination — `packages/compiler/src/machine/vic-fields.ts`
-- [ ] 5.2.6 Add per-destination/per-candidate exclusive residencies — `packages/compiler/src/services/evidence.ts`
+- [x] 5.2.6 Add per-destination/per-candidate exclusive residencies — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 12:31)
 - [~] 5.2.7 Emit state views and the additive `loadStates` records — `packages/compiler/src/services/evidence.ts` ⏳ (implemented: 2026-11-10 11:03)
-- [ ] 5.2.8 Emit loader/destination/KERNAL records, free-space facts, and stack domains — `packages/compiler/src/services/memory-evidence-records.ts`
+- [x] 5.2.8 Emit loader/destination/KERNAL records, free-space facts, and stack domains — `packages/compiler/src/services/memory-evidence-records.ts` ✅ (completed: 2026-11-10 12:31)
 - [x] 5.2.9 Add `loadStates` to the `MemoryEvidence` type and the exact-key memory validator — `packages/compiler/src/artifacts/evidence-types.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts` ✅ (completed: 2026-11-10 11:03)
 - [~] 5.2.10 Run ST-65..ST-76 and record the green phase ⏳ (implemented: 2026-11-10 11:03)
 
 ### Step 5.3: Implementation Tests and Verification
 
-- [ ] 5.3.1 Write implementation tests for exclusive views, tiling, and overlap diagnostics — `packages/compiler/src/services/d64-memory.impl.test.ts`
+- [x] 5.3.1 Write implementation tests for exclusive views, tiling, and overlap diagnostics — `packages/compiler/src/services/d64-memory.impl.test.ts` ✅ (completed: 2026-11-10 12:31)
 - [ ] 5.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier
 
 **Deliverables**:
@@ -364,18 +364,18 @@ illegal uses, and tooling handoff before implementation.
 
 **Reference**: [03-07](03-07-evidence-and-costs.md) §Implementation Details
 
-- [ ] 8.2.1 Emit loadable asset placements, constraints, and aliases — `packages/compiler/src/services/evidence.ts`
+- [x] 8.2.1 Emit loadable asset placements, constraints, and aliases — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 12:31)
 - [x] 8.2.2 Emit the boot/loader/filename/call-site/disk/KERNAL cost split with `{kind:"unknown"}` timing — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 8.2.3 Populate debug load units by component id and `loadUnitIndex` ranges — `packages/compiler/src/services/evidence-records.ts` ✅ (completed: 2026-11-10 11:03)
-- [ ] 8.2.4 Assert the D64 package component sources, aliases, and ordered components emitted in Phase 7; fix only the evidence projection — `packages/compiler/src/services/evidence.ts`
-- [ ] 8.2.5 Add the `loadStates` cross-check and extended loadable destination matcher — `packages/compiler/src/publication/sidecar-consistency.ts`
+- [x] 8.2.4 Assert the D64 package component sources, aliases, and ordered components emitted in Phase 7; fix only the evidence projection — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 12:31)
+- [x] 8.2.5 Add the `loadStates` cross-check and extended loadable destination matcher — `packages/compiler/src/publication/sidecar-consistency.ts` ✅ (completed: 2026-11-10 12:31)
 - [ ] 8.2.6 Add the build-only `LoadableBuildView` as a sidecar-derived shape — `packages/compiler/src/services/handoff.ts`
 - [x] 8.2.7 Add `loaderStrategyId` to the `BuildEvidence` type and the exact-key build validator — `packages/compiler/src/artifacts/evidence-types.ts`, `packages/compiler/src/artifacts/build-evidence-validator.ts` ✅ (completed: 2026-11-10 11:03)
 - [~] 8.2.8 Run ST-109..ST-115, ST-133, ST-138 and record the green phase ⏳ (implemented: 2026-11-10 11:03)
 
 ### Step 8.3: Implementation Tests and Verification
 
-- [ ] 8.3.1 Write implementation tests for field ordering, unknown timing, cost sums, and mismatch rejection — `packages/compiler/src/services/d64-evidence.impl.test.ts`
+- [x] 8.3.1 Write implementation tests for field ordering, unknown timing, cost sums, and mismatch rejection — `packages/compiler/src/services/d64-evidence.impl.test.ts` ✅ (completed: 2026-11-10 12:31)
 - [ ] 8.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier
 
 **Deliverables**:

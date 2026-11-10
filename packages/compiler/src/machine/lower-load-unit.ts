@@ -18,11 +18,7 @@ function unitBytes(type: SemanticType): number {
 }
 
 /** Build one absolute or storage address-byte operand for a proved static value. */
-function addressOperand(
-  value: LoweredValue,
-  offset: number,
-  byte: "low" | "high",
-): MachineOperand {
+function addressOperand(value: LoweredValue, offset: number, byte: "low" | "high"): MachineOperand {
   if (value.kind === "static-address") {
     if (value.requestId !== undefined) {
       return Object.freeze({
@@ -75,15 +71,18 @@ export function lowerLoadUnit(
   if (destination === undefined) {
     throw loweringFailure("Load destination address was not evaluated", operation.span);
   }
-  const name = requestStorage(
-    state,
-    `load-name:${operation.unitId}`,
-    "temporary",
-    16,
-    "ram",
-    operation.span,
-    "Load unit directory-name bytes",
-  );
+  const nameId = `compiler.c64.load-unit-name.${operation.unitId}`;
+  if (!state.generatedData.has(nameId)) {
+    state.generatedData.set(
+      nameId,
+      Object.freeze({
+        id: nameId,
+        kind: "immutable" as const,
+        alignment: 1,
+        bytes: Object.freeze([...operation.unitName]),
+      }),
+    );
+  }
   const result = requestStorage(
     state,
     `load-result:${operation.unitId}`,
@@ -97,65 +96,88 @@ export function lowerLoadUnit(
     opcode: string,
     mode: string,
     operand: MachineOperand | null,
+    role: "loader" | "callSite" = "callSite",
   ): MachineInstruction =>
-    machineInstruction(state.input.profile.cpu, opcode, mode, operand, [], operation.span);
+    Object.freeze({
+      ...machineInstruction(state.input.profile.cpu, opcode, mode, operand, [], operation.span),
+      loadUnitRole: role,
+    });
   const bytes = unitBytes(operation.unitType);
   const pointer =
     destination.kind === "storage"
       ? { requestId: destination.requestId, offset: destination.offset ?? 0 }
       : null;
   const instructions: MachineInstruction[] = [];
-  for (const [index, byte] of operation.unitName.entries()) {
-    instructions.push(instruction("lda", "immediate", { kind: "immediate", value: byte }));
-    instructions.push(
-      instruction("sta", "storage", { kind: "storage", requestId: name.id, offset: index }),
-    );
-  }
   instructions.push(
-    instruction("lda", "immediate", { kind: "immediate", value: 1 }),
-    instruction("ldx", "zero-page", { kind: "absolute", value: 0xba }),
-    instruction("ldy", "immediate", { kind: "immediate", value: 0 }),
-    instruction("jsr", "absolute", { kind: "absolute", value: 0xffba }),
-    instruction("lda", "immediate", { kind: "immediate", value: operation.unitName.length }),
-    instruction("ldx", "immediate", {
-      kind: "storage",
-      requestId: name.id,
-      addressByte: "low",
-    }),
-    instruction("ldy", "immediate", {
-      kind: "storage",
-      requestId: name.id,
-      addressByte: "high",
-    }),
-    instruction("jsr", "absolute", { kind: "absolute", value: 0xffbd }),
-    instruction("lda", "immediate", { kind: "immediate", value: 0 }),
+    instruction("lda", "immediate", { kind: "immediate", value: 1 }, "loader"),
+    instruction("ldx", "zero-page", { kind: "absolute", value: 0xba }, "loader"),
+    instruction("ldy", "immediate", { kind: "immediate", value: 0 }, "loader"),
+    instruction("jsr", "absolute", { kind: "absolute", value: 0xffba }, "loader"),
+    instruction(
+      "lda",
+      "immediate",
+      { kind: "immediate", value: operation.unitName.length },
+      "loader",
+    ),
+    instruction(
+      "ldx",
+      "immediate",
+      {
+        kind: "label",
+        label: nameId,
+        addressByte: "low",
+      },
+      "loader",
+    ),
+    instruction(
+      "ldy",
+      "immediate",
+      {
+        kind: "label",
+        label: nameId,
+        addressByte: "high",
+      },
+      "loader",
+    ),
+    instruction("jsr", "absolute", { kind: "absolute", value: 0xffbd }, "loader"),
+    instruction("lda", "immediate", { kind: "immediate", value: 0 }, "loader"),
   );
   if (pointer === null) {
     instructions.push(
-      instruction("ldx", "immediate", addressOperand(destination, 0, "low")),
-      instruction("ldy", "immediate", addressOperand(destination, 0, "high")),
+      instruction("ldx", "immediate", addressOperand(destination, 0, "low"), "callSite"),
+      instruction("ldy", "immediate", addressOperand(destination, 0, "high"), "callSite"),
     );
   } else {
     instructions.push(
-      instruction("ldx", "storage", {
-        kind: "storage",
-        requestId: pointer.requestId,
-        offset: pointer.offset,
-      }),
-      instruction("ldy", "storage", {
-        kind: "storage",
-        requestId: pointer.requestId,
-        offset: pointer.offset + 1,
-      }),
+      instruction(
+        "ldx",
+        "storage",
+        {
+          kind: "storage",
+          requestId: pointer.requestId,
+          offset: pointer.offset,
+        },
+        "callSite",
+      ),
+      instruction(
+        "ldy",
+        "storage",
+        {
+          kind: "storage",
+          requestId: pointer.requestId,
+          offset: pointer.offset + 1,
+        },
+        "callSite",
+      ),
     );
   }
-  instructions.push(instruction("jsr", "absolute", { kind: "absolute", value: 0xffd5 }));
+  instructions.push(instruction("jsr", "absolute", { kind: "absolute", value: 0xffd5 }, "loader"));
   // The KERNAL status byte is zero on success. The returned X/Y end address is compared
   // against the evaluated destination plus the exact unit size.
   instructions.push(
-    instruction("cld", "implied", null),
-    instruction("lda", "zero-page", { kind: "absolute", value: 0x90 }),
-    instruction("sta", "storage", { kind: "storage", requestId: result.id, offset: 0 }),
+    instruction("cld", "implied", null, "callSite"),
+    instruction("lda", "zero-page", { kind: "absolute", value: 0x90 }, "callSite"),
+    instruction("sta", "storage", { kind: "storage", requestId: result.id, offset: 0 }, "callSite"),
   );
   if (pointer === null) {
     instructions.push(

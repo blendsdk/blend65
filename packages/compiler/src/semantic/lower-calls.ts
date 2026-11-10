@@ -1,4 +1,5 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import { SCALAR_TYPES } from "../frontend/constants.js";
 import type { LoadUnitRecord } from "../frontend/load-units.js";
 import type { SemanticBinding, SemanticType, TypedExpr } from "../frontend/semantic-types.js";
@@ -62,6 +63,10 @@ export class CallLowerer {
           result,
           unit: expression.loadUnit.unit,
           destinationBinding: expression.loadUnit.destination.place!.binding,
+          destinationRange: expression.loadCapture?.range ?? {
+            start: 0,
+            end: unit.type === null ? 0 : semanticTypeSize(unit.type),
+          },
           unitId: record.id,
           unitName: Object.freeze([...record.diskName].map((character) => character.charCodeAt(0))),
           destination: address,

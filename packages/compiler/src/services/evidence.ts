@@ -26,6 +26,7 @@ import type { OptimizationCycleMeasurement } from "../machine/optimization-cost.
 import { deriveEntryPathCycles } from "./entry-path-cycles.js";
 import { assetSymbolName, deriveDebugRecords } from "./evidence-records.js";
 import { deriveMemoryIntervals, sfaClosureHash } from "./memory-evidence-records.js";
+import type { LoadDestinationEvidence } from "./memory-evidence-records.js";
 
 /** External NMI obligations not established by a finite generated-program/IRQ proof. */
 const EXTERNAL_NMI_EFFECT_CLASS =
@@ -116,6 +117,7 @@ export interface SizeEvidenceDecision {
 
 import { paddedD64Name } from "../packaging/d64/index.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import type { D64Image } from "../packaging/d64/index.js";
 
 interface D64EvidenceInput {
@@ -318,6 +320,7 @@ function buildView(
   covered: readonly EvidenceRecord[],
   visibility: readonly string[],
   bankId?: string,
+  activeResidencyIds: readonly string[] = ["resident"],
 ): EvidenceRecord {
   const free = freeIntervalsInWindow(
     start,
@@ -336,7 +339,7 @@ function buildView(
     ...(bankId === undefined ? {} : { bankId }),
     start,
     end,
-    activeResidencyIds: Object.freeze(["resident"]),
+    activeResidencyIds: Object.freeze([...activeResidencyIds].sort()),
     visibility: Object.freeze([...visibility]),
     capacityBytes: end - start,
     occupiedBytes: sum("size"),
@@ -661,20 +664,142 @@ export async function prepareEvidence(
       placement: Object.freeze({ kind: "compileTime", outputSha256: asset.outputSha256 }),
     }),
   );
+  // An embedded load unit is a disk-only asset. Its destinations are the proved mutable
+  // ranges in the resident image, never the unit bytes themselves.
+  const d64Artifact = input.d64;
+  const loadableAssetRecords =
+    d64Artifact === undefined
+      ? []
+      : input.program.semantic.loadUnits.flatMap((unit) => {
+          const provenance = unit.provenance;
+          if (provenance.kind !== "embedded" || !input.program.reachableLoadUnits.includes(unit.id))
+            return [];
+          const asset = input.program.semantic.assets.find(
+            (candidate): candidate is ResidentAsset =>
+              candidate.kind === "resident-asset" && candidate.id === provenance.assetId,
+          );
+          if (asset === undefined) return [];
+          const destinations: EvidenceRecord[] = [];
+          for (const fn of input.program.semantic.functions) {
+            if (
+              !input.program.reachableFunctions.some(
+                (id) => bindingIdentityKey(id) === bindingIdentityKey(fn.id),
+              )
+            )
+              continue;
+            for (const block of fn.blocks) {
+              for (const operation of block.operations) {
+                if (operation.kind !== "load-unit" || operation.unitId !== unit.id) continue;
+                const key = bindingIdentityKey(operation.destinationBinding);
+                const interval = input.layout.intervals.find(({ id }) => id.includes(key));
+                if (interval === undefined) continue;
+                const start = interval.start + operation.destinationRange.start;
+                const end = interval.start + operation.destinationRange.end;
+                if (end - start !== unit.size) continue;
+                if (destinations.some((range) => range.start === start && range.end === end))
+                  continue;
+                destinations.push(
+                  Object.freeze({
+                    addressSpaceId: "cpu16",
+                    start,
+                    end,
+                    alignmentBytes: interval.requiredAlignment ?? 1,
+                    paddingBeforeBytes: 0,
+                    residencyId: "resident",
+                    visibility: Object.freeze(["cpu"]),
+                    writableRanges: Object.freeze([]),
+                  }),
+                );
+              }
+            }
+          }
+          if (destinations.length === 0) return [];
+          return [
+            Object.freeze({
+              id: assetEvidenceId(asset),
+              inputs: Object.freeze([
+                Object.freeze({
+                  path: asset.sourcePath,
+                  bytes: asset.inputBytes,
+                  sha256: asset.inputSha256,
+                }),
+              ]),
+              handler: asset.handler.handlerKey,
+              handlerVersion: asset.handler.handlerVersion,
+              selector: asset.handler.selector,
+              representation: asset.handler.representation,
+              logicalType: assetLogicalType(asset),
+              shape: Object.freeze(assetShape(asset)),
+              outputSha256: sha256(Uint8Array.from(unit.bytes)),
+              payloadBytes: unit.size,
+              emittedBytes: unit.size,
+              aliases: Object.freeze([]),
+              constraints: Object.freeze(
+                assetConstraints(asset).map((constraint) => Object.freeze(constraint)),
+              ),
+              placement: Object.freeze({
+                kind: "loadable",
+                loadUnitId: unit.id,
+                artifactPath: d64Artifact.path,
+                destinations: Object.freeze(
+                  destinations.sort(
+                    (left, right) => (left.start as number) - (right.start as number),
+                  ),
+                ),
+              }),
+            }),
+          ];
+        });
   const assetEvidence = Object.freeze({
     kind: "blend65.assets",
     schemaVersion: 1,
     assets: Object.freeze(
-      [...residentRecords, ...scalarRecords].sort((left, right) =>
+      [...residentRecords, ...scalarRecords, ...loadableAssetRecords].sort((left, right) =>
         Buffer.compare(Buffer.from(left.id), Buffer.from(right.id)),
       ),
     ),
   });
+  const globalSizes = new Map(
+    input.program.semantic.globals.map(
+      (global) => [bindingIdentityKey(global.id), semanticTypeSize(global.type)] as const,
+    ),
+  );
+  const loadDestinations = new Map<string, LoadDestinationEvidence>();
+  for (const fn of input.program.semantic.functions) {
+    if (
+      !input.program.reachableFunctions.some(
+        (id) => bindingIdentityKey(id) === bindingIdentityKey(fn.id),
+      )
+    )
+      continue;
+    for (const block of fn.blocks) {
+      for (const operation of block.operations) {
+        if (operation.kind !== "load-unit") continue;
+        const key = bindingIdentityKey(operation.destinationBinding);
+        const size = globalSizes.get(key);
+        if (size === undefined) continue;
+        const wholeRoot =
+          operation.destinationRange.start === 0 && operation.destinationRange.end === size;
+        const existing = loadDestinations.get(key);
+        loadDestinations.set(
+          key,
+          Object.freeze({
+            range: Object.freeze({ ...operation.destinationRange }),
+            unitIds: Object.freeze(
+              [...new Set([...(existing?.unitIds ?? []), operation.unitId])].sort(),
+            ),
+            wholeRoot: (existing?.wholeRoot ?? true) && wholeRoot,
+          }),
+        );
+      }
+    }
+  }
   const layoutIntervals = deriveMemoryIntervals(
     input.layout,
     input.inventory,
     input.certificate,
     assetIds,
+    loadDestinations,
   );
   // Color RAM is a separate 4-bit hardware space. Screen and character-ROM
   // reservations are layout constraints, but cannot become CPU intervals while
@@ -749,11 +874,44 @@ export async function prepareEvidence(
       );
     }),
   );
+  const loadStateGroups = [...loadDestinations.entries()]
+    .filter(([, destination]) => destination.wholeRoot)
+    .sort(([left], [right]) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
+  const loadStateViews = loadStateGroups.flatMap(([key, destination], index) => {
+    const group = `load-state:${key}`;
+    return [
+      buildView(
+        `cpu16-load-${index}-unloaded`,
+        "cpu",
+        "cpu16",
+        0,
+        0x10000,
+        cpu,
+        ["cpu"],
+        undefined,
+        ["resident", `${group}:unloaded`],
+      ),
+      ...destination.unitIds.map((unitId: string) =>
+        buildView(
+          `cpu16-load-${index}-unit-${unitId.slice(0, 8)}`,
+          "cpu",
+          "cpu16",
+          0,
+          0x10000,
+          cpu,
+          ["cpu"],
+          undefined,
+          ["resident", `${group}:unit:${unitId}`],
+        ),
+      ),
+    ];
+  });
   const views = Object.freeze(
     [
       buildView("color-ram", "vic", "colorram4", 0, 0x400, [colorRam], ["color-ram"]),
       buildView("cpu16-resident", "cpu", "cpu16", 0, 0x10000, cpu, ["cpu"]),
       buildView("vic-bank-0", "vic", "cpu16-vic", 0, 0x4000, vic, ["vic"], "vic-bank-0"),
+      ...loadStateViews,
     ].sort((left, right) =>
       Buffer.compare(Buffer.from(String(left.id)), Buffer.from(String(right.id))),
     ),
@@ -777,7 +935,24 @@ export async function prepareEvidence(
     // The retained stock NMI route has no external arrival/completion bound, even
     // when no generated handler is installed. This does not weaken static closure.
     runtimeMemorySafety: "unproven",
-    residencies: Object.freeze([Object.freeze({ kind: "always", id: "resident" })]),
+    residencies: Object.freeze(
+      [
+        Object.freeze({ kind: "always", id: "resident" as const }),
+        ...loadStateGroups.flatMap(([key, destination]) => {
+          const group = `load-state:${key}`;
+          return [
+            Object.freeze({ kind: "exclusive" as const, id: `${group}:unloaded`, group }),
+            ...destination.unitIds.map((unitId: string) =>
+              Object.freeze({
+                kind: "exclusive" as const,
+                id: `${group}:unit:${unitId}`,
+                group,
+              }),
+            ),
+          ];
+        }),
+      ].sort((left, right) => Buffer.compare(Buffer.from(left.id), Buffer.from(right.id))),
+    ),
     unboundedEffects: Object.freeze([
       Object.freeze({
         kind: "machineState",
@@ -872,18 +1047,50 @@ export async function prepareEvidence(
     ),
   });
   const loaded = input.layout.intervals.filter(({ bytes }) => bytes !== null);
-  const residentCostEntries = loaded.map((interval) =>
-    Object.freeze({
-      kind: "bytes",
-      id: `program:${interval.id}`,
-      owner: Object.freeze({ kind: "compiler", id: interval.id }),
-      component: programComponent(interval.kind),
-      accounting: "program",
-      bytes: interval.end - interval.start + 1,
-      sourceSites: Object.freeze([]),
-      dependencyIds: Object.freeze([]),
-    }),
-  );
+  // Split the inline loader setup and the call-site result handling out of the
+  // containing function code so each emitted byte is attributed exactly once.
+  const roleBytes = new Map<string, { loader: number; callSite: number }>();
+  for (const fn of input.layout.program.functions) {
+    for (const block of fn.blocks) {
+      const origin = block.origin;
+      if (origin === undefined) continue;
+      let address = origin;
+      for (const instruction of block.instructions) {
+        const role = instruction.loadUnitRole;
+        if (role !== undefined) {
+          const current = address;
+          const interval = loaded.find(({ start, end }) => current >= start && current <= end);
+          if (interval !== undefined) {
+            const counts = roleBytes.get(interval.id) ?? { loader: 0, callSite: 0 };
+            counts[role] += instruction.cost.bytes;
+            roleBytes.set(interval.id, counts);
+          }
+        }
+        address += instruction.cost.bytes;
+      }
+    }
+  }
+  const residentCostEntries = loaded.flatMap((interval) => {
+    const size = interval.end - interval.start + 1;
+    const role = roleBytes.get(interval.id);
+    const plainBytes = size - (role?.loader ?? 0) - (role?.callSite ?? 0);
+    const entry = (component: string, bytes: number, suffix: string) =>
+      Object.freeze({
+        kind: "bytes" as const,
+        id: `program:${interval.id}${suffix}`,
+        owner: Object.freeze({ kind: "compiler" as const, id: interval.id }),
+        component,
+        accounting: "program" as const,
+        bytes,
+        sourceSites: Object.freeze([]),
+        dependencyIds: Object.freeze([]),
+      });
+    return [
+      ...(plainBytes > 0 ? [entry(programComponent(interval.kind), plainBytes, "")] : []),
+      ...((role?.loader ?? 0) > 0 ? [entry("loader", role!.loader, ":loader")] : []),
+      ...((role?.callSite ?? 0) > 0 ? [entry("callSite", role!.callSite, ":callSite")] : []),
+    ];
+  });
   const compileTimeCostEntries = scalarAssets.map((asset) =>
     Object.freeze({
       kind: "bytes" as const,
@@ -1075,7 +1282,22 @@ export async function prepareEvidence(
       ),
     ),
     assets: Object.freeze(
-      [...semanticAssets, ...scalarAssets]
+      [
+        ...[...semanticAssets, ...scalarAssets].map((asset) => ({
+          sourcePath: asset.sourcePath,
+          handler: asset.handler,
+          inputSha256: asset.inputSha256,
+        })),
+        ...loadableAssetRecords.map((record) => ({
+          sourcePath: String((record.inputs[0] as { path: unknown }).path),
+          handler: {
+            handlerKey: String(record.handler),
+            handlerVersion: String(record.handlerVersion),
+            selector: String(record.selector),
+          },
+          inputSha256: String((record.inputs[0] as { sha256: unknown }).sha256),
+        })),
+      ]
         .sort(
           (left, right) =>
             Buffer.compare(Buffer.from(left.sourcePath), Buffer.from(right.sourcePath)) ||
@@ -1212,16 +1434,32 @@ export async function prepareEvidence(
         ),
         assets: Object.freeze(
           [
-            ...new Map(
-              [...semanticAssets, ...scalarAssets].map((asset) => [
-                `${asset.sourcePath}\0${asset.inputSha256}`,
-                Object.freeze({
-                  path: asset.sourcePath,
-                  bytes: asset.inputBytes,
-                  sha256: asset.inputSha256,
-                }),
-              ]),
-            ).values(),
+            ...new Map([
+              ...[...semanticAssets, ...scalarAssets].map(
+                (asset) =>
+                  [
+                    `${asset.sourcePath}\0${asset.inputSha256}`,
+                    Object.freeze({
+                      path: asset.sourcePath,
+                      bytes: asset.inputBytes,
+                      sha256: asset.inputSha256,
+                    }),
+                  ] as const,
+              ),
+              ...loadableAssetRecords.flatMap((record) =>
+                record.inputs.map(
+                  (assetInput) =>
+                    [
+                      `${String(assetInput.path)}\0${String(assetInput.sha256)}`,
+                      Object.freeze({
+                        path: String(assetInput.path),
+                        bytes: Number(assetInput.bytes),
+                        sha256: String(assetInput.sha256),
+                      }),
+                    ] as const,
+                ),
+              ),
+            ]).values(),
           ].sort(
             (left, right) =>
               Buffer.compare(Buffer.from(left.path), Buffer.from(right.path)) ||

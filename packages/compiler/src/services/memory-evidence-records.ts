@@ -12,6 +12,16 @@ import {
   machineFunctionRange,
 } from "./evidence-records.js";
 
+/** One whole-object load destination and the units that can occupy it. */
+export interface LoadDestinationEvidence {
+  /** Exact destination range inside the root object. */
+  readonly range: { readonly start: number; readonly end: number };
+  /** Distinct packaged units that may occupy the destination. */
+  readonly unitIds: readonly string[];
+  /** True when the captured range covers the complete root object. */
+  readonly wholeRoot: boolean;
+}
+
 /** Convert a final physical layout interval into the memory-ledger schema. */
 function physicalInterval(
   interval: CompleteC64Layout["intervals"][number],
@@ -19,6 +29,7 @@ function physicalInterval(
   certificate: StorageClosureCertificate,
   assetIds: ReadonlyMap<string, string>,
   spriteAssetIds: ReadonlySet<string>,
+  loadDestinations: ReadonlyMap<string, LoadDestinationEvidence>,
   ownerOverride?: EvidenceRecord,
 ): EvidenceRecord {
   const size = interval.end - interval.start + 1;
@@ -70,19 +81,37 @@ function physicalInterval(
   // Physical resource class is independent of ownership: source globals can also
   // live in zero page, but an interval that crosses $0100 is not wholly there.
   const zeroPage = interval.start >= 0 && interval.end < 0x100;
+  const loadUnitId = interval.id.startsWith("compiler.c64.load-unit-name.")
+    ? interval.id.slice("compiler.c64.load-unit-name.".length)
+    : null;
+  const globalKey = interval.id.startsWith("global.") ? interval.id.slice("global.".length) : null;
+  const destination = globalKey === null ? undefined : loadDestinations.get(globalKey);
+  const loadStateGroup =
+    destination !== undefined && destination.wholeRoot ? `load-state:${globalKey}` : null;
+  const loadStateResidencies =
+    loadStateGroup === null
+      ? []
+      : [
+          `${loadStateGroup}:unloaded`,
+          ...destination!.unitIds.map((unitId) => `${loadStateGroup}:unit:${unitId}`),
+        ].sort(compareText);
   const memoryKind = isStorage
     ? zeroPage
       ? "zeroPage"
       : allHelper
         ? "scratch"
         : "sfa"
-    : interval.kind === "stub"
-      ? "code"
-      : interval.kind === "immutable"
-        ? "initializedData"
-        : interval.kind === "fill"
-          ? "padding"
-          : interval.kind;
+    : loadUnitId !== null
+      ? "loader"
+      : loadStateGroup !== null
+        ? "loadDestination"
+        : interval.kind === "stub"
+          ? "code"
+          : interval.kind === "immutable"
+            ? "initializedData"
+            : interval.kind === "fill"
+              ? "padding"
+              : interval.kind;
   const alignment = isStorage
     ? Math.max(
         1,
@@ -103,7 +132,9 @@ function physicalInterval(
         ? Object.freeze({ kind: "asset", id: evidenceAssetId })
         : isStorage
           ? Object.freeze({ kind: allHelper ? "helper" : "function", id: storageOwner })
-          : Object.freeze({ kind: "compiler", id: interval.id })),
+          : loadUnitId !== null
+            ? Object.freeze({ kind: "loadUnit", id: loadUnitId })
+            : Object.freeze({ kind: "compiler", id: interval.id })),
     kind: memoryKind,
     origin: isAsset
       ? Object.freeze({ kind: "asset", assetId: evidenceAssetId })
@@ -112,12 +143,17 @@ function physicalInterval(
       interval.kind === "global" || interval.kind === "bss" || isStorage ? "mutable" : "immutable",
     alignmentBytes: alignment,
     contiguity: Object.freeze({ kind: "single" }),
-    residencyIds: Object.freeze(["resident"]),
+    residencyIds: Object.freeze(
+      loadStateResidencies.length === 0
+        ? ["resident"]
+        : ["resident", ...loadStateResidencies].sort(compareText),
+    ),
     cpuMappings: Object.freeze(["cpu"]),
     resourceClass: zeroPage ? "zeroPage" : "general",
     payloadBytes: isPadding || isStorage ? 0 : size,
     paddingBytes: isPadding ? size : 0,
     reservedBytes: isStorage ? size : 0,
+    ...(loadUnitId === null ? {} : { loadUnitId }),
     ...(isVicAsset
       ? { vic: Object.freeze({ bankId: "vic-bank-0", visibility: Object.freeze(["vic"]) }) }
       : {}),
@@ -154,6 +190,7 @@ export function deriveMemoryIntervals(
   inventory: StorageInventory,
   certificate: StorageClosureCertificate,
   assetIds: ReadonlyMap<string, string>,
+  loadDestinations: ReadonlyMap<string, LoadDestinationEvidence> = new Map(),
 ): readonly EvidenceRecord[] {
   const spriteAssetIds = new Set(
     layout.program.data
@@ -173,12 +210,22 @@ export function deriveMemoryIntervals(
           certificate,
           assetIds,
           spriteAssetIds,
+          loadDestinations,
           Object.freeze({ kind: "symbol", id: globalName(global.id) }),
         ),
       ];
     }
     if (interval.kind !== "code") {
-      return [physicalInterval(interval, inventory, certificate, assetIds, spriteAssetIds)];
+      return [
+        physicalInterval(
+          interval,
+          inventory,
+          certificate,
+          assetIds,
+          spriteAssetIds,
+          loadDestinations,
+        ),
+      ];
     }
     const sourceOwners = new Map<string, string>(
       inventory.program.semantic.functions.map(
@@ -221,6 +268,7 @@ export function deriveMemoryIntervals(
           certificate,
           assetIds,
           spriteAssetIds,
+          loadDestinations,
           Object.freeze({ kind: "platform", id: "startup" }),
         ),
       );
@@ -243,6 +291,7 @@ export function deriveMemoryIntervals(
             certificate,
             assetIds,
             spriteAssetIds,
+            loadDestinations,
             ownerName === undefined
               ? Object.freeze({ kind: "platform", id: machine.id })
               : Object.freeze({ kind: "function", id: ownerName }),
@@ -270,6 +319,7 @@ export function deriveMemoryIntervals(
             certificate,
             assetIds,
             spriteAssetIds,
+            loadDestinations,
           ),
         );
       }

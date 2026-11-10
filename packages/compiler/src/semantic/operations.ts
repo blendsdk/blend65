@@ -308,6 +308,8 @@ export interface LoadUnitOperation extends ValueOperation {
   readonly unit: BindingId;
   /** Destination root binding, used by lifetime/publication evidence. */
   readonly destinationBinding: BindingId;
+  /** Exact half-open destination range inside the root object. */
+  readonly destinationRange: { readonly start: number; readonly end: number };
   /** Stable packaged unit identity. */
   readonly unitId: string;
   /** Exact uncompressed directory-name bytes passed to SETNAM. */

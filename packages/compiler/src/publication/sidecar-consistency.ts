@@ -133,6 +133,23 @@ function assetPlacementsMatchMemory(
     const placement = asset.placement as Record<string, unknown>;
     // A compile-time scalar owns no resident interval and no memory record.
     if (placement.kind === "compileTime") return asset.payloadBytes === 0;
+    if (placement.kind === "loadable") {
+      const destinations = placement.destinations as Record<string, unknown>[];
+      return (
+        asset.emittedBytes === asset.payloadBytes &&
+        destinations.every((range) =>
+          intervals.some(
+            (interval) =>
+              interval.addressSpaceId === range.addressSpaceId &&
+              interval.bankId === range.bankId &&
+              interval.start === range.start &&
+              interval.end === range.end &&
+              interval.kind === "loadDestination" &&
+              (interval.residencyIds as string[]).includes(String(range.residencyId)),
+          ),
+        )
+      );
+    }
     const ranges =
       placement.kind === "single"
         ? [placement.range as Record<string, unknown>]

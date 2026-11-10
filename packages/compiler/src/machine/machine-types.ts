@@ -422,6 +422,8 @@ export interface MachineInstruction {
   readonly foldedIdentity?: true;
   /** Immediate value produced by one final-placement VIC field transform. */
   readonly foldedVicField?: true;
+  /** Loader or call-site attribution for one instruction in a KERNAL load sequence. */
+  readonly loadUnitRole?: "loader" | "callSite";
 }
 
 /** Unconditional transfer to another structured block. */
