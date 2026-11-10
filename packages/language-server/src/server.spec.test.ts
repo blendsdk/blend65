@@ -314,7 +314,21 @@ describe("diagnostics-only stdio language server", () => {
     ) {
       throw new Error("Invalid initialize response");
     }
-    expect(Object.keys(initialized.result.capabilities)).toEqual(["textDocumentSync"]);
+    expect(Object.keys(initialized.result.capabilities)).toEqual([
+      "textDocumentSync",
+      "completionProvider",
+      "hoverProvider",
+      "signatureHelpProvider",
+      "definitionProvider",
+      "referencesProvider",
+      "renameProvider",
+      "documentSymbolProvider",
+      "workspaceSymbolProvider",
+      "semanticTokensProvider",
+      "codeActionProvider",
+      "documentFormattingProvider",
+      "workspace",
+    ]);
     peer.send({ jsonrpc: "2.0", method: "initialized", params: {} });
     peer.send({
       jsonrpc: "2.0",

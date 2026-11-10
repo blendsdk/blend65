@@ -58,12 +58,14 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected complete profile selection");
     expect(
-      result.profile.capabilities.filter(({ name }) => name !== "c64.loader.load").map(({ name, parameters, returnType, effect }) => [
-        name,
-        parameters.map(typeName),
-        typeName(returnType),
-        effect,
-      ]),
+      result.profile.capabilities
+        .filter(({ name }) => name !== "c64.loader.load")
+        .map(({ name, parameters, returnType, effect }) => [
+          name,
+          parameters.map(typeName),
+          typeName(returnType),
+          effect,
+        ]),
     ).toEqual([
       ["c64.cia1.configureTimerA", ["byte"], "void", "volatile-write"],
       ["c64.cia1.configureTimerB", ["byte"], "void", "volatile-write"],

@@ -213,6 +213,8 @@ function debugRangesMatchMemory(
     machine: Record<string, unknown>,
     owner?: Record<string, unknown>,
     requiredOwner?: (owner: Record<string, unknown>) => boolean,
+    residence = false,
+    allowedIntervalIds?: ReadonlySet<string>,
   ): boolean => {
     const addressSpace = addressSpaces[machine.addressSpaceIndex as number]!;
     const banks = addressSpace.banks as Record<string, unknown>[];
@@ -230,7 +232,10 @@ function debugRangesMatchMemory(
         (interval) =>
           interval.addressSpaceId === addressSpace.id &&
           interval.bankId === bankId &&
-          interval.loadUnitId === loadUnitId &&
+          (residence
+            ? interval.kind === "loadDestination" &&
+              (allowedIntervalIds === undefined || allowedIntervalIds.has(String(interval.id)))
+            : interval.loadUnitId === loadUnitId) &&
           (interval.start as number) < (machine.end as number) &&
           (interval.end as number) > (machine.start as number),
       )
@@ -277,6 +282,13 @@ function debugRangesMatchMemory(
     if (availability.kind !== "available" && availability.kind !== "split") continue;
     const symbol = symbols[location.symbolIndex as number]!;
     const requiredOwner = (owner: Record<string, unknown>): boolean => {
+      if (physicalOwnerNames(owner, "helper").includes(String(symbol.qualifiedName))) return true;
+      if (
+        symbol.kind === "helperScratch" &&
+        physicalOwnerNames(owner, "function").includes(String(symbol.scope))
+      ) {
+        return true;
+      }
       if (location.contextIndex !== undefined) {
         const context = contexts[location.contextIndex as number]!;
         const functionName = functions[context.functionIndex as number]!.qualifiedName;
@@ -304,9 +316,21 @@ function debugRangesMatchMemory(
       }
     }
   }
-  return (debug.loadUnits as Record<string, unknown>[]).every((loadUnit) =>
-    (loadUnit.residence as Record<string, unknown>[]).every((machine) => matches(machine)),
-  );
+  return (debug.loadUnits as Record<string, unknown>[]).every((loadUnit) => {
+    const unitId = String(loadUnit.name);
+    const allowed = new Set(
+      (memory.loadStates as Record<string, unknown>[])
+        .filter((state) => state.unitId === unitId)
+        .flatMap((state) =>
+          Array.isArray(state.destinationIntervalIds)
+            ? state.destinationIntervalIds.map((id) => String(id))
+            : [],
+        ),
+    );
+    return (loadUnit.residence as Record<string, unknown>[]).every((machine) =>
+      matches(machine, undefined, undefined, true, allowed),
+    );
+  });
 }
 
 /** Validate references shared by independently versioned generation sidecars. */

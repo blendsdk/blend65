@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util";
 
 /** Commands exposed by the Blend65 command-line interface. */
-export type CliCommand = "check" | "build" | "run";
+export type CliCommand = "check" | "build" | "run" | "evidence";
 
 /** Project selections shared by every compiler command. */
 export interface ProjectSelections {
@@ -25,14 +25,17 @@ export interface BuildSelections extends ProjectSelections {
 
 /** A valid informational or compiler-command invocation. */
 export type CliArguments =
-  | { readonly kind: "help" }
-  | { readonly kind: "version" }
-  | { readonly kind: "check"; readonly options: ProjectSelections }
-  | { readonly kind: "build" | "run"; readonly options: BuildSelections };
+  | { readonly kind: "help"; readonly json: boolean }
+  | { readonly kind: "version"; readonly json: boolean }
+  | { readonly kind: "check"; readonly options: ProjectSelections; readonly json: boolean }
+  | { readonly kind: "evidence"; readonly options: ProjectSelections; readonly json: boolean }
+  | { readonly kind: "build" | "run"; readonly options: BuildSelections; readonly json: boolean };
 
 /** Parse an exact command name from a positional token. */
 function commandFrom(value: string): CliCommand | null {
-  return value === "check" || value === "build" || value === "run" ? value : null;
+  return value === "check" || value === "build" || value === "run" || value === "evidence"
+    ? value
+    : null;
 }
 
 /** Parse a strict command-line Boolean without numeric or friendly aliases. */
@@ -63,6 +66,7 @@ export function parseArguments(argv: readonly string[]): CliArguments | null {
       options: {
         help: { type: "boolean", short: "h" },
         version: { type: "boolean", short: "v" },
+        json: { type: "boolean" },
         project: { type: "string" },
         target: { type: "string" },
         entry: { type: "string" },
@@ -80,10 +84,14 @@ export function parseArguments(argv: readonly string[]): CliArguments | null {
       seen.add(token.name);
     }
 
+    const json = values.json === true;
     const informationalCount = Number(values.help === true) + Number(values.version === true);
     if (informationalCount > 0) {
-      if (informationalCount !== 1 || positionals.length !== 0 || seen.size !== 1) return null;
-      return values.help === true ? { kind: "help" } : { kind: "version" };
+      const extra = [...seen].filter(
+        (name) => name !== "help" && name !== "version" && name !== "json",
+      );
+      if (informationalCount !== 1 || positionals.length !== 0 || extra.length !== 0) return null;
+      return values.help === true ? { kind: "help", json } : { kind: "version", json };
     }
 
     if (positionals.length !== 1) return null;
@@ -100,7 +108,10 @@ export function parseArguments(argv: readonly string[]): CliArguments | null {
       values["bounds-check"] !== undefined ||
       values["division-zero-check"] !== undefined;
     if (command === "check") {
-      return hasBuildOptions ? null : { kind: "check", options: projectOptions };
+      return hasBuildOptions ? null : { kind: "check", options: projectOptions, json };
+    }
+    if (command === "evidence") {
+      return hasBuildOptions ? null : { kind: "evidence", options: projectOptions, json };
     }
 
     if (
@@ -117,6 +128,7 @@ export function parseArguments(argv: readonly string[]): CliArguments | null {
 
     return {
       kind: command,
+      json,
       options: {
         ...projectOptions,
         ...(values.optimization === undefined ? {} : { optimization: values.optimization }),

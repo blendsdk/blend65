@@ -14,12 +14,14 @@ export function escapeTerminalText(text: string): string {
  */
 export function renderUsage(): string {
   return (
-    "Usage: blendc <check|build|run> [options]\n" +
+    "Usage: blendc <check|build|run|evidence> [options]\n" +
     "       blendc --help (-h) | --version (-v)\n\n" +
     "Project options:\n" +
     "  --project PATH\n" +
     "  --target PROFILE\n" +
     "  --entry MODULE\n\n" +
+    "Output options:\n" +
+    "  --json                 Emit one machine-readable result envelope\n\n" +
     "Build/run options:\n" +
     "  --optimization <none|balanced|speed|size>\n" +
     "  --bounds-check <true|false>\n" +

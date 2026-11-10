@@ -653,11 +653,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     // A handler-local predecessor has a selected installation lifetime, not a
     // source-variable live range. Its physical home remains in the memory ledger.
     // Existing mainline predecessor records retain their debug locations.
-    if (
-      helperScratchIds.has(request.id) ||
-      (request.activationRoot !== undefined && request.id.startsWith("interrupt-link:"))
-    )
-      continue;
+    if (request.activationRoot !== undefined && request.id.startsWith("interrupt-link:")) continue;
     const functionIndex = functionIndexes.get(bindingIdentityKey(request.owner));
     const home = homes.get(request.id);
     const sourceFunction =
@@ -715,6 +711,13 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
         if (range.semanticBlock === undefined || range.semanticOperation === null) return false;
         return livePositions.has(`${range.semanticBlock}\0${range.semanticOperation}`);
       });
+      if (
+        helperScratchIds.has(request.id) &&
+        liveRangeIndexes.length === 0 &&
+        functionRanges.length > 0
+      ) {
+        liveRangeIndexes.push(functionRanges[0]!);
+      }
       const machine = machineFunctions.get(sourceFunction.machineIds[variantIndex]!);
       let entryNotRepresentable = false;
       if (

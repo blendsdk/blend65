@@ -229,6 +229,7 @@ export function completionAt(
             (symbol) =>
               module?.sourceIds.includes(symbol.declaration.sourceId) === true &&
               symbol.exported &&
+              symbol.parentId === undefined &&
               (symbol.kind === "function" ||
                 symbol.kind === "variable" ||
                 symbol.kind === "constant" ||
@@ -299,6 +300,14 @@ export function completionAt(
     .slice(0, 200);
 }
 
+/** Escape text for one Markdown inline-code span. */
+function inlineCode(text: string): string {
+  return text
+    .replace(/\\/gu, "\\\\")
+    .replace(/`/gu, "\\`")
+    .replace(/[\r\n]+/gu, " ");
+}
+
 /** Build exact hover Markdown for one symbol. */
 export function hoverAt(index: ToolingIndex, symbolId: string): HoverFact {
   const symbol = symbolById(index, symbolId);
@@ -336,7 +345,7 @@ export function hoverAt(index: ToolingIndex, symbolId: string): HoverFact {
       `Loadable unit \`${symbol.loadUnit.id}\`, ${symbol.loadUnit.size} bytes, disk name \`${symbol.loadUnit.diskName}\`.`,
     );
   }
-  lines.push(`Declared in \`${symbol.nameSpan.sourceId}\`.`);
+  lines.push(`Declared in \`${inlineCode(symbol.nameSpan.sourceId)}\`.`);
   return { markdown: lines.join("\n"), span: symbol.nameSpan };
 }
 
@@ -427,12 +436,19 @@ const RESERVED_NAMES: ReadonlySet<string> = new Set(KEYWORDS);
 export function renameEdits(index: ToolingIndex, symbolId: string, newName: string): RenameResult {
   const symbol = symbolById(index, symbolId);
   if (symbol === null) return { kind: "rejected", reason: "Unknown symbol" };
-  if (symbol.binding === null) return { kind: "rejected", reason: "Generated or module symbol" };
+  const structural =
+    symbol.kind === "field" ||
+    (symbol.kind === "constant" && symbol.parentId !== undefined);
+  if (symbol.binding === null && !structural) {
+    return { kind: "rejected", reason: "Generated or module symbol" };
+  }
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(newName)) {
     return { kind: "rejected", reason: "Invalid identifier" };
   }
   if (RESERVED_NAMES.has(newName)) return { kind: "rejected", reason: "Reserved name" };
-  const projectSources = new Set(index.sources.map(({ sourceId }) => sourceId));
+  const projectSources = new Set(
+    index.sources.filter(({ installed }) => !installed).map(({ sourceId }) => sourceId),
+  );
   if (!projectSources.has(symbol.nameSpan.sourceId)) {
     return { kind: "rejected", reason: "Installed-library declaration" };
   }
@@ -447,7 +463,26 @@ export function renameEdits(index: ToolingIndex, symbolId: string, newName: stri
     (candidate) => candidate.id !== symbolId && candidate.name === newName,
   );
   if (collision !== undefined) return { kind: "rejected", reason: "Name collision" };
+  if (structural) {
+    const sibling = index.symbols.find(
+      (candidate) =>
+        candidate.parentId === symbol.parentId &&
+        candidate.id !== symbolId &&
+        candidate.name === newName,
+    );
+    if (sibling !== undefined) return { kind: "rejected", reason: "Member collision" };
+  }
   const edits: ToolingEdit[] = [];
+  // A nested binding with the same new spelling would capture references inside
+  // its scope even when it is not visible at the declaration itself.
+  for (const occurrence of occurrences) {
+    const capture = visibleSymbols(index, occurrence.span.sourceId, occurrence.span.start).find(
+      (candidate) => candidate.id !== symbolId && candidate.name === newName,
+    );
+    if (capture !== undefined) {
+      return { kind: "rejected", reason: "Name collision in a nested scope" };
+    }
+  }
   const seen = new Set<string>();
   for (const occurrence of occurrences) {
     const key = `${occurrence.span.sourceId}:${occurrence.span.start}:${occurrence.span.end}`;

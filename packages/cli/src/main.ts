@@ -1,4 +1,5 @@
 import { buildProject, checkProject, runProject } from "@blend65/compiler";
+import { readCurrentEvidence } from "./evidence.js";
 import { executeCommand } from "./run.js";
 import type { CliExitStatus, CommandOutput, CommandServices } from "./run.js";
 
@@ -9,6 +10,7 @@ const COMPILER_SERVICES: CommandServices = Object.freeze({
   checkProject,
   buildProject,
   runProject,
+  readEvidence: readCurrentEvidence,
 });
 
 /**

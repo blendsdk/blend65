@@ -99,13 +99,17 @@ export function parseCurrentRecord(bytes: Uint8Array): CurrentGenerationRecord |
   }
 }
 
+/** Maximum accepted publication record size; sidecars are host-generated and small. */
+const MAX_PUBLICATION_FILE_BYTES = 1_048_576n;
+
 /** Read one ordinary file and prove it retained its filesystem identity. */
 export async function identifyPublicationFile(
   path: string,
 ): Promise<IdentifiedPublicationFile | null> {
   try {
     const before = await lstat(path, { bigint: true });
-    if (!before.isFile() || before.isSymbolicLink()) return null;
+    if (!before.isFile() || before.isSymbolicLink() || before.size > MAX_PUBLICATION_FILE_BYTES)
+      return null;
     const bytes = await readFile(path);
     const after = await lstat(path, { bigint: true });
     if (
@@ -307,11 +311,18 @@ function evidenceAgrees(
           d64ProgramBytes !== null &&
           costs.value.totals.programBytes === d64ProgramBytes
         : false;
-  return (
+  const sidecarOk = sidecarReferencesAgree(
+    build,
+    assets.value,
+    memory.value,
+    costs.value,
+    debug.value,
+  );
+  const agrees =
     primaryBytes !== undefined &&
     packageAgrees &&
     sameValue(selectedAssetInputs, semanticAssets) &&
-    sidecarReferencesAgree(build, assets.value, memory.value, costs.value, debug.value) &&
+    sidecarOk &&
     memory.value.profileId === build.semanticInputs.target.profileId &&
     costs.value.mode === build.semanticInputs.options.optimization &&
     debug.value.profileId === build.semanticInputs.target.profileId &&
@@ -337,8 +348,8 @@ function evidenceAgrees(
         ).values(),
       ],
       build.semanticInputs.assets.map(({ path, sha256 }) => ({ path, sha256 })),
-    )
-  );
+    );
+  return agrees;
 }
 
 /** Validate an exact eight-file directory and retain every native identity. */
@@ -515,6 +526,20 @@ export async function readCurrentGeneration(
 
 /** Read current under the publication lock without requiring obsolete inputs to match a new build. */
 export async function readCurrentGenerationForMutation(
+  snapshot: ProjectSnapshot,
+): Promise<PublicationLookupResult> {
+  return readCurrentGenerationRecord(snapshot, false);
+}
+
+/**
+ * Read and validate the current generation for read-only evidence access.
+ * The generation's own hashes and current record are authoritative; the caller
+ * is not claiming that the generation was built from the latest source bytes.
+ * @param snapshot Any loaded snapshot of the owning project.
+ * @returns The validated current generation or a typed lookup failure.
+ * @example await readCurrentGenerationForEvidence(snapshot);
+ */
+export async function readCurrentGenerationForEvidence(
   snapshot: ProjectSnapshot,
 ): Promise<PublicationLookupResult> {
   return readCurrentGenerationRecord(snapshot, false);

@@ -327,7 +327,11 @@ export interface TypedExpr {
   /** Selected struct field spelling. */
   readonly member?: string;
   /** Struct literal fields in source order. */
-  readonly fields?: readonly { readonly name: string; readonly value: TypedExpr }[];
+  readonly fields?: readonly {
+    readonly name: string;
+    readonly nameSpan: SourceSpan;
+    readonly value: TypedExpr;
+  }[];
   /** Explicit array literal elements in source order. */
   readonly elements?: readonly TypedExpr[];
   /** Remaining-element fill value, when written. */

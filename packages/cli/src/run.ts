@@ -8,6 +8,9 @@ import type {
   RunResult,
 } from "@blend65/compiler";
 import { parseArguments } from "./args.js";
+import type { EvidenceResult } from "./evidence.js";
+import { cliDiagnostic, encodeEnvelope } from "./json.js";
+import type { CliJsonEnvelope } from "./json.js";
 import { escapeTerminalText, renderDiagnostics, renderUsage } from "./render.js";
 
 /** CLI package version, kept equal to the package manifest by executable qualification. */
@@ -32,6 +35,12 @@ export interface CommandServices {
   readonly buildProject: (options?: BuildOptions) => Promise<BuildResult>;
   /** Build and launch one fresh immutable generation. */
   readonly runProject: (options?: RunOptions) => Promise<RunResult>;
+  /** Resolve and validate the current immutable generation. */
+  readonly readEvidence: (options: {
+    readonly cwd: string;
+    readonly project?: string;
+    readonly signal: AbortSignal;
+  }) => Promise<EvidenceResult>;
 }
 
 /** Complete invocation context supplied by the public CLI adapter. */
@@ -72,11 +81,50 @@ function invocationOptions<T extends object>(
   return { ...options, cwd: context.cwd, signal: context.signal };
 }
 
+/** Return whether the raw invocation requested machine-readable output. */
+function wantsJson(argv: readonly string[]): boolean {
+  return argv.includes("--json");
+}
+
+/** Emit one machine-readable envelope. */
+function emitJson(output: CommandOutput, envelope: CliJsonEnvelope): void {
+  output.stdout(encodeEnvelope(envelope));
+}
+
+/** Build one invalid-argument envelope without inventing an operation result. */
+function invalidArguments(command: CliJsonEnvelope["command"]): CliJsonEnvelope {
+  return {
+    kind: "blend65.cli",
+    schemaVersion: 1,
+    command,
+    outcome: "invalid-arguments",
+    exitStatus: 2,
+    diagnostics: [],
+  };
+}
+
+/** Convert one service failure into the stable envelope. */
+function failureEnvelope(
+  command: CliJsonEnvelope["command"],
+  category: FailureCategory,
+  message: string,
+  diagnostics: readonly Parameters<typeof cliDiagnostic>[0][],
+  exitStatus: CliExitStatus = FAILURE_EXIT[category],
+): CliJsonEnvelope {
+  return {
+    kind: "blend65.cli",
+    schemaVersion: 1,
+    command,
+    outcome:
+      category === "cancelled" ? "cancelled" : diagnostics.length > 0 ? "diagnostics" : "failure",
+    exitStatus,
+    diagnostics: diagnostics.map(cliDiagnostic),
+    failure: { category, message },
+  };
+}
+
 /**
  * Execute one validated command through its matching compiler service.
- * Expected failures remain typed results with stable exit statuses. Unexpected
- * exceptions are hidden behind status 1, while caller-owned output exceptions
- * still propagate to the caller.
  * @param argv Literal command-line arguments without executable names.
  * @param context Discovery, cancellation, output and compiler dependencies.
  * @returns The stable process status for the completed invocation.
@@ -87,17 +135,109 @@ export async function executeCommand(
 ): Promise<CliExitStatus> {
   const parsed = parseArguments(argv);
   if (parsed === null) {
-    context.output.stderr(
-      "error[CLI_INVALID_ARGUMENT]: Invalid command line arguments\n" + renderUsage(),
-    );
+    if (wantsJson(argv)) {
+      const command = argv.find((argument) =>
+        ["check", "build", "run", "evidence"].includes(argument),
+      );
+      emitJson(
+        context.output,
+        invalidArguments(
+          command === "check" || command === "build" || command === "run" || command === "evidence"
+            ? command
+            : "help",
+        ),
+      );
+    } else {
+      context.output.stderr(
+        "error[CLI_INVALID_ARGUMENT]: Invalid command line arguments\n" + renderUsage(),
+      );
+    }
     return 2;
   }
   if (parsed.kind === "help") {
-    context.output.stdout(renderUsage());
+    if (parsed.json) {
+      emitJson(context.output, {
+        kind: "blend65.cli",
+        schemaVersion: 1,
+        command: "help",
+        outcome: "success",
+        exitStatus: 0,
+        diagnostics: [],
+      });
+    } else {
+      context.output.stdout(renderUsage());
+    }
     return 0;
   }
   if (parsed.kind === "version") {
-    context.output.stdout(`blendc ${CLI_VERSION}\n`);
+    if (parsed.json) {
+      emitJson(context.output, {
+        kind: "blend65.cli",
+        schemaVersion: 1,
+        command: "version",
+        outcome: "success",
+        exitStatus: 0,
+        diagnostics: [],
+      });
+    } else {
+      context.output.stdout(`blendc ${CLI_VERSION}\n`);
+    }
+    return 0;
+  }
+
+  if (parsed.kind === "evidence") {
+    let evidence: EvidenceResult;
+    try {
+      evidence = await context.services.readEvidence({
+        cwd: context.cwd,
+        ...(parsed.options.project === undefined ? {} : { project: parsed.options.project }),
+        signal: context.signal,
+      });
+    } catch {
+      if (parsed.json) {
+        emitJson(
+          context.output,
+          failureEnvelope("evidence", "compiler", "The command failed unexpectedly", [], 1),
+        );
+      } else {
+        context.output.stderr("error[CLI_INTERNAL]: The command failed unexpectedly\n");
+      }
+      return 1;
+    }
+    if (evidence.kind === "failure") {
+      if (parsed.json) {
+        emitJson(
+          context.output,
+          failureEnvelope("evidence", evidence.category, evidence.message, evidence.diagnostics),
+        );
+      } else {
+        writeDiagnostics(evidence.diagnostics, context.output);
+        context.output.stderr(
+          `error[${evidence.category}]: ${escapeTerminalText(evidence.message)}\n`,
+        );
+      }
+      return FAILURE_EXIT[evidence.category];
+    }
+    if (parsed.json) {
+      emitJson(context.output, {
+        kind: "blend65.cli",
+        schemaVersion: 1,
+        command: "evidence",
+        outcome: "success",
+        exitStatus: 0,
+        diagnostics: [],
+        evidence: {
+          current: true,
+          generationId: evidence.generationId,
+          directory: evidence.directory,
+          artifacts: evidence.artifacts,
+        },
+      });
+    } else {
+      context.output.stdout(
+        `Current generation ${escapeTerminalText(evidence.generationId)} (${evidence.artifacts.length} artifacts)\n`,
+      );
+    }
     return 0;
   }
 
@@ -111,13 +251,84 @@ export async function executeCommand(
       result = await context.services.runProject(invocationOptions(parsed.options, context));
     }
   } catch {
-    context.output.stderr("error[CLI_INTERNAL]: The command failed unexpectedly\n");
+    if (parsed.json) {
+      emitJson(
+        context.output,
+        failureEnvelope(parsed.kind, "compiler", "The command failed unexpectedly", [], 1),
+      );
+    } else {
+      context.output.stderr("error[CLI_INTERNAL]: The command failed unexpectedly\n");
+    }
     return 1;
   }
 
   if (result.kind === "failure") {
-    writeDiagnostics(result.diagnostics, context.output);
+    if (parsed.json) {
+      emitJson(
+        context.output,
+        failureEnvelope(
+          parsed.kind,
+          result.category,
+          result.diagnostics[0]?.message ?? "The operation failed",
+          result.diagnostics,
+        ),
+      );
+    } else {
+      writeDiagnostics(result.diagnostics, context.output);
+    }
     return FAILURE_EXIT[result.category];
+  }
+
+  if (parsed.json) {
+    if (parsed.kind === "check" && "snapshotSha256" in result) {
+      emitJson(context.output, {
+        kind: "blend65.cli",
+        schemaVersion: 1,
+        command: "check",
+        outcome: "success",
+        exitStatus: 0,
+        profileId: result.profileId,
+        diagnostics: result.diagnostics.map(cliDiagnostic),
+      });
+    } else if (parsed.kind === "run" && "verification" in result) {
+      emitJson(context.output, {
+        kind: "blend65.cli",
+        schemaVersion: 1,
+        command: "run",
+        outcome: "success",
+        exitStatus: 0,
+        diagnostics: result.diagnostics.map(cliDiagnostic),
+        generation: {
+          generationId: result.generation.generationId,
+          directory: result.generation.directory,
+          buildJsonSha256: result.generation.buildJsonSha256,
+          primaryArtifact: result.generation.primaryArtifact,
+        },
+        run: { status: "exited", verification: "interactive-unverified" },
+      });
+    } else if ("generation" in result) {
+      emitJson(context.output, {
+        kind: "blend65.cli",
+        schemaVersion: 1,
+        command: "build",
+        outcome: "success",
+        exitStatus: 0,
+        diagnostics: result.diagnostics.map(cliDiagnostic),
+        generation: {
+          generationId: result.generation.generationId,
+          directory: result.generation.directory,
+          buildJsonSha256: result.generation.buildJsonSha256,
+          primaryArtifact: result.generation.primaryArtifact,
+        },
+      });
+    } else {
+      emitJson(
+        context.output,
+        failureEnvelope(parsed.kind, "compiler", "The compiler returned an unexpected result", [], 1),
+      );
+      return 1;
+    }
+    return 0;
   }
 
   writeDiagnostics(result.diagnostics, context.output);

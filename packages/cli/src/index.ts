@@ -3,3 +3,4 @@ export { runCli } from "./main.js";
 /** Public CLI embedding types. */
 export type { CliOutput } from "./main.js";
 export type { CliExitStatus } from "./run.js";
+export type { CliJsonDiagnostic, CliJsonEnvelope } from "./json.js";

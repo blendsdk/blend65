@@ -230,6 +230,84 @@ describe("frontend tooling index", () => {
     );
   });
 
+  it("should reject a rename that would be captured by a nested binding", async () => {
+    const source = [
+      "module Game;",
+      "",
+      "function main(): void {",
+      "    let i: byte = 1;",
+      "    if (i > 0) {",
+      "        let j: byte = 2;",
+      "        i = j;",
+      "    }",
+      "}",
+      "",
+    ].join("\n");
+    const index = await indexed(source);
+    const symbol = symbolAt(index, at(source, "i: byte"));
+    expect(symbol).not.toBeNull();
+    expect(renameEdits(index, symbol!.id, "j").kind).toBe("rejected");
+  });
+
+  it("should resolve a struct-literal field label to the field, not a value token", async () => {
+    const source = [
+      "module Game;",
+      "",
+      "struct P { a: byte; b: byte; }",
+      "function main(): void {",
+      "    let b: byte = 1;",
+      "    let p: P = { a: b, b: 2 };",
+      "}",
+      "",
+    ].join("\n");
+    const index = await indexed(source);
+    const field = index.symbols.find(({ name, kind }) => name === "b" && kind === "field");
+    const label = symbolAt(index, at(source, "b: 2"));
+    expect(field).toBeDefined();
+    expect(label?.id).toBe(field?.id);
+  });
+
+  it("should expose a for-loop initializer variable as a local symbol", async () => {
+    const source = [
+      "module Game;",
+      "",
+      "function main(): void {",
+      "    for (let i: byte = 0; i < 2; i += 1) {",
+      "    }",
+      "}",
+      "",
+    ].join("\n");
+    const index = await indexed(source);
+    const symbol = symbolAt(index, at(source, "i: byte"));
+    expect(symbol?.name).toBe("i");
+    expect(symbol?.kind).toBe("local");
+    expect(referencesFor(index, symbol!.id, true).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("should rename a user-owned struct field and reject a sibling collision", async () => {
+    const index = await indexed(SOURCE);
+    const field = index.symbols.find(({ name, kind }) => name === "x" && kind === "field");
+    expect(field).toBeDefined();
+    const renamed = renameEdits(index, field!.id, "z");
+    expect(renamed.kind).toBe("edits");
+    if (renamed.kind === "edits") expect(renamed.edits.length).toBe(4);
+    expect(renameEdits(index, field!.id, "y").kind).toBe("rejected");
+  });
+
+  it("should keep installed-library sources outside the rename source set", async () => {
+    const index = await indexed(SOURCE);
+    expect(index.sources.find(({ sourceId }) => sourceId.startsWith("@blend65/"))?.installed).toBe(
+      true,
+    );
+    const symbol = symbolAt(index, at(SOURCE, "globalCounter"));
+    expect(symbol).not.toBeNull();
+    const renamed = renameEdits(index, symbol!.id, "renamed");
+    expect(renamed.kind).toBe("edits");
+    if (renamed.kind === "edits") {
+      expect(renamed.edits.every(({ sourceId }) => sourceId === "src/game.blend")).toBe(true);
+    }
+  });
+
   // Document/workspace symbols preserve source order and the documented result bound.
   it("should return ordered document symbols and bounded workspace symbols", async () => {
     const index = await indexed(SOURCE);

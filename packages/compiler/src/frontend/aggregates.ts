@@ -1,4 +1,5 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
+import type { SourceSpan } from "../project/types.js";
 import {
   createScalarTypedExpression,
   integerFacts,
@@ -418,7 +419,11 @@ function analyzeStructLiteral(
 ): ScalarExpressionResult {
   let valid = true;
   let orderDiagnosticReported = false;
-  const fields: { readonly name: string; readonly value: TypedExpr }[] = [];
+  const fields: {
+    readonly name: string;
+    readonly nameSpan: SourceSpan;
+    readonly value: TypedExpr;
+  }[] = [];
   for (let index = 0; index < expression.fields.length; index += 1) {
     const sourceField = expression.fields[index]!;
     const declared = expected.fields[index];
@@ -457,7 +462,10 @@ function analyzeStructLiteral(
     }
     const value = analyze(sourceField.value, declared.type, context).node;
     if (value === null) valid = false;
-    else fields.push(Object.freeze({ name: sourceField.name, value }));
+    else
+      fields.push(
+        Object.freeze({ name: sourceField.name, nameSpan: sourceField.nameSpan, value }),
+      );
   }
   if (expression.fields.length < expected.fields.length) {
     const missing = expected.fields[expression.fields.length]!;

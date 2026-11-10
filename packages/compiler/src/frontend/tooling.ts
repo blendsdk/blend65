@@ -139,7 +139,12 @@ export interface ToolingIndex {
   /** Whether the underlying analysis completed without error or obligation. */
   readonly complete: boolean;
   /** Exact consumed source text. */
-  readonly sources: readonly { readonly sourceId: string; readonly text: string }[];
+  readonly sources: readonly {
+    readonly sourceId: string;
+    readonly text: string;
+    /** True for a bundled installed-library source outside the project. */
+    readonly installed: boolean;
+  }[];
   /** All admitted symbols in deterministic order. */
   readonly symbols: readonly ToolingSymbol[];
   /** All admitted occurrences in deterministic order. */
@@ -425,13 +430,9 @@ function walkStatement(
       walkExpr(statement.condition, visit);
       break;
     case "for":
-      if (statement.initializer !== null) {
-        if ("kind" in statement.initializer) {
-          walkExpr(statement.initializer.initializer, visit);
-        } else {
-          const expressions: readonly TypedExpr[] = statement.initializer;
-          for (const expression of expressions) walkExpr(expression, visit);
-        }
+      if (statement.initializer !== null && !("kind" in statement.initializer)) {
+        const expressions: readonly TypedExpr[] = statement.initializer;
+        for (const expression of expressions) walkExpr(expression, visit);
       }
       walkExpr(statement.condition, visit);
       for (const expression of statement.update ?? []) walkExpr(expression, visit);
@@ -457,7 +458,11 @@ function walkStatement(
 export function buildToolingIndex(result: AnalysisResult): ToolingIndex | null {
   if (result.kind !== "complete") return null;
   const program: TypedProgram = result.program;
-  const sources = result.inputs.sources.map(({ sourceId, text }) => ({ sourceId, text }));
+  const sources = result.inputs.sources.map(({ sourceId, text }) => ({
+    sourceId,
+    text,
+    installed: sourceId.startsWith("@blend65/"),
+  }));
   const textBySource = new Map(sources.map(({ sourceId, text }) => [sourceId, text]));
   const declarations = new Map<string, TypedDeclaration>();
   for (const declaration of program.declarations) {
@@ -512,27 +517,28 @@ export function buildToolingIndex(result: AnalysisResult): ToolingIndex | null {
   /** Add one local variable symbol and its initializer references. */
   const addLocal = (
     statement: Extract<TypedStatement, { kind: "variable" }>,
-    block: TypedBlock,
+    scope: SourceSpan,
     parentId: string,
     sourceId: string,
   ): void => {
     const binding = bindings.get(bindingIdentityKey(statement.binding));
     const text = textBySource.get(sourceId) ?? "";
     const nameSpan = statement.nameSpan ?? findNameSpan(text, statement.span, statement.name);
+    const readonly = binding?.storage === "constant";
     add({
       id: bindingIdentityKey(statement.binding),
       binding: statement.binding,
       name: statement.name,
       qualifiedName: statement.name,
-      kind: binding?.storage === "parameter" ? "parameter" : "local",
+      kind: readonly ? "constant" : "local",
       type: statement.type,
       declaration: statement.span,
       nameSpan,
-      scope: block.span,
+      scope,
       storage: binding?.storage ?? "local",
       exported: false,
-      readonly: false,
-      constant: statement.initializer?.constant ?? null,
+      readonly,
+      constant: readonly ? (statement.initializer?.constant ?? null) : null,
       parentId,
     });
     walkExpr(statement.initializer, (node) => visitExpression(node, sourceId));
@@ -543,8 +549,16 @@ export function buildToolingIndex(result: AnalysisResult): ToolingIndex | null {
     const nested = (child: TypedBlock): void => walkBlock(child, parentId, sourceId);
     for (const statement of block.statements) {
       if (statement.kind === "variable") {
-        addLocal(statement, block, parentId, sourceId);
+        addLocal(statement, block.span, parentId, sourceId);
         continue;
+      }
+      if (
+        statement.kind === "for" &&
+        statement.initializer !== null &&
+        "kind" in statement.initializer &&
+        statement.initializer.kind === "variable"
+      ) {
+        addLocal(statement.initializer, statement.span, parentId, sourceId);
       }
       walkStatement(statement, (node) => visitExpression(node, sourceId), nested);
     }
@@ -581,7 +595,7 @@ export function buildToolingIndex(result: AnalysisResult): ToolingIndex | null {
     if (expression.kind === "struct-literal" && expression.type.kind === "struct") {
       for (const field of expression.fields ?? []) {
         occurrences.push({
-          span: findNameSpan(text, expression.span, field.name),
+          span: field.nameSpan,
           symbolId: `field:${bindingIdentityKey(expression.type.binding)}:${field.name}`,
           role: "field",
         });
@@ -692,7 +706,8 @@ export function buildToolingIndex(result: AnalysisResult): ToolingIndex | null {
           storage: binding.storage,
           exported: declaration.exported,
           readonly: declaration.declarationKind === "const",
-          constant: typed?.initializer?.constant ?? null,
+          constant:
+            declaration.declarationKind === "const" ? (typed?.initializer?.constant ?? null) : null,
           ...(typed?.placement === undefined || typed.placement === null
             ? {}
             : { placement: typed.placement }),
@@ -708,7 +723,29 @@ export function buildToolingIndex(result: AnalysisResult): ToolingIndex | null {
         if (binding === null) return;
         const typed = typedFor(binding.id);
         const functionId = bindingIdentityKey(binding.id);
-        const signature = typed?.type.kind === "function" ? typed.type : binding.type;
+        const parameterBindings = declaration.parameters.map(
+          (parameter) =>
+            program.bindings.find(
+              ({ storage, declaration: span }) =>
+                storage === "parameter" &&
+                (sameSpan(span, parameter.span) || sameSpan(span, parameter.nameSpan)),
+            ) ?? null,
+        );
+        const returnType: SemanticType = typed?.type ??
+          binding.type ?? { kind: "scalar", name: "void" };
+        const signature: SemanticType = {
+          kind: "function",
+          parameters: declaration.parameters.map((parameter, index) => ({
+            name: parameter.name,
+            nameSpan: parameter.nameSpan,
+            type: parameterBindings[index]?.type ?? { kind: "scalar", name: "byte" },
+            readonly: parameter.readonly,
+            ...(parameterBindings[index]?.outerUnsized === true
+              ? { outerUnsized: true as const }
+              : {}),
+          })),
+          returnType,
+        };
         add({
           id: functionId,
           binding: binding.id,

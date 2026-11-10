@@ -64,6 +64,60 @@ export function byteOffsetToPosition(
 }
 
 /**
+ * Convert a zero-based LSP line/UTF-16 position to a raw UTF-8 byte boundary.
+ * CRLF is one break; a position at the end of a line maps before its break.
+ * No input is normalized.
+ * @throws RangeError for ill-formed text, noninteger/out-of-range positions, or a split scalar.
+ * @example positionToByteOffset("Aé🎮", { line: 0, character: 4 }) // 7
+ */
+export function positionToByteOffset(
+  text: string,
+  position: {
+    /** Zero-based line, treating CRLF as one break. */
+    readonly line: number;
+    /** Zero-based UTF-16 offset within line content. */
+    readonly character: number;
+  },
+): number {
+  if (
+    !Number.isInteger(position.line) ||
+    position.line < 0 ||
+    !Number.isInteger(position.character) ||
+    position.character < 0 ||
+    firstUnpairedSurrogate(text) !== null
+  ) {
+    throw new RangeError("Expected a valid LSP position");
+  }
+  let bytes = 0;
+  let line = 0;
+  let character = 0;
+  for (let index = 0; index < text.length; ) {
+    if (line === position.line && character === position.character) return bytes;
+    const scalar = String.fromCodePoint(text.codePointAt(index)!);
+    if (scalar === "\r" && text[index + 1] === "\n") {
+      bytes += 2;
+      index += 2;
+      line += 1;
+      character = 0;
+      continue;
+    }
+    if (line === position.line && position.character < character + scalar.length) {
+      throw new RangeError("Position splits a UTF-16 scalar");
+    }
+    bytes += Buffer.byteLength(scalar);
+    index += scalar.length;
+    if (scalar === "\r" || scalar === "\n") {
+      line += 1;
+      character = 0;
+    } else {
+      character += scalar.length;
+    }
+  }
+  if (line === position.line && character === position.character) return bytes;
+  throw new RangeError("Position is outside the input");
+}
+
+/**
  * Map JSONC's UTF-16 offsets to raw-byte bounds in linear time.
  * Parser recovery may identify one half of an astral scalar; widen such spans
  * rather than exposing a byte boundary that splits a UTF-8 sequence.

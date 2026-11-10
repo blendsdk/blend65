@@ -1334,7 +1334,7 @@ export async function prepareEvidence(
     ranges: debug.ranges,
     optimizations: debug.optimizations,
     loadUnits: Object.freeze(
-      input.d64 === undefined
+      (input.d64 === undefined
         ? []
         : input.d64.image.files
             .map(({ file }) => {
@@ -1348,10 +1348,49 @@ export async function prepareEvidence(
                   kind: boot ? ("primary" as const) : ("contained" as const),
                   sha256: input.d64!.sha256,
                 }),
-                residence: Object.freeze([]),
+                residence: Object.freeze([] as const),
               });
             })
-            .sort((left, right) => Buffer.compare(Buffer.from(left.name), Buffer.from(right.name))),
+            .sort((left, right) => Buffer.compare(Buffer.from(left.name), Buffer.from(right.name)))
+      ).map((unit, loadUnitIndex) => ({
+        ...unit,
+        residence: Object.freeze(
+          memoryEvidence.loadStates
+            .filter((state) => state.unitId === unit.name)
+            .flatMap((state) =>
+              (Array.isArray(state.destinationIntervalIds)
+                ? state.destinationIntervalIds
+                : []
+              ).flatMap((intervalId) => {
+                if (typeof intervalId !== "string") return [];
+                const interval = memoryEvidence.intervals.find(
+                  ({ id }) => String(id) === intervalId,
+                );
+                if (
+                  interval === undefined ||
+                  typeof interval.start !== "number" ||
+                  typeof interval.end !== "number"
+                )
+                  return [];
+                return [
+                  Object.freeze({
+                    addressSpaceIndex: 0,
+                    loadUnitIndex,
+                    start: interval.start,
+                    end: interval.end,
+                  }),
+                ];
+              }),
+            )
+            .filter(
+              (range, index, all) =>
+                all.findIndex(
+                  (candidate) => candidate.start === range.start && candidate.end === range.end,
+                ) === index,
+            )
+            .sort((left, right) => left.start - right.start),
+        ),
+      })),
     ),
   });
 

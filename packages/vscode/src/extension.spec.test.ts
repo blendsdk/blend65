@@ -14,22 +14,38 @@ async function manifest(): Promise<Record<string, unknown>> {
   return Object.fromEntries(Object.entries(value));
 }
 
-describe("minimal Blend65 VS Code extension", () => {
-  it("contributes only the Blend65 file language and activates only for that language", async () => {
+describe("thin Blend65 VS Code extension", () => {
+  it("contributes the language and exactly three explicit commands", async () => {
     const packageJson = await manifest();
     expect(packageJson.name).toBe("@blend65/vscode");
     expect(packageJson.type).toBe("module");
     expect(packageJson.main).toBe("./dist/extension.js");
-    expect(packageJson.activationEvents).toEqual(["onLanguage:blend65"]);
-    expect(packageJson.contributes).toEqual({
-      languages: [{ id: "blend65", extensions: [".blend"] }],
+    expect(packageJson.activationEvents).toEqual([
+      "onLanguage:blend65",
+      "onCommand:blend65.build",
+      "onCommand:blend65.run",
+      "onCommand:blend65.openEvidence",
+    ]);
+    const contributes = packageJson.contributes as Record<string, unknown>;
+    expect(contributes.languages).toEqual([{ id: "blend65", extensions: [".blend"] }]);
+    expect(contributes.commands).toEqual([
+      { command: "blend65.build", title: "Blend65: Build" },
+      { command: "blend65.run", title: "Blend65: Run in VICE" },
+      { command: "blend65.openEvidence", title: "Blend65: Open Build Evidence" },
+    ]);
+    expect(JSON.stringify(contributes.commands)).not.toMatch(/build and run|rerun/i);
+    expect(packageJson.capabilities).toEqual({
+      untrustedWorkspaces: {
+        supported: "limited",
+        description:
+          "Language analysis works without trust; build, run, and artifact reveal require a trusted workspace.",
+      },
     });
     expect(packageJson).not.toHaveProperty("browser");
     expect(packageJson).not.toHaveProperty("icon");
     expect(packageJson).not.toHaveProperty("scripts.package");
-    expect(JSON.stringify(packageJson)).not.toMatch(
-      /commands|configuration|themes|test-host|vsix/i,
-    );
+    expect(JSON.stringify(packageJson)).not.toMatch(/configuration|themes|test-host|vsix/i);
+    expect((packageJson.dependencies as Record<string, string>)["@blend65/cli"]).toBe("0.1.0");
   });
 
   it("ships real Node bundles for the extension and diagnostics server without backend imports", async () => {
@@ -41,6 +57,8 @@ describe("minimal Blend65 VS Code extension", () => {
     const serverText = await readFile(serverBundle, "utf8");
     expect(extensionText).toMatch(/LanguageClient/);
     expect(extensionText).toMatch(/@blend65\/language-server/);
+    expect(extensionText).toMatch(/blend65\.build/);
+    expect(extensionText).toMatch(/@blend65\/cli\/bin/);
     expect(serverText).toMatch(/createConnection/);
     expect(`${extensionText}\n${serverText}`).not.toMatch(
       /@blend65\/compiler(?:["']|\/(?:target|semantic|storage|machine|layout|artifacts|publication|tools|services))/,

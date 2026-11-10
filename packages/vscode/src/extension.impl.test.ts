@@ -24,6 +24,7 @@ describe("VS Code extension implementation bounds", () => {
       throw new Error("Invalid extension manifest");
     }
     expect(parsed.dependencies).toEqual({
+      "@blend65/cli": "0.1.0",
       "@blend65/language-server": "0.1.0",
       "vscode-languageclient": "10.1.1",
     });
@@ -35,6 +36,11 @@ describe("VS Code extension implementation bounds", () => {
     await expect(access(join(packageRoot, "dist/extension.js.map"))).resolves.toBeUndefined();
     const bundle = await readFile(join(packageRoot, "dist/extension.js"), "utf8");
     expect(bundle).toContain("TransportKind.stdio");
-    expect(bundle).not.toMatch(/registerCommand|workspace\.getConfiguration|createWebviewPanel/);
+    expect(bundle).toContain("registerCommand");
+    expect(bundle).toContain("blend65.build");
+    expect(bundle).toContain("blend65.run");
+    expect(bundle).toContain("blend65.openEvidence");
+    expect(bundle).toContain("@blend65/cli/bin");
+    expect(bundle).not.toMatch(/workspace\.getConfiguration|createWebviewPanel|@blend65\/compiler/);
   });
 });

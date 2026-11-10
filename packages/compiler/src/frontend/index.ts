@@ -18,6 +18,10 @@ export type {
   LoadableInitializer,
 } from "./load-units.js";
 
+/** Canonical full-document formatter. */
+export { formatBlend65 } from "./formatter.js";
+export type { FormatResult } from "./formatter.js";
+
 /** Shared read-only editor facts derived from one analysis result. */
 export { buildToolingIndex, renderSemanticType, renderSymbol } from "./tooling.js";
 export {
@@ -54,7 +58,7 @@ export type {
 } from "./tooling.js";
 
 /** Project-input helpers which do not import compiler backend stages. */
-export { byteOffsetToPosition } from "./positions.js";
+export { byteOffsetToPosition, positionToByteOffset } from "./positions.js";
 export { parseManifest } from "../project/manifest.js";
 export { validateProjectName } from "../project/basename.js";
 export type {

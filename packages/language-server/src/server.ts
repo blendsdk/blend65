@@ -1,12 +1,14 @@
 import { realpath } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, join, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   analyzeProjectOverlay,
+  buildToolingIndex,
   byteOffsetToPosition,
   loadProject,
 } from "@blend65/compiler/frontend";
 import type {
+  AnalysisResult,
   ProjectDiagnostic,
   ProjectSnapshot,
   SourceOverlay,
@@ -21,6 +23,13 @@ import {
 } from "vscode-languageserver/node";
 import type { Diagnostic, DiagnosticRelatedInformation, Range } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
+import { ContextStore } from "./contexts.js";
+import type { ProjectState } from "./contexts.js";
+import {
+  registerQueryHandlers,
+  SEMANTIC_TOKEN_MODIFIERS,
+  SEMANTIC_TOKEN_TYPES,
+} from "./queries.js";
 
 /** One coalescing queue for the latest analysis request belonging to a project. */
 interface ProjectQueue {
@@ -41,6 +50,12 @@ const documents = new TextDocuments(TextDocument);
 const queues = new Map<string, ProjectQueue>();
 const documentProjects = new Map<string, string>();
 const discoveryControllers = new Map<string, AbortController>();
+const contexts = new ContextStore();
+
+/** Send one truthful project-status notification to the thin client. */
+function sendStatus(root: string, uri: string | null, state: ProjectState): void {
+  void connection.sendNotification("blend65/projectStatus", contexts.status(root, uri, state));
+}
 
 /** Accept only local Blend65 source URIs and never reinterpret another URI scheme as a path. */
 function documentPath(uri: string): string | null {
@@ -88,9 +103,15 @@ function clearProjectDiagnostics(
   generation: number,
   anchorUri: string,
   diagnostics: readonly ProjectDiagnostic[] = [],
+  controller?: AbortController,
 ): void {
   const queue = queues.get(projectRoot);
-  if (queue === undefined || queue.generation !== generation || queue.controller?.signal.aborted) {
+  if (
+    queue === undefined ||
+    queue.generation !== generation ||
+    controller?.signal.aborted === true ||
+    queue.controller?.signal.aborted
+  ) {
     return;
   }
   for (const [uri, root] of [...documentProjects]) {
@@ -178,19 +199,27 @@ function lspDiagnostic(
 }
 
 /** Publish one completed result only to documents currently open in this project. */
-async function publishProject(snapshot: ProjectSnapshot, anchorUri: string, generation: number) {
+async function publishProject(
+  snapshot: ProjectSnapshot,
+  anchorUri: string,
+  generation: number,
+  controller: AbortController,
+) {
   const queue = queues.get(snapshot.projectRoot);
-  if (queue === undefined || queue.generation !== generation || queue.controller?.signal.aborted) {
+  if (queue === undefined || queue.generation !== generation || controller.signal.aborted) {
     return;
   }
   const userSourceIds = new Set(snapshot.sources.map((source) => source.sourceId));
   const overlays: SourceOverlay[] = [];
   const openSources = new Map<string, SourceRecord>();
+  const analyzedVersions = new Map<string, number>();
   const omittedUris: string[] = [];
   for (const document of documents.all()) {
-    queue.controller?.signal.throwIfAborted();
+    controller.signal.throwIfAborted();
     const path = documentPath(document.uri);
     if (path === null) continue;
+    const mappedRoot = documentProjects.get(document.uri);
+    if (mappedRoot !== undefined && mappedRoot !== snapshot.projectRoot) continue;
     const source = await sourceForPath(snapshot, path, queue.controller?.signal);
     if (source === null) {
       if (documentProjects.get(document.uri) === snapshot.projectRoot) {
@@ -199,13 +228,33 @@ async function publishProject(snapshot: ProjectSnapshot, anchorUri: string, gene
       continue;
     }
     openSources.set(document.uri, source);
+    analyzedVersions.set(document.uri, document.version);
     overlays.push(Object.freeze({ sourceId: source.sourceId, text: document.getText() }));
   }
-  const result = await analyzeProjectOverlay(snapshot, overlays);
+  const result: AnalysisResult = await analyzeProjectOverlay(snapshot, overlays);
+  const index = buildToolingIndex(result);
+  contexts.set(snapshot.projectRoot, {
+    snapshot,
+    result,
+    index,
+    generation,
+    analyzedVersions,
+    documentSources: new Map([...openSources].map(([uri, source]) => [uri, source.sourceId])),
+  });
+  sendStatus(snapshot.projectRoot, anchorUri, result.kind === "complete" ? "ready" : "error");
   const sources = new Map(result.inputs.sources.map((source) => [source.sourceId, source]));
   const texts = new Map(result.inputs.sources.map((source) => [source.sourceId, source.text]));
   await new Promise<void>((resolve) => setImmediate(resolve));
-  if (queue.generation !== generation || queue.controller?.signal.aborted) return;
+  if (queue.generation !== generation || controller.signal.aborted) return;
+  contexts.set(snapshot.projectRoot, {
+    snapshot,
+    result,
+    index,
+    generation,
+    analyzedVersions,
+    documentSources: new Map([...openSources].map(([uri, source]) => [uri, source.sourceId])),
+  });
+  sendStatus(snapshot.projectRoot, anchorUri, result.kind === "complete" ? "ready" : "error");
   for (const uri of omittedUris) {
     if (documentProjects.get(uri) !== snapshot.projectRoot) continue;
     documentProjects.delete(uri);
@@ -246,6 +295,7 @@ async function runQueued(projectRoot: string, generation: number): Promise<void>
   queue.pending = null;
   const controller = new AbortController();
   queue.controller = controller;
+  sendStatus(projectRoot, queue.anchorUri, "analyzing");
   try {
     const prefetched = queue.prefetched;
     queue.prefetched = null;
@@ -255,13 +305,22 @@ async function runQueued(projectRoot: string, generation: number): Promise<void>
         : { kind: "success" as const, snapshot: prefetched, observations: [] };
     if (controller.signal.aborted) return;
     if (loaded.kind === "failure") {
-      clearProjectDiagnostics(projectRoot, generation, queue.anchorUri, loaded.diagnostics);
+      contexts.delete(projectRoot);
+      clearProjectDiagnostics(
+        projectRoot,
+        generation,
+        queue.anchorUri,
+        loaded.diagnostics,
+        controller,
+      );
+      sendStatus(projectRoot, queue.anchorUri, "invalid");
       return;
     }
-    await publishProject(loaded.snapshot, queue.anchorUri, generation);
+    await publishProject(loaded.snapshot, queue.anchorUri, generation, controller);
   } catch {
     if (!controller.signal.aborted) {
-      clearProjectDiagnostics(projectRoot, generation, queue.anchorUri);
+      clearProjectDiagnostics(projectRoot, generation, queue.anchorUri, [], controller);
+      sendStatus(projectRoot, queue.anchorUri, "cancelled");
       connection.console.error("Blend65 project analysis failed");
     }
   } finally {
@@ -306,6 +365,13 @@ async function discoverAndEnqueue(uri: string, path: string): Promise<void> {
           uri,
           diagnostics: loaded.diagnostics.map(unlocatedDiagnostic),
         });
+        sendStatus(
+          "",
+          uri,
+          loaded.diagnostics.every(({ code }) => code === "PROJECT_NOT_FOUND")
+            ? "no-project"
+            : "invalid",
+        );
       }
       return;
     }
@@ -343,8 +409,72 @@ connection.onInitialize(() => ({
       change: TextDocumentSyncKind.Full,
       save: true,
     },
+    completionProvider: {
+      triggerCharacters: [".", "(", '"', ";"],
+      resolveProvider: false,
+    },
+    hoverProvider: true,
+    signatureHelpProvider: { triggerCharacters: ["(", ","] },
+    definitionProvider: true,
+    referencesProvider: true,
+    renameProvider: { prepareProvider: true },
+    documentSymbolProvider: true,
+    workspaceSymbolProvider: true,
+    semanticTokensProvider: {
+      legend: {
+        tokenTypes: [...SEMANTIC_TOKEN_TYPES],
+        tokenModifiers: [...SEMANTIC_TOKEN_MODIFIERS],
+      },
+      full: true,
+    },
+    codeActionProvider: { codeActionKinds: ["quickfix"] },
+    documentFormattingProvider: true,
+    workspace: {
+      workspaceFolders: { supported: true, changeNotifications: true },
+    },
   },
 }));
+
+registerQueryHandlers(connection, documents, contexts, (uri) => documentProjects.get(uri));
+
+/** Refresh open documents affected by one watched source, manifest or asset change. */
+connection.onDidChangeWatchedFiles(({ changes }) => {
+  for (const change of changes) {
+    let path: string;
+    try {
+      path = fileURLToPath(change.uri);
+    } catch {
+      continue;
+    }
+    for (const document of documents.all()) {
+      const root = documentProjects.get(document.uri);
+      if (root === undefined) {
+        schedule(document.uri);
+        continue;
+      }
+      const context = contexts.get(root);
+      if (context === undefined) {
+        schedule(document.uri);
+        continue;
+      }
+      const manifestPath = join(root, "blend65.json");
+      const outputRoot = join(root, context.snapshot.manifest.outDir);
+      if (path === outputRoot || path.startsWith(outputRoot + sep)) continue;
+      const sourceRoot = join(root, context.snapshot.manifest.sourceRoot);
+      const assetRoots = context.snapshot.manifest.assetPaths.map((asset) =>
+        join(root, asset),
+      );
+      const relevant =
+        path === manifestPath ||
+        path === sourceRoot ||
+        path.startsWith(sourceRoot + sep) ||
+        assetRoots.some(
+          (assetRoot) => path === assetRoot || path.startsWith(assetRoot + sep),
+        );
+      if (relevant) schedule(document.uri);
+    }
+  }
+});
 
 documents.onDidChangeContent(({ document }) => schedule(document.uri));
 documents.onDidSave(({ document }) => schedule(document.uri));
@@ -354,7 +484,13 @@ documents.onDidClose(({ document }) => {
   const projectRoot = documentProjects.get(document.uri);
   documentProjects.delete(document.uri);
   connection.sendDiagnostics({ uri: document.uri, diagnostics: [] });
-  if (projectRoot !== undefined) enqueueProject(projectRoot, document.uri, null);
+  if (projectRoot !== undefined) {
+    const stillOpen = documents
+      .all()
+      .some((candidate) => documentProjects.get(candidate.uri) === projectRoot);
+    if (!stillOpen) contexts.delete(projectRoot);
+    enqueueProject(projectRoot, document.uri, null);
+  }
 });
 
 documents.listen(connection);

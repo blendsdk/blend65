@@ -17,7 +17,10 @@
     "vscode": "^1.138.0"
   },
   "activationEvents": [
-    "onLanguage:blend65"
+    "onLanguage:blend65",
+    "onCommand:blend65.build",
+    "onCommand:blend65.run",
+    "onCommand:blend65.openEvidence"
   ],
   "contributes": {
     "languages": [
@@ -27,7 +30,47 @@
           ".blend"
         ]
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "blend65.build",
+        "title": "Blend65: Build"
+      },
+      {
+        "command": "blend65.run",
+        "title": "Blend65: Run in VICE"
+      },
+      {
+        "command": "blend65.openEvidence",
+        "title": "Blend65: Open Build Evidence"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "blend65.build",
+          "when": "editorLangId == blend65"
+        },
+        {
+          "command": "blend65.run",
+          "when": "editorLangId == blend65"
+        },
+        {
+          "command": "blend65.openEvidence",
+          "when": "editorLangId == blend65"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "blend65.build",
+          "when": "editorLangId == blend65"
+        },
+        {
+          "command": "blend65.run",
+          "when": "editorLangId == blend65"
+        }
+      ]
+    }
   },
   "scripts": {
     "build": "tsc --build && vite build",
@@ -36,10 +79,17 @@
   },
   "dependencies": {
     "@blend65/language-server": "0.1.0",
-    "vscode-languageclient": "10.1.1"
+    "vscode-languageclient": "10.1.1",
+    "@blend65/cli": "0.1.0"
   },
   "devDependencies": {
     "@types/vscode": "1.138.0",
     "vite": "5.4.21"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Language analysis works without trust; build, run, and artifact reveal require a trusted workspace."
+    }
   }
 }
