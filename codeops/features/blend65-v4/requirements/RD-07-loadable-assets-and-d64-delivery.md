@@ -1,7 +1,7 @@
 # RD-07: Loadable Assets and D64 Delivery
 
 > **Document**: RD-07-loadable-assets-and-d64-delivery.md
-> **Status**: Draft
+> **Status**: RD Preflighted
 > **Created**: 2026-09-10
 > **Project**: Blend65 v4
 > **Depends On**: RD-01, RD-02, RD-03, RD-04, RD-05, RD-06

@@ -42,14 +42,14 @@
 | SR-202 | 3 | MAJOR | machine/immediate-fold | fixed — one constant `lda` + logical op folds to a single immediate; OR case is 5 bytes/6 cycles |
 | SR-203 | 3 | MAJOR | machine/diagnostics | fixed — constant field failures use `loweringFailure` with the source span; layout transform failures remain Phase 5 E10273 |
 | SR-204 | 3 | MAJOR | evidence/vic | deferred to Phase 5.2.7/5.2.8/5.2.11 — constraints, alignment, visibility and VIC memory views |
-| SR-205 | 3 | MINOR | layout/non-asset-fields | deferred to Phase 5 — field transforms resolve asset intervals only; non-asset arguments currently fail as layout |
+| SR-205 | 3 | MINOR | layout/non-asset-fields | closed by T-24 — non-asset field arguments fail as source-linked E10273 |
 | SR-206 | 3 | MINOR | layout/diagnostics | fixed — conflicting source placement names the combined alignment/window detail |
 | SR-207 | 3 | MINOR | vic/character-rom | fixed — field derivation rejects any consumer interval over the VIC-invisible character ROM |
 | SR-208 | 3 | MINOR | fixtures/provenance | accepted — Koala `sourceSha256` is a construction-domain token; bytes and manifest hashes are exact |
 | SR-209 | 3 | MINOR | plan/charen | accepted — reserving character ROM for all resident objects is the approved plan policy; Phase 5 keeps it |
-| SR-210 | 3 | MINOR | platform/screen-tail | deferred to Phase 5 — a relocated screen's full 1 Ki-sprite-pointer tail and `setSpritePointer` base need the layout-owned screen relation |
-| SR-301 | 4 | MAJOR | machine/ordinal-write | deferred to T-20 — `poke(base+index)` uses the indirect 16-bit path. Q-P15 publishes 385 code-segment bytes and marks whole-path cycles `Unknown`; no parity claim. The earlier 3,150-cycle comparison was not a viable expert baseline and is removed from the roadmap text |
-| SR-302 | 4 | MAJOR | evidence/renderer-cost | fixed — Q-P15 asserts the exact `Game.render` code bytes (385) and `Unknown` whole-path cycles separately from asset bytes |
+| SR-210 | 3 | MINOR | platform/screen-tail | closed by T-27 — the relocated screen's full 1 KiB footprint and `setSpritePointer` base are layout-derived; multi-screen use fails closed and is tracked |
+| SR-301 | 4 | MAJOR | machine/ordinal-write | closed by T-20 — optimized proved `poke(base+index)` uses `sta absolute,x`; Q-P15 publishes 383 code bytes and whole-path cycles remain `Unknown`. `none`-mode writes remain indirect and are tracked debt |
+| SR-302 | 4 | MAJOR | evidence/renderer-cost | fixed — Q-P15 asserts the exact `Game.render` code bytes (383 after T-21) and `Unknown` whole-path cycles separately from asset bytes |
 | SR-303 | 4 | MAJOR | qp15/scene | fixed — foreground overlay, two changed cells, Color RAM transfer, bitmap/screen setup, exact final RAM oracle |
 | SR-304 | 4 | MAJOR | qp15/conflict | fixed — low-nibble background conflict count 63 with exact artifact bytes |
 | SR-305 | 4 | MAJOR | qp15/evidence | deferred to Phase 5.2.7/5.2.8 — handler alignment/visibility and same-bank evidence; Q-P15 uses explicit source placements |
@@ -62,8 +62,8 @@
 | SR-503 | 5 | MAJOR | publication/scalars | fixed — build/debug/scalar input and placement reconciliation accept zero-byte records |
 | SR-504 | 5 | MAJOR | evidence/memory-views | fixed — `cpu16-resident`, `vic-bank-0` and `color-ram` views reconcile occupancy and free intervals |
 | SR-505 | 5 | MINOR | costs/compile-time | fixed — each scalar asset has a zero-byte program entry and an `optimizedAway` debug symbol/location |
-| SR-506 | 5 | MINOR | layout/global-rom | deferred — character ROM is reserved for VIC-visible assets and PSID fixed loads, not every CPU-only code/data interval; a blanket reservation breaks existing M1 code placement |
-| SR-507 | 5 | MINOR | platform/screen-tail | deferred — a relocated screen's full 1-KiB pointer tail and `setSpritePointer` base are not yet layout-derived |
+| SR-506 | 5 | MINOR | layout/global-rom | closed by T-26 — screen and character-ROM windows are explicit VIC-scoped reservation fragments; CPU-only code/data placement is unchanged |
+| SR-507 | 5 | MINOR | platform/screen-tail | closed by T-27 — the full 1-KiB active-screen footprint and pointer table are layout-derived |
 | SR-508 | 5 | MINOR | qualification/layout | fixed — dedicated layout/evidence spec tests and the VICE Koala visibility check exist |
 | SR-701 | 7 | MAJOR | spritepad/parser | fixed — SPD v5 header, exact block order, tile names/tags, animation frames, exact EOF and selector hashes verified against the three 3.80 examples |
 | SR-702 | 8 | MAJOR | charpad/parser | fixed — CTM v9 header, ordered blocks, per-mode color width, canonical/word/plane/packed-12 forms and exact EOF verified against five 3.80 examples |
@@ -83,20 +83,20 @@
 | SR-810 | 8 | MAJOR | charpad/map | fixed — `map_packed12` added with 12-bit availability and packed bytes |
 | SR-811 | 5 | MAJOR | layout/sprite-placement | fixed — sprite placement honors source `at`/align/noCross/region and fixed data |
 | SR-812 | 5 | MAJOR | layout/sprite-holes | fixed — bank-0 first-fit from $2000 with a full-bank fallback below $2000 |
-| SR-813 | 5 | MINOR | memory/views | fixed for views — CPU/VIC/Color windows tile and reconcile; screen/character-ROM reservation intervals remain deferred under SR-506 because the contiguous PRG spans them |
+| SR-813 | 5 | MINOR | memory/views | closed by T-26 — CPU/VIC/Color views reconcile; `cpu16-vic` projections and explicit screen/character-ROM reservations keep each address once |
 | SR-814 | 5 | MAJOR | evidence/word-types | fixed — resident assets carry their exact ArrayType; `word[]` type/shape and debug symbols are correct |
 | SR-815 | 8 | MAJOR | charpad/robustness | fixed — maxima use loops, no spread-argument crash on large maps |
 | SR-816 | 7 | MAJOR | example/sprite-pointer | fixed — the example and layout test use `setSpritePointer` instead of the color register |
 | SR-817 | 8 | MAJOR | example/d018 | fixed — the CharPad example combines the screen field instead of clearing it |
-| SR-818 | 5 | MINOR | diagnostics/field-errors | deferred — VIC field failures still surface as COMPILER_LOWERING/COMPILER_LAYOUT instead of E10143/E10273 |
-| SR-819 | 5 | MINOR | diagnostics/reasons | deferred — invalid-asset/capacity reasons remain generic |
+| SR-818 | 5 | MINOR | diagnostics/field-errors | closed by T-24 — VIC field failures are source-linked E10273; one-object asset placement remains E10143 |
+| SR-819 | 5 | MINOR | diagnostics/reasons | closed by T-24 — invalid-field and capacity failures name the exact address and constraint |
 | SR-820 | 5 | MINOR | diagnostics/names | fixed — asset names use the basename instead of the extension token |
 | SR-821 | 8 | MINOR | charpad/extra-selectors | accepted — `char_materials`/count selectors are useful extra surface; 65,536 count representation remains open |
 | SR-822 | 8 | MINOR | charpad/colors | accepted — per-project colors are normalized to low nibbles; other methods preserve native bytes |
 | SR-823 | 7/8 | MINOR | producer/vice-oracle | fixed — producer VICE checks assert alignment and bank-0 placement |
 | SR-824 | 6 | MINOR | status/coverage | fixed — status counts and selector claim refreshed |
 | SR-825 | 2 | MINOR | psid/rom-window | fixed — PSID no longer rejects CPU-visible $1000/$A000 payload intervals |
-| SR-826 | 7/8 | MINOR | inventory/dynamic-types | deferred — SPD/CTM inventories advertise zero-length dynamic arrays |
+| SR-826 | 7/8 | MINOR | inventory/dynamic-types | closed by T-25 — SPD/CTM inventories publish exact parsed extents |
 | SR-827 | 5 | MINOR | evidence/padding | fixed — `paddingBeforeBytes` is derived from the preceding loaded payload and reported per asset |
 | SR-828 | 6 | MINOR | qualification/red-phase | accepted gap — no preserved pre-implementation red log exists for the final fixture/example/integration/aliasing/blocked-gate files; green run is 14/14 and observed failure modes are recorded in 08-host-observations |
 
@@ -127,21 +127,21 @@ carry a directed regression test; deferred findings are re-owned by a named road
 | P10-06 (CR-04) | MAJOR | charpad/packed-12 | fixed — `map_packed12` publishes the complete packed length, including the odd-cell high-nibble byte; exact vector and type covered |
 | P10-07 (CR-05) | MAJOR | specification coverage | partially fixed — synthetic SPD/CTM fixtures and spec negative cases added; remaining ST mapping mismatch is recorded as a documentation/test-map gap, not a code defect |
 | P10-08 (SM-03) | MAJOR | machine/VIC constraints | fixed — all four VIC field operations attach consumer alignment and visibility; raw charset auto-placement covered |
-| P10-09 (SM-04/SM-05) | MAJOR | diagnostics | deferred to T-24 — VIC field failures still surface as `COMPILER_LOWERING`/`COMPILER_LAYOUT` instead of source-linked E10143/E10273 with contributors; existing SR-818/SR-819 |
+| P10-09 (SM-04/SM-05) | MAJOR | diagnostics | closed by T-24 — source-linked E10273/E10143 with field/address contributors; SR-818/SR-819 closed |
 | P10-10 (SM-06) | MINOR | frontend/type resolution | fixed — a scalar selector in an unsized array declaration reports E10144 instead of E10253 |
-| P10-11 (SM-07) | MINOR | inventory/types | deferred to T-25 — handler inventories advertise zero-length arrays despite exact parsed types; existing SR-826 |
-| P10-12 (SM-08) | MINOR | diagnostics/remedies | deferred to T-25 — handler remedies list unavailable selectors alongside available ones |
+| P10-11 (SM-07) | MINOR | inventory/types | closed by T-25 — inventories publish exact parsed extents; SR-826 closed |
+| P10-12 (SM-08) | MINOR | diagnostics/remedies | closed by T-25 — remedies list only available selectors |
 | P10-13 (SM-09) | MINOR | frontend/placement | fixed — `place(...)` on a zero-byte selected output or a loadable declaration is E10272, not silently ignored |
 | P10-14 (SM-10) | MINOR | aliasing/warning | fixed — raw aliases name the `raw` selector and loadable declarations no longer claim a shared resident address |
 | P10-15 (SM-11) | MINOR | charpad/extra selectors | accepted — `char_materials`, `charset_count` and `tile_count` are extra useful surface; SR-821 remains the recorded decision |
 | P10-16 (SA-03) | MINOR | resources/scratch | fixed — final `scratch` counts every helper-owned interval regardless of zero-page/RAM placement; `sizeCostVector` uses the same definition |
-| P10-17 (MC-02) | MAJOR | machine/post-fold padding | deferred to T-21 — the VIC immediate fold now keeps a size-neutral identity logical op instead of leaving executable zero fill; the two-byte/two-cycle cost per folded op remains, Q-P15 stays at 385 bytes and makes no parity claim |
-| P10-18 (MC-04) | MAJOR | machine/static raw address | deferred to T-22 — `poke(&local)`/`poke(&asset)` still build an indirect pointer instead of using a proved static absolute store |
+| P10-17 (MC-02) | MAJOR | machine/post-fold padding | closed by T-21 — fixed-origin compaction removes the identity op; Q-P15 is 383 bytes |
+| P10-18 (MC-04) | MAJOR | machine/static raw address | closed by T-22 — asset and aggregate static stores use direct operands; dynamic addresses keep the indirect path |
 | P10-19 (MC-05) | MAJOR | evidence/padding | fixed — `paddingBeforeBytes` reflects the real gap before each resident asset |
-| P10-20 (MC-06/TP-01) | MAJOR | evidence/memory views | fixed for CPU bounds — free partitions are bounded to `$0801-$CFFF` and non-allocatable/screen/character-ROM gaps are reserved; intervals crossing `$4000` remain an SR-506/VIC-view residual |
-| P10-21 (MC-07) | MAJOR | Q-P15 cost honesty | partially fixed — padding is now honest; renderer parity remains T-20 and cycles remain `Unknown` |
+| P10-20 (MC-06/TP-01) | MAJOR | evidence/memory views | closed by T-26 — CPU free partitions are bounded; `cpu16-vic` projections clip at `$4000` and explicit screen/character-ROM reservations cover the windows |
+| P10-21 (MC-07) | MAJOR | Q-P15 cost honesty | closed by T-20/T-21 — padding is honest, renderer bytes are 383 and cycles remain `Unknown` |
 | P10-22 (MC-08) | MINOR | Q-P15 runtime oracle | accepted — VICE checks final memory, not MMIO order or per-loop cycles; both are recorded `Unknown`, not claimed |
-| P10-23 (MC-09) | MINOR | machine/constant arithmetic | deferred to T-23 — a pure VIC field combined with an ordinary constant still emits runtime `clc`/`adc` |
+| P10-23 (MC-09) | MINOR | machine/constant arithmetic | closed by T-23 — immediate add/sub/shift chains fold under independent C/V liveness |
 | P10-24 (TP-02) | MINOR | producer identity | accepted deviation — AR-55 resolved the project pin to the available CharPad 3.80; the frozen specification still names 3.88 and that release-qualification gap is recorded in the closeout |
 | P10-25 (TP-03) | MINOR | VICE claim | fixed — the Koala VICE test is titled placement/readback; it does not claim rendered-pixel visibility |
 | P10-26 (TP-04) | MINOR | VICE display | accepted — the CharPad probe is a CPU-memory readback check, not a rendered-frame check; its comment now states that boundary. Combining `$10 |` was observed to fail the VICE checkpoint despite correct generated `$D018` bytes, so the probe keeps the minimal field write |

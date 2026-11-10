@@ -13,9 +13,11 @@ derived VIC fields, producer evidence, public synthetic fixtures and the Q-P15
 qualification workload. Phases 1–8 are complete; the eleven Phase 10 closeout tasks
 are recorded below.
 
-The RD is **complete with owned residual work**. No known critical or major
-correctness defect is open. Deferred evidence/optimization items are re-owned by
-`T-20`–`T-27` in the roadmap; they do not name RD-06 as their landing place.
+The RD is **complete**, and its `T-20`–`T-27` residual closure is complete. No
+known critical or major correctness defect is open. The remaining tracked debts
+are the `none`-mode ordinal-write gap, the multi-screen `setSpritePointer`
+restriction, the frozen compile-time `const` VIC field and the CharPad 3.88
+release qualification.
 
 ## Verification record
 
@@ -43,6 +45,16 @@ It passed 1,958 root tests with zero failures in the second attempt before the
 90-minute host limit. The remaining RD-05 corpus is outside RD-06's changed
 impact set and remains RD-05-owned; its duration is host-bound and is not used
 to weaken the directed gates.
+
+### Residual closure verification
+
+The `T-20`–`T-27` residual plan re-ran the complete compiler suite (3,644 passed/2
+skipped), the directed RD-04/M1/RD-06 set (714/714 including VICE), the affected
+RD-05 suites (377/377, plus joystick 220/220 and raw footprints 100/100), RD-08
+saved/acquisition output (29/29) and RD-08 input suites (184/184). The complete
+root suite reports 300/301 files and 6,432/6,433 tests; the only failure was the
+known host-load VIC collision timing case, which passed 16/16 on a sequential
+high-priority rerun. Exact `none`/saved/acquisition PRG identities are unchanged.
 
 ## Evidence audit
 
@@ -109,9 +121,10 @@ directed suites re-run green.
 | P10-23 VIC constant arithmetic | Pure field plus ordinary constant emits runtime arithmetic | **Yes — expired** | fixed by T-23 with C/V-safe immediate folding |
 | P10-24 CharPad 3.80 pin | Only CharPad 3.80 is installed locally; the frozen specification names 3.88 | No — release qualification must obtain 3.88 evidence or record an approved deviation | release owner |
 
-No deferral names RD-06 as its future landing place. Residual parity and evidence
-debt is also tracked in [issue #140](https://github.com/blendsdk/blend65/issues/140)
-and the `T-20`–`T-27` roadmap rows.
+No deferral names RD-06 as its future landing place. The former residual rows are
+closed; the remaining tracked debt is recorded in
+[issue #140](https://github.com/blendsdk/blend65/issues/140) and the `T-20`–`T-27`
+roadmap rows.
 
 ## Honest status and evidence boundary
 
@@ -127,11 +140,10 @@ and the `T-20`–`T-27` roadmap rows.
   identity records 3.80. The frozen Specification 4 profile names CharPad 3.88.
   CTM v9 bytes are unchanged by the producer release; 3.88 evidence remains a
   release-qualification item, not a claim made here.
-- **Q-P15 parity.** The renderer publishes 385 code-segment bytes and marks
-  whole-path cycles `Unknown`. The post-layout VIC fold keeps a size-neutral
-  identity logical op so fallthrough cannot execute zero fill; the two-byte
-  cost per fold and the `poke(base+index)` indirect path are owned by `T-21` and
-  `T-20`. No expert-parity claim is made.
+- **Q-P15 parity.** The renderer publishes 383 code-segment bytes after `T-21`
+  compaction and marks whole-path cycles `Unknown`. Optimized proved ordinal
+  writes use `sta absolute,x`; `none`-mode writes remain indirect, and whole-path
+  cycle parity is not claimed.
 - **Review boundary.** Reviews were static. The green compiler/directed/VICE runs
   are the execution evidence; the reviewers did not re-run emulators or physical
   hardware.
