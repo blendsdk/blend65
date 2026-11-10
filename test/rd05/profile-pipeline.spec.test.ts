@@ -57,6 +57,7 @@ function expectEvidence(
     "residencies",
     "unboundedEffects",
     "intervals",
+    "loadStates",
     "views",
     "stackDomains",
   ]);

@@ -39,12 +39,12 @@
     },
     {
       "id": "v4-native-loadable-asset",
-      "status": "deferred",
+      "status": "retired",
       "sourceForm": "loadable const initialized by a native asset handler",
       "diagnostic": "E10204",
-      "reason": "Native asset handlers deliver resident bytes only in this release. Loadable delivery, loaders, decompression and D64 packaging are owned by RD-07; the restriction fails closed with a resident-only remedy and declares no runtime behavior.",
+      "reason": "Native asset handlers now deliver loadable unit bytes through the RD-07 packager. The retired restriction was the resident-only handler boundary; the replacement probe builds a loadable native asset successfully.",
       "owner": "RD-07 loadable delivery",
-      "decision": "RD-06 AR-3; ordinary resident const works, loadable delivery is re-owned by RD-07"
+      "decision": "RD-07 delivered native loadable units; the ledger probe uses the synthetic SPD fixture and must build"
     },
     {
       "id": "v4-multi-screen-sprite-pointer",

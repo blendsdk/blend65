@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -147,7 +149,14 @@ function main(): void { ${installer}(&handler); restoreNMI(); }`,
   },
   {
     id: "v4-native-loadable-asset",
-    assets: [{ path: "table.spd", bytes: Uint8Array.from([1, 2, 3, 4]) }],
+    assets: [
+      {
+        path: "table.spd",
+        bytes: readFileSync(
+          join(process.cwd(), "test/rd06/fixtures/public/spritepad/synthetic-basic.spd"),
+        ),
+      },
+    ],
     sources: [
       `module Game;
 loadable const TABLE: byte[] = embed("table.spd");
