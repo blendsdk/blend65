@@ -3,7 +3,7 @@ import type { ProjectDiagnostic } from "../project/types.js";
 import type { StorageProfile } from "../storage/storage-types.js";
 import { C64_KERNAL_PROFILES } from "../profile/c64-kernal.js";
 import type { C64KernalProfileId } from "../profile/c64-kernal.js";
-import { ACME_097, createC64KernalMachine, CBM_PRG } from "./c64-kernal.js";
+import { ACME_097, createC64KernalMachine, CBM_D64, CBM_PRG } from "./c64-kernal.js";
 import type { C64MachineFacts, PackagerFacts, SerializerFacts } from "./c64-kernal.js";
 import { NMOS_6510 } from "./nmos6510.js";
 import type { CpuFacts } from "./nmos6510.js";
@@ -201,6 +201,7 @@ const PROFILES: readonly TargetProfile[] = Object.freeze(
       ...COMMON_PROFILE,
       id: facts.id,
       machine: createC64KernalMachine(facts),
+      packager: facts.profileKind === "d64" ? CBM_D64 : CBM_PRG,
       storage: Object.freeze({ ...COMMON_PROFILE.storage, profileId: facts.id }),
     }),
   ),

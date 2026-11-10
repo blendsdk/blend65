@@ -135,19 +135,16 @@ describe("asset handler dispatch", () => {
     expect(result.diagnostic.code).toBe("E10137");
   });
 
-  // Native delivery under a loadable const is refused before the handler parses anything.
-  it("should refuse a native loadable const without parsing the file", () => {
+  // Native delivery under a loadable const is parsed and validated like any other owner.
+  it("should parse a native loadable const through the handler", () => {
     const { handler: spritepad, calls } = handler((input) => arrayOutput(input));
     const result = dispatchAsset(
       request({ owner: "loadable" }),
       new Map([["spritepad", spritepad]]),
       new Set([".spd"]),
     );
-    expect(result.kind).toBe("failure");
-    if (result.kind !== "failure") throw new Error("Expected a loadable failure");
-    expect(result.diagnostic.code).toBe("E10204");
-    expect(result.diagnostic.message).toMatch(/loadable/iu);
-    expect(calls).toHaveLength(0);
+    expect(result.kind).toBe("output");
+    expect(calls).toHaveLength(1);
   });
 
   // Every rejected selector names the complete available inventory.

@@ -189,26 +189,26 @@ export class ScalarExpressionAnalyzer {
           );
           if (trigonometry !== null) return trigonometry;
         }
-        if (
-          qualifiedCallName(expression.callee) === "c64.loader.load" &&
-          selectC64KernalFacts(this.host.profileId ?? "") !== null
-        ) {
-          const argument = expression.arguments[0];
-          const declaration =
-            argument?.kind === "name" ? this.host.resolveName(argument.name, context) : null;
-          const residentUnit = declaration !== null && !declaration.binding.loadable;
-          this.host.diagnose(
-            error(
-              "E10275",
-              `Cannot load '${expression.arguments[0] === undefined ? "<missing>" : this.host.sourceText(expression.arguments[0].span)}' into '${expression.arguments[1] === undefined ? "<missing>" : this.host.sourceText(expression.arguments[1].span)}' — ${residentUnit ? "the supplied unit is resident data, not a loadable constant" : "the selected resident C64 profile has no load operation"} (profile '${this.host.profileId}')`,
-              expression.span,
-              null,
-              residentUnit
-                ? [{ span: declaration.nameSpan, message: "Resident data is declared here" }]
-                : [],
-            ),
-          );
-          return { node: null, exact: null };
+        if (qualifiedCallName(expression.callee) === "c64.loader.load") {
+          const profileFacts = selectC64KernalFacts(this.host.profileId ?? "");
+          if (profileFacts !== null && profileFacts.profileKind !== "d64") {
+            const argument = expression.arguments[0];
+            const declaration =
+              argument?.kind === "name" ? this.host.resolveName(argument.name, context) : null;
+            const residentUnit = declaration !== null && !declaration.binding.loadable;
+            this.host.diagnose(
+              error(
+                "E10275",
+                `Cannot load '${expression.arguments[0] === undefined ? "<missing>" : this.host.sourceText(expression.arguments[0].span)}' into '${expression.arguments[1] === undefined ? "<missing>" : this.host.sourceText(expression.arguments[1].span)}' — ${residentUnit ? "the supplied unit is resident data, not a loadable constant" : "the selected resident C64 profile has no load operation"} (profile '${this.host.profileId}')`,
+                expression.span,
+                null,
+                residentUnit
+                  ? [{ span: declaration.nameSpan, message: "Resident data is declared here" }]
+                  : [],
+              ),
+            );
+            return { node: null, exact: null };
+          }
         }
         {
           const enumCast = analyzeEnumCastCall(

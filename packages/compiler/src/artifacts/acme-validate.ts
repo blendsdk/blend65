@@ -74,7 +74,7 @@ export function validateAcmeInput(input: AcmeValidationInput): AcmeValidationRes
   if (
     selectC64KernalFacts(input.profile.id) === null ||
     input.profile.serializer.id !== "acme-0.97" ||
-    input.profile.packager.id !== "cbm-prg"
+    (input.profile.packager.id !== "cbm-prg" && input.profile.packager.id !== "cbm-d64")
   ) {
     return failure("invalid-layout", "ACME serialization requires the selected C64 PRG profile");
   }

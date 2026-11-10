@@ -187,8 +187,7 @@ function capability(
 }
 
 /** Source operations and advisories shared by the cooperative family. */
-const COOPERATIVE_DECLARATIONS = Object.freeze({
-  warnArraySize: 256,
+const COOPERATIVE_DECLARATIONS = Object.freeze({  warnArraySize: 256,
   warnStructZpSize: 35,
   capabilities: Object.freeze([
     capability(
@@ -447,6 +446,18 @@ export function selectFrontendProfile(profileId: string): FrontendProfileResult 
       profile: Object.freeze({
         ...COOPERATIVE_DECLARATIONS,
         id: facts.id,
+        capabilities:
+          facts.profileKind === "d64"
+            ? Object.freeze([
+                ...COOPERATIVE_DECLARATIONS.capabilities,
+                capability(
+                  "c64.loader.load",
+                  [SCALAR_TYPES.word, SCALAR_TYPES.word],
+                  SCALAR_TYPES.boolean,
+                  "volatile-write",
+                ),
+              ])
+            : COOPERATIVE_DECLARATIONS.capabilities,
         constants: profileConstants(facts),
         assets: C64_ASSET_PROFILE,
       }),

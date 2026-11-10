@@ -1,14 +1,17 @@
-/** Complete cooperative C64 PRG identities; partial names never select a default. */
+/** Complete cooperative C64 PRG and D64 identities; partial names never select a default. */
 export type C64KernalProfileId =
   | "c64-pal-prg-kernal-6581"
   | "c64-pal-prg-kernal-8580"
   | "c64-ntsc-prg-kernal-6581"
-  | "c64-ntsc-prg-kernal-8580";
+  | "c64-ntsc-prg-kernal-8580"
+  | "c64-pal-d64-kernal-6581";
 
 /** Immutable nominal machine facts shared by source declarations and target selection. */
 export interface C64KernalProfileFacts {
   /** Exact identity, including video, artifact, firmware ownership and SID model. */
   readonly id: C64KernalProfileId;
+  /** Primary artifact family selected by this profile. */
+  readonly profileKind: "prg" | "d64";
   /** PAL or later NTSC timing, not the early NTSC VIC revision. */
   readonly video: "pal" | "ntsc";
   /** Single SID chip model at the ordinary C64 address. */
@@ -35,6 +38,7 @@ export interface C64KernalProfileFacts {
 export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.freeze([
   Object.freeze({
     id: "c64-pal-prg-kernal-6581",
+    profileKind: "prg",
     video: "pal",
     sidModel: 6581,
     clockHz: 985248,
@@ -48,6 +52,7 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
   }),
   Object.freeze({
     id: "c64-pal-prg-kernal-8580",
+    profileKind: "prg",
     video: "pal",
     sidModel: 8580,
     clockHz: 985248,
@@ -61,6 +66,7 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
   }),
   Object.freeze({
     id: "c64-ntsc-prg-kernal-6581",
+    profileKind: "prg",
     video: "ntsc",
     sidModel: 6581,
     clockHz: 1022730,
@@ -74,6 +80,7 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
   }),
   Object.freeze({
     id: "c64-ntsc-prg-kernal-8580",
+    profileKind: "prg",
     video: "ntsc",
     sidModel: 8580,
     clockHz: 1022730,
@@ -84,6 +91,20 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
     frameRateWhole: 59,
     frameRateFractionNumerator: 2825,
     frameRateFractionDenominator: 3419,
+  }),
+  Object.freeze({
+    id: "c64-pal-d64-kernal-6581",
+    profileKind: "d64",
+    video: "pal",
+    sidModel: 6581,
+    clockHz: 985248,
+    kernalTimerAReload: 16421,
+    rasterLines: 312,
+    cyclesPerLine: 63,
+    cyclesPerFrame: 19656,
+    frameRateWhole: 50,
+    frameRateFractionNumerator: 34,
+    frameRateFractionDenominator: 273,
   }),
 ]);
 

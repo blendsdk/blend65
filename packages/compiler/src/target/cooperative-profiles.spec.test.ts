@@ -14,7 +14,6 @@ const unsupported = [
   "c64-pal-prg-takeover-8580",
   "c64-ntsc-prg-takeover-6581",
   "c64-ntsc-prg-takeover-8580",
-  "c64-pal-d64-kernal-6581",
   "c64-pal",
   "C64-PAL-PRG-KERNAL-6581",
   "c64-pal-prg-kernal-6581; echo profile-injection",
@@ -60,6 +59,27 @@ describe("closed cooperative C64 backend selection", () => {
       );
     },
   );
+
+  // The D64 profile keeps the PAL/6581 machine facts and selects the disk packager.
+  it("should compose the D64 profile with the disk packager", () => {
+    const result = selectTargetProfile("c64-pal-d64-kernal-6581");
+    expect(result.kind, JSON.stringify(result)).toBe("complete");
+    if (result.kind !== "complete") throw new Error("D64 target was rejected");
+    expect(result.profile.id).toBe("c64-pal-d64-kernal-6581");
+    expect(result.profile.machine).toMatchObject({
+      id: "c64-pal-kernal-901227-03-6581",
+      cyclesPerFrame: 19656,
+    });
+    expect(result.profile.packager).toMatchObject({
+      id: "cbm-d64",
+      loadAddress: 0x0801,
+      startupAddress: 0x080d,
+      residentStart: 0x0801,
+      residentEnd: 0xcfff,
+      imageBytes: 174_848,
+      allocationPolicyId: "cbm-dos-1541-interleave-v1",
+    });
+  });
 
   // Rejection must identify the literal request and the complete deterministic executable allowlist.
   it.each(unsupported)(

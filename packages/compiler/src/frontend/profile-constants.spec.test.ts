@@ -6,6 +6,7 @@ const profiles = [
   { id: "c64-pal-prg-kernal-8580", pal: true, sid: 8580n },
   { id: "c64-ntsc-prg-kernal-6581", pal: false, sid: 6581n },
   { id: "c64-ntsc-prg-kernal-8580", pal: false, sid: 8580n },
+  { id: "c64-pal-d64-kernal-6581", pal: true, sid: 6581n },
 ] as const;
 
 /** Compare public semantic types by their source spelling. */
@@ -57,7 +58,7 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected complete profile selection");
     expect(
-      result.profile.capabilities.map(({ name, parameters, returnType, effect }) => [
+      result.profile.capabilities.filter(({ name }) => name !== "c64.loader.load").map(({ name, parameters, returnType, effect }) => [
         name,
         parameters.map(typeName),
         typeName(returnType),
@@ -114,6 +115,9 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
       ["c64.vic.vicSpriteBlock", ["word"], "byte", "pure"],
       ["c64.video.waitNextFrame", [], "void", "ordered-wait"],
     ]);
+    if (id === "c64-pal-d64-kernal-6581") {
+      expect(result.profile.capabilities.map(({ name }) => name)).toContain("c64.loader.load");
+    }
   });
 
   // Cooperative vector restrictions identify required installers without proving NMI safety.

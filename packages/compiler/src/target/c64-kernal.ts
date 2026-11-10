@@ -75,7 +75,7 @@ export interface SerializerFacts {
 /** Artifact-packager identity kept separate from machine code. */
 export interface PackagerFacts {
   /** Selected container format. */
-  readonly id: "cbm-prg";
+  readonly id: "cbm-prg" | "cbm-d64";
   /** First loaded byte after the two-byte PRG header. */
   readonly loadAddress: 0x0801;
   /** Machine-code startup entry named by the BASIC stub. */
@@ -84,6 +84,10 @@ export interface PackagerFacts {
   readonly residentStart: 0x0801;
   /** Last address admitted for resident code, data and imported assets. */
   readonly residentEnd: 0xcfff;
+  /** Exact D64 image length, when the selected packager is `cbm-d64`. */
+  readonly imageBytes?: 174_848;
+  /** Deterministic D64 allocation policy, when the packager is `cbm-d64`. */
+  readonly allocationPolicyId?: "cbm-dos-1541-interleave-v1";
 }
 
 /** Frozen cooperative C64 resource budgets; emitted bytes and BSS share the same resident range. */
@@ -156,4 +160,15 @@ export const CBM_PRG: PackagerFacts = Object.freeze({
   startupAddress: 0x080d,
   residentStart: 0x0801,
   residentEnd: 0xcfff,
+});
+
+/** Exact selected D64 packager facts; the boot PRG retains the PRG contract. */
+export const CBM_D64: PackagerFacts = Object.freeze({
+  id: "cbm-d64",
+  loadAddress: 0x0801,
+  startupAddress: 0x080d,
+  residentStart: 0x0801,
+  residentEnd: 0xcfff,
+  imageBytes: 174_848,
+  allocationPolicyId: "cbm-dos-1541-interleave-v1",
 });

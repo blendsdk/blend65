@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 09:46
-> **Progress**: 32/131 tasks (24%)
+> **Last Updated**: 2026-11-10 10:12
+> **Progress**: 37/131 tasks (28%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -101,16 +101,16 @@ illegal uses, and tooling handoff before implementation.
 **Objective**: Admit the D64 profile early and pin every accepted/rejected destination form.
 
 - [ ] 2.1.1 [spec-author] Write specification tests from ST-8, ST-12, ST-13..ST-30, ST-136 — `test/rd07/load-destination.spec.test.ts`
-- [ ] 2.1.2 [spec-author] Update the existing D64 profile expectation to admit the executable profile — `packages/compiler/src/target/cooperative-profiles.spec.test.ts`
-- [ ] 2.1.3 Run the new spec suites and record the red phase
+- [x] 2.1.2 [spec-author] Update the existing D64 profile expectation to admit the executable profile — `packages/compiler/src/target/cooperative-profiles.spec.test.ts` ✅ (completed: 2026-11-10 10:12)
+- [x] 2.1.3 Run the new spec suites and record the red phase ✅ (completed: 2026-11-10 10:12)
 
 ### Step 2.2: Implementation
 
 **Reference**: [03-02](03-02-load-operation-and-publication.md) §Destination proof; [03-06](03-06-artifact-publication-and-run.md) §Profile composition
 
-- [ ] 2.2.1 Widen `C64KernalProfileId`, `PackagerFacts`, `TargetProfile`, and `storage.profileId`; add the D64 facts row and `profileKind` — `packages/compiler/src/profile/c64-kernal.ts`, `packages/compiler/src/target/c64-kernal.ts`, `packages/compiler/src/target/profile.ts`
-- [ ] 2.2.2 Admit exact D64 selection and narrow the existing E10275 guard to PRG packagers — `packages/compiler/src/target/profile.ts`, `packages/compiler/src/frontend/scalar-expressions.ts`
-- [ ] 2.2.3 Accept `cbm-d64` in the ACME input validator — `packages/compiler/src/artifacts/acme-validate.ts`
+- [x] 2.2.1 Widen `C64KernalProfileId`, `PackagerFacts`, `TargetProfile`, and `storage.profileId`; add the D64 facts row and `profileKind` — `packages/compiler/src/profile/c64-kernal.ts`, `packages/compiler/src/target/c64-kernal.ts`, `packages/compiler/src/target/profile.ts` ✅ (completed: 2026-11-10 10:12)
+- [x] 2.2.2 Admit exact D64 selection and narrow the existing E10275 guard to PRG packagers — `packages/compiler/src/target/profile.ts`, `packages/compiler/src/frontend/scalar-expressions.ts` ✅ (completed: 2026-11-10 10:12)
+- [x] 2.2.3 Accept `cbm-d64` in the ACME input validator — `packages/compiler/src/artifacts/acme-validate.ts` ✅ (completed: 2026-11-10 10:12)
 - [ ] 2.2.4 Add the `c64.loader.load` special form and the `load-unit` semantic operation — `packages/compiler/src/frontend/scalar-expressions.ts`, `packages/compiler/src/semantic/operations.ts`
 - [ ] 2.2.5 Resolve the second argument to a mutable fixed place — `packages/compiler/src/frontend/load-call.ts`
 - [ ] 2.2.6 Evaluate the destination exactly once — `packages/compiler/src/frontend/load-call.ts`
