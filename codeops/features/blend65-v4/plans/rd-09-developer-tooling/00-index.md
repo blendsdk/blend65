@@ -1,7 +1,7 @@
 # RD-09 Developer Tooling and Debug Evidence Implementation Plan
 
 > **Feature**: Production language server, thin VS Code client, CLI adapter, and portable debug evidence
-> **Status**: Planning Complete
+> **Status**: Done
 > **Created**: 2026-11-10 22:12
 > **Implements**: blend65-v4/RD-09
 > **CodeOps Artifact Schema**: 1
@@ -59,6 +59,7 @@ required by R9.1–R9.52; no Complexity Escalation packet was raised.
 | 03  | [CLI JSON Adapter](03-05-cli-json-adapter.md)                  | Machine-readable command result envelope           |
 | 03  | [Debug Evidence](03-06-debug-evidence.md)                      | Load/bank identity, SFA truth, zero-cost proof     |
 | 07  | [Testing Strategy](07-testing-strategy.md)                     | Specification and implementation test cases        |
+| 09  | [Closeout](09-closeout.md)                                     | Delivered slice, verification, deferral scan       |
 | 99  | [Execution Plan](99-execution-plan.md)                         | Phases, tasks, and verification                    |
 
 ## Quick Reference
@@ -116,4 +117,6 @@ already defines these four review roles for exactly these domains.
 | `packages/cli/src/main.ts`, `run.ts`, `render.ts` | CLI JSON envelope |
 | `packages/compiler/src/services/evidence.ts`, `evidence-records.ts` | Debug evidence producer |
 | `test/rd09/` | New root specification and integration tests (planned) |
-| `docs/tooling.md` | User-facing editor and debug-evidence guide (planned) |
+| `docs/tooling.md` | User-facing editor and debug-evidence guide |
+| `docs/rd09-debug-adapter-probe.md` | Bounded adapter interoperability result |
+| `docs/rd09-responsiveness.md` | Observational responsiveness record |

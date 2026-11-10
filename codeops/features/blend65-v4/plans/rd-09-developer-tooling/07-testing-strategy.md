@@ -125,14 +125,17 @@ and bundle tests. No test uses compiler output as its own semantic oracle.
 | Test File | ST Cases Covered | Component |
 | --------- | ---------------- | --------- |
 | `test/rd09/tooling-index.spec.test.ts` | ST-1–ST-13 | Tooling index |
-| `test/rd09/lsp-diagnostics.spec.test.ts` | ST-14, ST-18–ST-20, ST-25, ST-26 | LSP diagnostics/protocol |
-| `test/rd09/lsp-snapshots.spec.test.ts` | ST-15–ST-17, ST-21–ST-24 | LSP snapshots/status |
+| `test/rd09/lsp-queries.spec.test.ts`, `lsp-snapshots.spec.test.ts`, `lsp-isolation.spec.test.ts`, `lsp-protocol.spec.test.ts` | ST-14–ST-26 | LSP diagnostics/protocol/snapshots |
 | `test/rd09/formatter.spec.test.ts` | ST-27–ST-30 | Formatter |
-| `test/rd09/cli-json.spec.test.ts` | ST-31–ST-35 | CLI adapter |
-| `test/rd09/vscode-commands.spec.test.ts` | ST-36–ST-45 | VS Code client |
-| `test/rd09/debug-evidence.spec.test.ts` | ST-46–ST-54 | Debug evidence |
+| `test/rd09/cli-evidence.spec.test.ts`, `packages/cli/src/json.spec.test.ts` | ST-31–ST-35 | CLI adapter |
+| `packages/vscode/src/commands.spec.test.ts`, `cli-client.spec.test.ts`, `status.spec.test.ts` | ST-36–ST-45 | VS Code client |
+| `test/rd09/debug-evidence.spec.test.ts`, `debug-zero-cost.spec.test.ts` | ST-46–ST-54 | Debug evidence |
 | `test/rd09/security.spec.test.ts` | ST-55 | Security |
-| `test/rd09/qualification.spec.test.ts` | ST-56–ST-58 | Closeout |
+| Closeout verification record | ST-56–ST-58 | Qualification/closeout |
+
+The delivered file names were reconciled to the implemented suites. No planned ST oracle was
+dropped; the status, cancellation, malformed-envelope, and artifact-containment cases live in the
+package suites where their host boundary is real.
 
 ### Implementation Tests
 
