@@ -1,8 +1,14 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { SCALAR_TYPES } from "../frontend/constants.js";
 import type { SemanticBinding, SemanticType, TypedExpr } from "../frontend/semantic-types.js";
 import type { ControlFlowBuilder } from "./cfg.js";
 import { required } from "./lower-control.js";
-import type { AggregateDestination, ArrayCountSource, ValueId } from "./operations.js";
+import type {
+  AggregateDestination,
+  ArrayCountSource,
+  SemanticPlace,
+  ValueId,
+} from "./operations.js";
 
 /** Return whether a scalar type is the language's void type. */
 function isVoid(type: SemanticType): boolean {
@@ -19,6 +25,7 @@ export class CallLowerer {
       expression: TypedExpr,
       destination?: AggregateDestination,
     ) => ValueId | null,
+    private readonly lowerPlace: (expression: TypedExpr) => SemanticPlace,
   ) {}
 
   /** Lower raw-memory, profile, or ordinary direct calls after source-ordered arguments. */
@@ -27,6 +34,38 @@ export class CallLowerer {
     type: SemanticType,
     destination?: AggregateDestination,
   ): ValueId | null {
+    if (expression.loadUnit !== undefined) {
+      const unit = this.bindingsByKey.get(bindingIdentityKey(expression.loadUnit.unit));
+      if (unit?.type === null || unit?.type === undefined) {
+        throw new Error("Lowered load unit has no retained type");
+      }
+      const place = this.lowerPlace(expression.loadUnit.destination);
+      const address = this.builder.nextValue();
+      this.builder.emit(
+        Object.freeze({
+          kind: "place-address",
+          result: address,
+          place,
+          type: SCALAR_TYPES.word,
+          integer: Object.freeze({ width: 16, signed: false, wrap: true }),
+          span: expression.span,
+        }),
+      );
+      const result = this.builder.nextValue();
+      this.builder.emit(
+        Object.freeze({
+          kind: "load-unit",
+          result,
+          unit: expression.loadUnit.unit,
+          destination: address,
+          unitType: unit.type,
+          type,
+          integer: expression.integer,
+          span: expression.span,
+        }),
+      );
+      return result;
+    }
     if (expression.embedded?.kind === "embedded") {
       const result = this.builder.nextValue();
       this.builder.emit(

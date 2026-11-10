@@ -309,6 +309,13 @@ export interface TypedExpr {
   readonly calleeDeclaration?: SourceSpan;
   /** Call arguments in source order. */
   readonly arguments?: readonly TypedExpr[];
+  /** One compiler-recognized load operation, when this call is `c64.loader.load`. */
+  readonly loadUnit?: {
+    /** Loadable declaration identity. */
+    readonly unit: BindingId;
+    /** Already-evaluated mutable destination place. */
+    readonly destination: TypedExpr;
+  };
   /** Resolved direct-call signature. */
   readonly signature?: FunctionSignature;
   /** Indexed or selected aggregate object. */

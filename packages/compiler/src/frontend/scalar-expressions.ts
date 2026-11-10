@@ -24,6 +24,7 @@ import { analyzeScalarAssignment } from "./scalar-assignments.js";
 import { semanticTypeSize } from "./semantic-type-relations.js";
 import { analyzeTrigonometryCall } from "./trigonometry.js";
 import { analyzeEnumCastCall, analyzeEnumMember, analyzeScalarCast } from "./scalar-conversions.js";
+import { analyzeLoadUnitCall } from "./load-call.js";
 import type {
   Place,
   ScalarExpressionContext,
@@ -208,6 +209,9 @@ export class ScalarExpressionAnalyzer {
               ),
             );
             return { node: null, exact: null };
+          }
+          if (profileFacts?.profileKind === "d64") {
+            return analyzeLoadUnitCall(this, expression, context, this.host);
           }
         }
         {

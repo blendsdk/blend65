@@ -300,6 +300,18 @@ export interface EmbeddedAddressOperation extends ValueOperation {
   readonly asset: string;
 }
 
+/** One synchronous transfer into a proved destination. */
+export interface LoadUnitOperation extends ValueOperation {
+  /** Operation discriminator. */
+  readonly kind: "load-unit";
+  /** Exact loadable declaration identity. */
+  readonly unit: BindingId;
+  /** Evaluated destination address value. */
+  readonly destination: ValueId;
+  /** Exact unit logical type. */
+  readonly unitType: SemanticType;
+}
+
 /** One directly constructed fixed aggregate with source-ordered element values. */
 export interface AggregateOperation extends ValueOperation {
   /** Operation discriminator. */
@@ -358,6 +370,7 @@ export type SemanticOperation =
   | EmbeddedAddressOperation
   | AggregateOperation
   | ArrayCountOperation
+  | LoadUnitOperation
   | MergeOperation;
 
 /** Unconditional control transfer. */

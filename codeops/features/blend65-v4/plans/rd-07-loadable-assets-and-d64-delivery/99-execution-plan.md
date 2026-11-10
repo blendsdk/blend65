@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 10:12
-> **Progress**: 37/131 tasks (28%)
+> **Last Updated**: 2026-11-10 10:25
+> **Progress**: 39/131 tasks (30%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -111,13 +111,13 @@ illegal uses, and tooling handoff before implementation.
 - [x] 2.2.1 Widen `C64KernalProfileId`, `PackagerFacts`, `TargetProfile`, and `storage.profileId`; add the D64 facts row and `profileKind` — `packages/compiler/src/profile/c64-kernal.ts`, `packages/compiler/src/target/c64-kernal.ts`, `packages/compiler/src/target/profile.ts` ✅ (completed: 2026-11-10 10:12)
 - [x] 2.2.2 Admit exact D64 selection and narrow the existing E10275 guard to PRG packagers — `packages/compiler/src/target/profile.ts`, `packages/compiler/src/frontend/scalar-expressions.ts` ✅ (completed: 2026-11-10 10:12)
 - [x] 2.2.3 Accept `cbm-d64` in the ACME input validator — `packages/compiler/src/artifacts/acme-validate.ts` ✅ (completed: 2026-11-10 10:12)
-- [ ] 2.2.4 Add the `c64.loader.load` special form and the `load-unit` semantic operation — `packages/compiler/src/frontend/scalar-expressions.ts`, `packages/compiler/src/semantic/operations.ts`
-- [ ] 2.2.5 Resolve the second argument to a mutable fixed place — `packages/compiler/src/frontend/load-call.ts`
-- [ ] 2.2.6 Evaluate the destination exactly once — `packages/compiler/src/frontend/load-call.ts`
+- [x] 2.2.4 Add the `c64.loader.load` special form and the `load-unit` semantic operation — `packages/compiler/src/frontend/scalar-expressions.ts`, `packages/compiler/src/semantic/operations.ts` ✅ (completed: 2026-11-10 10:25)
+- [~] 2.2.5 Resolve the second argument to a mutable fixed place — `packages/compiler/src/frontend/load-call.ts` ⏳ (implemented: 2026-11-10 10:25)
+- [x] 2.2.6 Evaluate the destination exactly once — `packages/compiler/src/frontend/load-call.ts` ✅ (completed: 2026-11-10 10:25)
 - [ ] 2.2.7 Build the finite candidate set for a runtime fixed-array index; reject non-finite sets — `packages/compiler/src/semantic/load-destination.ts`
-- [ ] 2.2.8 Prove exact type, size, mutability, and lifetime — `packages/compiler/src/semantic/load-destination.ts`
+- [~] 2.2.8 Prove exact type, size, mutability, and lifetime — `packages/compiler/src/semantic/load-destination.ts` ⏳ (implemented: 2026-11-10 10:25)
 - [ ] 2.2.9 Prove alignment, visibility, end address, and KERNAL-ROM exclusion — `packages/compiler/src/semantic/load-destination.ts`
-- [ ] 2.2.10 Implement E10275 reasons and E10279 profile behavior; preserve E10274 — `packages/compiler/src/frontend/scalar-expressions.ts`
+- [~] 2.2.10 Implement E10275 reasons and E10279 profile behavior; preserve E10274 — `packages/compiler/src/frontend/scalar-expressions.ts` ⏳ (implemented: 2026-11-10 10:25)
 - [ ] 2.2.11 Add the minimal machine `load-unit` operation and effect so `checkProject` can complete before the exact KERNAL lowering exists — `packages/compiler/src/machine/operations.ts`, `packages/compiler/src/machine/lower-operation.ts`
 - [ ] 2.2.12 Run ST-13..ST-30 and record the green phase
 

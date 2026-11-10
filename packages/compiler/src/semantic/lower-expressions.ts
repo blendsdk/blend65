@@ -44,7 +44,9 @@ export class ExpressionLowerer {
     bindingsByKey: ReadonlyMap<string, SemanticBinding>,
     embeddedByBinding: ReadonlyMap<string, EmbeddedValue>,
   ) {
-    this.calls = new CallLowerer(builder, bindingsByKey, this.lower);
+    this.calls = new CallLowerer(builder, bindingsByKey, this.lower, (expression) =>
+      this.lowerPlace(expression),
+    );
     this.builder = builder;
     this.bindingsByKey = bindingsByKey;
     this.embeddedByBinding = embeddedByBinding;
