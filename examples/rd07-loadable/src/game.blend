@@ -5,17 +5,33 @@ struct LevelData {
     charset: byte[16];
 }
 
+loadable const LEVEL_1: LevelData = {
+    map: embed("level1.map"),
+    charset: embed("level1.charset")
+};
+
 loadable const LEVEL_2: LevelData = {
     map: embed("level2.map"),
     charset: embed("level2.charset")
 };
 
+// Declared but never loaded by any reachable call: the compiler omits it from the image.
+loadable const LEVEL_3_UNUSED: LevelData = {
+    map: embed("level3.map"),
+    charset: embed("level3.charset")
+};
+
 let currentLevel: LevelData;
 
 function main(): void {
+    if (!c64.loader.load(LEVEL_1, currentLevel)) {
+        return;
+    }
+    let first: byte = currentLevel.map[0];
+
+    // Sequential reuse of the same destination is a fresh load into the same object.
     if (!c64.loader.load(LEVEL_2, currentLevel)) {
         return;
     }
-
-    let first: byte = currentLevel.map[0];
+    let second: byte = currentLevel.map[0];
 }

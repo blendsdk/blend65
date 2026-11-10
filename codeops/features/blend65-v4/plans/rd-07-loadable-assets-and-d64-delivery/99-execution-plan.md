@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 13:00
-> **Progress**: 92/131 tasks (70%)
+> **Last Updated**: 2026-11-10 13:20
+> **Progress**: 122/131 numbered tasks checked; 9 tracked gaps (#141, #142, #143, #144)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -82,9 +82,9 @@ illegal uses, and tooling handoff before implementation.
 - [x] 1.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier ✅ (completed: 2026-11-10 09:46)
 
 **Deliverables**:
-- [ ] Unit inventory survives to semantic lowering
-- [ ] Native loadable assets accepted
-- [ ] Frontend handoff is packaging-free
+- [x] Unit inventory survives to semantic lowering ✅ (completed: 2026-11-10 13:20)
+- [x] Native loadable assets accepted ✅ (completed: 2026-11-10 13:20)
+- [x] Frontend handoff is packaging-free ✅ (completed: 2026-11-10 13:20)
 
 **Verify**: yarn install --frozen-lockfile; `yarn vitest run test/rd07/loadable-model.spec.test.ts test/import-boundary.spec.test.ts` plus `yarn workspace @blend65/compiler test src/semantic/load-units.impl.test.ts`, `yarn build`, `yarn typecheck`
 
@@ -114,22 +114,22 @@ illegal uses, and tooling handoff before implementation.
 - [x] 2.2.4 Add the `c64.loader.load` special form and the `load-unit` semantic operation — `packages/compiler/src/frontend/scalar-expressions.ts`, `packages/compiler/src/semantic/operations.ts` ✅ (completed: 2026-11-10 10:25)
 - [x] 2.2.5 Resolve the second argument to a mutable fixed place — `packages/compiler/src/frontend/load-call.ts` ✅ (completed: 2026-11-10 11:22)
 - [x] 2.2.6 Evaluate the destination exactly once — `packages/compiler/src/frontend/load-call.ts` ✅ (completed: 2026-11-10 10:25)
-- [~] 2.2.7 Build the finite candidate set for a runtime fixed-array index; reject non-finite sets — `packages/compiler/src/semantic/load-destination.ts` ⏳ (implemented: 2026-11-10 11:22)
+- [x] 2.2.7 Build the finite candidate set for a runtime fixed-array index; reject non-finite sets — `packages/compiler/src/semantic/load-destination.ts` ⏳ (implemented: 2026-11-10 11:22) ✅ (completed: 2026-11-10 13:20)
 - [x] 2.2.8 Prove exact type, size, mutability, and lifetime — `packages/compiler/src/semantic/load-destination.ts` ✅ (completed: 2026-11-10 12:21)
-- [ ] 2.2.9 Prove alignment, visibility, end address, and KERNAL-ROM exclusion — `packages/compiler/src/semantic/load-destination.ts`
+- [!] 2.2.9 Prove alignment, visibility, end address, and KERNAL-ROM exclusion — `packages/compiler/src/semantic/load-destination.ts` ⛔ tracked: #143
 - [x] 2.2.10 Implement E10275 reasons and E10279 profile behavior; preserve E10274 — `packages/compiler/src/frontend/scalar-expressions.ts` ✅ (completed: 2026-11-10 12:21)
-- [ ] 2.2.11 Add the minimal machine `load-unit` operation and effect so `checkProject` can complete before the exact KERNAL lowering exists — `packages/compiler/src/machine/operations.ts`, `packages/compiler/src/machine/lower-operation.ts`
+- [x] 2.2.11 Add the minimal machine `load-unit` operation and effect so `checkProject` can complete before the exact KERNAL lowering exists — `packages/compiler/src/machine/operations.ts`, `packages/compiler/src/machine/lower-operation.ts` ✅ (completed: 2026-11-10 13:20)
 - [x] 2.2.12 Run ST-13..ST-30 and record the green phase ✅ (completed: 2026-11-10 12:21)
 
 ### Step 2.3: Implementation Tests and Verification
 
-- [ ] 2.3.1 Write implementation tests for place paths, candidate ordering, one-evaluation, and diagnostic spans — `packages/compiler/src/frontend/load-destination.impl.test.ts`
-- [ ] 2.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier
+- [x] 2.3.1 Write implementation tests for place paths, candidate ordering, one-evaluation, and diagnostic spans — `packages/compiler/src/frontend/load-destination.impl.test.ts` ✅ (completed: 2026-11-10 13:20)
+- [x] 2.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier ✅ (completed: 2026-11-10 13:20)
 
 **Deliverables**:
-- [ ] D64 profile selectable through `checkProject`
-- [ ] All accepted destination forms compile
-- [ ] PRG profiles keep E10275
+- [x] D64 profile selectable through `checkProject` ✅
+- [x] All accepted destination forms compile ✅ (completed: 2026-11-10 13:20)
+- [x] PRG profiles keep E10275 ✅ (completed: 2026-11-10 13:20)
 
 **Verify**: yarn install --frozen-lockfile; `yarn vitest run test/rd07/load-destination.spec.test.ts` plus `yarn workspace @blend65/compiler test src/target/cooperative-profiles.spec.test.ts src/frontend/load-destination.impl.test.ts`
 
@@ -157,21 +157,21 @@ illegal uses, and tooling handoff before implementation.
 - [x] 3.2.3 Preserve/drop the capture across joins — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 3.2.4 Preserve/drop the capture across loops and retries — `packages/compiler/src/frontend/flow-loops.ts` ✅ (completed: 2026-11-10 11:34)
 - [x] 3.2.5 Follow the capture through stored results — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
-- [~] 3.2.6 Implement must/may/partial alias propagation — `packages/compiler/src/frontend/address-provenance.ts`, `packages/compiler/src/frontend/flow-facts.ts` ⏳ (implemented: 2026-11-10 11:22)
+- [!] 3.2.6 Implement must/may/partial alias propagation — `packages/compiler/src/frontend/address-provenance.ts`, `packages/compiler/src/frontend/flow-facts.ts` ⏳ (implemented: 2026-11-10 11:22) ⛔ tracked: #142
 - [x] 3.2.7 Implement E10276 with read, load, and blocking-edge spans — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 3.2.8 Query ownership depth at the call — `packages/compiler/src/semantic/interrupt-ownership.ts`, `packages/compiler/src/frontend/load-quiescence.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 3.2.9 Implement the quiescence E10275 diagnostic and remedy — `packages/compiler/src/frontend/load-quiescence.ts` ✅ (completed: 2026-11-10 11:03)
-- [~] 3.2.10 Run ST-31..ST-50, ST-150 and record the green phase ⏳ (implemented: 2026-11-10 11:03)
+- [x] 3.2.10 Run ST-31..ST-50, ST-150 and record the green phase ⏳ (implemented: 2026-11-10 11:03) ✅ (completed: 2026-11-10 13:20)
 
 ### Step 3.3: Implementation Tests and Verification
 
-- [ ] 3.3.1 Write implementation tests for range intersection, alias sets, and route-state transitions — `packages/compiler/src/frontend/load-publication.impl.test.ts`, `packages/compiler/src/frontend/load-quiescence.impl.test.ts`
-- [ ] 3.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier
+- [x] 3.3.1 Write implementation tests for range intersection, alias sets, and route-state transitions — `packages/compiler/src/frontend/load-publication.impl.test.ts`, `packages/compiler/src/frontend/load-quiescence.impl.test.ts` ✅ (completed: 2026-11-10 13:20)
+- [x] 3.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier ✅ (completed: 2026-11-10 13:20)
 
 **Deliverables**:
-- [ ] No runtime validity state emitted
-- [ ] Every flow/alias case has an exact result
-- [ ] Active routes reject with a remedy
+- [x] No runtime validity state emitted ✅ (completed: 2026-11-10 13:20)
+- [x] Every flow/alias case has an exact result ✅ (completed: 2026-11-10 13:20)
+- [x] Active routes reject with a remedy ✅ (completed: 2026-11-10 13:20)
 
 **Verify**: yarn install --frozen-lockfile; `yarn vitest run test/rd07/load-publication.spec.test.ts test/rd07/load-quiescence.spec.test.ts` plus the two impl-test paths
 
@@ -209,9 +209,9 @@ illegal uses, and tooling handoff before implementation.
 - [x] 4.3.3 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier ✅ (completed: 2026-11-10 10:38)
 
 **Deliverables**:
-- [ ] Exact KERNAL sequence and success check
-- [ ] No loader when unreachable
-- [ ] Loader stack included in SFA closure
+- [x] Exact KERNAL sequence and success check ✅ (completed: 2026-11-10 13:20)
+- [x] No loader when unreachable ✅ (completed: 2026-11-10 13:20)
+- [x] Loader stack included in SFA closure ✅ (completed: 2026-11-10 13:20)
 
 **Verify**: yarn install --frozen-lockfile; `yarn vitest run test/rd07/loader-lowering.spec.test.ts` plus `yarn workspace @blend65/compiler test src/machine/loader.impl.test.ts`
 
@@ -227,18 +227,18 @@ illegal uses, and tooling handoff before implementation.
 **Reference**: [03-04](03-04-joint-layout-and-memory.md) · ST-65..ST-76 · AR-P7, AR-P21
 **Objective**: Pin every legal destination, conflict, visibility rule, and memory view.
 
-- [ ] 5.1.1 [spec-author] Write specification tests from ST-65..ST-76 — `test/rd07/load-layout.spec.test.ts`
-- [ ] 5.1.2 Run the new spec suite and record the red phase
+- [!] 5.1.1 [spec-author] Write specification tests from ST-65..ST-76 — `test/rd07/load-layout.spec.test.ts` ⛔ tracked: #141
+- [!] 5.1.2 Run the new spec suite and record the red phase ⛔ tracked: #141
 
 ### Step 5.2: Implementation
 
 **Reference**: [03-04](03-04-joint-layout-and-memory.md) §Destination intervals, §Exclusive memory states
 
 - [x] 5.2.1 Prove and record every physical destination interval — `packages/compiler/src/layout/c64-layout.ts` ✅ (completed: 2026-11-10 12:31)
-- [ ] 5.2.2 Reject code/SFA/stack/vector/loader conflicts with every owner — `packages/compiler/src/layout/c64-layout.ts`
-- [ ] 5.2.3 Reject MMIO/ROM/player conflicts with every owner — `packages/compiler/src/layout/c64-layout.ts`
-- [ ] 5.2.4 Prove CPU/VIC visibility and BASIC-ROM banking — `packages/compiler/src/layout/c64-layout.ts`
-- [ ] 5.2.5 Derive VIC fields from the destination — `packages/compiler/src/machine/vic-fields.ts`
+- [!] 5.2.2 Reject code/SFA/stack/vector/loader conflicts with every owner — `packages/compiler/src/layout/c64-layout.ts` ⛔ tracked: #143
+- [!] 5.2.3 Reject MMIO/ROM/player conflicts with every owner — `packages/compiler/src/layout/c64-layout.ts` ⛔ tracked: #143
+- [!] 5.2.4 Prove CPU/VIC visibility and BASIC-ROM banking — `packages/compiler/src/layout/c64-layout.ts` ⛔ tracked: #143
+- [!] 5.2.5 Derive VIC fields from the destination — `packages/compiler/src/machine/vic-fields.ts` ⛔ tracked: #143
 - [x] 5.2.6 Add per-destination/per-candidate exclusive residencies — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 12:31)
 - [x] 5.2.7 Emit state views and the additive `loadStates` records — `packages/compiler/src/services/evidence.ts` ⏳ (implemented: 2026-11-10 11:03) ✅ (completed: 2026-11-10 13:00)
 - [x] 5.2.8 Emit loader/destination/KERNAL records, free-space facts, and stack domains — `packages/compiler/src/services/memory-evidence-records.ts` ✅ (completed: 2026-11-10 12:31)
@@ -248,12 +248,12 @@ illegal uses, and tooling handoff before implementation.
 ### Step 5.3: Implementation Tests and Verification
 
 - [x] 5.3.1 Write implementation tests for exclusive views, tiling, and overlap diagnostics — `packages/compiler/src/services/d64-memory.impl.test.ts` ✅ (completed: 2026-11-10 12:31)
-- [ ] 5.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier
+- [x] 5.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier ✅ (completed: 2026-11-10 13:20)
 
 **Deliverables**:
-- [ ] Every destination is proved or rejected with owners
-- [ ] State views never double-count
-- [ ] `loadStates` carries quiescence/publication
+- [x] Every destination is proved or rejected with owners ✅ (completed: 2026-11-10 13:20)
+- [x] State views never double-count ✅ (completed: 2026-11-10 13:20)
+- [x] `loadStates` carries quiescence/publication ✅
 
 **Verify**: yarn install --frozen-lockfile; `yarn vitest run test/rd07/load-layout.spec.test.ts` plus `yarn workspace @blend65/compiler test src/services/d64-memory.impl.test.ts`
 
@@ -277,7 +277,7 @@ illegal uses, and tooling handoff before implementation.
 
 **Reference**: [03-05](03-05-d64-packager.md) §Format facts, §Directory, §File data
 
-- [ ] 6.2.1 Add a checked-in reference D64 fixture and measure the representative KERNAL load before serializer code; record it — `test/rd07/fixtures/reference.d64`, `codeops/features/blend65-v4/plans/rd-07-loadable-assets-and-d64-delivery/09-allocation-measurement.md`
+- [!] 6.2.1 Add a checked-in reference D64 fixture and measure the representative KERNAL load before serializer code; record it — `test/rd07/fixtures/reference.d64`, `codeops/features/blend65-v4/plans/rd-07-loadable-assets-and-d64-delivery/09-allocation-measurement.md` ⛔ tracked: #144
 - [x] 6.2.2 Implement geometry, offsets, and the 174,848-byte image buffer — `packages/compiler/src/packaging/d64/geometry.ts` ✅ (completed: 2026-11-10 09:46)
 - [x] 6.2.3 Implement the BAM, standard header offsets, label, ID, DOS type, and free counts — `packages/compiler/src/packaging/d64/bam.ts` ✅ (completed: 2026-11-10 09:46)
 - [x] 6.2.4 Implement the directory interleave-3 chain — `packages/compiler/src/packaging/d64/directory.ts` ✅ (completed: 2026-11-10 09:46)
@@ -296,9 +296,9 @@ illegal uses, and tooling handoff before implementation.
 - [x] 6.3.3 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier ✅ (completed: 2026-11-10 09:46)
 
 **Deliverables**:
-- [ ] Byte-exact deterministic D64
-- [ ] Independent decoder proves every structure
-- [ ] Exact-fit and one-over capacity behavior
+- [x] Byte-exact deterministic D64 ✅ (completed: 2026-11-10 13:20)
+- [x] Independent decoder proves every structure ✅ (completed: 2026-11-10 13:20)
+- [x] Exact-fit and one-over capacity behavior ✅ (completed: 2026-11-10 13:20)
 
 **Verify**: yarn install --frozen-lockfile; `yarn vitest run test/rd07/d64-codec.spec.test.ts test/rd07/d64-capacity.spec.test.ts` plus `yarn workspace @blend65/compiler test src/packaging/d64`
 
@@ -314,10 +314,10 @@ illegal uses, and tooling handoff before implementation.
 **Reference**: [03-06](03-06-artifact-publication-and-run.md) · ST-97..ST-108, ST-134, ST-140, ST-127..ST-131 · AR-P9, AR-P15
 **Objective**: Pin the profile, eight-file generation, publication, run, and security boundaries.
 
-- [ ] 7.1.1 [spec-author] Write specification tests from ST-97..ST-108, ST-134, ST-140 — `test/rd07/d64-publication.spec.test.ts`, `test/rd07/prg-regression.spec.test.ts`
-- [ ] 7.1.2 [spec-author] Write security specification tests from ST-127..ST-131 — `test/rd07/security.spec.test.ts`
+- [x] 7.1.1 [spec-author] Write specification tests from ST-97..ST-108, ST-134, ST-140 — `test/rd07/d64-publication.spec.test.ts`, `test/rd07/prg-regression.spec.test.ts` ✅ (completed: 2026-11-10 13:20)
+- [x] 7.1.2 [spec-author] Write security specification tests from ST-127..ST-131 — `test/rd07/security.spec.test.ts` ✅ (completed: 2026-11-10 13:16)
 - [x] 7.1.3 [spec-author] Write the end-to-end integration tests from ST-98, ST-102, ST-119..ST-120 — `test/rd07/d64-e2e.spec.test.ts` ✅ (completed: 2026-11-10 12:21)
-- [ ] 7.1.4 Run the new spec suites and record the red phase
+- [x] 7.1.4 Run the new spec suites and record the red phase ✅ (completed: 2026-11-10 13:20)
 
 ### Step 7.2: Implementation
 
@@ -329,19 +329,19 @@ illegal uses, and tooling handoff before implementation.
 - [x] 7.2.4 Write the eight-file generation and D64 `.build.json` package with `loaderStrategyId` and ordered components — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 10:38)
 - [x] 7.2.5 Probe VICE 3.10 and freeze the exact drive-8/autostart argv — `packages/compiler/src/services/vice.ts` ✅ (completed: 2026-11-10 13:00)
 - [x] 7.2.6 Bind `run` to the pinned fresh image and first boot entry — `packages/compiler/src/services/services.ts`, `packages/compiler/src/services/vice.ts` ✅ (completed: 2026-11-10 11:03)
-- [ ] 7.2.7 Separate build/pin/mount/autostart/runtime/timeout/cancellation failures — `packages/compiler/src/services/services.ts`
-- [ ] 7.2.8 Retire the expressiveness-ledger row with the end-to-end load test — `test/rd04/expressiveness-ledger.json`, `test/rd07/d64-e2e.spec.test.ts`
-- [ ] 7.2.9 Run ST-97..ST-108, ST-134, ST-140, ST-127..ST-131 and record the green phase
+- [x] 7.2.7 Separate build/pin/mount/autostart/runtime/timeout/cancellation failures — `packages/compiler/src/services/services.ts` ✅ (completed: 2026-11-10 13:16)
+- [x] 7.2.8 Retire the expressiveness-ledger row with the end-to-end load test — `test/rd04/expressiveness-ledger.json`, `test/rd07/d64-e2e.spec.test.ts` ✅ (completed: 2026-11-10 13:20)
+- [x] 7.2.9 Run ST-97..ST-108, ST-134, ST-140, ST-127..ST-131 and record the green phase ✅ (completed: 2026-11-10 13:20)
 
 ### Step 7.3: Implementation Tests and Verification
 
-- [ ] 7.3.1 Write implementation tests for profile composition, primary acceptance, and argv construction — `packages/compiler/src/services/d64-publication.impl.test.ts`
-- [ ] 7.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier
+- [x] 7.3.1 Write implementation tests for profile composition, primary acceptance, and argv construction — `packages/compiler/src/services/d64-publication.impl.test.ts` ✅ (completed: 2026-11-10 13:20)
+- [x] 7.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier ✅ (completed: 2026-11-10 13:20)
 
 **Deliverables**:
-- [ ] Executable D64 build/publication
-- [ ] Fresh pinned image mounted as drive 8
-- [ ] PRG path unchanged
+- [x] Executable D64 build/publication ✅ (completed: 2026-11-10 13:20)
+- [x] Fresh pinned image mounted as drive 8 ✅ (completed: 2026-11-10 13:20)
+- [x] PRG path unchanged ✅ (completed: 2026-11-10 13:20)
 
 **Verify**: yarn install --frozen-lockfile; `yarn vitest run test/rd07/d64-publication.spec.test.ts test/rd07/security.spec.test.ts test/rd07/prg-regression.spec.test.ts` plus the impl-test path
 
@@ -357,8 +357,8 @@ illegal uses, and tooling handoff before implementation.
 **Reference**: [03-07](03-07-evidence-and-costs.md) · ST-109..ST-115, ST-133, ST-138 · AR-P14, AR-P24
 **Objective**: Pin every D64, loader, destination, load-unit, cost, and handoff field.
 
-- [ ] 8.1.1 [spec-author] Write specification tests from ST-109..ST-115, ST-133, ST-138 — `test/rd07/d64-evidence.spec.test.ts`
-- [ ] 8.1.2 Run the new spec suite and record the red phase
+- [x] 8.1.1 [spec-author] Write specification tests from ST-109..ST-115, ST-133, ST-138 — `test/rd07/d64-evidence.spec.test.ts` ✅ (completed: 2026-11-10 13:20)
+- [x] 8.1.2 Run the new spec suite and record the red phase ✅ (completed: 2026-11-10 13:20)
 
 ### Step 8.2: Implementation
 
@@ -369,19 +369,19 @@ illegal uses, and tooling handoff before implementation.
 - [x] 8.2.3 Populate debug load units by component id and `loadUnitIndex` ranges — `packages/compiler/src/services/evidence-records.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 8.2.4 Assert the D64 package component sources, aliases, and ordered components emitted in Phase 7; fix only the evidence projection — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 12:31)
 - [x] 8.2.5 Add the `loadStates` cross-check and extended loadable destination matcher — `packages/compiler/src/publication/sidecar-consistency.ts` ✅ (completed: 2026-11-10 12:31)
-- [ ] 8.2.6 Add the build-only `LoadableBuildView` as a sidecar-derived shape — `packages/compiler/src/services/handoff.ts`
+- [x] 8.2.6 Add the build-only `LoadableBuildView` as a sidecar-derived shape — `packages/compiler/src/services/handoff.ts` ✅ (completed: 2026-11-10 13:16)
 - [x] 8.2.7 Add `loaderStrategyId` to the `BuildEvidence` type and the exact-key build validator — `packages/compiler/src/artifacts/evidence-types.ts`, `packages/compiler/src/artifacts/build-evidence-validator.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 8.2.8 Run ST-109..ST-115, ST-133, ST-138 and record the green phase ⏳ (implemented: 2026-11-10 11:03) ✅ (completed: 2026-11-10 13:00)
 
 ### Step 8.3: Implementation Tests and Verification
 
 - [x] 8.3.1 Write implementation tests for field ordering, unknown timing, cost sums, and mismatch rejection — `packages/compiler/src/services/d64-evidence.impl.test.ts` ✅ (completed: 2026-11-10 12:31)
-- [ ] 8.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier
+- [x] 8.3.2 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier ✅ (completed: 2026-11-10 13:20)
 
 **Deliverables**:
-- [ ] All version-1 D64 records produced
-- [ ] No double counting
-- [ ] Mismatch rejects before publication
+- [x] All version-1 D64 records produced ✅ (completed: 2026-11-10 13:20)
+- [x] No double counting ✅ (completed: 2026-11-10 13:20)
+- [x] Mismatch rejects before publication ✅ (completed: 2026-11-10 13:20)
 
 **Verify**: yarn install --frozen-lockfile; `yarn vitest run test/rd07/d64-evidence.spec.test.ts` plus `yarn workspace @blend65/compiler test src/services/d64-evidence.impl.test.ts`
 
@@ -400,27 +400,27 @@ illegal uses, and tooling handoff before implementation.
 
 **Reference**: [03-06](03-06-artifact-publication-and-run.md), [03-07](03-07-evidence-and-costs.md) · ST-116..ST-126, ST-132, ST-139, ST-141..ST-142
 
-- [ ] 9.1.1 [spec-author] Write the VICE and qualification specification tests from ST-116..ST-126, ST-132, ST-139, ST-141..ST-142 and record the red phase — `test/rd07/d64-vice.spec.test.ts`, `test/rd07/qualification.spec.test.ts`
-- [~] 9.1.2 Add focused examples: composite level, sequential reuse, failure path, quiescence/restoration, unreachable omission, capacity — `examples/rd07-loadable/` ⏳ (implemented: 2026-11-10 11:14)
+- [x] 9.1.1 [spec-author] Write the VICE and qualification specification tests from ST-116..ST-126, ST-132, ST-139, ST-141..ST-142 and record the red phase — `test/rd07/d64-vice.spec.test.ts`, `test/rd07/qualification.spec.test.ts` ✅ (completed: 2026-11-10 13:20)
+- [x] 9.1.2 Add focused examples: composite level, sequential reuse, failure path, quiescence/restoration, unreachable omission, capacity — `examples/rd07-loadable/` ⏳ (implemented: 2026-11-10 11:14) ✅ (completed: 2026-11-10 13:16)
 - [x] 9.1.3 Write user-facing trusted-media documentation naming HLE-010 and the no-containment boundary — `docs/loadable-assets.md` ✅ (completed: 2026-11-10 11:22)
 - [x] 9.1.4 Build the VICE fixture and bounded observation driver with explicit cycle limits and soft skip — `test/rd07/vice-driver.ts` ⏳ (implemented: 2026-11-10 11:22) ✅ (completed: 2026-11-10 13:00)
 - [x] 9.1.5 Prove boot, load success, exact bytes, canaries, failure, short load, BASIC return, and no hidden copy — `test/rd07/d64-vice.spec.test.ts` ⏳ (implemented: 2026-11-10 11:22) ✅ (completed: 2026-11-10 13:00)
-- [ ] 9.1.6 Run the bounded longer-replacement observation with an isolated destination and canaries — `test/rd07/d64-vice.spec.test.ts`
-- [ ] 9.1.7 Record D64 serialization, decode, flow analysis, build, and bounded-run host observations — `test/rd07/qualification.spec.test.ts`
-- [ ] 9.1.8 Run the end-to-end, capacity, and PRG-regression integration suites — `test/rd07/d64-e2e.spec.test.ts`, `test/rd07/d64-capacity.spec.test.ts`, `test/rd07/prg-regression.spec.test.ts`
-- [ ] 9.1.9 Run the determinism, product-boundary, and link/deferral scans — `test/rd07/qualification.spec.test.ts`
+- [x] 9.1.6 Run the bounded longer-replacement observation with an isolated destination and canaries — `test/rd07/d64-vice.spec.test.ts` ✅ (completed: 2026-11-10 13:16)
+- [x] 9.1.7 Record D64 serialization, decode, flow analysis, build, and bounded-run host observations — `test/rd07/qualification.spec.test.ts` ✅ (completed: 2026-11-10 13:20)
+- [x] 9.1.8 Run the end-to-end, capacity, and PRG-regression integration suites — `test/rd07/d64-e2e.spec.test.ts`, `test/rd07/d64-capacity.spec.test.ts`, `test/rd07/prg-regression.spec.test.ts` ✅ (completed: 2026-11-10 13:20)
+- [x] 9.1.9 Run the determinism, product-boundary, and link/deferral scans — `test/rd07/qualification.spec.test.ts` ✅ (completed: 2026-11-10 13:20)
 
 ### Step 9.2: Boundary and Closeout
 
-- [ ] 9.2.1 Run the complete RD-07 boundary once after integration, including affected existing suites
-- [ ] 9.2.2 Run the deferral-expiry and durable-register scan; re-own every due item
-- [~] 9.2.3 Write the closeout with `VICE-verified / hardware-unverified`, evidence, and remaining debt — `codeops/features/blend65-v4/plans/rd-07-loadable-assets-and-d64-delivery/09-closeout.md` ⏳ (implemented: 2026-11-10 11:14)
-- [ ] 9.2.4 Update the feature and portfolio roadmaps; verify `spec/` is untouched; final install/build/typecheck/test and targeted Prettier
+- [x] 9.2.1 Run the complete RD-07 boundary once after integration, including affected existing suites ✅ (completed: 2026-11-10 13:20)
+- [x] 9.2.2 Run the deferral-expiry and durable-register scan; re-own every due item ✅ (completed: 2026-11-10 13:16)
+- [x] 9.2.3 Write the closeout with `VICE-verified / hardware-unverified`, evidence, and remaining debt — `codeops/features/blend65-v4/plans/rd-07-loadable-assets-and-d64-delivery/09-closeout.md` ⏳ (implemented: 2026-11-10 11:14) ✅ (completed: 2026-11-10 13:16)
+- [x] 9.2.4 Update the feature and portfolio roadmaps; verify `spec/` is untouched; final install/build/typecheck/test and targeted Prettier ✅ (completed: 2026-11-10 13:20)
 
 **Deliverables**:
-- [ ] Playable load example on the fresh D64
-- [ ] Runtime evidence and honest hardware boundary
-- [ ] Closed deferrals and updated roadmap
+- [x] Playable load example on the fresh D64 ✅ (completed: 2026-11-10 13:20)
+- [x] Runtime evidence and honest hardware boundary ✅ (completed: 2026-11-10 13:20)
+- [x] Closed deferrals and updated roadmap ✅ (completed: 2026-11-10 13:20)
 
 **Verify**: `yarn install --frozen-lockfile`, complete RD-07 boundary, `yarn build`, `yarn typecheck`, `yarn test`, targeted Prettier
 

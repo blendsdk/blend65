@@ -31,13 +31,15 @@ describe("RD-07 loadable example", () => {
       expect(build.package.kind).toBe("d64");
       expect(build.package.imageBytes).toBe(174_848);
       expect(build.package.loaderStrategyId).toBe("kernal-sequential-uncompressed");
-      expect(build.package.components).toHaveLength(2);
+      // Boot plus the two reachable units; LEVEL_3_UNUSED is omitted.
+      expect(build.package.components).toHaveLength(3);
       expect(build.package.components[0]!.id).toBe("boot");
       expect(build.package.components[1]!.bytes).toBe(2 + 32);
+      expect(build.package.components[2]!.bytes).toBe(2 + 32);
       const memory = JSON.parse(
         await readFile(join(built.generation.directory, ".memory.json"), "utf8"),
       ) as { loadStates: unknown[] };
-      expect(memory.loadStates).toHaveLength(1);
+      expect(memory.loadStates).toHaveLength(2);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

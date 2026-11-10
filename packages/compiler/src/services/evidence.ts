@@ -981,7 +981,10 @@ export async function prepareEvidence(
               )
               .map((operation) => {
                 const key = bindingIdentityKey(operation.destinationBinding);
-                const destination = intervals.find((interval) => String(interval.id).includes(key));
+                const destination = intervals.find(
+                  (interval) =>
+                    interval.kind === "loadDestination" && String(interval.id).includes(key),
+                );
                 const site = Object.freeze({
                   path: operation.span.sourceId,
                   startByte: operation.span.start,

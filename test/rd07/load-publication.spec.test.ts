@@ -91,6 +91,24 @@ describe("load publication", () => {
     ).toEqual(["E10276"]);
   });
 
+  // A partial-overlap read on the failed edge is rejected; a disjoint sibling stays readable.
+  it("should reject a partial-overlap read and allow a disjoint sibling", async () => {
+    const base = [
+      "struct Guard { data: byte[4]; canary: byte[2]; }",
+      "let guard: Guard = { data: [0, 0, 0, 0], canary: [170, 187] };",
+    ].join("\n");
+    expect(
+      await errors(
+        `${base}\nfunction main(): void { if (!c64.loader.load(DATA, guard.data)) { let copy: Guard = guard; } }`,
+      ),
+    ).toEqual(["E10276"]);
+    expect(
+      await errors(
+        `${base}\nfunction main(): void { if (!c64.loader.load(DATA, guard.data)) { let flag: byte = guard.canary[0]; } }`,
+      ),
+    ).toEqual([]);
+  });
+
   // A full ordinary assignment on the false edge establishes its own value.
   it("should allow a read after the false edge is fully reassigned", async () => {
     expect(

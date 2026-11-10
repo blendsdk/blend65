@@ -1,7 +1,7 @@
 # RD-07 Loadable Assets and D64 Delivery — Implementation Plan
 
 > **Feature**: Nonresident typed load units, KERNAL-first transfer, and one deterministic D64 artifact
-> **Status**: Executing
+> **Status**: Done
 > **Created**: 2026-11-10
 > **Implements**: blend65-v4/RD-07
 > **CodeOps Artifact Schema**: 1
@@ -58,7 +58,7 @@ independent test decoder are the direct requested implementation, not a Complexi
 | 03-06 | [Artifact, Publication, and Run](03-06-artifact-publication-and-run.md) | D64 profile, primary artifact, atomic publication, VICE mount |
 | 03-07 | [Evidence and Costs](03-07-evidence-and-costs.md) | Sidecar records, costs, debug load units, reconciliation |
 | 07  | [Testing Strategy](07-testing-strategy.md) | Specification cases and verification |
-| 09  | [Closeout (in progress)](09-closeout.md) | Delivered slice, remaining work, verification |
+| 09  | [Closeout](09-closeout.md) | Delivered slice, deferral scan, tracked debt, verification |
 | 99  | [Execution Plan](99-execution-plan.md) | Phases, sessions, and task checklist |
 
 ## Quick Reference
