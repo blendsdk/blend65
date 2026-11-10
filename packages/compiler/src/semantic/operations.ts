@@ -306,6 +306,10 @@ export interface LoadUnitOperation extends ValueOperation {
   readonly kind: "load-unit";
   /** Exact loadable declaration identity. */
   readonly unit: BindingId;
+  /** Stable packaged unit identity. */
+  readonly unitId: string;
+  /** Exact uncompressed directory-name bytes passed to SETNAM. */
+  readonly unitName: readonly number[];
   /** Evaluated destination address value. */
   readonly destination: ValueId;
   /** Exact unit logical type. */
@@ -486,6 +490,8 @@ export interface SemanticProgram {
   readonly globals: readonly SemanticGlobal[];
   /** Ordinary source functions in semantic identity order. */
   readonly functions: readonly SemanticFunction[];
+  /** Exact nonresident load units retained for packaging. */
+  readonly loadUnits: readonly import("../frontend/load-units.js").LoadUnitRecord[];
   /** Frontend-proved transitive effects, retained for reachable-program filtering. */
   readonly effects?: readonly EffectSummary[];
   /** Immutable resident assets, still without physical placement. */

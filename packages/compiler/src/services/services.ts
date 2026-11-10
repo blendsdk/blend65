@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { lstat, mkdir, rm } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { lstat, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { serializeAcme } from "../artifacts/acme-serializer.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
@@ -24,6 +24,8 @@ import { selectTargetProfile } from "../target/profile.js";
 import { runAcme } from "../tools/acme.js";
 import { discoverAcme } from "../tools/discovery.js";
 import { prepareEvidence, sizeCostVector } from "./evidence.js";
+import { buildD64Image, encodeD64Name } from "../packaging/d64/index.js";
+import type { D64Image } from "../packaging/d64/index.js";
 import { validateSizeObservers } from "./size-observers.js";
 import type {
   SizeCostSourceSite,
@@ -676,6 +678,50 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
       ]),
     };
   }
+  let d64:
+    | {
+        readonly path: string;
+        readonly bytes: Uint8Array;
+        readonly sha256: string;
+        readonly image: D64Image;
+        readonly bootComponentId: string;
+      }
+    | undefined;
+  if (profile.packager.id === "cbm-d64") {
+    const bootFile = await readFile(assembled.artifacts.prg.path);
+    const image = buildD64Image({
+      projectName: snapshot.manifest.name,
+      semanticHash: snapshot.inputSha256,
+      boot: Object.freeze({
+        id: "boot",
+        name: encodeD64Name(snapshot.manifest.name),
+        loadAddress: 0x0801,
+        body: Object.freeze([...bootFile.subarray(2)]),
+        aliases: Object.freeze([]),
+        destinationCalls: Object.freeze([]),
+      }),
+      units: selectedPipeline.program.semantic.loadUnits.map((unit) =>
+        Object.freeze({
+          id: unit.id,
+          name: Object.freeze([...unit.diskName].map((character) => character.charCodeAt(0))),
+          loadAddress: 0,
+          body: unit.bytes,
+          aliases: unit.aliases,
+          destinationCalls: Object.freeze([]),
+        }),
+      ),
+    });
+    const d64Path = `${snapshot.manifest.name}.d64`;
+    await writeFile(join(stagingDirectory, d64Path), image.bytes, { flag: "wx" });
+    await rm(assembled.artifacts.prg.path, { force: true });
+    d64 = Object.freeze({
+      path: d64Path,
+      bytes: image.bytes,
+      sha256: createHash("sha256").update(image.bytes).digest("hex"),
+      image,
+      bootComponentId: "boot",
+    });
+  }
   let evidence;
   try {
     evidence = await prepareEvidence({
@@ -687,6 +733,7 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
       profile,
       tool: discovered.tool,
       artifacts: assembled.artifacts,
+      ...(d64 === undefined ? {} : { d64 }),
       stagingDirectory,
       generationId,
       measurements: Object.freeze({

@@ -177,6 +177,7 @@ function packageValue(
         "bamSha256",
         "directorySha256",
         "allocationPolicyId",
+        "loaderStrategyId",
         "freeBlocks",
         "bootComponentId",
         "components",
@@ -189,6 +190,7 @@ function packageValue(
       !isEvidenceHash(value.bamSha256, invalid, ["bamSha256"]) ||
       !isEvidenceHash(value.directorySha256, invalid, ["directorySha256"]) ||
       !isEvidenceText(value.allocationPolicyId, invalid, ["allocationPolicyId"]) ||
+      !isEvidenceText(value.loaderStrategyId, invalid, ["loaderStrategyId"]) ||
       !isEvidenceCount(value.freeBlocks, invalid, ["freeBlocks"]) ||
       !isEvidenceText(value.bootComponentId, invalid, ["bootComponentId"]) ||
       !Array.isArray(value.components) ||

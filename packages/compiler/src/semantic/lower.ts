@@ -52,13 +52,14 @@ function lowerFunction(
   bindings: readonly SemanticBinding[],
   bindingsByKey: ReadonlyMap<string, SemanticBinding>,
   embeddedByBinding: ReadonlyMap<string, EmbeddedValue>,
+  loadUnits: readonly import("../frontend/load-units.js").LoadUnitRecord[],
 ): SemanticFunction {
   if (declaration.body === null) throw new Error("Cannot lower a non-function as a function");
   const builder = new ControlFlowBuilder(
     `function:${bindingIdentityKey(declaration.binding)}`,
     bindingsByKey,
   );
-  const expressions = new ExpressionLowerer(builder, bindingsByKey, embeddedByBinding);
+  const expressions = new ExpressionLowerer(builder, bindingsByKey, embeddedByBinding, loadUnits);
   builder.lowerBody(declaration.body, expressions.lower);
   const blocks = Object.freeze(
     builder.finish(declaration.type).map((block) =>
@@ -110,6 +111,7 @@ function lowerGlobal(
   binding: SemanticBinding,
   bindingsByKey: ReadonlyMap<string, SemanticBinding>,
   embeddedByBinding: ReadonlyMap<string, EmbeddedValue>,
+  loadUnits: readonly import("../frontend/load-units.js").LoadUnitRecord[],
 ): SemanticGlobal {
   if (binding.storage !== "module" && binding.storage !== "constant") {
     throw new Error("Completed global has a non-global storage class");
@@ -154,7 +156,7 @@ function lowerGlobal(
     `initializer:${bindingIdentityKey(declaration.binding)}`,
     bindingsByKey,
   );
-  const expressions = new ExpressionLowerer(builder, bindingsByKey, embeddedByBinding);
+  const expressions = new ExpressionLowerer(builder, bindingsByKey, embeddedByBinding, loadUnits);
   const destination: AggregateDestination | undefined =
     declaration.type.kind === "array" || declaration.type.kind === "struct"
       ? Object.freeze({
@@ -227,14 +229,22 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
     if (binding === undefined) throw new Error("Completed declaration has no retained binding");
     if (declaration.body !== null) {
       functions.push(
-        lowerFunction(declaration, frontend.bindings, bindingsByKey, embeddedByBinding),
+        lowerFunction(
+          declaration,
+          frontend.bindings,
+          bindingsByKey,
+          embeddedByBinding,
+          frontend.loadUnits,
+        ),
       );
     } else if (
       (binding.storage === "module" || binding.storage === "constant") &&
       !declaration.loadable &&
       !embeddedBindings.has(bindingIdentityKey(declaration.binding))
     ) {
-      globals.push(lowerGlobal(declaration, binding, bindingsByKey, embeddedByBinding));
+      globals.push(
+        lowerGlobal(declaration, binding, bindingsByKey, embeddedByBinding, frontend.loadUnits),
+      );
     }
   }
   return Object.freeze({
@@ -247,6 +257,7 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
       ),
       effects: frontend.effects,
       assets: frontend.assets,
+      loadUnits: frontend.loadUnits,
       residentAssetRoots: Object.freeze([
         ...new Set(
           frontend.declarations.flatMap((declaration) =>

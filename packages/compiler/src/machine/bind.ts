@@ -38,32 +38,26 @@ function bindOperand(
   if (operand === null || (operand.kind !== "storage" && operand.kind !== "indirect-y")) {
     return Object.freeze({ operand, mode: null });
   }
-  // An empty object occupies no bytes, but its address is still a valid value
-  // when passed through the aggregate ABI. Never permit a byte read from it.
+  // An address byte may point one past the object's last byte (the expected load end).
   if (operand.kind === "storage" && operand.addressByte !== undefined) {
     const home = homes.get(operand.requestId);
-    if (home?.bytes === 0 && (operand.offset ?? 0) === 0) {
-      return Object.freeze({
-        operand: Object.freeze({
-          kind: "immediate",
-          value: operand.addressByte === "low" ? home.address & 0xff : (home.address >> 8) & 0xff,
-        }),
-        mode: "immediate",
-      });
+    const offset = operand.offset ?? 0;
+    if (home === undefined || !Number.isInteger(offset) || offset < 0 || offset > home.bytes) {
+      return null;
     }
-  }
-  const resolved = resolveHome(homes, operand.requestId, operand.offset ?? 0);
-  if (resolved === null) return null;
-  if (operand.kind === "storage" && operand.addressByte !== undefined) {
     return Object.freeze({
       operand: Object.freeze({
         kind: "immediate",
         value:
-          operand.addressByte === "low" ? resolved.address & 0xff : (resolved.address >> 8) & 0xff,
+          operand.addressByte === "low"
+            ? (home.address + offset) & 0xff
+            : ((home.address + offset) >> 8) & 0xff,
       }),
       mode: "immediate",
     });
   }
+  const resolved = resolveHome(homes, operand.requestId, operand.offset ?? 0);
+  if (resolved === null) return null;
   return Object.freeze({
     operand: Object.freeze({ kind: "absolute", value: resolved.address }),
     mode: resolved.home.region === "zero-page" ? "zero-page" : "absolute",

@@ -43,9 +43,14 @@ export class ExpressionLowerer {
     builder: ControlFlowBuilder,
     bindingsByKey: ReadonlyMap<string, SemanticBinding>,
     embeddedByBinding: ReadonlyMap<string, EmbeddedValue>,
+    loadUnits: readonly import("../frontend/load-units.js").LoadUnitRecord[] = [],
   ) {
-    this.calls = new CallLowerer(builder, bindingsByKey, this.lower, (expression) =>
-      this.lowerPlace(expression),
+    this.calls = new CallLowerer(
+      builder,
+      bindingsByKey,
+      this.lower,
+      (expression) => this.lowerPlace(expression),
+      new Map(loadUnits.map((unit) => [bindingIdentityKey(unit.binding), unit] as const)),
     );
     this.builder = builder;
     this.bindingsByKey = bindingsByKey;

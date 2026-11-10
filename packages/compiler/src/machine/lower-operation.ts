@@ -48,6 +48,7 @@ import {
 import { potentialValueInputs } from "../semantic/value-lifetimes.js";
 import { lowerDirectCall } from "./lower-call.js";
 import { lowerPlatformOperation } from "./lower-platform.js";
+import { lowerLoadUnit } from "./lower-load-unit.js";
 import { declaredStorage } from "../storage/selection.js";
 
 /** Return the preplanned home used to preserve one loaded scalar, when required. */
@@ -84,6 +85,7 @@ export function lowerOperation(
     operation.kind === "indirect-call" ||
     operation.kind === "memory-write" ||
     operation.kind === "platform" ||
+    operation.kind === "load-unit" ||
     operation.kind === "cpu-control" ||
     operation.kind === "bcd" ||
     (operation.kind === "binary" && operation.operator !== "/" && operation.operator !== "%")
@@ -628,6 +630,7 @@ export function lowerOperation(
   }
   if (operation.kind === "platform")
     return lowerPlatformOperation(operation, state, selectedInterruptRoute);
+  if (operation.kind === "load-unit") return lowerLoadUnit(operation, state);
   if (operation.kind === "call") return lowerDirectCall(operation, state);
   if (operation.kind === "embedded-address") {
     state.values.set(

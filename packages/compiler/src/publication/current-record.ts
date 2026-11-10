@@ -241,7 +241,8 @@ function evidenceAgrees(
     return false;
   }
   const primary = build.artifacts.find(({ kind }) => kind === "primary");
-  if (primary === undefined || !primary.path.endsWith(".prg")) return false;
+  if (primary === undefined || (!primary.path.endsWith(".prg") && !primary.path.endsWith(".d64")))
+    return false;
   const assets = validateAssetsEvidence(files.get(".assets.json")!.bytes);
   const memory = validateMemoryEvidence(files.get(".memory.json")!.bytes);
   const costs = validateCostsEvidence(files.get(".costs.json")!.bytes);
@@ -285,17 +286,34 @@ function evidenceAgrees(
     primaryBytes === undefined || primaryBytes.byteLength < 2
       ? -1
       : primaryBytes[0]! | (primaryBytes[1]! << 8);
+  const d64ProgramBytes = (() => {
+    if (packageValue.kind !== "d64" || !Array.isArray(packageValue.components)) return null;
+    const boot = packageValue.components.find(
+      (component): component is Record<string, unknown> =>
+        typeof component === "object" &&
+        component !== null &&
+        (component as Record<string, unknown>).id === packageValue.bootComponentId,
+    );
+    return typeof boot?.bytes === "number" ? boot.bytes - 2 : null;
+  })();
+  const packageAgrees =
+    packageValue.kind === "prg"
+      ? packageValue.artifactPath === primary.path &&
+        packageValue.loadAddress === loadAddress &&
+        packageValue.endAddress === loadAddress + primaryBytes!.byteLength - 2 &&
+        costs.value.totals.programBytes === Math.max(0, primaryBytes!.byteLength - 2)
+      : packageValue.kind === "d64"
+        ? packageValue.artifactPath === primary.path &&
+          d64ProgramBytes !== null &&
+          costs.value.totals.programBytes === d64ProgramBytes
+        : false;
   return (
     primaryBytes !== undefined &&
-    packageValue.kind === "prg" &&
-    packageValue.artifactPath === primary.path &&
-    packageValue.loadAddress === loadAddress &&
-    packageValue.endAddress === loadAddress + primaryBytes.byteLength - 2 &&
+    packageAgrees &&
     sameValue(selectedAssetInputs, semanticAssets) &&
     sidecarReferencesAgree(build, assets.value, memory.value, costs.value, debug.value) &&
     memory.value.profileId === build.semanticInputs.target.profileId &&
     costs.value.mode === build.semanticInputs.options.optimization &&
-    costs.value.totals.programBytes === Math.max(0, primaryBytes.byteLength - 2) &&
     debug.value.profileId === build.semanticInputs.target.profileId &&
     debug.value.cpuId === build.semanticInputs.target.cpuId &&
     debug.value.optimization === build.semanticInputs.options.optimization &&

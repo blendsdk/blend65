@@ -17,6 +17,10 @@ export type LoadUnitProvenance =
 export interface LoadUnitRecord {
   /** Stable identity derived from the qualified declaration, not its bytes. */
   readonly id: string;
+  /** Deterministic uppercase directory name derived from the identity. */
+  readonly diskName: string;
+  /** Source declaration identity used by load operations. */
+  readonly binding: import("./module-graph-types.js").BindingId;
   /** Qualified source declaration name. */
   readonly declaration: string;
   /** Declaration source span. */
@@ -109,6 +113,8 @@ function unitFromDeclaration(
       : [];
   return Object.freeze({
     id,
+    diskName: loadUnitDiskName(id),
+    binding: declaration.binding,
     declaration: binding.qualifiedName ?? binding.name,
     source: declaration.binding.span,
     type: declaration.type,
@@ -148,6 +154,8 @@ function unitFromLocal(
       : [];
   return Object.freeze({
     id,
+    diskName: loadUnitDiskName(id),
+    binding: local.binding.id,
     declaration: local.binding.qualifiedName ?? local.binding.name,
     source: local.binding.declaration,
     type: local.type,

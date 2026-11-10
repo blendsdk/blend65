@@ -114,6 +114,22 @@ export interface SizeEvidenceDecision {
     | { readonly kind: "stableId"; readonly candidateIds: readonly string[] };
 }
 
+import { paddedD64Name } from "../packaging/d64/index.js";
+import type { D64Image } from "../packaging/d64/index.js";
+
+interface D64EvidenceInput {
+  /** Generation-relative `.d64` filename. */
+  readonly path: string;
+  /** Exact image bytes. */
+  readonly bytes: Uint8Array;
+  /** Lowercase SHA-256 of the image. */
+  readonly sha256: string;
+  /** Exact serializer result. */
+  readonly image: D64Image;
+  /** Boot component identity inside the image. */
+  readonly bootComponentId: string;
+}
+
 interface EvidencePreparationInput {
   readonly snapshot: ProjectSnapshot;
   readonly program: WholeProgram;
@@ -123,11 +139,66 @@ interface EvidencePreparationInput {
   readonly profile: TargetProfile;
   readonly tool: AcmeToolIdentity;
   readonly artifacts: AcmeArtifactSet;
+  /** Present when the selected packager is `cbm-d64`. */
+  readonly d64?: D64EvidenceInput;
   readonly stagingDirectory: string;
   readonly generationId: string;
   readonly measurements: ServiceMeasurements;
   /** Exact size selection; absent for none or direct builds. */
   readonly sizeDecision?: SizeEvidenceDecision;
+}
+
+/** Format one PETSCII byte sequence as lowercase hex. */
+function hexBytes(bytes: readonly number[]): string {
+  return bytes.map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/** Build one exact D64 package record from the packager output. */
+function d64PackageEvidence(input: D64EvidenceInput, artifactPath: string) {
+  return Object.freeze({
+    kind: "d64" as const,
+    artifactPath,
+    imageBytes: 174_848 as const,
+    dosType: "2A" as const,
+    diskLabelPetsciiHex: hexBytes(input.image.label),
+    diskIdPetsciiHex: hexBytes(input.image.diskId),
+    bamSha256: input.image.bamSha256,
+    directorySha256: input.image.directorySha256,
+    allocationPolicyId: input.image.allocationPolicyId,
+    loaderStrategyId: "kernal-sequential-uncompressed" as const,
+    freeBlocks: input.image.freeBlocks,
+    bootComponentId: input.bootComponentId,
+    components: Object.freeze(
+      input.image.files.map((placed) => {
+        const logicalSha256 = sha256(Uint8Array.from(placed.file.body));
+        return Object.freeze({
+          id: placed.file.id,
+          logicalSha256,
+          source: Object.freeze({
+            kind: "generated" as const,
+            identity: placed.file.id,
+            sha256: logicalSha256,
+          }),
+          outputSha256: sha256(Uint8Array.from(placed.bytes)),
+          directoryNamePetsciiHex: hexBytes(paddedD64Name(placed.file.name)),
+          fileType: "PRG" as const,
+          loadAddress: placed.file.loadAddress,
+          startTrack: placed.sectors[0]!.track,
+          startSector: placed.sectors[0]!.sector,
+          endTrack: placed.sectors.at(-1)!.track,
+          endSector: placed.sectors.at(-1)!.sector,
+          blocks: placed.blocks,
+          bytes: placed.bytes.length,
+          destinationCalls: Object.freeze(
+            placed.file.destinationCalls.map(({ sourceId, start, end }) =>
+              Object.freeze({ path: sourceId, startByte: start, endByte: end }),
+            ),
+          ),
+          aliases: placed.file.aliases,
+        });
+      }),
+    ),
+  });
 }
 
 /** Hash bytes using the common lowercase SHA-256 spelling. */
@@ -484,8 +555,13 @@ export async function prepareEvidence(
     BUILD_INFO.expertVersion,
     BUILD_INFO.expertContentCommit,
   );
-  const primaryArtifact = basename(input.artifacts.prg.path);
-  const primaryBytes = await readFile(input.artifacts.prg.path);
+  const primaryArtifact = input.d64?.path ?? basename(input.artifacts.prg.path);
+  const primaryBytes = input.d64?.bytes ?? (await readFile(input.artifacts.prg.path));
+  const programBytes =
+    input.d64 === undefined
+      ? Math.max(0, primaryBytes.byteLength - 2)
+      : (input.d64.image.files.find(({ file }) => file.id === input.d64!.bootComponentId)?.file.body
+          .length ?? 0);
   const semanticAssets = input.program.semantic.assets
     .filter(
       (asset): asset is ResidentAsset =>
@@ -827,7 +903,7 @@ export async function prepareEvidence(
     )
     .reduce((total, interval) => total + (interval.size as number), 0);
   const finalVector: SizeCostVector = Object.freeze({
-    programBytes: Math.max(0, primaryBytes.byteLength - 2),
+    programBytes,
     pathCycles: finalPathCycles,
     resources: Object.freeze([
       Object.freeze({ kind: "standard" as const, id: "zeroPage" as const, value: zeroPage }),
@@ -904,7 +980,7 @@ export async function prepareEvidence(
     primaryArtifact: Object.freeze({
       path: primaryArtifact,
       kind: "primary",
-      sha256: input.artifacts.prg.sha256,
+      sha256: input.d64?.sha256 ?? input.artifacts.prg.sha256,
     }),
     tools: portableTools,
     sources: Object.freeze(
@@ -979,8 +1055,8 @@ export async function prepareEvidence(
     const filesBeforeBuild = [
       Object.freeze({
         path: primaryArtifact,
-        bytes: input.artifacts.prg.bytes,
-        sha256: input.artifacts.prg.sha256,
+        bytes: primaryBytes.byteLength,
+        sha256: input.d64?.sha256 ?? input.artifacts.prg.sha256,
       }),
       Object.freeze({
         path: ".asm",
@@ -1082,12 +1158,16 @@ export async function prepareEvidence(
         durationMilliseconds: input.measurements.durationMilliseconds,
         peakRssBytes: input.measurements.peakRssBytes,
       }),
-      package: Object.freeze({
-        kind: "prg",
-        artifactPath: primaryArtifact,
-        loadAddress: primaryBytes[0]! | (primaryBytes[1]! << 8),
-        endAddress: (primaryBytes[0]! | (primaryBytes[1]! << 8)) + primaryBytes.byteLength - 2,
-      }),
+      package:
+        input.d64 === undefined
+          ? Object.freeze({
+              kind: "prg",
+              artifactPath: primaryArtifact,
+              loadAddress: primaryBytes[0]! | (primaryBytes[1]! << 8),
+              endAddress:
+                (primaryBytes[0]! | (primaryBytes[1]! << 8)) + primaryBytes.byteLength - 2,
+            })
+          : d64PackageEvidence(input.d64, primaryArtifact),
       artifacts: Object.freeze(buildArtifacts),
     });
     const build = encodeBuildEvidence(buildEvidence);

@@ -75,6 +75,7 @@ export function wholeProgramFor(
     globals: Object.freeze([]),
     functions: Object.freeze(functions),
     assets: Object.freeze([]),
+    loadUnits: Object.freeze([]),
     initializerOrder: Object.freeze([]),
   });
   return Object.freeze({

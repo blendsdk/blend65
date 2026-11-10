@@ -1,5 +1,6 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { SCALAR_TYPES } from "../frontend/constants.js";
+import type { LoadUnitRecord } from "../frontend/load-units.js";
 import type { SemanticBinding, SemanticType, TypedExpr } from "../frontend/semantic-types.js";
 import type { ControlFlowBuilder } from "./cfg.js";
 import { required } from "./lower-control.js";
@@ -26,6 +27,7 @@ export class CallLowerer {
       destination?: AggregateDestination,
     ) => ValueId | null,
     private readonly lowerPlace: (expression: TypedExpr) => SemanticPlace,
+    private readonly loadUnitsByBinding: ReadonlyMap<string, LoadUnitRecord>,
   ) {}
 
   /** Lower raw-memory, profile, or ordinary direct calls after source-ordered arguments. */
@@ -39,6 +41,8 @@ export class CallLowerer {
       if (unit?.type === null || unit?.type === undefined) {
         throw new Error("Lowered load unit has no retained type");
       }
+      const record = this.loadUnitsByBinding.get(bindingIdentityKey(expression.loadUnit.unit));
+      if (record === undefined) throw new Error("Lowered load unit has no retained record");
       const place = this.lowerPlace(expression.loadUnit.destination);
       const address = this.builder.nextValue();
       this.builder.emit(
@@ -57,6 +61,8 @@ export class CallLowerer {
           kind: "load-unit",
           result,
           unit: expression.loadUnit.unit,
+          unitId: record.id,
+          unitName: Object.freeze([...record.diskName].map((character) => character.charCodeAt(0))),
           destination: address,
           unitType: unit.type,
           type,

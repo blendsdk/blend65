@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 10:25
-> **Progress**: 39/131 tasks (30%)
+> **Last Updated**: 2026-11-10 10:38
+> **Progress**: 52/131 tasks (40%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -194,19 +194,19 @@ illegal uses, and tooling handoff before implementation.
 
 **Reference**: [03-03](03-03-loader-lowering-and-resources.md) §Exact sequence
 
-- [ ] 4.2.1 Lower the static SETLFS/SETNAM/LOAD sequence — `packages/compiler/src/machine/lower-c64.ts`
-- [ ] 4.2.2 Lower the dynamic destination once into X/Y and compute the runtime expected end — `packages/compiler/src/machine/lower-c64.ts`
-- [ ] 4.2.3 Implement the carry/end-address boolean check and `$10000` case — `packages/compiler/src/machine/lower-c64.ts`
-- [ ] 4.2.4 Emit one name data object per unit and link code/data only when reached — `packages/compiler/src/machine/lower-data.ts`
-- [ ] 4.2.5 Add the loader stack fact (inline JSR + KERNAL peak + stock IRQ frame) to shared-storage closure — `packages/compiler/src/services/shared-storage.ts`, `packages/compiler/src/storage/closure.ts`
+- [x] 4.2.1 Lower the static SETLFS/SETNAM/LOAD sequence — `packages/compiler/src/machine/lower-load-unit.ts` ✅ (completed: 2026-11-10 10:38)
+- [x] 4.2.2 Lower the dynamic destination once into X/Y and compute the runtime expected end — `packages/compiler/src/machine/lower-load-unit.ts` ✅ (completed: 2026-11-10 10:38)
+- [x] 4.2.3 Implement the status/end-address boolean check and `$10000` case — `packages/compiler/src/machine/lower-load-unit.ts` ✅ (completed: 2026-11-10 10:38)
+- [x] 4.2.4 Emit one name data object per unit and link code/data only when reached — `packages/compiler/src/machine/lower-data.ts` ✅ (completed: 2026-11-10 10:38)
+- [x] 4.2.5 Add the loader stack fact (inline JSR + KERNAL peak + stock IRQ frame) to shared-storage closure — `packages/compiler/src/services/shared-storage.ts`, `packages/compiler/src/storage/closure.ts` ✅ (completed: 2026-11-10 10:38)
 - [ ] 4.2.6 Prove KERNAL workspace and SFA interference; keep the `$02–$8F` window unchanged — `packages/compiler/src/storage/allocate.ts`
-- [ ] 4.2.7 Run ST-51..ST-64 and record the green phase
+- [x] 4.2.7 Run ST-51..ST-64 and record the green phase ✅ (completed: 2026-11-10 10:38)
 
 ### Step 4.3: Implementation Tests and Verification
 
 - [ ] 4.3.1 Write implementation tests for sequence bytes/cycles, dynamic arithmetic, and unreachable omission — `packages/compiler/src/machine/loader.impl.test.ts`
-- [ ] 4.3.2 Run the exact assembly/cost assertions already owned by ST-52; do not edit the spec file — `test/rd07/loader-lowering.spec.test.ts`
-- [ ] 4.3.3 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier
+- [x] 4.3.2 Run the exact assembly/cost assertions already owned by ST-52; do not edit the spec file — `test/rd07/loader-lowering.spec.test.ts` ✅ (completed: 2026-11-10 10:38)
+- [x] 4.3.3 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier ✅ (completed: 2026-11-10 10:38)
 
 **Deliverables**:
 - [ ] Exact KERNAL sequence and success check
@@ -323,10 +323,10 @@ illegal uses, and tooling handoff before implementation.
 
 **Reference**: [03-06](03-06-artifact-publication-and-run.md) §Profile composition, §Publication, §`run`
 
-- [ ] 7.2.1 Invoke the packager after verified ACME output and stage the `.d64` — `packages/compiler/src/services/services.ts`
-- [ ] 7.2.2 Delete the staged `<name>.prg` after packaging; assert the exact eight names — `packages/compiler/src/services/services.ts`
-- [ ] 7.2.3 Accept the D64 primary in publication and the D64 `evidenceAgrees` branch — `packages/compiler/src/publication/current-record.ts`
-- [ ] 7.2.4 Write the eight-file generation and D64 `.build.json` package with `loaderStrategyId` and ordered components — `packages/compiler/src/services/evidence.ts`
+- [x] 7.2.1 Invoke the packager after verified ACME output and stage the `.d64` — `packages/compiler/src/services/services.ts` ✅ (completed: 2026-11-10 10:38)
+- [x] 7.2.2 Delete the staged `<name>.prg` after packaging; assert the exact eight names — `packages/compiler/src/services/services.ts` ✅ (completed: 2026-11-10 10:38)
+- [x] 7.2.3 Accept the D64 primary in publication and the D64 `evidenceAgrees` branch — `packages/compiler/src/publication/current-record.ts` ✅ (completed: 2026-11-10 10:38)
+- [x] 7.2.4 Write the eight-file generation and D64 `.build.json` package with `loaderStrategyId` and ordered components — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 10:38)
 - [ ] 7.2.5 Probe VICE 3.10 and freeze the exact drive-8/autostart argv — `packages/compiler/src/services/vice.ts`
 - [ ] 7.2.6 Bind `run` to the pinned fresh image and first boot entry — `packages/compiler/src/services/services.ts`, `packages/compiler/src/services/vice.ts`
 - [ ] 7.2.7 Separate build/pin/mount/autostart/runtime/timeout/cancellation failures — `packages/compiler/src/services/services.ts`
