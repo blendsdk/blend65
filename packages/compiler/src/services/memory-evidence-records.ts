@@ -83,7 +83,10 @@ function physicalInterval(
   const zeroPage = interval.start >= 0 && interval.end < 0x100;
   const loadUnitId = interval.id.startsWith("compiler.c64.load-unit-name.")
     ? interval.id.slice("compiler.c64.load-unit-name.".length)
-    : null;
+    : interval.id.startsWith("compiler.c64.load-unit-scratch.")
+      ? interval.id.slice("compiler.c64.load-unit-scratch.".length)
+      : null;
+  const isLoaderScratch = interval.id.startsWith("compiler.c64.load-unit-scratch.");
   const globalKey = interval.id.startsWith("global.") ? interval.id.slice("global.".length) : null;
   const destination = globalKey === null ? undefined : loadDestinations.get(globalKey);
   const loadStateGroup =
@@ -102,7 +105,9 @@ function physicalInterval(
         ? "scratch"
         : "sfa"
     : loadUnitId !== null
-      ? "loader"
+      ? isLoaderScratch
+        ? "scratch"
+        : "loader"
       : loadStateGroup !== null
         ? "loadDestination"
         : interval.kind === "stub"

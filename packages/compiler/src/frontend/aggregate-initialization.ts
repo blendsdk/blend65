@@ -119,7 +119,14 @@ export function uninitializedReadDiagnostic(
         readKey !== null &&
         (readKey === publication.aliasKey || readKey.startsWith(`${publication.aliasKey}|`)),
     ) === true;
-  const blocking = captures.length > 0 && !readCovered && !dynamicMatch ? captures[0] : undefined;
+  const blocking =
+    readCovered || dynamicMatch || readRange === null
+      ? undefined
+      : captures.find((capture) =>
+          capture.dynamic
+            ? true
+            : capture.range.start < readRange.end && readRange.start < capture.range.end,
+        );
   if (blocking !== undefined && state !== undefined) {
     return projectDiagnostic(
       "E10276",

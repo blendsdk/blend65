@@ -1,7 +1,7 @@
 import { machineInstruction } from "./lower-control.js";
 import type { LoweredValue } from "./lower-control.js";
 import type { MachineInstruction, MachineOperand } from "./machine-types.js";
-import { loweringFailure, requestStorage } from "./lower-state.js";
+import { loweringFailure } from "./lower-state.js";
 import type { FunctionLoweringState } from "./lower-state.js";
 import type { LoadUnitOperation } from "../semantic/operations.js";
 import type { SemanticType } from "../frontend/semantic-types.js";
@@ -17,7 +17,7 @@ function unitBytes(type: SemanticType): number {
   return 1;
 }
 
-/** Build one absolute or storage address-byte operand for a proved static value. */
+/** Build one immediate address-byte operand for a proved static value. */
 function addressOperand(value: LoweredValue, offset: number, byte: "low" | "high"): MachineOperand {
   if (value.kind === "static-address") {
     if (value.requestId !== undefined) {
@@ -56,12 +56,18 @@ function addressOperand(value: LoweredValue, offset: number, byte: "low" | "high
   throw loweringFailure("Load destination is not a proved static address", null);
 }
 
+/** Build one absolute label operand for the per-unit loader scratch object. */
+function scratchOperand(id: string, offset: number): MachineOperand {
+  return Object.freeze({ kind: "label", label: id, offset });
+}
+
 /**
  * Lower the inline KERNAL `SETLFS`/`SETNAM`/`LOAD` sequence.
  *
- * The destination is either a static address or a compiler temporary holding one. The unit name
- * bytes are written into one compiler-owned temporary and passed to `SETNAM`. The success check is
- * branchless: the KERNAL carry and the returned X/Y end address are combined into one byte.
+ * KERNAL LOAD uses zero-page scratch that overlaps the compiler's SFA window, so
+ * every value needed across the call lives in a per-unit absolute scratch object.
+ * The error vector is redirected to a one-byte `RTS` while LOAD runs so a missing
+ * or unreadable file returns `false` instead of aborting the program.
  */
 export function lowerLoadUnit(
   operation: LoadUnitOperation,
@@ -72,6 +78,7 @@ export function lowerLoadUnit(
     throw loweringFailure("Load destination address was not evaluated", operation.span);
   }
   const nameId = `compiler.c64.load-unit-name.${operation.unitId}`;
+  const scratchId = `compiler.c64.load-unit-scratch.${operation.unitId}`;
   if (!state.generatedData.has(nameId)) {
     state.generatedData.set(
       nameId,
@@ -83,15 +90,17 @@ export function lowerLoadUnit(
       }),
     );
   }
-  const result = requestStorage(
-    state,
-    `load-result:${operation.unitId}`,
-    "temporary",
-    4,
-    "zero-page-required",
-    operation.span,
-    "Load success and expected-end temporaries",
-  );
+  if (!state.generatedData.has(scratchId)) {
+    state.generatedData.set(
+      scratchId,
+      Object.freeze({
+        id: scratchId,
+        kind: "bss" as const,
+        alignment: 1,
+        bytes: Object.freeze(new Array<number>(9).fill(0)),
+      }),
+    );
+  }
   const instruction = (
     opcode: string,
     mode: string,
@@ -107,8 +116,7 @@ export function lowerLoadUnit(
     destination.kind === "storage"
       ? { requestId: destination.requestId, offset: destination.offset ?? 0 }
       : null;
-  const instructions: MachineInstruction[] = [];
-  instructions.push(
+  const instructions: MachineInstruction[] = [
     instruction("lda", "immediate", { kind: "immediate", value: 1 }, "loader"),
     instruction("ldx", "zero-page", { kind: "absolute", value: 0xba }, "loader"),
     instruction("ldy", "immediate", { kind: "immediate", value: 0 }, "loader"),
@@ -140,79 +148,68 @@ export function lowerLoadUnit(
       "loader",
     ),
     instruction("jsr", "absolute", { kind: "absolute", value: 0xffbd }, "loader"),
-    instruction("lda", "immediate", { kind: "immediate", value: 0 }, "loader"),
-  );
+  ];
   if (pointer === null) {
     instructions.push(
-      instruction("ldx", "immediate", addressOperand(destination, 0, "low"), "callSite"),
-      instruction("ldy", "immediate", addressOperand(destination, 0, "high"), "callSite"),
+      instruction("ldx", "immediate", addressOperand(destination, 0, "low")),
+      instruction("ldy", "immediate", addressOperand(destination, 0, "high")),
     );
   } else {
     instructions.push(
-      instruction(
-        "ldx",
-        "storage",
-        {
-          kind: "storage",
-          requestId: pointer.requestId,
-          offset: pointer.offset,
-        },
-        "callSite",
-      ),
-      instruction(
-        "ldy",
-        "storage",
-        {
-          kind: "storage",
-          requestId: pointer.requestId,
-          offset: pointer.offset + 1,
-        },
-        "callSite",
-      ),
-    );
-  }
-  instructions.push(instruction("jsr", "absolute", { kind: "absolute", value: 0xffd5 }, "loader"));
-  // The KERNAL status byte is zero on success. The returned X/Y end address is compared
-  // against the evaluated destination plus the exact unit size.
-  instructions.push(
-    instruction("cld", "implied", null, "callSite"),
-    instruction("lda", "zero-page", { kind: "absolute", value: 0x90 }, "callSite"),
-    instruction("sta", "storage", { kind: "storage", requestId: result.id, offset: 0 }, "callSite"),
-  );
-  if (pointer === null) {
-    instructions.push(
-      instruction("txa", "implied", null),
-      instruction("eor", "immediate", addressOperand(destination, bytes, "low")),
-      instruction("sta", "storage", { kind: "storage", requestId: result.id, offset: 3 }),
-      instruction("tya", "implied", null),
-      instruction("eor", "immediate", addressOperand(destination, bytes, "high")),
-      instruction("ora", "storage", { kind: "storage", requestId: result.id, offset: 3 }),
-      instruction("ora", "storage", { kind: "storage", requestId: result.id, offset: 0 }),
-    );
-  } else {
-    instructions.push(
-      instruction("lda", "storage", {
+      instruction("ldx", "storage", {
         kind: "storage",
         requestId: pointer.requestId,
         offset: pointer.offset,
       }),
-      instruction("clc", "implied", null),
-      instruction("adc", "immediate", { kind: "immediate", value: bytes & 0xff }),
-      instruction("sta", "storage", { kind: "storage", requestId: result.id, offset: 1 }),
-      instruction("lda", "storage", {
+      instruction("ldy", "storage", {
         kind: "storage",
         requestId: pointer.requestId,
         offset: pointer.offset + 1,
       }),
-      instruction("adc", "immediate", { kind: "immediate", value: (bytes >> 8) & 0xff }),
-      instruction("sta", "storage", { kind: "storage", requestId: result.id, offset: 2 }),
+    );
+  }
+  instructions.push(
+    instruction("stx", "absolute", scratchOperand(scratchId, 0), "loader"),
+    instruction("sty", "absolute", scratchOperand(scratchId, 1), "loader"),
+    // Decimal mode is not guaranteed after an external KERNAL call.
+    instruction("cld", "implied", null, "loader"),
+    instruction("txa", "implied", null, "loader"),
+    instruction("clc", "implied", null, "loader"),
+    instruction("adc", "immediate", { kind: "immediate", value: bytes & 0xff }, "loader"),
+    instruction("sta", "absolute", scratchOperand(scratchId, 2), "loader"),
+    instruction("tya", "implied", null, "loader"),
+    instruction("adc", "immediate", { kind: "immediate", value: (bytes >> 8) & 0xff }, "loader"),
+    instruction("sta", "absolute", scratchOperand(scratchId, 3), "loader"),
+    // Suppress KERNAL error and control messages so LOAD returns with carry instead
+    // of entering the BASIC warm-start error path.
+    instruction("lda", "zero-page", { kind: "absolute", value: 0x9d }, "loader"),
+    instruction("sta", "absolute", scratchOperand(scratchId, 8), "loader"),
+    instruction("and", "immediate", { kind: "immediate", value: 0x3f }, "loader"),
+    instruction("sta", "zero-page", { kind: "absolute", value: 0x9d }, "loader"),
+    instruction("lda", "immediate", { kind: "immediate", value: 0 }, "loader"),
+    instruction("ldx", "absolute", scratchOperand(scratchId, 0), "loader"),
+    instruction("ldy", "absolute", scratchOperand(scratchId, 1), "loader"),
+    instruction("jsr", "absolute", { kind: "absolute", value: 0xffd5 }, "loader"),
+    instruction("lda", "absolute", scratchOperand(scratchId, 8), "loader"),
+    instruction("sta", "zero-page", { kind: "absolute", value: 0x9d }, "loader"),
+    // KERNAL LOAD sets STATUS bit 6 (EOI) even on success. Only the low error nibble
+    // $00-$0F marks a failed transfer.
+    instruction("cld", "implied", null),
+    instruction("lda", "zero-page", { kind: "absolute", value: 0x90 }),
+    instruction("and", "immediate", { kind: "immediate", value: 0x0f }),
+    instruction("sta", "absolute", scratchOperand(scratchId, 6)),
+  );
+  if (bytes === 0) {
+    instructions.push(instruction("lda", "absolute", scratchOperand(scratchId, 6)));
+  } else {
+    instructions.push(
       instruction("txa", "implied", null),
-      instruction("eor", "storage", { kind: "storage", requestId: result.id, offset: 1 }),
-      instruction("sta", "storage", { kind: "storage", requestId: result.id, offset: 3 }),
+      instruction("eor", "absolute", scratchOperand(scratchId, 2)),
+      instruction("sta", "absolute", scratchOperand(scratchId, 7)),
       instruction("tya", "implied", null),
-      instruction("eor", "storage", { kind: "storage", requestId: result.id, offset: 2 }),
-      instruction("ora", "storage", { kind: "storage", requestId: result.id, offset: 3 }),
-      instruction("ora", "storage", { kind: "storage", requestId: result.id, offset: 0 }),
+      instruction("eor", "absolute", scratchOperand(scratchId, 3)),
+      instruction("ora", "absolute", scratchOperand(scratchId, 7)),
+      instruction("ora", "absolute", scratchOperand(scratchId, 6)),
     );
   }
   instructions.push(

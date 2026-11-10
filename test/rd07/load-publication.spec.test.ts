@@ -155,8 +155,9 @@ describe("dynamic destination publication", () => {
     ).toEqual(["E10276"]);
   });
 
-  // A static candidate load publishes only that candidate.
-  it("should allow the same static candidate and reject a different one", async () => {
+  // A static candidate load publishes only that candidate; a disjoint candidate is
+  // unaffected by the load and is judged by ordinary initialization rules.
+  it("should allow the same static candidate and keep a disjoint candidate separate", async () => {
     expect(
       await dynamicErrors(
         "function main(): void { if (c64.loader.load(DATA, slots[1].data)) { let x: byte = slots[1].data[0]; } }",
@@ -166,7 +167,7 @@ describe("dynamic destination publication", () => {
       await dynamicErrors(
         "function main(): void { if (c64.loader.load(DATA, slots[1].data)) { let x: byte = slots[0].data[0]; } }",
       ),
-    ).toEqual(["E10276"]);
+    ).toEqual([]);
   });
 });
 

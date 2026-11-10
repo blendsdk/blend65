@@ -22,7 +22,7 @@ RD-07 is **not fully delivered**. The core vertical slice is implemented, verifi
 | Quiescence | Active IRQ/NMI routes reject with E10275; restored routes pass |
 | Evidence | `loadStates`, debug `loadUnits`, disk/`existingRom` costs |
 | Run | D64 primary passed to the pinned VICE `-autostart` path |
-| Runtime | Bounded VICE 3.10 manual run read `[1,2,3,4]` from the loaded destination |
+| Runtime | Four bounded VICE 3.10 cases: success + canary, missing-file `false`, longer-file overwrite + `false`, BASIC return |
 | Example | `examples/rd07-loadable` builds a composite unit D64 |
 
 Verification: compiler suite **3,656 passed / 2 skipped**; RD-07 directed suite **36/36**; `spec/` untouched.
@@ -48,16 +48,33 @@ Verification: compiler suite **3,656 passed / 2 skipped**; RD-07 directed suite 
 | RD-07 directed | `yarn vitest run test/rd07` | 36 passed |
 | Example | `test/rd07/examples.spec.test.ts` | pass |
 | D64 run argv | `src/services/vice-profiles.spec.test.ts` | 12 passed |
-| VICE loader | Bounded `x64sc` autostart + binary-monitor read at `Game.target` | `[1,2,3,4]` |
-| VICE suite | `RD07_VICE=1 yarn vitest run test/rd07/d64-vice.spec.test.ts` outside the agent sandbox | opt-in; manual run passed |
+| VICE loader | Opt-in `RD07_VICE=1` autostart + binary-monitor observations | 4/4 cases pass |
+| VICE success | Unit bytes `[1,2,3,4]`; canary preserved; `ok = 1` | pass |
+| VICE missing | Missing directory entry returns `false`; canary preserved | pass |
+| VICE longer | Readable longer file changes the canary and returns `false` (HLE-010) | pass |
+| VICE BASIC | Program returns to the BASIC ROM after `main` | pass |
 | Frozen spec | `git status --porcelain spec/` | empty |
+
+## Runtime findings
+
+The bounded VICE runs found and fixed three real loader defects that static reasoning missed:
+
+| Finding | Evidence | Correction |
+| --- | --- | --- |
+| KERNAL `STATUS` sets bit 6 (EOI, `$40`) on a successful `LOAD` | Monitor stop before the result store showed `$90 = $40` and X/Y one past end | Mask `STATUS` with `$0F`; only the low error nibble is failure |
+| A missing file entered the BASIC warm-start path instead of returning | Missing-entry run never reached the false branch (`ok = 0`) | Clear `MSGFLG` bits 6/7 around the call; restore afterwards |
+| KERNAL `LOAD` clobbers zero-page scratch shared with SFA temporaries | Destination pointer in `$08/$09` was overwritten; target stayed `$FF` fill | Keep all cross-call loader state in a per-unit absolute RAM scratch object |
+
+The frozen one-past-end success contract was confirmed against the real KERNAL and is unchanged.
 
 ## Honest boundary
 
 - The automated VICE test is opt-in because the agent sandbox blocks the emulator child from
-  test-created paths. The same bounded run outside the sandbox read `[1,2,3,4]` from the loaded
-  destination; failure, canary, BASIC-return, and longer-replacement cases remain to be recorded.
-- The KERNAL loader status check uses the KERNAL `STATUS` byte plus the returned end address.
+  test-created paths. It passed against a prebuilt fixture with `RD07_VICE=1` and
+  `RD07_RUNTIME_DIR`; outside the sandbox it builds its own fixture.
+- The KERNAL loader status check uses the low `STATUS` error nibble plus the returned one-past-end
+  address. Carry is not inspected separately; the KERNAL error paths observed here set either the
+  status nibble or an unexpected end address.
 - The quiescence check is the conservative linear route proof, not the full conditional path proof.
 - Dynamic destinations prove the stable-index must-alias and reject changed/different indices; the
   enumerated candidate intervals are not yet published in layout/memory evidence.

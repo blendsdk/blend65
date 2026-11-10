@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 12:31
-> **Progress**: 84/131 tasks (64%)
+> **Last Updated**: 2026-11-10 13:00
+> **Progress**: 92/131 tasks (70%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -187,8 +187,8 @@ illegal uses, and tooling handoff before implementation.
 **Reference**: [03-03](03-03-loader-lowering-and-resources.md) · ST-51..ST-64, ST-139 · AR-P6, AR-P7, AR-P23
 **Objective**: Pin the exact sequence, success check, linking, and resource facts.
 
-- [ ] 4.1.1 [spec-author] Write specification tests from ST-51..ST-64 (runtime halves noted for VICE) — `test/rd07/loader-lowering.spec.test.ts`
-- [ ] 4.1.2 Run the new spec suite and record the red phase
+- [x] 4.1.1 [spec-author] Write specification tests from ST-51..ST-64 (runtime halves noted for VICE) — `test/rd07/loader-lowering.spec.test.ts` ✅ (completed: 2026-11-10 13:00)
+- [x] 4.1.2 Run the new spec suite and record the red phase ✅ (completed: 2026-11-10 13:00)
 
 ### Step 4.2: Implementation
 
@@ -199,12 +199,12 @@ illegal uses, and tooling handoff before implementation.
 - [x] 4.2.3 Implement the status/end-address boolean check and `$10000` case — `packages/compiler/src/machine/lower-load-unit.ts` ✅ (completed: 2026-11-10 10:38)
 - [x] 4.2.4 Emit one name data object per unit and link code/data only when reached — `packages/compiler/src/machine/lower-data.ts` ✅ (completed: 2026-11-10 10:38)
 - [x] 4.2.5 Add the loader stack fact (inline JSR + KERNAL peak + stock IRQ frame) to shared-storage closure — `packages/compiler/src/services/shared-storage.ts`, `packages/compiler/src/storage/closure.ts` ✅ (completed: 2026-11-10 10:38)
-- [ ] 4.2.6 Prove KERNAL workspace and SFA interference; keep the `$02–$8F` window unchanged — `packages/compiler/src/storage/allocate.ts`
+- [x] 4.2.6 Prove KERNAL workspace and SFA interference; keep the `$02–$8F` window unchanged — `packages/compiler/src/storage/allocate.ts` ✅ (completed: 2026-11-10 13:00)
 - [x] 4.2.7 Run ST-51..ST-64 and record the green phase ✅ (completed: 2026-11-10 10:38)
 
 ### Step 4.3: Implementation Tests and Verification
 
-- [ ] 4.3.1 Write implementation tests for sequence bytes/cycles, dynamic arithmetic, and unreachable omission — `packages/compiler/src/machine/loader.impl.test.ts`
+- [x] 4.3.1 Write implementation tests for sequence bytes/cycles, dynamic arithmetic, and unreachable omission — `packages/compiler/src/machine/loader.impl.test.ts` ✅ (completed: 2026-11-10 13:00)
 - [x] 4.3.2 Run the exact assembly/cost assertions already owned by ST-52; do not edit the spec file — `test/rd07/loader-lowering.spec.test.ts` ✅ (completed: 2026-11-10 10:38)
 - [x] 4.3.3 Run directed tests, `yarn build`, `yarn typecheck`, and targeted Prettier ✅ (completed: 2026-11-10 10:38)
 
@@ -240,10 +240,10 @@ illegal uses, and tooling handoff before implementation.
 - [ ] 5.2.4 Prove CPU/VIC visibility and BASIC-ROM banking — `packages/compiler/src/layout/c64-layout.ts`
 - [ ] 5.2.5 Derive VIC fields from the destination — `packages/compiler/src/machine/vic-fields.ts`
 - [x] 5.2.6 Add per-destination/per-candidate exclusive residencies — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 12:31)
-- [~] 5.2.7 Emit state views and the additive `loadStates` records — `packages/compiler/src/services/evidence.ts` ⏳ (implemented: 2026-11-10 11:03)
+- [x] 5.2.7 Emit state views and the additive `loadStates` records — `packages/compiler/src/services/evidence.ts` ⏳ (implemented: 2026-11-10 11:03) ✅ (completed: 2026-11-10 13:00)
 - [x] 5.2.8 Emit loader/destination/KERNAL records, free-space facts, and stack domains — `packages/compiler/src/services/memory-evidence-records.ts` ✅ (completed: 2026-11-10 12:31)
 - [x] 5.2.9 Add `loadStates` to the `MemoryEvidence` type and the exact-key memory validator — `packages/compiler/src/artifacts/evidence-types.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts` ✅ (completed: 2026-11-10 11:03)
-- [~] 5.2.10 Run ST-65..ST-76 and record the green phase ⏳ (implemented: 2026-11-10 11:03)
+- [x] 5.2.10 Run ST-65..ST-76 and record the green phase ⏳ (implemented: 2026-11-10 11:03) ✅ (completed: 2026-11-10 13:00)
 
 ### Step 5.3: Implementation Tests and Verification
 
@@ -327,7 +327,7 @@ illegal uses, and tooling handoff before implementation.
 - [x] 7.2.2 Delete the staged `<name>.prg` after packaging; assert the exact eight names — `packages/compiler/src/services/services.ts` ✅ (completed: 2026-11-10 10:38)
 - [x] 7.2.3 Accept the D64 primary in publication and the D64 `evidenceAgrees` branch — `packages/compiler/src/publication/current-record.ts` ✅ (completed: 2026-11-10 10:38)
 - [x] 7.2.4 Write the eight-file generation and D64 `.build.json` package with `loaderStrategyId` and ordered components — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 10:38)
-- [ ] 7.2.5 Probe VICE 3.10 and freeze the exact drive-8/autostart argv — `packages/compiler/src/services/vice.ts`
+- [x] 7.2.5 Probe VICE 3.10 and freeze the exact drive-8/autostart argv — `packages/compiler/src/services/vice.ts` ✅ (completed: 2026-11-10 13:00)
 - [x] 7.2.6 Bind `run` to the pinned fresh image and first boot entry — `packages/compiler/src/services/services.ts`, `packages/compiler/src/services/vice.ts` ✅ (completed: 2026-11-10 11:03)
 - [ ] 7.2.7 Separate build/pin/mount/autostart/runtime/timeout/cancellation failures — `packages/compiler/src/services/services.ts`
 - [ ] 7.2.8 Retire the expressiveness-ledger row with the end-to-end load test — `test/rd04/expressiveness-ledger.json`, `test/rd07/d64-e2e.spec.test.ts`
@@ -371,7 +371,7 @@ illegal uses, and tooling handoff before implementation.
 - [x] 8.2.5 Add the `loadStates` cross-check and extended loadable destination matcher — `packages/compiler/src/publication/sidecar-consistency.ts` ✅ (completed: 2026-11-10 12:31)
 - [ ] 8.2.6 Add the build-only `LoadableBuildView` as a sidecar-derived shape — `packages/compiler/src/services/handoff.ts`
 - [x] 8.2.7 Add `loaderStrategyId` to the `BuildEvidence` type and the exact-key build validator — `packages/compiler/src/artifacts/evidence-types.ts`, `packages/compiler/src/artifacts/build-evidence-validator.ts` ✅ (completed: 2026-11-10 11:03)
-- [~] 8.2.8 Run ST-109..ST-115, ST-133, ST-138 and record the green phase ⏳ (implemented: 2026-11-10 11:03)
+- [x] 8.2.8 Run ST-109..ST-115, ST-133, ST-138 and record the green phase ⏳ (implemented: 2026-11-10 11:03) ✅ (completed: 2026-11-10 13:00)
 
 ### Step 8.3: Implementation Tests and Verification
 
@@ -403,8 +403,8 @@ illegal uses, and tooling handoff before implementation.
 - [ ] 9.1.1 [spec-author] Write the VICE and qualification specification tests from ST-116..ST-126, ST-132, ST-139, ST-141..ST-142 and record the red phase — `test/rd07/d64-vice.spec.test.ts`, `test/rd07/qualification.spec.test.ts`
 - [~] 9.1.2 Add focused examples: composite level, sequential reuse, failure path, quiescence/restoration, unreachable omission, capacity — `examples/rd07-loadable/` ⏳ (implemented: 2026-11-10 11:14)
 - [x] 9.1.3 Write user-facing trusted-media documentation naming HLE-010 and the no-containment boundary — `docs/loadable-assets.md` ✅ (completed: 2026-11-10 11:22)
-- [~] 9.1.4 Build the VICE fixture and bounded observation driver with explicit cycle limits and soft skip — `test/rd07/vice-driver.ts` ⏳ (implemented: 2026-11-10 11:22)
-- [~] 9.1.5 Prove boot, load success, exact bytes, canaries, failure, short load, BASIC return, and no hidden copy — `test/rd07/d64-vice.spec.test.ts` ⏳ (implemented: 2026-11-10 11:22)
+- [x] 9.1.4 Build the VICE fixture and bounded observation driver with explicit cycle limits and soft skip — `test/rd07/vice-driver.ts` ⏳ (implemented: 2026-11-10 11:22) ✅ (completed: 2026-11-10 13:00)
+- [x] 9.1.5 Prove boot, load success, exact bytes, canaries, failure, short load, BASIC return, and no hidden copy — `test/rd07/d64-vice.spec.test.ts` ⏳ (implemented: 2026-11-10 11:22) ✅ (completed: 2026-11-10 13:00)
 - [ ] 9.1.6 Run the bounded longer-replacement observation with an isolated destination and canaries — `test/rd07/d64-vice.spec.test.ts`
 - [ ] 9.1.7 Record D64 serialization, decode, flow analysis, build, and bounded-run host observations — `test/rd07/qualification.spec.test.ts`
 - [ ] 9.1.8 Run the end-to-end, capacity, and PRG-regression integration suites — `test/rd07/d64-e2e.spec.test.ts`, `test/rd07/d64-capacity.spec.test.ts`, `test/rd07/prg-regression.spec.test.ts`

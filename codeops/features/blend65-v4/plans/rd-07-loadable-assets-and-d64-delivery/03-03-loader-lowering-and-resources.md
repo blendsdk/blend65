@@ -26,7 +26,7 @@ check, one name data object per unit, and one resource record consumed by storag
 
 ### Exact sequence
 
-For a static destination and a unit name of length `N`:
+For a unit name of length `N`:
 
 ```asm
         lda #1                  ; logical file number 1
@@ -34,28 +34,49 @@ For a static destination and a unit name of length `N`:
         ldy #0                  ; secondary address 0 -> LOAD relocates
         jsr $ffba               ; SETLFS
         lda #N                  ; compiler-owned name length
-        ldx #<unit_name
+        ldx #<unit_name         ; read-only data, never copied
         ldy #>unit_name
         jsr $ffbd               ; SETNAM
+        stx scratch+0           ; destination is evaluated exactly once
+        sty scratch+1
+        cld
+        txa
+        clc
+        adc #<size
+        sta scratch+2           ; expected one-past end
+        tya
+        adc #>size
+        sta scratch+3
+        lda $9d                 ; MSGFLG
+        sta scratch+8
+        and #$3f                ; suppress KERNAL error/control messages
+        sta $9d
         lda #0                  ; LOAD, not VERIFY
-        ldx #<destination
-        ldy #>destination
+        ldx scratch+0
+        ldy scratch+1
         jsr $ffd5               ; LOAD
-        bcs .failed
-        cpx #<expected_end
-        bne .failed
-        cpy #>expected_end
-        bne .failed
-        lda #1
-        bne .done               ; always taken; materializes true
-.failed:
+        lda scratch+8
+        sta $9d
+        cld
+        lda $90
+        and #$0f                ; only the low error nibble is failure
+        sta scratch+6
+        txa
+        eor scratch+2
+        sta scratch+7
+        tya
+        eor scratch+3
+        ora scratch+7
+        ora scratch+6
+        cmp #1
         lda #0
-.done:
+        adc #0
+        eor #1
 ```
 
-For a dynamic destination, the destination is evaluated once into a compiler temporary pair; the
-`ldx #<destination`/`ldy #>destination` loads become temporary loads, and `expected_end` is computed
-once as `destination + size` (16-bit add) before the comparison. The size is the exact unit length.
+`scratch` is one compiler-owned absolute RAM object per unit. The KERNAL `LOAD` uses zero-page
+scratch that overlaps the SFA window, so no cross-call value may live there. The stub is writable,
+zero-initialized, and reported as a `scratch` memory interval owned by the load unit.
 
 The logical file number is `1` because the boot program opens no other file. The device comes from
 KERNAL `FA` (`$BA`), never from a source literal. The secondary address is `0`. The name is the
@@ -70,13 +91,18 @@ the logical unit.
 
 `true` requires:
 
-1. carry clear after `JSR $FFD5`;
+1. the low nibble of KERNAL `STATUS` (`$90 & $0F`) is zero;
 2. returned `X` equals the low byte of `(destination + size) & $FFFF`;
 3. returned `Y` equals the high byte.
 
-An exact end at `$10000` therefore compares against `$0000`. A returned end beyond the interval is
-`false`, not a partial publication. The boolean is materialized through the ordinary ABI; no
-exception, string, allocation, or dispatch table is emitted.
+The real KERNAL sets `STATUS` bit 6 (EOI, `$40`) on a successful transfer, so the full byte is not a
+success indicator. A missing file enters the KERNAL error handler; clearing `MSGFLG` bits 6 and 7
+around the call makes that handler return with carry instead of entering the BASIC warm-start path.
+The saved `MSGFLG` byte is restored immediately after the call. An exact end at `$10000` compares
+against `$0000`. A returned end beyond the interval is `false`, not a partial publication. The
+boolean is materialized through the ordinary ABI; no exception, string, allocation, or dispatch
+table is emitted. A zero-byte unit checks only the status nibble, because there is no loaded address
+to compare.
 
 ### Effect retention
 
@@ -105,11 +131,11 @@ decompressor, drive code, registry, or general runtime is present.
 | -------- | -------- |
 | Registers | A/X/Y and flags are clobbered. The compiler spills live source values before the operation; the boolean result is materialized in A. The adapter does not save/restore program registers. |
 | KERNAL workspace | `STATUS $90`, `VERCK $93`, `EAL/EAH $AE/$AF`, `FNLEN $B7`, `LA $B8`, `SA $B9`, `FA $BA`, `FNADR $BB/$BC`, `MEMUSS $C3/$C4` may change |
-| Zero page | All documented workspace lies above the SFA window `$02–$8F`; the SFA window is unchanged |
+| Zero page | KERNAL `LOAD` clobbers zero-page scratch that overlaps the SFA window `$02–$8F`. The loader keeps every cross-call value in its own absolute RAM object; `STATUS $90`, `MSGFLG $9D` and `FA $BA` are read/written directly |
 | Stack | The inline `JSR $FFD5` frame, the measured KERNAL `LOAD` internal peak, and a conservative stock IRQ/NMI frame are added to the SFA certificate and `stackDomains` |
 | ROM/IO | KERNAL ROM `$E000–$FFFF` stays visible; I/O `$D000–$DFFF` is not a destination |
 | Mapping | `$0801–$CFFF` is RAM with BASIC ROM banked out; `$A000–$BFFF` is legal under that mapping |
-| Code/data | Exact emitted bytes plus one name object per unit; no staging or copy buffer |
+| Code/data | Exact emitted bytes plus one read-only name object and one RAM scratch object per unit; no staging data copy |
 | Timing | The 27-byte/37-cycle setup is reported separately from variable KERNAL/device time; unknown time is the measured-value `{kind:"unknown"}` record |
 
 The loader does not silently pause, restart, or reconstruct application callbacks, audio, effects,
