@@ -44,14 +44,16 @@
 | Publication fact | Sparse half-open ranges per binding plus proved must-alias propagation | AR-P4 |
 | Quiescence proof | Reuse RD-05 LIFO IRQ/NMI ownership and audio route state | AR-P5 |
 | Loader form | Inline SETLFS/SETNAM/LOAD per reachable call | AR-P6 |
-| KERNAL workspace | Reserve the documented workspace; save/restore live program registers; report clobbers | AR-P7 |
-| Diagnostic mapping | E10274/E10275/E10276/E10279 plus `D64_PROFILE`/`D64_NAME`/`D64_CAPACITY`/`D64_STRUCTURE` | AR-P8 |
-| Disk label/ID | Deterministic PETSCII from project name and semantic hash | AR-P9 |
-| Unit names | `L` + 12 uppercase identity hex; boot from project name | AR-P10 |
-| Allocation | `cbm-dos-1541-interleave-v1`, measured before acceptance | AR-P11 |
+| KERNAL workspace | Reserve the documented workspace; compiler spills live source values; report clobbers | AR-P7 |
+| Diagnostic mapping | E10274/E10275/E10276/E10279 plus `D64_NAME`/`D64_CAPACITY`/`D64_STRUCTURE`; E10267 for sidecar mismatch | AR-P8 |
+| Disk label/ID | Deterministic PETSCII from project name and semantic hash; over-length rejected | AR-P9 |
+| Unit names | Spec-policy boot name; `L` + 12 uppercase identity hex | AR-P10 |
+| Allocation | `cbm-dos-1541-interleave-v1`, measured against a checked-in fixture before serializer code | AR-P11 |
 | Fill | `$00` | AR-P12 |
 | Packager location | `packages/compiler/src/packaging/d64/` | AR-P13 |
-| Sidecar records | Existing version-1 families only | AR-P14 |
+| Sidecar records | Existing version-1 families plus additive `loaderStrategyId` and `loadStates` | AR-P14 |
+| On-disk PRG | 2-byte header + body; block count includes the header; zero-byte units supported | AR-P23 |
+| Tooling handoff | Frontend-safe `LoadableHandoff` plus build-only `LoadableBuildView` | AR-P24 |
 | `run` argv | Probe VICE 3.10, then freeze the exact drive-8/autostart form | AR-P15 |
 | Native loadable assets | Allowed; remove the current E10204 loadable rejection | AR-P16 |
 | Unit identity | Qualified declaration identity, not content hash | AR-P17 |

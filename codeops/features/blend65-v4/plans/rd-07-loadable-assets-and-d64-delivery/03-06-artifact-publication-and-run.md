@@ -46,16 +46,21 @@ export interface D64PackagerFacts {
 }
 ```
 
-`TargetProfile.id` widens to `"c64-pal-d64-kernal-6581" | C64KernalProfileId`.
-`C64_KERNAL_PROFILES` gains one row with the PAL/6581 timing and SID facts and a
-`profileKind: "d64"` discriminator. `PROFILES` composes it with `CBM_D64` and the same machine,
-storage, and interrupt facts. `selectTargetProfile` and `selectC64KernalFacts` admit it exactly and
-still reject every partial/unknown ID with E10279.
+`C64KernalProfileId` widens to include `"c64-pal-d64-kernal-6581"`. `C64KernalProfileFacts` gains a
+`profileKind: "prg" | "d64"` discriminator. `PackagerFacts` becomes a discriminated union:
+`PrgPackagerFacts` keeps `id:"cbm-prg"`; `D64PackagerFacts` adds `id:"cbm-d64"` and the image
+facts. `TargetProfile.id`, `TargetProfile.packager`, and `storage.profileId` widen accordingly.
+`C64_KERNAL_PROFILES` gains one row with the PAL/6581 timing and SID facts. `PROFILES` composes it
+with `CBM_D64` and the same machine, storage, and interrupt facts. `selectTargetProfile` and
+`selectC64KernalFacts` admit it exactly and still reject every partial/unknown ID with E10279.
+`artifacts/acme-validate.ts` accepts both packager identities and validates the boot PRG before
+assembly; it no longer hardcodes `cbm-prg`.
 
 ### Build order
 
 ```text
-frontend -> semantic -> whole-program -> storage -> machine -> layout
+frontend -> semantic -> whole-program -> machine lower
+  -> shared-storage draft/final close -> final layout
   -> ACME boot PRG verification
   -> D64 packager (boot PRG + reachable units)
   -> sidecars (.asm/.labels/.assets/.memory/.costs/.debug)
@@ -74,29 +79,34 @@ The generation still contains exactly eight files:
 | File | Contents |
 | ---- | -------- |
 | `<name>.d64` | Primary artifact, 174,848 bytes |
-| `<name>.asm` | Boot resident assembly |
-| `<name>.labels` | Boot ACME symbols |
-| `<name>.assets.json` | Resident and loadable asset records |
-| `<name>.memory.json` | Resident, loader, destination, and state views |
-| `<name>.costs.json` | Resident, loader, disk, and call-site costs |
-| `<name>.debug.json` | Boot and contained load-unit records |
-| `<name>.build.json` | Hashes, semantic inputs, package record |
+| `.asm` | Boot resident assembly |
+| `.labels` | Boot ACME symbols |
+| `.assets.json` | Resident and loadable asset records |
+| `.memory.json` | Resident, loader, destination, and state views |
+| `.costs.json` | Resident, loader, disk, and call-site costs |
+| `.debug.json` | Boot and contained load-unit records |
+| `.build.json` | Hashes, semantic inputs, package record |
 
-The boot PRG and unit files are contained components, not separate advertised products. They are
-not written as standalone generation files.
+The boot PRG and unit files are contained components, not separate advertised products. The
+staged `<name>.prg` is deleted after the packager consumes it, so it is never a ninth published
+file.
 
 ### Publication
 
-`prepareEvidence` writes the `.d64` and sidecars; `.build.json` is written last. `publishGeneration`
-keeps the existing staging/rename/current-record/lock/pin/predecessor rules. `evidenceAgrees` gains
-a D64 branch:
+`prepareEvidence` writes the `.d64` and sidecars; `.build.json` is written last. The staged
+`<name>.prg` is deleted after the packager consumes it. `publishGeneration` keeps the existing
+staging/rename/current-record/lock/pin/predecessor rules. `evidenceAgrees` gains a D64 branch:
 
 - `package.kind === "d64"`;
 - `package.artifactPath === primary.path`;
 - `package.imageBytes === 174848`;
 - `package.dosType === "2A"`;
-- every component resolves to a contained file and its exact chain;
+- `package.loaderStrategyId === "kernal-sequential-uncompressed"`;
+- every component resolves to a contained file and its exact chain, in directory order with the
+  boot first;
 - `debug.value.primaryArtifact` is the `.d64`;
+- the PRG `loadAddress`/`endAddress` comparisons are omitted; `costs.totals.programBytes` comes
+  from the boot component's body length;
 - the sidecar references agree.
 
 Any failure or pre-commit cancellation leaves the prior current generation intact. A post-commit

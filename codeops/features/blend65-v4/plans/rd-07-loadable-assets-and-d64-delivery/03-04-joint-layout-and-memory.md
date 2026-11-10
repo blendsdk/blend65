@@ -62,10 +62,19 @@ The proof checks:
 - the range satisfies the unit's RD-06 alignment/visibility/no-cross constraints;
 - the range does not overlap an active screen/character-ROM window unless the unit is the active
   VIC consumer;
-- the range's end is `<= $10000`.
+- the range's end is `<= $10000`. Under the selected profile, any source interval that intersects
+  the visible KERNAL ROM `$E000–$FFFF` is rejected, so the largest legal source end is `$E000`. The
+  `$10000` arithmetic (`returned X/Y = $0000`) is retained and tested at the lowering/unit level for
+  a future legal RAM-at-top mapping; it is not accepted as a source destination under this profile.
 
 A failed check reports every conflicting owner, the requested range, and one source/configuration
 remedy. It fails before ACME and before any D64 publication.
+
+A field, nested field, array element, or subaggregate destination is represented by partitioning
+the containing object's interval at destination boundaries. The destination segment becomes its
+own interval carrying the exclusive load-state residencies, so no memory view activates two
+overlapping intervals. The `.assets.json` destination range matches the segment base and size, and
+the containing object's remaining segments keep their ordinary ownership.
 
 ### Loader intervals
 
@@ -78,7 +87,13 @@ record but does not double-count it.
 ### Exclusive memory states
 
 A destination can hold one unit at a time. The memory ledger represents this with one exclusive
-group per destination:
+group per destination and per dynamic candidate:
+
+- a static destination has one group with `unloaded` and one member per unit that can occupy it;
+- a dynamic fixed-array destination has one group per candidate element, plus one `unloaded`
+  member per element, so exactly one candidate is active in any state view;
+- every candidate interval is emitted once with its complete physical range and all state residency
+  ids. Each state view activates exactly one member of each group.
 
 ```text
 residencies:
@@ -87,30 +102,48 @@ residencies:
   { kind: "exclusive", id: "load-state:currentLevel:unit:LEVEL_2", group: "load-state:currentLevel" }
 ```
 
-The destination interval is emitted once with its complete physical range and all state residency
-ids. Each state view activates exactly one member of the group:
-
-- the `unloaded` view shows the object's ordinary initial contents;
-- the `unit:LEVEL_2` view shows the same range as the loaded logical value.
-
-The interval's payload/padding/reserved totals remain the physical storage totals, so no view
-double-counts the range. `.assets.json` records the logical unit payload per destination; the
-memory ledger records the physical storage. The report never claims which state was selected at
+The destination interval's payload/padding/reserved totals remain the physical storage totals, so
+no view double-counts the range. `.assets.json` records the logical unit payload per destination;
+the memory ledger records the physical storage. The report never claims which state was selected at
 runtime.
+
+### Quiescence and publication point
+
+Add one additive version-1 `loadStates` array to `.memory.json`:
+
+```ts
+interface LoadStateRecord {
+  readonly callSite: SourceSiteRecord;
+  readonly unitId: string;
+  readonly destinationIntervalIds: readonly string[];
+  readonly quiescence: {
+    readonly routes: readonly string[];
+    readonly status: "proved";
+  };
+  readonly publicationPoint: {
+    readonly callSite: SourceSiteRecord;
+    readonly resultEdge: "true";
+  };
+}
+```
+
+This is the only place R7.40's quiescence and call-site publication point are reported. It adds no
+runtime state. The exact-key validator is updated to admit the array; an empty array is emitted for
+PRG profiles.
 
 ### Views
 
 Emit:
 
 - `cpu16-resident`: `always/resident`, the complete physical ledger;
-- `cpu16-vic`: the clipped VIC projection, as today;
+- `vic-bank-0`: the clipped VIC projection, as today;
 - one `cpu16-load-<destination>-<state>` view per exclusive state when a destination is shared by
   more than one unit or has an unloaded state distinct from its loaded state;
 - `color-ram`, as today.
 
 Each view includes every `always` residency and at most one member of each exclusive group. The
 validator's existing tiling and exact-byte checks apply unchanged: overlapping alternative intervals
-never appear in the same view.
+never appear in the same view. Stack headroom is reported by `stackDomains`, not by a view field.
 
 ### Visibility and banking
 
@@ -159,6 +192,7 @@ source-linked effect.
 | Overlap with code/SFA/stack/vector/loader/MMIO/player | Reject before ACME with every owner | E10275 | AR-P21 |
 | Illegal VIC/bank mapping | Reject with the mapping reason | E10275 | AR-P7 |
 | Destination end beyond `$10000` | Reject before emission | E10275 | AR-P21 |
+| Source interval intersects visible KERNAL ROM | Reject with the mapping reason; lowering still supports the `$10000` arithmetic | E10275 | AR-P21 |
 | Missing alignment/visibility | Reject with the required constraint | E10275 | AR-P16 |
 | Memory ledger overlap in one view | Reject before publication | E10267 | AR-P14 |
 | ACME reconciliation mismatch | Reject before publication | E10267 | AR-P14 |

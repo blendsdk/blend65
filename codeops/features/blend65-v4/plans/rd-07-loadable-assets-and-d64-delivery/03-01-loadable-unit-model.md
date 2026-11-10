@@ -70,7 +70,7 @@ this component does not add a new rejection path.
 
 `collectLoadUnits(analysis)` runs once after module/local analysis and before semantic lowering:
 
-1. Walk every module declaration and every reachable function body.
+1. Walk every module declaration and every function body; do not filter by reachability yet.
 2. For each declaration with `loadable: true`, obtain the typed initializer.
 3. Convert the initializer to exact bytes:
    - scalar constant → little-endian width bytes;
@@ -80,8 +80,8 @@ this component does not add a new rejection path.
 4. Build the identity from the qualified declaration name, logical type descriptor, and
    initializer provenance. Content hash is recorded but never substitutes for identity.
 5. Merge import aliases that resolve to the same declaration.
-6. Reject a unit whose bytes cannot be materialized as a constant with E10191 and the declaration
-   span. This is an internal consistency failure, not a new source form.
+6. Reject a unit whose bytes cannot be materialized as a constant with an internal compiler
+   failure. Source non-constant initializers were already rejected by E10191.
 
 Local loadable declarations are collected with a function-qualified identity. A local unit is
 packaged only when a reachable load call uses it. Local scope still creates no runtime storage.
@@ -110,6 +110,29 @@ An ordinary `const` with `embed()` stays resident and addressable. Its loadable 
 Changing a declaration between the two forms is a source-visible residency change and is never done
 automatically. The frontend/semantic boundary must not promote a unit into RAM or spill a resident
 asset to disk.
+
+### Tooling handoff
+
+The shared semantic model exposes a frontend-safe `LoadableHandoff` view for RD-09:
+
+```ts
+interface LoadableHandoff {
+  readonly units: readonly {
+    readonly id: string;
+    readonly declaration: string;
+    readonly type: SemanticType;
+    readonly size: number;
+    readonly provenance: LoadUnitProvenance;
+    readonly destinationCompatibility: readonly string[];
+  }[];
+  readonly illegalUses: readonly { code: string; span: SourceSpan; message: string }[];
+}
+```
+
+It is exported from the `@blend65/compiler/frontend` entry point and imports no packaging, layout,
+machine, serializer, or D64 module. A build-only `LoadableBuildView` (discussed in 03-07) adds the
+directory, sector, address, strategy, quiescence, memory-proof, and cost facts after final layout.
+An import-boundary test asserts the frontend graph never reaches packaging.
 
 ### Placement constraints
 

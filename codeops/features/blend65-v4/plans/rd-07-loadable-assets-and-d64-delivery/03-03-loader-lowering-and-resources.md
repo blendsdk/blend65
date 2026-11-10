@@ -14,9 +14,8 @@ touches. It emits no staging buffer, relocation copy, checksum, or runtime regis
 ### Current architecture
 
 The machine stage lowers platform operations through `machine/lower-c64.ts` and binds symbolic
-places through `machine/bind.ts`. Storage closure happens before machine lowering
-(`storage/closure.ts:386`), and final layout places closed homes (`layout/c64-layout.ts:218`). The
-current profile has no loader capability.
+places through `machine/bind.ts`. Machine lowering produces the symbolic program first; the
+shared-storage pass then closes SFA against that program, and final layout places the closed homes.
 
 ### Proposed changes
 
@@ -62,6 +61,11 @@ The logical file number is `1` because the boot program opens no other file. The
 KERNAL `FA` (`$BA`), never from a source literal. The secondary address is `0`. The name is the
 unpadded directory-name bytes; the directory's `$A0` padding is never passed to `SETNAM`.
 
+The unit file begins with a 2-byte header (`$00 $00`; the boot uses `$01 $08`). Under secondary
+address 0 the KERNAL consumes that header and ignores it for placement; X/Y supplies the
+destination. The header is therefore part of the file payload and the block count, but not part of
+the logical unit.
+
 ### Success check
 
 `true` requires:
@@ -99,14 +103,14 @@ decompressor, drive code, registry, or general runtime is present.
 
 | Resource | Contract |
 | -------- | -------- |
-| Registers | A/X/Y and flags are clobbered; live values are not kept across the call |
+| Registers | A/X/Y and flags are clobbered. The compiler spills live source values before the operation; the boolean result is materialized in A. The adapter does not save/restore program registers. |
 | KERNAL workspace | `STATUS $90`, `VERCK $93`, `EAL/EAH $AE/$AF`, `FNLEN $B7`, `LA $B8`, `SA $B9`, `FA $BA`, `FNADR $BB/$BC`, `MEMUSS $C3/$C4` may change |
-| Zero page | All documented workspace lies above the SFA window `$02–$8F`; no SFA re-window is needed |
-| Stack | The KERNAL `LOAD` call adds a measured hardware-stack peak; the existing peak analysis includes it |
+| Zero page | All documented workspace lies above the SFA window `$02–$8F`; the SFA window is unchanged |
+| Stack | The inline `JSR $FFD5` frame, the measured KERNAL `LOAD` internal peak, and a conservative stock IRQ/NMI frame are added to the SFA certificate and `stackDomains` |
 | ROM/IO | KERNAL ROM `$E000–$FFFF` stays visible; I/O `$D000–$DFFF` is not a destination |
 | Mapping | `$0801–$CFFF` is RAM with BASIC ROM banked out; `$A000–$BFFF` is legal under that mapping |
 | Code/data | Exact emitted bytes plus one name object per unit; no staging or copy buffer |
-| Timing | The 27-byte/37-cycle setup is reported separately from variable KERNAL/device time; unknown time is `Unknown` |
+| Timing | The 27-byte/37-cycle setup is reported separately from variable KERNAL/device time; unknown time is the measured-value `{kind:"unknown"}` record |
 
 The loader does not silently pause, restart, or reconstruct application callbacks, audio, effects,
 frame counters, or gameplay state. It makes no raster/frame/audio cadence promise.

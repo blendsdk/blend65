@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-07 Loadable Assets and D64 Delivery
 
-> **Status**: ✅ GATE PASSED — all 22 items resolved
-> **Last Updated**: 2026-11-10 08:44
+> **Status**: ✅ GATE PASSED — all 24 items resolved
+> **Last Updated**: 2026-11-10 09:20
 > **Mode**: Auto-design active — eligible technical decisions delegated; reserved decisions remain user-owned
 > **Root invocation ID**: `rd07-plan-20261110T0844`
 > **Policy version**: 1
@@ -24,22 +24,24 @@ not reopen approved product behavior.
 | AR-P4 | Behavioral | How granular is the publication/alias fact? | Sparse half-open logical ranges per destination binding, plus must-alias propagation through proved address provenance. May-alias and partial overlap lose definite-initialization credit. No runtime state. | ✅ Resolved | AR-P4 |
 | AR-P5 | Behavioral | How is quiescence proved? | Reuse the RD-05 LIFO IRQ/NMI ownership state and the audio route state at the call. Every recognized user route must be restored/stopped; the stock KERNAL route stays active. Unproved routes reject with E10275. | ✅ Resolved | AR-P5 |
 | AR-P6 | Technical | Is the loader emitted inline or as a shared helper? | Inline the exact SETLFS/SETNAM/LOAD sequence per call. Name bytes are per-unit data objects. No helper ABI, no registry, and the code exists only when a load call is reachable. | ✅ Resolved | AR-P6 |
-| AR-P7 | Technical | Which KERNAL state is reserved, preserved, or reported clobbered? | Reserve the documented KERNAL workspace (`STATUS`, `VERCK`, `MEMUSS`, `EAL/EAH`, `FNLEN`, `FNADR`, `LA`, `SA`, `FA`), the hardware stack peak, and the loader's own temporaries. The adapter saves live program registers it uses and reports every unavoidable clobber; SFA excludes the reserved bytes when the loader is linked. | ✅ Resolved | AR-P7 |
-| AR-P8 | Technical | How do RD-07 conditions map onto the frozen diagnostic registry? | Source conditions use E10274, E10275, E10276 and E10279. Packaging conditions use stable packaging failure codes `D64_PROFILE`, `D64_NAME`, `D64_CAPACITY`, and `D64_STRUCTURE` in the existing `packaging` category. Sidecar envelopes keep E10267/E10268. No `spec/` edit. | ✅ Resolved | AR-P8 |
-| AR-P9 | Technical | How are the D64 disk label and disk ID derived? | Label: deterministic uppercase PETSCII encoding of the validated project name, at most 16 bytes, `$A0`-padded. ID: two uppercase PETSCII characters from the first two hex digits of the canonical semantic-input SHA-256. Both are recorded in `.build.json` as PETSCII hex. | ✅ Resolved | AR-P9 |
-| AR-P10 | Technical | How are directory names encoded and made collision-free? | Uppercase A–Z, 0–9 only. Boot name derives from the project name; each unit name is `L` plus 12 uppercase hex characters of its stable unit identity. Names are 1–16 bytes and `$A0`-padded in the directory. A collision or unrepresentable boot name is rejected, never silently rewritten. | ✅ Resolved | AR-P10 |
-| AR-P11 | Technical | Which sector allocation/interleave policy is used? | Policy `cbm-dos-1541-interleave-v1`: file data in ascending tracks outside track 18 with the standard 1541 file interleave 10, directory sectors in the standard interleave-3 chain, and a measured VICE KERNAL-load comparison before the serializer is accepted. The measured result is recorded in the build evidence. | ✅ Resolved | AR-P11 |
+| AR-P7 | Technical | Which KERNAL state is reserved, preserved, or reported clobbered? | A/X/Y/flags are clobbered; the compiler spills live source values and materializes the boolean in A. The adapter reserves the documented KERNAL workspace (`STATUS`, `VERCK`, `MEMUSS`, `EAL/EAH`, `FNLEN`, `FNADR`, `LA`, `SA`, `FA`), the hardware stack peak (including a conservative stock IRQ/NMI frame), and its own temporaries. The workspace lies above `$02–$8F`, so the SFA zero-page window is unchanged. | ✅ Resolved | AR-P7 |
+| AR-P8 | Technical | How do RD-07 conditions map onto the frozen diagnostic registry? | Source conditions use E10274, E10275, E10276 and E10279. Packaging conditions use stable packaging failure codes `D64_NAME`, `D64_CAPACITY`, and `D64_STRUCTURE` in the existing `packaging` category. Sidecar/component mismatches use E10267; sidecar envelopes keep E10267/E10268. No `spec/` edit and no `D64_PROFILE` code. | ✅ Resolved | AR-P8 |
+| AR-P9 | Technical | How are the D64 disk label and disk ID derived? | Label: deterministic uppercase PETSCII encoding of the validated project name through the Specification 4 lower-upper policy, at most 16 bytes, `$A0`-padded; over-length is `D64_NAME`, never truncation. ID: two uppercase PETSCII hex characters from the first two hex digits of the canonical semantic-input SHA-256. Both are recorded in `.build.json` as PETSCII hex. | ✅ Resolved | AR-P9 |
+| AR-P10 | Technical | How are directory names encoded and made collision-free? | Boot name derives from the project name through the Specification 4 PETSCII policy (letters, digits, and spec-representable punctuation; lowercase uppercased). Unit names are `L` plus 12 uppercase hex characters of the stable unit identity. Names are 1–16 bytes and `$A0`-padded in the directory. A collision or unrepresentable/over-length name is `D64_NAME`, never silently rewritten. | ✅ Resolved | AR-P10 |
+| AR-P11 | Technical | Which sector allocation/interleave policy is used? | Policy `cbm-dos-1541-interleave-v1`: file data in ascending tracks outside track 18 with the standard 1541 file interleave 10, directory sectors in the standard interleave-3 chain, and a measured VICE KERNAL-load comparison against a checked-in reference fixture before the serializer is accepted. The measured result is recorded in `09-allocation-measurement.md`; `.build.json` carries the policy id. | ✅ Resolved | AR-P11 |
 | AR-P12 | Technical | What fill byte is used for unused bytes and sectors? | `$00` for unused directory bytes, tail bytes, unused sectors, and image padding. The choice is recorded as a policy constant and covered by the independent decoder. | ✅ Resolved | AR-P12 |
 | AR-P13 | Technical | Where does the D64 packager live? | New `packages/compiler/src/packaging/d64/` module with pure geometry, allocator, encoder, and evidence projections. The target profile owns the packager identity `cbm-d64`; no external dependency and no shell call. | ✅ Resolved | AR-P13 |
-| AR-P14 | Technical | How are D64 records added to the version-1 sidecars? | Use the existing version-1 record families and fields: `.build.json` `package.kind: "d64"` with the admitted component set, `.assets.json` `placement.kind: "loadable"`, `.memory.json` `loader`/`loadDestination`/`loadUnitId`, `.costs.json` `loader`/`diskFile`/`diskContainer`/`sectorOverhead`/`callSite`/`existingRom`, and `.debug.json` `loadUnits`. No schema-version bump and no parallel format. | ✅ Resolved | AR-P14 |
+| AR-P14 | Technical | How are D64 records added to the version-1 sidecars? | Use the existing version-1 record families and fields: `.build.json` `package.kind: "d64"` with the admitted component set plus additive `loaderStrategyId`; `.assets.json` `placement.kind: "loadable"`; `.memory.json` `loader`/`loadDestination`/`loadUnitId` plus the additive `loadStates` array; `.costs.json` `loader`/`diskFile`/`diskContainer`/`sectorOverhead`/`callSite`/`existingRom`; and `.debug.json` `loadUnits`. No schema-version bump and no parallel format. | ✅ Resolved | AR-P14 |
 | AR-P15 | Technical | How does `run` autostart the first D64 entry? | Probe VICE 3.10 first, then record one exact argv. The expected form attaches the D64 as drive 8 and autostarts the boot entry; if VICE requires `8:<name>`, the probe fixes that spelling. No stale PRG fallback. | ✅ Resolved | AR-P15 |
 | AR-P16 | Technical | Are native RD-06 assets allowed under `loadable const`? | Yes. Remove the current E10204 loadable rejection; the handler's exact bytes become the load unit payload. Inconsistent handler output stays an error. The expressiveness-ledger row is retired with evidence. | ✅ Resolved | RD-07 R7.1; AR-P16 |
 | AR-P17 | Technical | What is a load unit's stable identity? | The qualified declaration identity plus its logical type descriptor and initializer provenance. Aliases of the same declaration share one unit; different declarations stay distinct even when their bytes match. Content hashes are evidence, not identity. | ✅ Resolved | RD-07 R7.6, R7.14; AR-P17 |
 | AR-P18 | Non-functional | Which verification command governs this plan? | Impact-based directed suites during implementation, then one complete RD-07 boundary plus the repository `yarn build`, `yarn typecheck`, `yarn test`, and targeted `yarn prettier --check`. No new readiness product. | ✅ Resolved | RD-07 R7.45; AGENTS.md |
 | AR-P19 | Non-functional | Which expert baseline version is bound? | Active baseline `2.0.4`, content commit `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15`. HLE-010 and the KERNAL/D64 guidance are already present; no spec or skill edit. RD-07's historical `2.0.0` reference is satisfied by the current qualified baseline. | ✅ Resolved | AR-P19 |
 | AR-P20 | Scope | Does any work here reopen hardware qualification? | No. Automated evidence is VICE 3.10 `x64sc` and remains `VICE-verified / hardware-unverified`. Real-drive and physical-C64 QA stay RD-10-owned. | ✅ Resolved | RD-07 R7.44; AR-027 |
-| AR-P21 | Edge case | Are exact-fit boundaries accepted? | Yes for a destination ending exactly at `$10000` (returned X/Y `$0000`), for exactly 664 used data blocks, and for exactly 144 directory entries. One byte/block/entry beyond each limit fails before publication. | ✅ Resolved | RD-07 R7.15, R7.20 |
+| AR-P21 | Edge case | Are exact-fit boundaries accepted? | Yes for exactly 664 used data blocks and exactly 144 directory entries; one block/entry beyond each fails before publication. The `$10000` end-address arithmetic is supported at the lowering/unit level, but the selected profile keeps KERNAL ROM visible at `$E000–$FFFF`, so a source destination that intersects that window is rejected. | ✅ Resolved | RD-07 R7.15, R7.20 |
 | AR-P22 | Integration | Is the D64 packager or loader a new generalized framework? | No. Both are the direct built-in implementations the RD requires: one packager, one KERNAL strategy, one independent test decoder. No plugin registry, external packager, fastloader, compressor, or VFS. The Complexity Escalation Gate is not triggered. | ✅ Resolved | RD-07 R7.12, R7.18; AR-042 |
+| AR-P23 | Behavioral | Does KERNAL `LOAD` with secondary address 0 use the file header or X/Y? | It ignores the file header and uses X/Y. The file header is still consumed and is part of the on-disk file and block count. This matches the frozen spec and primary KERNAL documentation; the contrary review claim is refuted. | ✅ Resolved | RD-07 R7.19, R7.20; primary KERNAL |
+| AR-P24 | Integration | How is R7.48's tooling handoff exposed without breaching the frontend boundary? | Add a frontend-safe `LoadableHandoff` view and a build-only `LoadableBuildView`; neither imports packaging into the language server. The frontend import-boundary test proves the separation. | ✅ Resolved | RD-07 R7.48; AGENTS.md |
 
 ## Resolution Notes
 
@@ -153,13 +155,13 @@ Reopen triggers: A measured program shows inline duplication dominating loader c
 
 ### AR-P7 — KERNAL workspace and preservation
 
-**Decision per AR-P7:** the adapter reserves the documented KERNAL workspace names from the expert
-reference (`STATUS`, `VERCK`, `MEMUSS`, `EAL/EAH`, `FNLEN`, `FNADR`, `LA`, `SA`, `FA`), the
-hardware stack peak, and its own A/X/Y/flags temporaries. The generated wrapper saves any live
-program register it must use and restores it on both success and failure. KERNAL workspace bytes are
-reported as clobbered, not restored, because the profile contract says they may change. When a load
-call is reachable, SFA excludes those bytes from its zero-page window; when no call is reachable,
-the existing allocation is unchanged.
+**Decision per AR-P7:** A/X/Y/flags are clobbered. The compiler spills live source values before the
+operation and materializes the boolean result in A; the adapter does not save/restore program
+registers. The adapter reserves the documented KERNAL workspace names from the expert reference
+(`STATUS`, `VERCK`, `MEMUSS`, `EAL/EAH`, `FNLEN`, `FNADR`, `LA`, `SA`, `FA`), the measured loader
+stack peak plus a conservative stock IRQ/NMI frame, and its own temporaries. Those workspace bytes
+lie above the SFA zero-page window `$02–$8F`, so the SFA window is unchanged. KERNAL workspace bytes
+are reported as clobbered, not restored, because the profile contract says they may change.
 
 ### AR-P8 — Diagnostic mapping
 
@@ -172,8 +174,8 @@ Eligibility: Implementation mapping inside the frozen diagnostic registry; it do
 Objective: Give every RD-07 failure a stable, documented identity without editing spec/.
 Decision: Source-level loadable and destination failures use E10274, E10275, E10276 and E10279.
   Packaging failures use the existing `packaging` failure category with stable service codes
-  `D64_PROFILE`, `D64_NAME`, `D64_CAPACITY`, and `D64_STRUCTURE`. Sidecar JSON envelope failures
-  keep E10267/E10268. No new E10xxx code is invented.
+  `D64_NAME`, `D64_CAPACITY`, and `D64_STRUCTURE`. Sidecar/component mismatches use E10267;
+  sidecar JSON envelope failures keep E10267/E10268. No new E10xxx code is invented.
 Evidence: spec/14-diagnostics.md is frozen and assigns only E10274-E10276 and E10279 to this area;
   packages/compiler/src/services/services.ts already uses stable serviceDiagnostic codes such as
   ARTIFACT_EVIDENCE and PUBLICATION_FAILED for non-source failures.
@@ -204,9 +206,10 @@ Authority: AI — delegated by --auto-design
 Eligibility: Deterministic artifact metadata inside the approved D64 profile; no product behavior
   or compatibility promise changes.
 Objective: Produce a stable label and ID that VICE and a 1541 accept.
-Decision: Label = uppercase PETSCII encoding of the validated project name, maximum 16 bytes,
-  `$A0` padded. ID = two uppercase PETSCII characters derived from the first two hex digits of the
-  canonical semantic-input SHA-256. Both are recorded as PETSCII hex in .build.json.
+Decision: Label = uppercase PETSCII encoding of the validated project name through the
+  Specification 4 lower-upper policy, maximum 16 bytes, `$A0` padded; over-length is `D64_NAME`,
+  never truncation. ID = two uppercase PETSCII hex characters derived from the first two hex digits
+  of the canonical semantic-input SHA-256. Both are recorded as PETSCII hex in .build.json.
 Evidence: The frozen spec does not define label/ID; RD-03's version-1 .build.json requires the
   fields; the expert baseline requires deterministic compiler-owned identities and leaves
   allocation policy to the packager. Deterministic derivation avoids host/time state.
@@ -226,11 +229,12 @@ Reopen triggers: VICE or a real 1541 rejects the chosen label/ID; a future multi
 
 ### AR-P10 — Directory names
 
-**Decision per AR-P10:** boot name from the validated project name through the C64 encoding policy;
-unit names `L` + 12 uppercase hex characters of the unit identity hash. The directory stores the
-16-byte `$A0`-padded form; SETNAM receives the unpadded bytes. A boot/unit collision or an
-unrepresentable project name is `D64_NAME`, never a silent rewrite. Unit names are stable across
-checkout paths because the identity is semantic, not host-path-based.
+**Decision per AR-P10:** boot name from the validated project name through the Specification 4
+PETSCII policy (lowercase uppercased; letters, digits, and spec-representable punctuation); unit
+names `L` + 12 uppercase hex characters of the unit identity hash. The directory stores the
+16-byte `$A0`-padded form; SETNAM receives the unpadded bytes. A boot/unit collision, an
+unrepresentable name, or a name longer than 16 bytes is `D64_NAME`, never a silent rewrite. Unit
+names are stable across checkout paths because the identity is semantic, not host-path-based.
 
 ### AR-P11 — Allocation and interleave
 
@@ -245,10 +249,11 @@ Objective: Choose a measured, documented, versioned sector order that a 1541 and
 Decision: Policy `cbm-dos-1541-interleave-v1`: allocate file data in ascending track order from 1
   to 35, skipping track 18, with the standard 1541 file interleave 10 within each track (for
   example, 0, 10, 20, 9, 19, … on a 21-sector track). Directory sectors use the standard
-  interleave-3 chain `18/1, 18/4, 18/7, …`. Before the serializer is accepted, measure a
-  representative multi-block KERNAL load under VICE 3.10 and record the chosen policy and observed
-  duration in the build evidence. The policy is a versioned constant; changing it is an observable
-  format change.
+  interleave-3 chain `18/1, 18/4, 18/7, …`. Before serializer code is written, measure a
+  representative multi-block KERNAL load under VICE 3.10 using a checked-in reference D64 fixture
+  (created once, not a build dependency). Record the fixture path/hash, VICE version, chosen
+  policy, and observed duration in `09-allocation-measurement.md`. `.build.json` carries the policy
+  id. The policy is a versioned constant; changing it is an observable format change.
 Evidence: Primary D64 format references record the standard 1541 file interleave of 10 and
   directory interleave of 3; the expert reference states that allocation/interleave are measured
   packager choices; the frozen spec fixes geometry but not the order.
@@ -284,9 +289,10 @@ filesystem, runs a shell, or imports a third-party image builder.
 
 ### AR-P14 — Sidecar records
 
-**Decision per AR-P14:** extend only the admitted version-1 shapes:
-`.build.json` uses the existing D64 `package` variant; `.assets.json` uses the admitted `loadable`
-placement with `loadUnitId`, `artifactPath`, and ordered `destinations`; `.memory.json` uses
+**Decision per AR-P14:** extend the admitted version-1 shapes with two additive fields:
+`.build.json` adds `loaderStrategyId` to the D64 package; `.memory.json` adds `loadStates` for
+quiescence and the call-site publication point. `.assets.json` uses the admitted `loadable`
+placement with `loadUnitId`, `artifactPath`, and ordered `destinations`; `.memory.json` also uses
 `loader` and `loadDestination` interval kinds plus `loadUnitId`; `.costs.json` uses the admitted
 disk/loader components; `.debug.json` populates `loadUnits` with `{name, kind, publication,
 artifact, residence}`. No new schema version and no parallel debug format.
@@ -339,9 +345,11 @@ checks remain RD-10-owned. The closeout records the boundary and does not claim 
 
 ### AR-P21 — Exact-fit boundaries
 
-**Decision per AR-P21:** accept an exact destination end at `$10000` with returned X/Y `$0000`;
-accept exactly 664 used data blocks and exactly 144 directory entries; reject one beyond each with
-`D64_CAPACITY` and the largest contributors. No truncation, no extended image.
+**Decision per AR-P21:** accept exactly 664 used data blocks and exactly 144 directory entries;
+reject one beyond each with `D64_CAPACITY` and the largest contributors. The `$10000` end-address
+arithmetic is supported at the lowering/unit level with returned X/Y `$0000`, but the selected
+profile keeps KERNAL ROM visible at `$E000–$FFFF`, so a source destination that intersects that
+window is rejected. No truncation, no extended image.
 
 ### AR-P22 — Complexity classification
 
@@ -352,9 +360,23 @@ is not triggered. Rejected alternatives that would have triggered it — a publi
 registry, a fastloader/compressor, a generic VFS, and a third-party image builder — stay out of
 scope per RD-07's Won't Have section.
 
+### AR-P23 — KERNAL header consumption
+
+**Decision per AR-P23:** use secondary address 0 and supply the destination in X/Y. The 2-byte
+file header is consumed and ignored for placement. Primary C64 KERNAL documentation (skoolkid C64
+ROM, codebase64, the C64 Programmer's Reference) and the frozen spec all state that SA=0 ignores
+the header and uses X/Y. The contrary preflight claim is refuted; no contract change is made.
+
+### AR-P24 — Tooling handoff
+
+**Decision per AR-P24:** add `LoadableHandoff` to the frontend entry point and
+`LoadableBuildView` to the build service. The frontend view imports no packaging, layout, machine,
+serializer, or D64 module. The build view is derived from published evidence and is not a new
+public package. Add the import-boundary test and the ST-132/ST-133 cases.
+
 ## Gate check
 
-- Every row is resolved or explicitly deferred: yes, 22/22 resolved.
+- Every row is resolved or explicitly deferred: yes, 24/24 resolved.
 - Every auto-design row carries eligibility, objective, decision, evidence, rejected alternatives,
   counterargument, confidence, hardening, policy version, root invocation ID, and reopen triggers.
 - Reserved decisions (product behavior, frozen spec, hardware claims) remain user-owned and were

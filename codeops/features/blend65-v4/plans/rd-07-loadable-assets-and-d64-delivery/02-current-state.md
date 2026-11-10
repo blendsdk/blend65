@@ -19,7 +19,7 @@
 | Sidecars | `.asm`, `.labels`, `.assets.json`, `.memory.json`, `.costs.json`, `.debug.json`, `.build.json` | `services/evidence.ts:951`, `publication/publication.ts:36` |
 | Evidence schemas | Version 1, hand-written validators; D64 package and loadable/loader records admitted but not produced | `artifacts/build-evidence-validator.ts:168`, `assets-evidence-validator.ts:469`, `debug-evidence-records.ts:583` |
 | Layout | Greedy first-fit over intervals; SFA homes already closed; VIC windows; free-space utility | `layout/c64-layout.ts:218`, `layout/c64-layout-placement.ts:57`, `services/evidence.ts:250` |
-| SFA | Storage closure before machine lowering; draft/final layout stability check | `storage/closure.ts:386`, `services/shared-storage.ts:203` |
+| SFA | Machine lowering produces the symbolic program; shared-storage closure then closes SFA and final layout places it | `storage/closure.ts:386`, `services/shared-storage.ts:203` |
 | VICE run | Fresh build, pin, `x64sc` argv, autostart PRG, cancellation, cleanup | `services/services.ts:802`, `services/vice.ts:259` |
 
 ### Relevant files
@@ -48,8 +48,8 @@
 The current build pipeline is:
 
 ```text
-snapshot -> frontend -> semantic lower -> whole-program -> storage close
-  -> machine lower -> shared-storage draft/final layout -> ACME -> evidence -> publish
+snapshot -> frontend -> semantic lower -> whole-program -> machine lower
+  -> shared-storage draft/final close -> final layout -> ACME -> evidence -> publish
 ```
 
 Loadable declarations are analyzed and their initializer bytes are computed, but

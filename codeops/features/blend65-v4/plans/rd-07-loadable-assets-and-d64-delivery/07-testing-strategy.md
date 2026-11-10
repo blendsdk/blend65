@@ -39,7 +39,7 @@ code after it exists.
 | ST-9 | Ordinary resident `const` and its loadable twin | Resident twin has an address; loadable twin has none and no resident bytes | R7.8 |
 | ST-10 | `loadable const X: byte[] = ...;` | Existing type rejection; no artifact | R7.1 |
 | ST-11 | `loadable const X: byte = runtimeValue;` | E10191; no artifact | R7.1 |
-| ST-12 | `loadable const DATA: byte[8] = embed("charset.ctm", "charset");` | Unit carries the handler's 2048-byte alignment/VIC constraint to its destinations | R7.1, R7.3 |
+| ST-12 | `loadable const DATA: byte[2048] = embed("charset.ctm", "charset");` | Unit carries the handler's 2048-byte alignment/VIC constraint to its destinations | R7.1, R7.3 |
 
 ### B. Load operation and destination
 
@@ -62,7 +62,7 @@ code after it exists.
 | ST-27 | Destination is an unsized array | E10275; no finite complete interval | R7.3 |
 | ST-28 | Destination is `obj.field` where `obj` is a byte array and the field is a subaggregate | Compiles; no root-only rejection | R7.3 |
 | ST-29 | `c64.loader.load(U, d)` on each of the four PRG profiles | E10275 naming the selected profile; no artifact | R7.9 |
-| ST-30 | Destination `d` with `&d + sizeof(U) == $10000` | Compiles; expected end `$0000` | R7.20 |
+| ST-30 | Lowering-level destination whose interval ends exactly at `$10000` | Expected end `$0000`; the source-level profile proof separately rejects an interval intersecting `$E000–$FFFF` | R7.20, AR-P21 |
 
 ### C. Publication, flow, alias, and quiescence
 
@@ -99,7 +99,7 @@ code after it exists.
 | ST-54 | KERNAL returns carry clear and exact end | Boolean `true`; no error branch | R7.20 |
 | ST-55 | KERNAL returns carry set | Boolean `false`; no publication | R7.20 |
 | ST-56 | KERNAL returns short end | Boolean `false` | R7.20 |
-| ST-57 | Exact end `$10000` | Returned X/Y `$0000`; `true` | R7.20 |
+| ST-57 | Lowering-level exact end `$10000` | Returned X/Y `$0000`; `true`; source-level KERNAL-ROM intersection rejects | R7.20, AR-P21 |
 | ST-58 | Destination + size beyond `$10000` | E10275 before emission | R7.20 |
 | ST-59 | Dynamic array destination | Expression evaluated once into X/Y; end check compares runtime `destination + size` | R7.4, R7.20 |
 | ST-60 | No reachable load call | No loader code, name bytes, KERNAL scaffolding, or reservation | R7.18 |
@@ -130,8 +130,8 @@ code after it exists.
 | # | Input / scenario | Expected output / behavior | Source |
 |---|------------------|----------------------------|--------|
 | ST-77 | Empty boot-only image | Exactly 174,848 bytes; 35 tracks; 683 sectors | R7.11 |
-| ST-78 | BAM 18/0 | Link 18/1; byte 2 `$41`; bytes 4–143 BAM; label/ID/DOS `2A` | R7.11, R7.13 |
-| ST-79 | Directory chain | 18/1, 18/4, 18/7, …, last link `$00 $FF` | R7.11, R7.16 |
+| ST-78 | BAM 18/0 | Link 18/1; byte 2 `$41`; bytes 4–143 BAM; exact 144–255 header slice: name 144–159, `$A0 $A0` 160–161, ID 162–163, `$A0` 164, `2A` 165–166, `$A0 ×4` 167–170, zero 171–255; `bamSha256` is the whole sector | R7.11, R7.13 |
+| ST-79 | Directory chain | 18/1, 18/4, 18/7, …, last link `$00 $FF`; `directorySha256` hashes 18/1..18/18 in numeric order | R7.11, R7.16 |
 | ST-80 | Directory entries | Eight per sector; type `$82`; exact name/first data T/S/block count | R7.11, R7.14 |
 | ST-81 | Boot entry | First entry; closed PRG; exact BASIC-startable boot body | R7.13 |
 | ST-82 | Unit entry | Closed PRG; first two file bytes `$00 $00`; remaining bytes exact unit | R7.14 |
@@ -174,7 +174,7 @@ code after it exists.
 | ST-109 | `.assets.json` loadable record | `placement.kind:"loadable"` with unit id, artifact, destinations; emitted=payload | R7.38 |
 | ST-110 | `.memory.json` loader/destination | Loader name data, destination interval, exclusive states, KERNAL reservation | R7.40 |
 | ST-111 | `.costs.json` categories | Boot, loader, filename, call-site, SFA/ZP/stack, KERNAL ROM, logical/disk, sector overhead, destination, time | R7.39 |
-| ST-112 | Unknown load time | Literal `"Unknown"`; never zero | R7.39 |
+| ST-112 | Unknown load time | `.costs.json` uses `{kind:"unknown"}`; `"Unknown"` is confined to `.build.json` host provenance | R7.39 |
 | ST-113 | `.debug.json` load units | Boot primary + contained units; ranges use `loadUnitIndex` | R7.38 |
 | ST-114 | Cross-sidecar mismatch | E10267; no publication | R7.38 |
 | ST-115 | Disk allocation never enters optimizer B/R | Saved/acquisition byte metrics unchanged by D64 size | R7.15 |
@@ -200,22 +200,49 @@ code after it exists.
 | ST-130 | Controlled readable longer replacement of one unit on an isolated sacrificial destination | Wrapper returns `false`; canaries show the overwrite boundary; no containment claim | R7.25, HLE-010 |
 | ST-131 | Seeded overlap, overflow, resource exhaustion, or ACME mismatch | Hard diagnostic before publication; no partial artifact | R7.40 |
 
+### J. Handoff, lifecycle, and remaining acceptance cases
+
+| # | Input / scenario | Expected output / behavior | Source |
+|---|------------------|----------------------------|--------|
+| ST-132 | Frontend entry-point query for loadable facts | `LoadableHandoff` exposes type/size/provenance, illegal uses, and destination compatibility; its import graph never reaches packaging/layout/machine/serializer/D64 | R7.48, AR-P24 |
+| ST-133 | Build-only query after final layout | `LoadableBuildView` exposes directory name, sector chain, address, strategy, quiescence, memory proof, and cost ids | R7.48, AR-P24 |
+| ST-134 | `.build.json` D64 package | Contains `loaderStrategyId`, components in directory order with boot first, and the allocation policy id matching `09-allocation-measurement.md` | R7.38, R7.12 |
+| ST-135 | Name collision, over-length name, or seeded image-structure failure | `D64_NAME` for names; `D64_STRUCTURE` for image structure; no generation | R7.13, R7.14, R7.16 |
+| ST-136 | Local `loadable const` used by a reachable load; another local not used | One unit/entry for the reachable local; zero for the unreachable one; function-qualified identity | R7.1, R7.6 |
+| ST-137 | Zero-byte loadable unit | One data sector containing the 2-byte header; success returns end == destination; destination unchanged | R7.14, R7.15 |
+| ST-138 | Loader and call-site cost attribution | `code + loader + callSite` subsets sum exactly to the function code interval bytes; no double count | R7.39 |
+| ST-139 | AC-22/AC-27 negative inspection | No automatic callback, retry, prompt, state-save, or validity byte; optimizer-none IL retains capture/result, selected update, unselected preservation, blocking write, failure, quiescence, and profile effect | R7.24, R7.32, R7.34 |
+| ST-140 | Identical inputs in different checkout paths | Byte-identical D64 and deterministic evidence; `.build.json` differs only in `generationId` and declared host provenance | AC-11 |
+| ST-141 | Product-boundary scan | No public package, symbol, example dependency, or generated module implements a VFS, asset manager, loader plugin, renderer, scene, scheduler, or engine | AC-34 |
+| ST-142 | Link/deferral closeout scan | All public links resolve; every due deferral is re-owned; `spec/` is unchanged | AC-36 |
+| ST-143 | Read a loadable value through an index | E10274; no resident address | R7.2 |
+| ST-144 | Mutate a loadable value | E10274 | R7.2 |
+| ST-145 | Cast a loadable value | E10274 | R7.2 |
+| ST-146 | Return a loadable value | E10274 | R7.2 |
+| ST-147 | Store a loadable value | E10274 | R7.2 |
+| ST-148 | Compare a loadable value | E10274 | R7.2 |
+| ST-149 | Iterate a loadable value | E10274 | R7.2 |
+| ST-150 | Dynamic destination with one prior initialized candidate; load fails | Selected candidate is invalidated; the prior initialized candidate remains readable | R7.42, AC-04 |
+
 ## Test categories
 
 ### Specification tests
 
 | File | ST cases | Component |
 | ---- | -------- | --------- |
-| `test/rd07/loadable-model.spec.test.ts` | ST-1..ST-12 | Unit model |
+| `test/rd07/loadable-model.spec.test.ts` | ST-1..ST-12, ST-136, ST-143..ST-149 | Unit model |
 | `test/rd07/load-destination.spec.test.ts` | ST-13..ST-30 | Destination proof |
-| `test/rd07/load-publication.spec.test.ts` | ST-31..ST-44 | Flow/alias |
+| `test/rd07/load-publication.spec.test.ts` | ST-31..ST-44, ST-150 | Flow/alias |
 | `test/rd07/load-quiescence.spec.test.ts` | ST-45..ST-50 | Quiescence |
-| `test/rd07/loader-lowering.spec.test.ts` | ST-51..ST-64 | Lowering |
+| `test/rd07/loader-lowering.spec.test.ts` | ST-51..ST-64 (runtime half in VICE) | Lowering |
 | `test/rd07/load-layout.spec.test.ts` | ST-65..ST-76 | Layout/memory |
-| `test/rd07/d64-codec.spec.test.ts` | ST-77..ST-96 | D64 codec |
-| `test/rd07/d64-publication.spec.test.ts` | ST-97..ST-108 | Publication/run |
-| `test/rd07/d64-evidence.spec.test.ts` | ST-109..ST-115 | Evidence/costs |
-| `test/rd07/qualification.spec.test.ts` | ST-116..ST-126 | Examples/qualification |
+| `test/rd07/d64-codec.spec.test.ts` | ST-77..ST-96, ST-135, ST-137 | D64 codec |
+| `test/rd07/d64-capacity.spec.test.ts` | ST-87..ST-90 | Capacity |
+| `test/rd07/d64-publication.spec.test.ts` | ST-97..ST-108, ST-134, ST-140 | Publication/run |
+| `test/rd07/prg-regression.spec.test.ts` | ST-108 | PRG compatibility |
+| `test/rd07/d64-evidence.spec.test.ts` | ST-109..ST-115, ST-133, ST-138 | Evidence/costs |
+| `test/rd07/qualification.spec.test.ts` | ST-116..ST-126, ST-132, ST-139, ST-141..ST-142 | Examples/qualification |
+| `test/rd07/d64-e2e.spec.test.ts` | ST-98, ST-102, ST-119..ST-120 | End-to-end |
 | `test/rd07/security.spec.test.ts` | ST-127..ST-131 | Security/integrity |
 
 ### Implementation tests
@@ -243,6 +270,22 @@ code after it exists.
 - A representative 20-block unit for the allocation measurement.
 - Existing RD-06 raw/CTM/SPD fixtures for loadable asset tests.
 - VICE 3.10 `x64sc` and ACME 0.97.
+
+## Verification commands
+
+| Check | Command |
+| ----- | ------- |
+| Frozen install | `yarn install --frozen-lockfile` |
+| Root RD-07 specs | `yarn vitest run test/rd07/<file>.spec.test.ts` |
+| Compiler impl tests | `yarn workspace @blend65/compiler test src/<path>/<file>.impl.test.ts` |
+| Build | `yarn build` |
+| Typecheck | `yarn typecheck` |
+| Targeted formatting | `yarn prettier --check <touched files>` |
+| Final boundary | `yarn test` once after integration |
+| VICE | Sequential `x64sc` runs with explicit cycle limits and soft-skip when unavailable |
+
+`yarn test` remains the final boundary command; it is not the per-file directed command because it
+runs the complete package corpus and the root suite.
 
 ## Verification checklist
 

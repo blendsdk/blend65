@@ -66,9 +66,19 @@ export interface D64File {
   readonly name: string;          // unpadded PETSCII bytes as a string of code points
   readonly directoryName: readonly number[]; // exactly 16 bytes, $A0 padded
   readonly loadAddress: number;   // $0801 for boot, $0000 for units
-  readonly bytes: readonly number[]; // exact file payload after the 2-byte header
+  readonly body: readonly number[]; // boot PRG body or exact unit logical bytes
   readonly aliases: readonly string[];
   readonly destinationCalls: readonly SourceSpan[];
+}
+
+/** One file after allocation. */
+export interface D64PlacedFile {
+  readonly file: D64File;
+  readonly startTrack: number;
+  readonly startSector: number;
+  readonly endTrack: number;
+  readonly endSector: number;
+  readonly blocks: number;
 }
 
 /** The complete image plus its structural facts. */
@@ -96,18 +106,19 @@ For each track 1–35, four bytes:
 
 ### Directory
 
-The BAM header uses:
+The BAM header uses the standard 1541 offsets:
 
 ```text
-0-1   18,1
-2     $41
-3     0
-4-143 BAM
-144-163 disk name (16 bytes, $A0 padded)
-164-165 $A0 $A0
-166-167 disk ID
-168   $A0
-169-170 $32 $41 ("2A")
+0-1     18,1
+2       $41
+3       0
+4-143   BAM
+144-159 disk name (16 bytes, $A0 padded)
+160-161 $A0 $A0
+162-163 disk ID
+164     $A0
+165-166 $32 $41 ("2A")
+167-170 $A0 $A0 $A0 $A0
 171-255 0
 ```
 
@@ -131,29 +142,49 @@ slots are all zero.
 
 ### File data
 
-Each file's payload is split into 254-byte chunks. Each chunk occupies one data sector:
+The on-disk file is a 2-byte load header followed by the exact body:
 
-- bytes 0–1: next track/sector, or `$00 $00` in the final sector;
+| File | Header | Body |
+| ---- | ------ | ---- |
+| Boot | `$01 $08` (load address `$0801`) | Complete boot PRG body |
+| Unit | `$00 $00` (ignored) | Exact unit logical bytes |
+
+The header is the first two bytes of the chunk stream. Under secondary address 0 the KERNAL
+consumes the header but ignores it for placement; X/Y supplies the destination. The boot file is
+byte-identical to the staged PRG file. The staged `<name>.prg` is deleted after packaging and is
+not part of the published eight-file set.
+
+Each file's `header + body` is split into 254-byte chunks. Each chunk occupies one data sector:
+
+- bytes 0–1: next track/sector, or `$00 <lastIndex>` in the final sector;
 - bytes 2–255: up to 254 payload bytes;
 - final sector: byte 0 = 0, byte 1 = last used byte index (2..255), remaining bytes zero.
 
-The boot file's payload is the complete PRG body (the PRG header is not repeated). The unit file's
-payload is the unit's exact logical bytes. The directory's first data sector points at the first
+The block count is `ceil((2 + body.length) / 254)`. A zero-byte unit is legal: it occupies one
+2-byte data sector with final byte 1 = 3, and a successful load leaves the destination unchanged
+with returned X/Y equal to the destination. The directory's first data sector points at the first
 chunk; the chain is acyclic and in range.
 
 ### Names
 
-`encodeDirectoryName(text)` accepts uppercase A–Z, 0–9, and maps to PETSCII `$41–$5A`, `$30–$39`.
-Boot names derive from the project name; unit names are `L` plus 12 uppercase hex characters of the
-unit identity hash. Names are 1–16 bytes. A collision, an empty name, or a character outside the
-policy is `D64_NAME` and no image is produced. The directory stores the `$A0`-padded form; SETNAM
-receives the unpadded bytes.
+`encodeDirectoryName(text)` follows the Specification 4 PETSCII policy:
+
+1. ASCII lowercase letters are uppercased.
+2. The source scalar is mapped through `c64-petscii-upper-graphics-v1`
+   (`U+0020..U+003F` -> `$20..$3F`, `A..Z` -> `$41..$5A`, `@`, `[`, `£`, `]`, `↑`, `←`).
+3. Any unmapped scalar, an empty name, or a name longer than 16 bytes is `D64_NAME`; the name is
+   never truncated or silently rewritten.
+
+The boot directory name and disk label derive from the validated project name through that policy.
+The disk ID is two uppercase PETSCII hex characters from the canonical semantic-input hash. Unit
+names are `L` plus 12 uppercase hex characters of the unit identity hash. A boot/unit collision is
+`D64_NAME`. The directory stores the 16-byte `$A0`-padded form; SETNAM receives the unpadded bytes.
 
 ### Capacity
 
 Before serialization, compute:
 
-- `usedDataBlocks` = sum of each file's sector count;
+- `usedDataBlocks` = sum of `ceil((2 + body.length) / 254)` over every file;
 - `directoryEntries` = 1 boot + reachable units;
 - `freeBlocks = 664 - usedDataBlocks`.
 
@@ -166,6 +197,10 @@ and a nonstandard track are never produced.
 The image is a pure function of the boot PRG, the ordered unit records, the project name, and the
 canonical semantic-input hash. There is no host path, timestamp, locale, enumeration order, or
 random value. Identical inputs produce byte-identical images and hashes.
+
+`bamSha256` is SHA-256 of the complete 256-byte BAM sector 18/0. `directorySha256` is SHA-256 of
+the 18 directory sectors concatenated in numeric track/sector order (18/1 through 18/18). Both
+projections are fixed and versioned with the allocation policy.
 
 ## Independent decoder
 
@@ -191,7 +226,7 @@ The decoder is the codec oracle. Round-tripping through the production serialize
 | One block/entry over capacity | `D64_CAPACITY` | AR-P21 |
 | Shared/orphan/cyclic sector | Internal invariant failure; no image | AR-P13 |
 | Non-deterministic input | `D64_STRUCTURE` | AR-P11 |
-| Sidecar/component mismatch | `D64_STRUCTURE` | AR-P14 |
+| Sidecar/component mismatch | E10267 | AR-P14 |
 
 ## Testing Requirements
 

@@ -46,6 +46,7 @@ independent test decoder are the direct requested implementation, not a Complexi
 | #   | Document | Description |
 | --- | -------- | ----------- |
 | AR  | [Ambiguity Register](00-ambiguity-register.md) | Zero-Ambiguity Gate decisions and delegated provenance |
+| PF  | [Preflight Report](00-preflight-report.md) | Post-creation audit and finding dispositions |
 | 00  | [Index](00-index.md) | This document — overview and navigation |
 | 01  | [Requirements](01-requirements.md) | RD-07 delta scope and plan-local decisions |
 | 02  | [Current State](02-current-state.md) | What exists today and what is missing |
@@ -81,8 +82,7 @@ let currentLevel: LevelData;
 
 function enterLevel2(): boolean {
     c64.system.restoreIRQ();
-    c64.audio.audioInitDefault();
-    c64.audio.stop();
+    c64.system.restoreNMI();
 
     if (!c64.loader.load(LEVEL_2, currentLevel)) {
         return false;
@@ -93,8 +93,9 @@ function enterLevel2(): boolean {
 }
 ```
 
-The exact audio stop spelling comes from the selected profile's capability set. The example shows
-ownership and control flow; it is not a new API promise.
+The example shows the ownership and control flow, not a promise of these placeholder spellings.
+The loader requires every user IRQ/NMI route restored; mainline audio/player ticks cannot run during
+the blocking call, so they are quiescent by construction. No `c64.audio.stop` API is added.
 
 ### Key decisions
 
@@ -106,10 +107,10 @@ ownership and control flow; it is not a new API promise.
 | Publication | Sparse half-open ranges; true edge initializes, false edge invalidates, no runtime state |
 | Transport | Inline `SETLFS`/`SETNAM`/`LOAD`; no helper ABI, no staging |
 | D64 | 174,848 bytes, 35 tracks, DOS `2A`, 664 blocks, 144 entries, `$00` fill |
-| Allocation | `cbm-dos-1541-interleave-v1` (file interleave 10, directory interleave 3), measured before acceptance |
-| Names | Uppercase PETSCII; boot from project name; units `L` + 12 identity hex |
-| Diagnostics | E10274/E10275/E10276/E10279 plus stable `D64_*` packaging codes; no spec edit |
-| Evidence | Existing version-1 families; no new schema version |
+| Allocation | `cbm-dos-1541-interleave-v1` (file interleave 10, directory interleave 3), measured before serializer code |
+| Names | Spec-policy uppercase PETSCII boot name; units `L` + 12 identity hex |
+| Diagnostics | E10274/E10275/E10276/E10279 plus `D64_NAME`/`D64_CAPACITY`/`D64_STRUCTURE`; no spec edit |
+| Evidence | Version-1 families plus additive `loaderStrategyId` and `loadStates` |
 | Hardware status | `VICE-verified / hardware-unverified`; RD-10 owns physical QA |
 
 ## Specialist Agents
@@ -129,15 +130,16 @@ found, so no additional role is proposed._
 
 ## Related Files
 
-- `packages/compiler/src/frontend/` — loadable declarations, initializer bytes, flow facts, diagnostics.
+- `packages/compiler/src/frontend/` — loadable declarations, initializer bytes, flow facts, diagnostics, handoff.
 - `packages/compiler/src/semantic/` — unit inventory, load operation, reachability, whole-program facts.
 - `packages/compiler/src/machine/` — loader lowering, destination evaluation, success check.
 - `packages/compiler/src/storage/` — SFA closure and loader reservation interference.
 - `packages/compiler/src/layout/` — destination intervals, joint placement, visibility.
 - `packages/compiler/src/packaging/d64/` — new pure D64 serializer and allocator.
 - `packages/compiler/src/target/` — D64 profile composition and packager identity.
-- `packages/compiler/src/services/` — build/run orchestration, evidence, VICE.
+- `packages/compiler/src/services/` — build/run orchestration, evidence, VICE, build handoff.
 - `packages/compiler/src/artifacts/` — version-1 sidecar validators and D64 package records.
 - `packages/compiler/src/publication/` — primary D64 generation and sidecar consistency.
-- `test/rd07/` — new specification, codec, evidence, and VICE suites.
+- `test/rd07/` — new specification, codec, evidence, security, and VICE suites.
 - `examples/rd07-loadable/` — focused source examples.
+- `docs/loadable-assets.md` — user-facing trusted-media boundary.
