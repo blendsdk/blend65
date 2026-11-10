@@ -34,7 +34,7 @@ complete publication, and bounded VICE runtime evidence.
 | Check | Command | Result |
 | --- | --- | --- |
 | Compiler suite | `yarn workspace @blend65/compiler test` | 3,656 passed / 2 skipped |
-| RD-07 directed suite | `yarn vitest run test/rd07` | 72 passed / 4 opt-in skipped (VICE) |
+| RD-07 directed suite | `yarn vitest run test/rd07` | 75 passed / 4 opt-in skipped (VICE) |
 | Affected root suites | RD-04/05/06 + M1 boundary | 133 passed |
 | VICE runtime (opt-in) | `RD07_VICE=1 RD07_RUNTIME_DIR=<prebuilt> yarn vitest run test/rd07/d64-vice.spec.test.ts` | 4/4 passed |
 | D64 run argv | `src/services/vice-profiles.spec.test.ts` | 12 passed |
