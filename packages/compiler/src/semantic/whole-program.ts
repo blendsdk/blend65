@@ -128,6 +128,8 @@ export interface WholeProgram {
   readonly reachableFunctions: readonly BindingId[];
   /** Reachable immutable assets in semantic asset order. */
   readonly reachableAssets: readonly string[];
+  /** Packaged unit identities referenced by a reachable load operation. */
+  readonly reachableLoadUnits: readonly string[];
 }
 
 /** Whole-program closure or terminal proving diagnostics. */
@@ -614,6 +616,21 @@ export function closeWholeProgram(
     reachableFunctions,
     reachableAssets: Object.freeze(
       semantic.assets.filter(({ id }) => reachableAssets.has(id)).map(({ id }) => id),
+    ),
+    reachableLoadUnits: Object.freeze(
+      [
+        ...new Set(
+          functions
+            .filter((fn) => reachable.has(bindingIdentityKey(fn.id)))
+            .flatMap((fn) =>
+              fn.blocks.flatMap((block) =>
+                block.operations.flatMap((operation) =>
+                  operation.kind === "load-unit" ? [operation.unitId] : [],
+                ),
+              ),
+            ),
+        ),
+      ].sort(),
     ),
   });
   const contextAnalysis = analyzeInterruptContexts(program, addressSpace);

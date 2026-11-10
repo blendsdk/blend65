@@ -791,39 +791,45 @@ export async function prepareEvidence(
     ]),
     intervals,
     loadStates: Object.freeze(
-      input.program.semantic.functions.flatMap((fn) =>
-        fn.blocks.flatMap((block) =>
-          block.operations
-            .filter(
-              (operation): operation is Extract<typeof operation, { kind: "load-unit" }> =>
-                operation.kind === "load-unit",
-            )
-            .map((operation) => {
-              const key = bindingIdentityKey(operation.destinationBinding);
-              const destination = intervals.find((interval) => String(interval.id).includes(key));
-              const site = Object.freeze({
-                path: operation.span.sourceId,
-                startByte: operation.span.start,
-                endByte: operation.span.end,
-              });
-              return Object.freeze({
-                callSite: site,
-                unitId: operation.unitId,
-                destinationIntervalIds: Object.freeze(
-                  destination === undefined ? [] : [String(destination.id)],
-                ),
-                quiescence: Object.freeze({
-                  routes: Object.freeze([]),
-                  status: "proved" as const,
-                }),
-                publicationPoint: Object.freeze({
+      input.program.semantic.functions
+        .filter((fn) =>
+          input.program.reachableFunctions.some(
+            (id) => bindingIdentityKey(id) === bindingIdentityKey(fn.id),
+          ),
+        )
+        .flatMap((fn) =>
+          fn.blocks.flatMap((block) =>
+            block.operations
+              .filter(
+                (operation): operation is Extract<typeof operation, { kind: "load-unit" }> =>
+                  operation.kind === "load-unit",
+              )
+              .map((operation) => {
+                const key = bindingIdentityKey(operation.destinationBinding);
+                const destination = intervals.find((interval) => String(interval.id).includes(key));
+                const site = Object.freeze({
+                  path: operation.span.sourceId,
+                  startByte: operation.span.start,
+                  endByte: operation.span.end,
+                });
+                return Object.freeze({
                   callSite: site,
-                  resultEdge: "true" as const,
-                }),
-              });
-            }),
+                  unitId: operation.unitId,
+                  destinationIntervalIds: Object.freeze(
+                    destination === undefined ? [] : [String(destination.id)],
+                  ),
+                  quiescence: Object.freeze({
+                    routes: Object.freeze([]),
+                    status: "proved" as const,
+                  }),
+                  publicationPoint: Object.freeze({
+                    callSite: site,
+                    resultEdge: "true" as const,
+                  }),
+                });
+              }),
+          ),
         ),
-      ),
     ),
     views,
     stackDomains: Object.freeze(

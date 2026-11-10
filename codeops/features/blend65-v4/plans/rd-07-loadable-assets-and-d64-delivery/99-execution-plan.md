@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 11:34
-> **Progress**: 69/131 tasks (53%)
+> **Last Updated**: 2026-11-10 12:21
+> **Progress**: 75/131 tasks (57%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -70,7 +70,7 @@ illegal uses, and tooling handoff before implementation.
 - [x] 1.2.5 Collect module-level loadable declarations — `packages/compiler/src/frontend/analyzer.ts` ✅ (completed: 2026-11-10 09:46)
 - [x] 1.2.6 Collect local loadable declarations with function-qualified identity — `packages/compiler/src/frontend/analyzer-scalars.ts` ✅ (completed: 2026-11-10 09:46)
 - [x] 1.2.7 Merge import aliases by declaration identity — `packages/compiler/src/semantic/load-units.ts` ✅ (completed: 2026-11-10 09:46)
-- [ ] 1.2.8 Extend whole-program reachability to units referenced by reachable load calls — `packages/compiler/src/semantic/whole-program.ts` `[!] Blocked: needs the Phase 3 load operation`
+- [x] 1.2.8 Extend whole-program reachability to units referenced by reachable load calls — `packages/compiler/src/semantic/whole-program.ts` ✅ (completed: 2026-11-10 12:21)
 - [x] 1.2.9 Allow native/raw assets under `loadable const`; keep the expressiveness-ledger row deferred until Phase 7 — `packages/compiler/src/assets/asset-dispatch.ts` ✅ (completed: 2026-11-10 09:46)
 - [x] 1.2.10 Prove zero resident bytes and resident/loadable separation — `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/machine/lower-data.ts` ✅ (completed: 2026-11-10 09:46)
 - [x] 1.2.11 Add the frontend-safe `LoadableHandoff` view — `packages/compiler/src/frontend/handoff.ts` ✅ (completed: 2026-11-10 09:46)
@@ -100,7 +100,7 @@ illegal uses, and tooling handoff before implementation.
 **Reference**: [03-02](03-02-load-operation-and-publication.md), [03-06](03-06-artifact-publication-and-run.md) · ST-8, ST-12, ST-13..ST-30, ST-136 · AR-P2, AR-P3, AR-P21
 **Objective**: Admit the D64 profile early and pin every accepted/rejected destination form.
 
-- [ ] 2.1.1 [spec-author] Write specification tests from ST-8, ST-12, ST-13..ST-30, ST-136 — `test/rd07/load-destination.spec.test.ts`
+- [x] 2.1.1 [spec-author] Write specification tests from ST-8, ST-12, ST-13..ST-30, ST-136 — `test/rd07/load-destination.spec.test.ts` ✅ (completed: 2026-11-10 12:21)
 - [x] 2.1.2 [spec-author] Update the existing D64 profile expectation to admit the executable profile — `packages/compiler/src/target/cooperative-profiles.spec.test.ts` ✅ (completed: 2026-11-10 10:12)
 - [x] 2.1.3 Run the new spec suites and record the red phase ✅ (completed: 2026-11-10 10:12)
 
@@ -115,11 +115,11 @@ illegal uses, and tooling handoff before implementation.
 - [x] 2.2.5 Resolve the second argument to a mutable fixed place — `packages/compiler/src/frontend/load-call.ts` ✅ (completed: 2026-11-10 11:22)
 - [x] 2.2.6 Evaluate the destination exactly once — `packages/compiler/src/frontend/load-call.ts` ✅ (completed: 2026-11-10 10:25)
 - [~] 2.2.7 Build the finite candidate set for a runtime fixed-array index; reject non-finite sets — `packages/compiler/src/semantic/load-destination.ts` ⏳ (implemented: 2026-11-10 11:22)
-- [~] 2.2.8 Prove exact type, size, mutability, and lifetime — `packages/compiler/src/semantic/load-destination.ts` ⏳ (implemented: 2026-11-10 10:25)
+- [x] 2.2.8 Prove exact type, size, mutability, and lifetime — `packages/compiler/src/semantic/load-destination.ts` ✅ (completed: 2026-11-10 12:21)
 - [ ] 2.2.9 Prove alignment, visibility, end address, and KERNAL-ROM exclusion — `packages/compiler/src/semantic/load-destination.ts`
-- [~] 2.2.10 Implement E10275 reasons and E10279 profile behavior; preserve E10274 — `packages/compiler/src/frontend/scalar-expressions.ts` ⏳ (implemented: 2026-11-10 10:25)
+- [x] 2.2.10 Implement E10275 reasons and E10279 profile behavior; preserve E10274 — `packages/compiler/src/frontend/scalar-expressions.ts` ✅ (completed: 2026-11-10 12:21)
 - [ ] 2.2.11 Add the minimal machine `load-unit` operation and effect so `checkProject` can complete before the exact KERNAL lowering exists — `packages/compiler/src/machine/operations.ts`, `packages/compiler/src/machine/lower-operation.ts`
-- [ ] 2.2.12 Run ST-13..ST-30 and record the green phase
+- [x] 2.2.12 Run ST-13..ST-30 and record the green phase ✅ (completed: 2026-11-10 12:21)
 
 ### Step 2.3: Implementation Tests and Verification
 
@@ -316,7 +316,7 @@ illegal uses, and tooling handoff before implementation.
 
 - [ ] 7.1.1 [spec-author] Write specification tests from ST-97..ST-108, ST-134, ST-140 — `test/rd07/d64-publication.spec.test.ts`, `test/rd07/prg-regression.spec.test.ts`
 - [ ] 7.1.2 [spec-author] Write security specification tests from ST-127..ST-131 — `test/rd07/security.spec.test.ts`
-- [ ] 7.1.3 [spec-author] Write the end-to-end integration tests from ST-98, ST-102, ST-119..ST-120 — `test/rd07/d64-e2e.spec.test.ts`
+- [x] 7.1.3 [spec-author] Write the end-to-end integration tests from ST-98, ST-102, ST-119..ST-120 — `test/rd07/d64-e2e.spec.test.ts` ✅ (completed: 2026-11-10 12:21)
 - [ ] 7.1.4 Run the new spec suites and record the red phase
 
 ### Step 7.2: Implementation

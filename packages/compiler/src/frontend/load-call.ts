@@ -1,6 +1,10 @@
 import { projectDiagnostic as error } from "../project/diagnostics.js";
 import { SCALAR_TYPES } from "./constants.js";
-import { semanticTypesEqual, semanticTypeSize } from "./semantic-type-relations.js";
+import {
+  semanticTypesEqual,
+  semanticTypeName,
+  semanticTypeSize,
+} from "./semantic-type-relations.js";
 import { placeAliasKey } from "./load-units.js";
 import type { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
 import type {
@@ -63,20 +67,31 @@ export function analyzeLoadUnitCall(
   if (unit.node === null || destination.node === null) return { node: null, exact: null };
   const place = destination.node.place;
   if (place === null || place.readonly) {
+    const reason =
+      place?.readonlyOrigin === "constant"
+        ? "a constant has no mutable storage"
+        : place?.readonlyOrigin === "parameter"
+          ? "a read-only parameter has no writable storage"
+          : "the destination must be a mutable fixed place with stable storage";
     host.diagnose(
       error(
         "E10275",
-        `Cannot load '${display(host, unitArg)}' into '${display(host, destinationArg)}' — the destination must be a mutable fixed place with stable storage`,
+        `Cannot load '${display(host, unitArg)}' into '${display(host, destinationArg)}' — ${reason}`,
         expression.span,
       ),
     );
     return { node: null, exact: null };
   }
   if (!semanticTypesEqual(unit.node.type, destination.node.type)) {
+    const unitSize = semanticTypeSize(unit.node.type);
+    const destinationSize = semanticTypeSize(destination.node.type);
+    const sameSize = unitSize === destinationSize;
     host.diagnose(
       error(
         "E10275",
-        `Cannot load '${display(host, unitArg)}' into '${display(host, destinationArg)}' — the destination type '${destination.node.type.kind}' is not exactly '${unit.node.type.kind}'`,
+        sameSize
+          ? `Cannot load '${display(host, unitArg)}' into '${display(host, destinationArg)}' — the destination type '${semanticTypeName(destination.node.type)}' is not exactly '${semanticTypeName(unit.node.type)}' (both are ${unitSize} bytes)`
+          : `Cannot load '${display(host, unitArg)}' into '${display(host, destinationArg)}' — the destination is ${destinationSize} byte(s) of '${semanticTypeName(destination.node.type)}', the unit is ${unitSize} byte(s) of '${semanticTypeName(unit.node.type)}'`,
         expression.span,
         null,
         [{ span: unitArg.span, message: "Load unit type is declared here" }],

@@ -700,16 +700,18 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
         aliases: Object.freeze([]),
         destinationCalls: Object.freeze([]),
       }),
-      units: selectedPipeline.program.semantic.loadUnits.map((unit) =>
-        Object.freeze({
-          id: unit.id,
-          name: Object.freeze([...unit.diskName].map((character) => character.charCodeAt(0))),
-          loadAddress: 0,
-          body: unit.bytes,
-          aliases: unit.aliases,
-          destinationCalls: Object.freeze([]),
-        }),
-      ),
+      units: selectedPipeline.program.semantic.loadUnits
+        .filter((unit) => selectedPipeline.program.reachableLoadUnits.includes(unit.id))
+        .map((unit) =>
+          Object.freeze({
+            id: unit.id,
+            name: Object.freeze([...unit.diskName].map((character) => character.charCodeAt(0))),
+            loadAddress: 0,
+            body: unit.bytes,
+            aliases: unit.aliases,
+            destinationCalls: Object.freeze([]),
+          }),
+        ),
     });
     const d64Path = `${snapshot.manifest.name}.d64`;
     await writeFile(join(stagingDirectory, d64Path), image.bytes, { flag: "wx" });

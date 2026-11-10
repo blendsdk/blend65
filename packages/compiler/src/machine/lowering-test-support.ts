@@ -102,6 +102,7 @@ export function wholeProgramFor(
     lifetimes: Object.freeze(lifetimes),
     reachableFunctions: Object.freeze(functions.map(({ id }) => id)),
     reachableAssets: Object.freeze([]),
+    reachableLoadUnits: Object.freeze([]),
   });
 }
 
