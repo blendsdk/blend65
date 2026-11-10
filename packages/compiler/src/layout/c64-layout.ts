@@ -783,6 +783,19 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     let start = sourceDataStart(bssCursor, bytes.length, data.alignment, data.placement);
     while (start !== null && data.placement?.at == null) {
       const end = start + bytes.length - 1;
+      if (
+        data.placement?.region === "c64.vic.bank0-ram" &&
+        start <= input.profile.machine.characterRomEnd &&
+        end >= input.profile.machine.characterRomStart
+      ) {
+        start = sourceDataStart(
+          input.profile.machine.characterRomEnd + 1,
+          bytes.length,
+          data.alignment,
+          data.placement,
+        );
+        continue;
+      }
       const occupied = intervals.find((interval) =>
         overlaps(start!, end, interval.start, interval.end),
       );
@@ -802,6 +815,10 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
         start,
         end: start + bytes.length - 1,
         bytes: null,
+        ...(data.vicVisible === true || data.placement?.region === "c64.vic.bank0-ram"
+          ? { vicVisible: true }
+          : {}),
+        requiredAlignment: Math.max(data.alignment, data.placement?.align ?? 1),
       })
     ) {
       return Object.freeze({

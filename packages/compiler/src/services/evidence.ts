@@ -679,6 +679,10 @@ export async function prepareEvidence(
               candidate.kind === "resident-asset" && candidate.id === provenance.assetId,
           );
           if (asset === undefined) return [];
+          const handlerConstraints = assetConstraints(asset);
+          const vicDestination = handlerConstraints.some(
+            (constraint) => constraint.kind === "visibility" && constraint.consumer === "vic",
+          );
           const destinations: EvidenceRecord[] = [];
           for (const fn of input.program.semantic.functions) {
             if (
@@ -691,7 +695,9 @@ export async function prepareEvidence(
               for (const operation of block.operations) {
                 if (operation.kind !== "load-unit" || operation.unitId !== unit.id) continue;
                 const key = bindingIdentityKey(operation.destinationBinding);
-                const interval = input.layout.intervals.find(({ id }) => id.includes(key));
+                const interval = input.layout.intervals.find(
+                  ({ id, kind }) => (kind === "global" || kind === "bss") && id.includes(key),
+                );
                 if (interval === undefined) continue;
                 const start = interval.start + operation.destinationRange.start;
                 const end = interval.start + operation.destinationRange.end;
@@ -706,7 +712,7 @@ export async function prepareEvidence(
                     alignmentBytes: interval.requiredAlignment ?? 1,
                     paddingBeforeBytes: 0,
                     residencyId: "resident",
-                    visibility: Object.freeze(["cpu"]),
+                    visibility: Object.freeze(vicDestination ? ["cpu", "vic"] : ["cpu"]),
                     writableRanges: Object.freeze([]),
                   }),
                 );
@@ -735,7 +741,7 @@ export async function prepareEvidence(
               emittedBytes: unit.size,
               aliases: Object.freeze([]),
               constraints: Object.freeze(
-                assetConstraints(asset).map((constraint) => Object.freeze(constraint)),
+                handlerConstraints.map((constraint) => Object.freeze(constraint)),
               ),
               placement: Object.freeze({
                 kind: "loadable",
@@ -874,9 +880,9 @@ export async function prepareEvidence(
       );
     }),
   );
-  const loadStateGroups = [...loadDestinations.entries()]
-    .filter(([, destination]) => destination.wholeRoot)
-    .sort(([left], [right]) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
+  const loadStateGroups = [...loadDestinations.entries()].sort(([left], [right]) =>
+    Buffer.compare(Buffer.from(left), Buffer.from(right)),
+  );
   const loadStateViews = loadStateGroups.flatMap(([key, destination], index) => {
     const group = `load-state:${key}`;
     return [

@@ -109,6 +109,26 @@ describe("load publication", () => {
     ).toEqual([]);
   });
 
+  // A prior-initialized static candidate is disjoint from a failed load into another
+  // candidate, so it remains readable after the failure edge.
+  it("should keep a provably unselected initialized candidate readable", async () => {
+    expect(
+      await errors(
+        [
+          "struct Slot { data: byte[4]; }",
+          "let slots: Slot[2];",
+          "function main(): void {",
+          "  slots[0].data[0] = 1;",
+          "  slots[0].data[1] = 2;",
+          "  slots[0].data[2] = 3;",
+          "  slots[0].data[3] = 4;",
+          "  if (!c64.loader.load(DATA, slots[1].data)) { let x: byte = slots[0].data[0]; }",
+          "}",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
   // A full ordinary assignment on the false edge establishes its own value.
   it("should allow a read after the false edge is fully reassigned", async () => {
     expect(

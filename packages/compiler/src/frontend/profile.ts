@@ -85,7 +85,7 @@ const RESERVED_ASSET_EXTENSIONS: ReadonlySet<string> = new Set([
 const C64_ASSET_PROFILE: FrontendAssetProfile = Object.freeze({
   handlers: C64_ASSET_HANDLERS,
   reservedExtensions: RESERVED_ASSET_EXTENSIONS,
-  regions: new Set(["c64.vic.bank0"]),
+  regions: new Set(["c64.vic.bank0", "c64.vic.bank0-ram"]),
 });
 
 /** Named character encodings available to source literals in the selected C64 profile. */
@@ -187,7 +187,8 @@ function capability(
 }
 
 /** Source operations and advisories shared by the cooperative family. */
-const COOPERATIVE_DECLARATIONS = Object.freeze({  warnArraySize: 256,
+const COOPERATIVE_DECLARATIONS = Object.freeze({
+  warnArraySize: 256,
   warnStructZpSize: 35,
   capabilities: Object.freeze([
     capability(

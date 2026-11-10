@@ -45,7 +45,9 @@ export function reserveZeroPageGlobals(
               ),
             )
             .find(valid);
-    if (start === undefined || !valid(start)) return { kind: "error", conflict: global };
+    if (start === undefined || !valid(start)) {
+      return { kind: "error", conflict: global };
+    }
     occupied.push(Object.freeze({ start, end: start + bytes - 1 }));
     addresses.set(bindingIdentityKey(global.id), start);
   }

@@ -215,4 +215,41 @@ describe("D64 load evidence", () => {
       "c64-pal-d64-kernal-6581",
     );
   });
+
+  // A field destination is partitioned into an exact loadDestination interval.
+  it("should publish an exact field-destination interval and state", async () => {
+    await withProject(
+      [
+        "module Game;",
+        "",
+        "loadable const DATA: byte[4] = [1, 2, 3, 4];",
+        "struct Guard { data: byte[4]; canary: byte[2]; }",
+        "let guard: Guard = { data: [0, 0, 0, 0], canary: [170, 187] };",
+        "function main(): void { if (c64.loader.load(DATA, guard.data)) { let x: byte = guard.data[0]; } }",
+        "",
+      ].join("\n"),
+      [],
+      async (project) => {
+        const built = await buildProject({ project });
+        if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+        const memory = JSON.parse(
+          await readFile(join(built.generation.directory, ".memory.json"), "utf8"),
+        ) as MemoryEvidence & {
+          intervals: (MemoryEvidence["intervals"][number] & { owner: { id: string } })[];
+        };
+        const destination = memory.intervals.filter(
+          ({ kind, addressSpaceId }) => kind === "loadDestination" && addressSpaceId === "cpu16",
+        );
+        expect(destination).toHaveLength(1);
+        expect(destination[0]!.end - destination[0]!.start).toBe(4);
+        expect(destination[0]!.id).toContain("#load");
+        expect(memory.loadStates[0]!.destinationIntervalIds).toEqual([destination[0]!.id]);
+        const pieces = memory.intervals.filter(({ id }) =>
+          id.includes(destination[0]!.id.slice(0, -5)),
+        );
+        expect(pieces.length).toBeGreaterThanOrEqual(3);
+      },
+      "c64-pal-d64-kernal-6581",
+    );
+  });
 });

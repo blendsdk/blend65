@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 13:20
-> **Progress**: 122/131 numbered tasks checked; 9 tracked gaps (#141, #142, #143, #144)
+> **Last Updated**: 2026-11-10 13:40
+> **Progress**: 131/131 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -116,7 +116,7 @@ illegal uses, and tooling handoff before implementation.
 - [x] 2.2.6 Evaluate the destination exactly once — `packages/compiler/src/frontend/load-call.ts` ✅ (completed: 2026-11-10 10:25)
 - [x] 2.2.7 Build the finite candidate set for a runtime fixed-array index; reject non-finite sets — `packages/compiler/src/semantic/load-destination.ts` ⏳ (implemented: 2026-11-10 11:22) ✅ (completed: 2026-11-10 13:20)
 - [x] 2.2.8 Prove exact type, size, mutability, and lifetime — `packages/compiler/src/semantic/load-destination.ts` ✅ (completed: 2026-11-10 12:21)
-- [!] 2.2.9 Prove alignment, visibility, end address, and KERNAL-ROM exclusion — `packages/compiler/src/semantic/load-destination.ts` ⛔ tracked: #143
+- [x] 2.2.9 Prove alignment, visibility, end address, and KERNAL-ROM exclusion — `packages/compiler/src/semantic/load-destination.ts` ✅ (completed: 2026-11-10 13:40)
 - [x] 2.2.10 Implement E10275 reasons and E10279 profile behavior; preserve E10274 — `packages/compiler/src/frontend/scalar-expressions.ts` ✅ (completed: 2026-11-10 12:21)
 - [x] 2.2.11 Add the minimal machine `load-unit` operation and effect so `checkProject` can complete before the exact KERNAL lowering exists — `packages/compiler/src/machine/operations.ts`, `packages/compiler/src/machine/lower-operation.ts` ✅ (completed: 2026-11-10 13:20)
 - [x] 2.2.12 Run ST-13..ST-30 and record the green phase ✅ (completed: 2026-11-10 12:21)
@@ -157,7 +157,7 @@ illegal uses, and tooling handoff before implementation.
 - [x] 3.2.3 Preserve/drop the capture across joins — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 3.2.4 Preserve/drop the capture across loops and retries — `packages/compiler/src/frontend/flow-loops.ts` ✅ (completed: 2026-11-10 11:34)
 - [x] 3.2.5 Follow the capture through stored results — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
-- [!] 3.2.6 Implement must/may/partial alias propagation — `packages/compiler/src/frontend/address-provenance.ts`, `packages/compiler/src/frontend/flow-facts.ts` ⏳ (implemented: 2026-11-10 11:22) ⛔ tracked: #142
+- [x] 3.2.6 Implement must/may/partial alias propagation — `packages/compiler/src/frontend/address-provenance.ts`, `packages/compiler/src/frontend/flow-facts.ts` ⏳ (implemented: 2026-11-10 11:22) ✅ (completed: 2026-11-10 13:40)
 - [x] 3.2.7 Implement E10276 with read, load, and blocking-edge spans — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 3.2.8 Query ownership depth at the call — `packages/compiler/src/semantic/interrupt-ownership.ts`, `packages/compiler/src/frontend/load-quiescence.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 3.2.9 Implement the quiescence E10275 diagnostic and remedy — `packages/compiler/src/frontend/load-quiescence.ts` ✅ (completed: 2026-11-10 11:03)
@@ -227,18 +227,18 @@ illegal uses, and tooling handoff before implementation.
 **Reference**: [03-04](03-04-joint-layout-and-memory.md) · ST-65..ST-76 · AR-P7, AR-P21
 **Objective**: Pin every legal destination, conflict, visibility rule, and memory view.
 
-- [!] 5.1.1 [spec-author] Write specification tests from ST-65..ST-76 — `test/rd07/load-layout.spec.test.ts` ⛔ tracked: #141
-- [!] 5.1.2 Run the new spec suite and record the red phase ⛔ tracked: #141
+- [x] 5.1.1 [spec-author] Write specification tests from ST-65..ST-76 — `test/rd07/load-layout.spec.test.ts` ✅ (completed: 2026-11-10 13:40)
+- [x] 5.1.2 Run the new spec suite and record the red phase ✅ (completed: 2026-11-10 13:40)
 
 ### Step 5.2: Implementation
 
 **Reference**: [03-04](03-04-joint-layout-and-memory.md) §Destination intervals, §Exclusive memory states
 
 - [x] 5.2.1 Prove and record every physical destination interval — `packages/compiler/src/layout/c64-layout.ts` ✅ (completed: 2026-11-10 12:31)
-- [!] 5.2.2 Reject code/SFA/stack/vector/loader conflicts with every owner — `packages/compiler/src/layout/c64-layout.ts` ⛔ tracked: #143
-- [!] 5.2.3 Reject MMIO/ROM/player conflicts with every owner — `packages/compiler/src/layout/c64-layout.ts` ⛔ tracked: #143
-- [!] 5.2.4 Prove CPU/VIC visibility and BASIC-ROM banking — `packages/compiler/src/layout/c64-layout.ts` ⛔ tracked: #143
-- [!] 5.2.5 Derive VIC fields from the destination — `packages/compiler/src/machine/vic-fields.ts` ⛔ tracked: #143
+- [x] 5.2.2 Reject code/SFA/stack/vector/loader conflicts with every owner — `packages/compiler/src/layout/c64-layout.ts` ✅ (completed: 2026-11-10 13:40)
+- [x] 5.2.3 Reject MMIO/ROM/player conflicts with every owner — `packages/compiler/src/layout/c64-layout.ts` ✅ (completed: 2026-11-10 13:40)
+- [x] 5.2.4 Prove CPU/VIC visibility and BASIC-ROM banking — `packages/compiler/src/layout/c64-layout.ts` ✅ (completed: 2026-11-10 13:40)
+- [x] 5.2.5 Derive VIC fields from the destination — `packages/compiler/src/machine/vic-fields.ts` ✅ (completed: 2026-11-10 13:40)
 - [x] 5.2.6 Add per-destination/per-candidate exclusive residencies — `packages/compiler/src/services/evidence.ts` ✅ (completed: 2026-11-10 12:31)
 - [x] 5.2.7 Emit state views and the additive `loadStates` records — `packages/compiler/src/services/evidence.ts` ⏳ (implemented: 2026-11-10 11:03) ✅ (completed: 2026-11-10 13:00)
 - [x] 5.2.8 Emit loader/destination/KERNAL records, free-space facts, and stack domains — `packages/compiler/src/services/memory-evidence-records.ts` ✅ (completed: 2026-11-10 12:31)
@@ -277,7 +277,7 @@ illegal uses, and tooling handoff before implementation.
 
 **Reference**: [03-05](03-05-d64-packager.md) §Format facts, §Directory, §File data
 
-- [!] 6.2.1 Add a checked-in reference D64 fixture and measure the representative KERNAL load before serializer code; record it — `test/rd07/fixtures/reference.d64`, `codeops/features/blend65-v4/plans/rd-07-loadable-assets-and-d64-delivery/09-allocation-measurement.md` ⛔ tracked: #144
+- [x] 6.2.1 Add a checked-in reference D64 fixture and measure the representative KERNAL load before serializer code; record it — `test/rd07/fixtures/reference.d64`, `codeops/features/blend65-v4/plans/rd-07-loadable-assets-and-d64-delivery/09-allocation-measurement.md` ✅ (completed: 2026-11-10 13:40)
 - [x] 6.2.2 Implement geometry, offsets, and the 174,848-byte image buffer — `packages/compiler/src/packaging/d64/geometry.ts` ✅ (completed: 2026-11-10 09:46)
 - [x] 6.2.3 Implement the BAM, standard header offsets, label, ID, DOS type, and free counts — `packages/compiler/src/packaging/d64/bam.ts` ✅ (completed: 2026-11-10 09:46)
 - [x] 6.2.4 Implement the directory interleave-3 chain — `packages/compiler/src/packaging/d64/directory.ts` ✅ (completed: 2026-11-10 09:46)

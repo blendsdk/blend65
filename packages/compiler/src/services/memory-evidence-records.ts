@@ -31,6 +31,7 @@ function physicalInterval(
   spriteAssetIds: ReadonlySet<string>,
   loadDestinations: ReadonlyMap<string, LoadDestinationEvidence>,
   ownerOverride?: EvidenceRecord,
+  destinationOverride?: { readonly key: string; readonly unitIds: readonly string[] },
 ): EvidenceRecord {
   const size = interval.end - interval.start + 1;
   const semanticAssetId = interval.id.startsWith("asset.") ? interval.id.slice(6) : null;
@@ -89,14 +90,16 @@ function physicalInterval(
   const isLoaderScratch = interval.id.startsWith("compiler.c64.load-unit-scratch.");
   const globalKey = interval.id.startsWith("global.") ? interval.id.slice("global.".length) : null;
   const destination = globalKey === null ? undefined : loadDestinations.get(globalKey);
-  const loadStateGroup =
-    destination !== undefined && destination.wholeRoot ? `load-state:${globalKey}` : null;
+  const loadStateKey = destinationOverride?.key ?? (destination?.wholeRoot ? globalKey : null);
+  const loadStateGroup = loadStateKey === null ? null : `load-state:${loadStateKey}`;
   const loadStateResidencies =
     loadStateGroup === null
       ? []
       : [
           `${loadStateGroup}:unloaded`,
-          ...destination!.unitIds.map((unitId) => `${loadStateGroup}:unit:${unitId}`),
+          ...(destinationOverride?.unitIds ?? destination!.unitIds).map(
+            (unitId) => `${loadStateGroup}:unit:${unitId}`,
+          ),
         ].sort(compareText);
   const memoryKind = isStorage
     ? zeroPage
@@ -208,6 +211,63 @@ export function deriveMemoryIntervals(
         ({ id }) => `global.${bindingIdentityKey(id)}` === interval.id,
       );
       if (global === undefined) throw new Error("Final global layout has no semantic owner");
+      const key = interval.id.slice("global.".length);
+      const destination = loadDestinations.get(key);
+      const owner = Object.freeze({ kind: "symbol" as const, id: globalName(global.id) });
+      const size = interval.end - interval.start + 1;
+      if (
+        destination !== undefined &&
+        !destination.wholeRoot &&
+        (destination.range.start > 0 || destination.range.end < size)
+      ) {
+        const pieces: EvidenceRecord[] = [];
+        const headEnd = interval.start + destination.range.start - 1;
+        if (headEnd >= interval.start) {
+          pieces.push(
+            physicalInterval(
+              Object.freeze({ ...interval, id: `${interval.id}#head`, end: headEnd }),
+              inventory,
+              certificate,
+              assetIds,
+              spriteAssetIds,
+              loadDestinations,
+              owner,
+            ),
+          );
+        }
+        pieces.push(
+          physicalInterval(
+            Object.freeze({
+              ...interval,
+              id: `${interval.id}#load`,
+              start: interval.start + destination.range.start,
+              end: interval.start + destination.range.end - 1,
+            }),
+            inventory,
+            certificate,
+            assetIds,
+            spriteAssetIds,
+            loadDestinations,
+            owner,
+            Object.freeze({ key, unitIds: destination.unitIds }),
+          ),
+        );
+        const tailStart = interval.start + destination.range.end;
+        if (tailStart <= interval.end) {
+          pieces.push(
+            physicalInterval(
+              Object.freeze({ ...interval, id: `${interval.id}#tail`, start: tailStart }),
+              inventory,
+              certificate,
+              assetIds,
+              spriteAssetIds,
+              loadDestinations,
+              owner,
+            ),
+          );
+        }
+        return pieces;
+      }
       return [
         physicalInterval(
           interval,
@@ -216,7 +276,7 @@ export function deriveMemoryIntervals(
           assetIds,
           spriteAssetIds,
           loadDestinations,
-          Object.freeze({ kind: "symbol", id: globalName(global.id) }),
+          owner,
         ),
       ];
     }

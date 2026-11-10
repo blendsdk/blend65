@@ -58,7 +58,8 @@ independent test decoder are the direct requested implementation, not a Complexi
 | 03-06 | [Artifact, Publication, and Run](03-06-artifact-publication-and-run.md) | D64 profile, primary artifact, atomic publication, VICE mount |
 | 03-07 | [Evidence and Costs](03-07-evidence-and-costs.md) | Sidecar records, costs, debug load units, reconciliation |
 | 07  | [Testing Strategy](07-testing-strategy.md) | Specification cases and verification |
-| 09  | [Closeout](09-closeout.md) | Delivered slice, deferral scan, tracked debt, verification |
+| 09  | [Closeout](09-closeout.md) | Delivered slice, deferral scan, verification |
+| 09a | [Allocation measurement](09-allocation-measurement.md) | Multi-block D64 load observation |
 | 99  | [Execution Plan](99-execution-plan.md) | Phases, sessions, and task checklist |
 
 ## Quick Reference

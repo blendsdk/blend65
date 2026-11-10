@@ -222,33 +222,48 @@ function debugRangesMatchMemory(
       machine.loadUnitIndex === undefined
         ? undefined
         : loadUnits[machine.loadUnitIndex as number]!.name;
-    return intervals.some((interval) => {
-      if (
-        interval.addressSpaceId !== addressSpace.id ||
-        interval.bankId !== bankId ||
-        interval.loadUnitId !== loadUnitId ||
-        (interval.start as number) > (machine.start as number) ||
-        (interval.end as number) < (machine.end as number)
-      ) {
-        return false;
-      }
+    // A machine range may be split across contiguous same-owner intervals (for
+    // example a field load destination inside a larger global object). Walk the
+    // covering pieces in address order and require one owner for the whole range.
+    const pieces = intervals
+      .filter(
+        (interval) =>
+          interval.addressSpaceId === addressSpace.id &&
+          interval.bankId === bankId &&
+          interval.loadUnitId === loadUnitId &&
+          (interval.start as number) < (machine.end as number) &&
+          (interval.end as number) > (machine.start as number),
+      )
+      .sort((left, right) => (left.start as number) - (right.start as number));
+    let cursor = machine.start as number;
+    for (const interval of pieces) {
+      const start = interval.start as number;
+      const end = interval.end as number;
+      if (end <= cursor) continue;
+      if (start > cursor) return false;
       const memoryOwner = interval.owner as Record<string, unknown>;
       if (requiredOwner !== undefined && !requiredOwner(memoryOwner)) return false;
-      if (owner === undefined) return true;
-      if (owner.kind === "function") {
-        return (
-          memoryOwner.kind === "function" &&
-          memoryOwner.id === functions[owner.functionIndex as number]!.qualifiedName
-        );
+      if (owner !== undefined) {
+        if (owner.kind === "function") {
+          if (
+            memoryOwner.kind !== "function" ||
+            memoryOwner.id !== functions[owner.functionIndex as number]!.qualifiedName
+          )
+            return false;
+        } else if (owner.kind === "symbol") {
+          if (
+            memoryOwner.kind !== "symbol" ||
+            memoryOwner.id !== symbols[owner.symbolIndex as number]!.qualifiedName
+          )
+            return false;
+        } else if (memoryOwner.kind !== "platform" || memoryOwner.id !== owner.name) {
+          return false;
+        }
       }
-      if (owner.kind === "symbol") {
-        return (
-          memoryOwner.kind === "symbol" &&
-          memoryOwner.id === symbols[owner.symbolIndex as number]!.qualifiedName
-        );
-      }
-      return memoryOwner.kind === "platform" && memoryOwner.id === owner.name;
-    });
+      cursor = Math.max(cursor, end);
+      if (cursor >= (machine.end as number)) return true;
+    }
+    return false;
   };
   for (const range of debug.ranges as Record<string, unknown>[]) {
     if (

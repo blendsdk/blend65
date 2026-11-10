@@ -7,6 +7,7 @@ import { ExpressionLowerer } from "./lower-expressions.js";
 import { initializerBytes } from "./lower-data.js";
 import { sinkTerminalChoice } from "./lower-control.js";
 import { checkLoadQuiescence } from "./load-quiescence.js";
+import { enforceLoadDestinationConstraints } from "./load-destination-constraints.js";
 import type {
   AggregateDestination,
   SemanticFunction,
@@ -248,9 +249,17 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
       );
     }
   }
+  const constrained = enforceLoadDestinationConstraints(functions, globals, frontend.loadUnits);
+  if ("diagnostics" in constrained) {
+    return Object.freeze({
+      kind: "error",
+      diagnostics: constrained.diagnostics,
+      inputs: analysis.inputs,
+    });
+  }
   const program: SemanticProgram = Object.freeze({
     main: mainCandidates[0]!.id,
-    globals: Object.freeze(globals),
+    globals: constrained.globals,
     functions: Object.freeze(
       functions.map((fn) => sinkTerminalChoice(fn, functions, bindingsByKey)),
     ),

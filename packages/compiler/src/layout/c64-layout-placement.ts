@@ -25,9 +25,12 @@ export function satisfiesSourcePlacement(
     (placement.noCross === null ||
       Math.floor(start / placement.noCross) === Math.floor(end / placement.noCross)) &&
     (placement.region === null ||
-      (placement.region === "c64.vic.bank0" &&
+      ((placement.region === "c64.vic.bank0" || placement.region === "c64.vic.bank0-ram") &&
         start >= profile.machine.vicBankStart &&
         end <= profile.machine.vicBankEnd)) &&
+    (placement.region !== "c64.vic.bank0-ram" ||
+      end < profile.machine.characterRomStart ||
+      start > profile.machine.characterRomEnd) &&
     start >= profile.packager.residentStart &&
     end <= profile.packager.residentEnd
   );
@@ -75,6 +78,15 @@ export function freeSourceStart(
   while (start !== null && start + bytes - 1 <= profile.packager.residentEnd) {
     if (start < profile.packager.residentStart) return null;
     if (!satisfiesSourcePlacement(start, bytes, placement, profile)) {
+      if (
+        placement?.region === "c64.vic.bank0-ram" &&
+        placement.at === null &&
+        start <= profile.machine.characterRomEnd &&
+        start + bytes - 1 >= profile.machine.characterRomStart
+      ) {
+        start = nextStart(profile.machine.characterRomEnd + 1);
+        continue;
+      }
       if (!matchingNmiLow || placement?.at != null) return null;
       start = nextStart(start + 0x100);
       continue;
