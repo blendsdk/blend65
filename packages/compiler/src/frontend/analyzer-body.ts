@@ -188,7 +188,7 @@ export class BodyAnalyzer {
         );
       }
       const loopEntry = snapshotScalarFacts(scope);
-      const { body } = this.analyzeLoopBlock(
+      const { body, exits } = this.analyzeLoopBlock(
         statement.body,
         scope,
         module,
@@ -197,7 +197,9 @@ export class BodyAnalyzer {
         loopDepth + 1,
       );
       const bodyFacts = captureBranchFacts(loopEntry);
-      mergeScalarFacts(loopEntry, [loopEntry, bodyFacts]);
+      const exitFacts = exits.filter((exit) => exit.kind === "break").map((exit) => exit.facts);
+      if (condition?.constant !== true) exitFacts.push(loopEntry, bodyFacts);
+      if (exitFacts.length > 0) mergeScalarFacts(loopEntry, exitFacts);
       return condition === null
         ? null
         : Object.freeze({ kind: "while", span: freezeSourceSpan(statement.span), condition, body });

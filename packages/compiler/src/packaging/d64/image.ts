@@ -29,6 +29,16 @@ export function buildD64Image(input: {
   const label = encodeD64Name(input.projectName);
   const diskId = diskD64Id(input.semanticHash);
   const files = allocateD64Files([input.boot, ...input.units]);
+  const directoryNames = new Set<string>();
+  for (const file of files) {
+    const key = paddedD64Name(file.file.name).join(",");
+    if (directoryNames.has(key)) {
+      throw new Error(
+        `D64_NAME: directory name '${file.file.name.map((byte) => String.fromCharCode(byte)).join("")}' is not unique`,
+      );
+    }
+    directoryNames.add(key);
+  }
   const usedBlocks = files.reduce((sum, file) => sum + file.blocks, 0);
   if (usedBlocks > D64_DATA_BLOCKS) {
     throw new Error(

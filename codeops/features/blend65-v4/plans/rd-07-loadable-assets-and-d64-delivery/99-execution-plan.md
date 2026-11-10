@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-10 11:22
-> **Progress**: 68/131 tasks (52%)
+> **Last Updated**: 2026-11-10 11:34
+> **Progress**: 69/131 tasks (53%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -155,7 +155,7 @@ illegal uses, and tooling handoff before implementation.
 - [x] 3.2.1 Add the `LoadCapture` fact, fresh result identity, and all flow-copy points — `packages/compiler/src/frontend/semantic-types.ts`, `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 3.2.2 Wire the true/false edges — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
 - [x] 3.2.3 Preserve/drop the capture across joins — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
-- [ ] 3.2.4 Preserve/drop the capture across loops and retries — `packages/compiler/src/frontend/flow-loops.ts`
+- [x] 3.2.4 Preserve/drop the capture across loops and retries — `packages/compiler/src/frontend/flow-loops.ts` ✅ (completed: 2026-11-10 11:34)
 - [x] 3.2.5 Follow the capture through stored results — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)
 - [~] 3.2.6 Implement must/may/partial alias propagation — `packages/compiler/src/frontend/address-provenance.ts`, `packages/compiler/src/frontend/flow-facts.ts` ⏳ (implemented: 2026-11-10 11:22)
 - [x] 3.2.7 Implement E10276 with read, load, and blocking-edge spans — `packages/compiler/src/frontend/flow-facts.ts` ✅ (completed: 2026-11-10 11:03)

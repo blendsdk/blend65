@@ -73,12 +73,14 @@ function decode(image: Uint8Array) {
     let track = entry.startTrack;
     let index = entry.startSector;
     let sectors = 0;
+    const sectorList: { track: number; sector: number }[] = [];
     const visited = new Set<string>();
     for (;;) {
       const key = `${track}:${index}`;
       expect(visited.has(key)).toBe(false);
       visited.add(key);
       const block = sector(track, index);
+      sectorList.push({ track, sector: index });
       sectors += 1;
       const nextTrack = block[0]!;
       const nextSector = block[1]!;
@@ -92,8 +94,23 @@ function decode(image: Uint8Array) {
       index = nextSector;
     }
     expect(sectors).toBe(entry.blocks);
-    return { ...entry, bytes: chunks };
+    return { ...entry, bytes: chunks, sectors: sectorList };
   });
+  const used = new Set(
+    files.flatMap(({ sectors }) => sectors.map(({ track, sector: index }) => `${track}:${index}`)),
+  );
+  for (let track = 1; track <= 35; track += 1) {
+    const base = 4 + (track - 1) * 4;
+    let freeBits = 0;
+    for (let index = 0; index < sectorsOnTrack(track); index += 1) {
+      const byte = bam[base + 1 + Math.floor(index / 8)]!;
+      const isFree = (byte >> (index % 8)) & 1;
+      freeBits += isFree;
+      if (track === SYSTEM_TRACK) expect(isFree).toBe(0);
+      else expect(isFree).toBe(used.has(`${track}:${index}`) ? 0 : 1);
+    }
+    expect(bam[base]).toBe(track === SYSTEM_TRACK ? 0 : freeBits);
+  }
   return { bam, label, id, chain, entries, files };
 }
 

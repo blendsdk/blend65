@@ -169,3 +169,41 @@ describe("dynamic destination publication", () => {
     ).toEqual(["E10276"]);
   });
 });
+
+describe("retry and loop publication", () => {
+  // A retry loop exits only through the successful load edge.
+  it("should allow a read after a retry loop that breaks on success", async () => {
+    expect(
+      await errors(
+        "function main(): void { while (true) { if (c64.loader.load(DATA, target)) { break; } } let x: byte = target[0]; }",
+      ),
+    ).toEqual([]);
+  });
+
+  // A loop that may run zero times does not publish the destination after the loop.
+  it("should reject a read after a non-covering loop", async () => {
+    expect(
+      await errors(
+        "function main(): void { let i: byte = 0; while (i < 2) { c64.loader.load(DATA, target); i = i + 1; } let x: byte = target[0]; }",
+      ),
+    ).toEqual(["E10276"]);
+  });
+
+  // An unbounded for loop with a success break has the same exit proof.
+  it("should allow a read after an unbounded for loop that breaks on success", async () => {
+    expect(
+      await errors(
+        "function main(): void { for (;;) { if (c64.loader.load(DATA, target)) { break; } } let x: byte = target[0]; }",
+      ),
+    ).toEqual([]);
+  });
+
+  // A read inside the successful body iteration is legal.
+  it("should allow a read inside a covering loop body", async () => {
+    expect(
+      await errors(
+        "function main(): void { for (let i: byte = 0; i < 2; i = i + 1) { if (c64.loader.load(DATA, target)) { let x: byte = target[0]; } } }",
+      ),
+    ).toEqual([]);
+  });
+});

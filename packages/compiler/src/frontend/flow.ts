@@ -516,7 +516,7 @@ export function analyzeStructuredFor(
     }
   }
   const loopEntry = snapshotScalarFacts(scope);
-  const { body } = host.analyzeLoopBlock(
+  const { body, exits } = host.analyzeLoopBlock(
     statement.body,
     scope,
     module,
@@ -548,7 +548,12 @@ export function analyzeStructuredFor(
       }
     }
   }
-  mergeScalarFacts(loopEntry, [loopEntry, bodyFacts]);
+  const breakFacts = exits.filter((exit) => exit.kind === "break").map((exit) => exit.facts);
+  if (condition === null) {
+    if (breakFacts.length > 0) mergeScalarFacts(loopEntry, breakFacts);
+  } else {
+    mergeScalarFacts(loopEntry, [loopEntry, bodyFacts, ...breakFacts]);
+  }
   return Object.freeze({
     kind: "for",
     span: Object.freeze({ ...statement.span }),
