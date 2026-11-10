@@ -315,7 +315,7 @@ packaged bundle shape, green extension.
 
 ### Step 8.4: Closeout
 
-- [x] 8.4.1 Run the complete tooling boundary: editor package suites, root RD-09 suites, import boundary, debug cross-artifact, one ACME, one VICE — `yarn test` ✅ (closed: 2026-11-10 22:55; closed by the package suites, test/rd09, and import-boundary tests)
+- [x] 8.4.1 Run the complete tooling boundary: editor package suites, root RD-09 suites, import boundary, debug cross-artifact, one ACME, one VICE — `yarn test` ✅ (closed: 2026-11-10 22:55; closed by the full compiler suite (3,659 passed / 2 skipped), package suites, test/rd09, and import-boundary tests)
 - [x] 8.4.2 Run independent reviews (SFA/ABI, platform, machine-code, security, correctness) and fix critical/major findings — `codeops/features/blend65-v4/plans/rd-09-developer-tooling/` ✅ (closed: 2026-11-10 22:55; closed by independent correctness and security reviews)
 - [x] 8.4.3 Write the closeout with delivered slice, verification record, deferral scan, and honest boundary — `codeops/features/blend65-v4/plans/rd-09-developer-tooling/09-closeout.md` ✅ (closed: 2026-11-10 22:55; closed by 09-closeout.md)
 - [x] 8.4.4 Update the feature and portfolio roadmaps to RD-09 Done and RD-10 next — `codeops/features/blend65-v4/00-roadmap.md`, `codeops/00-roadmap.md` ✅ (closed: 2026-11-10 22:55; closed by the feature and portfolio roadmap updates)

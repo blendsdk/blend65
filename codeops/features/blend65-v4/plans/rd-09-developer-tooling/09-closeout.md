@@ -26,7 +26,7 @@ type system, project model, backend path, debugger, or game runtime is introduce
 
 | Check | Command | Result |
 | ----- | ------- | ------ |
-| Compiler suite | `yarn workspace @blend65/compiler test` | **3,659 passed / 2 skipped** (216 files, 750 s); 68 affected compiler tests rerun green after the final review fixes |
+| Compiler suite | `yarn workspace @blend65/compiler test` | **3,659 passed / 2 skipped** (216 files, 560 s, clean final run) |
 | Language-server suite | `yarn workspace @blend65/language-server test` | **21 passed** |
 | CLI suite | `yarn workspace @blend65/cli test` | **68 passed** |
 | VS Code suite | `yarn workspace @blend65/vscode test` | **17 passed** |
@@ -43,9 +43,9 @@ type system, project model, backend path, debugger, or game runtime is introduce
 | Typecheck | `yarn typecheck` | pass |
 | Frozen specification | `git status --porcelain spec/` | empty |
 
-The final full compiler run is recorded in the commit's verification note after the debug-evidence
-change. RD-09's own verification is deliberately focused on the tooling boundary per AC-33; it does
-not rerun unrelated compiler, game, asset, or readiness corpora.
+The clean full compiler run on the committed tree is recorded above. RD-09's own verification is
+deliberately focused on the tooling boundary per AC-33; it does not rerun unrelated game, asset, or
+readiness corpora.
 
 ## Delivered slice
 
