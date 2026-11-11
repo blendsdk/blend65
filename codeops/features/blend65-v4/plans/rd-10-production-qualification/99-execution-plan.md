@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-12 00:23
-> **Progress**: 61/82 tasks (74%)
+> **Progress**: 71/82 tasks (87%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -233,22 +233,22 @@ preservation proof.
 
 ### Step 7.1: Physical Status
 
-- [ ] 7.1.1 Add the `V4-HW-1` physical qualification backlog row to the feature roadmap — `codeops/features/blend65-v4/00-roadmap.md`
-- [ ] 7.1.2 Record every physical row as `Unknown` with its exact future evidence and `V4-HW-1` owner — `docs/releases/v4-production-qualification.md`
-- [ ] 7.1.3 Record emulator/hardware disagreement as untested and keep the VICE observation only — release record
+- [x] 7.1.1 Add the `V4-HW-1` physical qualification backlog row to the feature roadmap — `codeops/features/blend65-v4/00-roadmap.md` ✅ (completed: 2026-11-12 00:23)
+- [x] 7.1.2 Record every physical row as `Unknown` with its exact future evidence and `V4-HW-1` owner — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:23)
+- [x] 7.1.3 Record emulator/hardware disagreement as untested and keep the VICE observation only — release record ✅ (completed: 2026-11-12 00:23)
 
 ### Step 7.2: Documentation and Support Statement
 
-- [ ] 7.2.1 Reconcile tooling, platform-library, loadable-asset, and CIA documentation with the qualified surface — `docs/`
-- [ ] 7.2.2 Exercise every claimed install/command/path example on the qualified host — `docs/`
-- [ ] 7.2.3 Write the bounded support statement: qualified identities, `VICE-verified / hardware-unverified`, explicit non-claims — `docs/releases/v4-production-qualification.md`
-- [ ] 7.2.4 Record phase-separated responsiveness trends for the qualified host with no pass/fail threshold — `docs/releases/v4-production-qualification.md`
-- [ ] 7.2.5 Record the security negative matrix and its owning evidence — `docs/releases/v4-production-qualification.md`
+- [x] 7.2.1 Reconcile tooling, platform-library, loadable-asset, and CIA documentation with the qualified surface — `docs/` ✅ (completed: 2026-11-12 00:23; stale size/host/takeover wording corrected)
+- [x] 7.2.2 Exercise every claimed install/command/path example on the qualified host — `docs/` ✅ (completed: 2026-11-12 00:23; installed check/build/run/evidence and library/LSP examples)
+- [x] 7.2.3 Write the bounded support statement: qualified identities, `VICE-verified / hardware-unverified`, explicit non-claims — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:23; awaiting explicit approval)
+- [x] 7.2.4 Record phase-separated responsiveness trends for the qualified host with no pass/fail threshold — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:23)
+- [x] 7.2.5 Record the security negative matrix and its owning evidence — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:23)
 
 ### Step 7.3: Release Record
 
-- [ ] 7.3.1 Complete all twelve release-record sections and hash-bind each reused evidence item — `docs/releases/v4-production-qualification.md`
-- [ ] 7.3.2 Verify there is no readiness percentage, feasibility score, copied log dump, or second evidence database — release record
+- [x] 7.3.1 Complete all twelve release-record sections and hash-bind each reused evidence item — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:23; candidate, spec, expert, VICE/ROM, tarball, and VSIX identities bound)
+- [x] 7.3.2 Verify there is no readiness percentage, feasibility score, copied log dump, or second evidence database — release record ✅ (completed: 2026-11-12 00:23)
 
 **Deliverables**: `V4-HW-1`, physical `Unknown` table, reconciled docs, bounded statement,
 responsiveness/security records, complete release record.

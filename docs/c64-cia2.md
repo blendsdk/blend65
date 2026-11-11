@@ -79,8 +79,8 @@ limitations to remove, not language restrictions or recommended source workaroun
 Qualification is **VICE-verified / hardware-unverified**. Unrestricted external
 nesting and aggregate stack capacity, retained-firmware completion, and hard timing
 deadlines are not proved. The timer operations do not touch the ports or their
-direction registers. Keyboard sharing and takeover profiles are separate
-unfinished work.
+direction registers. Keyboard sharing is separate unfinished work; the four
+takeover profiles are deferred under `V4-TAKEOVER-1`.
 
 ## Startup bank and normal return
 

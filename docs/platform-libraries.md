@@ -98,5 +98,7 @@ above. The [keyboard closeout](../codeops/features/blend65-v4/plans/rd-05-keyboa
 records the 76 behavior cases, four-profile saved matrix/purity, acquisition
 paths and NMI-link results. The live returning-NMI quality path, genuine
 STOP/RESTORE and pressed-contact acquisition remain partial/Unknown; see the
-closeout. Physical hardware, Windows/macOS user-release
-qualification and the deferred 963/725 size targets remain later work.
+closeout. Physical hardware remains `Unknown` under `V4-HW-1`, Windows/macOS
+native user-release qualification is not claimed, and the RD-08 saved/acquisition
+gates now pass at 709/725 and 943/963. Takeover profiles are deferred under
+`V4-TAKEOVER-1`.

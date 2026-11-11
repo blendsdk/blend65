@@ -247,14 +247,14 @@ behavior, and silicon-sensitive edges remain unproven.
 
 No physical C64, 1541-compatible drive, SID unit, or analogue capture path is available.
 
-| Physical row | Status | Owner |
-| ------------ | ------ | ----- |
-| PAL timing and machine state | Unknown | `V4-HW-1` |
-| Later NTSC timing and machine state | Unknown | `V4-HW-1` |
-| 6581 analogue SID | Unknown | `V4-HW-1` |
-| 8580 analogue SID | Unknown | `V4-HW-1` |
-| Real D64 drive path | Unknown | `V4-HW-1` |
-| Emulator/hardware disagreement | Untested; VICE only | `V4-HW-1` |
+| Physical row | Status | Future evidence | Owner |
+| ------------ | ------ | --------------- | ----- |
+| PAL timing and machine state | Unknown | Named PAL board/ASSY and chip revisions; raster/badline, sprite-DMA, IRQ/NMI/CIA edge traces | `V4-HW-1` |
+| Later NTSC timing and machine state | Unknown | Named later-NTSC unit; the same timing and interrupt traces | `V4-HW-1` |
+| 6581 analogue SID | Unknown | Named 6581 unit and analogue capture of filters, combined waveforms, and revision character | `V4-HW-1` |
+| 8580 analogue SID | Unknown | Named 8580 unit and the same analogue capture matrix | `V4-HW-1` |
+| Real D64 drive path | Unknown | 1541-compatible drive, real serial timing, media behavior, and the D64 loader journey | `V4-HW-1` |
+| Emulator/hardware disagreement | Untested; VICE only | Side-by-side VICE and named-hardware observations for the same artifact and configuration | `V4-HW-1` |
 
 `V4-HW-1` owns the future targeted physical matrix. No physical claim is made by this candidate.
 
@@ -324,12 +324,81 @@ activation gates, and one target-native proof seed. The successor roadmap links 
 
 ## 10. Security, responsiveness, deferrals, and limitations
 
-Pending.
+### Responsiveness
+
+Measured from the installed `linux/x64` prefix. These are diagnostic trends only; no wall-clock or
+memory value changes pass/fail.
+
+| Phase | Runs | Elapsed | Peak RSS |
+| ----- | ---- | ------- | -------- |
+| `blendc check` | 2 | 0.35 s / 0.37 s | 87,112 / 87,484 KB |
+| `blendc build` | 2 | 0.59 s / 0.62 s | 92,716 / 93,480 KB |
+| `blendc evidence` | 2 | 0.30 s / 0.32 s | 82,928 / 83,948 KB |
+| Language server initialize + diagnostics + queries + format | 1 | 0.56 s | 85,128 KB |
+| Complete compiler suite | 1 | 662.72 s | not separately sampled |
+| Complete root release suite | 1 | 8,621.84 s | not separately sampled |
+
+`blendc run` reached a VICE spawn within the first one-second poll after invocation; the exact
+sub-second startup was not measured. Windows and macOS produce no observation because those hosts
+remain `Unknown`.
+
+### Security negative matrix
+
+| Boundary | Evidence | Result |
+| -------- | -------- | ------ |
+| Path and symlink containment | RD-09 security, publication, and project-loading tests | Pass |
+| Malformed source, manifest, evidence, and D64 records | RD-04 diagnostics, RD-07 codec, publication validators | Pass |
+| Output collisions and immutable generations | Publication and current-record tests | Pass |
+| Executable and argument injection | CLI argument tests, fake-ACME cases, discovery probes | Pass |
+| Hostile tool and monitor output | ACME/VICE probe limits, monitor ownership and cancellation tests | Pass |
+| Workspace trust and explicit command intent | VS Code command and spec tests | Pass |
+| Cancellation cleanup and stale artifacts | CLI/LSP/service cancellation, VICE process-group tests | Pass |
+| Unrelated loopback services | Monitor ownership and port-selection tests | Pass |
+
+No security case produced an outside file, process, or network effect.
+
+### Docs reconciliation and examples
+
+`docs/tooling.md`, `docs/platform-libraries.md`, `docs/loadable-assets.md`, and `docs/c64-cia2.md`
+now match the qualified surface: four KERNAL profiles, D64, `tools.jsonc`, local VSIX, and the
+takeover/physical/host unknowns. Every `blendc` example was exercised from the installed prefix;
+library and asset examples are covered by the package and root suites.
+
+### Deferrals and limitations
+
+| Item | Status | Owner |
+| ---- | ------ | ----- |
+| Four takeover profiles | Deferred; no runtime claim | `V4-TAKEOVER-1` |
+| Physical timing, analogue SID, real drive, board/chip revisions | `Unknown` | `V4-HW-1` |
+| Windows x64, macOS arm64/x64 native hosts | `Unknown` | RD-10 host backlog |
+| CharPad 3.88 producer proof | Installed producer is 3.80; CTM v9 exercised | RD-06 residual owner |
+| Multi-screen sprite pointer | Deferred expressiveness item | `T-27` / issue #140 |
+| Open optimizer/parity debt | Linked measured issues #107–#140 | RD-08 backlog |
+| C64U multi-clock, topology, and bank/transfer costs | Recorded future pressure, no C64U implementation | `blend65-c64u/RD-01` |
 
 ## 11. Bounded support statement
 
-Pending. The final statement will name only evidenced identities and will use
-`VICE-verified / hardware-unverified` wherever physical evidence is absent.
+> **Status: VICE-verified / hardware-unverified.**
+
+Blend65 v4 candidate `649718ecd7ff7185222d897f546858fc524d3053` is production-qualified on
+`linux/x64` for:
+
+- the compiler library (root, `frontend`, and `tools` entries), the `blendc` CLI
+  (`check`, `build`, `run`, `evidence`), the language server, and the local VS Code VSIX
+  `blendsdk.blend65@0.1.0`;
+- ACME 0.97 assembly, `tools.jsonc` schema-1 discovery, local package tarballs, and the eight-file
+  build evidence;
+- the four KERNAL PRG profiles `c64-{pal|ntsc}-prg-kernal-{6581|8580}` and the one
+  `c64-pal-d64-kernal-6581` profile;
+- runtime observations made only through VICE 3.10 `x64sc`, with the exact executable and ROM
+  hashes recorded in this document.
+
+The statement does **not** claim: physical C64 timing, analogue SID behavior, real drive or serial
+behavior, board/chip revisions, or emulator/hardware agreement (`V4-HW-1`); the four takeover
+profiles (`V4-TAKEOVER-1`); Windows x64 or macOS arm64/x64 native hosts; Linux ARM64 or Windows
+ARM64 support; C64U target support (only the discovery handoff exists); a game engine, renderer,
+runtime, mixer, scheduler, asset plugin framework, or debug adapter; or NPM/Marketplace
+publication, tags, signing, or announcements.
 
 ## 12. Approval
 
