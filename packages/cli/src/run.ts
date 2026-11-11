@@ -4,6 +4,7 @@ import type {
   CheckOptions,
   CheckResult,
   FailureCategory,
+  ProjectDiagnostic,
   RunOptions,
   RunResult,
 } from "@blend65/compiler";
@@ -12,6 +13,7 @@ import type { EvidenceResult } from "./evidence.js";
 import { cliDiagnostic, encodeEnvelope } from "./json.js";
 import type { CliJsonEnvelope } from "./json.js";
 import { escapeTerminalText, renderDiagnostics, renderUsage } from "./render.js";
+import { readToolsConfig } from "./tools.js";
 
 /** CLI package version, kept equal to the package manifest by executable qualification. */
 const CLI_VERSION = "0.1.0";
@@ -241,14 +243,58 @@ export async function executeCommand(
     return 0;
   }
 
+  // Tool configuration is loaded only for operations that can execute external tools. `check`
+  // and `evidence` stay tool-free, and an invalid file fails before any build work starts.
+  let acmePath: string | undefined;
+  let x64scPath: string | undefined;
+  if (parsed.kind === "build" || parsed.kind === "run") {
+    const tools = await readToolsConfig();
+    if (tools.kind === "failure") {
+      const diagnostic: ProjectDiagnostic = {
+        code: "TOOLS_CONFIG",
+        severity: "error",
+        message: `${tools.diagnostic} (${tools.path})`,
+        primarySpan: null,
+        related: [],
+        help: null,
+        pointer: null,
+      };
+      if (parsed.json) {
+        emitJson(
+          context.output,
+          failureEnvelope(parsed.kind, "tool-discovery", diagnostic.message, [diagnostic]),
+        );
+      } else {
+        writeDiagnostics([diagnostic], context.output);
+      }
+      return FAILURE_EXIT["tool-discovery"];
+    }
+    acmePath = tools.config.acmePath;
+    if (parsed.kind === "run") x64scPath = tools.config.x64scPath;
+  }
+
   let result: CheckResult | BuildResult | RunResult;
   try {
     if (parsed.kind === "check") {
       result = await context.services.checkProject(invocationOptions(parsed.options, context));
     } else if (parsed.kind === "build") {
-      result = await context.services.buildProject(invocationOptions(parsed.options, context));
+      result = await context.services.buildProject(
+        invocationOptions(
+          { ...parsed.options, ...(acmePath === undefined ? {} : { acmePath }) },
+          context,
+        ),
+      );
     } else {
-      result = await context.services.runProject(invocationOptions(parsed.options, context));
+      result = await context.services.runProject(
+        invocationOptions(
+          {
+            ...parsed.options,
+            ...(acmePath === undefined ? {} : { acmePath }),
+            ...(x64scPath === undefined ? {} : { x64scPath }),
+          },
+          context,
+        ),
+      );
     }
   } catch {
     if (parsed.json) {
@@ -324,7 +370,13 @@ export async function executeCommand(
     } else {
       emitJson(
         context.output,
-        failureEnvelope(parsed.kind, "compiler", "The compiler returned an unexpected result", [], 1),
+        failureEnvelope(
+          parsed.kind,
+          "compiler",
+          "The compiler returned an unexpected result",
+          [],
+          1,
+        ),
       );
       return 1;
     }

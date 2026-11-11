@@ -21,6 +21,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@blend65/compiler": "0.1.0"
+    "@blend65/compiler": "0.1.0",
+    "jsonc-parser": "3.3.1"
   }
 }

@@ -35,10 +35,21 @@ export interface BuildOptions extends CheckOptions {
   readonly boundsCheck?: boolean;
   /** Override the manifest's division-by-zero check setting. */
   readonly divisionZeroCheck?: boolean;
+  /**
+   * Optional absolute ACME executable selected by the caller's machine-local tools file.
+   * When present it wins over `PATH` and an invalid path fails without fallback.
+   */
+  readonly acmePath?: string;
 }
 
-/** Run inputs are exactly the inputs accepted by a fresh build. */
-export interface RunOptions extends BuildOptions {}
+/** Run inputs are exactly the inputs accepted by a fresh build plus the VICE selection. */
+export interface RunOptions extends BuildOptions {
+  /**
+   * Optional absolute VICE `x64sc` executable selected by the caller's machine-local tools file.
+   * When present it wins over `PATH` and an invalid path fails without fallback.
+   */
+  readonly x64scPath?: string;
+}
 
 /** One expected service failure with structured diagnostics. */
 export interface ServiceFailure {

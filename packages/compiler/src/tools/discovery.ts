@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { access, readFile, realpath, stat } from "node:fs/promises";
-import { delimiter, isAbsolute, join } from "node:path";
+import { delimiter, isAbsolute, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 
 /** Canonical identity of the one accepted terminal ACME tool. */
@@ -10,6 +10,8 @@ export interface AcmeToolIdentity {
   readonly executable: string;
   /** Exact accepted release. */
   readonly version: "0.97";
+  /** Exact accepted version line without a trailing line break. */
+  readonly versionLine: string;
   /** Lowercase SHA-256 of the executable file. */
   readonly sha256: string;
 }
@@ -20,6 +22,8 @@ export interface AcmeDiscoveryInput {
   readonly explicitPath?: string;
   /** Ordered PATH spelling; omitted reads process.env.PATH once. */
   readonly path?: string;
+  /** Optional working directory used to resolve relative PATH entries. */
+  readonly cwd?: string;
   /** Optional cancellation signal. */
   readonly signal?: AbortSignal;
 }
@@ -63,12 +67,14 @@ async function resolveExecutable(candidate: string): Promise<string | null> {
   }
 }
 
+/** One accepted version line or one bounded probe failure. */
+type VersionProbeResult =
+  | { readonly kind: "accepted"; readonly line: string }
+  | { readonly kind: "version" | "process" | "limit" | "cancelled" };
+
 /** Probe the candidate directly and retain at most the fixed version-output bound. */
-async function probeVersion(
-  executable: string,
-  signal?: AbortSignal,
-): Promise<"accepted" | "version" | "process" | "limit" | "cancelled"> {
-  if (signal?.aborted === true) return "cancelled";
+async function probeVersion(executable: string, signal?: AbortSignal): Promise<VersionProbeResult> {
+  if (signal?.aborted === true) return { kind: "cancelled" };
   return new Promise((resolve) => {
     const child = spawn(executable, ["--version"], {
       shell: false,
@@ -80,7 +86,7 @@ async function probeVersion(
     let cancelled = false;
     let timedOut = false;
     let timeout: ReturnType<typeof setTimeout> | undefined;
-    const finish = (result: "accepted" | "version" | "process" | "limit" | "cancelled") => {
+    const finish = (result: VersionProbeResult) => {
       if (settled) return;
       settled = true;
       if (timeout !== undefined) clearTimeout(timeout);
@@ -105,15 +111,17 @@ async function probeVersion(
     };
     child.stdout.on("data", append);
     child.stderr.on("data", append);
-    child.once("error", () => finish(cancelled ? "cancelled" : "process"));
+    child.once("error", () => finish({ kind: cancelled ? "cancelled" : "process" }));
     child.once("close", (code) => {
-      if (cancelled) finish("cancelled");
-      else if (limited) finish("limit");
-      else if (timedOut) finish("process");
-      else if (code !== 0) finish("process");
+      if (cancelled) finish({ kind: "cancelled" });
+      else if (limited) finish({ kind: "limit" });
+      else if (timedOut) finish({ kind: "process" });
+      else if (code !== 0) finish({ kind: "process" });
       else {
-        const accepted = /\brelease\s+0\.97(?=$|[\s(])/iu.test(output);
-        finish(accepted ? "accepted" : "version");
+        const accepted = output
+          .split(/\r?\n/u)
+          .find((line) => /^This is ACME, release 0\.97(?=$|[\s(])/u.test(line));
+        finish(accepted === undefined ? { kind: "version" } : { kind: "accepted", line: accepted });
       }
     });
     signal?.addEventListener("abort", abort, { once: true });
@@ -149,10 +157,12 @@ export async function discoverAcme(input: AcmeDiscoveryInput = {}): Promise<Acme
     }
   } else {
     const pathValue = input.path ?? process.env.PATH ?? "";
+    const cwd = input.cwd ?? process.cwd();
     for (const entry of pathValue.split(delimiter)) {
-      if (entry.length === 0 || !isAbsolute(entry)) continue;
+      if (entry.length === 0) continue;
+      const directory = resolve(cwd, entry);
       const found = await resolveExecutable(
-        join(entry, process.platform === "win32" ? "acme.exe" : "acme"),
+        join(directory, process.platform === "win32" ? "acme.exe" : "acme"),
       );
       if (found !== null) {
         candidate = found;
@@ -162,9 +172,13 @@ export async function discoverAcme(input: AcmeDiscoveryInput = {}): Promise<Acme
     if (candidate === null) return failure("not-found", "ACME was not found on the ordered PATH");
   }
   const probe = await probeVersion(candidate, input.signal);
-  if (probe !== "accepted") {
+  if (probe.kind !== "accepted") {
     const reason =
-      probe === "version" ? "version-mismatch" : probe === "limit" ? "output-limit" : probe;
+      probe.kind === "version"
+        ? "version-mismatch"
+        : probe.kind === "limit"
+          ? "output-limit"
+          : probe.kind;
     return failure(reason, `ACME version probe failed: ${reason}`);
   }
   try {
@@ -174,6 +188,7 @@ export async function discoverAcme(input: AcmeDiscoveryInput = {}): Promise<Acme
       tool: Object.freeze({
         executable: candidate,
         version: "0.97",
+        versionLine: probe.line,
         sha256: createHash("sha256").update(bytes).digest("hex"),
       }),
     });

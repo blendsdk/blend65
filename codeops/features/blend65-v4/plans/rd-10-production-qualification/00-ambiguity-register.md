@@ -25,6 +25,8 @@ external publication, or outward release action is decided here.
 | 13 | Non-functional | Do responsiveness observations gate release? | Gate / trend only / omit | Record phase-separated trends on qualified hosts. They never change pass/fail. | ✅ Resolved — R10.38 |
 | 14 | Behavioral | How is a seeded missing VICE case reported? | Pass by skip / fail everything / `Unknown` | Report `Unknown` for that endpoint and block only the claim that requires it. No skip contributes a passing count. | ✅ Resolved — R10.8, AC-07 |
 | 15 | Verification | Two specification oracles conflict on the VS Code `Run in VICE` title. | Change the product title / amend the older foundation oracle / leave the boundary red | Amend the foundation oracle so the VICE product name is not treated as forbidden toolchain configuration; keep R9.27 and its extension oracle unchanged. | ✅ Resolved — user-approved oracle ruling |
+| 16 | Verification | RD-09 R9.5 tool discovery is missing from the implementation. | Reopen RD-09 / fix in RD-10 / drop the requirement | Fix in RD-10 as a qualification-blocking prerequisite: tools-file schema 1, explicit ACME/VICE paths, relative PATH resolution, exact probes, and tests. | ✅ Resolved — user-approved RD-10 fix |
+| 17 | Verification | R9.5 asks for the matched version line in build evidence, but the frozen build schema allows only name, canonicalPath, and sha256. | Version the schema / keep it frozen / drop the line | Keep `.build.json` version 1 frozen. Capture the line in the discovery result, tests, and release record, and record this interpretation here. | ✅ Resolved — user-approved interpretation |
 
 ## Resolution Notes
 
@@ -59,3 +61,13 @@ it, and approval does not authorize a push, publication, tag, or announcement.
 bundler outside the editor bundles, readiness/scoreboard surfaces, and skip flags. It no longer
 rejects the user-facing VICE product name, which the editor requirement mandates in the extension
 manifest. The RD-09 title and its extension oracle remain unchanged.
+
+**AR-16:** RD-09 closed with R9.5 unimplemented: the CLI and services discovered tools from `PATH`
+only. RD-10 owns the qualification-blocking correction. The CLI loads the optional tools file only
+for `build` and `run`, validates its schema before any build work, and passes explicit executable
+paths to the compiler services. A configured path wins and never falls back. `check` and ordinary
+language-server analysis remain tool-free.
+
+**AR-17:** The matched ACME version line is captured by discovery and recorded in qualification
+evidence and tests. The frozen `.build.json` version-1 `HostToolRecord` keeps its exact
+`name`/`canonicalPath`/`sha256` shape, so the line is not added to that schema.

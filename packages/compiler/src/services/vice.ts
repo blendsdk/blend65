@@ -3,7 +3,7 @@ import type { ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { access, readFile, realpath, stat } from "node:fs/promises";
-import { basename, delimiter, dirname, isAbsolute, join } from "node:path";
+import { basename, delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 import { selectC64KernalFacts } from "../profile/c64-kernal.js";
 import type { C64KernalProfileId } from "../profile/c64-kernal.js";
 
@@ -115,21 +115,51 @@ async function stopOwnedProcess(
   return stopped;
 }
 
-/** Resolve the native executable from the first absolute PATH entry that owns it. */
-export async function findVice(): Promise<string | null> {
-  for (const entry of (process.env.PATH ?? "").split(delimiter)) {
-    if (!isAbsolute(entry) || entry.length === 0) continue;
-    try {
-      const candidate = await realpath(
-        join(entry, process.platform === "win32" ? "x64sc.exe" : "x64sc"),
-      );
-      const metadata = await stat(candidate);
-      if (!metadata.isFile()) continue;
-      await access(candidate, constants.X_OK);
-      return candidate;
-    } catch {
-      // Continue the fixed ordered PATH scan.
-    }
+/** Optional explicit selection and working directory for VICE discovery. */
+export interface ViceDiscoveryInput {
+  /** Absolute candidate which takes precedence over PATH. */
+  readonly explicitPath?: string;
+  /** Ordered PATH spelling; omitted reads process.env.PATH once. */
+  readonly path?: string;
+  /** Optional working directory used to resolve relative PATH entries. */
+  readonly cwd?: string;
+}
+
+/** Resolve one VICE candidate without accepting directories or non-executable files. */
+async function resolveViceExecutable(candidate: string): Promise<string | null> {
+  try {
+    const canonical = await realpath(candidate);
+    const metadata = await stat(canonical);
+    if (!metadata.isFile()) return null;
+    if (process.platform !== "win32") await access(canonical, constants.X_OK);
+    return canonical;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve the native executable from an explicit absolute path or the ordered PATH.
+ *
+ * An explicit path wins and never falls back to PATH. PATH entries are resolved against the
+ * operation working directory when they are relative, then inspected in order for exactly
+ * `x64sc` on Unix or `x64sc.exe` on Windows.
+ *
+ * @param input Optional explicit path and working directory.
+ * @returns Canonical executable path, or null when no candidate qualifies.
+ */
+export async function findVice(input: ViceDiscoveryInput = {}): Promise<string | null> {
+  if (input.explicitPath !== undefined) {
+    if (!isAbsolute(input.explicitPath)) return null;
+    return resolveViceExecutable(input.explicitPath);
+  }
+  const cwd = input.cwd ?? process.cwd();
+  for (const entry of (input.path ?? process.env.PATH ?? "").split(delimiter)) {
+    if (entry.length === 0) continue;
+    const found = await resolveViceExecutable(
+      join(resolve(cwd, entry), process.platform === "win32" ? "x64sc.exe" : "x64sc"),
+    );
+    if (found !== null) return found;
   }
   return null;
 }

@@ -613,9 +613,11 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
       ]),
     };
   }
-  const discovered = await discoverAcme(
-    options.signal === undefined ? {} : { signal: options.signal },
-  );
+  const discovered = await discoverAcme({
+    ...(options.acmePath === undefined ? {} : { explicitPath: options.acmePath }),
+    ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
+    ...(options.signal === undefined ? {} : { signal: options.signal }),
+  });
   if (discovered.kind === "error") {
     const category = discovered.reason === "cancelled" ? "cancelled" : "tool-discovery";
     return {
@@ -859,10 +861,18 @@ export async function runProject(options: RunOptions = {}): Promise<RunResult> {
     ]);
   }
   let result: ServiceFailure | null = null;
-  const executable = await findVice();
+  const executable = await findVice({
+    ...(options.x64scPath === undefined ? {} : { explicitPath: options.x64scPath }),
+    ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
+  });
   if (executable === null) {
     result = failure("tool-discovery", [
-      serviceDiagnostic("VICE_DISCOVERY", "VICE x64sc was not found on the ordered PATH"),
+      serviceDiagnostic(
+        "VICE_DISCOVERY",
+        options.x64scPath === undefined
+          ? "VICE x64sc was not found on the ordered PATH"
+          : "The configured VICE x64sc path is not a canonical executable",
+      ),
     ]);
   } else {
     const probe = await probeVice(executable, options.signal);

@@ -38,6 +38,26 @@ exit statuses are unchanged without the flag. `blendc evidence` resolves and val
 immutable generation and returns the eight artifact roles; it never publishes, repairs, or deletes
 anything.
 
+## Tool discovery
+
+`blendc build` needs ACME 0.97, and `blendc run` also needs VICE 3.10 `x64sc`. An optional machine-local
+JSONC file selects explicit executables:
+
+```jsonc
+// Linux/macOS: ${XDG_CONFIG_HOME:-$HOME/.config}/blend65/tools.jsonc
+// Windows:    %APPDATA%\blend65\tools.jsonc
+{
+  "schemaVersion": 1,
+  "acmePath": "/usr/bin/acme",
+  "x64scPath": "/home/user/.local/bin/x64sc"
+}
+```
+
+Both paths are optional and must be absolute. A configured path wins and never falls back to
+`PATH`; an invalid configured path fails the operation. When a path is omitted or the file is
+absent, the CLI scans `PATH` in order for `acme`/`x64sc` on Linux and macOS, or
+`acme.exe`/`x64sc.exe` on Windows. `blendc check` and the language server never read this file.
+
 ## Debug evidence
 
 Every successful build emits `.debug.json` beside the primary artifact. It records:

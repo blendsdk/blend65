@@ -83,6 +83,7 @@ as a skipped pass or a product defect.
 | CLI returned `json: false` in every parsed argument object | Exact RD-08 argument-shape oracles failed | Omit the flag unless `--json` is present (`a00b8407`) |
 | Foundation oracle rejected the required VS Code `Run in VICE` title | RD-02 and RD-09 oracles contradicted; CI red | Foundation oracle allows the product name; toolchain checks remain (AR-15, `a00b8407`) |
 | Publication applied a 1 MiB metadata cap to every artifact | A valid 38,440-instruction build failed on its 9.6 MiB `.debug.json` | Metadata records stay at 1 MiB; generation artifacts allow 64 MiB (`c6cc63b3`) |
+| RD-09 R9.5 tools-file discovery was missing | The CLI and services used `PATH` only, so R10.13 could not be proven | Added schema-1 `tools.jsonc`, explicit ACME/VICE paths, relative `PATH` resolution, exact probes, and tests (AR-16/AR-17) |
 
 ## 4. Profile and artifact matrix
 
@@ -170,8 +171,8 @@ No physical C64, 1541-compatible drive, SID unit, or analogue capture path is av
 | ---- | -------- | ------ |
 | Compiler/CLI/LSP tarballs | `npm pack` and clean-prefix install | Pending |
 | Local VSIX | Build, install, Build/Run/Evidence journey | Pending |
-| Tool discovery | Config/`PATH` precedence and missing-tool failure | Pending |
-| Cancellation | Owned process-tree termination | Pending |
+| Tool discovery | Config/`PATH` precedence and missing-tool failure | Implemented with tests; installed-prefix proof pending |
+| Cancellation | Owned process-tree termination | Source CLI proof passed; installed-prefix proof pending |
 
 ## 9. C64U readiness and handoff
 

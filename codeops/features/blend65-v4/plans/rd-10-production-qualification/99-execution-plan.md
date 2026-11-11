@@ -92,6 +92,7 @@ record.
 - [ ] 2.2.3 Use the installed compiler library and `frontend` entry; confirm no private source path or backend leak — installed prefix
 - [ ] 2.2.4 Start the installed language server and complete initialize, diagnostics, completion, hover, and formatting — installed prefix
 - [ ] 2.2.5 Prove ACME/VICE discovery precedence, exact versions, missing-tool failure, and owned-process cancellation — installed prefix
+  - R9.5 was found unimplemented on 2026-11-11 (AR-16): only `PATH` discovery existed. The tools-file loader, explicit ACME/VICE paths, relative `PATH` resolution, exact probe grammar, and tests are now implemented; this task remains open until the installed-prefix proof runs.
 
 ### Step 2.3: Host Evidence
 
