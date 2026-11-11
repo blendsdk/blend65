@@ -86,8 +86,8 @@ repository. The install resolved nine packages, including the declared `jsonc-pa
 
 | Artifact | Bytes | SHA-256 |
 | -------- | ----- | ------- |
-| `blend65-compiler-0.1.0.tgz` | 1,530,207 | `d6281974b2a7c9f16a21b47291f8b23a0e0ad69df85693c5453d3c16f9877f39` |
-| `blend65-cli-0.1.0.tgz` | 19,543 | `ffa95580812ba6c6c93bcedda545aa8e67cf299165dad15f0acdbf5e1a25d53f` |
+| `blend65-compiler-0.1.0.tgz` | 1,533,856 | `10d53e7e2c3d7c866619bc1f7c6cfb576e30aa3c17d070ddc216106bd4eacb1d` |
+| `blend65-cli-0.1.0.tgz` | 19,533 | `f655f4b0cdae842acf783ecc1f7c8f19ef42459fdb94428056bc062cbd6b0d2d` |
 | `blend65-language-server-0.1.0.tgz` | 23,982 | `366d382ed837086885662ad7578a261daa3c5b56fd1a032406b035d10bf7094d` |
 
 | Check | Result |

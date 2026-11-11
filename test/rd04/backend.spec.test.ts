@@ -168,7 +168,7 @@ describe("complete direct backend publication", () => {
       const invocationLog = join(root, "assembler-arguments.json");
       await writeFile(
         executable,
-        `#!${process.execPath}\nconst fs = require("node:fs");\nconst args = process.argv.slice(2);\nif (!args.includes("--cpu")) { process.stdout.write("ACME, release 0.97\\n"); process.exit(0); }\nfs.writeFileSync(${JSON.stringify(invocationLog)}, JSON.stringify(args));\nprocess.stderr.write("Error: injected assembler failure\\n");\nprocess.exit(1);\n`,
+        `#!${process.execPath}\nconst fs = require("node:fs");\nconst args = process.argv.slice(2);\nif (!args.includes("--cpu")) { process.stdout.write("This is ACME, release 0.97\\n"); process.exit(0); }\nfs.writeFileSync(${JSON.stringify(invocationLog)}, JSON.stringify(args));\nprocess.stderr.write("Error: injected assembler failure\\n");\nprocess.exit(1);\n`,
       );
       await chmod(executable, 0o755);
       process.env.PATH = bin;

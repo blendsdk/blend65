@@ -55,7 +55,7 @@ describe("ACME driver hardening", () => {
     await mkdir(first);
     await mkdir(second);
     await executable(first, "acme", "ACME, release 0.96\n");
-    await executable(second, "acme", "ACME, release 0.97\n");
+    await executable(second, "acme", "This is ACME, release 0.97\n");
 
     await expect(discoverAcme({ path: `${first}${delimiter}${second}` })).resolves.toEqual(
       expect.objectContaining({ kind: "error", reason: "version-mismatch" }),
@@ -69,14 +69,14 @@ describe("ACME driver hardening", () => {
   });
 
   it("should reject a release which only starts with the supported version", async () => {
-    const candidate = await executable(root, "acme", "ACME, release 0.97.1\n");
+    const candidate = await executable(root, "acme", "This is ACME, release 0.97.1\n");
     await expect(discoverAcme({ explicitPath: candidate })).resolves.toEqual(
       expect.objectContaining({ kind: "error", reason: "version-mismatch" }),
     );
   });
 
   it("should reject a release token with a textual suffix", async () => {
-    const candidate = await executable(root, "acme", "ACME, release 0.97beta\n");
+    const candidate = await executable(root, "acme", "This is ACME, release 0.97beta\n");
     await expect(discoverAcme({ explicitPath: candidate })).resolves.toEqual(
       expect.objectContaining({ kind: "error", reason: "version-mismatch" }),
     );

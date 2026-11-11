@@ -10,6 +10,10 @@
     "./frontend": {
       "types": "./dist/frontend/index.d.ts",
       "default": "./dist/frontend/index.js"
+    },
+    "./tools": {
+      "types": "./dist/tools/tools-config.d.ts",
+      "default": "./dist/tools/tools-config.js"
     }
   },
   "files": [

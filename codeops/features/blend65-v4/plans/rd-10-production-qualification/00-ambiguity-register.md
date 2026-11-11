@@ -67,7 +67,9 @@ manifest. The RD-09 title and its extension oracle remain unchanged.
 only. RD-10 owns the qualification-blocking correction. The CLI loads the optional tools file only
 for `build` and `run`, validates its schema before any build work, and passes explicit executable
 paths to the compiler services. A configured path wins and never falls back. `check` and ordinary
-language-server analysis remain tool-free.
+language-server analysis remain tool-free. The tools-file parser and reader live in the compiler's
+`./tools` entry; the CLI imports that entry only for `build` and `run`, and the compiler root and
+`frontend` entries never load it.
 
 **AR-17:** The matched ACME version line is captured by discovery and recorded in qualification
 evidence and tests. The frozen `.build.json` version-1 `HostToolRecord` keeps its exact

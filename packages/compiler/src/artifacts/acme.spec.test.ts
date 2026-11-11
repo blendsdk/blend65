@@ -89,7 +89,7 @@ async function realAcmeWrapper(root: string, logPath: string): Promise<string> {
 import { spawnSync } from "node:child_process";
 const args = process.argv.slice(2);
 if (!args.includes("--cpu")) {
-  process.stdout.write("ACME, release 0.97\\n");
+  process.stdout.write("This is ACME, release 0.97\\n");
   process.exit(0);
 }
 appendFileSync(${JSON.stringify(logPath)}, JSON.stringify(args) + "\\n");
@@ -104,7 +104,7 @@ async function fakeAcme(root: string, name: string, action: string): Promise<str
     name,
     `const args = process.argv.slice(2);
 if (!args.includes("--cpu")) {
-  process.stdout.write("ACME, release 0.97\\n");
+  process.stdout.write("This is ACME, release 0.97\\n");
   process.exit(0);
 }
 ${action}`,

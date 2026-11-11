@@ -13,7 +13,7 @@ import type { EvidenceResult } from "./evidence.js";
 import { cliDiagnostic, encodeEnvelope } from "./json.js";
 import type { CliJsonEnvelope } from "./json.js";
 import { escapeTerminalText, renderDiagnostics, renderUsage } from "./render.js";
-import { readToolsConfig } from "./tools.js";
+import { readToolsConfig } from "@blend65/compiler/tools";
 
 /** CLI package version, kept equal to the package manifest by executable qualification. */
 const CLI_VERSION = "0.1.0";
