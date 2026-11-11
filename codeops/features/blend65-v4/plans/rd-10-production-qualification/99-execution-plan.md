@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-11 10:16
-> **Progress**: 12/82 tasks (15%)
+> **Last Updated**: 2026-11-11 17:18
+> **Progress**: 15/82 tasks (18%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -82,8 +82,8 @@ record.
 
 - [x] 2.1.1 Run `yarn install --frozen-lockfile`, `yarn build`, and `yarn typecheck` on clean `linux/x64` — repository root ✅ (completed: 2026-11-11 10:16)
 - [x] 2.1.2 Record the host identity, Node identity, and locked dependency identity — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 10:16)
-- [ ] 2.1.3 Run the complete compiler and root suites sequentially; record the exact counts and failures (if any) — `packages/compiler`, root `test/`
-  - First full run on 2026-11-11 exposed two release-boundary defects: the CLI returned an explicit `json: false` in unchanged argument objects, and the foundation oracle rejected the required VS Code `Run in VICE` title. Both are fixed under AR-15. The root rerun then exposed a third defect: the 1 MiB metadata cap was applied to every generation artifact and rejected a valid 9.6 MiB `.debug.json`. Metadata-only cap fixed at `c6cc63b3`; the complete compiler/root rerun is in progress.
+- [x] 2.1.3 Run the complete compiler and root suites sequentially; record the exact counts and failures (if any) — `packages/compiler`, root `test/` ✅ (completed: 2026-11-11 17:18; compiler 3,659 passed / 2 skipped; root 6,569 passed / 1 retried / 4 skipped; the single VIC-collision retry passed alone and in the full file)
+  - First full run on 2026-11-11 exposed two release-boundary defects: the CLI returned an explicit `json: false` in unchanged argument objects, and the foundation oracle rejected the required VS Code `Run in VICE` title. Both are fixed under AR-15. The root rerun then exposed a third defect: the 1 MiB metadata cap was applied to every generation artifact and rejected a valid 9.6 MiB `.debug.json`. Metadata-only cap fixed at `c6cc63b3`; the final rerun plus the recorded VIC-collision retry complete this task.
 
 ### Step 2.2: Installed Public Path
 
@@ -95,8 +95,8 @@ record.
 
 ### Step 2.3: Host Evidence
 
-- [ ] 2.3.1 Record the Linux host journey and any failed claim in the release record — `docs/releases/v4-production-qualification.md`
-- [ ] 2.3.2 Record `win32/x64`, `darwin/arm64`, and `darwin/x64` as verified or `Unknown`; do not synthesize a host — `docs/releases/v4-production-qualification.md`
+- [x] 2.3.1 Record the Linux host journey and any failed claim in the release record — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 17:18; boundary counts, three fixed defects, and the VIC-collision retry recorded)
+- [x] 2.3.2 Record `win32/x64`, `darwin/arm64`, and `darwin/x64` as verified or `Unknown`; do not synthesize a host — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 17:18; all three remain `Unknown`; no physical or cross-host inference)
 
 **Deliverables**: Linux host evidence, installed public path, discovery/cancellation proof, host
 status table.

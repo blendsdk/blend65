@@ -1,8 +1,7 @@
 # Blend65 v4 Production Qualification
 
 > **Status**: Qualification in progress — not approved
-> **Candidate code tree**: pending final green boundary; qualification-blocking fixes were applied
-> after `b75333c8`
+> **Candidate code tree**: `c6cc63b3` (later commits add documentation and evidence only)
 > **Created**: 2026-11-11
 > **Owning RD**: [RD-10](../codeops/features/blend65-v4/requirements/RD-10-production-qualification-and-c64u-handoff.md)
 
@@ -13,8 +12,8 @@ a readiness product, score, or second evidence database.
 
 | Fact | Value |
 | ---- | ----- |
-| Candidate code commit | Pending the final green boundary |
-| Working tree at freeze | Pending |
+| Candidate code commit | `c6cc63b3c3a1bbedf9b681e4a68e4d12971302d1` |
+| Working tree at freeze | clean at `c6cc63b3`; later commits add documentation only |
 | Compiler version | `0.1.0` |
 | Specification identity | `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b` |
 | Expert skill | `2.0.4`; content commit `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15` |
@@ -52,13 +51,30 @@ No unresolved critical or major finding remains open from the prerequisite close
 
 | Host | Status | Evidence |
 | ---- | ------ | -------- |
-| `linux/x64` | Install/build/typecheck pass; boundary fixes applied; complete rerun in progress | `yarn install --frozen-lockfile`, `yarn build --force`, `yarn typecheck --force` (2026-11-11) |
+| `linux/x64` | Install/build/typecheck and complete test boundary pass | `yarn install --frozen-lockfile`, `yarn build --force`, `yarn typecheck --force`, compiler/root suites and all package suites (2026-11-11) |
 | `win32/x64` | Unknown unless a native host is available | — |
 | `darwin/arm64` | Unknown unless a native host is available | — |
 | `darwin/x64` | Unknown unless a native host is available | — |
 
 Linux ARM64 and Windows ARM64 are best-effort. Hosts below Node 22, 32-bit hosts, and unknown
 architectures are unsupported.
+
+### Test boundary
+
+| Suite | Result |
+| ----- | ------ |
+| Compiler package | 216 files, 3,659 passed, 2 skipped |
+| Root release suite | 325 files, 6,569 passed, 1 failed then retried, 4 skipped |
+| CLI package | 9 files, 69 passed |
+| Language server package | 5 files, 21 passed |
+| VS Code package | 5 files, 17 passed |
+| Root typecheck | 7 Turbo tasks successful |
+
+The single root failure was `test/rd05/vic-collision-vice.spec.test.ts`, profile
+`c64-pal-prg-kernal-8580`, case `only sprite 7 overlaps foreground`. Its frame-wait guard
+(`$0708=1`) expired under full-suite load. The case passed when retried alone (4/4 for that
+scenario) and the complete file passed on retry (16/16). This is recorded as a bounded retry, not
+as a skipped pass or a product defect.
 
 ### Qualification-blocking fixes
 
@@ -123,8 +139,10 @@ ACME and VICE identities are recorded in section 1. Runtime results are recorded
 - VICE banner mismatches are rejected;
 - cancellation stops the complete owned VICE process group.
 
-Post-commit VICE failure/cancellation preserves the committed generation and reports build success
-separately; the owning tests are `terminal-failure.spec.test.ts` and `services.impl.test.ts`.
+The publication cap fix was rechecked by the complete compiler suite at candidate `c6cc63b3`
+(216 files, 3,659 passed, 2 skipped). Post-commit VICE failure/cancellation preserves the committed
+generation and reports build success separately; the owning tests are `terminal-failure.spec.test.ts`
+and `services.impl.test.ts`.
 
 ## 7. Physical-evidence status
 
