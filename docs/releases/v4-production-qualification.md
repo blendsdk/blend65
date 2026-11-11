@@ -1,7 +1,7 @@
 # Blend65 v4 Production Qualification
 
 > **Status**: Qualification in progress — not approved
-> **Candidate code tree**: `649718ec` (final root suite rerun in progress)
+> **Candidate code tree**: `649718ec` (test boundary complete with three recorded VICE retries)
 > **Created**: 2026-11-11
 > **Owning RD**: [RD-10](../codeops/features/blend65-v4/requirements/RD-10-production-qualification-and-c64u-handoff.md)
 
@@ -61,23 +61,27 @@ architectures are unsupported.
 
 ### Test boundary
 
-The compiler row is the final `649718ec` rerun. The root row is the earlier `c6cc63b3` run; the
-final `649718ec` root rerun is in progress and will replace it.
+The compiler row is the final `649718ec` rerun. The root row is the completed `649718ec` run with
+three bounded VICE retries recorded below.
 
 | Suite | Result |
 | ----- | ------ |
 | Compiler package | 217 files, 3,683 passed, 2 skipped |
-| Root release suite | 325 files, 6,569 passed, 1 failed then retried, 4 skipped (earlier candidate) |
+| Root release suite | 325 files, 321 passed, 3 failed, 1 skipped; 6,567 passed, 3 failed, 4 skipped |
 | CLI package | 11 files, 73 passed |
 | Language server package | 5 files, 21 passed |
 | VS Code package | 5 files, 17 passed |
 | Root typecheck | 7 Turbo tasks successful |
 
-The single root failure was `test/rd05/vic-collision-vice.spec.test.ts`, profile
-`c64-pal-prg-kernal-8580`, case `only sprite 7 overlaps foreground`. Its frame-wait guard
-(`$0708=1`) expired under full-suite load. The case passed when retried alone (4/4 for that
-scenario) and the complete file passed on retry (16/16). This is recorded as a bounded retry, not
-as a skipped pass or a product defect.
+The three root failures were VICE harness/load cases, and each passed when retried alone:
+
+| Failed case | Observed failure | Retry |
+| ----------- | ---------------- | ----- |
+| `test/rd08/input-byte-selection.spec.test.ts` — `should preserve captured 3 against 1 across calls loads and restored status 9` | Monitor listener ownership attestation failed under full-suite load | Case passed 4/4 profiles |
+| `test/rd05/canonical-fixed-object-abi.spec.test.ts` — `uses the generic borrower for two distinct objects on c64-ntsc-prg-kernal-8580` | VICE binary monitor did not open inside the bounded startup window | Case passed 1/1 |
+| `test/rd05/vic-collision-vice.spec.test.ts` — `only sprite 7 overlaps foreground` | Frame-wait guard (`$0708=1`) expired under full-suite load | Case passed 4/4 profiles |
+
+No skip contributed a pass, and no product defect is inferred from these load-sensitive retries.
 
 ### Installed public path
 

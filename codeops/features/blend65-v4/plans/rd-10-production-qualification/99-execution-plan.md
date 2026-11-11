@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-11 21:31
-> **Progress**: 21/82 tasks (26%)
+> **Last Updated**: 2026-11-12 00:09
+> **Progress**: 22/82 tasks (27%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -82,9 +82,8 @@ record.
 
 - [x] 2.1.1 Run `yarn install --frozen-lockfile`, `yarn build`, and `yarn typecheck` on clean `linux/x64` — repository root ✅ (completed: 2026-11-11 10:16)
 - [x] 2.1.2 Record the host identity, Node identity, and locked dependency identity — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 10:16)
-- [ ] 2.1.3 Run the complete compiler and root suites sequentially; record the exact counts and failures (if any) — `packages/compiler`, root `test/`
-  - Previous run at `c6cc63b3`: compiler 3,659 passed / 2 skipped; root 6,569 passed / 1 retried / 4 skipped. The single VIC-collision retry passed alone and in the full file.
-  - Reopened on 2026-11-11 after `6ff6e293` added tool discovery, which changes the CLI and compiler surface. One final sequential rerun is pending for the new candidate.
+- [x] 2.1.3 Run the complete compiler and root suites sequentially; record the exact counts and failures (if any) — `packages/compiler`, root `test/` ✅ (completed: 2026-11-12 00:09; compiler 217 files / 3,683 passed / 2 skipped; root 325 files / 6,567 passed / 3 VICE retries / 4 skipped; every retry passed alone)
+  - Final root failures were monitor-ownership, monitor-startup, and frame-wait load cases. Each passed alone (4/4, 1/1, 4/4). No product defect was inferred and no skip counted as a pass.
 
 ### Step 2.2: Installed Public Path
 
