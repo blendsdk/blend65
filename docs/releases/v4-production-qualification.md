@@ -3,7 +3,7 @@
 > **Status**: Qualification in progress — not approved
 > **Candidate code tree**: `649718ec` (test boundary complete with three recorded VICE retries)
 > **Created**: 2026-11-11
-> **Owning RD**: [RD-10](../codeops/features/blend65-v4/requirements/RD-10-production-qualification-and-c64u-handoff.md)
+> **Owning RD**: [RD-10](../../codeops/features/blend65-v4/requirements/RD-10-production-qualification-and-c64u-handoff.md)
 
 This record is the single release closeout index. It links and hashes existing evidence; it is not
 a readiness product, score, or second evidence database.
@@ -36,15 +36,15 @@ change the candidate code tree.
 
 | RD | Requirement | Closeout | Status |
 | -- | ----------- | -------- | ------ |
-| RD-01 | [Requirements](../codeops/features/blend65-v4/requirements/RD-01-specification-4-and-expert-authority-freeze.md) | RD-01 plan | Done |
-| RD-02 | [Requirements](../codeops/features/blend65-v4/requirements/RD-02-clean-v4-foundation-and-deterministic-project-model.md) | RD-02 plan | Done |
-| RD-03 | [Requirements](../codeops/features/blend65-v4/requirements/RD-03-playable-m1-complete-pipeline.md) | RD-03 plans | Done |
-| RD-04 | [Requirements](../codeops/features/blend65-v4/requirements/RD-04-complete-language-correct-unoptimized-compiler.md) | RD-04 plan | Done |
-| RD-05 | [Requirements](../codeops/features/blend65-v4/requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md) | RD-05 plans | Done |
-| RD-06 | [Requirements](../codeops/features/blend65-v4/requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md) | [Closeout](../codeops/features/blend65-v4/plans/rd-06-native-assets/09-closeout.md) | Done |
-| RD-07 | [Requirements](../codeops/features/blend65-v4/requirements/RD-07-loadable-assets-and-d64-delivery.md) | [Closeout](../codeops/features/blend65-v4/plans/rd-07-loadable-assets-and-d64-delivery/09-closeout.md) | Done |
-| RD-08 | [Requirements](../codeops/features/blend65-v4/requirements/RD-08-optimization-and-expert-output.md) | RD-08 plan | Done |
-| RD-09 | [Requirements](../codeops/features/blend65-v4/requirements/RD-09-developer-tooling-and-debug-evidence.md) | [Closeout](../codeops/features/blend65-v4/plans/rd-09-developer-tooling/09-closeout.md) | Done |
+| RD-01 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-01-specification-4-and-expert-authority-freeze.md) | RD-01 plan | Done |
+| RD-02 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-02-clean-v4-foundation-and-deterministic-project-model.md) | RD-02 plan | Done |
+| RD-03 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-03-playable-m1-complete-pipeline.md) | RD-03 plans | Done |
+| RD-04 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-04-complete-language-correct-unoptimized-compiler.md) | RD-04 plan | Done |
+| RD-05 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md) | RD-05 plans | Done |
+| RD-06 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md) | [Closeout](../../codeops/features/blend65-v4/plans/rd-06-native-assets/09-closeout.md) | Done |
+| RD-07 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-07-loadable-assets-and-d64-delivery.md) | [Closeout](../../codeops/features/blend65-v4/plans/rd-07-loadable-assets-and-d64-delivery/09-closeout.md) | Done |
+| RD-08 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-08-optimization-and-expert-output.md) | RD-08 plan | Done |
+| RD-09 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-09-developer-tooling-and-debug-evidence.md) | [Closeout](../../codeops/features/blend65-v4/plans/rd-09-developer-tooling/09-closeout.md) | Done |
 
 No unresolved critical or major finding remains open from the prerequisite closeouts.
 
@@ -298,8 +298,29 @@ driver extension in a real extension host rather than a simulated click path.
 
 ## 9. C64U readiness and handoff
 
-Twelve readiness rows and the discovery packet are pending. No C64U target, package, stub, or
-support claim exists.
+The twelve seams were audited against real files and types. Nine pass. Rows 8–10 pass at the seam
+level and carry recorded future-pressure items; no speculative field or abstraction was added.
+
+| # | Seam | Evidence | Result |
+| - | ---- | -------- | ------ |
+| 1 | Language and semantic IR | `packages/compiler/src/frontend/`, `spec/` | Pass |
+| 2 | CPU ownership | `packages/compiler/src/machine/`, `target/profile.ts` | Pass |
+| 3 | Machine ownership | `target/c64-kernal.ts`, `frontend/profile.ts`; startup is a terminal C64 component | Pass |
+| 4 | Serializer/packager ownership | `artifacts/acme-serializer.ts`, `packaging/d64/` | Pass |
+| 5 | Function storage | `storage/`; SFA closes function execution only | Pass |
+| 6 | Physical identity | `.debug.json`, `.memory.json`, `addressSpaceId`/`bankId` | Pass |
+| 7 | Transfer effects | `frontend/load-units.ts`, `test/rd07/` | Pass |
+| 8 | Multiple clocks | CPU/video facts typed; SID, serial/loader, and configurable clocks absent | Pass with recorded pressure |
+| 9 | Device topology | `sidModel`/`sidAddress` and `c64.audio` seam; multi-SID/UltiSID topology absent | Pass with recorded pressure |
+| 10 | Optimization | CPU/machine/scarce-resource facts typed; bank/transfer costs absent | Pass with recorded pressure |
+| 11 | Project/tooling | `blend65.json`, `tools.jsonc`, typed profile/evidence boundaries | Pass |
+| 12 | Product honesty | No selectable `c64u` ID, package, stub, emulator case, or support claim | Pass |
+
+The handoff packet is
+[`codeops/features/blend65-c64u/requirements/_draft/discovery-notes.md`](../../codeops/features/blend65-c64u/requirements/_draft/discovery-notes.md).
+It carries the three pressure items as explicit C64U unknowns, the primary-source needs, the five
+activation gates, and one target-native proof seed. The successor roadmap links the packet and keeps
+`RD-01` dependent on v4. No C64U implementation exists.
 
 ## 10. Security, responsiveness, deferrals, and limitations
 

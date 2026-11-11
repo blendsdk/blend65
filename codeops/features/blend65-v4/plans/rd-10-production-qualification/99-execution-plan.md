@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-12 00:23
-> **Progress**: 51/82 tasks (62%)
+> **Progress**: 61/82 tasks (74%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -204,19 +204,19 @@ compiler-not-engine proof.
 
 ### Step 6.1: Readiness Audit
 
-- [ ] 6.1.1 Audit the twelve readiness rows against real files/types and existing C64 consumers — `packages/compiler/src/`, `spec/`
-- [ ] 6.1.2 Fix any real v4 seam defect found by the audit; rerun affected C64 evidence — owning v4 files
-- [ ] 6.1.3 Record each passed row or explicit blocker with file/type evidence — `docs/releases/v4-production-qualification.md`
-- [ ] 6.1.4 Confirm no selectable `c64u` ID, package, stub, emulator case, or support claim exists — public packages, manifests, docs
+- [x] 6.1.1 Audit the twelve readiness rows against real files/types and existing C64 consumers — `packages/compiler/src/`, `spec/` ✅ (completed: 2026-11-12 00:23; nine pass, three pass with recorded future pressure)
+- [x] 6.1.2 Fix any real v4 seam defect found by the audit; rerun affected C64 evidence — owning v4 files ✅ (completed: 2026-11-12 00:23; no C64 product defect found; no speculative abstraction added)
+- [x] 6.1.3 Record each passed row or explicit blocker with file/type evidence — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:23)
+- [x] 6.1.4 Confirm no selectable `c64u` ID, package, stub, emulator case, or support claim exists — public packages, manifests, docs ✅ (completed: 2026-11-12 00:23; only negative tests mention c64u)
 
 ### Step 6.2: Handoff
 
-- [ ] 6.2.1 Create the eight-section discovery seed under the existing successor owner — `codeops/features/blend65-c64u/requirements/_draft/discovery-notes.md`
-- [ ] 6.2.2 Link the candidate/spec/expert identities and passed readiness rows — handoff packet
-- [ ] 6.2.3 Record every unknown, primary-source need, activation gate, and one native proof seed — handoff packet
-- [ ] 6.2.4 Update the successor roadmap with the handoff artifact and dependency — `codeops/features/blend65-c64u/00-roadmap.md`
-- [ ] 6.2.5 Verify C64 behavior/artifacts are unchanged by any readiness correction — `test/rd05/`, `test/rd07/`, `test/rd08/`
-- [ ] 6.2.6 Record the readiness result and handoff link — `docs/releases/v4-production-qualification.md`
+- [x] 6.2.1 Create the eight-section discovery seed under the existing successor owner — `codeops/features/blend65-c64u/requirements/_draft/discovery-notes.md` ✅ (completed: 2026-11-12 00:23)
+- [x] 6.2.2 Link the candidate/spec/expert identities and passed readiness rows — handoff packet ✅ (completed: 2026-11-12 00:23)
+- [x] 6.2.3 Record every unknown, primary-source need, activation gate, and one native proof seed — handoff packet ✅ (completed: 2026-11-12 00:23)
+- [x] 6.2.4 Update the successor roadmap with the handoff artifact and dependency — `codeops/features/blend65-c64u/00-roadmap.md` ✅ (completed: 2026-11-12 00:23)
+- [x] 6.2.5 Verify C64 behavior/artifacts are unchanged by any readiness correction — `test/rd05/`, `test/rd07/`, `test/rd08/` ✅ (completed: 2026-11-12 00:23; no readiness correction changed product code)
+- [x] 6.2.6 Record the readiness result and handoff link — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:23)
 
 **Deliverables**: twelve-row readiness record, handoff packet, successor roadmap update, C64
 preservation proof.
