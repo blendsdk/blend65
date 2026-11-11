@@ -33,7 +33,9 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 > runtime oracle, and every runtime test runs through VICE. Physical-only evidence is recorded as
 > `Unknown` under R10.8; the bounded support statement must say
 > `VICE-verified / hardware-unverified` for every affected profile and must not claim physical
-> timing, analogue SID, serial, real-drive, or silicon-sensitive behavior. R10.21–R10.25 and
+> timing, analogue SID, serial, real-drive, or silicon-sensitive behavior. For this candidate, VICE
+> is accepted as sufficiently accurate for the functional, instruction-level, memory/MMIO, and
+> bounded timing scope; this is not a claim of universal hardware equivalence. R10.21–R10.25 and
 > AC-20–AC-24 define what a future hardware run must prove. For this candidate they resolve to an
 > honest unverified record and a named post-release hardware backlog owner, never to an inferred
 > pass. Reopen those rows when hardware becomes available.

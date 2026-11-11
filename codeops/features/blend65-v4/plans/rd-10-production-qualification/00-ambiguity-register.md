@@ -11,7 +11,7 @@ external publication, or outward release action is decided here.
 | #   | Category | Ambiguity / Gap | Options Presented | Decision | Status |
 | --- | -------- | --------------- | ----------------- | -------- | ------ |
 | 1 | Scope | No physical C64, drive, or SID hardware is available. How is physical qualification handled? | Block RD-10 / infer a pass / record `Unknown` with an owner | Record every physical row as `Unknown` under R10.8, add a named post-release hardware backlog row, and restrict every affected claim to `VICE-verified / hardware-unverified`. | ✅ Resolved — user environment constraint |
-| 2 | Technical | Which runtime oracle is authoritative? | Physical hardware / VICE plus hardware / VICE only | VICE 3.10 `x64sc` is the sole runtime oracle for this candidate. All runtime tests run through VICE, sequentially. | ✅ Resolved — user directive |
+| 2 | Technical | Which runtime oracle is authoritative? | Physical hardware / VICE plus hardware / VICE only | VICE 3.10 `x64sc` is the sole runtime oracle for this candidate. All runtime tests run through VICE, sequentially. The team accepts VICE as sufficiently accurate for the functional/runtime scope; this is not a claim of universal hardware equivalence. | ✅ Resolved — user directive and team consensus |
 | 3 | Scope | Which production hosts can be qualified? | Claim all hosts / claim Linux only / evidence-bound hosts | Claim only hosts with native end-to-end evidence. Linux x64 is the local host. Windows x64 and macOS arm64/x64 run only on real native hosts; otherwise they are `Unknown` and excluded from the support statement. | ✅ Resolved — evidence-bound claims |
 | 4 | Integration | Where does the release record live and what shape does it have? | New evidence database / existing docs / one Markdown closeout | One Markdown record at `docs/releases/v4-production-qualification.md`, linking and hashing existing evidence. No readiness product or database. | ✅ Resolved — R10.6 |
 | 5 | Behavioral | When is the production candidate frozen? | Freeze now / freeze after fixes / continuous | Freeze one clean commit after all qualification-blocking fixes. A later code change invalidates only intersecting evidence and forces the smallest affected rerun. | ✅ Resolved — R10.1, R10.7 |
@@ -31,9 +31,12 @@ external publication, or outward release action is decided here.
 a future run must satisfy R10.21–R10.25 and AC-20–AC-24. For this candidate, the closeout states
 `Unknown` and the support statement says `VICE-verified / hardware-unverified`.
 
-**AR-2:** VICE is a normal automated oracle, not proof of silicon. The release record names the exact
-`x64sc` executable hash and ROM hashes already used by the VICE harness. Runs are sequential because
-concurrent instances contend for monitor ports and host resources.
+**AR-2:** VICE is a normal automated oracle, not proof of silicon. The team consensus is that it is
+sufficiently accurate for the functional, instruction-level, memory/MMIO, and bounded timing scope
+of this candidate, so RD-10 does not wait for hardware. It does not prove analog SID behavior, real
+drive/serial timing, board/chip revisions, or silicon-sensitive edges. The release record names the
+exact `x64sc` executable hash and ROM hashes already used by the VICE harness. Runs are sequential
+because concurrent instances contend for monitor ports and host resources.
 
 **AR-3:** A host is never synthesized through path fixtures, containers, or another operating system.
 If a native host is unavailable, the closeout records it as `Unknown` and the support statement does

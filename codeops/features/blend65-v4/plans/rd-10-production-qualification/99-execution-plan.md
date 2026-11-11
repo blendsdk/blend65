@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-11 10:10
-> **Progress**: 0/82 tasks (0%)
+> **Last Updated**: 2026-11-11 10:16
+> **Progress**: 12/82 tasks (15%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -48,22 +48,22 @@ Physical-only rows are `Unknown` with the `V4-HW-1` owner.
 
 ### Step 1.1: Prerequisite Audit
 
-- [ ] 1.1.1 Verify RD-01–RD-09 are Done with approved requirements, completed plans, and closeouts — `codeops/features/blend65-v4/00-roadmap.md`
-- [ ] 1.1.2 Confirm no unresolved critical/major finding remains open from the RD-09 reviews or earlier closeouts — `codeops/features/*/plans/*/09-closeout.md`
-- [ ] 1.1.3 Record the Specification 4 hash and active expert-skill version/content commit — `spec/`, `.agents/skills/blend65-domain-expert/qualification/release.md`
-- [ ] 1.1.4 Record Node, TypeScript, Yarn, Turbo, Vitest, ACME 0.97, and VICE 3.10 executable/ROM hashes — `docs/releases/v4-production-qualification.md`
-- [ ] 1.1.5 Confirm `git status --porcelain` is empty and record the candidate HEAD after all blocking fixes — repository root
+- [x] 1.1.1 Verify RD-01–RD-09 are Done with approved requirements, completed plans, and closeouts — `codeops/features/blend65-v4/00-roadmap.md` ✅ (completed: 2026-11-11 10:14)
+- [x] 1.1.2 Confirm no unresolved critical/major finding remains open from the RD-09 reviews or earlier closeouts — `codeops/features/*/plans/*/09-closeout.md` ✅ (completed: 2026-11-11 10:14)
+- [x] 1.1.3 Record the Specification 4 hash and active expert-skill version/content commit — `spec/`, `.agents/skills/blend65-domain-expert/qualification/release.md` ✅ (completed: 2026-11-11 10:14)
+- [x] 1.1.4 Record Node, TypeScript, Yarn, Turbo, Vitest, ACME 0.97, and VICE 3.10 executable/ROM hashes — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 10:14)
+- [x] 1.1.5 Confirm `git status --porcelain` is empty and record the candidate HEAD after all blocking fixes — repository root ✅ (completed: 2026-11-11 10:14)
 
 ### Step 1.2: Release Record Skeleton
 
-- [ ] 1.2.1 Create the release record with all twelve required sections and the bounded-statement placeholder — `docs/releases/v4-production-qualification.md`
-- [ ] 1.2.2 Record the evidence-reuse identity fields and the freshness rule — `docs/releases/v4-production-qualification.md`
-- [ ] 1.2.3 Record the nine profile IDs and the exact artifact inventory contract — `docs/releases/v4-production-qualification.md`
+- [x] 1.2.1 Create the release record with all twelve required sections and the bounded-statement placeholder — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 10:14)
+- [x] 1.2.2 Record the evidence-reuse identity fields and the freshness rule — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 10:14)
+- [x] 1.2.3 Record the nine profile IDs and the exact artifact inventory contract — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 10:14)
 
 ### Step 1.3: Atomic Failure Replay
 
-- [ ] 1.3.1 Replay seeded compiler, ACME, packager, and cancellation failures; confirm no new generation and no prior artifact launch — `packages/compiler/src/publication/publication.spec.test.ts`, `packages/compiler/src/publication/terminal-failure.spec.test.ts`
-- [ ] 1.3.2 Replay a post-commit VICE failure or cancellation; confirm the generation survives and build/run are reported separately — `docs/releases/v4-production-qualification.md`
+- [x] 1.3.1 Replay seeded compiler, ACME, packager, and cancellation failures; confirm no new generation and no prior artifact launch — `packages/compiler/src/publication/publication.spec.test.ts`, `packages/compiler/src/publication/terminal-failure.spec.test.ts` ✅ (completed: 2026-11-11 10:14)
+- [x] 1.3.2 Replay a post-commit VICE failure or cancellation; confirm the generation survives and build/run are reported separately — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 10:14)
 
 **Deliverables**: candidate identity, prerequisite audit, release-record skeleton, atomic-failure
 record.
@@ -80,8 +80,8 @@ record.
 
 ### Step 2.1: Linux Installation and Build
 
-- [ ] 2.1.1 Run `yarn install --frozen-lockfile`, `yarn build`, and `yarn typecheck` on clean `linux/x64` — repository root
-- [ ] 2.1.2 Record the host identity, Node identity, and locked dependency identity — `docs/releases/v4-production-qualification.md`
+- [x] 2.1.1 Run `yarn install --frozen-lockfile`, `yarn build`, and `yarn typecheck` on clean `linux/x64` — repository root ✅ (completed: 2026-11-11 10:16)
+- [x] 2.1.2 Record the host identity, Node identity, and locked dependency identity — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 10:16)
 - [ ] 2.1.3 Run the complete compiler and root suites sequentially; record the exact counts and failures (if any) — `packages/compiler`, root `test/`
 
 ### Step 2.2: Installed Public Path
