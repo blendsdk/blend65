@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-12 00:23
-> **Progress**: 71/82 tasks (87%)
+> **Last Updated**: 2026-11-12 00:53
+> **Progress**: 78/82 tasks (95%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -265,16 +265,16 @@ responsiveness/security records, complete release record.
 
 ### Step 8.1: Independent Reviews
 
-- [ ] 8.1.1 Run the SFA/ABI and machine-code reviews of the final artifact/debug/optimizer claims — review records
-- [ ] 8.1.2 Run the target-platform review of VICE identity, profile matrix, physical wording, and tool discovery — review records
-- [ ] 8.1.3 Run the security review of host/package/trust/cancellation/evidence boundaries — review records
-- [ ] 8.1.4 Run the semantics review of modern-source claims, limitations, and support statement — review records
-- [ ] 8.1.5 Fix every critical/major finding and rerun only the affected evidence — owning files
+- [x] 8.1.1 Run the SFA/ABI and machine-code reviews of the final artifact/debug/optimizer claims — review records ✅ (completed: 2026-11-12; no critical finding; SF-001 minor #146)
+- [x] 8.1.2 Run the target-platform review of VICE identity, profile matrix, physical wording, and tool discovery — review records ✅ (completed: 2026-11-12; TP-01 fixed, TP-02–04 corrected)
+- [x] 8.1.3 Run the security review of host/package/trust/cancellation/evidence boundaries — review records ✅ (completed: 2026-11-12; SA-001/SA-002 fixed)
+- [x] 8.1.4 Run the semantics review of modern-source claims, limitations, and support statement — review records ✅ (completed: 2026-11-12; SM-001–SM-006 fixed, SM-007/SM-008 corrected)
+- [x] 8.1.5 Fix every critical/major finding and rerun only the affected evidence — owning files ✅ (completed: 2026-11-12; D64 4/4, coverage 19/19, ledger 14/14, publication 18/18, VS Code 18/18)
 
 ### Step 8.2: Deferral and Final Boundary
 
-- [ ] 8.2.1 Run the mandatory deferral-expiry scan across ambiguities, Won't Have, future considerations, expert deferrals, hardware limits, expressiveness, parity, and C64U unknowns — `docs/releases/v4-production-qualification.md`
-- [ ] 8.2.2 Reassign every due item to `V4-HW-1`, a concrete RD, or an authorized issue; no orphan remains — roadmap/issues
+- [x] 8.2.1 Run the mandatory deferral-expiry scan across ambiguities, Won't Have, future considerations, expert deferrals, hardware limits, expressiveness, parity, and C64U unknowns — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12; no expired rationale, all owners concrete)
+- [x] 8.2.2 Reassign every due item to `V4-HW-1`, a concrete RD, or an authorized issue; no orphan remains — roadmap/issues ✅ (completed: 2026-11-12; `V4-HW-1`, `V4-HOST-1`, `V4-ASSET-1`, #100/#140/#145/#146)
 - [ ] 8.2.3 Run the final complete release boundary once and record exact counts/identities — repository root
 - [ ] 8.2.4 Present the exact support statement, release record, limitations/debt, physical `Unknown` rows, C64U handoff, and local package result to the user — release record
 - [ ] 8.2.5 Record explicit user approval or keep RD-10 in review; do not change the production lifecycle without it — release record, roadmap

@@ -432,5 +432,34 @@ framework, or debug adapter; or NPM/Marketplace publication, tags, signing, or a
 
 ## 12. Approval
 
+### Independent reviews
+
+Six read-only reviews were run against candidate `649718ec` and the release record. No critical
+finding was reported. Every major finding was fixed or converted into a tracked, bounded debt.
+
+| Lens | Findings | Disposition |
+| ---- | -------- | ----------- |
+| SFA/ABI | SF-001 minor: unused return/argument staging homes in certified RAM/debug | Tracked as issue #146 |
+| Machine code | MC-001 major: `size` acquisition 943 vs 877-byte expert; MC-002/MC-003 major: incomplete local-parity/debt disclosure; MC-004/MC-005 minor | #145 tracks the 66-byte gap; the release claim now says whole-program gates pass and local matched-ABI parity is `Unknown`; minor cycle/pinning gaps recorded |
+| Target platform | TP-01 major: D64 READY was the autostart banner; TP-02/TP-03/TP-04 minor | D64 source now clears the screen and requires a fresh READY; 4/4 pass. Cycle label, success criteria, and full artifact hashes corrected |
+| Security | SA-001/SA-002 minor: inconsistent metadata read bound and escaping VS Code asset paths | `.build.json` uses the 1 MiB bound; cleanup checks size; escaping `assetPaths` are rejected; tests pass |
+| Semantics/DX | SM-001–SM-006 major: stale normative identity, missing E10245 ledger row, incomplete support statement, closed-owner gaps, stale README; SM-007/SM-008 minor | Normative ledger re-pinned to `038b70e9`; E10245 row/probe added; support statement expanded; `V4-ASSET-1`/`V4-HOST-1` created; README and debt wording corrected |
+| Correctness | RV-001–RV-005 major: premature success criteria, missing GoatTracker row, contradictory #134 status, takeover plan contradiction, prefix-only hashes; RV-006–RV-011 minor | Success criteria reopened, GoatTracker recorded, #134 status reconciled, takeover wording corrected, full hashes recorded, roadmap/count/links/AR count fixed |
+
+Post-fix directed evidence: D64 VICE 4/4, normative coverage 19/19, expressiveness ledger 14/14,
+publication 18/18, VS Code 18/18, typecheck clean. The final complete boundary is running at the
+time of writing.
+
+### Deferral-expiry scan
+
+RD-10 did not expire a prior deferral's stated rationale. Every remaining item has a concrete
+owner: takeover `V4-TAKEOVER-1`; physical evidence `V4-HW-1`; Windows/macOS `V4-HOST-1`; CharPad
+3.88 and GoatTracker `V4-ASSET-1`/`T-19`; E10245 issue #100; multi-screen pointer issue #140;
+`size` gap issue #145; staging-home debt issue #146; open optimizer debt issues #95, #97, #104,
+#107–#133, #135, #136, #139; C64U future pressure in the handoff packet. No orphaned owner
+remains.
+
+### Decision
+
 Not approved. RD-10 remains in qualification until the user explicitly approves the exact candidate
 and support statement.
