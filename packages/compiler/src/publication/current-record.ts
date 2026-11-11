@@ -99,17 +99,33 @@ export function parseCurrentRecord(bytes: Uint8Array): CurrentGenerationRecord |
   }
 }
 
-/** Maximum accepted publication record size; sidecars are host-generated and small. */
-const MAX_PUBLICATION_FILE_BYTES = 1_048_576n;
+/**
+ * Maximum accepted metadata record size. The current, pin, and build records are small host
+ * metadata, so reading more than this bound would indicate a corrupt or misplaced file.
+ */
+const MAX_PUBLICATION_RECORD_BYTES = 1_048_576n;
 
-/** Read one ordinary file and prove it retained its filesystem identity. */
+/**
+ * Maximum accepted generation artifact size. Debug and cost evidence grow with the number of
+ * emitted instructions, so a valid program can produce a sidecar far larger than its PRG.
+ * Sixty-four MiB leaves generous headroom above the worst case that fits in C64 memory while
+ * still bounding a corrupt or malicious read.
+ */
+const MAX_PUBLICATION_ARTIFACT_BYTES = 67_108_864n;
+
+/**
+ * Read one ordinary file and prove it retained its filesystem identity.
+ * @param path Exact ordinary file to read.
+ * @param maxBytes Largest accepted file size; defaults to the metadata record bound.
+ * @returns Stable bytes and identity, or null when the file is not acceptable.
+ */
 export async function identifyPublicationFile(
   path: string,
+  maxBytes = MAX_PUBLICATION_RECORD_BYTES,
 ): Promise<IdentifiedPublicationFile | null> {
   try {
     const before = await lstat(path, { bigint: true });
-    if (!before.isFile() || before.isSymbolicLink() || before.size > MAX_PUBLICATION_FILE_BYTES)
-      return null;
+    if (!before.isFile() || before.isSymbolicLink() || before.size > maxBytes) return null;
     const bytes = await readFile(path);
     const after = await lstat(path, { bigint: true });
     if (
@@ -159,7 +175,7 @@ export async function publicationFileContentMatches(
   identified: IdentifiedPublicationFile,
   expectedBytes: Uint8Array,
 ): Promise<boolean> {
-  const current = await identifyPublicationFile(path);
+  const current = await identifyPublicationFile(path, identified.identity.size);
   return (
     current !== null &&
     current.identity.device === identified.identity.device &&
@@ -371,7 +387,11 @@ export async function identifyGenerationDirectory(
     }
     const found = await Promise.all(
       names.map(
-        async (name) => [name, await identifyPublicationFile(join(directory, name))] as const,
+        async (name) =>
+          [
+            name,
+            await identifyPublicationFile(join(directory, name), MAX_PUBLICATION_ARTIFACT_BYTES),
+          ] as const,
       ),
     );
     if (found.some(([, file]) => file === null)) return null;
