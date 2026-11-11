@@ -263,9 +263,38 @@ No physical C64, 1541-compatible drive, SID unit, or analogue capture path is av
 | Item | Evidence | Status |
 | ---- | -------- | ------ |
 | Compiler/CLI/LSP tarballs | `npm pack` and clean-prefix install | Pass |
-| Local VSIX | Build, install, Build/Run/Evidence journey | Pending |
+| Local VSIX | Build, install, Build/Run/Evidence journey | Pass in a clean VS Code 1.145.2 extension host |
 | Tool discovery | Config/`PATH` precedence and missing-tool failure | Pass from the installed prefix |
 | Cancellation | Owned process-tree termination | Pass from the installed prefix; VICE residue absent |
+
+### Local VSIX
+
+| Fact | Value |
+| ---- | ----- |
+| Extension ID | `blendsdk.blend65@0.1.0` |
+| Package | `blend65-0.1.0.vsix`, 3,089,232 bytes, SHA-256 `5c2ef7f70d1880553551347a42829812279e4a370e48755aa8908157c5767852` |
+| Contents | 1,683 files; extension bundle plus the externalized CLI, language server, compiler, and protocol dependencies |
+| Packager | `@vscode/vsce` 4.1.0 |
+| Host | VS Code 1.145.2, clean `--user-data-dir` and `--extensions-dir` |
+
+The workspace package remains `@blend65/vscode`; the VSIX staging manifest uses the unscoped
+extension name `blend65` and publisher `blendsdk` because VS Code rejects scoped extension names.
+The package's runtime dependencies are installed into the VSIX; the extension bundle itself remains
+externalized.
+
+A temporary driver extension activated `blendsdk.blend65` through the real VS Code API and executed
+the installed commands:
+
+| Command | Result |
+| ------- | ------ |
+| `blend65.build` | Succeeded and published a fresh generation |
+| `blend65.openEvidence` | Resolved and opened the published `.asm` evidence |
+| `blend65.run` | Launched VICE; the owned process was stopped externally and the command returned, with no `x64sc` residue |
+
+The interactive run success path remains `interactive-unverified`, matching the CLI. Trust denial,
+selective save-or-abort, progress, diagnostics, output, and artifact containment are covered by the
+17 passing VS Code package tests. No UI input automation was available, so command execution used a
+driver extension in a real extension host rather than a simulated click path.
 
 ## 9. C64U readiness and handoff
 

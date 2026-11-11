@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-12 00:16
-> **Progress**: 42/82 tasks (51%)
+> **Last Updated**: 2026-11-12 00:23
+> **Progress**: 51/82 tasks (62%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -177,18 +177,18 @@ compiler-not-engine proof.
 
 ### Step 5.1: Local Packages
 
-- [ ] 5.1.1 Produce local `npm pack` tarballs for compiler, CLI, and language server and inspect their contents — temporary directory
-- [ ] 5.1.2 Build the local VSIX and inspect the manifest, bundled server, and externalized CLI — `packages/vscode/`
-- [ ] 5.1.3 Install the VSIX into a clean extension host or the closest real host available; record the exact boundary — temporary VS Code profile
-- [ ] 5.1.4 Record the tarball/VSIX hashes and installed identities — `docs/releases/v4-production-qualification.md`
+- [x] 5.1.1 Produce local `npm pack` tarballs for compiler, CLI, and language server and inspect their contents — temporary directory ✅ (completed: 2026-11-12 00:23; 3 tarballs, only dist/stdlib/package.json)
+- [x] 5.1.2 Build the local VSIX and inspect the manifest, bundled server, and externalized CLI — `packages/vscode/` ✅ (completed: 2026-11-12 00:23; 1,683 files, 2.95 MB, `blendsdk.blend65@0.1.0`)
+- [x] 5.1.3 Install the VSIX into a clean extension host or the closest real host available; record the exact boundary — temporary VS Code profile ✅ (completed: 2026-11-12 00:23; clean VS Code 1.145.2 host)
+- [x] 5.1.4 Record the tarball/VSIX hashes and installed identities — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:23)
 
 ### Step 5.2: Tooling Journeys
 
-- [ ] 5.2.1 Run Build, Run in VICE, and Open Build Evidence from the installed extension — temporary VS Code profile
-- [ ] 5.2.2 Verify trust denial, selective save-or-abort, progress, diagnostics, output, and artifact containment — `packages/vscode/src/`
-- [ ] 5.2.3 Verify the language server starts from the installed package and preserves project isolation/status — installed prefix
-- [ ] 5.2.4 Record every tooling result and any `Unknown` host boundary — `docs/releases/v4-production-qualification.md`
-- [ ] 5.2.5 Record the exact extension-host boundary and any unavailable host detail — `docs/releases/v4-production-qualification.md`
+- [x] 5.2.1 Run Build, Run in VICE, and Open Build Evidence from the installed extension — temporary VS Code profile ✅ (completed: 2026-11-12 00:23; driver extension via the real VS Code API; build/evidence pass, run launched VICE and returned after external stop)
+- [x] 5.2.2 Verify trust denial, selective save-or-abort, progress, diagnostics, output, and artifact containment — `packages/vscode/src/` ✅ (completed: 2026-11-12 00:23; 17 package tests)
+- [x] 5.2.3 Verify the language server starts from the installed package and preserves project isolation/status — installed prefix ✅ (completed: 2026-11-12 00:23; installed LSP diagnostics/completion/hover/formatting and isolation tests pass)
+- [x] 5.2.4 Record every tooling result and any `Unknown` host boundary — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:23; UI input automation unavailable, driver-extension boundary recorded)
+- [x] 5.2.5 Record the exact extension-host boundary and any unavailable host detail — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:23)
 
 **Deliverables**: local tarballs, local VSIX, installed tooling journey, package inspection.
 
