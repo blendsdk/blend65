@@ -1,11 +1,12 @@
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, access, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildProject } from "@blend65/compiler";
 import { openViceMonitor } from "../m1/vice-monitor.js";
 import { viceLoopbackPort, viceRuntimeIdentity } from "../m1/vice-runtime.js";
+import { createD64RuntimeVariants } from "./d64-runtime-fixture.js";
 
 const SOURCE = [
   "module Game;",
@@ -60,6 +61,12 @@ async function prepareFixture(): Promise<RuntimeFixture> {
   }
   if (generation === undefined) throw new Error("Runtime fixture generation is unavailable");
   const directory = generation;
+  try {
+    await access(join(directory, "runtime-missing.d64"));
+    await access(join(directory, "runtime-longer.d64"));
+  } catch {
+    await createD64RuntimeVariants(directory);
+  }
   const labels = await readFile(join(directory, ".labels"), "utf8");
   const addressOf = (suffix: string): number => {
     const line = labels.split("\n").find((candidate) => candidate.includes(`b65_Game_${suffix}_`));

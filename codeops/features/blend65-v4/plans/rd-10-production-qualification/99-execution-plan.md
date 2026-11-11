@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-12 00:09
-> **Progress**: 22/82 tasks (27%)
+> **Last Updated**: 2026-11-12 00:16
+> **Progress**: 27/82 tasks (33%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -113,17 +113,17 @@ status table.
 
 ### Step 3.1: Resident Profiles
 
-- [ ] 3.1.1 Build and byte-validate all four KERNAL resident PRG profiles through the public compiler — `test/rd05/profile-pipeline.spec.test.ts`
-- [ ] 3.1.2 Run the four KERNAL profile VICE matrix sequentially and record exact identity/observations — `test/rd05/profiles-vice.spec.test.ts`
+- [x] 3.1.1 Build and byte-validate all four KERNAL resident PRG profiles through the public compiler — `test/rd05/profile-pipeline.spec.test.ts` ✅ (completed: 2026-11-12 00:10; 10/10 tests, fresh builds and terminal admission)
+- [x] 3.1.2 Run the four KERNAL profile VICE matrix sequentially and record exact identity/observations — `test/rd05/profiles-vice.spec.test.ts` ✅ (completed: 2026-11-12 00:10; 4/4 profiles, exact VICE/ROM identity, normal return at cycle 57,671)
 - [x] 3.1.3 Record the four takeover profiles as `Unknown` under `V4-TAKEOVER-1`; no takeover runtime case exists ✅ (closed: 2026-11-11; user-approved deferral, AR-18)
 - [x] 3.1.4 Reserve no takeover runtime observation and make no takeover banking/vector/interrupt claim ✅ (closed: 2026-11-11; the matrix is limited to four KERNAL profiles)
 - [ ] 3.1.5 Confirm no profile result substitutes for another dimension and record the four-KERNAL-plus-D64 matrix — `docs/releases/v4-production-qualification.md`
 
 ### Step 3.2: D64
 
-- [ ] 3.2.1 Build and structurally validate the one D64 profile image — `test/rd07/d64-publication.spec.test.ts`
-- [ ] 3.2.2 Run `RD07_VICE=1 yarn vitest run test/rd07/d64-vice.spec.test.ts` sequentially and record all four cases — `test/rd07/d64-vice.spec.test.ts`
-- [ ] 3.2.3 Record the D64 boot/load/canary/publication/quiescence/BASIC-return result and `HLE-010` — `docs/releases/v4-production-qualification.md`
+- [x] 3.2.1 Build and structurally validate the one D64 profile image — `test/rd07/d64-publication.spec.test.ts` ✅ (completed: 2026-11-12 00:16; 3/3)
+- [x] 3.2.2 Run `RD07_VICE=1 yarn vitest run test/rd07/d64-vice.spec.test.ts` sequentially and record all four cases — `test/rd07/d64-vice.spec.test.ts` ✅ (completed: 2026-11-12 00:16; 4/4, self-contained fixture variants)
+- [x] 3.2.3 Record the D64 boot/load/canary/publication/quiescence/BASIC-return result and `HLE-010` — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:16)
 
 ### Step 3.3: Device and Runtime Matrix
 

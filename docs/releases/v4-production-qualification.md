@@ -13,7 +13,7 @@ a readiness product, score, or second evidence database.
 | Fact | Value |
 | ---- | ----- |
 | Candidate code commit | `649718ecd7ff7185222d897f546858fc524d3053` |
-| Working tree at freeze | clean at `649718ec`; later commits add documentation only |
+| Working tree at freeze | clean at `649718ec`; later commits add documentation and test-evidence support only; product code is unchanged |
 | Compiler version | `0.1.0` |
 | Specification identity | `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b` |
 | Expert skill | `2.0.4`; content commit `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15` |
@@ -120,6 +120,7 @@ remains `interactive-unverified`, matching the CLI's own run status.
 | Publication applied a 1 MiB metadata cap to every artifact | A valid 38,440-instruction build failed on its 9.6 MiB `.debug.json` | Metadata records stay at 1 MiB; generation artifacts allow 64 MiB (`c6cc63b3`) |
 | RD-09 R9.5 tools-file discovery was missing | The CLI and services used `PATH` only, so R10.13 could not be proven | Added schema-1 `tools.jsonc`, explicit ACME/VICE paths, relative `PATH` resolution, exact probes, and tests (AR-16/AR-17) |
 | Four takeover profiles are not executable | RD-10's eight-profile matrix cannot be claimed | Defer under `V4-TAKEOVER-1`; claim narrows to four KERNAL profiles plus D64 (AR-18) |
+| D64 opt-in suite referenced missing and longer images that it never generated | Two of four runtime cases could not start VICE | Added reproducible variant generation in `test/rd07/d64-runtime-fixture.ts`; 4/4 pass |
 
 ## 4. Profile and artifact matrix
 
@@ -141,15 +142,15 @@ c64-pal-d64-kernal-6581
 
 | Profile | Build/package | VICE observation | Status |
 | ------- | ------------- | ---------------- | ------ |
-| `c64-pal-prg-kernal-6581` | Pending | Pending | — |
-| `c64-pal-prg-kernal-8580` | Pending | Pending | — |
-| `c64-ntsc-prg-kernal-6581` | Pending | Pending | — |
-| `c64-ntsc-prg-kernal-8580` | Pending | Pending | — |
+| `c64-pal-prg-kernal-6581` | Pass; PRG `3d2c6022…` | Pass: VIC-II 6569, SID 6581, KERNAL rev 3, normal return at cycle 57,671 | `VICE-verified / hardware-unverified` |
+| `c64-pal-prg-kernal-8580` | Pass; PRG `f9f4557b…` | Pass: VIC-II 6569, SID 8580, KERNAL rev 3, normal return at cycle 57,671 | `VICE-verified / hardware-unverified` |
+| `c64-ntsc-prg-kernal-6581` | Pass; PRG `70b02135…` | Pass: VIC-II 6567, SID 6581, KERNAL rev 3, normal return at cycle 57,671 | `VICE-verified / hardware-unverified` |
+| `c64-ntsc-prg-kernal-8580` | Pass; PRG `273dfee5…` | Pass: VIC-II 6567, SID 8580, KERNAL rev 3, normal return at cycle 57,671 | `VICE-verified / hardware-unverified` |
 | `c64-pal-prg-takeover-6581` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
 | `c64-pal-prg-takeover-8580` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
 | `c64-ntsc-prg-takeover-6581` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
 | `c64-ntsc-prg-takeover-8580` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
-| `c64-pal-d64-kernal-6581` | Pending | Pending | — |
+| `c64-pal-d64-kernal-6581` | Pass; 174,848-byte D64 | Pass: success+canary, missing-unit false, longer-overwrite false, BASIC `READY.` return | `VICE-verified / hardware-unverified` |
 
 Artifact inventory: exactly one literal-name primary PRG or D64 plus `.asm`, `.labels`,
 `.assets.json`, `.memory.json`, `.costs.json`, `.debug.json`, and `.build.json`. `.build.json`
@@ -178,10 +179,27 @@ ACME and VICE identities are recorded in section 1. Runtime results are recorded
 - VICE banner mismatches are rejected;
 - cancellation stops the complete owned VICE process group.
 
-The publication cap fix was rechecked by the complete compiler suite at candidate `c6cc63b3`
-(216 files, 3,659 passed, 2 skipped). Post-commit VICE failure/cancellation preserves the committed
+The publication cap fix was rechecked by the complete compiler suite at candidate `649718ec`
+(217 files, 3,683 passed, 2 skipped). Post-commit VICE failure/cancellation preserves the committed
 generation and reports build success separately; the owning tests are `terminal-failure.spec.test.ts`
 and `services.impl.test.ts`.
+
+### D64 runtime
+
+`test/rd07/d64-publication.spec.test.ts` passes 3/3 for the eight-file D64 generation, unreachable
+unit omission, and unchanged PRG path. The opt-in runtime suite was made self-contained by
+generating the missing-unit and longer-replacement images from the published D64 directory and BAM.
+`RD07_VICE=1 yarn vitest run test/rd07/d64-vice.spec.test.ts` passes 4/4:
+
+| Case | Result |
+| ---- | ------ |
+| Load the unit bytes and preserve the canary | Pass |
+| Missing unit returns false without the success path | Pass |
+| Longer readable file overwrites the bounded destination and still returns false (`HLE-010`) | Pass |
+| Program ends and BASIC prints `READY.` | Pass |
+
+The D64 row remains `VICE-verified / hardware-unverified`; real-drive and serial timing are
+`Unknown` under `V4-HW-1`.
 
 ## 7. Physical-evidence status
 
