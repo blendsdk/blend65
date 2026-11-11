@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-12 00:16
-> **Progress**: 27/82 tasks (33%)
+> **Progress**: 32/82 tasks (39%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -127,11 +127,11 @@ status table.
 
 ### Step 3.3: Device and Runtime Matrix
 
-- [ ] 3.3.1 Run the enabled CIA/IRQ/NMI/runtime-switch/VIC-collision/joystick VICE cases sequentially — `test/rd05/`
-- [ ] 3.3.2 Run the asset VICE cases (Koala, PSID, SpritePad, Q-P15, sprite pointer) sequentially — `test/rd06/`
-- [ ] 3.3.3 Run the optimizer native case and any other enabled VICE case sequentially — `test/rd08/`
-- [ ] 3.3.4 Record every pass, bounded timeout, retry, and `Unknown`; no skip contributes a pass — `docs/releases/v4-production-qualification.md`
-- [ ] 3.3.5 Stop every owned VICE process group and confirm no monitor/port residue — host process table
+- [x] 3.3.1 Run the enabled CIA/IRQ/NMI/runtime-switch/VIC-collision/joystick VICE cases sequentially — `test/rd05/` ✅ (completed: 2026-11-12 00:16; all families pass, collision frame-wait retried 4/4)
+- [x] 3.3.2 Run the asset VICE cases (Koala, PSID, SpritePad, Q-P15, sprite pointer) sequentially — `test/rd06/` ✅ (completed: 2026-11-12 00:16; 7/7 asset VICE cases)
+- [x] 3.3.3 Run the optimizer native case and any other enabled VICE case sequentially — `test/rd08/` ✅ (completed: 2026-11-12 00:16; startup/saved/acquisition/size suites pass, byte-selection monitor case retried 4/4)
+- [x] 3.3.4 Record every pass, bounded timeout, retry, and `Unknown`; no skip contributes a pass — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:16; three retries recorded, no skip counted)
+- [x] 3.3.5 Stop every owned VICE process group and confirm no monitor/port residue — host process table ✅ (completed: 2026-11-12 00:16; `pgrep x64sc` empty)
 
 **Deliverables**: four-KERNAL-plus-D64 artifact/VICE matrix, takeover `Unknown` record, D64 result,
 device/runtime results, clean process state.

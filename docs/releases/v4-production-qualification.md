@@ -201,6 +201,26 @@ generating the missing-unit and longer-replacement images from the published D64
 The D64 row remains `VICE-verified / hardware-unverified`; real-drive and serial timing are
 `Unknown` under `V4-HW-1`.
 
+### Device and runtime matrix
+
+The final root run executes these suites sequentially. The retries below are the exact failed
+cases and passed alone; no skip counted as a pass.
+
+| Family | Evidence | Result |
+| ------ | -------- | ------ |
+| CIA/IRQ | `cia-vice` 4, `cia-basic-return-vice` 4, `cia2-startup-vice` 68, `cia2-vice`, `handler-irq-vice` 8, `handler-irq-nesting-vice` 9 | Pass |
+| NMI routes | `nmi-route-*` and `nmi-stack-evidence` suites | Pass |
+| Runtime switch | `runtime-switch-vice` 1 | Pass |
+| VIC collision | `vic-collision-vice` 16; one frame-wait case retried and passed 4/4 | Pass with recorded retry |
+| Joystick | `joystick-vice` 32, `joystick-api-output` 220 | Pass |
+| Assets | `vice-koala` 1, `vice-psid` 2, `vice-producer` 2, `vice-qp15` 1, `vice-sprite-pointer` 1 | Pass |
+| Optimizer native | `input-startup-selection` 104, `optimizer-saved-output` 17, `optimizer-acquisition-output` 12, `input-size-runtime` 64 | Pass |
+| Canonical fixed-object ABI | 20 cases; one monitor-startup case retried and passed 1/1 | Pass with recorded retry |
+| Byte selection | 56 cases; one monitor-ownership case retried and passed 4/4 | Pass with recorded retry |
+
+After the runs, `pgrep x64sc` found no process, no monitor port remained, and every owned process
+group had stopped.
+
 ## 7. Physical-evidence status
 
 Consensus basis: VICE 3.10 `x64sc` is accepted as sufficiently accurate for the functional,
