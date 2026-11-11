@@ -523,9 +523,11 @@ describe("minimal truthful foundation toolchain", () => {
   });
 
   // Vite belongs only to the two editor bundles; no general linter or other bundler is introduced.
+  // User-facing command titles such as `Blend65: Run in VICE` are product metadata, not toolchain
+  // configuration, so the VICE name is allowed while forbidden toolchain terms stay rejected.
   it("should confine Vite to editor workspaces and reject other forbidden configuration", async () => {
     const forbidden =
-      /eslint|typescript-eslint|biome|oxlint|webpack|rollup|parcel|native-preview|tsgo|readiness|scoreboard|\bvice\b|passWithNoTests|\blint\b/i;
+      /eslint|typescript-eslint|biome|oxlint|webpack|rollup|parcel|native-preview|tsgo|readiness|scoreboard|passWithNoTests|\blint\b/i;
     const check = (text: string) => forbidden.test(text);
     const configuration = [
       "package.json",

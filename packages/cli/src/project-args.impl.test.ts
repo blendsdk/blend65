@@ -12,15 +12,22 @@ describe("native argument parser", () => {
   it("should retain explicitly empty project values for service validation", () => {
     expect(parseArguments(["check", "--project=", "--target=", "--entry="])).toEqual({
       kind: "check",
-      json: false,
       options: { project: "", target: "", entry: "" },
+    });
+  });
+
+  it("should expose the machine-readable flag only when requested", () => {
+    expect(parseArguments(["check"])).toEqual({ kind: "check", options: {} });
+    expect(parseArguments(["check", "--json"])).toEqual({
+      kind: "check",
+      json: true,
+      options: {},
     });
   });
 
   it("should parse separate and equals forms into the same build selections", () => {
     const expected = {
       kind: "build",
-      json: false,
       options: {
         project: "blend65.json",
         optimization: "none",

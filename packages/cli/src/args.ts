@@ -23,13 +23,21 @@ export interface BuildSelections extends ProjectSelections {
   readonly divisionZeroCheck?: boolean;
 }
 
-/** A valid informational or compiler-command invocation. */
+/**
+ * A valid informational or compiler-command invocation. The `json` property is
+ * present only when the caller requested the machine-readable envelope, so an
+ * ordinary invocation keeps the original argument shape.
+ */
 export type CliArguments =
-  | { readonly kind: "help"; readonly json: boolean }
-  | { readonly kind: "version"; readonly json: boolean }
-  | { readonly kind: "check"; readonly options: ProjectSelections; readonly json: boolean }
-  | { readonly kind: "evidence"; readonly options: ProjectSelections; readonly json: boolean }
-  | { readonly kind: "build" | "run"; readonly options: BuildSelections; readonly json: boolean };
+  | { readonly kind: "help"; readonly json?: boolean }
+  | { readonly kind: "version"; readonly json?: boolean }
+  | { readonly kind: "check"; readonly options: ProjectSelections; readonly json?: boolean }
+  | { readonly kind: "evidence"; readonly options: ProjectSelections; readonly json?: boolean }
+  | {
+      readonly kind: "build" | "run";
+      readonly options: BuildSelections;
+      readonly json?: boolean;
+    };
 
 /** Parse an exact command name from a positional token. */
 function commandFrom(value: string): CliCommand | null {
@@ -85,13 +93,18 @@ export function parseArguments(argv: readonly string[]): CliArguments | null {
     }
 
     const json = values.json === true;
+    // Omit the flag when it is absent so unchanged invocations retain their
+    // established public shape; consumers read it as a truthy presence check.
+    const jsonFlag = json ? ({ json: true } as const) : {};
     const informationalCount = Number(values.help === true) + Number(values.version === true);
     if (informationalCount > 0) {
       const extra = [...seen].filter(
         (name) => name !== "help" && name !== "version" && name !== "json",
       );
       if (informationalCount !== 1 || positionals.length !== 0 || extra.length !== 0) return null;
-      return values.help === true ? { kind: "help", json } : { kind: "version", json };
+      return values.help === true
+        ? { kind: "help", ...jsonFlag }
+        : { kind: "version", ...jsonFlag };
     }
 
     if (positionals.length !== 1) return null;
@@ -108,10 +121,10 @@ export function parseArguments(argv: readonly string[]): CliArguments | null {
       values["bounds-check"] !== undefined ||
       values["division-zero-check"] !== undefined;
     if (command === "check") {
-      return hasBuildOptions ? null : { kind: "check", options: projectOptions, json };
+      return hasBuildOptions ? null : { kind: "check", options: projectOptions, ...jsonFlag };
     }
     if (command === "evidence") {
-      return hasBuildOptions ? null : { kind: "evidence", options: projectOptions, json };
+      return hasBuildOptions ? null : { kind: "evidence", options: projectOptions, ...jsonFlag };
     }
 
     if (
@@ -128,7 +141,7 @@ export function parseArguments(argv: readonly string[]): CliArguments | null {
 
     return {
       kind: command,
-      json,
+      ...jsonFlag,
       options: {
         ...projectOptions,
         ...(values.optimization === undefined ? {} : { optimization: values.optimization }),

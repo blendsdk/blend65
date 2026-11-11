@@ -83,6 +83,7 @@ record.
 - [x] 2.1.1 Run `yarn install --frozen-lockfile`, `yarn build`, and `yarn typecheck` on clean `linux/x64` — repository root ✅ (completed: 2026-11-11 10:16)
 - [x] 2.1.2 Record the host identity, Node identity, and locked dependency identity — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 10:16)
 - [ ] 2.1.3 Run the complete compiler and root suites sequentially; record the exact counts and failures (if any) — `packages/compiler`, root `test/`
+  - First full run on 2026-11-11 exposed two release-boundary defects: the CLI returned an explicit `json: false` in unchanged argument objects, and the foundation oracle rejected the required VS Code `Run in VICE` title. Both are fixed under AR-15; targeted reruns are green. The complete root rerun is pending.
 
 ### Step 2.2: Installed Public Path
 

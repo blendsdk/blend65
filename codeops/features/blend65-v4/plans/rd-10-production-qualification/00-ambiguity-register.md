@@ -24,6 +24,7 @@ external publication, or outward release action is decided here.
 | 12 | Technical | How are emulator/hardware disagreements recorded with no hardware? | Skip silently / infer / record untested | Record that hardware disagreement is untested and keep the VICE observation as the only runtime result. No averaged or inferred hardware result. | ✅ Resolved — R10.25 |
 | 13 | Non-functional | Do responsiveness observations gate release? | Gate / trend only / omit | Record phase-separated trends on qualified hosts. They never change pass/fail. | ✅ Resolved — R10.38 |
 | 14 | Behavioral | How is a seeded missing VICE case reported? | Pass by skip / fail everything / `Unknown` | Report `Unknown` for that endpoint and block only the claim that requires it. No skip contributes a passing count. | ✅ Resolved — R10.8, AC-07 |
+| 15 | Verification | Two specification oracles conflict on the VS Code `Run in VICE` title. | Change the product title / amend the older foundation oracle / leave the boundary red | Amend the foundation oracle so the VICE product name is not treated as forbidden toolchain configuration; keep R9.27 and its extension oracle unchanged. | ✅ Resolved — user-approved oracle ruling |
 
 ## Resolution Notes
 
@@ -53,3 +54,8 @@ to claim physical coverage now.
 
 **AR-10:** Explicit approval is a user decision. Green tests or a completed checklist cannot replace
 it, and approval does not authorize a push, publication, tag, or announcement.
+
+**AR-15:** The foundation check still rejects a general linter, an alternate TypeScript compiler, a
+bundler outside the editor bundles, readiness/scoreboard surfaces, and skip flags. It no longer
+rejects the user-facing VICE product name, which the editor requirement mandates in the extension
+manifest. The RD-09 title and its extension oracle remain unchanged.
