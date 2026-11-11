@@ -88,8 +88,9 @@ external deadline remain **Unknown**, not whole-program guarantees.
 The combined API is ordinary Blend65 source in the shipped
 [c64/input.blend](../packages/compiler/stdlib/c64/input.blend). It is included in
 installed compiler packages; you do not copy the library into your project.
-`none` is the correctness baseline. `size` remains experimental and its complete
-output budget is owned by the separate RD-08 optimizer track.
+`none` is the correctness baseline. `balanced`, `speed`, and `size` are wired; the RD-08
+saved/acquisition gates pass, with the remaining 66-byte size acquisition gap tracked in
+[issue #145](https://github.com/blendsdk/blend65/issues/145).
 
 ## Qualification
 

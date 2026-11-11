@@ -54,6 +54,15 @@
       "reason": "The frozen setSpritePointer API has no screen argument. A unique compile-time screen base is required for a layout-derived pointer table; a program that selects two distinct screens cannot be resolved without a per-call screen relation. The rejection fails closed rather than writing the wrong table.",
       "owner": "T-27 follow-up / issue #140; future per-call screen relation",
       "decision": "RD-06 residual plan; single active screen is supported, multi-screen pointer-table selection remains tracked debt"
+    },
+    {
+      "id": "v4-nmi-retained-source-reads",
+      "status": "deferred",
+      "sourceForm": "an interrupt function that retains several sampled bytes, or assigns a consuming read to a global/conditional",
+      "diagnostic": "E10245",
+      "reason": "The generated NMI route requires private-home-free reentrancy. Ordinary retained reads need compiler scratch where an expert implementation would not; the compiler fails closed rather than guessing.",
+      "owner": "issue #100",
+      "decision": "RD-05 NMI route; tracked for removal, not a language restriction or recommended source workaround."
     }
   ]
 }

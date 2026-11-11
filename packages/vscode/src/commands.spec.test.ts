@@ -26,6 +26,7 @@ function host(
     readonly dirty?: boolean;
     readonly unrelatedDirty?: boolean;
     readonly assetDirty?: boolean;
+    readonly assetPaths?: readonly string[];
     readonly choice?: string;
   } = {},
 ): CommandHost {
@@ -64,7 +65,10 @@ function host(
     activeDocument: () => document,
     findManifest: async () => options.manifest ?? "/project/blend65.json",
     documentsUnder: () => [document, unrelated, asset],
-    readManifest: async () => ({ sourceRoot: "src", assetPaths: ["assets"] }),
+    readManifest: async () => ({
+      sourceRoot: "src",
+      assetPaths: options.assetPaths ?? ["assets"],
+    }),
     withProgress: async (_title, task) => task(new AbortController().signal),
     showError: (message) => recorded.errors.push(message),
     showInformation: (message) => recorded.information.push(message),
@@ -136,6 +140,15 @@ describe("VS Code command logic", () => {
     expect(events.saved).toEqual(["game"]);
     expect(events.calls).toEqual([]);
     expect(events.errors[0]).toContain("could not save");
+  });
+
+  it("should not save documents under an escaping asset path", async () => {
+    const events = recorded();
+    await buildCommand(
+      host(events, { unrelatedDirty: true, assetDirty: true, assetPaths: [".."] }),
+      cli(events, BUILD_SUCCESS),
+    );
+    expect(events.saved).toEqual([]);
   });
 
   it("should run a fresh build and publish its result", async () => {

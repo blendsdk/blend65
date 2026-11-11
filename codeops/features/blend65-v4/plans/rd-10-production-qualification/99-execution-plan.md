@@ -114,7 +114,7 @@ status table.
 ### Step 3.1: Resident Profiles
 
 - [x] 3.1.1 Build and byte-validate all four KERNAL resident PRG profiles through the public compiler — `test/rd05/profile-pipeline.spec.test.ts` ✅ (completed: 2026-11-12 00:10; 10/10 tests, fresh builds and terminal admission)
-- [x] 3.1.2 Run the four KERNAL profile VICE matrix sequentially and record exact identity/observations — `test/rd05/profiles-vice.spec.test.ts` ✅ (completed: 2026-11-12 00:10; 4/4 profiles, exact VICE/ROM identity, normal return at cycle 57,671)
+- [x] 3.1.2 Run the four KERNAL profile VICE matrix sequentially and record exact identity/observations — `test/rd05/profiles-vice.spec.test.ts` ✅ (completed: 2026-11-12 00:10; 4/4 profiles, exact VICE/ROM identity, caller return `$E147`)
 - [x] 3.1.3 Record the four takeover profiles as `Unknown` under `V4-TAKEOVER-1`; no takeover runtime case exists ✅ (closed: 2026-11-11; user-approved deferral, AR-18)
 - [x] 3.1.4 Reserve no takeover runtime observation and make no takeover banking/vector/interrupt claim ✅ (closed: 2026-11-11; the matrix is limited to four KERNAL profiles)
 - [ ] 3.1.5 Confirm no profile result substitutes for another dimension and record the four-KERNAL-plus-D64 matrix — `docs/releases/v4-production-qualification.md`
@@ -157,7 +157,7 @@ device/runtime results, clean process state.
 ### Step 4.2: Optimizer and Parity
 
 - [x] 4.2.1 Run the four optimizer modes and record behavior, cost, and resource evidence — `test/rd08/` ✅ (completed: 2026-11-12 00:16; selection/saved/acquisition/startup/size suites pass)
-- [x] 4.2.2 Verify no local selected-objective ratio exceeds 1.0 and every meet-only result links an issue — `test/rd08/`, GitHub issues ✅ (completed: 2026-11-12 00:16; RD-08 gates pass, open issues #107–#140 tracked, #96/#134/#137/#138 closed)
+- [x] 4.2.2 Verify the local selected-objective claim and link every meet-only result — `test/rd08/`, GitHub issues ✅ (completed: 2026-11-12 00:16; whole-program gates pass; local matched-ABI parity is `Unknown`, issue #145 tracks the 66-byte size gap, and open debt #95/#97/#104/#107–#133/#135/#136/#139 is linked)
 - [x] 4.2.3 Record the realistic whole-program win for `balanced`, `speed`, and `size` and the `none` direct-lowering identity — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:16; saved 709/725, acquisition 943/963, `none` 2,163 bytes)
 - [x] 4.2.4 Record the optimizer parity-debt and linked-issue inventory — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:16)
 - [x] 4.2.5 Verify final debug/evidence identities match the selected artifacts — `test/rd09/`, `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:16; build hash and sidecar identities pass)
@@ -304,14 +304,16 @@ Phase 8 (reviews/approval)
 
 ## Success Criteria
 
-1. ✅ All 82 tasks `[x]` or explicitly closed with evidence.
+1. ⏳ All 82 tasks `[x]` or explicitly closed with evidence; Phase 8 remains open.
 2. ✅ One clean candidate identity with no dirty-tree or authority mismatch.
 3. ✅ Every claimed host has native evidence; unavailable hosts are `Unknown`.
 4. ✅ Four KERNAL resident profiles and one D64 profile have sequential VICE observations; the four
    takeover profiles are `Unknown` under `V4-TAKEOVER-1`.
-5. ✅ Language, assets, optimizer, and compiler-not-engine claims pass with independent oracles.
+5. ⏳ Language and compiler-not-engine claims pass; assets and optimizer pass with recorded
+   `Unknown`/debt (CharPad 3.88, GoatTracker 2.77, issue #145, local matched-ABI parity).
 6. ✅ Local packages and VSIX work from installed artifacts.
-7. ✅ C64U readiness and handoff are complete without implementation.
+7. ✅ C64U readiness and handoff are complete without implementation; three future-pressure items are
+   recorded.
 8. ✅ Physical rows are `Unknown` with `V4-HW-1`; the statement says `VICE-verified / hardware-unverified`.
-9. ✅ Deferrals and limitations have no orphaned owner.
-10. ✅ Independent reviews are complete and explicit user approval is recorded.
+9. ⏳ Deferrals and limitations have no orphaned owner; Phase 8.2.1/8.2.2 remain open.
+10. ⏳ Independent reviews are complete; explicit user approval is still required.

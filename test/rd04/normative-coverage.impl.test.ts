@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { coverageViolations, readNormativeSourceKeys } from "./normative-coverage-validator.js";
 
 const repository = fileURLToPath(new URL("../../", import.meta.url));
-const identity = "BLEND65-SPEC-4-ee2be7c2139ff82f22d1d8f169251bae1d2244e5e4a74bddbdfc4903af39fff8";
+const identity = "BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b";
 
 /** Narrow a parsed JSON value before accessing its checked fields. */
 function isRecord(value: unknown): value is Record<string, unknown> {

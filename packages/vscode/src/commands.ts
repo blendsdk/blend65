@@ -61,7 +61,9 @@ export interface CliAdapter {
 /** Save every dirty consumed source or declared asset, or abort the command. */
 async function saveDirty(host: CommandHost, projectRoot: string): Promise<boolean> {
   const manifest = await host.readManifest(join(projectRoot, "blend65.json"));
-  const assetRoots = (manifest?.assetPaths ?? []).map((asset) => resolve(projectRoot, asset));
+  const assetRoots = (manifest?.assetPaths ?? [])
+    .map((asset) => resolve(projectRoot, asset))
+    .filter((root) => root === projectRoot || root.startsWith(projectRoot + sep));
   for (const document of host.documentsUnder(projectRoot)) {
     if (!document.isDirty) continue;
     const source = document.path.endsWith(".blend");

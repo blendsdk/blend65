@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-10 Production Qualification and C64U Handoff
 
-> **Status**: ✅ GATE PASSED — all 14 items resolved
-> **Last Updated**: 2026-11-11 10:10
+> **Status**: ✅ GATE PASSED — all 18 items resolved
+> **Last Updated**: 2026-11-12
 
 Scope baseline: RD-10 R10.1–R10.39 and AC-01–AC-34. The user has stated that no physical C64 is
 available and that every runtime test must still go through VICE. This register records that

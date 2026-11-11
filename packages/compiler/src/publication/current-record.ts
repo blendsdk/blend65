@@ -103,7 +103,7 @@ export function parseCurrentRecord(bytes: Uint8Array): CurrentGenerationRecord |
  * Maximum accepted metadata record size. The current, pin, and build records are small host
  * metadata, so reading more than this bound would indicate a corrupt or misplaced file.
  */
-const MAX_PUBLICATION_RECORD_BYTES = 1_048_576n;
+export const MAX_PUBLICATION_RECORD_BYTES = 1_048_576n;
 
 /**
  * Maximum accepted generation artifact size. Debug and cost evidence grow with the number of
@@ -390,7 +390,12 @@ export async function identifyGenerationDirectory(
         async (name) =>
           [
             name,
-            await identifyPublicationFile(join(directory, name), MAX_PUBLICATION_ARTIFACT_BYTES),
+            await identifyPublicationFile(
+              join(directory, name),
+              name === ".build.json"
+                ? MAX_PUBLICATION_RECORD_BYTES
+                : MAX_PUBLICATION_ARTIFACT_BYTES,
+            ),
           ] as const,
       ),
     );

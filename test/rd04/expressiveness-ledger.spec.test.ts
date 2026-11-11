@@ -177,6 +177,19 @@ function main(): void { asm_cli(); asm_nop(); ${main} }`,
     ),
   },
   {
+    id: "v4-nmi-retained-source-reads",
+    sources: [
+      `module Game;
+import { setNMI, restoreNMI } from c64.system;
+interrupt function handler(): void {
+  let a: byte = peek($0400); let b: byte = peek($0401);
+  let c: byte = peek($0402); let d: byte = peek($0403); let e: byte = peek($0404);
+  poke($0410, a); poke($0411, b); poke($0412, c); poke($0413, d); poke($0414, e);
+}
+function main(): void { setNMI(&handler); restoreNMI(); }`,
+    ],
+  },
+  {
     id: "v4-multi-screen-sprite-pointer",
     assets: [
       { path: "first.bin", bytes: Uint8Array.from({ length: 1000 }, (_, index) => index & 0xff) },

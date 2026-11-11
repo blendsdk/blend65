@@ -5,6 +5,7 @@ import type { ProjectSnapshot } from "../project/types.js";
 import {
   generationIdentityMatches,
   identifyGenerationDirectory,
+  MAX_PUBLICATION_RECORD_BYTES,
   readCurrentGenerationForMutation,
 } from "./current-record.js";
 import type { PublicationRootIdentity } from "./lock.js";
@@ -110,7 +111,11 @@ export async function cleanupGenerationsLocked(
     }
     const buildPath = join(directory, ".build.json");
     const buildMetadata = await lstat(buildPath);
-    if (!buildMetadata.isFile() || buildMetadata.isSymbolicLink()) {
+    if (
+      !buildMetadata.isFile() ||
+      buildMetadata.isSymbolicLink() ||
+      buildMetadata.size > Number(MAX_PUBLICATION_RECORD_BYTES)
+    ) {
       return Object.freeze({
         kind: "error",
         reason: "cleanup",

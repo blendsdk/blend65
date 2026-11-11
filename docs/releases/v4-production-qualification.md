@@ -36,14 +36,14 @@ change the candidate code tree.
 
 | RD | Requirement | Closeout | Status |
 | -- | ----------- | -------- | ------ |
-| RD-01 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-01-specification-4-and-expert-authority-freeze.md) | RD-01 plan | Done |
-| RD-02 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-02-clean-v4-foundation-and-deterministic-project-model.md) | RD-02 plan | Done |
-| RD-03 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-03-playable-m1-complete-pipeline.md) | RD-03 plans | Done |
-| RD-04 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-04-complete-language-correct-unoptimized-compiler.md) | RD-04 plan | Done |
-| RD-05 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md) | RD-05 plans | Done |
+| RD-01 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-01-specification-4-and-expert-authority-freeze.md) | [Closeout](../../codeops/features/blend65-v4/plans/rd-01-specification-4-and-expert-authority-freeze/08-closeout.md) | Done |
+| RD-02 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-02-clean-v4-foundation-and-deterministic-project-model.md) | [Closeout](../../codeops/features/blend65-v4/plans/rd-02-clean-v4-foundation-and-deterministic-project-model/08-closeout.md) | Done |
+| RD-03 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-03-playable-m1-complete-pipeline.md) | [Closeout](../../codeops/features/blend65-v4/plans/rd-03-pipeline-completion/08-closeout.md) | Done |
+| RD-04 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-04-complete-language-correct-unoptimized-compiler.md) | [Closeout](../../codeops/features/blend65-v4/plans/rd-04-language-completion/08-closeout.md) | Done |
+| RD-05 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md) | [Plan index](../../codeops/features/blend65-v4/plans/rd-05-c64-platform/00-index.md) | Done |
 | RD-06 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md) | [Closeout](../../codeops/features/blend65-v4/plans/rd-06-native-assets/09-closeout.md) | Done |
 | RD-07 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-07-loadable-assets-and-d64-delivery.md) | [Closeout](../../codeops/features/blend65-v4/plans/rd-07-loadable-assets-and-d64-delivery/09-closeout.md) | Done |
-| RD-08 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-08-optimization-and-expert-output.md) | RD-08 plan | Done |
+| RD-08 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-08-optimization-and-expert-output.md) | [Plan index](../../codeops/features/blend65-v4/plans/rd-08-optimizer/00-index.md) | Done |
 | RD-09 | [Requirements](../../codeops/features/blend65-v4/requirements/RD-09-developer-tooling-and-debug-evidence.md) | [Closeout](../../codeops/features/blend65-v4/plans/rd-09-developer-tooling/09-closeout.md) | Done |
 
 No unresolved critical or major finding remains open from the prerequisite closeouts.
@@ -71,7 +71,7 @@ three bounded VICE retries recorded below.
 | Root release suite | 325 files, 321 passed, 3 failed, 1 skipped; 6,567 passed, 3 failed, 4 skipped |
 | CLI package | 11 files, 73 passed |
 | Language server package | 5 files, 21 passed |
-| VS Code package | 5 files, 17 passed |
+| VS Code package | 5 files, 18 passed |
 | Root typecheck | 7 Turbo tasks successful |
 
 The three root failures were VICE harness/load cases, and each passed when retried alone:
@@ -122,6 +122,7 @@ remains `interactive-unverified`, matching the CLI's own run status.
 | RD-09 R9.5 tools-file discovery was missing | The CLI and services used `PATH` only, so R10.13 could not be proven | Added schema-1 `tools.jsonc`, explicit ACME/VICE paths, relative `PATH` resolution, exact probes, and tests (AR-16/AR-17) |
 | Four takeover profiles are not executable | RD-10's eight-profile matrix cannot be claimed | Defer under `V4-TAKEOVER-1`; claim narrows to four KERNAL profiles plus D64 (AR-18) |
 | D64 opt-in suite referenced missing and longer images that it never generated | Two of four runtime cases could not start VICE | Added reproducible variant generation in `test/rd07/d64-runtime-fixture.ts`; 4/4 pass |
+| Publication metadata bound was not applied to `.build.json` and cleanup reads | An untrusted `out/` tree could force much larger reads | `.build.json` uses the 1 MiB record bound; cleanup checks the size; escaping VS Code `assetPaths` are rejected (SA-001/SA-002) |
 
 ## 4. Profile and artifact matrix
 
@@ -143,15 +144,15 @@ c64-pal-d64-kernal-6581
 
 | Profile | Build/package | VICE observation | Status |
 | ------- | ------------- | ---------------- | ------ |
-| `c64-pal-prg-kernal-6581` | Pass; PRG `3d2c6022…` | Pass: VIC-II 6569, SID 6581, KERNAL rev 3, normal return at cycle 57,671 | `VICE-verified / hardware-unverified` |
-| `c64-pal-prg-kernal-8580` | Pass; PRG `f9f4557b…` | Pass: VIC-II 6569, SID 8580, KERNAL rev 3, normal return at cycle 57,671 | `VICE-verified / hardware-unverified` |
-| `c64-ntsc-prg-kernal-6581` | Pass; PRG `70b02135…` | Pass: VIC-II 6567, SID 6581, KERNAL rev 3, normal return at cycle 57,671 | `VICE-verified / hardware-unverified` |
-| `c64-ntsc-prg-kernal-8580` | Pass; PRG `273dfee5…` | Pass: VIC-II 6567, SID 8580, KERNAL rev 3, normal return at cycle 57,671 | `VICE-verified / hardware-unverified` |
+| `c64-pal-prg-kernal-6581` | Pass; PRG SHA-256 `3d2c602280c9ae74d66d1489af7562a44481634275fb108becafb1b6ea8d1541` | Pass: VIC-II 6569, SID 6581, KERNAL rev 3, caller return `$E147` | `VICE-verified / hardware-unverified` |
+| `c64-pal-prg-kernal-8580` | Pass; PRG SHA-256 `f9f4557be9b15f9c9408c016dbdafe260fd80f33b4db50267406d82390a0f279` | Pass: VIC-II 6569, SID 8580, KERNAL rev 3, caller return `$E147` | `VICE-verified / hardware-unverified` |
+| `c64-ntsc-prg-kernal-6581` | Pass; PRG SHA-256 `70b021355770fb462b1c8fdf34f1ec2bafa89fbbd4684cb702a81fa1d1d1a78b` | Pass: VIC-II 6567, SID 6581, KERNAL rev 3, caller return `$E147` | `VICE-verified / hardware-unverified` |
+| `c64-ntsc-prg-kernal-8580` | Pass; PRG SHA-256 `273dfee5e30210447ea97b07b82c7260f769a8e547ff2b6dbc6f5176b3c7f4a1` | Pass: VIC-II 6567, SID 8580, KERNAL rev 3, caller return `$E147` | `VICE-verified / hardware-unverified` |
 | `c64-pal-prg-takeover-6581` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
 | `c64-pal-prg-takeover-8580` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
 | `c64-ntsc-prg-takeover-6581` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
 | `c64-ntsc-prg-takeover-8580` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
-| `c64-pal-d64-kernal-6581` | Pass; 174,848-byte D64 | Pass: success+canary, missing-unit false, longer-overwrite false, BASIC `READY.` return | `VICE-verified / hardware-unverified` |
+| `c64-pal-d64-kernal-6581` | Pass; 174,848-byte D64, SHA-256 `29f7e22559979cd1242bf81609f2027b7b378b09435c495280228a2ed99bbd0f` | Pass: success+canary, missing-unit false, longer-overwrite false, fresh BASIC `READY.` after screen clear | `VICE-verified / hardware-unverified` |
 
 Artifact inventory: exactly one literal-name primary PRG or D64 plus `.asm`, `.labels`,
 `.assets.json`, `.memory.json`, `.costs.json`, `.debug.json`, and `.build.json`. `.build.json`
@@ -166,21 +167,30 @@ hashes every other artifact and not itself.
 | Optimizer | Four modes wired; saved 709/725 payload, acquisition 943/963; `none` remains 2,163 bytes; parity debt is linked to open issues | Pass with linked debt |
 | Compiler-not-engine | Public packages are compiler, CLI, language server, and VS Code only; no renderer, mixer, entity, scene, scheduler, or game-loop module | Pass |
 
-The complete-language ledger covers every named key with no unowned row. The 18 rows marked
-`rd-05`, `rd-06`, or `rd-07` are proved by those closed owners; they are not gaps. The one deferred
-expressiveness item is `v4-multi-screen-sprite-pointer` (`E10273`), owned by `T-27`/issue #140.
+The complete-language ledger covers every named key with no unowned row. The non-normative
+`test/rd04/normative-coverage.json` record and its validator are pinned to the active normative
+identity `BLEND65-SPEC-4-038b70e9…`; the 397-key extraction passes against the live `spec/` tree.
+The 18 rows marked `rd-05`, `rd-06`, or `rd-07` are proved by those closed owners; they are not
+gaps. Two expressiveness items are explicitly deferred: `v4-multi-screen-sprite-pointer` (`E10273`,
+`T-27`/issue #140) and the ordinary retained NMI source reads in
+`v4-nmi-retained-source-reads` (`E10245`, issue #100).
 
 Optimizer whole-program results at the final candidate:
 
 | Mode | Whole-program evidence |
 | ---- | ---------------------- |
-| `none` | 2,163-byte baseline, SHA-256 `0417b7da…`, direct lowering |
+| `none` | 2,163-byte baseline, SHA-256 `0417b7da8c4eabb022e6ec868e0d8dcaf4b4727da83d43e29fcbe98e16a02a93`, direct lowering |
 | `balanced` | Saved gate: payload 709/725, general 740/745, combined 754/759 |
 | `speed` | Acquisition gate: payload 943/963, general 976/984, combined 990/998, ZP 14/14, stack 6/10 |
 | `size` | Saved size-quality output; 17/17 saved cases |
 
-No untracked meet-only result is claimed. The open optimizer and parity issues (#107–#140) carry
-measured deltas and reopen paths; #96, #134, #137, and #138 are closed with evidence.
+The whole-program gates pass, but no local selected-objective loss claim is made. The `size`
+acquisition form is 66 payload bytes above a complete 877-byte expert; the gap is tracked as
+issue #145 with the measured 943/877 delta and the missing looped transform. Local per-routine
+saved parity at a matched ABI remains `Unknown`; #137 was closed as a non-equal-contract comparison,
+and the equal-contract comparison is the whole-program saved gate. Open RD-08 issues #95, #97,
+#104, #107–#133, #135, #136, #139, and #145 carry measured deltas; #96, #134, #138, and the
+non-equal-contract #137 disposition are recorded separately.
 
 ## 6. ACME and VICE results
 
@@ -213,7 +223,7 @@ generating the missing-unit and longer-replacement images from the published D64
 | Load the unit bytes and preserve the canary | Pass |
 | Missing unit returns false without the success path | Pass |
 | Longer readable file overwrites the bounded destination and still returns false (`HLE-010`) | Pass |
-| Program ends and BASIC prints `READY.` | Pass |
+| Program ends and BASIC prints a fresh `READY.` after the program clears the screen | Pass |
 
 The D64 row remains `VICE-verified / hardware-unverified`; real-drive and serial timing are
 `Unknown` under `V4-HW-1`.
@@ -293,7 +303,7 @@ the installed commands:
 
 The interactive run success path remains `interactive-unverified`, matching the CLI. Trust denial,
 selective save-or-abort, progress, diagnostics, output, and artifact containment are covered by the
-17 passing VS Code package tests. No UI input automation was available, so command execution used a
+18 passing VS Code package tests. No UI input automation was available, so command execution used a
 driver extension in a real extension host rather than a simulated click path.
 
 ## 9. C64U readiness and handoff
@@ -370,10 +380,16 @@ library and asset examples are covered by the package and root suites.
 | ---- | ------ | ----- |
 | Four takeover profiles | Deferred; no runtime claim | `V4-TAKEOVER-1` |
 | Physical timing, analogue SID, real drive, board/chip revisions | `Unknown` | `V4-HW-1` |
-| Windows x64, macOS arm64/x64 native hosts | `Unknown` | RD-10 host backlog |
-| CharPad 3.88 producer proof | Installed producer is 3.80; CTM v9 exercised | RD-06 residual owner |
 | Multi-screen sprite pointer | Deferred expressiveness item | `T-27` / issue #140 |
-| Open optimizer/parity debt | Linked measured issues #107–#140 | RD-08 backlog |
+| Ordinary retained NMI source reads (`E10245`) | Deferred expressiveness/implementation limit | issue #100 |
+| `size` acquisition 66-byte local floor | Tracked measured gap; issue #145 | RD-08 backlog |
+| Open optimizer/parity debt | Linked measured issues #95, #97, #104, #107–#133, #135, #136, #139 | RD-08 backlog |
+| Unused return/argument staging homes | Minor certified-RAM/debug evidence debt; issue #146 | SFA/debug |
+| NMI path cycles and balanced/speed full RAM/stack pinning | Diagnostic evidence only; entry-to-return `T` is recorded | RD-08 |
+| Open optimizer/parity debt | Linked measured issues #95, #97, #104, #107–#133, #135, #136, #139 | RD-08 backlog |
+| CharPad 3.88 producer proof | `Unknown`; installed producer is 3.80; CTM v9 exercised | `V4-ASSET-1` |
+| GoatTracker 2.77 adapter | Deferred; no adapter exists | `T-19` |
+| Windows x64, macOS arm64/x64 native hosts | `Unknown` | `V4-HOST-1` |
 | C64U multi-clock, topology, and bank/transfer costs | Recorded future pressure, no C64U implementation | `blend65-c64u/RD-01` |
 
 ## 11. Bounded support statement
@@ -386,19 +402,33 @@ Blend65 v4 candidate `649718ecd7ff7185222d897f546858fc524d3053` is production-qu
 - the compiler library (root, `frontend`, and `tools` entries), the `blendc` CLI
   (`check`, `build`, `run`, `evidence`), the language server, and the local VS Code VSIX
   `blendsdk.blend65@0.1.0`;
+- compiler `0.1.0`, Specification 4 normative identity
+  `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b`, and
+  expert skill `2.0.4` content `0e2a6280…`;
+- optimization modes `none`, `balanced`, `speed`, and `size`, with `boundsCheck` and
+  `divisionZeroCheck` as the documented safety options; whole-program gates pass, while the local
+  matched-ABI and 66-byte `size` acquisition debt remain tracked;
 - ACME 0.97 assembly, `tools.jsonc` schema-1 discovery, local package tarballs, and the eight-file
   build evidence;
 - the four KERNAL PRG profiles `c64-{pal|ntsc}-prg-kernal-{6581|8580}` and the one
   `c64-pal-d64-kernal-6581` profile;
+- the native asset handlers exercised by the release fixtures: SpritePad SPD v5, PSID v1–v4,
+  Koala, Q-P15, raw data, and CharPad CTM v9; CharPad 3.88 producer evidence and the GoatTracker
+  2.77 adapter are absent;
 - runtime observations made only through VICE 3.10 `x64sc`, with the exact executable and ROM
   hashes recorded in this document.
 
+`blendc run` and the VS Code Run command launch an interactive VICE session. Their completed
+interactive exit remains `interactive-unverified`; only the launch, owned cancellation, and
+no-residue behavior are qualified.
+
 The statement does **not** claim: physical C64 timing, analogue SID behavior, real drive or serial
 behavior, board/chip revisions, or emulator/hardware agreement (`V4-HW-1`); the four takeover
-profiles (`V4-TAKEOVER-1`); Windows x64 or macOS arm64/x64 native hosts; Linux ARM64 or Windows
-ARM64 support; C64U target support (only the discovery handoff exists); a game engine, renderer,
-runtime, mixer, scheduler, asset plugin framework, or debug adapter; or NPM/Marketplace
-publication, tags, signing, or announcements.
+profiles (`V4-TAKEOVER-1`); Windows x64 or macOS arm64/x64 native hosts (`V4-HOST-1`); Linux ARM64
+or Windows ARM64 support; C64U target support (only the discovery handoff exists); local
+matched-ABI optimizer parity, the 66-byte `size` acquisition floor, CharPad 3.88, or the
+GoatTracker 2.77 adapter; a game engine, renderer, runtime, mixer, scheduler, asset plugin
+framework, or debug adapter; or NPM/Marketplace publication, tags, signing, or announcements.
 
 ## 12. Approval
 

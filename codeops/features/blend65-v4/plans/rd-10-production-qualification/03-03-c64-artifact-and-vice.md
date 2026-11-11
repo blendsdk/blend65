@@ -30,26 +30,25 @@ in the release record.
 | `c64-pal-prg-kernal-8580` | Required | Required |
 | `c64-ntsc-prg-kernal-6581` | Required | Required |
 | `c64-ntsc-prg-kernal-8580` | Required | Required |
-| `c64-pal-prg-takeover-6581` | Required | Required representative takeover case |
-| `c64-pal-prg-takeover-8580` | Required | Required representative takeover case |
-| `c64-ntsc-prg-takeover-6581` | Required | Required representative takeover case |
-| `c64-ntsc-prg-takeover-8580` | Required | Required representative takeover case |
+| `c64-pal-prg-takeover-6581` | Not executable | `Unknown` under `V4-TAKEOVER-1` |
+| `c64-pal-prg-takeover-8580` | Not executable | `Unknown` under `V4-TAKEOVER-1` |
+| `c64-ntsc-prg-takeover-6581` | Not executable | `Unknown` under `V4-TAKEOVER-1` |
+| `c64-ntsc-prg-takeover-8580` | Not executable | `Unknown` under `V4-TAKEOVER-1` |
 | `c64-pal-d64-kernal-6581` | Required | Required D64 boot/load/BASIC-return case |
 
 Each resident run records exact profile facts, source/artifact hashes, ACME/VICE identity, startup,
 banking, interrupt/NMI routes, initial state, stop condition, expected values/MMIO, normal return or
 declared nonreturning exit, and complete resource evidence. One profile result cannot stand in for
-another dimension.
+another dimension. The four takeover IDs are recognized inventory but have no runtime observation.
 
 ## Sequential VICE order
 
 1. `test/rd05/profiles-vice.spec.test.ts`
-2. A focused takeover runtime case (extend the existing profile fixture or add one bounded case)
-3. `test/rd05/cia-*.spec.test.ts`, `handler-irq-*.spec.test.ts`, `runtime-switch-vice.spec.test.ts`,
+2. `test/rd05/cia-*.spec.test.ts`, `handler-irq-*.spec.test.ts`, `runtime-switch-vice.spec.test.ts`,
    `vic-collision-vice.spec.test.ts`, `joystick-vice.spec.test.ts`, and other enabled VICE cases
-4. `test/rd06/vice-*.spec.test.ts`
-5. `test/rd07/d64-vice.spec.test.ts` with `RD07_VICE=1`
-6. `test/rd08/input-startup-selection.spec.test.ts` and other enabled native optimizer cases
+3. `test/rd06/vice-*.spec.test.ts`
+4. `test/rd07/d64-vice.spec.test.ts` with `RD07_VICE=1`
+5. `test/rd08/input-startup-selection.spec.test.ts` and other enabled native optimizer cases
 7. `test/rd09` tooling boundary (no VICE dependency)
 
 Run each command sequentially. Never start a second `x64sc` while one is active. A bounded startup

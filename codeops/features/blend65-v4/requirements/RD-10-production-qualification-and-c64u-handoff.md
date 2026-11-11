@@ -61,7 +61,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 #### Production authority and claim closure — complexity XL
 
 - [ ] **R10.1 — Qualify one exact candidate.** Bind the production candidate to one clean Git
-  commit, one Specification 4 identity, one active expert-skill `2.0.0` content commit, one recorded Node 22-or-newer
+  commit, one Specification 4 identity, one active expert-skill `2.0.4` content commit, one recorded Node 22-or-newer
   release line, exact TypeScript/Yarn/Turbo/Vitest versions, ACME 0.97, VICE 3.10 `x64sc`, and every
   selected host/profile/artifact identity. A dirty tree, mutable version range, mismatched authority,
   skipped required endpoint, or later code change invalidates only the intersecting evidence but
@@ -361,7 +361,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 
 | Boundary | Required release evidence | Blocking rule |
 |---|---|---|
-| Authority | Specification 4 and expert `2.0.0` exact identities, transition/guard/qualification closeout | Any mismatch or unresolved authority defect blocks all claims |
+| Authority | Specification 4 and expert `2.0.4` exact identities, transition/guard/qualification closeout | Any mismatch or unresolved authority defect blocks all claims |
 | Language/compiler | Complete normative families, diagnostics, SFA, IL, `none` lowering, assembled bytes, representative VICE behavior | Any reachable ordinary-language gap or miscompile blocks complete-language status |
 | Resident C64 | Four KERNAL PRG profiles, profile facts, bytes, fresh VICE run, complete costs; four takeover IDs `Unknown` under `V4-TAKEOVER-1` | A missing dimension cannot inherit another profile's result |
 | Assets | Exact producer fixtures/format versions, selectors, derived bytes, layout, consumer behavior, negatives | A guessed/comparative fixture leaves that handler unqualified |
@@ -498,7 +498,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 
 | Owner | RD-10 contract |
 |---|---|
-| RD-01 | Consume one frozen Specification 4 and expert `2.0.0`; requalify changed authority before proceeding. |
+| RD-01 | Consume one frozen Specification 4 and expert `2.0.4`; requalify changed authority before proceeding. |
 | RD-02 | Consume the clean locked project/package model, compiler-owned output-state rules, immutable generations/current record, and native Linux/Windows paths; qualify the same public model on macOS in RD-10 without reopening RD-02. |
 | RD-03/RD-04 | Reuse M1 and the complete `optimization: none` language/SFA/lowering path without retaining M1's subset as a limit. |
 | RD-05 | Consume four KERNAL resident profiles, platform APIs, user-authored workloads, costs, and VICE evidence; record takeover under `V4-TAKEOVER-1` and physical assignments as `Unknown` for this candidate. |
@@ -609,7 +609,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 ## Acceptance Criteria
 
 1. [ ] **AC-01 — Candidate identity:** The closeout names one clean Git commit, Specification 4
-   identity, expert `2.0.0` content commit, Node/TypeScript/Yarn/Turbo/Vitest versions, ACME 0.97,
+   identity, expert `2.0.4` content commit, Node/TypeScript/Yarn/Turbo/Vitest versions, ACME 0.97,
    VICE 3.10 `x64sc`, four production host identities, nine recognized profile IDs (five executable), and hashes for every primary release
    artifact. Changing one named input invalidates the intersecting result.
 2. [ ] **AC-02 — Prerequisite closure:** Every RD-01 through RD-09 row links an approved RD,
