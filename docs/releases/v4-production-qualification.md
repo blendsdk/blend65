@@ -1,7 +1,7 @@
 # Blend65 v4 Production Qualification
 
 > **Status**: Qualification in progress — not approved
-> **Candidate code tree**: `6ff6e293` (installed-path evidence added; final boundary rerun pending)
+> **Candidate code tree**: `649718ec` (final root suite rerun in progress)
 > **Created**: 2026-11-11
 > **Owning RD**: [RD-10](../codeops/features/blend65-v4/requirements/RD-10-production-qualification-and-c64u-handoff.md)
 
@@ -12,8 +12,8 @@ a readiness product, score, or second evidence database.
 
 | Fact | Value |
 | ---- | ----- |
-| Candidate code commit | `6ff6e29347afb1612db3c0bf4e680ea902ec81a2` |
-| Working tree at freeze | clean at `6ff6e293`; later commits add documentation only |
+| Candidate code commit | `649718ecd7ff7185222d897f546858fc524d3053` |
+| Working tree at freeze | clean at `649718ec`; later commits add documentation only |
 | Compiler version | `0.1.0` |
 | Specification identity | `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b` |
 | Expert skill | `2.0.4`; content commit `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15` |
@@ -61,14 +61,14 @@ architectures are unsupported.
 
 ### Test boundary
 
-The counts below were recorded at `c6cc63b3`. The tool-discovery feature at `6ff6e293` changes the
-CLI and compiler surface, so one final sequential rerun is pending and will replace this table.
+The compiler row is the final `649718ec` rerun. The root row is the earlier `c6cc63b3` run; the
+final `649718ec` root rerun is in progress and will replace it.
 
 | Suite | Result |
 | ----- | ------ |
-| Compiler package | 216 files, 3,659 passed, 2 skipped |
-| Root release suite | 325 files, 6,569 passed, 1 failed then retried, 4 skipped |
-| CLI package | 9 files, 69 passed |
+| Compiler package | 217 files, 3,683 passed, 2 skipped |
+| Root release suite | 325 files, 6,569 passed, 1 failed then retried, 4 skipped (earlier candidate) |
+| CLI package | 11 files, 73 passed |
 | Language server package | 5 files, 21 passed |
 | VS Code package | 5 files, 17 passed |
 | Root typecheck | 7 Turbo tasks successful |

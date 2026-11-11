@@ -33,9 +33,10 @@ debt.
 
 ## C64 preservation
 
-Every readiness correction must leave the eight C64 profiles' language behavior, final artifacts, and
-expert parity intact. Do not add an indirect hot-path dispatch, generalized device layer, runtime
-target probe, widened core `word`, universal address, or optional-target payload to C64 output.
+Every readiness correction must leave the four KERNAL C64 profiles' language behavior, final
+artifacts, and expert parity intact; takeover remains `Unknown` under `V4-TAKEOVER-1`. Do not add an
+indirect hot-path dispatch, generalized device layer, runtime target probe, widened core `word`,
+universal address, or optional-target payload to C64 output.
 
 ## Handoff packet
 
