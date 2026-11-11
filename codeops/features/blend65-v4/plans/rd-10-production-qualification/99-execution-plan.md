@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-11 21:10
-> **Progress**: 19/82 tasks (23%)
+> **Last Updated**: 2026-11-11 21:31
+> **Progress**: 21/82 tasks (26%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -114,11 +114,11 @@ status table.
 
 ### Step 3.1: Resident Profiles
 
-- [ ] 3.1.1 Build and byte-validate all eight resident PRG profiles through the public compiler — `test/rd05/profile-pipeline.spec.test.ts`
+- [ ] 3.1.1 Build and byte-validate all four KERNAL resident PRG profiles through the public compiler — `test/rd05/profile-pipeline.spec.test.ts`
 - [ ] 3.1.2 Run the four KERNAL profile VICE matrix sequentially and record exact identity/observations — `test/rd05/profiles-vice.spec.test.ts`
-- [ ] 3.1.3 Add or extend one focused takeover runtime case for each video standard and record it — `test/rd05/`
-- [ ] 3.1.4 Run the focused takeover cases sequentially and record exact identity/observations — `test/rd05/`
-- [ ] 3.1.5 Confirm no profile result substitutes for another dimension and record the eight-row matrix — `docs/releases/v4-production-qualification.md`
+- [x] 3.1.3 Record the four takeover profiles as `Unknown` under `V4-TAKEOVER-1`; no takeover runtime case exists ✅ (closed: 2026-11-11; user-approved deferral, AR-18)
+- [x] 3.1.4 Reserve no takeover runtime observation and make no takeover banking/vector/interrupt claim ✅ (closed: 2026-11-11; the matrix is limited to four KERNAL profiles)
+- [ ] 3.1.5 Confirm no profile result substitutes for another dimension and record the four-KERNAL-plus-D64 matrix — `docs/releases/v4-production-qualification.md`
 
 ### Step 3.2: D64
 
@@ -134,8 +134,8 @@ status table.
 - [ ] 3.3.4 Record every pass, bounded timeout, retry, and `Unknown`; no skip contributes a pass — `docs/releases/v4-production-qualification.md`
 - [ ] 3.3.5 Stop every owned VICE process group and confirm no monitor/port residue — host process table
 
-**Deliverables**: eight-profile artifact/VICE matrix, D64 result, device/runtime results, clean
-process state.
+**Deliverables**: four-KERNAL-plus-D64 artifact/VICE matrix, takeover `Unknown` record, D64 result,
+device/runtime results, clean process state.
 
 **Verify**: every runtime case ran through VICE 3.10, sequentially.
 
@@ -308,7 +308,8 @@ Phase 8 (reviews/approval)
 1. ✅ All 82 tasks `[x]` or explicitly closed with evidence.
 2. ✅ One clean candidate identity with no dirty-tree or authority mismatch.
 3. ✅ Every claimed host has native evidence; unavailable hosts are `Unknown`.
-4. ✅ Eight resident profiles and one D64 profile have sequential VICE observations.
+4. ✅ Four KERNAL resident profiles and one D64 profile have sequential VICE observations; the four
+   takeover profiles are `Unknown` under `V4-TAKEOVER-1`.
 5. ✅ Language, assets, optimizer, and compiler-not-engine claims pass with independent oracles.
 6. ✅ Local packages and VSIX work from installed artifacts.
 7. ✅ C64U readiness and handoff are complete without implementation.

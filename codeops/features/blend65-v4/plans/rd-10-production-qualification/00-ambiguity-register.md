@@ -27,6 +27,7 @@ external publication, or outward release action is decided here.
 | 15 | Verification | Two specification oracles conflict on the VS Code `Run in VICE` title. | Change the product title / amend the older foundation oracle / leave the boundary red | Amend the foundation oracle so the VICE product name is not treated as forbidden toolchain configuration; keep R9.27 and its extension oracle unchanged. | ✅ Resolved — user-approved oracle ruling |
 | 16 | Verification | RD-09 R9.5 tool discovery is missing from the implementation. | Reopen RD-09 / fix in RD-10 / drop the requirement | Fix in RD-10 as a qualification-blocking prerequisite: tools-file schema 1, explicit ACME/VICE paths, relative PATH resolution, exact probes, and tests. | ✅ Resolved — user-approved RD-10 fix |
 | 17 | Verification | R9.5 asks for the matched version line in build evidence, but the frozen build schema allows only name, canonicalPath, and sha256. | Version the schema / keep it frozen / drop the line | Keep `.build.json` version 1 frozen. Capture the line in the discovery result, tests, and release record, and record this interpretation here. | ✅ Resolved — user-approved interpretation |
+| 18 | Scope | Four takeover resident profiles are not executable and have no runtime harness. | Implement takeover / defer with a named owner / remove takeover from the product | Defer the four takeover profiles for this candidate. Qualify four KERNAL profiles plus D64; record takeover as `Unknown` under `V4-TAKEOVER-1`; narrow the support statement. | ✅ Resolved — user-approved deferral |
 
 ## Resolution Notes
 
@@ -71,3 +72,9 @@ language-server analysis remain tool-free.
 **AR-17:** The matched ACME version line is captured by discovery and recorded in qualification
 evidence and tests. The frozen `.build.json` version-1 `HostToolRecord` keeps its exact
 `name`/`canonicalPath`/`sha256` shape, so the line is not added to that schema.
+
+**AR-18:** The four takeover IDs remain recognized manifest inventory but `loadProject` rejects
+them as incomplete executable profiles, and no takeover VICE harness exists. This candidate
+qualifies the four KERNAL resident profiles and the one D64 profile only. The four takeover rows
+stay `Unknown` under `V4-TAKEOVER-1`; no takeover runtime, banking, vector, or interrupt claim is
+made. Implementing takeover is a separate approved feature, not a qualification fix.

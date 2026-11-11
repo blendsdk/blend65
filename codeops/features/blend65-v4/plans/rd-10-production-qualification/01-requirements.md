@@ -13,7 +13,7 @@
   independent oracles, and one complete release boundary.
 - R10.11–R10.14 — native host qualification where hardware exists, cross-host output identity,
   deterministic tool discovery, and honest best-effort host boundaries.
-- R10.15–R10.20 — eight resident profiles, one D64 profile, complete language, native assets,
+- R10.15–R10.20 — four KERNAL resident profiles, one D64 profile, complete language, native assets,
   four optimizer modes, and the compiler-not-engine boundary.
 - R10.21–R10.25 — physical qualification rows, recorded as `Unknown` for this candidate with the
   `V4-HW-1` post-release owner; no physical claim is made.

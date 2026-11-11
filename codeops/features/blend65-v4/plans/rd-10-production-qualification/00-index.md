@@ -29,7 +29,8 @@ hands one discovery packet to the existing `blend65-c64u` owner. It does not imp
 production release.
 
 **Smallest viable design:** one candidate freeze; one evidence-bound host matrix; one sequential
-VICE matrix over the eight PRG profiles and the one D64 profile; focused requalification of the
+VICE matrix over the four KERNAL PRG profiles and the one D64 profile; the four takeover profiles
+are `Unknown` under `V4-TAKEOVER-1`; focused requalification of the
 language, assets, optimizer, tooling, and packages; one C64U readiness/handoff packet; one release
 record; one explicit user approval.
 

@@ -27,7 +27,7 @@
 | File | Purpose | Changes Needed |
 | ---- | ------- | -------------- |
 | `docs/releases/v4-production-qualification.md` | Release closeout index | Create |
-| `test/rd05/profiles-vice.spec.test.ts` | Resident-profile VICE observations | Extend/run the eight-profile matrix |
+| `test/rd05/profiles-vice.spec.test.ts` | Resident-profile VICE observations | Run the four-KERNAL-plus-D64 matrix; takeover is `Unknown` under `V4-TAKEOVER-1` |
 | `test/rd05/profile-pipeline.spec.test.ts` | Nine-profile admission and fresh builds | Consume for artifact identity |
 | `test/rd07/d64-vice.spec.test.ts` | D64 loader runtime | Run with `RD07_VICE=1` |
 | `test/rd08/input-startup-selection.spec.test.ts` | Optimizer native case | Run in the release order |
@@ -69,7 +69,8 @@ admission coverage but no dedicated runtime matrix; the D64 suite is opt-in.
 
 **Required Behavior:** R10.15, R10.16, R10.21, AC-14, AC-15.
 
-**Fix Required:** Run the eight-profile smoke matrix, add representable takeover observations, and
+**Fix Required:** Run the four-KERNAL-plus-D64 smoke matrix, record takeover as `Unknown` under
+`V4-TAKEOVER-1`, and
 run the D64 suite sequentially with `RD07_VICE=1`.
 
 ### Gap 3: No native Windows/macOS proof

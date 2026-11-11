@@ -115,10 +115,13 @@ remains `interactive-unverified`, matching the CLI's own run status.
 | Foundation oracle rejected the required VS Code `Run in VICE` title | RD-02 and RD-09 oracles contradicted; CI red | Foundation oracle allows the product name; toolchain checks remain (AR-15, `a00b8407`) |
 | Publication applied a 1 MiB metadata cap to every artifact | A valid 38,440-instruction build failed on its 9.6 MiB `.debug.json` | Metadata records stay at 1 MiB; generation artifacts allow 64 MiB (`c6cc63b3`) |
 | RD-09 R9.5 tools-file discovery was missing | The CLI and services used `PATH` only, so R10.13 could not be proven | Added schema-1 `tools.jsonc`, explicit ACME/VICE paths, relative `PATH` resolution, exact probes, and tests (AR-16/AR-17) |
+| Four takeover profiles are not executable | RD-10's eight-profile matrix cannot be claimed | Defer under `V4-TAKEOVER-1`; claim narrows to four KERNAL profiles plus D64 (AR-18) |
 
 ## 4. Profile and artifact matrix
 
-Nine manifest profile IDs:
+Nine manifest profile IDs are recognized. Five are executable for this candidate: the four KERNAL
+resident profiles and one D64. The four takeover IDs are not executable by the current compiler and
+are recorded `Unknown` under `V4-TAKEOVER-1`.
 
 ```text
 c64-pal-prg-kernal-6581
@@ -138,10 +141,10 @@ c64-pal-d64-kernal-6581
 | `c64-pal-prg-kernal-8580` | Pending | Pending | — |
 | `c64-ntsc-prg-kernal-6581` | Pending | Pending | — |
 | `c64-ntsc-prg-kernal-8580` | Pending | Pending | — |
-| `c64-pal-prg-takeover-6581` | Pending | Pending | — |
-| `c64-pal-prg-takeover-8580` | Pending | Pending | — |
-| `c64-ntsc-prg-takeover-6581` | Pending | Pending | — |
-| `c64-ntsc-prg-takeover-8580` | Pending | Pending | — |
+| `c64-pal-prg-takeover-6581` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
+| `c64-pal-prg-takeover-8580` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
+| `c64-ntsc-prg-takeover-6581` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
+| `c64-ntsc-prg-takeover-8580` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
 | `c64-pal-d64-kernal-6581` | Pending | Pending | — |
 
 Artifact inventory: exactly one literal-name primary PRG or D64 plus `.asm`, `.labels`,

@@ -45,7 +45,8 @@ Create `docs/releases/v4-production-qualification.md` with these sections:
 1. Candidate identity and clean-tree proof.
 2. Prerequisite RD closeout links and unresolved-finding status.
 3. Host matrix: verified or `Unknown`, with exact native evidence links.
-4. Profile/artifact matrix: eight PRG profiles and one D64 profile.
+4. Profile/artifact matrix: four KERNAL PRG profiles and one D64 profile; takeover is `Unknown`
+   under `V4-TAKEOVER-1`.
 5. Language, assets, optimizer, and compiler-not-engine results.
 6. ACME and VICE identities and sequential run results.
 7. Physical-evidence status: every row `Unknown`, `V4-HW-1` owner, no inferred pass.

@@ -15,7 +15,7 @@ Every runtime observation comes from VICE 3.10 `x64sc`; physical-only rows are `
 | --------- | ------ |
 | Candidate/release evidence | Every required field present and identity-bound |
 | Host/public path | Full claimed-host journey |
-| C64 profiles/artifacts | All nine profile IDs; eight resident VICE runs; one D64 run |
+| C64 profiles/artifacts | Nine recognized IDs; four KERNAL resident VICE runs; one D64 run; takeover `Unknown` |
 | Language/assets/optimizer | Every required family reaches final bytes and applicable VICE behavior |
 | C64U readiness | Twelve rows with real files/types and no speculative abstraction |
 | Physical status | All rows `Unknown` with `V4-HW-1` owner |
@@ -42,7 +42,7 @@ Every runtime observation comes from VICE 3.10 `x64sc`; physical-only rows are `
 | ST-12 | Native Windows/macOS host journey, or absence | Native evidence passes, or the host is `Unknown` and absent from the support statement | R10.11–R10.14, AC-10–AC-13 |
 | ST-13 | Two or more native hosts | Normalized outputs are byte-identical; only declared provenance differs | R10.12, AC-11 |
 | ST-14 | Tool discovery matrix per claimed host | Config precedence, `PATH`, exact names, versions, malformed output, missing tools, no shell/download | R10.13, AC-12 |
-| ST-15 | Eight resident profile builds and VICE runs | Byte-validated PRGs and exact VICE observations; no dimension substitutes for another | R10.15, AC-14 |
+| ST-15 | Four KERNAL resident profile builds and VICE runs | Byte-validated PRGs and exact VICE observations; takeover is `Unknown`; no dimension substitutes for another | R10.15, AC-14 |
 | ST-16 | One D64 build and VICE run | Exact image, BAM/directory/chains, drive-8 boot/load, canaries, publication, quiescence, BASIC return, `HLE-010` | R10.16, AC-15 |
 | ST-17 | Complete language family sample | Positive, boundary, negative, diagnostic, final bytes, and applicable VICE behavior through the public compiler | R10.17, AC-16 |
 | ST-18 | Exact asset producer/format fixtures | Selectors, provenance, composition, placement, bytes, runtime consumer, negative cases | R10.18, AC-17 |
@@ -105,7 +105,7 @@ Every runtime observation comes from VICE 3.10 `x64sc`; physical-only rows are `
 - [ ] Every ST case traces to an RD requirement or acceptance criterion
 - [ ] Candidate identity is recorded before evidence reuse
 - [ ] All claimed-host journeys pass natively
-- [ ] Eight resident VICE runs and one D64 VICE run are recorded sequentially
+- [ ] Four KERNAL resident VICE runs and one D64 VICE run are recorded sequentially; takeover is `Unknown`
 - [ ] Language, assets, optimizer, and compiler-not-engine cases pass
 - [ ] Physical rows are `Unknown` and `V4-HW-1` exists
 - [ ] C64U readiness and handoff are complete without implementation

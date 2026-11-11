@@ -18,8 +18,9 @@ by RD-01 through RD-09, and it records the bounded physical-hardware status. A p
 applicable requirement has current evidence through its required endpoint and every remaining
 limitation is bounded, documented, and owned. (AR-002, AR-008, AR-011, AR-024, AR-033)
 
-The initial production target set is eight resident C64 PRG profiles plus one PAL/KERNAL/6581 D64
-profile. The user release hosts are Node 22 or newer on Linux x64, Windows x64, macOS arm64, and
+The initial production target set is four KERNAL resident C64 PRG profiles plus one PAL/KERNAL/6581
+D64 profile. The four takeover resident profiles remain recognized inventory but are `Unknown` for
+this candidate under `V4-TAKEOVER-1`. The user release hosts are Node 22 or newer on Linux x64, Windows x64, macOS arm64, and
 macOS x64. Linux is the compiler development and deep C64 qualification host; the other hosts require
 native user-workflow proof at RD-10, not a separate compiler development workflow. RD-02 DEF-1 is
 already closed. VICE 3.10 `x64sc` remains the normal
@@ -27,6 +28,14 @@ automated execution oracle. RD-10 also proves that the
 real shared architecture can accept C64 Ultimate differences without claiming that a `c64u` target,
 turbo, REU/DMA, UltiSID, multi-SID, or Ultimate artifact is implemented. It then hands a bounded
 evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR-048)
+
+> **Takeover deferral amendment (2026-11-11).** The four
+> `c64-{pal|ntsc}-prg-takeover-{6581|8580}` profiles are not executable by the current compiler;
+> project loading rejects them as incomplete profile IDs. The user approved deferring them rather
+> than implementing raw takeover startup/return in this release. Every "eight resident profiles"
+> reference in this RD is read as the four KERNAL profiles for this candidate. The four takeover
+> rows are `Unknown` under `V4-TAKEOVER-1`; no takeover runtime, banking, vector, or interrupt claim
+> is made. The D64 profile remains in scope.
 
 > **Qualification environment (2026-11-11).** No physical C64, 1541-compatible drive, SID unit, or
 > analogue capture path is available for this candidate. VICE 3.10 `x64sc` is therefore the sole
@@ -75,7 +84,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   only owned execution. Preserve the last known good release record as historical evidence without
   relabelling it as the current candidate. (AR-022, AR-032, AR-048)
 - [ ] **R10.5 — Publish one bounded support statement.** Name only the exact language identity,
-  compiler version/candidate commit, nine C64 profiles, native asset/adapter versions, optimization
+  compiler version/candidate commit, nine recognized C64 profile IDs (five executable for this candidate), native asset/adapter versions, optimization
   modes, safety options, qualified Linux/Windows/macOS hosts, tools, and evidence levels that passed.
   Distinguish
   `Verified complete`, `Verified partial`, `Incorrect`, `Scaffold/stub`, `Unknown`, and
@@ -153,13 +162,13 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 
 #### Complete C64 artifacts and emulator boundary — complexity XL
 
-- [ ] **R10.15 — Qualify all eight resident profiles.** Build, assemble, byte-validate, package,
+- [ ] **R10.15 — Qualify the four KERNAL resident profiles.** Build, assemble, byte-validate, package,
   and execute fresh artifacts for exactly
-  `c64-{pal|ntsc}-prg-{kernal|takeover}-{6581|8580}`. Each run records exact profile facts, source
+  `c64-{pal|ntsc}-prg-kernal-{6581|8580}`. Each run records exact profile facts, source
   and artifact hashes, ACME/VICE identity, startup, banking, enabled interrupt/NMI routes, initial
   state, stop condition, expected values/MMIO, normal return or declared nonreturning exit, and
-  complete resource evidence. No profile result may stand in for another dimension. (AR-013,
-  AR-024)
+  complete resource evidence. No profile result may stand in for another dimension. The four
+  takeover IDs remain `Unknown` under `V4-TAKEOVER-1`. (AR-013, AR-024)
 - [ ] **R10.16 — Qualify the one disk profile.** Build, structurally validate, mount, boot, and run
   a fresh `c64-pal-d64-kernal-6581` 174,848-byte D64 containing its startup PRG and reachable
   uncompressed load units. Prove exact directory/BAM/data chains, destination bytes/canaries,
@@ -202,8 +211,9 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   C64 model, board/ASSY and relevant chip revisions, ROM hashes, video/power environment, peripherals,
   artifact hash, setup, expected and actual observations, frame scope where applicable, and
   deviations. When no unit is available, record every dimension as `Unknown`, name the post-release
-  hardware backlog owner, and claim no physical coverage. VICE still runs all eight exact profiles;
-  physical QA is targeted rather than an exhaustive cartesian hardware matrix. A C64U compatibility
+  hardware backlog owner, and claim no physical coverage. VICE still runs all four KERNAL profiles
+  and the one D64 profile; takeover profiles are `Unknown` under `V4-TAKEOVER-1`. Physical QA is
+  targeted rather than an exhaustive cartesian hardware matrix. A C64U compatibility
   run cannot replace base-C64 evidence. (AR-013, AR-024)
 - [ ] **R10.22 — Target silicon-sensitive behavior when hardware is available.** On the matching
   units, exercise the exact raster/badline and sprite-DMA timing fixtures, IRQ/NMI/CIA edge cases,
@@ -236,7 +246,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 
 - [ ] **R10.26 — Document the complete supported workflow.** Supply installation and first-project
   instructions for Linux x64, Windows x64, macOS arm64, and macOS x64, machine-local ACME/VICE discovery and overrides,
-  `blend65.json`, `check`/`build`/`run`, VS Code trust/commands, nine C64 profiles, optimizer/safety
+  `blend65.json`, `check`/`build`/`run`, VS Code trust/commands, the four KERNAL profiles and D64, optimizer/safety
   choices, native assets, D64 loading, evidence files, diagnostics, and clean cancellation. Every
   command and path example must be exercised on its claimed host. (AR-003, AR-021, AR-022, AR-048)
 - [ ] **R10.27 — Document restrictions where users encounter them.** Explain deliberate
@@ -259,7 +269,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   its owning v4 seam before production closeout or is recorded as an explicit blocker; it is not
   deferred into C64U implementation. (AR-012, AR-024, AR-035)
 - [ ] **R10.30 — Preserve C64 expert quality while opening the seam.** Every readiness correction
-  must keep the eight C64 profiles' language behavior, final artifacts, and expert parity intact.
+  must keep the four KERNAL profiles' language behavior, final artifacts, and expert parity intact; takeover stays `Unknown`.
   Do not add an indirect hot-path dispatch, generalized device layer, runtime target probe, widened
   core `word`, universal address, or optional-target payload to C64 output. (AR-002, AR-012,
   AR-024)
@@ -353,7 +363,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 |---|---|---|
 | Authority | Specification 4 and expert `2.0.0` exact identities, transition/guard/qualification closeout | Any mismatch or unresolved authority defect blocks all claims |
 | Language/compiler | Complete normative families, diagnostics, SFA, IL, `none` lowering, assembled bytes, representative VICE behavior | Any reachable ordinary-language gap or miscompile blocks complete-language status |
-| Resident C64 | Eight exact PRG profiles, profile facts, bytes, fresh VICE run, complete costs | A missing dimension cannot inherit another profile's result |
+| Resident C64 | Four KERNAL PRG profiles, profile facts, bytes, fresh VICE run, complete costs; four takeover IDs `Unknown` under `V4-TAKEOVER-1` | A missing dimension cannot inherit another profile's result |
 | Assets | Exact producer fixtures/format versions, selectors, derived bytes, layout, consumer behavior, negatives | A guessed/comparative fixture leaves that handler unqualified |
 | D64/loading | One exact D64 profile, structure, trusted media, KERNAL load behavior, real drive | No implication of another disk profile or hostile-media containment |
 | Optimization | Correct direct `none`; three frontier-searched modes with two independent oracles, complete costs, expert floor, whole-program wins, and linked debt | A `none` correctness/search-boundary failure or optimized regression/untracked meet blocks that mode |
@@ -376,7 +386,7 @@ prove.
 | Install/build/package | Native locked install and public package build | Native locked install and public package build | Native locked install and public package build on each architecture | Package inventory and declared platform differences |
 | Language/project/security | Complete applicable suite | Complete applicable suite | Complete applicable suite on each architecture | Normalized diagnostics/query results |
 | Release fixtures | Build all frozen release projects | Build all frozen release projects | Build all frozen release projects on each architecture | Assembly/evidence/PRG/D64 bytes |
-| Emulator profiles | Run all eight PRG smokes and D64 smoke | Run all eight PRG smokes and D64 smoke | Run all eight PRG smokes and D64 smoke on each architecture | Final observations for identical artifacts |
+| Emulator profiles | Run all four KERNAL PRG smokes and D64 smoke | Run all four KERNAL PRG smokes and D64 smoke | Run all four KERNAL PRG smokes and D64 smoke on each architecture | Final observations for identical artifacts |
 | Deep C64 workload suite | Run once on the Linux x64 reference host | Reuse unless Windows changes invalidate it | Reuse unless macOS changes invalidate it | Same VICE identity plus byte-identical artifact is required for reuse |
 | Tooling integration | CLI/LSP/packaged VS Code, discovery and cancellation | CLI/LSP/packaged VS Code, discovery and Windows process-tree cancellation | CLI/LSP/packaged VS Code, discovery and process-group cancellation on each architecture | Same public behavior; host fields remain explicit |
 
@@ -469,7 +479,7 @@ final candidate boundary:
 1. verify all prerequisite closeouts and exact identities;
 2. run complete language/project/security qualification on each production host;
 3. build every frozen release project on each host and compare normalized outputs;
-4. run the nine bounded VICE profile smokes on each host sequentially;
+4. run the four KERNAL and one D64 bounded VICE smokes on each host sequentially;
 5. run the deep integrated C64/device/asset/optimizer/tooling matrix once on the Linux x64 reference
    host;
 6. record the physical matrix as verified or all-`Unknown`, and restrict the support statement to
@@ -491,7 +501,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 | RD-01 | Consume one frozen Specification 4 and expert `2.0.0`; requalify changed authority before proceeding. |
 | RD-02 | Consume the clean locked project/package model, compiler-owned output-state rules, immutable generations/current record, and native Linux/Windows paths; qualify the same public model on macOS in RD-10 without reopening RD-02. |
 | RD-03/RD-04 | Reuse M1 and the complete `optimization: none` language/SFA/lowering path without retaining M1's subset as a limit. |
-| RD-05 | Consume eight resident profiles, platform APIs, user-authored workloads, costs, and VICE evidence; record physical assignments as `Unknown` for this candidate. |
+| RD-05 | Consume four KERNAL resident profiles, platform APIs, user-authored workloads, costs, and VICE evidence; record takeover under `V4-TAKEOVER-1` and physical assignments as `Unknown` for this candidate. |
 | RD-06 | Consume exact producer fixtures, adapter identities, composition, Integrator-style refinement, and interval placement. |
 | RD-07 | Consume the one trusted-media KERNAL D64, quiescence/publication, and HLE-010; record the named real-drive QA as `Unknown` for this candidate. |
 | RD-08 | Consume four-mode qualification, independent oracles, full costs, expert-floor results, program wins, and parity debt. |
@@ -508,7 +518,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
   evidence endpoint. Identical normalized inputs produce identical normalized outputs on both
   production hosts.
 - A required failure, skip, mismatch, or stale identity blocks only its affected claim but blocks
-  the complete v4 production transition while that claim remains in the mandatory nine-profile
+  the complete v4 production transition while that claim remains in the mandatory five-profile
   scope. An unavailable physical row is recorded as `Unknown` and restricts only physical claims; it
   is not an observed contradiction.
 - Release evidence is append-only or superseded with explicit lineage; a corrected result never
@@ -583,7 +593,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 |---|---|---|---|---|
 | Production boundary | Partial milestone / complete active language and C64 surface | Complete active language and approved C64 surface | Prevents a partial compiler from being called production. | AR-002 |
 | Release verification | New readiness platform / one integration closeout over owner evidence | One bounded closeout | Preserves proof without recreating v3's second product. | AR-011, AR-026 |
-| Resident targets | One baseline / eight exact C64 profiles | Eight exact PRG profiles | Qualifies PAL/NTSC, KERNAL/takeover, and 6581/8580 differences honestly. | AR-024 |
+| Resident targets | One baseline / eight exact C64 profiles | Four KERNAL PRG profiles plus D64; takeover under `V4-TAKEOVER-1` | Qualifies PAL/NTSC and 6581/8580 honestly while recording the unimplemented takeover mode as `Unknown`. | AR-024 |
 | Disk delivery | PRG only / one qualified D64 profile / general loaders | One PAL/KERNAL/6581 D64 | Delivers large assets without a loader framework. | AR-029, AR-042 |
 | Hosts | Linux only / Linux and Windows / Linux, Windows, macOS | Linux x64, Windows x64, macOS arm64/x64 production | Linux remains the development host; Windows and macOS users require native release qualification. | AR-048, AR-051 |
 | Hardware evidence | VICE only / targeted physical QA / universal hardware matrix | VICE-only for this candidate; targeted physical QA backlog | No physical unit is available. Every runtime test runs through VICE 3.10, and every physical claim stays `VICE-verified / hardware-unverified`. | AR-008, AR-024 |
@@ -600,7 +610,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 
 1. [ ] **AC-01 — Candidate identity:** The closeout names one clean Git commit, Specification 4
    identity, expert `2.0.0` content commit, Node/TypeScript/Yarn/Turbo/Vitest versions, ACME 0.97,
-   VICE 3.10 `x64sc`, four production host identities, nine profile IDs, and hashes for every primary release
+   VICE 3.10 `x64sc`, four production host identities, nine recognized profile IDs (five executable), and hashes for every primary release
    artifact. Changing one named input invalidates the intersecting result.
 2. [ ] **AC-02 — Prerequisite closure:** Every RD-01 through RD-09 row links an approved RD,
    completed plan, acceptance/closeout evidence, and zero unresolved critical/major findings.
@@ -671,9 +681,10 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 13. [ ] **AC-13 — Best-effort boundary:** Public support documentation labels Linux ARM64, Windows
     ARM64, and other unqualified Node 22-or-newer hosts best-effort, labels out-of-range/32-bit/unknown
     hosts unsupported, and claims macOS arm64/x64 only after their own native end-to-end proof.
-14. [ ] **AC-14 — Eight PRG profiles:** Exactly eight fresh profile builds produce byte-validated
-    PRGs and exact VICE 3.10 runs with recorded expected state/exit. Removing or substituting any
-    PAL/NTSC, KERNAL/takeover, or 6581/8580 result fails the matrix.
+14. [ ] **AC-14 — Four KERNAL PRG profiles:** Exactly four fresh KERNAL profile builds
+    (`c64-{pal|ntsc}-prg-kernal-{6581|8580}`) produce byte-validated PRGs and exact VICE 3.10 runs
+    with recorded expected state/exit. Removing or substituting any PAL/NTSC or 6581/8580 result
+    fails the matrix. The four takeover IDs are `Unknown` under `V4-TAKEOVER-1`.
 15. [ ] **AC-15 — One D64 profile:** A 174,848-byte `c64-pal-d64-kernal-6581` image passes exact
     BAM/directory/sector/file validation, mounts as drive 8, boots, loads all reachable units into
     canary-bounded destinations, covers success/failure publication, and returns to BASIC. No second
@@ -726,10 +737,10 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 27. [ ] **AC-27 — C64U readiness:** All twelve readiness-table rows name real v4 files/types and a
     present C64 consumer where applicable, pass without target/runtime overhead, and identify no
     hidden C64 assumption. A fake `c64u` package or registry entry fails rather than helping.
-28. [ ] **AC-28 — C64 preservation:** Applying every readiness correction leaves the eight C64
+28. [ ] **AC-28 — C64 preservation:** Applying every readiness correction leaves the four KERNAL
     source behaviors and qualified final artifacts unchanged unless the correction fixes a recorded
     defect; all local parity and whole-program obligations remain green and no runtime target
-    dispatch appears.
+    dispatch appears. Takeover profiles remain out of this candidate's claim.
 29. [ ] **AC-29 — C64U handoff:** The existing `blend65-c64u` feature contains one discovery seed
     with all eight sections from the handoff contract, exact v4 evidence links, explicit unknowns,
     primary-source needs, activation gates, and one C64U-native vertical-proof proposal. It contains
