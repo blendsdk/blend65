@@ -1,7 +1,7 @@
 # Blend65 v4 Production Qualification
 
 > **Status**: Qualification in progress — not approved
-> **Candidate code tree**: `c6cc63b3` (later commits add documentation and evidence only)
+> **Candidate code tree**: `6ff6e293` (installed-path evidence added; final boundary rerun pending)
 > **Created**: 2026-11-11
 > **Owning RD**: [RD-10](../codeops/features/blend65-v4/requirements/RD-10-production-qualification-and-c64u-handoff.md)
 
@@ -12,8 +12,8 @@ a readiness product, score, or second evidence database.
 
 | Fact | Value |
 | ---- | ----- |
-| Candidate code commit | `c6cc63b3c3a1bbedf9b681e4a68e4d12971302d1` |
-| Working tree at freeze | clean at `c6cc63b3`; later commits add documentation only |
+| Candidate code commit | `6ff6e29347afb1612db3c0bf4e680ea902ec81a2` |
+| Working tree at freeze | clean at `6ff6e293`; later commits add documentation only |
 | Compiler version | `0.1.0` |
 | Specification identity | `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b` |
 | Expert skill | `2.0.4`; content commit `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15` |
@@ -51,7 +51,7 @@ No unresolved critical or major finding remains open from the prerequisite close
 
 | Host | Status | Evidence |
 | ---- | ------ | -------- |
-| `linux/x64` | Install/build/typecheck and complete test boundary pass | `yarn install --frozen-lockfile`, `yarn build --force`, `yarn typecheck --force`, compiler/root suites and all package suites (2026-11-11) |
+| `linux/x64` | Install/build/typecheck, test boundary, and installed public path pass | `yarn install --frozen-lockfile`, `yarn build --force`, `yarn typecheck --force`, compiler/root suites, package suites, and clean-prefix tarball install (2026-11-11) |
 | `win32/x64` | Unknown unless a native host is available | — |
 | `darwin/arm64` | Unknown unless a native host is available | — |
 | `darwin/x64` | Unknown unless a native host is available | — |
@@ -60,6 +60,9 @@ Linux ARM64 and Windows ARM64 are best-effort. Hosts below Node 22, 32-bit hosts
 architectures are unsupported.
 
 ### Test boundary
+
+The counts below were recorded at `c6cc63b3`. The tool-discovery feature at `6ff6e293` changes the
+CLI and compiler surface, so one final sequential rerun is pending and will replace this table.
 
 | Suite | Result |
 | ----- | ------ |
@@ -75,6 +78,34 @@ The single root failure was `test/rd05/vic-collision-vice.spec.test.ts`, profile
 (`$0708=1`) expired under full-suite load. The case passed when retried alone (4/4 for that
 scenario) and the complete file passed on retry (16/16). This is recorded as a bounded retry, not
 as a skipped pass or a product defect.
+
+### Installed public path
+
+The three public packages were packed and installed into a clean temporary prefix outside the
+repository. The install resolved nine packages, including the declared `jsonc-parser` dependency.
+
+| Artifact | Bytes | SHA-256 |
+| -------- | ----- | ------- |
+| `blend65-compiler-0.1.0.tgz` | 1,530,207 | `d6281974b2a7c9f16a21b47291f8b23a0e0ad69df85693c5453d3c16f9877f39` |
+| `blend65-cli-0.1.0.tgz` | 19,543 | `ffa95580812ba6c6c93bcedda545aa8e67cf299165dad15f0acdbf5e1a25d53f` |
+| `blend65-language-server-0.1.0.tgz` | 23,982 | `366d382ed837086885662ad7578a261daa3c5b56fd1a032406b035d10bf7094d` |
+
+| Check | Result |
+| ----- | ------ |
+| Tarball contents | Only `dist`, `stdlib`, and `package.json`; no source tree |
+| Installed `blendc --version` | `blendc 0.1.0` |
+| Installed `blendc check` | Success on `c64-pal-prg-kernal-6581` |
+| Installed `blendc build` | Success; `.build.json` records `/usr/bin/acme` with SHA-256 `19485b06…` |
+| Installed `blendc run` | Fresh build, VICE launch, `SIGTERM` cancellation exit 130, no `x64sc` residue |
+| Installed compiler root export | Resolves inside the prefix; `checkProject` succeeds |
+| Installed `frontend` export | Resolves inside the prefix; no backend exports; private imports rejected |
+| Installed language server | Initialize, diagnostics, 92 completion labels, hover, one format edit, one error diagnostic |
+| Tools-file precedence | Explicit path wins with an empty `PATH`; invalid explicit path fails without fallback |
+| Missing tools | `check` succeeds with no tools; `build` fails `ACME_DISCOVERY`; `run` fails `VICE_DISCOVERY` |
+| Exact ACME line | `This is ACME, release 0.97 ("Zem"), 31 Jan 2021` |
+
+The installed `run` path is recorded as a launch plus owned cancellation. Interactive completion
+remains `interactive-unverified`, matching the CLI's own run status.
 
 ### Qualification-blocking fixes
 
@@ -169,10 +200,10 @@ No physical C64, 1541-compatible drive, SID unit, or analogue capture path is av
 
 | Item | Evidence | Status |
 | ---- | -------- | ------ |
-| Compiler/CLI/LSP tarballs | `npm pack` and clean-prefix install | Pending |
+| Compiler/CLI/LSP tarballs | `npm pack` and clean-prefix install | Pass |
 | Local VSIX | Build, install, Build/Run/Evidence journey | Pending |
-| Tool discovery | Config/`PATH` precedence and missing-tool failure | Implemented with tests; installed-prefix proof pending |
-| Cancellation | Owned process-tree termination | Source CLI proof passed; installed-prefix proof pending |
+| Tool discovery | Config/`PATH` precedence and missing-tool failure | Pass from the installed prefix |
+| Cancellation | Owned process-tree termination | Pass from the installed prefix; VICE residue absent |
 
 ## 9. C64U readiness and handoff
 

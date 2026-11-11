@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-11 17:18
-> **Progress**: 15/82 tasks (18%)
+> **Last Updated**: 2026-11-11 21:10
+> **Progress**: 19/82 tasks (23%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -82,17 +82,17 @@ record.
 
 - [x] 2.1.1 Run `yarn install --frozen-lockfile`, `yarn build`, and `yarn typecheck` on clean `linux/x64` — repository root ✅ (completed: 2026-11-11 10:16)
 - [x] 2.1.2 Record the host identity, Node identity, and locked dependency identity — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 10:16)
-- [x] 2.1.3 Run the complete compiler and root suites sequentially; record the exact counts and failures (if any) — `packages/compiler`, root `test/` ✅ (completed: 2026-11-11 17:18; compiler 3,659 passed / 2 skipped; root 6,569 passed / 1 retried / 4 skipped; the single VIC-collision retry passed alone and in the full file)
-  - First full run on 2026-11-11 exposed two release-boundary defects: the CLI returned an explicit `json: false` in unchanged argument objects, and the foundation oracle rejected the required VS Code `Run in VICE` title. Both are fixed under AR-15. The root rerun then exposed a third defect: the 1 MiB metadata cap was applied to every generation artifact and rejected a valid 9.6 MiB `.debug.json`. Metadata-only cap fixed at `c6cc63b3`; the final rerun plus the recorded VIC-collision retry complete this task.
+- [ ] 2.1.3 Run the complete compiler and root suites sequentially; record the exact counts and failures (if any) — `packages/compiler`, root `test/`
+  - Previous run at `c6cc63b3`: compiler 3,659 passed / 2 skipped; root 6,569 passed / 1 retried / 4 skipped. The single VIC-collision retry passed alone and in the full file.
+  - Reopened on 2026-11-11 after `6ff6e293` added tool discovery, which changes the CLI and compiler surface. One final sequential rerun is pending for the new candidate.
 
 ### Step 2.2: Installed Public Path
 
-- [ ] 2.2.1 Pack the compiler, CLI, and language-server tarballs; install them into a clean temporary prefix — temporary prefix outside the repository
-- [ ] 2.2.2 Run `blendc check`, `build`, and fresh `run` from the installed CLI against a frozen project — installed prefix
-- [ ] 2.2.3 Use the installed compiler library and `frontend` entry; confirm no private source path or backend leak — installed prefix
-- [ ] 2.2.4 Start the installed language server and complete initialize, diagnostics, completion, hover, and formatting — installed prefix
-- [ ] 2.2.5 Prove ACME/VICE discovery precedence, exact versions, missing-tool failure, and owned-process cancellation — installed prefix
-  - R9.5 was found unimplemented on 2026-11-11 (AR-16): only `PATH` discovery existed. The tools-file loader, explicit ACME/VICE paths, relative `PATH` resolution, exact probe grammar, and tests are now implemented; this task remains open until the installed-prefix proof runs.
+- [x] 2.2.1 Pack the compiler, CLI, and language-server tarballs; install them into a clean temporary prefix — temporary prefix outside the repository ✅ (completed: 2026-11-11 21:10; 3 tarballs, 9 installed packages, hashes in the release record)
+- [x] 2.2.2 Run `blendc check`, `build`, and fresh `run` from the installed CLI against a frozen project — installed prefix ✅ (completed: 2026-11-11 21:10; check/build success; run launched VICE and cancelled with exit 130 and no residue)
+- [x] 2.2.3 Use the installed compiler library and `frontend` entry; confirm no private source path or backend leak — installed prefix ✅ (completed: 2026-11-11 21:10; both entries resolve inside the prefix, no backend exports, private imports rejected)
+- [x] 2.2.4 Start the installed language server and complete initialize, diagnostics, completion, hover, and formatting — installed prefix ✅ (completed: 2026-11-11 21:10; 92 completion labels, hover, one format edit, one error diagnostic)
+- [x] 2.2.5 Prove ACME/VICE discovery precedence, exact versions, missing-tool failure, and owned-process cancellation — installed prefix ✅ (completed: 2026-11-11 21:10; explicit path wins over empty PATH, invalid path fails without fallback, missing ACME/VICE fail their operation, SIGTERM leaves no `x64sc`)
 
 ### Step 2.3: Host Evidence
 
