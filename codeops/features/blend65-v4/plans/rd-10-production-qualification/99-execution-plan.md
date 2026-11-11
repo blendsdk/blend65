@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-12 00:16
-> **Progress**: 32/82 tasks (39%)
+> **Progress**: 42/82 tasks (51%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -148,19 +148,19 @@ device/runtime results, clean process state.
 
 ### Step 4.1: Language and Assets
 
-- [ ] 4.1.1 Run the complete compiler suite and record the language-family coverage — `packages/compiler`
-- [ ] 4.1.2 Confirm at least one required case per normative family reaches assembled bytes and applicable VICE behavior — `test/rd04/`, `test/rd05/`
-- [ ] 4.1.3 Run the exact asset producer/format fixtures and record the CharPad 3.80/3.88 gap — `test/rd06/`, `docs/releases/v4-production-qualification.md`
-- [ ] 4.1.4 Run the compiler-not-engine workload inspection and record the result — `examples/`, package/binary inspection
-- [ ] 4.1.5 Record complete language-family coverage and any expressiveness gap — `docs/releases/v4-production-qualification.md`
+- [x] 4.1.1 Run the complete compiler suite and record the language-family coverage — `packages/compiler` ✅ (completed: 2026-11-12 00:16; 217 files, 3,683 passed, 2 skipped)
+- [x] 4.1.2 Confirm at least one required case per normative family reaches assembled bytes and applicable VICE behavior — `test/rd04/`, `test/rd05/` ✅ (completed: 2026-11-12 00:16; 397-key validator passes, 379 core plus 18 owned by RD-05/06/07; backend/VICE cases pass)
+- [x] 4.1.3 Run the exact asset producer/format fixtures and record the CharPad 3.80/3.88 gap — `test/rd06/`, `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:16; SpritePad/PSID/Koala/Q-P15/CharPad 3.80 pass; 3.88 producer unavailable and disclosed)
+- [x] 4.1.4 Run the compiler-not-engine workload inspection and record the result — `examples/`, package/binary inspection ✅ (completed: 2026-11-12 00:16; no renderer/mixer/entity/scene/scheduler module in public packages)
+- [x] 4.1.5 Record complete language-family coverage and any expressiveness gap — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:16; one deferred multi-screen sprite-pointer item, issue #140)
 
 ### Step 4.2: Optimizer and Parity
 
-- [ ] 4.2.1 Run the four optimizer modes and record behavior, cost, and resource evidence — `test/rd08/`
-- [ ] 4.2.2 Verify no local selected-objective ratio exceeds 1.0 and every meet-only result links an issue — `test/rd08/`, GitHub issues
-- [ ] 4.2.3 Record the realistic whole-program win for `balanced`, `speed`, and `size` and the `none` direct-lowering identity — `docs/releases/v4-production-qualification.md`
-- [ ] 4.2.4 Record the optimizer parity-debt and linked-issue inventory — `docs/releases/v4-production-qualification.md`
-- [ ] 4.2.5 Verify final debug/evidence identities match the selected artifacts — `test/rd09/`, `docs/releases/v4-production-qualification.md`
+- [x] 4.2.1 Run the four optimizer modes and record behavior, cost, and resource evidence — `test/rd08/` ✅ (completed: 2026-11-12 00:16; selection/saved/acquisition/startup/size suites pass)
+- [x] 4.2.2 Verify no local selected-objective ratio exceeds 1.0 and every meet-only result links an issue — `test/rd08/`, GitHub issues ✅ (completed: 2026-11-12 00:16; RD-08 gates pass, open issues #107–#140 tracked, #96/#134/#137/#138 closed)
+- [x] 4.2.3 Record the realistic whole-program win for `balanced`, `speed`, and `size` and the `none` direct-lowering identity — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:16; saved 709/725, acquisition 943/963, `none` 2,163 bytes)
+- [x] 4.2.4 Record the optimizer parity-debt and linked-issue inventory — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:16)
+- [x] 4.2.5 Verify final debug/evidence identities match the selected artifacts — `test/rd09/`, `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 00:16; build hash and sidecar identities pass)
 
 **Deliverables**: complete-language evidence, asset fixture result, optimizer/mode record,
 compiler-not-engine proof.

@@ -15,7 +15,8 @@ a readiness product, score, or second evidence database.
 | Candidate code commit | `649718ecd7ff7185222d897f546858fc524d3053` |
 | Working tree at freeze | clean at `649718ec`; later commits add documentation and test-evidence support only; product code is unchanged |
 | Compiler version | `0.1.0` |
-| Specification identity | `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b` |
+| Specification corpus | 45 files; `BLEND65-SPEC-4-2ea3decf9362644b657e9d20ffeadb318028615958263147e579bfeeb5aada0e` |
+| Normative specification identity | `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b` (18 normative files) |
 | Expert skill | `2.0.4`; content commit `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15` |
 | Node | `v22.23.1` |
 | TypeScript | `7.0.2` |
@@ -160,10 +161,26 @@ hashes every other artifact and not itself.
 
 | Area | Evidence | Status |
 | ---- | -------- | ------ |
-| Complete language | `packages/compiler` suite and VICE-bearing family cases | Pending |
-| Native assets | RD-06 producer/format fixtures, including CharPad 3.80/3.88 gap disclosure | Pending |
-| Optimizer | RD-08 four-mode behavior, cost, resource, and parity evidence | Pending |
-| Compiler-not-engine | Workload programs and package/binary inspection | Pending |
+| Complete language | 397 normative keys (106 grammar, 102 semantic, 184 diagnostic, 5 conformance); 379 core plus 18 owned by RD-05/06/07; live key validator passes; compiler suite 3,683 passed | Pass |
+| Native assets | SpritePad 3.80 SPD v5, PSID v1–v4, Koala, Q-P15, raw fixtures, and CharPad 3.80 CTM v9 pass; CharPad 3.88 producer is unavailable | Pass with disclosed producer gap |
+| Optimizer | Four modes wired; saved 709/725 payload, acquisition 943/963; `none` remains 2,163 bytes; parity debt is linked to open issues | Pass with linked debt |
+| Compiler-not-engine | Public packages are compiler, CLI, language server, and VS Code only; no renderer, mixer, entity, scene, scheduler, or game-loop module | Pass |
+
+The complete-language ledger covers every named key with no unowned row. The 18 rows marked
+`rd-05`, `rd-06`, or `rd-07` are proved by those closed owners; they are not gaps. The one deferred
+expressiveness item is `v4-multi-screen-sprite-pointer` (`E10273`), owned by `T-27`/issue #140.
+
+Optimizer whole-program results at the final candidate:
+
+| Mode | Whole-program evidence |
+| ---- | ---------------------- |
+| `none` | 2,163-byte baseline, SHA-256 `0417b7da…`, direct lowering |
+| `balanced` | Saved gate: payload 709/725, general 740/745, combined 754/759 |
+| `speed` | Acquisition gate: payload 943/963, general 976/984, combined 990/998, ZP 14/14, stack 6/10 |
+| `size` | Saved size-quality output; 17/17 saved cases |
+
+No untracked meet-only result is claimed. The open optimizer and parity issues (#107–#140) carry
+measured deltas and reopen paths; #96, #134, #137, and #138 are closed with evidence.
 
 ## 6. ACME and VICE results
 
