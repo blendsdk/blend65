@@ -139,6 +139,8 @@ honest boundary and the testing-strategy reconciliation; no oracle was replaced 
 - **VS Code host:** the packaged extension bundle, manifest, fake host, and real CLI child are
   tested. A real VS Code extension-host activation and a VSIX release remain RD-10-owned.
 - **Native hosts:** Windows/macOS discovery and the packaged user workflow remain RD-10-owned.
+- **Physical hardware:** no physical C64 is available. RD-10 runs every runtime test through VICE
+  3.10 `x64sc` and keeps physical-only claims `VICE-verified / hardware-unverified`.
 - **VICE:** the unchanged loader/runtime path remains the RD-07 4/4 `VICE-verified /
   hardware-unverified` evidence. A fresh RD-09 attempt passed 2/4; the other two hit the known
   bounded monitor-startup timeout under concurrent compiler load. RD-09 adds no new emulator
@@ -165,7 +167,9 @@ honest boundary and the testing-strategy reconciliation; no oracle was replaced 
 | `spec/future-considerations.md` | No row expired by RD-09 | Nothing due |
 
 No RD-09 deliverable expired a deferral's stated rationale. RD-10 remains the owner of native
-user-host, VSIX, physical-hardware, and real-drive qualification.
+user-host and VSIX qualification. Physical-hardware and real-drive qualification cannot run in the
+current environment, so RD-10 records them as `Unknown` and keeps the release claim
+`VICE-verified / hardware-unverified`.
 
 ## Roadmap
 

@@ -13,8 +13,8 @@
 
 RD-10 closes the complete Blend65 v4 C64 production boundary. It does not add another compiler
 feature or build a readiness product. It verifies the exact public language, compiler, target,
-asset, loading, optimizer, CLI, language-server, VS Code, ACME, VICE, host, and physical-hardware
-claims already owned by RD-01 through RD-09. A production claim is permitted only when every
+asset, loading, optimizer, CLI, language-server, VS Code, ACME, VICE, and host claims already owned
+by RD-01 through RD-09, and it records the bounded physical-hardware status. A production claim is permitted only when every
 applicable requirement has current evidence through its required endpoint and every remaining
 limitation is bounded, documented, and owned. (AR-002, AR-008, AR-011, AR-024, AR-033)
 
@@ -23,11 +23,20 @@ profile. The user release hosts are Node 22 or newer on Linux x64, Windows x64, 
 macOS x64. Linux is the compiler development and deep C64 qualification host; the other hosts require
 native user-workflow proof at RD-10, not a separate compiler development workflow. RD-02 DEF-1 is
 already closed. VICE 3.10 `x64sc` remains the normal
-automated execution oracle, while exact physical C64 configurations close the profile, timing,
-CIA, SID, banking, and real-drive claims that emulation cannot prove. RD-10 also proves that the
+automated execution oracle. RD-10 also proves that the
 real shared architecture can accept C64 Ultimate differences without claiming that a `c64u` target,
 turbo, REU/DMA, UltiSID, multi-SID, or Ultimate artifact is implemented. It then hands a bounded
 evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR-048)
+
+> **Qualification environment (2026-11-11).** No physical C64, 1541-compatible drive, SID unit, or
+> analogue capture path is available for this candidate. VICE 3.10 `x64sc` is therefore the sole
+> runtime oracle, and every runtime test runs through VICE. Physical-only evidence is recorded as
+> `Unknown` under R10.8; the bounded support statement must say
+> `VICE-verified / hardware-unverified` for every affected profile and must not claim physical
+> timing, analogue SID, serial, real-drive, or silicon-sensitive behavior. R10.21–R10.25 and
+> AC-20–AC-24 define what a future hardware run must prove. For this candidate they resolve to an
+> honest unverified record and a named post-release hardware backlog owner, never to an inferred
+> pass. Reopen those rows when hardware becomes available.
 
 > **Decisions:** AR-002 through AR-005, AR-008 through AR-014, AR-020 through AR-026, AR-029
 > through AR-038, AR-040 through AR-048, and AR-051.
@@ -182,39 +191,44 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   scheduler, mixer, scene manager, or gameplay policy is linked or exposed merely because a
   workload was recognized. (AR-027, AR-037, AR-038)
 
-#### Targeted physical C64 qualification — complexity XL
+#### Physical C64 qualification — conditional on hardware availability — complexity XL
 
-- [ ] **R10.21 — Cover the physical risk dimensions.** Use named base-C64 configurations that
-  collectively cover PAL and later NTSC timing, KERNAL and takeover ownership, and both 6581 and
-  8580 audio. A configuration may cover several dimensions. Run representative KERNAL and takeover
-  artifacts on each video standard and audio fixtures on each SID model. Record C64 model,
-  board/ASSY and relevant chip revisions, ROM hashes, video/power environment, peripherals,
+- [ ] **R10.21 — Cover the physical risk dimensions when hardware is available.** Use named base-C64
+  configurations that collectively cover PAL and later NTSC timing, KERNAL and takeover ownership,
+  and both 6581 and 8580 audio. A configuration may cover several dimensions. Run representative
+  KERNAL and takeover artifacts on each video standard and audio fixtures on each SID model. Record
+  C64 model, board/ASSY and relevant chip revisions, ROM hashes, video/power environment, peripherals,
   artifact hash, setup, expected and actual observations, frame scope where applicable, and
-  deviations. VICE still runs all eight exact profiles; physical QA is targeted rather than an
-  exhaustive cartesian hardware matrix. A C64U compatibility run cannot replace base-C64 evidence.
-  (AR-013, AR-024)
-- [ ] **R10.22 — Target silicon-sensitive behavior.** On the matching units, exercise the exact
-  raster/badline and sprite-DMA timing fixtures, IRQ/NMI/CIA edge cases, unusual banking/ROM/I/O
-  visibility, startup/restore paths, and every enabled undocumented or silicon-sensitive local
-  contract. Any such public contract without its assigned physical result remains
-  `VICE-verified / hardware-unverified` and blocks its production claim. (AR-008, AR-013, AR-024)
-- [ ] **R10.23 — Qualify physical SID behavior within a bounded claim.** On named 6581 and 8580
+  deviations. When no unit is available, record every dimension as `Unknown`, name the post-release
+  hardware backlog owner, and claim no physical coverage. VICE still runs all eight exact profiles;
+  physical QA is targeted rather than an exhaustive cartesian hardware matrix. A C64U compatibility
+  run cannot replace base-C64 evidence. (AR-013, AR-024)
+- [ ] **R10.22 — Target silicon-sensitive behavior when hardware is available.** On the matching
+  units, exercise the exact raster/badline and sprite-DMA timing fixtures, IRQ/NMI/CIA edge cases,
+  unusual banking/ROM/I/O visibility, startup/restore paths, and every enabled undocumented or
+  silicon-sensitive local contract. Without an assigned physical result, each such public contract
+  is stated as `VICE-verified / hardware-unverified` in the support statement and carries a named
+  physical-QA backlog owner. (AR-008, AR-013, AR-024)
+- [ ] **R10.23 — Qualify physical SID behavior when hardware is available.** On named 6581 and 8580
   configurations, play the qualified music-only, integrated music/SFX, SFX-only, and cue/subtune
   fixtures. Verify command/cue selection, start/stop/resume, no stuck voice, and the declared
-  arbitration path; record audible/model-specific deviations. Digital register traces remain the
-  exact behavioral oracle, while listening is bounded analogue compatibility evidence rather than
-  a claim that all SID revisions sound identical. (AR-024, AR-040)
-- [ ] **R10.24 — Qualify the D64 on a real drive path.** On a stock PAL C64 with the pinned KERNAL
-  and a named 1541-compatible drive, test boot, directory visibility, successful and failed loads,
-  exact destination/canary bytes, timing, serial/IRQ behavior, device reuse, and BASIC return.
-  Record the drive model/firmware and media path. The result does not claim hostile-media
-  containment, every drive clone, or every altered disk image. (AR-042 through AR-044)
-- [ ] **R10.25 — Reconcile emulator/hardware disagreement.** Preserve both raw observations. Check
-  artifact and configuration identity first, then classify the difference by CPU, chip revision,
-  timing, analogue behavior, peripheral, emulator model, or compiler defect. Physical evidence
-  governs the named physical configuration; neither one run nor an averaged result becomes a
-  universal silicon claim. A contradiction affecting a required profile blocks release until fixed
-  or the user explicitly narrows the product scope through requirements. (AR-008, AR-024)
+  arbitration path; record audible/model-specific deviations. When unavailable, record analogue SID
+  behavior as `Unknown`; digital register traces remain the exact VICE behavioral oracle and the
+  support statement claims no audible model compatibility. (AR-024, AR-040)
+- [ ] **R10.24 — Qualify the D64 on a real drive path when hardware is available.** On a stock PAL
+  C64 with the pinned KERNAL and a named 1541-compatible drive, test boot, directory visibility,
+  successful and failed loads, exact destination/canary bytes, timing, serial/IRQ behavior, device
+  reuse, and BASIC return. Record the drive model/firmware and media path. When unavailable, record
+  the real-drive path as `Unknown`; the D64 claim remains `VICE-verified / hardware-unverified` and
+  `HLE-010` stays disclosed. The result never claims hostile-media containment, every drive clone,
+  or every altered disk image. (AR-042 through AR-044)
+- [ ] **R10.25 — Reconcile emulator/hardware disagreement when an observation exists.** Preserve
+  both raw observations. Check artifact and configuration identity first, then classify the
+  difference by CPU, chip revision, timing, analogue behavior, peripheral, emulator model, or
+  compiler defect. Physical evidence governs the named physical configuration; neither one run nor
+  an averaged result becomes a universal silicon claim. For a candidate with no hardware, record
+  that emulator/hardware disagreement is untested and keep the VICE result as the only runtime
+  observation. (AR-008, AR-024)
 
 #### Production documentation and release surface — complexity L
 
@@ -280,7 +294,8 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   remain in the conformance ledger; hardware facts remain in the limitation register; C64U-specific
   unknowns belong to `blend65-c64u`. (AR-024, AR-033)
 - [ ] **R10.36 — Require explicit production approval.** Present the bounded support statement,
-  complete closeout record, unresolved limitations/debt, physical evidence, C64U readiness result,
+  complete closeout record, unresolved limitations/debt, physical-evidence status (verified or
+  `Unknown`), C64U readiness result,
   and handoff to the user. Do not mark v4 production-complete until the user explicitly approves
   that exact candidate and claim. Approval authorizes the internal lifecycle transition only; it
   does not authorize pushing, registry/Marketplace publication, tagging, or announcement.
@@ -342,7 +357,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 | Optimization | Correct direct `none`; three frontier-searched modes with two independent oracles, complete costs, expert floor, whole-program wins, and linked debt | A `none` correctness/search-boundary failure or optimized regression/untracked meet blocks that mode |
 | Tooling | Public API/CLI/LSP/VS Code package, trust, cancellation, debug/evidence coherence | Source-tree-only or mocked public path cannot qualify |
 | Hosts/tools | Native Linux x64, Windows x64, macOS arm64/x64 on Node 22 or newer; deterministic discovery, ACME 0.97, VICE 3.10 | Required host/tool unknown blocks that production host |
-| Physical C64 | Targeted PAL/NTSC, KERNAL/takeover, 6581/8580, timing/CIA/banking, and one D64 drive path | Required unverified/contradictory behavior blocks the affected claim |
+| Physical C64 | Targeted PAL/NTSC, KERNAL/takeover, 6581/8580, timing/CIA/banking, and one D64 drive path, or an explicit all-`Unknown` record when no unit exists | Required unverified behavior restricts the affected claim to `VICE-verified / hardware-unverified`; it never inherits a hardware pass |
 | Product boundary | Public package and binary inspection plus self-contained workload fixtures | Any injected game/runtime/future-target surface blocks the bounded claim |
 | C64U readiness | All readiness-table rows pass against real v4 architecture; handoff packet exists | A failed seam is repaired in v4, not handed off as C64U debt |
 | Deferrals/security | Complete disposition scan and security boundary results | An orphaned due item or unresolved critical/major finding blocks closeout |
@@ -368,6 +383,11 @@ resources. Emulator runs remain sequential where required. Windows or macOS resu
 synthesized from another host, emulation, or path-string fixtures.
 
 ### Physical C64 matrix — complexity XL
+
+This matrix specifies a future hardware run. No physical unit is available for the current
+candidate, so every row is recorded `Unknown` in the closeout and the support statement remains
+`VICE-verified / hardware-unverified`. The matrix stays the binding definition for the
+post-release hardware backlog owner.
 
 | Risk dimension | Minimum physical evidence | Focus |
 |---|---|---|
@@ -450,7 +470,8 @@ final candidate boundary:
 4. run the nine bounded VICE profile smokes on each host sequentially;
 5. run the deep integrated C64/device/asset/optimizer/tooling matrix once on the Linux x64 reference
    host;
-6. complete and reconcile the exact physical matrix;
+6. record the physical matrix as verified or all-`Unknown`, and restrict the support statement to
+   the evidence actually observed;
 7. inspect package/product boundaries, parity debt, limitations, and all deferrals;
 8. run the C64U architecture-readiness gate and create the handoff packet; and
 9. freeze the closeout record, rerun only invalidated families, and request explicit production
@@ -468,9 +489,9 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 | RD-01 | Consume one frozen Specification 4 and expert `2.0.0`; requalify changed authority before proceeding. |
 | RD-02 | Consume the clean locked project/package model, compiler-owned output-state rules, immutable generations/current record, and native Linux/Windows paths; qualify the same public model on macOS in RD-10 without reopening RD-02. |
 | RD-03/RD-04 | Reuse M1 and the complete `optimization: none` language/SFA/lowering path without retaining M1's subset as a limit. |
-| RD-05 | Consume eight resident profiles, platform APIs, user-authored workloads, costs, VICE evidence, and physical assignments. |
+| RD-05 | Consume eight resident profiles, platform APIs, user-authored workloads, costs, and VICE evidence; record physical assignments as `Unknown` for this candidate. |
 | RD-06 | Consume exact producer fixtures, adapter identities, composition, Integrator-style refinement, and interval placement. |
-| RD-07 | Consume the one trusted-media KERNAL D64, quiescence/publication, HLE-010, and named real-drive QA. |
+| RD-07 | Consume the one trusted-media KERNAL D64, quiescence/publication, and HLE-010; record the named real-drive QA as `Unknown` for this candidate. |
 | RD-08 | Consume four-mode qualification, independent oracles, full costs, expert-floor results, program wins, and parity debt. |
 | RD-09 | Consume public CLI/LSP/VS Code/debug, independent sidecar schemas, config-or-`PATH` tool discovery, and generation/pinning behavior; qualify the macOS user workflow in RD-10. |
 | `blend65-c64u/RD-01` | Receive passed seam evidence, unknowns, sources, ownership, and a first target-native proof seed—never implementation claims. |
@@ -484,9 +505,10 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 - Every production claim maps to an exact requirement, candidate identity, independent oracle, and
   evidence endpoint. Identical normalized inputs produce identical normalized outputs on both
   production hosts.
-- A required failure, skip, mismatch, stale identity, or physical contradiction blocks only its
-  affected claim but blocks the complete v4 production transition while that claim remains in the
-  mandatory nine-profile scope.
+- A required failure, skip, mismatch, or stale identity blocks only its affected claim but blocks
+  the complete v4 production transition while that claim remains in the mandatory nine-profile
+  scope. An unavailable physical row is recorded as `Unknown` and restricts only physical claims; it
+  is not an observed contradiction.
 - Release evidence is append-only or superseded with explicit lineage; a corrected result never
   rewrites history to imply an earlier candidate passed.
 
@@ -516,7 +538,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 - Supported commands, diagnostics, status, progress, evidence access, and installation guidance are
   available through keyboard-accessible textual surfaces. Color, emulator video, or audio alone
   cannot communicate a pass/failure reason.
-- Manual physical/audio evidence includes a textual setup, expected result, actual result, and
+- Physical/audio evidence, when available, includes a textual setup, expected result, actual result, and
   deviation record so another tester can reproduce the bounded observation.
 
 ---
@@ -562,7 +584,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 | Resident targets | One baseline / eight exact C64 profiles | Eight exact PRG profiles | Qualifies PAL/NTSC, KERNAL/takeover, and 6581/8580 differences honestly. | AR-024 |
 | Disk delivery | PRG only / one qualified D64 profile / general loaders | One PAL/KERNAL/6581 D64 | Delivers large assets without a loader framework. | AR-029, AR-042 |
 | Hosts | Linux only / Linux and Windows / Linux, Windows, macOS | Linux x64, Windows x64, macOS arm64/x64 production | Linux remains the development host; Windows and macOS users require native release qualification. | AR-048, AR-051 |
-| Hardware evidence | VICE only / targeted physical QA / universal hardware matrix | Targeted exact-profile QA | Closes emulator limits while keeping claims bounded to real configurations. | AR-008, AR-024 |
+| Hardware evidence | VICE only / targeted physical QA / universal hardware matrix | VICE-only for this candidate; targeted physical QA backlog | No physical unit is available. Every runtime test runs through VICE 3.10, and every physical claim stays `VICE-verified / hardware-unverified`. | AR-008, AR-024 |
 | C64U timing | Implement in v4 / readiness then successor | Readiness plus owned successor | Keeps C64 production bounded while protecting the next target's architecture. | AR-024, AR-035 |
 | External release | Publish automatically / prepare and request separately | Prepare local packages only | Publication is an outward user-owned action. | AR-021, AR-022 |
 
@@ -671,23 +693,28 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 19. [ ] **AC-19 — Compiler-not-engine boundary:** Package/API/binary inspection and the user-authored
     workload programs prove all named game workloads run without any public or injected renderer,
     entity/state, multiplexer, scrolling, scheduler, mixer, scene, or gameplay system.
-20. [ ] **AC-20 — Targeted physical coverage:** Named base-C64 configurations collectively cover
-    PAL, later NTSC, 6581, and 8580. Representative KERNAL and takeover artifacts run on each video
-    standard, audio fixtures run on both SID models, and every record includes the
-    unit/chip/ROM/setup/artifact/expected/actual/deviation fields. One unit may cover several
+20. [ ] **AC-20 — Physical coverage status:** Either named base-C64 configurations collectively
+    cover PAL, later NTSC, 6581, and 8580 with complete unit/chip/ROM/setup/artifact/expected/actual/
+    deviation records, or the closeout records every physical row as `Unknown`, names the
+    post-release hardware owner, and makes no physical-coverage claim. One unit may cover several
     dimensions; a C64U compatibility run cannot fill a base-C64 row.
-21. [ ] **AC-21 — Physical timing and machine state:** Named raster/badline/sprite-DMA, IRQ/NMI/CIA,
-    unusual banking, startup, and restoration fixtures match their bounded physical expectations on
-    the assigned configurations. Any unresolved required discrepancy blocks the affected profile.
-22. [ ] **AC-22 — Physical SID:** Named 6581 and 8580 runs exercise music-only, music/SFX,
-    SFX-only, and cue/subtune commands with the expected digital trace and recorded bounded listening
-    observations for start/stop/resume/stuck-voice/arbitration behavior.
-23. [ ] **AC-23 — Physical disk path:** A stock PAL C64 and named 1541-compatible drive pass boot,
-    directory, successful/failed load, destination/canary, timing, serial/IRQ, reuse, and BASIC-return
-    observations. The report retains `HLE-010` and makes no hostile-media or all-drive claim.
-24. [ ] **AC-24 — Emulator disagreement:** A seeded VICE-versus-hardware difference preserves both
-    observations, checks identities, receives one bounded classification and owner, and blocks a
-    required unresolved profile rather than averaging or deleting either result.
+21. [ ] **AC-21 — Physical timing and machine state status:** Either named raster/badline/sprite-DMA,
+    IRQ/NMI/CIA, unusual banking, startup, and restoration fixtures match their bounded physical
+    expectations, or the affected contracts are stated as `VICE-verified / hardware-unverified`
+    with a named backlog owner. An unresolved required discrepancy that is actually observed blocks
+    the affected profile.
+22. [ ] **AC-22 — Physical SID status:** Either named 6581 and 8580 runs exercise music-only,
+    music/SFX, SFX-only, and cue/subtune commands with bounded listening observations, or analogue
+    SID behavior is recorded `Unknown`, no audible model compatibility is claimed, and the digital
+    VICE trace remains the behavioral oracle.
+23. [ ] **AC-23 — Physical disk status:** Either a stock PAL C64 and named 1541-compatible drive pass
+    boot, directory, successful/failed load, destination/canary, timing, serial/IRQ, reuse, and
+    BASIC-return observations, or the real-drive path is recorded `Unknown` with `HLE-010` retained
+    and no hostile-media or all-drive claim. The VICE D64 result remains the runtime evidence.
+24. [ ] **AC-24 — Emulator disagreement status:** If a VICE-versus-hardware difference exists, both
+    observations are preserved, identities are checked, and one bounded classification/owner is
+    recorded without averaging. With no hardware, the closeout states that the disagreement is
+    untested and presents only the VICE observation.
 25. [ ] **AC-25 — Production documentation:** Linux, Windows, and macOS install/first-project/tool/CLI/
     VS Code instructions execute as written. Profile, mode, safety, asset, loading, evidence,
     limitation, and unsupported-target documentation matches the final support statement.
@@ -720,6 +747,7 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
     phase-separated duration and peak-memory observations with complete identities and no wall-clock
     or memory threshold that changes pass/fail.
 34. [ ] **AC-34 — Explicit production decision:** The user receives the exact candidate/support
-    statement, evidence record, limitations/debt, physical results, C64U gate, and handoff. The
+    statement, evidence record, limitations/debt, physical-evidence status, C64U gate, and
+handoff. The
     roadmap does not become production-complete without explicit approval, and that approval causes
     no external publication action.
