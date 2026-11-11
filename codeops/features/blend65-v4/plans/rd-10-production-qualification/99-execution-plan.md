@@ -83,7 +83,7 @@ record.
 - [x] 2.1.1 Run `yarn install --frozen-lockfile`, `yarn build`, and `yarn typecheck` on clean `linux/x64` — repository root ✅ (completed: 2026-11-11 10:16)
 - [x] 2.1.2 Record the host identity, Node identity, and locked dependency identity — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-11 10:16)
 - [ ] 2.1.3 Run the complete compiler and root suites sequentially; record the exact counts and failures (if any) — `packages/compiler`, root `test/`
-  - First full run on 2026-11-11 exposed two release-boundary defects: the CLI returned an explicit `json: false` in unchanged argument objects, and the foundation oracle rejected the required VS Code `Run in VICE` title. Both are fixed under AR-15; targeted reruns are green. The complete root rerun is pending.
+  - First full run on 2026-11-11 exposed two release-boundary defects: the CLI returned an explicit `json: false` in unchanged argument objects, and the foundation oracle rejected the required VS Code `Run in VICE` title. Both are fixed under AR-15. The root rerun then exposed a third defect: the 1 MiB metadata cap was applied to every generation artifact and rejected a valid 9.6 MiB `.debug.json`. Metadata-only cap fixed at `c6cc63b3`; the complete compiler/root rerun is in progress.
 
 ### Step 2.2: Installed Public Path
 

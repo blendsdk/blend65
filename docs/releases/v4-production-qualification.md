@@ -1,7 +1,8 @@
 # Blend65 v4 Production Qualification
 
 > **Status**: Qualification in progress — not approved
-> **Candidate code tree**: `b75333c8` (later commits in this qualification add evidence only)
+> **Candidate code tree**: pending final green boundary; qualification-blocking fixes were applied
+> after `b75333c8`
 > **Created**: 2026-11-11
 > **Owning RD**: [RD-10](../codeops/features/blend65-v4/requirements/RD-10-production-qualification-and-c64u-handoff.md)
 
@@ -12,8 +13,8 @@ a readiness product, score, or second evidence database.
 
 | Fact | Value |
 | ---- | ----- |
-| Candidate code commit | `b75333c82916af50e5c4160a3ea2d64385809aa2` |
-| Working tree at freeze | clean (`git status --porcelain` empty) |
+| Candidate code commit | Pending the final green boundary |
+| Working tree at freeze | Pending |
 | Compiler version | `0.1.0` |
 | Specification identity | `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b` |
 | Expert skill | `2.0.4`; content commit `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15` |
@@ -51,13 +52,21 @@ No unresolved critical or major finding remains open from the prerequisite close
 
 | Host | Status | Evidence |
 | ---- | ------ | -------- |
-| `linux/x64` | Install/build/typecheck pass; full test boundary running | `yarn install --frozen-lockfile`, `yarn build --force`, `yarn typecheck --force` (2026-11-11) |
+| `linux/x64` | Install/build/typecheck pass; boundary fixes applied; complete rerun in progress | `yarn install --frozen-lockfile`, `yarn build --force`, `yarn typecheck --force` (2026-11-11) |
 | `win32/x64` | Unknown unless a native host is available | — |
 | `darwin/arm64` | Unknown unless a native host is available | — |
 | `darwin/x64` | Unknown unless a native host is available | — |
 
 Linux ARM64 and Windows ARM64 are best-effort. Hosts below Node 22, 32-bit hosts, and unknown
 architectures are unsupported.
+
+### Qualification-blocking fixes
+
+| Finding | Effect | Fix |
+| ------- | ------ | --- |
+| CLI returned `json: false` in every parsed argument object | Exact RD-08 argument-shape oracles failed | Omit the flag unless `--json` is present (`a00b8407`) |
+| Foundation oracle rejected the required VS Code `Run in VICE` title | RD-02 and RD-09 oracles contradicted; CI red | Foundation oracle allows the product name; toolchain checks remain (AR-15, `a00b8407`) |
+| Publication applied a 1 MiB metadata cap to every artifact | A valid 38,440-instruction build failed on its 9.6 MiB `.debug.json` | Metadata records stay at 1 MiB; generation artifacts allow 64 MiB (`c6cc63b3`) |
 
 ## 4. Profile and artifact matrix
 
