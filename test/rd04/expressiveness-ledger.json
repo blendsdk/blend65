@@ -58,11 +58,11 @@
     {
       "id": "v4-nmi-retained-source-reads",
       "status": "deferred",
-      "sourceForm": "an interrupt function that retains several sampled bytes, or assigns a consuming read to a global/conditional",
+      "sourceForm": "an interrupt function that retains several sampled bytes, declares a single-use local, tests a bare consuming read against zero, masks with a non-constant operand, or assigns a Boolean value from a bit test",
       "diagnostic": "E10245",
-      "reason": "The generated NMI route requires private-home-free reentrancy. Ordinary retained reads need compiler scratch where an expert implementation would not; the compiler fails closed rather than guessing.",
-      "owner": "issue #100",
-      "decision": "RD-05 NMI route; tracked for removal, not a language restriction or recommended source workaround."
+      "reason": "The generated NMI route requires private-home-free reentrancy. These forms still allocate a private home where no register-only sequence is proved; a naive Boolean materialization would also cost eight bytes more than the expert sequence. The compiler fails closed rather than guessing.",
+      "owner": "issue #147",
+      "decision": "Issue #100 delivered the global-assignment and masked-bit-condition forms with zero private storage and expert-equal output. The remaining forms need per-producer flag ownership, a proved Boolean fact, operand-load safety or local-storage elision; tracked for removal, not a language restriction or recommended source workaround."
     }
   ]
 }

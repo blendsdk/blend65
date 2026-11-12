@@ -124,6 +124,36 @@ compiler-owned processor port, VIC-bank or hardware-vector bytes are rejected. T
 startup default NMI entry is compiler-owned; source `setRawNMI` remains deferred under
 `V4-TAKEOVER-F2`.
 
+### NMI consuming reads
+
+A cooperative NMI handler must stay free of private storage, so the compiler keeps a
+single-use consuming read in the accumulator. These forms compile on every cooperative
+profile:
+
+```blend65
+let pendingSources: byte = 0;
+let timerFinished: boolean = false;
+
+// Form 1: assign the consuming read.
+interrupt function onTimer(): void {
+  pendingSources = c64.cia2.readAndClearPendingSources();
+}
+
+// Form 2: branch on one masked bit.
+interrupt function onBit(): void {
+  if ((c64.cia2.readAndClearPendingSources() & sourceTimerA) != 0) {
+    timerFinished = true;
+  }
+}
+```
+
+The read is still exactly one volatile access. A handler that needs a real private home
+still fails `E10245`; that includes several simultaneously retained samples, a local
+variable, a bare `if (read() != 0)` without a proved flag owner, a non-constant mask, and
+a Boolean value assigned from the bit test. The last form is deliberately rejected because
+the only current lowering is eight bytes larger than the expert sequence; issue
+[#147](https://github.com/blendsdk/blend65/issues/147) owns the remaining forms.
+
 ## Qualification
 
 Current evidence is **VICE-verified / hardware-unverified** on the four profiles

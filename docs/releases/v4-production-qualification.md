@@ -167,8 +167,9 @@ The complete-language ledger covers every named key with no unowned row. The non
 identity `BLEND65-SPEC-4-038b70e9…`; the 397-key extraction passes against the live `spec/` tree.
 The 18 rows marked `rd-05`, `rd-06`, or `rd-07` are proved by those closed owners; they are not
 gaps. Two expressiveness items are explicitly deferred: `v4-multi-screen-sprite-pointer` (`E10273`,
-`T-27`/issue #140) and the ordinary retained NMI source reads in
-`v4-nmi-retained-source-reads` (`E10245`, issue #100).
+`T-27`/issue #140) and the remaining NMI source-read forms in
+`v4-nmi-retained-source-reads` (`E10245`, issue #147; issue #100 delivered the assignment and
+masked-bit-condition forms).
 
 Optimizer whole-program results at the final candidate:
 
@@ -377,7 +378,7 @@ installed prefix; library and asset examples are covered by the package and root
 | Source-installed raw NMI | Default raw NMI route verified; source installer deferred because the frozen text withholds the unbounded-NMI exception | `V4-TAKEOVER-F2` |
 | Physical timing, analogue SID, real drive, board/chip revisions | `Unknown` | `V4-HW-1` |
 | Multi-screen sprite pointer | Deferred expressiveness item | `T-27` / issue #140 |
-| Ordinary retained NMI source reads (`E10245`) | Deferred expressiveness/implementation limit | issue #100 |
+| Remaining NMI source-read forms (`E10245`) | Deferred expressiveness/implementation limit; assignment and masked-bit-condition forms delivered | issue #147 |
 | `size` acquisition 66-byte local floor | Tracked measured gap; issue #145 | RD-08 backlog |
 | Open optimizer/parity debt | Linked measured issues #95, #97, #104, #107–#133, #135, #136, #139 | RD-08 backlog |
 | Unused return/argument staging homes | Minor certified-RAM/debug evidence debt; issue #146 | SFA/debug |
@@ -455,7 +456,8 @@ time of writing.
 RD-10 did not expire a prior deferral's stated rationale. Every remaining item has a concrete
 owner: takeover delivered under `V4-TAKEOVER-1` with residual findings `V4-TAKEOVER-F2/F3`;
 physical evidence `V4-HW-1`; Windows/macOS `V4-HOST-1`; CharPad
-3.88 and GoatTracker `V4-ASSET-1`/`T-19`; E10245 issue #100; multi-screen pointer issue #140;
+3.88 and GoatTracker `V4-ASSET-1`/`T-19`; remaining E10245 NMI source-read forms issue #147
+(issue #100 delivered); multi-screen pointer issue #140;
 `size` gap issue #145; staging-home debt issue #146; open optimizer debt issues #95, #97, #104,
 #107–#133, #135, #136, #139; C64U future pressure in the handoff packet. No orphaned owner
 remains.

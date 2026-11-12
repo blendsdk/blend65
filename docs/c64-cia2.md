@@ -69,12 +69,13 @@ Programs with no generated NMI installation gain no such entry precondition.
 The current cooperative NMI contract accepts only generated paths proved reentrant
 without invocation-private RAM or zero-page storage. This is a final storage proof,
 not a syntax ban on locals or helpers. The compiler reports E10245 when that proof
-fails, and E10278 when device ownership or handback state is unproved. Ordinary
-assignment of the consuming read to a global, and a simple conditional after that
-read, currently hit E10245 in the generated NMI route. The compiler needs private
-scratch where an expert implementation would not. These are implementation
-limitations to remove, not language restrictions or recommended source workarounds;
-[issue #100](https://github.com/blendsdk/blend65/issues/100) owns their repair.
+fails, and E10278 when device ownership or handback state is unproved. Assignment of
+the consuming read to a global and a masked bit condition on that read now build with
+no private storage. A bare zero test, a non-constant mask, a local variable, several
+retained samples, and a Boolean value assigned from the bit test still hit E10245. Those
+are implementation limitations to remove, not language restrictions or recommended
+source workarounds; [issue #147](https://github.com/blendsdk/blend65/issues/147) owns
+their repair.
 
 Qualification is **VICE-verified / hardware-unverified**. Unrestricted external
 nesting and aggregate stack capacity, retained-firmware completion, and hard timing

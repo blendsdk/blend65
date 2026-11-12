@@ -455,6 +455,27 @@ export function selectRegisterForwarding(
           forwardedRegisterValues.add(delivered);
         }
       }
+      // A sole platform byte read can stay in A for an adjacent constant-mask
+      // bitwise operation. The ALU instruction consumes A directly and a constant
+      // operand needs no load, so only the private retention pair disappears. The
+      // read itself, its order and its volatile effect are unchanged.
+      if (
+        producer.kind === "platform" &&
+        producer.result !== null &&
+        typeBytes(producer.type) === 1 &&
+        singleUseValues.has(producer.result)
+      ) {
+        const consumer = nextMachineOperation(block, index);
+        if (
+          consumer?.kind === "binary" &&
+          ["&", "|", "^"].includes(consumer.operator) &&
+          typeBytes(consumer.type) === 1 &&
+          ((consumer.left === producer.result && constantValues.has(consumer.right)) ||
+            (consumer.right === producer.result && constantValues.has(consumer.left)))
+        ) {
+          forwardedRegisterValues.add(producer.result);
+        }
+      }
       if (
         ((producer.kind === "memory-read" &&
           producer.width === 1 &&

@@ -8,10 +8,10 @@ goals. This checkout is the clean v4 rebuild, not the operational v3 compiler.
 
 The language specification is frozen at **4.0**. The v4 compiler implements the complete
 normative language, C64 KERNAL profiles, native assets, loadable D64 delivery, the optimizer,
-the CLI, the language server, and the VS Code extension. The v4 production release is qualified
+the CLI, the language server, and the VS Code extension. The v4 production candidate is qualified
 on `linux/x64` for the eight resident PRG profiles
 (`c64-{pal|ntsc}-prg-{kernal|takeover}-{6581|8580}`) and the one `c64-pal-d64-kernal-6581`
-profile; the four takeover rows are the post-approval `V4-TAKEOVER-1` update. Runtime evidence
+profile; the four takeover rows were approved on 2026-11-12. Runtime evidence
 is **VICE-verified / hardware-unverified**; no physical C64, drive, or SID unit is available.
 
 The release does **not** claim source-installed raw NMI (`V4-TAKEOVER-F2`), raw-MMIO
