@@ -670,6 +670,8 @@ export interface MachineLoweringInput {
   readonly placement?: StoragePlacement;
   /** Complete original logical declarations; selected demand is closed after lowering. */
   readonly logicalStorage?: StorageInventory;
+  /** NMI local bindings omitted before allocation; lowering only realises this exact set. */
+  readonly elidedLocalBindings?: ReadonlySet<string>;
   /** Size mode may place ordinary function homes in spare zero-page bytes. */
   readonly preferZeroPage?: boolean;
   /** Exact selected target facts. */

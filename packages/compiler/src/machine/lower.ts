@@ -133,6 +133,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
       ...input,
       retainedInterrupts: retained,
       ...provisionalLoweringStorage(input),
+      elidedLocalBindings: initialInventory.elidedLocalBindings ?? new Set<string>(),
     });
     const routeDepths = interruptRouteDepths(input.program, contexts);
     const routeSlots = new Map<SemanticOperation, Set<string>>();
@@ -206,7 +207,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
         const contextInput =
           rootAware && context.activationRoot !== undefined
             ? Object.freeze({
-                ...input,
+                ...loweringInput,
                 retainedInterrupts: retained,
                 ...provisionalLoweringStorage(input, context.activationRoot),
               })

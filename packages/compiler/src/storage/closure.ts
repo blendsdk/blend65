@@ -102,6 +102,9 @@ export function storageInventoryHash(inventory: StorageInventory): string {
   return hashRecords([
     ...inventory.requests.map(requestFingerprint),
     ...inventory.results.map(resultFingerprint),
+    ...(inventory.elidedLocalBindings === undefined
+      ? []
+      : [...inventory.elidedLocalBindings].sort()),
   ]);
 }
 
@@ -420,6 +423,9 @@ export function closeStorage(
       program: initial.program,
       requests: Object.freeze(requests),
       results: initial.results,
+      ...(initial.elidedLocalBindings === undefined
+        ? {}
+        : { elidedLocalBindings: initial.elidedLocalBindings }),
     });
     const selectedPeak =
       (inventory.program.interruptRoutes?.length ?? 0) > 0 &&

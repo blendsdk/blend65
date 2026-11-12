@@ -190,36 +190,9 @@ function main(): void { setNMI(&handler); restoreNMI(); }`,
       `module Game;
 import { setNMIExclusive, restoreNMI } from c64.system;
 import { readAndClearPendingSources } from c64.cia2;
-let pending: byte = 0;
-interrupt function handler(): void {
-  let sample: byte = readAndClearPendingSources();
-  pending = sample;
-}
-function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
-      `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-import { readAndClearPendingSources } from c64.cia2;
 let flag: boolean = false;
 interrupt function handler(): void {
-  if (readAndClearPendingSources() != 0) { flag = true; }
-}
-function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
-      `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-import { readAndClearPendingSources } from c64.cia2;
-let maskValue: byte = 1;
-let flag: boolean = false;
-interrupt function handler(): void {
-  if ((readAndClearPendingSources() & maskValue) != 0) { flag = true; }
-}
-function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
-      `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-import { readAndClearPendingSources } from c64.cia2;
-import { sourceTimerA } from c64.cia1;
-let flag: boolean = false;
-interrupt function handler(): void {
-  flag = (readAndClearPendingSources() & sourceTimerA) != 0;
+  flag = (readAndClearPendingSources() & 2) != 0;
 }
 function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
     ],

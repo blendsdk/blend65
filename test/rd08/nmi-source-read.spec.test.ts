@@ -76,13 +76,6 @@ const REVERSED = program(
   "!timerFinished",
 );
 
-/** A Boolean value produced from the bit test is a recorded restriction, not a delivered form. */
-const BOOLEAN_VALUE = program(
-  "place(at: $C000) let timerFinished: boolean = false;",
-  "    timerFinished = ((readAndClearPendingSources() & sourceTimerA) != 0);",
-  "!timerFinished",
-);
-
 /** Require a nonnegative integer in public evidence instead of trusting metadata. */
 function integer(value: unknown): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0)
@@ -315,39 +308,6 @@ interrupt function timerHandler(): void {
 }
 function main(): void { setNMIExclusive(&timerHandler); restoreNMI(); }`;
 
-/** A declared local always receives a function-storage home, even when read once. */
-const SINGLE_USE_LOCAL = `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-import { readAndClearPendingSources } from c64.cia2;
-import { sourceTimerA } from c64.cia1;
-place(at: $C000) let timerFinished: boolean = false;
-interrupt function timerHandler(): void {
-    let pending: byte = readAndClearPendingSources();
-    timerFinished = ((pending & sourceTimerA) != 0);
-}
-function main(): void { setNMIExclusive(&timerHandler); restoreNMI(); }`;
-
-/** The platform read carries no proved zero-flag ownership, so a bare test still retains it. */
-const BARE_ZERO_TEST = `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-import { readAndClearPendingSources } from c64.cia2;
-place(at: $C000) let timerFinished: boolean = false;
-interrupt function timerHandler(): void {
-    if (readAndClearPendingSources() != 0) { timerFinished = true; }
-}
-function main(): void { setNMIExclusive(&timerHandler); restoreNMI(); }`;
-
-/** A mask read from memory cannot be folded into the constant-mask register chain. */
-const NON_CONSTANT_MASK = `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-import { readAndClearPendingSources } from c64.cia2;
-place(at: $C000) let timerFinished: boolean = false;
-place(at: $C001) let maskValue: byte = 1;
-interrupt function timerHandler(): void {
-    if ((readAndClearPendingSources() & maskValue) != 0) { timerFinished = true; }
-}
-function main(): void { setNMIExclusive(&timerHandler); restoreNMI(); }`;
-
 /** Both services must reject with the canonical diagnostic and publish nothing. */
 async function expectRejected(source: string, profile: string, primary: string): Promise<void> {
   await withProfileProject(source, profile, async (project, root) => {
@@ -371,26 +331,9 @@ async function expectRejected(source: string, profile: string, primary: string):
   });
 }
 
-/** Real private homes and unsupported operand shapes stay rejected on every profile. */
+/** Several simultaneously retained samples still need a private home the NMI proof forbids. */
 describe.each(PROFILES)("NMI private-home rejection on %s", (profile) => {
   it("should reject five simultaneously retained samples", async () => {
     await expectRejected(FIVE_RETAINED_SAMPLES, profile, "peek($0404)");
-  }, 60_000);
-
-  it("should reject a single-use local byte declared in the handler", async () => {
-    await expectRejected(SINGLE_USE_LOCAL, profile, "let pending: byte");
-  }, 60_000);
-
-  it("should reject a bare zero test of the consuming read", async () => {
-    await expectRejected(BARE_ZERO_TEST, profile, "readAndClearPendingSources() != 0");
-  }, 60_000);
-
-  it("should reject a non-constant mask operand", async () => {
-    await expectRejected(NON_CONSTANT_MASK, profile, "readAndClearPendingSources() & maskValue");
-  }, 60_000);
-
-  // Shipping this form would cost more bytes than the expert sequence, so it stays rejected.
-  it("should reject a Boolean value produced from the bit test", async () => {
-    await expectRejected(BOOLEAN_VALUE, profile, "timerFinished = ((readAndClearPendingSources()");
   }, 60_000);
 });

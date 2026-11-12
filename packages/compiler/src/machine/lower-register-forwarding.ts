@@ -7,6 +7,10 @@ import type {
 import { canReceiveByteArgumentInA } from "./lower-call.js";
 import type { MachineBlock } from "./machine-types.js";
 import { typeBytes } from "./lower-state.js";
+import {
+  directVolatileByteRead,
+  forwardableVolatileByteRead,
+} from "../semantic/direct-byte-reads.js";
 export { selectByteWindows } from "./byte-value-availability.js";
 
 /**
@@ -102,6 +106,10 @@ export function selectRegisterForwarding(
 ): {
   /** Values whose sole adjacent consumer can use their still-live registers. */
   readonly forwardedRegisterValues: ReadonlySet<string>;
+  /** Values whose newly established Z may serve an adjacent closed zero test. */
+  readonly zeroFlagValues: ReadonlySet<string>;
+  /** Values proved to hold exactly `0` or `1` from a `mask == 1` bit test. */
+  readonly booleanValues: ReadonlySet<string>;
   /** Nonwrapping additions consumed only by their next stride-one indexed access. */
   readonly byteOrdinalAdditions: ReadonlySet<string>;
   /** Proved `constant + byte index` addresses consumed only by their next raw read. */
@@ -140,6 +148,7 @@ export function selectRegisterForwarding(
         constantValues.add(operation.result);
         const literal = literals.get(operation.operand);
         if (literal !== undefined) literals.set(operation.result, literal);
+        if (zeroValues.has(operation.operand)) zeroValues.add(operation.result);
       }
     }
   }
@@ -163,6 +172,21 @@ export function selectRegisterForwarding(
     index: number,
   ): SemanticBlock["operations"][number] | undefined =>
     block.operations[nextMachineOperationIndex(block, index)];
+  /** Skip an address-only byte load: it emits no instruction before its ALU consumer. */
+  const nextDataOperationIndex = (block: SemanticBlock, index: number): number => {
+    let next = nextMachineOperationIndex(block, index);
+    for (;;) {
+      const candidate = block.operations[next];
+      if (
+        candidate === undefined ||
+        !("result" in candidate) ||
+        candidate.result === null ||
+        !directByteLoad(block, candidate.result)
+      )
+        return next;
+      next = nextMachineOperationIndex(block, next);
+    }
+  };
   /** Follow one code-free conversion to the value whose use-site bound was proved. */
   const convertedSource = (block: SemanticBlock, value: string): string => {
     const definition = block.operations.find(
@@ -170,6 +194,20 @@ export function selectRegisterForwarding(
     );
     return definition?.kind === "convert" ? definition.operand : value;
   };
+  /** An empty-path byte load is a direct ALU operand; it never loads A itself. */
+  const directByteLoad = (block: SemanticBlock, value: string): boolean => {
+    const definition = block.operations.find(
+      (operation) => "result" in operation && operation.result === value,
+    );
+    return (
+      definition?.kind === "load" &&
+      definition.place.path.length === 0 &&
+      typeBytes(definition.type) === 1
+    );
+  };
+  /** A direct ALU byte load must also be single-use so no staging request can own it. */
+  const directByteLoadOperand = (block: SemanticBlock, value: string): boolean =>
+    directByteLoad(block, value) && singleUseValues.has(value);
   /**
    * A write index must survive value evaluation in its own home. Constants and
    * loads qualify; computed temporaries may be overlaid by the value temporary.
@@ -188,6 +226,8 @@ export function selectRegisterForwarding(
     return false;
   };
   const forwardedRegisterValues = new Set<string>();
+  const zeroFlagValues = new Set<string>();
+  const booleanValues = new Set<string>();
   const byteOrdinalAdditions = new Set<string>();
   const ordinalRawReads = new Map<string, { readonly base: number; readonly index: string }>();
   const ordinalRawWrites = new Map<string, { readonly base: number; readonly index: string }>();
@@ -465,12 +505,13 @@ export function selectRegisterForwarding(
         typeBytes(producer.type) === 1 &&
         singleUseValues.has(producer.result)
       ) {
-        const consumer = nextMachineOperation(block, index);
+        const consumer = block.operations[nextDataOperationIndex(block, index)];
         if (
           consumer?.kind === "binary" &&
           ["&", "|", "^"].includes(consumer.operator) &&
           typeBytes(consumer.type) === 1 &&
-          ((consumer.left === producer.result && constantValues.has(consumer.right)) ||
+          ((consumer.left === producer.result &&
+            (constantValues.has(consumer.right) || directByteLoadOperand(block, consumer.right))) ||
             (consumer.right === producer.result && constantValues.has(consumer.left)))
         ) {
           forwardedRegisterValues.add(producer.result);
@@ -483,22 +524,74 @@ export function selectRegisterForwarding(
           (producer.kind === "load" && typeBytes(producer.type) === 1) ||
           (producer.kind === "binary" &&
             typeBytes(producer.type) === 1 &&
-            ["&", "|", "^"].includes(producer.operator))) &&
+            ["&", "|", "^"].includes(producer.operator)) ||
+          (producer.kind === "platform" &&
+            producer.result !== null &&
+            typeBytes(producer.type) === 1 &&
+            directVolatileByteRead(producer.capability))) &&
+        "result" in producer &&
+        producer.result !== null &&
         singleUseValues.has(producer.result)
       ) {
-        const consumer = nextMachineOperation(block, index);
+        const consumerIndex = nextMachineOperationIndex(block, index);
+        const consumer = block.operations[consumerIndex];
         if (
           consumer?.kind === "binary" &&
           ["==", "!="].includes(consumer.operator) &&
           consumer.left === producer.result &&
           zeroValues.has(consumer.right) &&
-          nextMachineOperation(block, block.operations.indexOf(consumer)) === undefined &&
+          nextMachineOperation(block, consumerIndex) === undefined &&
           block.terminator.kind === "branch" &&
           block.terminator.condition === consumer.result
         ) {
           // This consumer needs both A and the producer's freshly established Z.
           // A-only forwarding to a store does not grant this flag ownership.
           forwardedRegisterValues.add(producer.result);
+          zeroFlagValues.add(producer.result);
+        }
+      }
+      // A sole `binary & constant one` result is exactly 0 or 1. When its only
+      // consumer is a zero test and that test's value has one A consumer, the
+      // comparison is the identity (or one EOR #1 for `== 0`).
+      if (
+        producer.kind === "binary" &&
+        producer.operator === "&" &&
+        typeBytes(producer.type) === 1 &&
+        producer.result !== null &&
+        singleUseValues.has(producer.result) &&
+        (literals.get(producer.left) === 1n || literals.get(producer.right) === 1n)
+      ) {
+        const consumerIndex = nextMachineOperationIndex(block, index);
+        const consumer = block.operations[consumerIndex];
+        if (
+          consumer?.kind === "binary" &&
+          ["==", "!="].includes(consumer.operator) &&
+          consumer.left === producer.result &&
+          zeroValues.has(consumer.right) &&
+          singleUseValues.has(consumer.result)
+        ) {
+          const followingIndex = nextMachineOperationIndex(block, consumerIndex);
+          const following = block.operations[followingIndex];
+          const takesA =
+            (following?.kind === "store" &&
+              typeBytes(following.type) === 1 &&
+              following.value === consumer.result &&
+              following.place.path.length === 0) ||
+            (following?.kind === "memory-write" &&
+              following.width === 1 &&
+              following.value === consumer.result &&
+              constantValues.has(following.address)) ||
+            (following === undefined &&
+              block.terminator.kind === "return" &&
+              block.terminator.value === consumer.result);
+          if (
+            takesA ||
+            (block.terminator.kind === "branch" && block.terminator.condition === consumer.result)
+          ) {
+            booleanValues.add(producer.result);
+            forwardedRegisterValues.add(producer.result);
+            if (takesA) forwardedRegisterValues.add(consumer.result);
+          }
         }
       }
       if (
@@ -580,12 +673,7 @@ export function selectRegisterForwarding(
           producer.kind !== "memory-read" &&
           producer.kind !== "bcd" &&
           (producer.kind !== "call" || typeBytes(producer.type) !== 1) &&
-          (producer.kind !== "platform" ||
-            (producer.capability !== "c64.input.readJoystick1" &&
-              producer.capability !== "c64.input.readJoystick2" &&
-              producer.capability !== "c64.cia2.readAndClearPendingSources" &&
-              producer.capability !== "c64.vic.readAndClearSpriteSpriteCollisions" &&
-              producer.capability !== "c64.vic.readAndClearSpriteBackgroundCollisions"))) ||
+          (producer.kind !== "platform" || !forwardableVolatileByteRead(producer.capability))) ||
         producer.result === null ||
         !singleUseValues.has(producer.result)
       ) {
@@ -829,6 +917,8 @@ export function selectRegisterForwarding(
   }
   return {
     forwardedRegisterValues,
+    zeroFlagValues,
+    booleanValues,
     byteOrdinalAdditions,
     ordinalRawReads,
     ordinalRawWrites,

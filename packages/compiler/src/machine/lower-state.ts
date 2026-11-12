@@ -125,6 +125,12 @@ export interface FunctionLoweringState {
   readonly materializedValues: ReadonlySet<string>;
   /** One-use A/AX results consumed by the next instruction-producing operation. */
   readonly forwardedRegisterValues: Set<string>;
+  /** Values whose fresh Z may be consumed by an adjacent closed zero test. */
+  readonly zeroFlagValues: Set<string>;
+  /** Values proved to hold exactly `0` or `1` from a `mask == 1` bit test. */
+  readonly booleanValues: Set<string>;
+  /** NMI local bindings whose request was omitted before SFA allocation. */
+  readonly elidedLocalBindings: ReadonlySet<string>;
   /** Exact sole adjacent indexed additions selected from that access's unsigned proof. */
   readonly byteOrdinalAdditions?: ReadonlySet<string>;
   /** Proved `constant + byte index` raw-read addresses; absent without size observers. */

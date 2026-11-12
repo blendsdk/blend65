@@ -58,11 +58,11 @@
     {
       "id": "v4-nmi-retained-source-reads",
       "status": "deferred",
-      "sourceForm": "an interrupt function that retains several sampled bytes, declares a single-use local, tests a bare consuming read against zero, masks with a non-constant operand, or assigns a Boolean value from a bit test",
+      "sourceForm": "an interrupt function that retains several sampled bytes, or assigns a Boolean value from a bit test whose constant mask is not 1",
       "diagnostic": "E10245",
-      "reason": "The generated NMI route requires private-home-free reentrancy. These forms still allocate a private home where no register-only sequence is proved; a naive Boolean materialization would also cost eight bytes more than the expert sequence. The compiler fails closed rather than guessing.",
-      "owner": "issue #147",
-      "decision": "Issue #100 delivered the global-assignment and masked-bit-condition forms with zero private storage and expert-equal output. The remaining forms need per-producer flag ownership, a proved Boolean fact, operand-load safety or local-storage elision; tracked for removal, not a language restriction or recommended source workaround."
+      "reason": "The cooperative NMI route requires private-home-free reentrancy. A Boolean from a mask other than 1 is 0 or mask, not 0/1, and materializing it is larger than the expert sequence. Several simultaneously retained samples genuinely need private storage across volatile reads. The compiler fails closed rather than guessing.",
+      "owner": "issue #148",
+      "decision": "Issue #147 delivered the bare zero test, Boolean mask-one value and inverse, directly addressable mask, and single-use local forms with zero private storage and expert-equal output. The remaining Boolean form needs a separate cost proof; multi-sample storage is a documented contract boundary, not compiler-invented scratch."
     }
   ]
 }

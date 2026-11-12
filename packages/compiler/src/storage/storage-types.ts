@@ -115,6 +115,8 @@ export interface StorageInventory {
   readonly requests: readonly StorageRequest[];
   /** Result ABI decisions in semantic function order. */
   readonly results: readonly FunctionResultLocation[];
+  /** NMI local bindings whose request was omitted before allocation. */
+  readonly elidedLocalBindings?: ReadonlySet<string>;
 }
 
 /** One inclusive address window available to SFA. */

@@ -10,6 +10,7 @@ import {
   interruptRetainedBlocks,
 } from "../semantic/interrupt-context-facts.js";
 import { valueLifetimes } from "../semantic/value-lifetimes.js";
+import { nmiLocalElisionKey, nmiRegisterOnlyLocals } from "../semantic/nmi-register-locals.js";
 import type { SemanticPosition, ValueLifetime, WholeProgram } from "../semantic/whole-program.js";
 import type { ExecutionDomain } from "../semantic/interrupt-domains.js";
 import type {
@@ -337,6 +338,7 @@ export function inventoryStorage(
     : "ram";
   const requests: StorageRequest[] = [];
   const results: FunctionResultLocation[] = [];
+  const elidedLocalBindings = new Set<string>();
   const functions = new Map(
     program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
   );
@@ -360,6 +362,7 @@ export function inventoryStorage(
         [bindingIdentityKey(binding.function), bindingIdentityKey(binding.local)] as const,
     ),
   );
+  const elisionExcluded = new Set([...globalKeys, ...new Set(returnedLocals.values())]);
 
   for (const functionId of program.reachableFunctions) {
     const source = functions.get(bindingIdentityKey(functionId));
@@ -409,6 +412,8 @@ export function inventoryStorage(
                 );
         if (blocks.length === 0) continue;
         const fn = Object.freeze({ ...source, blocks });
+        const elidedLocals =
+          domain === "nmi" ? nmiRegisterOnlyLocals(fn, elisionExcluded) : new Map();
         const lifetimes = proof === undefined ? program.lifetimes : valueLifetimes(fn);
         if (fn.result.kind === "array" || fn.result.kind === "struct") {
           const id = valueRequestId(
@@ -505,6 +510,10 @@ export function inventoryStorage(
         }
         for (const [key, local] of locals) {
           if (returnedLocals.get(bindingIdentityKey(fn.id)) === key) continue;
+          if (elidedLocals.has(key)) {
+            elidedLocalBindings.add(nmiLocalElisionKey("nmi", activationRoot, key));
+            continue;
+          }
           requests.push(
             Object.freeze({
               id: bindingRequestId(fn.id, "local", local.id, domain, activationRoot),
@@ -731,5 +740,8 @@ export function inventoryStorage(
     program,
     requests: Object.freeze(requests),
     results: Object.freeze(results),
+    ...(elidedLocalBindings.size === 0
+      ? {}
+      : { elidedLocalBindings: Object.freeze(elidedLocalBindings) }),
   });
 }

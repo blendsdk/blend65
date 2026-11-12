@@ -133,26 +133,47 @@ profile:
 ```blend65
 let pendingSources: byte = 0;
 let timerFinished: boolean = false;
+let maskValue: byte = 1;
 
-// Form 1: assign the consuming read.
+// Assign the consuming read.
 interrupt function onTimer(): void {
   pendingSources = c64.cia2.readAndClearPendingSources();
 }
 
-// Form 2: branch on one masked bit.
+// Branch directly on a zero or nonzero read.
+interrupt function onAny(): void {
+  if (c64.cia2.readAndClearPendingSources() != 0) { timerFinished = true; }
+}
+
+// Branch on one masked bit with a constant or directly addressable mask.
 interrupt function onBit(): void {
   if ((c64.cia2.readAndClearPendingSources() & sourceTimerA) != 0) {
     timerFinished = true;
   }
+  if ((c64.cia2.readAndClearPendingSources() & maskValue) != 0) {
+    timerFinished = true;
+  }
+}
+
+// A mask-one bit test is already a Boolean value, including its inverse.
+interrupt function onBoolean(): void {
+  timerFinished = (c64.cia2.readAndClearPendingSources() & 1) != 0;
+  timerFinished = (c64.cia2.readAndClearPendingSources() & 1) == 0;
+}
+
+// A single-use local with an adjacent consumer stays in the accumulator.
+interrupt function onLocal(): void {
+  let sample: byte = c64.cia2.readAndClearPendingSources();
+  pendingSources = sample;
 }
 ```
 
 The read is still exactly one volatile access. A handler that needs a real private home
-still fails `E10245`; that includes several simultaneously retained samples, a local
-variable, a bare `if (read() != 0)` without a proved flag owner, a non-constant mask, and
-a Boolean value assigned from the bit test. The last form is deliberately rejected because
-the only current lowering is eight bytes larger than the expert sequence; issue
-[#147](https://github.com/blendsdk/blend65/issues/147) owns the remaining forms.
+still fails `E10245`; that includes several simultaneously retained samples and a Boolean
+value from a bit test whose constant mask is not `1` (the masked value is `0` or `mask`,
+not `0`/`1`). Those are tracked by
+[#148](https://github.com/blendsdk/blend65/issues/148); the multi-sample rejection is a
+contract boundary, not compiler-invented scratch.
 
 ## Qualification
 

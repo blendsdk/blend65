@@ -120,6 +120,8 @@ export function lowerFunction(
   );
   const {
     forwardedRegisterValues,
+    zeroFlagValues,
+    booleanValues,
     byteOrdinalAdditions,
     ordinalRawReads,
     ordinalRawWrites,
@@ -160,6 +162,9 @@ export function lowerFunction(
     ),
     materializedValues,
     forwardedRegisterValues: new Set(forwardedRegisterValues),
+    zeroFlagValues: new Set(zeroFlagValues),
+    booleanValues: new Set(booleanValues),
+    elidedLocalBindings: input.elidedLocalBindings ?? new Set<string>(),
     byteOrdinalAdditions,
     ...(input.observerEvidence === true && input.optimizationFacts !== undefined
       ? { ordinalRawReads, ordinalRawWrites }

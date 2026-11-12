@@ -2,6 +2,7 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { scalarWarning } from "../frontend/constants.js";
 import type { SemanticBlock, SemanticOperation } from "../semantic/operations.js";
 import type { InterruptRoute } from "../semantic/whole-program.js";
+import { nmiLocalElisionKey } from "../semantic/nmi-register-locals.js";
 import { lowerConversion } from "./lower-conversion.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import { lowerMemoryRead, lowerMemoryWrite } from "./lower-memory.js";
@@ -203,6 +204,25 @@ export function lowerOperation(
   if (operation.kind === "load") {
     if (operation.place.path.length === 0) {
       state.loadOrigins.set(operation.result, bindingIdentityKey(operation.place.root));
+      if (
+        state.elidedLocalBindings.has(
+          nmiLocalElisionKey(
+            state.interruptDepth.domain,
+            state.interruptDepth.activationRoot,
+            bindingIdentityKey(operation.place.root),
+          ),
+        )
+      ) {
+        // The inventory omitted this local's home. Its only store was elided and
+        // the direct read is still in A; the single consumer can use it directly.
+        state.values.set(
+          operation.result,
+          Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
+        );
+        state.forwardedRegisterValues.add(operation.result);
+        state.zeroFlagValues.add(operation.result);
+        return Object.freeze([]);
+      }
     }
     const width = typeBytes(operation.type);
     let source: LoweredValue;
@@ -252,6 +272,25 @@ export function lowerOperation(
       return Object.freeze([]);
     if (aggregateSource !== undefined) {
       return lowerAggregatePlaceCopy(operation, aggregateSource, state);
+    }
+    if (
+      operation.place.path.length === 0 &&
+      state.elidedLocalBindings.has(
+        nmiLocalElisionKey(
+          state.interruptDepth.domain,
+          state.interruptDepth.activationRoot,
+          bindingIdentityKey(operation.place.root),
+        ),
+      )
+    ) {
+      // The only store of this NMI local is the initializer whose value is
+      // already in A. The home was omitted before allocation; emit nothing.
+      if (value.kind !== "register" || value.registers !== "a" || value.bytes !== 1)
+        throw loweringFailure(
+          "Elided NMI local store is not the direct-read initializer",
+          operation.span,
+        );
+      return Object.freeze([]);
     }
     if (operation.place.path.length > 0) {
       return lowerAggregateStore(operation, value, state);
@@ -357,8 +396,19 @@ export function lowerOperation(
         right.bytes === 1 &&
         right.value === 0 &&
         state.forwardedRegisterValues.has(operation.left) &&
+        state.zeroFlagValues.has(operation.left) &&
         state.branchConditions.has(operation.result) &&
         !state.materializedValues.has(operation.result);
+      const booleanIdentity =
+        (operation.operator === "==" || operation.operator === "!=") &&
+        left.kind === "register" &&
+        left.registers === "a" &&
+        left.bytes === 1 &&
+        right.kind === "constant" &&
+        right.bytes === 1 &&
+        right.value === 0 &&
+        state.booleanValues.has(operation.left) &&
+        state.materializedValues.has(operation.result);
       lowered = readOwnsZero
         ? Object.freeze({
             instructions: Object.freeze([]),
@@ -368,7 +418,30 @@ export function lowerOperation(
               usesFlag: "z" as const,
             }),
           })
-        : lowerComparison(operation, left, right, state);
+        : booleanIdentity
+          ? Object.freeze({
+              instructions: Object.freeze(
+                operation.operator === "=="
+                  ? [
+                      machineInstruction(
+                        state.input.profile.cpu,
+                        "eor",
+                        "immediate",
+                        Object.freeze({ kind: "immediate", value: 1 }),
+                        [],
+                        operation.span,
+                      ),
+                    ]
+                  : [],
+              ),
+              result: Object.freeze({
+                kind: "register" as const,
+                registers: "a" as const,
+                bytes: 1,
+                signed: false,
+              }),
+            })
+          : lowerComparison(operation, left, right, state);
     } else if (operation.operator === "+" || operation.operator === "-") {
       lowered = lowerArithmetic(operation, left, right, state);
     } else if (["&", "|", "^"].includes(operation.operator)) {
