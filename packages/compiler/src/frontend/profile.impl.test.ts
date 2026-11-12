@@ -131,13 +131,13 @@ describe("frontend profile integration", () => {
     expect(summary).toMatchObject({ operationEffects: [], opaque: false });
   });
 
-  it("rejects a schema-valid profile without a declaration environment", () => {
+  it("selects the raw declaration environment for a schema-valid takeover profile", () => {
     const result = analyzeProject(
       snapshot("module Game; function main(): void {}", "c64-pal-prg-takeover-6581"),
     );
 
-    expect(result.kind).toBe("error");
-    if (result.kind !== "error") throw new Error(`Expected error, got ${result.kind}`);
-    expect(result.diagnostics.map(({ code }) => code)).toEqual(["E10279"]);
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error(JSON.stringify(result));
+    expect(result.program.profile?.id).toBe("c64-pal-prg-takeover-6581");
   });
 });

@@ -214,12 +214,21 @@ function hardwareStackPeak(
       (!Number.isInteger(profile.hardwareStackReserve) || profile.hardwareStackReserve < 0)) ||
     (profile.interruptStackBytes !== undefined &&
       (!Number.isInteger(profile.interruptStackBytes) || profile.interruptStackBytes < 0)) ||
+    (profile.defaultIrqStackBytes !== undefined &&
+      (!Number.isInteger(profile.defaultIrqStackBytes) || profile.defaultIrqStackBytes < 0)) ||
+    (profile.defaultNmiStackBytes !== undefined &&
+      (!Number.isInteger(profile.defaultNmiStackBytes) || profile.defaultNmiStackBytes < 0)) ||
     (profile.startupStackBytes !== undefined &&
       (!Number.isInteger(profile.startupStackBytes) || profile.startupStackBytes < 0))
   ) {
     return null;
   }
   const startup = Math.max(profile.startupStackBytes ?? 0, startupStack?.transientPeakBytes ?? 0);
+  const hasSourceIrqRoute =
+    (inventory.program.interruptRoutes ?? []).some(({ sink }) => sink.domain === "irq") === true;
+  const defaultSystem =
+    (hasSourceIrqRoute ? 0 : (profile.defaultIrqStackBytes ?? 0)) +
+    (profile.defaultNmiStackBytes ?? 0);
   if (
     (inventory.program.interruptRoutes?.length ?? 0) > 0 &&
     profile.interruptStackBytes === undefined
@@ -234,7 +243,12 @@ function hardwareStackPeak(
         inventory.requests,
         startupStack?.heldBytes ?? 0,
       );
-    return { ...peak, total: peak.program + peak.system };
+    return {
+      ...peak,
+      system: peak.system + defaultSystem,
+      total: peak.program + peak.system + defaultSystem,
+      route: Object.freeze([...peak.route, ...(defaultSystem > 0 ? ["default-interrupt"] : [])]),
+    };
   }
   const routes = hardwareCallRoutes(inventory, helperCalls, [], startupStack?.heldBytes ?? 0);
   if (!Number.isFinite(routes.program.bytes) || !Number.isFinite(routes.interrupt.bytes))
@@ -243,13 +257,17 @@ function hardwareStackPeak(
     routes.program,
     Object.freeze({ bytes: startup, route: Object.freeze(["startup"]) }),
   );
-  const system = Math.max(routes.interrupt.bytes, profile.interruptStackBytes ?? 0);
+  const system = Math.max(routes.interrupt.bytes, profile.interruptStackBytes ?? 0) + defaultSystem;
   const total = program.bytes + system;
   const result = Object.freeze({
     total,
     program: program.bytes,
     system,
-    route: Object.freeze([...program.route, ...routes.interrupt.route]),
+    route: Object.freeze([
+      ...program.route,
+      ...routes.interrupt.route,
+      ...(defaultSystem > 0 ? ["default-interrupt"] : []),
+    ]),
   });
   return result;
 }

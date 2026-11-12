@@ -7,7 +7,7 @@ import { fakeTool } from "../../test-support/fake-tool.js";
 import { launchVice, probeVice } from "./vice.js";
 
 describe("closed emulator selection and bounded cleanup", () => {
-  it.each(["c64-pal", "c64-pal-prg-takeover-6581", "c64-ntsc-prg-kernal-8580;exit", ""])(
+  it.each(["c64-pal", "c64-pal-prg-takeover-9999", "c64-ntsc-prg-kernal-8580;exit", ""])(
     "should reject runtime identity %j before invoking an executable",
     async (profile) => {
       // Node is a real executable which would fail at runtime if VICE flags reached it.

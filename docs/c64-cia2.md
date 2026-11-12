@@ -79,8 +79,10 @@ limitations to remove, not language restrictions or recommended source workaroun
 Qualification is **VICE-verified / hardware-unverified**. Unrestricted external
 nesting and aggregate stack capacity, retained-firmware completion, and hard timing
 deadlines are not proved. The timer operations do not touch the ports or their
-direction registers. Keyboard sharing is separate unfinished work; the four
-takeover profiles are deferred under `V4-TAKEOVER-1`.
+direction registers. Keyboard sharing is separate unfinished work. The four
+takeover profiles now execute their raw startup, default raw IRQ/NMI routes,
+banking and normal return; source-installed raw NMI and the typed CIA2 NMI
+ownership that depends on it remain deferred under `V4-TAKEOVER-F2`.
 
 ## Startup bank and normal return
 

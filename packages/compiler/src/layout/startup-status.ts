@@ -7,7 +7,12 @@ import type { TargetProfile } from "../target/profile.js";
 export const C64_STARTUP_STATE_ID = "platform.startup-state";
 
 /** Compact forms require display independence; stored status is a pressure-only construction. */
-export type C64StartupPolicy = "full" | "compact-unrolled" | "compact-looped" | "compact-stored";
+export type C64StartupPolicy =
+  | "full"
+  | "compact-unrolled"
+  | "compact-looped"
+  | "compact-stored"
+  | "takeover";
 
 /** Full display ownership also records the incoming hardware-stack pointer. */
 const STARTUP_STATE = Object.freeze({
@@ -73,8 +78,18 @@ const STORED_STARTUP_STATE = Object.freeze({
   bytes: 7,
 });
 
+/** Raw takeover needs the caller/register state and the two owned port bytes only. */
+const TAKEOVER_STARTUP_STATE = Object.freeze({
+  ...STARTUP_STATE,
+  cpuDirection: 5,
+  cpuPort: 6,
+  cia2Direction: 7,
+  bytes: 8,
+});
+
 /** Return CPU-independent save offsets for one exact startup construction. */
 export function startupStateLayout(policy: C64StartupPolicy) {
+  if (policy === "takeover") return TAKEOVER_STARTUP_STATE;
   return policy === "compact-stored"
     ? STORED_STARTUP_STATE
     : policy === "full"
@@ -114,7 +129,9 @@ export function startupStateInstruction(
  * @returns Platform state layout, ordered fragments and actual platform stack demand.
  */
 export function createStartupStatus(cpu: TargetProfile["cpu"], policy: C64StartupPolicy) {
-  const compact = policy !== "full";
+  const takeover = policy === "takeover";
+  const compact =
+    policy === "compact-unrolled" || policy === "compact-looped" || policy === "compact-stored";
   const stored = policy === "compact-stored";
   const held = compact && !stored;
   const state = startupStateLayout(policy);
@@ -127,7 +144,7 @@ export function createStartupStatus(cpu: TargetProfile["cpu"], policy: C64Startu
           startupStateInstruction(cpu, "sty", state.y),
         ]),
     machineInstruction(cpu, "php", "implied", null),
-    ...(compact ? [machineInstruction(cpu, "sei", "implied", null)] : []),
+    ...(compact || takeover ? [machineInstruction(cpu, "sei", "implied", null)] : []),
     ...(held
       ? []
       : [

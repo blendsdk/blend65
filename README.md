@@ -8,14 +8,16 @@ goals. This checkout is the clean v4 rebuild, not the operational v3 compiler.
 
 The language specification is frozen at **4.0**. The v4 compiler implements the complete
 normative language, C64 KERNAL profiles, native assets, loadable D64 delivery, the optimizer,
-the CLI, the language server, and the VS Code extension. The production candidate is qualified
-on `linux/x64` for the four KERNAL PRG profiles (`c64-{pal|ntsc}-prg-kernal-{6581|8580}`) and the
-one `c64-pal-d64-kernal-6581` profile. Runtime evidence is **VICE-verified / hardware-unverified**;
-no physical C64, drive, or SID unit is available.
+the CLI, the language server, and the VS Code extension. The v4 production release is qualified
+on `linux/x64` for the eight resident PRG profiles
+(`c64-{pal|ntsc}-prg-{kernal|takeover}-{6581|8580}`) and the one `c64-pal-d64-kernal-6581`
+profile; the four takeover rows are the post-approval `V4-TAKEOVER-1` update. Runtime evidence
+is **VICE-verified / hardware-unverified**; no physical C64, drive, or SID unit is available.
 
-The release does **not** claim the four takeover profiles (`V4-TAKEOVER-1`), native Windows or
-macOS hosts (`V4-HOST-1`), physical timing/analogue/drive behavior (`V4-HW-1`), C64U target
-support (handoff only), CharPad 3.88 producer evidence, or the GoatTracker 2.77 adapter. See the
+The release does **not** claim source-installed raw NMI (`V4-TAKEOVER-F2`), raw-MMIO
+interrupt source containment (`V4-TAKEOVER-F3`), native Windows or macOS hosts
+(`V4-HOST-1`), physical timing/analogue/drive behavior (`V4-HW-1`), C64U target support
+(handoff only), CharPad 3.88 producer evidence, or the GoatTracker 2.77 adapter. See the
 [release record](docs/releases/v4-production-qualification.md) for the exact support statement and
 the [v4 roadmap](codeops/features/blend65-v4/00-roadmap.md) for current ownership.
 

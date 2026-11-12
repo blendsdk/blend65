@@ -102,7 +102,11 @@ export function lowerPlatformOperation(
           ({ capability }) => capability === sourceOperation.capability,
         );
         const domain =
-          sink?.domain ?? (sourceOperation.capability === "c64.system.restoreIRQ" ? "irq" : "nmi");
+          sink?.domain ??
+          (sourceOperation.capability === "c64.system.restoreIRQ" ||
+          sourceOperation.capability === "c64.system.restoreRawIRQ"
+            ? "irq"
+            : "nmi");
         const program = state.input.program;
         const atOperation = interruptDepthAt(state.interruptDepth, sourceOperation, program);
         const before = atOperation[domain];

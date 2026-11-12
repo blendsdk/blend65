@@ -5,9 +5,11 @@ It does not provide a game loop, input manager or gameplay framework.
 
 ## C64 input
 
-The four cooperative C64 profiles currently supported by this library are
+The `c64.input` library is qualified on the four cooperative C64 profiles:
 `c64-pal-prg-kernal-6581`, `c64-pal-prg-kernal-8580`, `c64-ntsc-prg-kernal-6581` and
-`c64-ntsc-prg-kernal-8580`. Other target identities are not implied.
+`c64-ntsc-prg-kernal-8580`. The four takeover profiles are executable for raw startup,
+banking and raw IRQ, but this NMI-based input library is not claimed there while source
+raw NMI remains deferred under `V4-TAKEOVER-F2`. Other target identities are not implied.
 
 The ordinary input API is a saved observation plus pure queries:
 
@@ -92,6 +94,36 @@ installed compiler packages; you do not copy the library into your project.
 saved/acquisition gates pass, with the remaining 66-byte size acquisition gap tracked in
 [issue #145](https://github.com/blendsdk/blend65/issues/145).
 
+## C64 interrupt ownership
+
+Cooperative profiles expose the KERNAL CINV/NMINV installers and restores. Takeover
+profiles replace that map with the raw IRQ sink:
+
+```blend65
+module Game;
+import { setRawIRQ, restoreRawIRQ } from c64.system;
+
+interrupt function onIRQ(): void {
+  // Every path must consume or fully disable the enabled CIA1 source.
+  let pending: byte = c64.cia1.readAndClearPendingSources();
+}
+
+function main(): void {
+  setRawIRQ(&onIRQ);
+  // ... application work ...
+  restoreRawIRQ();
+}
+```
+
+The compiler owns both hardware vectors from startup. A source raw IRQ handler is
+installed inside an IRQ-masked transaction and must acknowledge every enabled CIA1
+source; a conditional or early-return path that can skip the acknowledgement fails with
+`E10278`. A full `disableInterruptSources($1F)` is accepted only on a nonreturning path,
+because takeover has no cooperative stock-CIA1 handback. Direct writes to the
+compiler-owned processor port, VIC-bank or hardware-vector bytes are rejected. The
+startup default NMI entry is compiler-owned; source `setRawNMI` remains deferred under
+`V4-TAKEOVER-F2`.
+
 ## Qualification
 
 Current evidence is **VICE-verified / hardware-unverified** on the four profiles
@@ -101,5 +133,6 @@ paths and NMI-link results. The live returning-NMI quality path, genuine
 STOP/RESTORE and pressed-contact acquisition remain partial/Unknown; see the
 closeout. Physical hardware remains `Unknown` under `V4-HW-1`, Windows/macOS
 native user-release qualification is not claimed, and the RD-08 saved/acquisition
-gates now pass at 709/725 and 943/963. Takeover profiles are deferred under
-`V4-TAKEOVER-1`.
+gates now pass at 709/725 and 943/963. The four takeover profiles execute raw
+startup, banking and the raw IRQ sink; this NMI-based input library is not claimed
+there while source-installed raw NMI remains deferred under `V4-TAKEOVER-F2`.

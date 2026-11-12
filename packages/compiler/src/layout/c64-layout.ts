@@ -143,6 +143,17 @@ function addScreenTail(
   });
 }
 
+/** Fill one loaded gap with zero bytes. */
+function addLoadedFill(intervals: C64LayoutInterval[], start: number, end: number): boolean {
+  return addInterval(intervals, {
+    id: `fill.${start.toString(16)}`,
+    kind: "fill",
+    start,
+    end,
+    bytes: Object.freeze(new Array<number>(end - start + 1).fill(0)),
+  });
+}
+
 /** Rebuild loaded code intervals and gap fill after post-layout function compaction. */
 function finalizeCompactedIntervals(
   intervals: readonly C64LayoutInterval[],
@@ -190,19 +201,8 @@ function finalizeCompactedIntervals(
   if (loaded.length === 0) return null;
   let nextLoaded = loaded[0]!.end + 1;
   for (const interval of loaded.slice(1)) {
-    if (interval.start > nextLoaded) {
-      if (
-        !addInterval(result, {
-          id: `fill.${nextLoaded.toString(16)}`,
-          kind: "fill",
-          start: nextLoaded,
-          end: interval.start - 1,
-          bytes: Object.freeze(new Array<number>(interval.start - nextLoaded).fill(0)),
-        })
-      ) {
-        return null;
-      }
-    }
+    if (interval.start > nextLoaded && !addLoadedFill(result, nextLoaded, interval.start - 1))
+      return null;
     nextLoaded = Math.max(nextLoaded, interval.end + 1);
   }
   return Object.freeze(
@@ -239,7 +239,6 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     end: 0x080c,
     bytes: stubBytes,
   });
-
   const startupBlocks = input.program.startup.blocks;
   const entryIndex = startupBlocks.findIndex(({ label }) => label === "startup.entry");
   const restoreIndex = startupBlocks.findIndex(({ label }) => label === "startup.restore");
@@ -474,7 +473,10 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     origin: input.profile.packager.startupAddress,
     blocks: Object.freeze([...placedEntry, ...placedRestore]),
   });
-  const expectedStartupState = createC64StartupStateData(input.program.c64Startup);
+  const expectedStartupState = createC64StartupStateData(
+    input.program.c64Startup,
+    input.profile.machine.ownership,
+  );
   const suppliedStartupState = input.program.data.find(({ id }) => id === C64_STARTUP_STATE_ID);
   if (
     suppliedStartupState !== undefined &&
@@ -744,19 +746,8 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     .sort((left, right) => left.start - right.start);
   let nextLoaded = loadedBeforeFill[0]!.end + 1;
   for (const interval of loadedBeforeFill.slice(1)) {
-    if (interval.start > nextLoaded) {
-      const fillBytes = Object.freeze(new Array<number>(interval.start - nextLoaded).fill(0));
-      if (
-        !addInterval(intervals, {
-          id: `fill.${nextLoaded.toString(16)}`,
-          kind: "fill",
-          start: nextLoaded,
-          end: interval.start - 1,
-          bytes: fillBytes,
-        })
-      )
-        return Object.freeze({ kind: "error", reason: "fill-conflict", objectId: interval.id });
-    }
+    if (interval.start > nextLoaded && !addLoadedFill(intervals, nextLoaded, interval.start - 1))
+      return Object.freeze({ kind: "error", reason: "fill-conflict", objectId: interval.id });
     nextLoaded = interval.end + 1;
   }
 

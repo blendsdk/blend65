@@ -401,7 +401,9 @@ export function simultaneousIRQStackPeak(
         } else if (operation.kind === "platform") {
           const site = sourceKey(operation.span);
           const installation = installationTokens.get(site);
-          const restores = operation.capability === "c64.system.restoreIRQ";
+          const restores =
+            operation.capability === "c64.system.restoreIRQ" ||
+            operation.capability === "c64.system.restoreRawIRQ";
           if (installation !== undefined || restores) {
             // PHP/PHA precede SEI in the existing vector update. The previous
             // handler can therefore overlap those two saves; the new handler

@@ -113,15 +113,17 @@ remains `interactive-unverified`, matching the CLI's own run status.
 | Foundation oracle rejected the required VS Code `Run in VICE` title | RD-02 and RD-09 oracles contradicted; CI red | Foundation oracle allows the product name; toolchain checks remain (AR-15, `a00b8407`) |
 | Publication applied a 1 MiB metadata cap to every artifact | A valid 38,440-instruction build failed on its 9.6 MiB `.debug.json` | Metadata records stay at 1 MiB; generation artifacts allow 64 MiB (`c6cc63b3`) |
 | RD-09 R9.5 tools-file discovery was missing | The CLI and services used `PATH` only, so R10.13 could not be proven | Added schema-1 `tools.jsonc`, explicit ACME/VICE paths, relative `PATH` resolution, exact probes, and tests (AR-16/AR-17) |
-| Four takeover profiles are not executable | RD-10's eight-profile matrix cannot be claimed | Defer under `V4-TAKEOVER-1`; claim narrows to four KERNAL profiles plus D64 (AR-18) |
+| Four takeover profiles were not executable at the original `bb10e0d1` approval | RD-10's eight-profile matrix could not be claimed at that candidate | Resolved after approval under `V4-TAKEOVER-1`: all four IDs now build and pass sequential VICE; the original approval remains historical and the new rows are bounded as recorded in section 13 |
 | D64 opt-in suite referenced missing and longer images that it never generated | Two of four runtime cases could not start VICE | Added reproducible variant generation in `test/rd07/d64-runtime-fixture.ts`; 4/4 pass |
 | Publication metadata bound was not applied to `.build.json` and cleanup reads | An untrusted `out/` tree could force much larger reads | `.build.json` uses the 1 MiB record bound; cleanup checks the size; escaping VS Code `assetPaths` are rejected (SA-001/SA-002) |
 
 ## 4. Profile and artifact matrix
 
-Nine manifest profile IDs are recognized. Five are executable for this candidate: the four KERNAL
-resident profiles and one D64. The four takeover IDs are not executable by the current compiler and
-are recorded `Unknown` under `V4-TAKEOVER-1`.
+Nine manifest profile IDs are recognized. All nine are executable after the takeover update: the
+four KERNAL resident profiles, the four raw-takeover resident profiles, and one D64. The takeover
+rows were added after the original `bb10e0d1` approval under `V4-TAKEOVER-1`; their bounded status is
+the same `VICE-verified / hardware-unverified`. The takeover artifact hashes below are for the
+qualified runtime-fixture source, not the smaller empty-program smoke build.
 
 ```text
 c64-pal-prg-kernal-6581
@@ -141,10 +143,10 @@ c64-pal-d64-kernal-6581
 | `c64-pal-prg-kernal-8580` | Pass; PRG SHA-256 `f9f4557be9b15f9c9408c016dbdafe260fd80f33b4db50267406d82390a0f279` | Pass: VIC-II 6569, SID 8580, KERNAL rev 3, caller return `$E147` | `VICE-verified / hardware-unverified` |
 | `c64-ntsc-prg-kernal-6581` | Pass; PRG SHA-256 `70b021355770fb462b1c8fdf34f1ec2bafa89fbbd4684cb702a81fa1d1d1a78b` | Pass: VIC-II 6567, SID 6581, KERNAL rev 3, caller return `$E147` | `VICE-verified / hardware-unverified` |
 | `c64-ntsc-prg-kernal-8580` | Pass; PRG SHA-256 `273dfee5e30210447ea97b07b82c7260f769a8e547ff2b6dbc6f5176b3c7f4a1` | Pass: VIC-II 6567, SID 8580, KERNAL rev 3, caller return `$E147` | `VICE-verified / hardware-unverified` |
-| `c64-pal-prg-takeover-6581` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
-| `c64-pal-prg-takeover-8580` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
-| `c64-ntsc-prg-takeover-6581` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
-| `c64-ntsc-prg-takeover-8580` | Not executable | Not run | `Unknown` — `V4-TAKEOVER-1` |
+| `c64-pal-prg-takeover-6581` | Pass; PRG SHA-256 `70cb56efc9e424086d241f4a85b805c9f93af155727dae27e0f74d4959a539ed` | Pass: VIC-II 6569, SID 6581, raw IRQ/NMI vectors, `$05` mapping, default IRQ and NMI entries, caller return `$E147` | `VICE-verified / hardware-unverified` |
+| `c64-pal-prg-takeover-8580` | Pass; PRG SHA-256 `a6e10a359a45c07905bbb2783c5a71d84a85cecc242f1998d9f2e8bc465d2982` | Pass: VIC-II 6569, SID 8580, raw IRQ/NMI vectors, `$05` mapping, default IRQ and NMI entries, caller return `$E147` | `VICE-verified / hardware-unverified` |
+| `c64-ntsc-prg-takeover-6581` | Pass; PRG SHA-256 `1ddb14d8d0b336bee15eb9d2601ab35e44960d28b26a0719be38f983aa6133c9` | Pass: VIC-II 6567, SID 6581, raw IRQ/NMI vectors, `$05` mapping, default IRQ and NMI entries, caller return `$E147` | `VICE-verified / hardware-unverified` |
+| `c64-ntsc-prg-takeover-8580` | Pass; PRG SHA-256 `4e554f61405114f10f80db866758e7a6f04dbc3b1e3dc0442c823703ba894743` | Pass: VIC-II 6567, SID 8580, raw IRQ/NMI vectors, `$05` mapping, default IRQ and NMI entries, caller return `$E147` | `VICE-verified / hardware-unverified` |
 | `c64-pal-d64-kernal-6581` | Pass; 174,848-byte D64, SHA-256 `29f7e22559979cd1242bf81609f2027b7b378b09435c495280228a2ed99bbd0f` | Pass: success+canary, missing-unit false, longer-overwrite false, fresh BASIC `READY.` after screen clear | `VICE-verified / hardware-unverified` |
 
 Artifact inventory: exactly one literal-name primary PRG or D64 plus `.asm`, `.labels`,
@@ -363,15 +365,16 @@ No security case produced an outside file, process, or network effect.
 ### Docs reconciliation and examples
 
 `docs/tooling.md`, `docs/platform-libraries.md`, `docs/loadable-assets.md`, and `docs/c64-cia2.md`
-now match the qualified surface: four KERNAL profiles, D64, `tools.jsonc`, local VSIX, and the
-takeover/physical/host unknowns. Every `blendc` example was exercised from the installed prefix;
-library and asset examples are covered by the package and root suites.
+now match the qualified surface: four KERNAL profiles, four takeover profiles, D64, `tools.jsonc`,
+local VSIX, and the physical/host/producer unknowns. Every `blendc` example was exercised from the
+installed prefix; library and asset examples are covered by the package and root suites.
 
 ### Deferrals and limitations
 
 | Item | Status | Owner |
 | ---- | ------ | ----- |
-| Four takeover profiles | Deferred; no runtime claim | `V4-TAKEOVER-1` |
+| Four takeover profiles | Delivered; four-profile VICE matrix passes, normal return and source raw IRQ verified | `V4-TAKEOVER-1` |
+| Source-installed raw NMI | Default raw NMI route verified; source installer deferred because the frozen text withholds the unbounded-NMI exception | `V4-TAKEOVER-F2` |
 | Physical timing, analogue SID, real drive, board/chip revisions | `Unknown` | `V4-HW-1` |
 | Multi-screen sprite pointer | Deferred expressiveness item | `T-27` / issue #140 |
 | Ordinary retained NMI source reads (`E10245`) | Deferred expressiveness/implementation limit | issue #100 |
@@ -389,8 +392,10 @@ library and asset examples are covered by the package and root suites.
 
 > **Status: VICE-verified / hardware-unverified.**
 
-Blend65 v4 candidate `bb10e0d116d19a1d96f169a09d14f02ff0daa0f8` is production-qualified on
-`linux/x64` for:
+Blend65 v4 is production-qualified on `linux/x64` for the surface below. The original
+candidate `bb10e0d116d19a1d96f169a09d14f02ff0daa0f8` covered four KERNAL PRG profiles plus
+the D64; the four takeover rows are the post-approval `V4-TAKEOVER-1` update recorded in
+section 13. The qualified surface is:
 
 - the compiler library (root, `frontend`, and `tools` entries), the `blendc` CLI
   (`check`, `build`, `run`, `evidence`), the language server, and the local VS Code VSIX
@@ -403,7 +408,8 @@ Blend65 v4 candidate `bb10e0d116d19a1d96f169a09d14f02ff0daa0f8` is production-qu
   matched-ABI and 66-byte `size` acquisition debt remain tracked;
 - ACME 0.97 assembly, `tools.jsonc` schema-1 discovery, local package tarballs, and the eight-file
   build evidence;
-- the four KERNAL PRG profiles `c64-{pal|ntsc}-prg-kernal-{6581|8580}` and the one
+- the eight resident PRG profiles
+  `c64-{pal|ntsc}-prg-{kernal|takeover}-{6581|8580}` and the one
   `c64-pal-d64-kernal-6581` profile;
 - the native asset handlers exercised by the release fixtures: SpritePad SPD v5, PSID v1–v4,
   Koala, Q-P15, raw data, and CharPad CTM v9; CharPad 3.88 producer evidence and the GoatTracker
@@ -416,8 +422,9 @@ interactive exit remains `interactive-unverified`; only the launch, owned cancel
 no-residue behavior are qualified.
 
 The statement does **not** claim: physical C64 timing, analogue SID behavior, real drive or serial
-behavior, board/chip revisions, or emulator/hardware agreement (`V4-HW-1`); the four takeover
-profiles (`V4-TAKEOVER-1`); Windows x64 or macOS arm64/x64 native hosts (`V4-HOST-1`); Linux ARM64
+behavior, board/chip revisions, or emulator/hardware agreement (`V4-HW-1`); source-installed raw NMI
+(`V4-TAKEOVER-F2`) or raw-MMIO interrupt source containment (`V4-TAKEOVER-F3`); Windows x64 or
+macOS arm64/x64 native hosts (`V4-HOST-1`); Linux ARM64
 or Windows ARM64 support; C64U target support (only the discovery handoff exists); local
 matched-ABI optimizer parity, the 66-byte `size` acquisition floor, CharPad 3.88, or the
 GoatTracker 2.77 adapter; a game engine, renderer, runtime, mixer, scheduler, asset plugin
@@ -446,7 +453,8 @@ time of writing.
 ### Deferral-expiry scan
 
 RD-10 did not expire a prior deferral's stated rationale. Every remaining item has a concrete
-owner: takeover `V4-TAKEOVER-1`; physical evidence `V4-HW-1`; Windows/macOS `V4-HOST-1`; CharPad
+owner: takeover delivered under `V4-TAKEOVER-1` with residual findings `V4-TAKEOVER-F2/F3`;
+physical evidence `V4-HW-1`; Windows/macOS `V4-HOST-1`; CharPad
 3.88 and GoatTracker `V4-ASSET-1`/`T-19`; E10245 issue #100; multi-screen pointer issue #140;
 `size` gap issue #145; staging-home debt issue #146; open optimizer debt issues #95, #97, #104,
 #107–#133, #135, #136, #139; C64U future pressure in the handoff packet. No orphaned owner
@@ -458,3 +466,76 @@ Approved by the user on 2026-11-12. The exact candidate `bb10e0d1` and the bound
 section 11 are approved. This approval is a production transition only; it does not authorize a
 push, NPM/Marketplace publication, release tag, signing, or announcement. The named debt and
 `Unknown` rows remain owned as recorded.
+
+## 13. Takeover profile update
+
+This section records the post-approval delivery of `V4-TAKEOVER-1`. It does not rewrite the
+historical `bb10e0d1` approval; it extends the qualified surface under the same bounded evidence
+rules and leaves every physical row `Unknown`. The takeover implementation commit is recorded by
+the [CodeOps closeout](../../codeops/features/blend65-v4/plans/rd-05-takeover-profiles/08-closeout.md)
+after the final checkpoint.
+
+### 13.1 Delivered behavior
+
+The four `c64-{pal|ntsc}-prg-takeover-{6581|8580}` identities now select a raw ownership
+constructor. Application execution runs with BASIC/KERNAL execution absent, I/O visible, RAM at
+`$E000-$FFFF` exposed, and the compiler owning both hardware vectors. Startup:
+
+1. saves A/X/Y, status, stack pointer, `$0000`, `$0001` and `$DD02`;
+2. captures every borrowed BASIC zero-page byte;
+3. writes complete default IRQ/NMI vectors into underlying RAM while ROM still supplies the read
+   path;
+4. performs the single owned latch change to `$05` under mask `$07`;
+5. selects VIC bank zero through the owned CIA2 direction bits;
+6. enables IRQs and runs initializers then `main`.
+
+The default IRQ entry preserves A, reads CIA1 ICR once, reads VIC `$D019` once and writes the
+observed bits back before `RTI`. The default NMI entry uses `BIT $DD0D` to consume CIA2 pending
+state without changing A, then `RTI`; its entry is placed at low byte `$47`. A normal return
+restores `$DD02`, borrowed bytes, `$0001`, `$0000`, status, registers and stack pointer and
+executes `RTS` to BASIC. The finite stack proof includes the always-reachable default NMI
+frame (3 bytes) and, while no source IRQ route replaces it, the default IRQ frame (4 bytes);
+a source raw-IRQ route adds the default NMI frame to its selected route peak.
+
+`c64.system.setRawIRQ`/`restoreRawIRQ` install and remove a source handler with the fixed compiler
+save/restore/`RTI` wrapper (12 output bytes, 37 cycles plus body, six stack bytes). A raw IRQ handler
+must consume or fully disable every enabled CIA1 source on **every path** before installation;
+otherwise the build fails `E10278`. The raw IRQ install writes both `$FFFE/$FFFF` bytes inside the
+existing IRQ-masked transaction and the restore writes the exact saved predecessor back. Direct
+source writes to the compiler-owned processor port, VIC-bank or hardware-vector bytes fail
+`E10278`.
+
+The prescribed `$05` mapping exposes RAM at `$A000-$BFFF` as well as `$E000-$FFFF`; the full frozen
+`$0801-$CFFF` range remains available for code, data, default entries and SFA. A VICE read/write
+probe under the running `$05` mapping confirmed the RAM view.
+
+### 13.2 Runtime matrix
+
+The takeover VICE matrix runs one fresh artifact per identity, sequentially, in the pinned VICE
+3.10 `x64sc` with the exact 901227-03/BASIC/chargen ROM hashes from section 2. Each case observes
+the startup entry, the `$05` mapping, both raw vectors, the default IRQ entry (stock CIA1 Timer A),
+the default NMI entry (monitor-injected CIA2 Timer A), `main`, the restore block and the caller
+return. The NMI case also confirms A is unchanged from the interrupted value at the handler's
+`RTI`. The returning epilogue restores the exact `$0000/$0001/$DD02` bytes, the zero-page fixture
+byte and the processor/stack state.
+
+| Profile | Runtime observation | Status |
+| ------- | ------------------- | ------ |
+| `c64-pal-prg-takeover-6581` | 6569 / 6581 / KERNAL rev 3; vectors, `$05`, default IRQ+NMI, caller return | `VICE-verified / hardware-unverified` |
+| `c64-pal-prg-takeover-8580` | 6569 / 8580 / KERNAL rev 3; vectors, `$05`, default IRQ+NMI, caller return | `VICE-verified / hardware-unverified` |
+| `c64-ntsc-prg-takeover-6581` | 6567 / 6581 / KERNAL rev 3; vectors, `$05`, default IRQ+NMI, caller return | `VICE-verified / hardware-unverified` |
+| `c64-ntsc-prg-takeover-8580` | 6567 / 8580 / KERNAL rev 3; vectors, `$05`, default IRQ+NMI, caller return | `VICE-verified / hardware-unverified` |
+
+A separate PAL/6581 case installs a source raw IRQ handler, observes the handler entry and
+`$FFFE/$FFFF` value, consumes CIA1, returns to `main`, restores `$FFFE/$FFFF` to the default entry,
+and reaches the caller return.
+
+### 13.3 Residual findings
+
+| ID | Finding | Owner |
+| --- | ------- | ----- |
+| `V4-TAKEOVER-F2` | Source-installed raw NMI (`setRawNMI`/`restoreRawNMI`) is not exposed. The default raw NMI route is verified, but the frozen text withholds the cooperative unbounded-NMI exception from takeover and supplies no finite external arrival bound. | RD-05 future slice |
+| `V4-TAKEOVER-F3` | Direct raw-MMIO enablement of IRQ/NMI sources (`$D01A`, `$DC0E`, `$DD0E`, and similar writes) remains an opaque hardware boundary. Typed operations are checked; raw writes retain the existing unsafe-boundary contract. | RD-05 future slice |
+
+No physical C64, drive or SID was used. The physical rows in section 10 remain `Unknown`; the
+takeover rows above are `VICE-verified / hardware-unverified`, not silicon proof.

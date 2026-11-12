@@ -282,7 +282,7 @@ export async function probeVice(
 }
 
 /**
- * Start the generation's exact cooperative profile using fixed arguments and no shell.
+ * Start the generation's exact resident profile using fixed arguments and no shell.
  * Unknown identities fail before spawning; uncertain cleanup leaves pin ownership to the caller.
  * @example await launchVice(executable, prg, "c64-ntsc-prg-kernal-8580", signal)
  */

@@ -226,9 +226,11 @@ export function storageResourceWarnings(
     stackRoute = entry.route;
     nmiEntryBytes = entry.entryStackBytes;
   }
-  if (stackPeak >= C64_RESOURCE_BUDGETS.stackWarning) {
+  const capacity = profile.storage.hardwareStackCapacity! - profile.storage.hardwareStackReserve!;
+  // The advisory threshold is 80% of the profile's usable hardware stack.
+  const warningThreshold = Math.max(0, Math.floor((capacity * 80) / 100));
+  if (stackPeak >= warningThreshold) {
     const parts = stackParts(program, stackRoute, stackPeak, nmiEntryBytes);
-    const capacity = profile.storage.hardwareStackCapacity! - profile.storage.hardwareStackReserve!;
     diagnostics.push(
       scalarWarning(
         "W10180",

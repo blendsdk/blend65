@@ -574,10 +574,11 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
     if (startup.kind === "error") {
       throw loweringFailure(startup.reason, null);
     }
+    const startupEntries = startup.entries ?? [];
 
     // Optimized candidates run the explicit rule list after function selection and
     // before storage projection. Direct none lowering passes no facts and stays inert.
-    let optimizedFunctions = selectedFunctions;
+    let optimizedFunctions: readonly MachineFunction[] = [...selectedFunctions, ...startupEntries];
     if (input.optimizationFacts !== undefined) {
       const draft: MachineProgram = Object.freeze({
         ...(input.sourceFacts === undefined
@@ -602,7 +603,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
       if (rules.kind === "failure") throw loweringFailure(rules.reason, rules.source);
       const validation = validateRuleObligations(rules);
       if (validation.kind === "error") throw loweringFailure(validation.reason, validation.source);
-      optimizedFunctions = rules.program.functions;
+      optimizedFunctions = [...rules.program.functions, ...startupEntries];
     }
     // A byte `home = home << 1` becomes one memory read-modify-write in every
     // size layout, so the canonical reference and the candidate stay identical.
@@ -685,7 +686,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
           optimizedFunctions,
           startup.startup,
           input.bindingNames,
-          createC64StartupStateData(c64Startup),
+          createC64StartupStateData(c64Startup, input.profile.machine.ownership),
           input.observerEvidence === true && input.metadataOnly !== true,
         ),
         startup: startup.startup,

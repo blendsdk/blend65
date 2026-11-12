@@ -103,7 +103,9 @@ export class CallLowerer {
     const sinkArgument = expression.arguments?.[0];
     if (
       binding?.operationEffect !== undefined &&
-      (capability === "c64.system.setIRQ" || capability === "c64.system.setIRQExclusive") &&
+      (capability === "c64.system.setIRQ" ||
+        capability === "c64.system.setIRQExclusive" ||
+        capability === "c64.system.setRawIRQ") &&
       expression.arguments?.length === 1 &&
       sinkArgument?.kind === "conditional" &&
       isVoid(type)

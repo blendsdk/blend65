@@ -118,6 +118,23 @@ export function isFinalCiaRelease(state: CiaState): boolean {
 }
 
 /**
+ * Pop one raw-takeover IRQ route. Raw takeover has no authorized stock handback, so
+ * only a clean route (no typed or raw CIA1 mutation) may return; the device state is
+ * left exactly as the incoming program had it.
+ * @returns The remaining ownership state, or null when the release cannot be proved safe.
+ */
+export function restoreRawCiaState(state: CiaState): CiaState | null {
+  if (state.routes.at(-1) !== "exclusive") return null;
+  if ((state.mutations.at(-1) ?? "clean") !== "clean") return null;
+  return {
+    ...state,
+    routes: state.routes.slice(0, -1),
+    handlerKeys: state.handlerKeys.slice(0, -1),
+    mutations: state.mutations.slice(0, -1),
+  };
+}
+
+/**
  * Pop a clean inner route or perform a qualified final typed release.
  * A dirty inner pop cannot reconstruct its outer owner's write-only mask/latch.
  * The stock handback deliberately discards pending game events and establishes

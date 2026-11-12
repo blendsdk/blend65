@@ -602,12 +602,7 @@ export function validateComposedLowByte(
   const packets = [...facts.functions.values()].filter((packet) =>
     input.checked.program.reachableFunctions.includes(packet.function.id),
   );
-  if (
-    !packets.some(
-      (packet) => packet.loops.some((loop) => loop.parent !== null),
-    )
-  )
-    return null;
+  if (!packets.some((packet) => packet.loops.some((loop) => loop.parent !== null))) return null;
   const reject = (reason: string) => failure("rejected", reason);
   const program = input.checked.program;
   const sources = program.semantic.functions.filter((source) =>
@@ -625,9 +620,11 @@ export function validateComposedLowByte(
     );
   const vectorCapabilities = new Set([
     "c64.system.restoreIRQ",
+    "c64.system.restoreRawIRQ",
     "c64.system.restoreNMI",
     "c64.system.setIRQ",
     "c64.system.setIRQExclusive",
+    "c64.system.setRawIRQ",
     "c64.system.setNMI",
     "c64.system.setNMIExclusive",
   ]);

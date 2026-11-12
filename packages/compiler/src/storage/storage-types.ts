@@ -139,6 +139,10 @@ export interface StorageProfile {
   readonly hardwareStackReserve?: number;
   /** Legacy explicit interrupt stack demand for direct storage probes. */
   readonly interruptStackBytes?: number;
+  /** Always-installed default IRQ frame when no source IRQ route replaces it. */
+  readonly defaultIrqStackBytes?: number;
+  /** Always-installed default NMI frame included in the finite system peak. */
+  readonly defaultNmiStackBytes?: number;
   /** Bytes retained on the hardware stack while startup-owned code executes. */
   readonly startupStackBytes?: number;
 }

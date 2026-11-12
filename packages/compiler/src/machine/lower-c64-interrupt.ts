@@ -258,9 +258,11 @@ export function lowerC64InterruptOperation(
   const restoreVector =
     operation.capability === "c64.system.restoreIRQ"
       ? 0x0314
-      : operation.capability === "c64.system.restoreNMI"
-        ? 0x0318
-        : null;
+      : operation.capability === "c64.system.restoreRawIRQ"
+        ? 0xfffe
+        : operation.capability === "c64.system.restoreNMI"
+          ? 0x0318
+          : null;
   if (sink === undefined && restoreVector === null) return null;
   const binding = support.interruptBinding?.(operation);
   if (binding === undefined || (sink !== undefined && binding.entryLabel === null)) {

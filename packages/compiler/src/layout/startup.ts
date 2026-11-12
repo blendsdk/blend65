@@ -1,7 +1,9 @@
 import type { TargetProfile } from "../target/profile.js";
 import { selectC64KernalFacts } from "../profile/c64-kernal.js";
+import type { C64ProfileOwnership } from "../profile/c64-kernal.js";
 import { machineCost, machineInstruction, machineState } from "../machine/lower-control.js";
 import type {
+  MachineBlock,
   MachineDataObject,
   MachineFunction,
   MachineInstruction,
@@ -51,6 +53,8 @@ export type C64StartupResult =
       readonly stackDemand: StartupStackDemand;
       readonly stub: { readonly origin: 0x0801; readonly bytes: readonly number[] };
       readonly startup: MachineFunction & { readonly origin: 0x080d };
+      /** Compiler-owned default raw entries; present only for takeover profiles. */
+      readonly entries?: readonly MachineFunction[];
     }
   | { readonly kind: "error"; readonly reason: string };
 
@@ -77,8 +81,9 @@ function deviceMode(address: number): "zero-page" | "absolute" {
 /** Return the resident data object used to restore the caller and C64 after main returns. */
 export function createC64StartupStateData(
   input: Pick<C64StartupInput, "displayIndependent" | "startupPolicy" | "borrowedZeroPage"> = {},
+  ownership: C64ProfileOwnership = "cooperative",
 ): MachineDataObject {
-  const state = startupStateLayout(compactPolicy(input).policy);
+  const state = startupStateLayout(compactPolicy(input, ownership).policy);
   return Object.freeze({
     id: C64_STARTUP_STATE_ID,
     kind: "bss",
@@ -99,13 +104,19 @@ function borrowedBasicBytes(input: Pick<C64StartupInput, "borrowedZeroPage">): r
 }
 
 /** Resolve the explicit construction while preserving the established compact default. */
-function compactPolicy(input: Pick<C64StartupInput, "displayIndependent" | "startupPolicy">): {
+function compactPolicy(
+  input: Pick<C64StartupInput, "displayIndependent" | "startupPolicy">,
+  ownership: C64ProfileOwnership = "cooperative",
+): {
   readonly policy: C64StartupPolicy;
   readonly compact: boolean;
   readonly looped: boolean;
 } {
+  if (ownership === "takeover")
+    return Object.freeze({ policy: "takeover", compact: false, looped: false });
   const policy =
     input.startupPolicy ?? (input.displayIndependent === true ? "compact-unrolled" : "full");
+  if (policy === "takeover") throw new Error("Takeover startup policy requires a takeover profile");
   if (policy !== "full" && input.displayIndependent !== true)
     throw new Error("Compact startup requires its display-independence proof");
   return Object.freeze({
@@ -128,7 +139,7 @@ export function bindC64StartupState(
 ): MachineProgram | null {
   const configuration = program.c64Startup;
   if (configuration === undefined) return program;
-  const previous = createC64StartupStateData(configuration);
+  const previous = createC64StartupStateData(configuration, profile.machine.ownership);
   const supplied = program.data.find(({ id }) => id === C64_STARTUP_STATE_ID);
   if (
     supplied === undefined ||
@@ -159,7 +170,9 @@ export function bindC64StartupState(
     startup: result.startup,
     data: Object.freeze(
       program.data.map((data) =>
-        data.id === C64_STARTUP_STATE_ID ? createC64StartupStateData(bound) : data,
+        data.id === C64_STARTUP_STATE_ID
+          ? createC64StartupStateData(bound, profile.machine.ownership)
+          : data,
       ),
     ),
   });
@@ -209,6 +222,9 @@ function restoreDevice(
 export function createC64Startup(input: C64StartupInput): C64StartupResult {
   if (selectC64KernalFacts(input.profile.id) === null) {
     return Object.freeze({ kind: "error", reason: "Startup requires the selected C64 profile" });
+  }
+  if (input.profile.machine.ownership === "takeover") {
+    return createC64TakeoverStartup(input);
   }
   const cpu = input.profile.cpu;
   let policy: ReturnType<typeof compactPolicy>;
@@ -646,5 +662,222 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
         }),
       ]),
     }),
+  });
+}
+
+/** Write one complete labelled hardware vector into underlying RAM. */
+function takeoverVectorWrite(
+  cpu: TargetProfile["cpu"],
+  address: number,
+  label: string,
+): readonly MachineInstruction[] {
+  const byte = (offset: 0 | 1) =>
+    machineInstruction(
+      cpu,
+      "lda",
+      "immediate",
+      Object.freeze({ kind: "label", label, addressByte: offset === 0 ? "low" : "high" }),
+      [],
+    );
+  const store = (target: number) =>
+    machineInstruction(cpu, "sta", "absolute", Object.freeze({ kind: "absolute", value: target }), [
+      deviceEffect("write", target),
+    ]);
+  return Object.freeze([byte(0), store(address), byte(1), store(address + 1)]);
+}
+
+/** Build one fixed raw entry with no source body and no fallthrough path. */
+function takeoverDefaultEntry(
+  id: "startup.rawIrqDefault" | "startup.rawNmiDefault",
+  blocks: readonly MachineBlock[],
+): MachineFunction {
+  return Object.freeze({
+    // The ACME routine label and its first block label must stay distinct.
+    id: `${id}.fn`,
+    ...(id === "startup.rawNmiDefault" ? { nmiPublicationEntry: true as const } : {}),
+    blocks,
+  });
+}
+
+/**
+ * Build the raw ownership constructor. The PRG still enters through the shared BASIC
+ * stub, but application execution owns both hardware vectors and the exposed RAM bank.
+ * @param input Initializer/main identities and exact selected takeover profile.
+ * @returns The stub, startup entry/restore and the two compiler-owned default entries.
+ */
+function createC64TakeoverStartup(input: C64StartupInput): C64StartupResult {
+  const cpu = input.profile.cpu;
+  const machine = input.profile.machine;
+  const status = createStartupStatus(cpu, "takeover");
+  const { state } = status;
+  const borrowed = borrowedBasicBytes(input);
+  // Keep the two owned processor-port bytes in X/Y across the vector writes so the
+  // mapping transaction needs no state reloads after the CIA2 capture.
+  const entry: MachineInstruction[] = [
+    ...status.entry,
+    machineInstruction(
+      cpu,
+      "ldx",
+      deviceMode(cpu.portDirectionAddress),
+      Object.freeze({ kind: "absolute", value: cpu.portDirectionAddress }),
+      [deviceEffect("read", cpu.portDirectionAddress)],
+    ),
+    stateInstruction(cpu, "stx", state.cpuDirection),
+    machineInstruction(
+      cpu,
+      "ldy",
+      deviceMode(cpu.portDataAddress),
+      Object.freeze({ kind: "absolute", value: cpu.portDataAddress }),
+      [deviceEffect("read", cpu.portDataAddress)],
+    ),
+    stateInstruction(cpu, "sty", state.cpuPort),
+    ...saveDevice(cpu, machine.cia2DataDirection, state.cia2Direction),
+  ];
+  for (const [index, address] of borrowed.entries()) {
+    entry.push(...saveDevice(cpu, address, state.bytes + index));
+  }
+  // The ROM still supplies active reads here; stores reach the RAM beneath it.
+  entry.push(
+    ...takeoverVectorWrite(cpu, machine.rawNmiVector, "startup.rawNmiDefault.fn"),
+    ...takeoverVectorWrite(cpu, machine.rawIrqVector, "startup.rawIrqDefault.fn"),
+  );
+  entry.push(
+    machineInstruction(cpu, "tya", "implied", null),
+    machineInstruction(cpu, "and", "immediate", Object.freeze({ kind: "immediate", value: 0xf8 })),
+    machineInstruction(cpu, "ora", "immediate", Object.freeze({ kind: "immediate", value: 0x05 })),
+    machineInstruction(
+      cpu,
+      "sta",
+      deviceMode(cpu.portDataAddress),
+      Object.freeze({ kind: "absolute", value: cpu.portDataAddress }),
+      [deviceEffect("write", cpu.portDataAddress)],
+    ),
+    machineInstruction(cpu, "txa", "implied", null),
+    machineInstruction(cpu, "ora", "immediate", Object.freeze({ kind: "immediate", value: 0x07 })),
+    machineInstruction(
+      cpu,
+      "sta",
+      deviceMode(cpu.portDirectionAddress),
+      Object.freeze({ kind: "absolute", value: cpu.portDirectionAddress }),
+      [deviceEffect("write", cpu.portDirectionAddress)],
+    ),
+    // Clear the owned CIA2 direction bits so the external pull-ups select VIC bank zero.
+    stateInstruction(cpu, "lda", state.cia2Direction),
+    machineInstruction(cpu, "and", "immediate", Object.freeze({ kind: "immediate", value: 0xfc })),
+    machineInstruction(
+      cpu,
+      "sta",
+      "absolute",
+      Object.freeze({ kind: "absolute", value: machine.cia2DataDirection }),
+      [deviceEffect("write", machine.cia2DataDirection)],
+    ),
+    machineInstruction(cpu, "cli", "implied", null),
+  );
+  const initializers =
+    input.initializers ??
+    input.initializerLabels.map((label) => Object.freeze({ kind: "call" as const, label }));
+  for (const initializer of initializers) {
+    if (initializer.kind === "inline") entry.push(...initializer.instructions);
+    else
+      entry.push(
+        machineInstruction(
+          cpu,
+          "jsr",
+          "absolute",
+          Object.freeze({ kind: "label", label: initializer.label }),
+        ),
+      );
+  }
+
+  const restore: MachineInstruction[] = [
+    machineInstruction(cpu, "sei", "implied", null),
+    ...restoreDevice(cpu, machine.cia2DataDirection, state.cia2Direction),
+    ...borrowed.flatMap((address, index) => restoreDevice(cpu, address, state.bytes + index)),
+    ...restoreDevice(cpu, cpu.portDataAddress, state.cpuPort),
+    ...restoreDevice(cpu, cpu.portDirectionAddress, state.cpuDirection),
+    ...status.restore,
+  ];
+
+  const irqEntry = takeoverDefaultEntry(
+    "startup.rawIrqDefault",
+    Object.freeze([
+      Object.freeze({
+        label: "startup.rawIrqDefault",
+        instructions: Object.freeze([
+          machineInstruction(cpu, "pha", "implied", null),
+          machineInstruction(
+            cpu,
+            "lda",
+            "absolute",
+            Object.freeze({ kind: "absolute", value: machine.cia1Base + 0x0d }),
+            [deviceEffect("read", machine.cia1Base + 0x0d)],
+          ),
+          machineInstruction(
+            cpu,
+            "lda",
+            "absolute",
+            Object.freeze({ kind: "absolute", value: 0xd019 }),
+            [deviceEffect("read", 0xd019)],
+          ),
+          machineInstruction(
+            cpu,
+            "sta",
+            "absolute",
+            Object.freeze({ kind: "absolute", value: 0xd019 }),
+            [deviceEffect("write", 0xd019)],
+          ),
+          machineInstruction(cpu, "pla", "implied", null),
+          machineInstruction(cpu, "rti", "implied", null),
+        ]),
+        terminator: Object.freeze({ kind: "unreachable" as const }),
+      }),
+    ]),
+  );
+  const nmiEntry = takeoverDefaultEntry(
+    "startup.rawNmiDefault",
+    Object.freeze([
+      Object.freeze({
+        label: "startup.rawNmiDefault",
+        instructions: Object.freeze([
+          // BIT reads the ICR without changing A; RTI restores the interrupted flags.
+          machineInstruction(
+            cpu,
+            "bit",
+            "absolute",
+            Object.freeze({ kind: "absolute", value: machine.cia2Base + 0x0d }),
+            [deviceEffect("read", machine.cia2Base + 0x0d)],
+          ),
+          machineInstruction(cpu, "rti", "implied", null),
+        ]),
+        terminator: Object.freeze({ kind: "unreachable" as const }),
+      }),
+    ]),
+  );
+
+  return Object.freeze({
+    kind: "complete",
+    stackDemand: status.stackDemand,
+    stub: Object.freeze({ origin: 0x0801, bytes: BASIC_STUB }),
+    startup: Object.freeze({
+      id: "startup",
+      origin: 0x080d,
+      blocks: Object.freeze([
+        Object.freeze({
+          label: "startup.entry",
+          instructions: Object.freeze(entry),
+          terminator: Object.freeze({ kind: "fallthrough", target: input.mainLabel }),
+        }),
+        Object.freeze({
+          label: "startup.restore",
+          instructions: Object.freeze(restore),
+          terminator: Object.freeze({
+            kind: "return",
+            opcode: "rts",
+            cost: machineCost(cpu, "rts", "implied"),
+          }),
+        }),
+      ]),
+    }),
+    entries: Object.freeze([irqEntry, nmiEntry]),
   });
 }

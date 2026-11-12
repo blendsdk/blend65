@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { firmwareVectorSink, selectFrontendProfile } from "./profile.js";
 
-const profiles = [
+const cooperativeProfiles = [
   { id: "c64-pal-prg-kernal-6581", pal: true, sid: 6581n },
   { id: "c64-pal-prg-kernal-8580", pal: true, sid: 8580n },
   { id: "c64-ntsc-prg-kernal-6581", pal: false, sid: 6581n },
@@ -9,12 +9,21 @@ const profiles = [
   { id: "c64-pal-d64-kernal-6581", pal: true, sid: 6581n },
 ] as const;
 
+const takeoverProfiles = [
+  { id: "c64-pal-prg-takeover-6581", pal: true, sid: 6581n },
+  { id: "c64-pal-prg-takeover-8580", pal: true, sid: 8580n },
+  { id: "c64-ntsc-prg-takeover-6581", pal: false, sid: 6581n },
+  { id: "c64-ntsc-prg-takeover-8580", pal: false, sid: 8580n },
+] as const;
+
+const profiles = [...cooperativeProfiles, ...takeoverProfiles] as const;
+
 /** Compare public semantic types by their source spelling. */
 function typeName(type: { readonly kind: string; readonly name?: string }): string {
   return type.kind === "scalar" ? (type.name ?? "<missing>") : type.kind;
 }
 
-describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
+describe.each(cooperativeProfiles)("frontend facts for $id", ({ id, pal, sid }) => {
   // Every selection exposes exactly the independently specified scalar facts in name order.
   it("should expose exactly twenty-five typed constants in stable qualified-name order", () => {
     const result = selectFrontendProfile(id);
@@ -132,9 +141,39 @@ describe.each(profiles)("frontend facts for $id", ({ id, pal, sid }) => {
   });
 });
 
+describe.each(takeoverProfiles)("takeover frontend facts for $id", ({ id, pal, sid }) => {
+  it("exposes the raw ownership constants and the raw IRQ routing map", () => {
+    const result = selectFrontendProfile(id);
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected complete profile selection");
+    const constants = new Map(
+      result.profile.constants.map(({ name, value }) => [name, value] as const),
+    );
+    expect(constants.get("c64.profile.hasRawInterrupts")).toBe(true);
+    expect(constants.get("c64.profile.usesKernal")).toBe(false);
+    expect(constants.get("c64.profile.isPal")).toBe(pal);
+    expect(constants.get("c64.profile.sidModel")).toBe(sid);
+    const names = result.profile.capabilities.map(({ name }) => name);
+    expect(names).toContain("c64.system.setRawIRQ");
+    expect(names).toContain("c64.system.restoreRawIRQ");
+    for (const name of [
+      "c64.system.setIRQ",
+      "c64.system.setIRQExclusive",
+      "c64.system.setNMI",
+      "c64.system.setNMIExclusive",
+      "c64.system.restoreIRQ",
+      "c64.system.restoreNMI",
+      "c64.system.setRawNMI",
+      "c64.system.restoreRawNMI",
+    ]) {
+      expect(names, name).not.toContain(name);
+    }
+  });
+});
+
 describe("closed frontend profile selection", () => {
   // Unknown and partial IDs never inherit a supported profile's environment.
-  it.each(["c64-pal-prg-kernal-9999", "c64-pal-prg-takeover-6581", "c64-pal", "unknown"])(
+  it.each(["c64-pal-prg-kernal-9999", "c64-pal-prg-takeover-9999", "c64-pal", "unknown"])(
     "should reject %s with its exact requested identity and deterministic supported list",
     (id) => {
       const result = selectFrontendProfile(id);

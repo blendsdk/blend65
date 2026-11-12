@@ -482,12 +482,17 @@ export function interruptWriteAddresses(
           [
             "c64.system.setIRQ",
             "c64.system.setIRQExclusive",
+            "c64.system.setRawIRQ",
             "c64.system.setNMI",
             "c64.system.setNMIExclusive",
           ].includes(name)
         ) {
           if (depths[sink] !== null) depths[sink] += 1;
-        } else if (name === "c64.system.restoreIRQ" || name === "c64.system.restoreNMI") {
+        } else if (
+          name === "c64.system.restoreIRQ" ||
+          name === "c64.system.restoreRawIRQ" ||
+          name === "c64.system.restoreNMI"
+        ) {
           if (depths[sink] !== null) depths[sink] = Math.max(0, depths[sink] - 1);
         }
       }

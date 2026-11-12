@@ -600,7 +600,7 @@ export function closeCanonicalReference(
       : failed;
   }
   if (checked.requestedStartupPolicy !== undefined) {
-    const visibility = startupVisibilityFailure(shared);
+    const visibility = startupVisibilityFailure(shared, checked.profile);
     if (visibility !== null) {
       const failed = terminal("compiler", [
         projectDiagnostic("COMPILER_LAYOUT", visibility.reason, visibility.source),

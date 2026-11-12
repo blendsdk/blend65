@@ -2,8 +2,18 @@ import type { C64KernalProfileFacts } from "../profile/c64-kernal.js";
 
 /** C64 device addresses and layout facts owned by the selected machine profile. */
 export interface C64MachineFacts {
-  /** Stable machine/ROM/video/SID identity. */
-  readonly id: `c64-${C64KernalProfileFacts["video"]}-kernal-901227-03-${C64KernalProfileFacts["sidModel"]}`;
+  /** Stable machine/firmware/video/SID identity. */
+  readonly id:
+    | `c64-${C64KernalProfileFacts["video"]}-kernal-901227-03-${C64KernalProfileFacts["sidModel"]}`
+    | `c64-${C64KernalProfileFacts["video"]}-takeover-${C64KernalProfileFacts["sidModel"]}`;
+  /** Firmware ownership path while application code runs. */
+  readonly ownership: C64KernalProfileFacts["ownership"];
+  /** Owned low-bit value written to the 6510 processor port data latch. */
+  readonly processorPortMapping: 0x06 | 0x05;
+  /** Active raw IRQ hardware vector after takeover mapping is exposed. */
+  readonly rawIrqVector: 0xfffe;
+  /** Active raw NMI hardware vector after takeover mapping is exposed. */
+  readonly rawNmiVector: 0xfffa;
   /** Nominal VIC cycles per selected video frame, before device bus denial. */
   readonly cyclesPerFrame: number;
   /** First address in VIC bank zero. */
@@ -105,7 +115,10 @@ export const C64_RESOURCE_BUDGETS = Object.freeze({
 });
 
 /** Device addresses and ownership stay identical across the cooperative video/SID choices. */
-const COMMON_MACHINE: Omit<C64MachineFacts, "id" | "cyclesPerFrame"> = Object.freeze({
+const COMMON_MACHINE: Omit<
+  C64MachineFacts,
+  "id" | "cyclesPerFrame" | "ownership" | "processorPortMapping" | "rawIrqVector" | "rawNmiVector"
+> = Object.freeze({
   vicBankStart: 0x0000,
   vicBankEnd: 0x3fff,
   screenAddress: 0x0400,
@@ -143,9 +156,16 @@ const COMMON_MACHINE: Omit<C64MachineFacts, "id" | "cyclesPerFrame"> = Object.fr
  * @example createC64KernalMachine(facts).cyclesPerFrame === facts.cyclesPerFrame
  */
 export function createC64KernalMachine(facts: C64KernalProfileFacts): C64MachineFacts {
+  const cooperative = facts.ownership === "cooperative";
   return Object.freeze({
     ...COMMON_MACHINE,
-    id: `c64-${facts.video}-kernal-901227-03-${facts.sidModel}`,
+    id: cooperative
+      ? `c64-${facts.video}-kernal-901227-03-${facts.sidModel}`
+      : `c64-${facts.video}-takeover-${facts.sidModel}`,
+    ownership: facts.ownership,
+    processorPortMapping: cooperative ? 0x06 : 0x05,
+    rawIrqVector: 0xfffe,
+    rawNmiVector: 0xfffa,
     cyclesPerFrame: facts.cyclesPerFrame,
   });
 }

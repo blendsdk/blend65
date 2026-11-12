@@ -2,7 +2,7 @@ import { C64_ASSET_HANDLERS } from "../assets/c64/index.js";
 import type { AssetHandler } from "../assets/asset-handler.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic } from "../project/types.js";
-import { C64_KERNAL_PROFILES, selectC64KernalFacts } from "../profile/c64-kernal.js";
+import { C64_RESIDENT_PROFILES, selectC64KernalFacts } from "../profile/c64-kernal.js";
 import type { C64KernalProfileFacts, C64KernalProfileId } from "../profile/c64-kernal.js";
 import { SCALAR_TYPES } from "./constants.js";
 import type { ProfileEffect, SemanticType } from "./semantic-types.js";
@@ -18,7 +18,9 @@ export const SELECTED_PROFILE_ID = "c64-pal-prg-kernal-6581" as const;
  * The caller uses this only when the stored value is a raw interrupt-function address.
  */
 export function firmwareVectorSink(profileId: string | null, address: bigint): string | null {
-  if (profileId === null || selectC64KernalFacts(profileId) === null) return null;
+  if (profileId === null) return null;
+  const facts = selectC64KernalFacts(profileId);
+  if (facts === null || facts.ownership !== "cooperative") return null;
   if (address === 0x0314n) return "c64.system.setIRQ";
   if (address === 0x0318n) return "c64.system.setNMI";
   return null;
@@ -392,6 +394,38 @@ const COOPERATIVE_DECLARATIONS = Object.freeze({
   ]),
 });
 
+/** Cooperative vector operations replaced by the raw takeover routing map. */
+const COOPERATIVE_VECTOR_CAPABILITIES: ReadonlySet<string> = new Set([
+  "c64.system.restoreIRQ",
+  "c64.system.restoreNMI",
+  "c64.system.setIRQ",
+  "c64.system.setIRQExclusive",
+  "c64.system.setNMI",
+  "c64.system.setNMIExclusive",
+]);
+
+/**
+ * Takeover declarations keep every ordinary device operation and replace only the
+ * interrupt-routing map. Source-installed raw NMI is deferred because the frozen text
+ * withholds the unbounded-NMI exception from takeover.
+ */
+const TAKEOVER_DECLARATIONS = Object.freeze({
+  warnArraySize: 256,
+  warnStructZpSize: 35,
+  capabilities: Object.freeze([
+    ...COOPERATIVE_DECLARATIONS.capabilities.filter(
+      ({ name }) => !COOPERATIVE_VECTOR_CAPABILITIES.has(name),
+    ),
+    capability("c64.system.restoreRawIRQ", [], SCALAR_TYPES.void, "volatile-write"),
+    capability(
+      "c64.system.setRawIRQ",
+      [Object.freeze({ kind: "interrupt-handler" })],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+  ]),
+});
+
 /** Timer modes and latched-source bits are immutable compile-time bytes on every C64 profile. */
 const CIA_CONSTANT_ROWS = [
   ["sourceAll", 0x1fn],
@@ -417,13 +451,13 @@ function profileConstants(facts: C64KernalProfileFacts): readonly ProfileConstan
     ["frameRateFractionDenominator", SCALAR_TYPES.word, BigInt(facts.frameRateFractionDenominator)],
     ["frameRateFractionNumerator", SCALAR_TYPES.word, BigInt(facts.frameRateFractionNumerator)],
     ["frameRateWhole", SCALAR_TYPES.byte, BigInt(facts.frameRateWhole)],
-    ["hasRawInterrupts", SCALAR_TYPES.boolean, false],
+    ["hasRawInterrupts", SCALAR_TYPES.boolean, facts.ownership === "takeover"],
     ["isNtsc", SCALAR_TYPES.boolean, facts.video === "ntsc"],
     ["isPal", SCALAR_TYPES.boolean, facts.video === "pal"],
     ["rasterLines", SCALAR_TYPES.word, BigInt(facts.rasterLines)],
     ["sidAddress", SCALAR_TYPES.word, 0xd400n],
     ["sidModel", SCALAR_TYPES.word, BigInt(facts.sidModel)],
-    ["usesKernal", SCALAR_TYPES.boolean, true],
+    ["usesKernal", SCALAR_TYPES.boolean, facts.ownership === "cooperative"],
   ] as const;
   return Object.freeze([
     ...CIA_CONSTANT_ROWS.map(([name, value]) =>
@@ -442,15 +476,17 @@ function profileConstants(facts: C64KernalProfileFacts): readonly ProfileConstan
 export function selectFrontendProfile(profileId: string): FrontendProfileResult {
   const facts = selectC64KernalFacts(profileId);
   if (facts !== null) {
+    const declarations =
+      facts.ownership === "takeover" ? TAKEOVER_DECLARATIONS : COOPERATIVE_DECLARATIONS;
     return Object.freeze({
       kind: "complete",
       profile: Object.freeze({
-        ...COOPERATIVE_DECLARATIONS,
+        ...declarations,
         id: facts.id,
         capabilities:
           facts.profileKind === "d64"
             ? Object.freeze([
-                ...COOPERATIVE_DECLARATIONS.capabilities,
+                ...declarations.capabilities,
                 capability(
                   "c64.loader.load",
                   [SCALAR_TYPES.word, SCALAR_TYPES.word],
@@ -458,7 +494,7 @@ export function selectFrontendProfile(profileId: string): FrontendProfileResult 
                   "volatile-write",
                 ),
               ])
-            : COOPERATIVE_DECLARATIONS.capabilities,
+            : declarations.capabilities,
         constants: profileConstants(facts),
         assets: C64_ASSET_PROFILE,
       }),
@@ -469,7 +505,7 @@ export function selectFrontendProfile(profileId: string): FrontendProfileResult 
     diagnostics: Object.freeze([
       projectDiagnostic(
         "E10279",
-        `Target profile '${profileId}' is not a complete qualified profile ID — choose one of: ${C64_KERNAL_PROFILES.map(({ id }) => id).join(", ")}`,
+        `Target profile '${profileId}' is not a complete qualified profile ID — choose one of: ${C64_RESIDENT_PROFILES.map(({ id }) => id).join(", ")}`,
       ),
     ]),
   });

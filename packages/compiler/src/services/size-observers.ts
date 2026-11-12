@@ -187,10 +187,18 @@ const BASIC_ROM_WINDOW: StorageRange = Object.freeze({ start: 0xa000, end: 0xbff
  * @returns A physical-visibility rejection, inconsistent-evidence error, or null when visible.
  * @example const failure = startupVisibilityFailure(shared);
  */
-export function startupVisibilityFailure(shared: FinalSharedStorage): ObserverFailure | null {
+export function startupVisibilityFailure(
+  shared: FinalSharedStorage,
+  profile?: { readonly machine: { readonly ownership: "cooperative" | "takeover" } },
+): ObserverFailure | null {
   const layout = shared.layout;
+  // Takeover's $05 mapping exposes RAM at $A000-$BFFF; only cooperative restore
+  // can re-expose BASIC ROM over the startup path.
+  const cooperativeBanking = profile?.machine.ownership !== "takeover";
   const overlapsBasic = (range: StorageRange) =>
-    range.start <= BASIC_ROM_WINDOW.end && range.end >= BASIC_ROM_WINDOW.start;
+    cooperativeBanking &&
+    range.start <= BASIC_ROM_WINDOW.end &&
+    range.end >= BASIC_ROM_WINDOW.start;
   for (const block of layout.program.startup.blocks) {
     const terminator = block.terminator;
     const terminalBytes =
@@ -270,9 +278,11 @@ const TYPED_OBSERVER_OPERATIONS = new Set([
 /** Vector-only platform controls change interrupt entry, not ordinary object data. */
 const VECTOR_PLATFORM_CAPABILITIES = new Set([
   "c64.system.restoreIRQ",
+  "c64.system.restoreRawIRQ",
   "c64.system.restoreNMI",
   "c64.system.setIRQ",
   "c64.system.setIRQExclusive",
+  "c64.system.setRawIRQ",
   "c64.system.setNMI",
   "c64.system.setNMIExclusive",
 ]);
@@ -630,7 +640,7 @@ function referencePrecheck(
       { lowered: reference.checked.lowered, shared: reference.shared },
       checked,
     ) ??
-    startupVisibilityFailure(reference.shared) ??
+    startupVisibilityFailure(reference.shared, checked.profile) ??
     placedSourceFailure(reference.shared, checked);
   referencePrechecks.set(shared, Object.freeze({ checked, failure }));
   return failure;
@@ -654,7 +664,7 @@ export function validateSizeObservers(input: FinalObserverInput): ObserverValida
   try {
     const failure = finalStorageFailure(input.candidate, input.checked);
     if (failure !== null) return failure;
-    const visibility = startupVisibilityFailure(input.candidate.shared);
+    const visibility = startupVisibilityFailure(input.candidate.shared, input.checked.profile);
     if (visibility !== null) return visibility;
     const reference = input.reference;
     const placed = placedSourceFailure(input.candidate.shared, input.checked);

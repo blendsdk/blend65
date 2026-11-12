@@ -242,13 +242,12 @@ export function viceLaunchArguments(
   prgPath: string,
   options: ViceLaunchOptions,
 ): readonly string[] {
-  const pal =
-    options.profileId === "c64-pal-prg-kernal-6581" ||
-    options.profileId === "c64-pal-prg-kernal-8580";
-  const ntsc =
-    options.profileId === "c64-ntsc-prg-kernal-6581" ||
-    options.profileId === "c64-ntsc-prg-kernal-8580";
-  if (!pal && !ntsc) throw new RangeError("VICE requires an exact cooperative C64 profile");
+  const profileMatch = /^c64-(pal|ntsc)-prg-(?:kernal|takeover)-(6581|8580)$/u.exec(
+    options.profileId,
+  );
+  if (profileMatch === null)
+    throw new RangeError("VICE requires an exact resident C64 PRG profile");
+  const pal = profileMatch[1] === "pal";
   const romArguments = ROMS.flatMap((rom, index) => [rom.option, identity.roms[index]!.path]);
   return Object.freeze([
     "-default",
@@ -323,9 +322,8 @@ export async function startVice(
   if (typeof enableJoystick2 !== "boolean") {
     throw new RangeError("VICE second-joystick activation must be a boolean");
   }
-  const pal = profileId === "c64-pal-prg-kernal-6581" || profileId === "c64-pal-prg-kernal-8580";
-  const ntsc = profileId === "c64-ntsc-prg-kernal-6581" || profileId === "c64-ntsc-prg-kernal-8580";
-  if (!pal && !ntsc) throw new RangeError("VICE requires an exact cooperative C64 profile");
+  if (!/^c64-(?:pal|ntsc)-prg-(?:kernal|takeover)-(?:6581|8580)$/u.test(profileId))
+    throw new RangeError("VICE requires an exact resident C64 PRG profile");
   const identity = await viceRuntimeIdentity();
   if (identity === null) {
     return Object.freeze({

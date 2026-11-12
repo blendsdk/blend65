@@ -1,15 +1,27 @@
-/** Complete cooperative C64 PRG and D64 identities; partial names never select a default. */
-export type C64KernalProfileId =
+/** Complete resident C64 PRG and D64 identities; partial names never select a default. */
+export type C64ResidentProfileId =
   | "c64-pal-prg-kernal-6581"
   | "c64-pal-prg-kernal-8580"
+  | "c64-pal-prg-takeover-6581"
+  | "c64-pal-prg-takeover-8580"
   | "c64-ntsc-prg-kernal-6581"
   | "c64-ntsc-prg-kernal-8580"
+  | "c64-ntsc-prg-takeover-6581"
+  | "c64-ntsc-prg-takeover-8580"
   | "c64-pal-d64-kernal-6581";
+
+/** Backward-compatible name for the closed resident-profile identity union. */
+export type C64KernalProfileId = C64ResidentProfileId;
+
+/** Firmware ownership mode carried by one closed profile identity. */
+export type C64ProfileOwnership = "cooperative" | "takeover";
 
 /** Immutable nominal machine facts shared by source declarations and target selection. */
 export interface C64KernalProfileFacts {
   /** Exact identity, including video, artifact, firmware ownership and SID model. */
-  readonly id: C64KernalProfileId;
+  readonly id: C64ResidentProfileId;
+  /** Firmware ownership path while application code runs. */
+  readonly ownership: C64ProfileOwnership;
   /** Primary artifact family selected by this profile. */
   readonly profileKind: "prg" | "d64";
   /** PAL or later NTSC timing, not the early NTSC VIC revision. */
@@ -35,9 +47,10 @@ export interface C64KernalProfileFacts {
 }
 
 /** Closed, deeply immutable fact rows; their order also defines diagnostic admission lists. */
-export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.freeze([
+export const C64_RESIDENT_PROFILES: readonly C64KernalProfileFacts[] = Object.freeze([
   Object.freeze({
     id: "c64-pal-prg-kernal-6581",
+    ownership: "cooperative",
     profileKind: "prg",
     video: "pal",
     sidModel: 6581,
@@ -52,6 +65,37 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
   }),
   Object.freeze({
     id: "c64-pal-prg-kernal-8580",
+    ownership: "cooperative",
+    profileKind: "prg",
+    video: "pal",
+    sidModel: 8580,
+    clockHz: 985248,
+    kernalTimerAReload: 16421,
+    rasterLines: 312,
+    cyclesPerLine: 63,
+    cyclesPerFrame: 19656,
+    frameRateWhole: 50,
+    frameRateFractionNumerator: 34,
+    frameRateFractionDenominator: 273,
+  }),
+  Object.freeze({
+    id: "c64-pal-prg-takeover-6581",
+    ownership: "takeover",
+    profileKind: "prg",
+    video: "pal",
+    sidModel: 6581,
+    clockHz: 985248,
+    kernalTimerAReload: 16421,
+    rasterLines: 312,
+    cyclesPerLine: 63,
+    cyclesPerFrame: 19656,
+    frameRateWhole: 50,
+    frameRateFractionNumerator: 34,
+    frameRateFractionDenominator: 273,
+  }),
+  Object.freeze({
+    id: "c64-pal-prg-takeover-8580",
+    ownership: "takeover",
     profileKind: "prg",
     video: "pal",
     sidModel: 8580,
@@ -66,6 +110,7 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
   }),
   Object.freeze({
     id: "c64-ntsc-prg-kernal-6581",
+    ownership: "cooperative",
     profileKind: "prg",
     video: "ntsc",
     sidModel: 6581,
@@ -80,6 +125,37 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
   }),
   Object.freeze({
     id: "c64-ntsc-prg-kernal-8580",
+    ownership: "cooperative",
+    profileKind: "prg",
+    video: "ntsc",
+    sidModel: 8580,
+    clockHz: 1022730,
+    kernalTimerAReload: 17045,
+    rasterLines: 263,
+    cyclesPerLine: 65,
+    cyclesPerFrame: 17095,
+    frameRateWhole: 59,
+    frameRateFractionNumerator: 2825,
+    frameRateFractionDenominator: 3419,
+  }),
+  Object.freeze({
+    id: "c64-ntsc-prg-takeover-6581",
+    ownership: "takeover",
+    profileKind: "prg",
+    video: "ntsc",
+    sidModel: 6581,
+    clockHz: 1022730,
+    kernalTimerAReload: 17045,
+    rasterLines: 263,
+    cyclesPerLine: 65,
+    cyclesPerFrame: 17095,
+    frameRateWhole: 59,
+    frameRateFractionNumerator: 2825,
+    frameRateFractionDenominator: 3419,
+  }),
+  Object.freeze({
+    id: "c64-ntsc-prg-takeover-8580",
+    ownership: "takeover",
     profileKind: "prg",
     video: "ntsc",
     sidModel: 8580,
@@ -94,6 +170,7 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
   }),
   Object.freeze({
     id: "c64-pal-d64-kernal-6581",
+    ownership: "cooperative",
     profileKind: "d64",
     video: "pal",
     sidModel: 6581,
@@ -108,10 +185,13 @@ export const C64_KERNAL_PROFILES: readonly C64KernalProfileFacts[] = Object.free
   }),
 ]);
 
+/** Backward-compatible alias for the closed resident-profile table. */
+export const C64_KERNAL_PROFILES = C64_RESIDENT_PROFILES;
+
 /**
- * Select exact cooperative facts without host state, mutable configuration or fallback.
- * @example selectC64KernalFacts("c64-ntsc-prg-kernal-8580")?.rasterLines // 263
+ * Select exact resident facts without host state, mutable configuration or fallback.
+ * @example selectC64KernalFacts("c64-ntsc-prg-takeover-8580")?.rasterLines // 263
  */
 export function selectC64KernalFacts(profileId: string): C64KernalProfileFacts | null {
-  return C64_KERNAL_PROFILES.find(({ id }) => id === profileId) ?? null;
+  return C64_RESIDENT_PROFILES.find(({ id }) => id === profileId) ?? null;
 }

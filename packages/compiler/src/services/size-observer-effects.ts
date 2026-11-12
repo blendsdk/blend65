@@ -963,9 +963,11 @@ export function validateResidualEffects(input: FinalObserverInput): ResidualEffe
    */
   const vectorCapabilities = new Set([
     "c64.system.restoreIRQ",
+    "c64.system.restoreRawIRQ",
     "c64.system.restoreNMI",
     "c64.system.setIRQ",
     "c64.system.setIRQExclusive",
+    "c64.system.setRawIRQ",
     "c64.system.setNMI",
     "c64.system.setNMIExclusive",
   ]);

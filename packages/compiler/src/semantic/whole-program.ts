@@ -548,6 +548,7 @@ export function closeWholeProgram(
           indirectTargets,
           selected.routes,
           addressSpace,
+          interrupts.variants.some(({ id }) => id === "c64_raw_irq"),
         );
   if (ownership !== undefined && ownership.diagnostics.length > 0) {
     return Object.freeze({ kind: "error", diagnostics: ownership.diagnostics });

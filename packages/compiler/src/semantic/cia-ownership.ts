@@ -11,6 +11,7 @@ import {
   mutateCiaState,
   rawCia1Effect,
   restoreCiaState,
+  restoreRawCiaState,
   sameCiaState,
   typedMutation,
   type CiaMutation,
@@ -41,6 +42,15 @@ function invalid(operation: string, detail: string, span: SourceSpan): ProjectDi
   return projectDiagnostic(
     "E10278",
     `Interrupt ownership for sink 'c64.system.setIRQ' is invalid at '${operation}' — ${detail}`,
+    span,
+  );
+}
+
+/** Name the raw IRQ sink without implying a KERNAL CINV route. */
+function invalidRaw(operation: string, detail: string, span: SourceSpan): ProjectDiagnostic {
+  return projectDiagnostic(
+    "E10278",
+    `Interrupt ownership for sink 'c64.system.setRawIRQ' is invalid at '${operation}' — ${detail}`,
     span,
   );
 }
@@ -112,6 +122,7 @@ export function checkCiaOwnership(
             const exact = argument === undefined ? undefined : values.get(argument);
             mayEnable.set(key, (mayEnable.get(key) ?? 0) | Number((exact ?? 0x03n) & 0x03n));
           }
+
           for (const handler of handlers.get(operation) ?? []) {
             callees.add(bindingIdentityKey(handler.id));
           }
@@ -163,6 +174,54 @@ export function checkCiaOwnership(
       }
     }
   }
+
+  /**
+   * Prove a handler consumes or fully disables CIA1 on every path, not merely on
+   * some reachable block. A consume in the entry block executes before any branch;
+   * a helper call qualifies only when every possible callee qualifies.
+   */
+  const mustConsumeCache = new Map<string, boolean>();
+  const mustConsumeCia1 = (key: string, active = new Set<string>()): boolean => {
+    const cached = mustConsumeCache.get(key);
+    if (cached !== undefined) return cached;
+    if (active.has(key)) return false;
+    const fn = functions.get(key);
+    if (fn === undefined) return false;
+    const entry = fn.blocks.find((block) => block.id === fn.entry);
+    if (entry === undefined) return false;
+    active.add(key);
+    const values = literalValues(fn.blocks);
+    let consumed = false;
+    for (const operation of entry.operations) {
+      if (operation.kind === "platform") {
+        if (operation.capability === "c64.cia1.readAndClearPendingSources") {
+          consumed = true;
+          break;
+        }
+        if (operation.capability === "c64.cia1.disableInterruptSources") {
+          const argument = operation.arguments[0];
+          const exact = argument === undefined ? undefined : values.get(argument);
+          if (exact === undefined || exact === 0x1fn) {
+            consumed = true;
+            break;
+          }
+        }
+      } else if (operation.kind === "call" || operation.kind === "indirect-call") {
+        const targets =
+          operation.kind === "call" ? [operation.callee] : (indirectTargets.get(operation) ?? []);
+        if (
+          targets.length > 0 &&
+          targets.every((target) => mustConsumeCia1(bindingIdentityKey(target), active))
+        ) {
+          consumed = true;
+          break;
+        }
+      }
+    }
+    active.delete(key);
+    mustConsumeCache.set(key, consumed);
+    return consumed;
+  };
 
   // The preceding whole-program proof closes all helper and handler targets.
   // An absent handler inventory is not proof that its older owners are unused.
@@ -268,7 +327,11 @@ export function checkCiaOwnership(
         state = interruptEntry(state);
         if (operation.kind === "platform") {
           const name = operation.capability;
-          if (name === "c64.system.setIRQ" || name === "c64.system.setIRQExclusive") {
+          if (
+            name === "c64.system.setIRQ" ||
+            name === "c64.system.setIRQExclusive" ||
+            name === "c64.system.setRawIRQ"
+          ) {
             if (
               name === "c64.system.setIRQ" &&
               state.routes.at(-1) === "exclusive" &&
@@ -283,10 +346,24 @@ export function checkCiaOwnership(
               );
               break;
             }
-            const exclusive = name === "c64.system.setIRQExclusive";
+            const exclusive = name !== "c64.system.setIRQ";
             const keys = (handlers.get(operation) ?? [])
               .map((fn) => bindingIdentityKey(fn.id))
               .sort();
+            if (
+              name === "c64.system.setRawIRQ" &&
+              state.possibleSources !== 0 &&
+              !(keys.length > 0 && keys.every((key) => mustConsumeCia1(key)))
+            ) {
+              diagnostics.push(
+                invalidRaw(
+                  name,
+                  "a raw IRQ handler must consume or disable every enabled CIA1 source before installation",
+                  operation.span,
+                ),
+              );
+              break;
+            }
             state = {
               routes: [...state.routes, exclusive ? "exclusive" : "chained"],
               handlerKeys: [...state.handlerKeys, keys],
@@ -322,6 +399,19 @@ export function checkCiaOwnership(
             }
             restoreKinds.set(operation, final);
             if (final) stockHandbacks.add(operation);
+            state = restored;
+          } else if (name === "c64.system.restoreRawIRQ") {
+            const restored = restoreRawCiaState(state);
+            if (restored === null) {
+              diagnostics.push(
+                invalidRaw(
+                  name,
+                  "raw takeover has no stock CIA1 handback; only a clean IRQ route may return",
+                  operation.span,
+                ),
+              );
+              break;
+            }
             state = restored;
           } else if (
             name.startsWith("c64.cia2.") &&
@@ -563,7 +653,12 @@ export function checkCiaOwnership(
     if (handler === undefined) continue;
     const fallback: CiaState = {
       ...INITIAL_CIA_STATE,
-      routes: [route.sink.capability === "c64.system.setIRQExclusive" ? "exclusive" : "chained"],
+      routes: [
+        route.sink.capability === "c64.system.setIRQExclusive" ||
+        route.sink.capability === "c64.system.setRawIRQ"
+          ? "exclusive"
+          : "chained",
+      ],
       handlerKeys: [[key]],
       mutations: [handlerCiaMutation([key], mayMutate, mayMutateRaw)],
       irqMayRun: false,

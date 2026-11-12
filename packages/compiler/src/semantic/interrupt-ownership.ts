@@ -66,6 +66,22 @@ export interface InterruptOwnershipAnalysis {
 
 const EMPTY: OwnershipState = { irq: [], nmi: [] };
 
+/**
+ * Bytes the takeover constructor owns for its whole lifetime. Source writes to these
+ * bytes bypass the typed sink and the startup/restore transaction, so they invalidate
+ * the bank/vector proof rather than being treated as ordinary memory.
+ */
+const TAKEOVER_OWNED_BYTES: ReadonlySet<bigint> = new Set([
+  0x0000n,
+  0x0001n,
+  0xdd00n,
+  0xdd02n,
+  0xfffan,
+  0xfffbn,
+  0xfffen,
+  0xffffn,
+]);
+
 /** Net install depth represented by a symbolic caller-visible effect. */
 function relativeDepth(events: readonly OwnershipEvent[]): number {
   return events.reduce(
@@ -190,13 +206,18 @@ function site(span: SourceSpan): string {
 function ownershipOperation(
   capability: string,
 ): { sink: InterruptSink; action: "push" | "pop" } | null {
-  if (capability === "c64.system.setIRQ" || capability === "c64.system.setIRQExclusive") {
+  if (
+    capability === "c64.system.setIRQ" ||
+    capability === "c64.system.setIRQExclusive" ||
+    capability === "c64.system.setRawIRQ"
+  ) {
     return { sink: "irq", action: "push" };
   }
   if (capability === "c64.system.setNMI" || capability === "c64.system.setNMIExclusive") {
     return { sink: "nmi", action: "push" };
   }
-  if (capability === "c64.system.restoreIRQ") return { sink: "irq", action: "pop" };
+  if (capability === "c64.system.restoreIRQ" || capability === "c64.system.restoreRawIRQ")
+    return { sink: "irq", action: "pop" };
   if (capability === "c64.system.restoreNMI") return { sink: "nmi", action: "pop" };
   return null;
 }
@@ -241,6 +262,7 @@ export function checkInterruptOwnership(
   indirectTargets: IndirectTargetSets,
   routes: readonly InterruptRoute[] = [],
   addressSpace?: Pick<TargetProfile["storage"], "ram" | "zeroPage">,
+  rawOwnership = false,
 ): InterruptOwnershipAnalysis {
   // Device-state failures must point at the CIA operation or unsafe hand-back
   // before the vector-only proof can report its broader unmatched-install error.
@@ -389,6 +411,19 @@ export function checkInterruptOwnership(
           }
         } else if (operation.kind === "memory-write") {
           const address = addresses.get(operation);
+          if (
+            rawOwnership &&
+            interruptWriteTouches(operation, address, TAKEOVER_OWNED_BYTES, false)
+          ) {
+            diagnostics.push(
+              projectDiagnostic(
+                "E10278",
+                "Raw takeover processor-port, VIC-bank or hardware-vector write is not certified — use the typed raw sink or leave the compiler-owned state unchanged",
+                operation.span,
+              ),
+            );
+            continue;
+          }
           for (const sink of ["irq", "nmi"] as const) {
             if (
               !interruptWriteTouches(
