@@ -530,6 +530,9 @@ A separate PAL/6581 case installs a source raw IRQ handler, observes the handler
 `$FFFE/$FFFF` value, consumes CIA1, returns to `main`, restores `$FFFE/$FFFF` to the default entry,
 and reaches the caller return.
 
+The post-commit compiler suite passes 219/219 files (3,701 passed, 2 skipped); the directed
+takeover/cooperative root slice passes 63/63, including the five takeover VICE cases.
+
 ### 13.3 Residual findings
 
 | ID | Finding | Owner |

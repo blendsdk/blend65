@@ -166,7 +166,7 @@ runtime oracle.
 
 - [x] 5.5.1 Run `yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck` and the
   complete `yarn test` with VICE sequential; record exact counts and confirm `spec/` is
-  clean. (completed: 2026-11-12 15:50) Build/typecheck green; affected compiler 287/287, takeover/cooperative root 63/63, takeover VICE 5/5; full-suite attempt and the one fixed intermediate failure recorded in the closeout.
+  clean. (completed: 2026-11-12 16:10) Build/typecheck green; complete compiler suite 219/219 files, 3,701 passed, 2 skipped; takeover/cooperative root 63/63; takeover VICE 5/5.
 - [x] 5.5.2 Dispatch independent SFA/ABI, target-platform, machine-code and
   semantics/correctness reviews on the phase snapshot. (completed: 2026-11-12 15:40) Four independent reviews completed; critical/major findings fixed and a fix-only pass re-verified the dispositions.
 - [x] 5.5.3 Resolve material findings, rerun affected tests and the full checkpoint. (completed: 2026-11-12 15:40) Default NMI A preservation, optimized default entries, must-consume CIA1, raw-owned byte rejection, default stack frames, source route lifetime and startup cost fixes are in place.

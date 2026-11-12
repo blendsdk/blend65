@@ -109,6 +109,7 @@ behavior assertion was waived.
 |---|---|
 | `yarn build` | 4/4 Turbo tasks pass |
 | `yarn typecheck` | 7/7 Turbo tasks pass |
+| Complete compiler suite (post-commit) | 219 files / 3,701 passed / 2 skipped, zero failures |
 | Affected compiler cluster | 17 files / 287 tests pass, including startup, closure, ownership, interrupt domains, target composition, size observers/selection and profile constants |
 | Takeover public smoke | 44/44 pass: four profiles, all four optimization modes, raw IRQ install/restore, nested LIFO, owned-byte and CIA1 negatives, high fixed object/function |
 | Takeover VICE matrix | 5/5 pass: four raw profiles plus the source raw IRQ case, sequential |
@@ -116,12 +117,10 @@ behavior assertion was waived.
 | Profile pipeline regression | 10/10 pass |
 | `spec/` | Clean; no file changed |
 
-A complete compiler-suite run was attempted after the main changes: 218/219 files and
-3,700/3,703 tests passed with two skips; the only failure was the intermediate
-`compact-stored` startup regression, fixed and re-run at 9/9. Later changes are
-takeover-only or optional profile fields, and the affected 287-test cluster above passes.
-A final full-suite rerun was stopped in this environment after the pre-existing slow
-size-observer files exceeded the bounded session; no failure appeared before the stop.
-The previous production-boundary full suite remains the last completed whole-tree run.
+The complete compiler suite was rerun on the committed implementation and passed:
+219/219 files, 3,701 passed, 2 skipped, zero failures. The earlier intermediate
+`compact-stored` startup regression was fixed and is included in this run. The previous
+production-boundary whole-tree suite remains the last complete root-suite run; the
+takeover/cooperative root slice above is the directed post-commit regression.
 
-Local implementation commit `d73e002c`; no push.
+Local implementation commits `d73e002c`, `3e414c59` and `160c22ea`; no push.
