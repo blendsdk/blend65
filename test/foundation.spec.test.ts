@@ -733,13 +733,14 @@ describe("native foundation qualification configuration", () => {
     expect(cli.bin.blendc).toBe("dist/bin.js");
   });
 
-  // Current guidance distinguishes active v4 ownership from retained historical reference evidence.
-  it("should keep current ownership and historical status labels truthful without claiming compilation", async () => {
+  // Current guidance distinguishes the qualified v4 surface from retained historical reference
+  // evidence. The earlier RD-02 "does not compile" wording is superseded by the release record.
+  it("should keep current ownership and historical status labels truthful", async () => {
     const guidance = await readFile(join(repository, "AGENTS.md"), "utf8");
     const readme = await readFile(join(repository, "README.md"), "utf8");
     expect(guidance).toMatch(/current implementation ownership is[\s\S]*?blend65-v4/i);
     expect(guidance).toMatch(/inherited v3 roadmaps are historical\s+reference only/i);
-    expect(readme).toMatch(/does not compile Blend65 source/i);
+    expect(readme).toMatch(/production candidate is qualified/i);
     expect(readme).toMatch(/reference evidence,\s*not current implementation status/i);
   });
 });

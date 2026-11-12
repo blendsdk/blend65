@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-10 Production Qualification and C64U Handoff
 
-> **Status**: ✅ GATE PASSED — all 18 items resolved
+> **Status**: ✅ GATE PASSED — all 19 items resolved
 > **Last Updated**: 2026-11-12
 
 Scope baseline: RD-10 R10.1–R10.39 and AC-01–AC-34. The user has stated that no physical C64 is
@@ -28,6 +28,7 @@ external publication, or outward release action is decided here.
 | 16 | Verification | RD-09 R9.5 tool discovery is missing from the implementation. | Reopen RD-09 / fix in RD-10 / drop the requirement | Fix in RD-10 as a qualification-blocking prerequisite: tools-file schema 1, explicit ACME/VICE paths, relative PATH resolution, exact probes, and tests. | ✅ Resolved — user-approved RD-10 fix |
 | 17 | Verification | R9.5 asks for the matched version line in build evidence, but the frozen build schema allows only name, canonicalPath, and sha256. | Version the schema / keep it frozen / drop the line | Keep `.build.json` version 1 frozen. Capture the line in the discovery result, tests, and release record, and record this interpretation here. | ✅ Resolved — user-approved interpretation |
 | 18 | Scope | Four takeover resident profiles are not executable and have no runtime harness. | Implement takeover / defer with a named owner / remove takeover from the product | Defer the four takeover profiles for this candidate. Qualify four KERNAL profiles plus D64; record takeover as `Unknown` under `V4-TAKEOVER-1`; narrow the support statement. | ✅ Resolved — user-approved deferral |
+| 19 | Verification | The RD-02 foundation oracle still asserts the old README text “does not compile Blend65 source”. | Restore stale README text / amend the oracle / leave the boundary red | Amend the oracle to assert the production-qualified status while keeping the historical-reference labels. The README change is the truthful release state. | ✅ Resolved — same foundation-oracle precedent as AR-15 |
 
 ## Resolution Notes
 
@@ -80,3 +81,7 @@ them as incomplete executable profiles, and no takeover VICE harness exists. Thi
 qualifies the four KERNAL resident profiles and the one D64 profile only. The four takeover rows
 stay `Unknown` under `V4-TAKEOVER-1`; no takeover runtime, banking, vector, or interrupt claim is
 made. Implementing takeover is a separate approved feature, not a qualification fix.
+
+**AR-19:** The README now states the production-qualified surface and keeps the v3/readiness text
+labeled as historical reference. The RD-02 foundation assertion that the README must say it does
+not compile is superseded by the release evidence; the oracle now checks the truthful status.

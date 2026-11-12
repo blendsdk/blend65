@@ -13,7 +13,7 @@ implementation stub.
 
 | Fact | Value |
 | ---- | ----- |
-| Candidate code commit | `649718ecd7ff7185222d897f546858fc524d3053` |
+| Candidate code commit | `bb10e0d116d19a1d96f169a09d14f02ff0daa0f8` |
 | Full specification corpus | 45 files; `BLEND65-SPEC-4-2ea3decf9362644b657e9d20ffeadb318028615958263147e579bfeeb5aada0e` |
 | Normative specification | 18 files; `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b` |
 | Expert skill | `2.0.4`; content commit `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15` |

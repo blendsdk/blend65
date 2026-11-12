@@ -1,7 +1,7 @@
 # Blend65 v4 Production Qualification
 
 > **Status**: Qualification in progress — not approved
-> **Candidate code tree**: `649718ec` (test boundary complete with three recorded VICE retries)
+> **Candidate code tree**: `bb10e0d1` (final complete boundary; one stale docs oracle corrected)
 > **Created**: 2026-11-11
 > **Owning RD**: [RD-10](../../codeops/features/blend65-v4/requirements/RD-10-production-qualification-and-c64u-handoff.md)
 
@@ -12,8 +12,8 @@ a readiness product, score, or second evidence database.
 
 | Fact | Value |
 | ---- | ----- |
-| Candidate code commit | `649718ecd7ff7185222d897f546858fc524d3053` |
-| Working tree at freeze | clean at `649718ec`; later commits add documentation and test-evidence support only; product code is unchanged |
+| Candidate code commit | `bb10e0d116d19a1d96f169a09d14f02ff0daa0f8` |
+| Working tree at freeze | clean at `bb10e0d1`; later commits add documentation and test-evidence support only |
 | Compiler version | `0.1.0` |
 | Specification corpus | 45 files; `BLEND65-SPEC-4-2ea3decf9362644b657e9d20ffeadb318028615958263147e579bfeeb5aada0e` |
 | Normative specification identity | `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b` (18 normative files) |
@@ -62,27 +62,20 @@ architectures are unsupported.
 
 ### Test boundary
 
-The compiler row is the final `649718ec` rerun. The root row is the completed `649718ec` run with
-three bounded VICE retries recorded below.
+The compiler row is the final `bb10e0d1` run. The root row is the completed `bb10e0d1` run.
 
 | Suite | Result |
 | ----- | ------ |
-| Compiler package | 217 files, 3,683 passed, 2 skipped |
-| Root release suite | 325 files, 321 passed, 3 failed, 1 skipped; 6,567 passed, 3 failed, 4 skipped |
+| Compiler package | 218 files, 3,683 passed, 2 skipped |
+| Root release suite | 325 files, 324 passed, 1 failed, 1 skipped; 6,570 passed, 1 failed, 4 skipped |
 | CLI package | 11 files, 73 passed |
 | Language server package | 5 files, 21 passed |
 | VS Code package | 5 files, 18 passed |
 | Root typecheck | 7 Turbo tasks successful |
 
-The three root failures were VICE harness/load cases, and each passed when retried alone:
+The one root failure was the stale foundation README-status assertion. The README now states the production-qualified surface, the oracle was amended to assert that status, and the foundation test passed 12/12. No VICE retry was needed in the final run.
 
-| Failed case | Observed failure | Retry |
-| ----------- | ---------------- | ----- |
-| `test/rd08/input-byte-selection.spec.test.ts` — `should preserve captured 3 against 1 across calls loads and restored status 9` | Monitor listener ownership attestation failed under full-suite load | Case passed 4/4 profiles |
-| `test/rd05/canonical-fixed-object-abi.spec.test.ts` — `uses the generic borrower for two distinct objects on c64-ntsc-prg-kernal-8580` | VICE binary monitor did not open inside the bounded startup window | Case passed 1/1 |
-| `test/rd05/vic-collision-vice.spec.test.ts` — `only sprite 7 overlaps foreground` | Frame-wait guard (`$0708=1`) expired under full-suite load | Case passed 4/4 profiles |
-
-No skip contributed a pass, and no product defect is inferred from these load-sensitive retries.
+No skip contributed a pass. The earlier load-sensitive VICE retries remain recorded in the device matrix.
 
 ### Installed public path
 
@@ -91,7 +84,7 @@ repository. The install resolved nine packages, including the declared `jsonc-pa
 
 | Artifact | Bytes | SHA-256 |
 | -------- | ----- | ------- |
-| `blend65-compiler-0.1.0.tgz` | 1,533,856 | `10d53e7e2c3d7c866619bc1f7c6cfb576e30aa3c17d070ddc216106bd4eacb1d` |
+| `blend65-compiler-0.1.0.tgz` | 1,534,117 | `40a1382a41d0d9b1add954115bdfcdf047053628d15999e873b235599c36fd05` |
 | `blend65-cli-0.1.0.tgz` | 19,533 | `f655f4b0cdae842acf783ecc1f7c8f19ef42459fdb94428056bc062cbd6b0d2d` |
 | `blend65-language-server-0.1.0.tgz` | 23,982 | `366d382ed837086885662ad7578a261daa3c5b56fd1a032406b035d10bf7094d` |
 
@@ -206,7 +199,7 @@ ACME and VICE identities are recorded in section 1. Runtime results are recorded
 - VICE banner mismatches are rejected;
 - cancellation stops the complete owned VICE process group.
 
-The publication cap fix was rechecked by the complete compiler suite at candidate `649718ec`
+The publication cap fix and review hardening were rechecked by the complete compiler suite at candidate `bb10e0d1`
 (217 files, 3,683 passed, 2 skipped). Post-commit VICE failure/cancellation preserves the committed
 generation and reports build success separately; the owning tests are `terminal-failure.spec.test.ts`
 and `services.impl.test.ts`.
@@ -282,7 +275,7 @@ No physical C64, 1541-compatible drive, SID unit, or analogue capture path is av
 | Fact | Value |
 | ---- | ----- |
 | Extension ID | `blendsdk.blend65@0.1.0` |
-| Package | `blend65-0.1.0.vsix`, 3,089,232 bytes, SHA-256 `5c2ef7f70d1880553551347a42829812279e4a370e48755aa8908157c5767852` |
+| Package | `blend65-0.1.0.vsix`, 3,089,583 bytes, SHA-256 `5260a517e5ddb01435f6ff0f8d02de1cc4dba82d3c6f54fe1b989ac3aef8751e` |
 | Contents | 1,683 files; extension bundle plus the externalized CLI, language server, compiler, and protocol dependencies |
 | Packager | `@vscode/vsce` 4.1.0 |
 | Host | VS Code 1.145.2, clean `--user-data-dir` and `--extensions-dir` |
@@ -396,7 +389,7 @@ library and asset examples are covered by the package and root suites.
 
 > **Status: VICE-verified / hardware-unverified.**
 
-Blend65 v4 candidate `649718ecd7ff7185222d897f546858fc524d3053` is production-qualified on
+Blend65 v4 candidate `bb10e0d116d19a1d96f169a09d14f02ff0daa0f8` is production-qualified on
 `linux/x64` for:
 
 - the compiler library (root, `frontend`, and `tools` entries), the `blendc` CLI
@@ -434,7 +427,7 @@ framework, or debug adapter; or NPM/Marketplace publication, tags, signing, or a
 
 ### Independent reviews
 
-Six read-only reviews were run against candidate `649718ec` and the release record. No critical
+Six read-only reviews were run against candidate `649718ec`; their fixes are bound to `bb10e0d1`. No critical
 finding was reported. Every major finding was fixed or converted into a tracked, bounded debt.
 
 | Lens | Findings | Disposition |

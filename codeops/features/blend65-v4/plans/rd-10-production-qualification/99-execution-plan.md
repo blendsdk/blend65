@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-12 00:53
-> **Progress**: 78/82 tasks (95%)
+> **Last Updated**: 2026-11-12 03:12
+> **Progress**: 80/82 tasks (98%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -117,7 +117,7 @@ status table.
 - [x] 3.1.2 Run the four KERNAL profile VICE matrix sequentially and record exact identity/observations — `test/rd05/profiles-vice.spec.test.ts` ✅ (completed: 2026-11-12 00:10; 4/4 profiles, exact VICE/ROM identity, caller return `$E147`)
 - [x] 3.1.3 Record the four takeover profiles as `Unknown` under `V4-TAKEOVER-1`; no takeover runtime case exists ✅ (closed: 2026-11-11; user-approved deferral, AR-18)
 - [x] 3.1.4 Reserve no takeover runtime observation and make no takeover banking/vector/interrupt claim ✅ (closed: 2026-11-11; the matrix is limited to four KERNAL profiles)
-- [ ] 3.1.5 Confirm no profile result substitutes for another dimension and record the four-KERNAL-plus-D64 matrix — `docs/releases/v4-production-qualification.md`
+- [x] 3.1.5 Confirm no profile result substitutes for another dimension and record the four-KERNAL-plus-D64 matrix — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12 03:12; full hashes and per-dimension observations recorded)
 
 ### Step 3.2: D64
 
@@ -275,7 +275,7 @@ responsiveness/security records, complete release record.
 
 - [x] 8.2.1 Run the mandatory deferral-expiry scan across ambiguities, Won't Have, future considerations, expert deferrals, hardware limits, expressiveness, parity, and C64U unknowns — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12; no expired rationale, all owners concrete)
 - [x] 8.2.2 Reassign every due item to `V4-HW-1`, a concrete RD, or an authorized issue; no orphan remains — roadmap/issues ✅ (completed: 2026-11-12; `V4-HW-1`, `V4-HOST-1`, `V4-ASSET-1`, #100/#140/#145/#146)
-- [ ] 8.2.3 Run the final complete release boundary once and record exact counts/identities — repository root
+- [x] 8.2.3 Run the final complete release boundary once and record exact counts/identities — repository root ✅ (completed: 2026-11-12 03:12; compiler 218 files / 3,683 passed / 2 skipped; CLI 73; language server 21; VS Code 18; root 325 files / 6,570 passed / 1 stale docs-oracle failure / 4 skipped, foundation retried 12/12)
 - [ ] 8.2.4 Present the exact support statement, release record, limitations/debt, physical `Unknown` rows, C64U handoff, and local package result to the user — release record
 - [ ] 8.2.5 Record explicit user approval or keep RD-10 in review; do not change the production lifecycle without it — release record, roadmap
 
