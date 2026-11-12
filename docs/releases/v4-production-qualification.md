@@ -394,8 +394,8 @@ installed prefix; library and asset examples are covered by the package and root
 
 Blend65 v4 is production-qualified on `linux/x64` for the surface below. The original
 candidate `bb10e0d116d19a1d96f169a09d14f02ff0daa0f8` covered four KERNAL PRG profiles plus
-the D64; the four takeover rows are the post-approval `V4-TAKEOVER-1` update recorded in
-section 13. The qualified surface is:
+the D64; the four takeover rows are the `V4-TAKEOVER-1` update, approved on 2026-11-12 and recorded
+in section 13. The qualified surface is:
 
 - the compiler library (root, `frontend`, and `tools` entries), the `blendc` CLI
   (`check`, `build`, `run`, `evidence`), the language server, and the local VS Code VSIX
@@ -469,11 +469,21 @@ push, NPM/Marketplace publication, release tag, signing, or announcement. The na
 
 ## 13. Takeover profile update
 
-This section records the post-approval delivery of `V4-TAKEOVER-1`. It does not rewrite the
-historical `bb10e0d1` approval; it extends the qualified surface under the same bounded evidence
-rules and leaves every physical row `Unknown`. The takeover implementation commit is
-`d73e002c` on `feature/v4-rebuild`; the [CodeOps closeout](../../codeops/features/blend65-v4/plans/rd-05-takeover-profiles/08-closeout.md)
+This section records the delivery of `V4-TAKEOVER-1`. It does not rewrite the historical
+`bb10e0d1` approval; it extends the qualified surface under the same bounded evidence rules and
+leaves every physical row `Unknown`. The takeover implementation commit is `d73e002c` on
+`feature/v4-rebuild`; the [CodeOps closeout](../../codeops/features/blend65-v4/plans/rd-05-takeover-profiles/08-closeout.md)
 records the verification boundary and residual findings.
+
+### 13.0 Approval
+
+The four takeover rows are part of the approved production surface. The user approved them on
+2026-11-12, after the `bb10e0d1` candidate, on the evidence in this section: four fresh artifacts,
+five sequential VICE 3.10 cases, the cooperative regression, the complete compiler suite and the
+independent reviews recorded in the closeout. The approval keeps the same bounded wording as the
+original candidate: `VICE-verified / hardware-unverified`, no physical C64, drive or SID claim, and
+no authorization to push, publish, tag, sign or announce. `V4-TAKEOVER-F2` and `V4-TAKEOVER-F3`
+remain owned follow-ups, not part of the claim.
 
 ### 13.1 Delivered behavior
 
