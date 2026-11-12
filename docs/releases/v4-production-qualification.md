@@ -1,6 +1,6 @@
 # Blend65 v4 Production Qualification
 
-> **Status**: Qualification in progress — not approved
+> **Status**: Production candidate approved — `VICE-verified / hardware-unverified`
 > **Candidate code tree**: `bb10e0d1` (final complete boundary; one stale docs oracle corrected)
 > **Created**: 2026-11-11
 > **Owning RD**: [RD-10](../../codeops/features/blend65-v4/requirements/RD-10-production-qualification-and-c64u-handoff.md)
@@ -454,5 +454,7 @@ remains.
 
 ### Decision
 
-Not approved. RD-10 remains in qualification until the user explicitly approves the exact candidate
-and support statement.
+Approved by the user on 2026-11-12. The exact candidate `bb10e0d1` and the bounded support statement in
+section 11 are approved. This approval is a production transition only; it does not authorize a
+push, NPM/Marketplace publication, release tag, signing, or announcement. The named debt and
+`Unknown` rows remain owned as recorded.

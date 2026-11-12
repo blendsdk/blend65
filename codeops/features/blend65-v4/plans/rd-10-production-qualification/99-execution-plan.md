@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-12 03:12
-> **Progress**: 80/82 tasks (98%)
+> **Last Updated**: 2026-11-12 03:20
+> **Progress**: 82/82 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -276,8 +276,8 @@ responsiveness/security records, complete release record.
 - [x] 8.2.1 Run the mandatory deferral-expiry scan across ambiguities, Won't Have, future considerations, expert deferrals, hardware limits, expressiveness, parity, and C64U unknowns — `docs/releases/v4-production-qualification.md` ✅ (completed: 2026-11-12; no expired rationale, all owners concrete)
 - [x] 8.2.2 Reassign every due item to `V4-HW-1`, a concrete RD, or an authorized issue; no orphan remains — roadmap/issues ✅ (completed: 2026-11-12; `V4-HW-1`, `V4-HOST-1`, `V4-ASSET-1`, #100/#140/#145/#146)
 - [x] 8.2.3 Run the final complete release boundary once and record exact counts/identities — repository root ✅ (completed: 2026-11-12 03:12; compiler 218 files / 3,683 passed / 2 skipped; CLI 73; language server 21; VS Code 18; root 325 files / 6,570 passed / 1 stale docs-oracle failure / 4 skipped, foundation retried 12/12)
-- [ ] 8.2.4 Present the exact support statement, release record, limitations/debt, physical `Unknown` rows, C64U handoff, and local package result to the user — release record
-- [ ] 8.2.5 Record explicit user approval or keep RD-10 in review; do not change the production lifecycle without it — release record, roadmap
+- [x] 8.2.4 Present the exact support statement, release record, limitations/debt, physical `Unknown` rows, C64U handoff, and local package result to the user — release record ✅ (completed: 2026-11-12; user approved the exact statement)
+- [x] 8.2.5 Record explicit user approval or keep RD-10 in review; do not change the production lifecycle without it — release record, roadmap ✅ (completed: 2026-11-12; approval recorded; RD-10 and v4 marked production-complete)
 
 **Deliverables**: independent review records, deferral disposition, final boundary, explicit
 approval decision.
@@ -304,16 +304,17 @@ Phase 8 (reviews/approval)
 
 ## Success Criteria
 
-1. ⏳ All 82 tasks `[x]` or explicitly closed with evidence; Phase 8 remains open.
+1. ✅ All 82 tasks `[x]` or explicitly closed with evidence.
 2. ✅ One clean candidate identity with no dirty-tree or authority mismatch.
 3. ✅ Every claimed host has native evidence; unavailable hosts are `Unknown`.
 4. ✅ Four KERNAL resident profiles and one D64 profile have sequential VICE observations; the four
    takeover profiles are `Unknown` under `V4-TAKEOVER-1`.
-5. ⏳ Language and compiler-not-engine claims pass; assets and optimizer pass with recorded
-   `Unknown`/debt (CharPad 3.88, GoatTracker 2.77, issue #145, local matched-ABI parity).
+5. ✅ Language and compiler-not-engine claims pass; assets and optimizer pass within the approved
+   bounded statement (CharPad 3.88, GoatTracker 2.77, issue #145, local matched-ABI parity are
+   explicit non-claims).
 6. ✅ Local packages and VSIX work from installed artifacts.
 7. ✅ C64U readiness and handoff are complete without implementation; three future-pressure items are
    recorded.
 8. ✅ Physical rows are `Unknown` with `V4-HW-1`; the statement says `VICE-verified / hardware-unverified`.
-9. ⏳ Deferrals and limitations have no orphaned owner; Phase 8.2.1/8.2.2 remain open.
-10. ⏳ Independent reviews are complete; explicit user approval is still required.
+9. ✅ Deferrals and limitations have no orphaned owner.
+10. ✅ Independent reviews are complete and explicit user approval is recorded.
