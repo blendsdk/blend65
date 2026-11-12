@@ -124,4 +124,4 @@ A final full-suite rerun was stopped in this environment after the pre-existing 
 size-observer files exceeded the bounded session; no failure appeared before the stop.
 The previous production-boundary full suite remains the last completed whole-tree run.
 
-Local implementation commit only; no push.
+Local implementation commit `d73e002c`; no push.

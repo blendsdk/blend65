@@ -1,7 +1,7 @@
 # RD-05 Takeover Resident Profiles Plan
 
 > **Feature**: Four raw-takeover C64 resident profiles (`V4-TAKEOVER-1`)
-> **Status**: Executing — 29/30 tasks
+> **Status**: Done — 30/30 tasks
 > **Created**: 2026-11-12
 > **Implements**: blend65-v4/RD-05; closes `V4-TAKEOVER-1`
 > **CodeOps Artifact Schema**: 1

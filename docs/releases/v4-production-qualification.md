@@ -471,9 +471,9 @@ push, NPM/Marketplace publication, release tag, signing, or announcement. The na
 
 This section records the post-approval delivery of `V4-TAKEOVER-1`. It does not rewrite the
 historical `bb10e0d1` approval; it extends the qualified surface under the same bounded evidence
-rules and leaves every physical row `Unknown`. The takeover implementation commit is recorded by
-the [CodeOps closeout](../../codeops/features/blend65-v4/plans/rd-05-takeover-profiles/08-closeout.md)
-after the final checkpoint.
+rules and leaves every physical row `Unknown`. The takeover implementation commit is
+`d73e002c` on `feature/v4-rebuild`; the [CodeOps closeout](../../codeops/features/blend65-v4/plans/rd-05-takeover-profiles/08-closeout.md)
+records the verification boundary and residual findings.
 
 ### 13.1 Delivered behavior
 

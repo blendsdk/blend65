@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-11-12 14:39
-> **Progress**: 29/30 tasks (97%)
+> **Progress**: 30/30 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -173,7 +173,7 @@ runtime oracle.
 - [x] 5.5.4 Update `docs/releases/v4-production-qualification.md` with the eight-profile
   matrix and bounded support statement, update the roadmap rows (`V4-TAKEOVER-1` Done,
   `V4-TAKEOVER-F2`/`F3` owners recorded), and write the closeout/deferral-expiry check. (completed: 2026-11-12 15:50) Release matrix, support statement, roadmap row and closeout updated.
-- [ ] 5.5.5 Commit the green checkpoint with a scoped message; no push.
+- [x] 5.5.5 Commit the green checkpoint with a scoped message; no push. (completed: 2026-11-12 15:55) Local implementation commit `d73e002c`; feature branch only.
 
 **Verify:** all 30 tasks complete, independent review clear, full checkpoint green,
 release/roadmap accurate, `spec/` untouched.
