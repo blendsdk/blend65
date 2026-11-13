@@ -24,7 +24,7 @@
 | Root integration tier | — | 175 files / 3,400 tests, 12m03 with 4 workers |
 | Compiler package full suite | ~10m30 | 226 files / 3,808 passed / 2 skipped, 4m54 |
 | Repeated cached test build | normal build | cache hit; runtime-switch test 2.8 s → 0.32 s of test work |
-| VICE tier | — | serialized checkpoint; complete run in progress |
+| VICE tier | — | affected regression set 109/109; complete serialized run in progress |
 
 ## Notes
 

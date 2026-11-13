@@ -29,8 +29,8 @@ Run from the repository root:
 - `yarn test` — host checkpoint: owned workspace tests, then the host root tier
   (fast + integration, parallel). VICE is not included.
 - `yarn test:full` — complete checkpoint: `yarn test` plus the serialized VICE tier.
-- `yarn test:fast` — pure host root tests only; no real compiler build and no emulator.
-  Use this for the inner edit loop.
+- `yarn test:fast` — compiler implementation tests plus pure host root tests; no real
+  compiler build journey and no emulator. Use this for the inner edit loop.
 - `yarn test:integration` — root tests with real public builds/ACME, no emulator.
 - `yarn test:vice` — every root test that launches or drives a real emulator; serialized.
 - `yarn test:host` — fast + integration root tiers together.

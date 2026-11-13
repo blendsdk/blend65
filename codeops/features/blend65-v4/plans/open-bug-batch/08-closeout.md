@@ -23,13 +23,14 @@
 | --- | --- |
 | `yarn build` | 4/4 packages pass |
 | `yarn typecheck` | 7/7 pass |
-| Compiler package suite | 226 files, 3,808 passed / 2 skipped |
-| Root suite | pending final run |
+| Compiler package suite | 226 files, 3,808 passed / 2 skipped (4m54 parallel) |
+| Root host tier | 45 fast / 1,282 tests and 175 integration / 3,400 tests, all pass |
 | Targeted switch build/output | 13/13 |
 | Targeted switch VICE | byte/word `11,22,99,99`; effects and caller return pass |
 | Targeted CIA2 borrow | 40/40 across four profiles |
 | Targeted CIA2 runtime | 4/4; borrowed read returns `$1F` |
 | Targeted raw-footprint/NMI regressions | 128/128 |
+| Targeted VICE regression set | 109/109 (purity, switch, CIA2 runtime, raw footprints) |
 | Machine/storage package subset | 79 files, 980 passed |
 | Targeted scope | 6/6 |
 | Targeted VIC diagnostics | 7/7 |
