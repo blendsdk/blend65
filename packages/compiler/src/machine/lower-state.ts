@@ -131,6 +131,8 @@ export interface FunctionLoweringState {
   readonly booleanValues: Set<string>;
   /** Values proved Boolean from a single-bit mask, with their normalization shift count. */
   readonly booleanShiftValues: ReadonlyMap<string, number>;
+  /** Masked values materialized as a Boolean through an inline expert branch. */
+  readonly booleanBranchValues: ReadonlySet<string>;
   /** NMI local bindings whose request was omitted before SFA allocation. */
   readonly elidedLocalBindings: ReadonlySet<string>;
   /** Exact sole adjacent indexed additions selected from that access's unsigned proof. */

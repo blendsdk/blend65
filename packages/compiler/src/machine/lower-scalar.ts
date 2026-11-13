@@ -227,13 +227,57 @@ export function lowerBitwise(
   if (width !== 1 && width !== 2) {
     throw loweringFailure("Bitwise lowering requires a byte or word result", operation.span);
   }
+  const widthMask = width === 1 ? 0xff : 0xffff;
+  // A zero mask clears every bit regardless of the other operand. Evaluation is
+  // already complete, so the volatile read or call still happened exactly once.
+  if (
+    opcode === "and" &&
+    ((left.kind === "constant" && left.value === 0) ||
+      (right.kind === "constant" && right.value === 0))
+  ) {
+    return Object.freeze({
+      instructions: Object.freeze([]),
+      result: Object.freeze({
+        kind: "constant" as const,
+        value: 0,
+        bytes: width,
+        signed: isSignedType(operation.type),
+      }),
+    });
+  }
+  // Two compile-time operands need no runtime instruction. This also lets a
+  // single-use constant local fold through its bit test.
+  if (left.kind === "constant" && right.kind === "constant") {
+    const leftBits = left.value & widthMask;
+    const rightBits = right.value & widthMask;
+    const value =
+      opcode === "and"
+        ? leftBits & rightBits
+        : opcode === "ora"
+          ? leftBits | rightBits
+          : leftBits ^ rightBits;
+    return Object.freeze({
+      instructions: Object.freeze([]),
+      result: Object.freeze({
+        kind: "constant" as const,
+        value,
+        bytes: width,
+        signed: isSignedType(operation.type),
+      }),
+    });
+  }
   // Evaluation is already complete. A sole adjacent arithmetic result can be
   // the source-right value in A; commute only its stable private/constant peer.
+  // A directly addressable placed byte is equally stable: it is a label, not a
+  // register or a live temporary.
   if (
     width === 1 &&
     right.kind === "register" &&
     right.registers === "a" &&
-    (left.kind === "storage" || left.kind === "constant")
+    (left.kind === "storage" ||
+      left.kind === "constant" ||
+      left.kind === "label" ||
+      left.kind === "static-address")
   )
     [left, right] = [right, left];
   // A byte-sized AND mask proves the word's high byte is zero. Keep the
@@ -290,7 +334,12 @@ export function lowerBitwise(
       right.value === 0xff &&
       state.forwardedRegisterValues.has(operation.result) &&
       state.addressValues.has(operation.result);
-    if (!ordinalIdentity)
+    const allOnesMask =
+      opcode === "and" &&
+      adjacentRead === null &&
+      right.kind === "constant" &&
+      ((right.value >> (offset * 8)) & 0xff) === 0xff;
+    if (!ordinalIdentity && !allOnesMask)
       instructions.push(
         Object.freeze({
           ...machineInstruction(

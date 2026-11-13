@@ -22,14 +22,14 @@ export interface NmiRegisterOnlyLocal {
   readonly binding: BindingId;
   /** Exact initializing store. */
   readonly storeSpan: SourceSpan;
-  /** Exact single load. */
-  readonly loadSpan: SourceSpan;
+  /** Exact single load, or null when a constant store has no load. */
+  readonly loadSpan: SourceSpan | null;
   /** Block containing both operations. */
   readonly block: BlockId;
   /** Store operation index in that block. */
   readonly storeIndex: number;
-  /** Load operation index in that block. */
-  readonly loadIndex: number;
+  /** Load operation index in that block, or null when no load exists. */
+  readonly loadIndex: number | null;
 }
 
 /** One located operation in a source function. */
@@ -197,16 +197,50 @@ export function nmiRegisterOnlyLocals(
 
   const result = new Map<string, NmiRegisterOnlyLocal>();
   for (const [key, access] of accesses) {
-    if (access.rejected || access.stores.length !== 1 || access.loads.length !== 1) continue;
+    if (access.rejected || access.stores.length !== 1 || access.loads.length > 1) continue;
     const store = access.stores[0]!;
-    const load = access.loads[0]!;
-    if (
-      store.block.id !== load.block.id ||
-      load.index <= store.index ||
-      !constantOnlyBetween(store.block, store.index, load.index, constants)
-    )
+    const load = access.loads[0];
+    const initializer = definitionOf(fn, store.operation.value)?.operation;
+    const constantInitializer =
+      initializer !== undefined &&
+      (initializer.kind === "constant" ||
+        (initializer.kind === "convert" && constants.has(initializer.operand)));
+    if (load !== undefined) {
+      if (
+        store.block.id !== load.block.id ||
+        load.index <= store.index ||
+        !constantOnlyBetween(store.block, store.index, load.index, constants)
+      )
+        continue;
+    }
+    if (constantInitializer) {
+      // A constant local needs no register and no home. A dead store is safe
+      // when no load exists; a single load resolves to the constant value.
+      if (load !== undefined) {
+        if (valueUseCount(fn, load.operation.result) > 1) continue;
+        const consumer = singleConsumer(fn, load.operation.result);
+        if (
+          consumer !== null &&
+          (consumer.block.id !== load.block.id ||
+            !consumerGap(load.block, load.index, consumer.index, constants, null))
+        )
+          continue;
+      }
+      result.set(
+        key,
+        Object.freeze({
+          binding: store.operation.place.root,
+          storeSpan: store.operation.span,
+          loadSpan: load?.operation.span ?? null,
+          block: store.block.id,
+          storeIndex: store.index,
+          loadIndex: load?.index ?? null,
+        }),
+      );
       continue;
-    if (!byteType(store.operation.type) || !byteType(load.operation.type)) continue;
+    }
+    if (load === undefined) continue;
+    if (!byteType(load.operation.type) || !byteType(store.operation.type)) continue;
 
     const valueDefinition = definitionOf(fn, store.operation.value);
     if (

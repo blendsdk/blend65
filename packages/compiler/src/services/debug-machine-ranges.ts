@@ -133,6 +133,7 @@ export function machineFunctionSegments(
         block.label.startsWith(`${id}.shift.`) ||
         block.label.startsWith(`${id}.multiply.`) ||
         block.label.startsWith(`${id}.divide.`) ||
+        block.label.startsWith(`${id}.boolean.`) ||
         block.label.startsWith(`${id}.copy.`) ||
         block.label.startsWith(`${id}.move.`) ||
         block.label.startsWith(`${id}.fill.`) ||

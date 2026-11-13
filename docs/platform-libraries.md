@@ -155,8 +155,9 @@ interrupt function onBit(): void {
   }
 }
 
-// A mask-one bit test is already a Boolean value, including its inverse.
-// Masks two and four are shift-normalized to the same 0/1 value.
+// A bit test materializes a Boolean with no private home. Mask one is the
+// identity; masks two and four are shift-normalized; any other nonzero mask
+// uses the expert branch; the zero mask folds to a constant.
 interrupt function onBoolean(): void {
   timerFinished = (c64.cia2.readAndClearPendingSources() & 1) != 0;
   timerFinished = (c64.cia2.readAndClearPendingSources() & 1) == 0;
@@ -164,6 +165,19 @@ interrupt function onBoolean(): void {
   timerFinished = (c64.cia2.readAndClearPendingSources() & 2) == 0;
   timerFinished = (c64.cia2.readAndClearPendingSources() & 4) != 0;
   timerFinished = (c64.cia2.readAndClearPendingSources() & 4) == 0;
+  timerFinished = (c64.cia2.readAndClearPendingSources() & 8) != 0;
+  timerFinished = (c64.cia2.readAndClearPendingSources() & 3) == 0;
+  timerFinished = (c64.cia2.readAndClearPendingSources() & 0) != 0;
+  timerFinished = (c64.cia2.readAndClearPendingSources() & 255) != 0;
+}
+
+// A byte-masked word keeps only its low byte: mask one is the identity, mask
+// two is one shift, and other byte masks use the branch.
+place(at: $C100) let pendingWord: word = 0;
+interrupt function onWord(): void {
+  timerFinished = (pendingWord & 1) != 0;
+  timerFinished = (pendingWord & 2) != 0;
+  timerFinished = (pendingWord & 8) != 0;
 }
 
 // A single-use local with an adjacent consumer stays in the accumulator.
@@ -174,12 +188,13 @@ interrupt function onLocal(): void {
 ```
 
 The read is still exactly one volatile access. A handler that needs a real private home
-still fails `E10245`. That includes several simultaneously retained samples, a Boolean
-value from a constant mask of eight or higher, a multi-bit or zero constant mask, a
-runtime mask, a wider-than-byte operand, and a masked value shared by several consumers. Masks two and four are delivered because their shift chain meets or beats the
-expert materialization; the rest need an inline branch block or a bounded retention
-mechanism. They are tracked by
-[#149](https://github.com/blendsdk/blend65/issues/149), not language restrictions or
+still fails `E10245`. That includes several simultaneously retained samples, a masked
+value shared by several consumers, a 16-bit word mask whose high byte can be nonzero, a
+runtime word local that stages its zero-extension, a computed (non-addressable) mask, and
+a masked value compared to a nonzero constant. The delivered forms use an inline branch, a
+shift chain, the identity, or a constant fold and meet or beat the expert sequence. The
+remaining forms need bounded retention or a wider join and are tracked by
+[#150](https://github.com/blendsdk/blend65/issues/150), not language restrictions or
 recommended source workarounds.
 
 ## Qualification

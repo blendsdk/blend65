@@ -119,18 +119,19 @@ describe("single-bit Boolean shift selection", () => {
     expect(result.booleanShiftValues.has("masked")).toBe(false);
   });
 
-  it("does not select a mask above four", () => {
+  it("selects mask eight through the inline branch", () => {
     const result = selection([...maskedValue(8n, "!="), ...consumed()]);
     expect(result.booleanShiftValues.has("masked")).toBe(false);
-    expect(result.forwardedRegisterValues.has("masked")).toBe(false);
+    expect(result.booleanBranchValues.has("masked")).toBe(true);
+    expect(result.forwardedRegisterValues.has("masked")).toBe(true);
   });
 
-  it("does not select a multi-bit constant mask", () => {
+  it("selects a multi-bit constant mask through the inline branch", () => {
     const result = selection([...maskedValue(3n, "!="), ...consumed()]);
-    expect(result.booleanShiftValues.has("masked")).toBe(false);
+    expect(result.booleanBranchValues.has("masked")).toBe(true);
   });
 
-  it("does not select a runtime mask", () => {
+  it("selects an addressable runtime mask through the inline branch", () => {
     const mask = sourceParameter(200, BYTE);
     const result = selection([
       read(),
@@ -141,6 +142,7 @@ describe("single-bit Boolean shift selection", () => {
       ...consumed(),
     ]);
     expect(result.booleanShiftValues.has("masked")).toBe(false);
+    expect(result.booleanBranchValues.has("masked")).toBe(true);
   });
 
   it("selects a mirrored comparison with the zero on the left", () => {
@@ -189,7 +191,7 @@ describe("single-bit Boolean shift selection", () => {
     expect(result.booleanShiftValues.get("masked")).toBe(1);
   });
 
-  it("does not select a word bit test", () => {
+  it("selects a byte-masked word through the existing shift identity", () => {
     const mask = sourceParameter(210, WORD);
     const result = selection([
       loadOperation("wordValue", mask, 211),
@@ -199,7 +201,7 @@ describe("single-bit Boolean shift selection", () => {
       binary("done", "!=", "masked", "zero", BOOLEAN),
       ...consumed(),
     ]);
-    expect(result.booleanShiftValues.has("masked")).toBe(false);
+    expect(result.booleanShiftValues.get("masked")).toBe(1);
   });
 
   it("does not shift a branch condition", () => {

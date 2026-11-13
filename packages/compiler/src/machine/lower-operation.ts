@@ -213,8 +213,27 @@ export function lowerOperation(
           ),
         )
       ) {
-        // The inventory omitted this local's home. Its only store was elided and
-        // the direct read is still in A; the single consumer can use it directly.
+        // The inventory omitted this local's home. A constant initializer is
+        // resolved from the single preceding store; a direct read is still in A
+        // and the single consumer can use it directly.
+        const initializer =
+          block === undefined || operationIndex === undefined
+            ? undefined
+            : block.operations
+                .slice(0, operationIndex)
+                .reverse()
+                .find(
+                  (candidate): candidate is Extract<SemanticOperation, { kind: "store" }> =>
+                    candidate.kind === "store" &&
+                    candidate.place.path.length === 0 &&
+                    bindingIdentityKey(candidate.place.root) ===
+                      bindingIdentityKey(operation.place.root),
+                );
+        const stored = initializer === undefined ? undefined : state.values.get(initializer.value);
+        if (stored?.kind === "constant") {
+          state.values.set(operation.result, stored);
+          return Object.freeze([]);
+        }
         state.values.set(
           operation.result,
           Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
@@ -283,11 +302,15 @@ export function lowerOperation(
         ),
       )
     ) {
-      // The only store of this NMI local is the initializer whose value is
-      // already in A. The home was omitted before allocation; emit nothing.
-      if (value.kind !== "register" || value.registers !== "a" || value.bytes !== 1)
+      // The only store of this NMI local is its initializer. A constant needs
+      // no runtime value; a direct read is already in A. The home was omitted
+      // before allocation, so the store emits nothing.
+      if (
+        value.kind !== "constant" &&
+        (value.kind !== "register" || value.registers !== "a" || value.bytes !== 1)
+      )
         throw loweringFailure(
-          "Elided NMI local store is not the direct-read initializer",
+          "Elided NMI local store is not a constant or direct-read initializer",
           operation.span,
         );
       return Object.freeze([]);
@@ -383,17 +406,46 @@ export function lowerOperation(
     };
     let selectedHelper: "multiply" | "division" | null = null;
     let selectedConstantMultiply: number | null = null;
-    if (comparison) {
+    const constantComparison =
+      comparison &&
+      (operation.operator === "==" || operation.operator === "!=") &&
+      left.kind === "constant" &&
+      right.kind === "constant" &&
+      left.bytes === right.bytes &&
+      state.materializedValues.has(operation.result);
+    if (constantComparison) {
+      const equal =
+        left.kind === "constant" && right.kind === "constant" && left.value === right.value;
+      const value = operation.operator === "==" ? equal : !equal;
+      // The result is a compile-time constant. Emitting no instruction keeps
+      // every consumer free to materialize it with its own load; forwarding a
+      // register here would assume an adjacency the comparison does not prove.
+      lowered = Object.freeze({
+        instructions: Object.freeze([]),
+        result: Object.freeze({
+          kind: "constant" as const,
+          value: value ? 1 : 0,
+          bytes: 1,
+          signed: false,
+        }),
+      });
+    } else if (comparison) {
       // An adjacent forwarded byte read already owns Z for its closed terminal
       // choice. Reuse only that proved flag; ordinary call results and stored
       // Boolean values still need the normal comparison machinery.
+      const zeroOwner =
+        left.kind === "register" && left.registers === "a" && left.bytes === 1
+          ? left
+          : left.kind === "zero-extended" &&
+              left.low.kind === "register" &&
+              left.low.registers === "a" &&
+              left.low.bytes === 1
+            ? left.low
+            : null;
       const readOwnsZero =
         (operation.operator === "==" || operation.operator === "!=") &&
-        left.kind === "register" &&
-        left.registers === "a" &&
-        left.bytes === 1 &&
+        zeroOwner !== null &&
         right.kind === "constant" &&
-        right.bytes === 1 &&
         right.value === 0 &&
         state.forwardedRegisterValues.has(operation.left) &&
         state.zeroFlagValues.has(operation.left) &&
@@ -412,14 +464,20 @@ export function lowerOperation(
             (state.booleanValues.has(booleanMasked) ? 0 : undefined));
       const maskedValue = booleanMasked === operation.left ? left : right;
       const zeroValue = booleanMasked === operation.left ? right : left;
+      const maskedRegister =
+        maskedValue.kind === "register" && maskedValue.registers === "a" && maskedValue.bytes === 1
+          ? maskedValue
+          : maskedValue.kind === "zero-extended" &&
+              maskedValue.low.kind === "register" &&
+              maskedValue.low.registers === "a" &&
+              maskedValue.low.bytes === 1
+            ? maskedValue.low
+            : null;
       const booleanIdentity =
         (operation.operator === "==" || operation.operator === "!=") &&
         booleanMasked !== undefined &&
-        maskedValue.kind === "register" &&
-        maskedValue.registers === "a" &&
-        maskedValue.bytes === 1 &&
+        maskedRegister !== null &&
         zeroValue.kind === "constant" &&
-        zeroValue.bytes === 1 &&
         zeroValue.value === 0 &&
         booleanShift !== undefined &&
         state.materializedValues.has(operation.result);

@@ -112,6 +112,8 @@ export function selectRegisterForwarding(
   readonly booleanValues: ReadonlySet<string>;
   /** Values proved Boolean from a single-bit mask, mapped to their normalization shift count. */
   readonly booleanShiftValues: ReadonlyMap<string, number>;
+  /** Masked values materialized as a Boolean through an inline expert branch. */
+  readonly booleanBranchValues: ReadonlySet<string>;
   /** Nonwrapping additions consumed only by their next stride-one indexed access. */
   readonly byteOrdinalAdditions: ReadonlySet<string>;
   /** Proved `constant + byte index` addresses consumed only by their next raw read. */
@@ -149,7 +151,20 @@ export function selectRegisterForwarding(
       } else if (operation.kind === "convert" && constantValues.has(operation.operand)) {
         constantValues.add(operation.result);
         const literal = literals.get(operation.operand);
-        if (literal !== undefined) literals.set(operation.result, literal);
+        if (literal !== undefined) {
+          const bytes = typeBytes(operation.type);
+          const width = bytes === 1 ? 0xffn : bytes === 2 ? 0xffffn : null;
+          let converted = literal;
+          if (width !== null) {
+            if (operation.conversion === "truncate") converted = literal & 0xffn;
+            else if (operation.conversion === "zero-extend") converted = literal & width;
+            else if (operation.conversion === "sign-extend")
+              converted =
+                (literal & 0x80n) !== 0n ? (literal | (width ^ 0xffn)) & width : literal & width;
+            else converted = literal & width;
+          }
+          literals.set(operation.result, converted);
+        }
         if (zeroValues.has(operation.operand)) zeroValues.add(operation.result);
       }
     }
@@ -221,6 +236,12 @@ export function selectRegisterForwarding(
     const mask = value === undefined ? undefined : literals.get(value);
     return mask === 2n ? 1 : mask === 4n ? 2 : undefined;
   };
+  /** Return a compile-time byte mask on either operand, or undefined for a wider/runtime mask. */
+  const byteLiteral = (value: string | undefined): number | undefined => {
+    if (value === undefined) return undefined;
+    const literal = literals.get(value);
+    return literal !== undefined && literal >= 0n && literal <= 0xffn ? Number(literal) : undefined;
+  };
   /**
    * A write index must survive value evaluation in its own home. Constants and
    * loads qualify; computed temporaries may be overlaid by the value temporary.
@@ -242,6 +263,7 @@ export function selectRegisterForwarding(
   const zeroFlagValues = new Set<string>();
   const booleanValues = new Set<string>();
   const booleanShiftValues = new Map<string, number>();
+  const booleanBranchValues = new Set<string>();
   const byteOrdinalAdditions = new Set<string>();
   const ordinalRawReads = new Map<string, { readonly base: number; readonly index: string }>();
   const ordinalRawWrites = new Map<string, { readonly base: number; readonly index: string }>();
@@ -526,7 +548,8 @@ export function selectRegisterForwarding(
           typeBytes(consumer.type) === 1 &&
           ((consumer.left === producer.result &&
             (constantValues.has(consumer.right) || directByteLoadOperand(block, consumer.right))) ||
-            (consumer.right === producer.result && constantValues.has(consumer.left)))
+            (consumer.right === producer.result &&
+              (constantValues.has(consumer.left) || directByteLoadOperand(block, consumer.left))))
         ) {
           forwardedRegisterValues.add(producer.result);
         }
@@ -537,7 +560,10 @@ export function selectRegisterForwarding(
           constantValues.has(producer.address)) ||
           (producer.kind === "load" && typeBytes(producer.type) === 1) ||
           (producer.kind === "binary" &&
-            typeBytes(producer.type) === 1 &&
+            (typeBytes(producer.type) === 1 ||
+              (typeBytes(producer.type) === 2 &&
+                (byteLiteral(producer.left) !== undefined ||
+                  byteLiteral(producer.right) !== undefined))) &&
             ["&", "|", "^"].includes(producer.operator)) ||
           (producer.kind === "platform" &&
             producer.result !== null &&
@@ -570,9 +596,11 @@ export function selectRegisterForwarding(
       if (
         producer.kind === "binary" &&
         producer.operator === "&" &&
-        typeBytes(producer.type) === 1 &&
         producer.result !== null &&
         singleUseValues.has(producer.result) &&
+        (typeBytes(producer.type) === 1 ||
+          (typeBytes(producer.type) === 2 &&
+            (byteLiteral(producer.left) === 1 || byteLiteral(producer.right) === 1))) &&
         (literals.get(producer.left) === 1n || literals.get(producer.right) === 1n)
       ) {
         const consumerIndex = nextMachineOperationIndex(block, index);
@@ -615,7 +643,10 @@ export function selectRegisterForwarding(
       if (
         producer.kind === "binary" &&
         producer.operator === "&" &&
-        typeBytes(producer.type) === 1 &&
+        (typeBytes(producer.type) === 1 ||
+          (typeBytes(producer.type) === 2 &&
+            (byteLiteral(producer.left) !== undefined ||
+              byteLiteral(producer.right) !== undefined))) &&
         producer.result !== null &&
         singleUseValues.has(producer.result)
       ) {
@@ -645,6 +676,70 @@ export function selectRegisterForwarding(
                 block.terminator.value === consumer.result);
             if (takesA) {
               booleanShiftValues.set(producer.result, shift);
+              forwardedRegisterValues.add(producer.result);
+              forwardedRegisterValues.add(consumer.result);
+            }
+          }
+        }
+      }
+      // A sole `binary &` result with any other mask is not shift-normalizable.
+      // When its only consumer is a materialized zero test with one A consumer,
+      // the expert branch (`BEQ; LDA #1`) materializes the Boolean with no home.
+      // A byte-masked word result is zero-extended, so its low byte is the whole
+      // zero test. Only a materialized value is selected; a branch condition
+      // already consumes the AND result's Z directly.
+      if (
+        producer.kind === "binary" &&
+        producer.operator === "&" &&
+        producer.result !== null &&
+        singleUseValues.has(producer.result) &&
+        (typeBytes(producer.type) === 1 ||
+          (typeBytes(producer.type) === 2 &&
+            (byteLiteral(producer.left) !== undefined ||
+              byteLiteral(producer.right) !== undefined)))
+      ) {
+        const constantMask = byteLiteral(producer.left) ?? byteLiteral(producer.right);
+        const addressableMask =
+          constantMask === undefined &&
+          typeBytes(producer.type) === 1 &&
+          ((producer.left !== undefined &&
+            forwardedRegisterValues.has(producer.left) &&
+            directByteLoadOperand(block, producer.right)) ||
+            (producer.right !== undefined &&
+              forwardedRegisterValues.has(producer.right) &&
+              directByteLoadOperand(block, producer.left)));
+        const selectable =
+          (constantMask !== undefined &&
+            constantMask !== 0 &&
+            constantMask !== 1 &&
+            constantMask !== 2 &&
+            constantMask !== 4) ||
+          addressableMask;
+        if (selectable) {
+          const consumerIndex = nextMachineOperationIndex(block, index);
+          const consumer = block.operations[consumerIndex];
+          if (
+            consumer?.kind === "binary" &&
+            ["==", "!="].includes(consumer.operator) &&
+            ((consumer.left === producer.result && zeroValues.has(consumer.right)) ||
+              (consumer.right === producer.result && zeroValues.has(consumer.left))) &&
+            singleUseValues.has(consumer.result)
+          ) {
+            const following = block.operations[nextMachineOperationIndex(block, consumerIndex)];
+            const takesA =
+              (following?.kind === "store" &&
+                typeBytes(following.type) === 1 &&
+                following.value === consumer.result &&
+                following.place.path.length === 0) ||
+              (following?.kind === "memory-write" &&
+                following.width === 1 &&
+                following.value === consumer.result &&
+                constantValues.has(following.address)) ||
+              (following === undefined &&
+                block.terminator.kind === "return" &&
+                block.terminator.value === consumer.result);
+            if (takesA) {
+              booleanBranchValues.add(producer.result);
               forwardedRegisterValues.add(producer.result);
               forwardedRegisterValues.add(consumer.result);
             }
@@ -977,6 +1072,7 @@ export function selectRegisterForwarding(
     zeroFlagValues,
     booleanValues,
     booleanShiftValues,
+    booleanBranchValues,
     byteOrdinalAdditions,
     ordinalRawReads,
     ordinalRawWrites,

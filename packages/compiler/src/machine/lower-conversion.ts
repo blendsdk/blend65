@@ -75,7 +75,9 @@ export function lowerConversion(
         ? Object.freeze({ kind: "register", registers: "a", bytes: 1, signed })
         : operand.kind === "zero-extended"
           ? Object.freeze({ ...operand.low, signed })
-          : Object.freeze({ ...operand, bytes: 1, signed });
+          : operand.kind === "constant"
+            ? Object.freeze({ ...operand, value: operand.value & 0xff, bytes: 1, signed })
+            : Object.freeze({ ...operand, bytes: 1, signed });
     return retainConvertedValue(operation, truncated, [], state);
   }
   if (bytes !== 2 || operand.bytes !== 1) {

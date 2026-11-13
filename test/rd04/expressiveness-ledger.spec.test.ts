@@ -177,9 +177,8 @@ function main(): void { asm_cli(); asm_nop(); ${main} }`,
   },
   {
     id: "v4-nmi-retained-source-reads",
-    // One cluster of simultaneously retained samples plus Boolean bit tests that cannot use the
-    // single-bit shift chain: a high single-bit mask in both polarities, a multi-bit mask, a
-    // runtime mask, a shared masked value, an operand wider than a byte, and a zero mask.
+    // A retention cluster of five simultaneously retained samples, a shared masked value, a wide
+    // word mask, a runtime word local, a computed mask and a nonzero comparison.
     sources: [
       `module Game;
 import { setNMI, restoreNMI } from c64.system;
@@ -189,39 +188,6 @@ interrupt function handler(): void {
   poke($0410, a); poke($0411, b); poke($0412, c); poke($0413, d); poke($0414, e);
 }
 function main(): void { setNMI(&handler); restoreNMI(); }`,
-      `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-import { readAndClearPendingSources } from c64.cia2;
-let flag: boolean = false;
-interrupt function handler(): void {
-  flag = (readAndClearPendingSources() & 8) != 0;
-}
-function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
-      `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-import { readAndClearPendingSources } from c64.cia2;
-let flag: boolean = false;
-interrupt function handler(): void {
-  flag = (readAndClearPendingSources() & 8) == 0;
-}
-function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
-      `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-import { readAndClearPendingSources } from c64.cia2;
-let flag: boolean = false;
-interrupt function handler(): void {
-  flag = (readAndClearPendingSources() & 3) != 0;
-}
-function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
-      `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-import { readAndClearPendingSources } from c64.cia2;
-let flag: boolean = false;
-place(at: $C001) let maskValue: byte = 1;
-interrupt function handler(): void {
-  flag = (readAndClearPendingSources() & maskValue) != 0;
-}
-function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
       `module Game;
 import { setNMIExclusive, restoreNMI } from c64.system;
 import { readAndClearPendingSources } from c64.cia2;
@@ -237,9 +203,9 @@ function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
 import { setNMIExclusive, restoreNMI } from c64.system;
 import { readAndClearPendingSources } from c64.cia2;
 place(at: $C000) let flag: boolean = false;
+place(at: $C100) let w: word = 2;
 interrupt function handler(): void {
-  let w: word = 2;
-  flag = ((w & 2) != 0);
+  flag = ((w & 258) != 0);
 }
 function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
       `module Game;
@@ -247,7 +213,26 @@ import { setNMIExclusive, restoreNMI } from c64.system;
 import { readAndClearPendingSources } from c64.cia2;
 place(at: $C000) let flag: boolean = false;
 interrupt function handler(): void {
-  flag = ((readAndClearPendingSources() & 0) != 0);
+  let w: word = readAndClearPendingSources();
+  flag = ((w & 2) != 0);
+}
+function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
+      `module Game;
+import { setNMIExclusive, restoreNMI } from c64.system;
+import { readAndClearPendingSources } from c64.cia2;
+place(at: $C000) let flag: boolean = false;
+place(at: $C001) let maskValue: byte = 1;
+interrupt function handler(): void {
+  let m: byte = maskValue | 1;
+  flag = ((readAndClearPendingSources() & m) != 0);
+}
+function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
+      `module Game;
+import { setNMIExclusive, restoreNMI } from c64.system;
+import { readAndClearPendingSources } from c64.cia2;
+place(at: $C000) let flag: boolean = false;
+interrupt function handler(): void {
+  flag = ((readAndClearPendingSources() & 8) == 8);
 }
 function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
     ],

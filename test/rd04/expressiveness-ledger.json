@@ -58,11 +58,11 @@
     {
       "id": "v4-nmi-retained-source-reads",
       "status": "deferred",
-      "sourceForm": "an interrupt function that retains several sampled or masked bytes, or materializes a Boolean from a bit test whose constant mask is other than 1, 2, or 4, whose mask is not a compile-time constant, or whose operand is wider than a byte",
+      "sourceForm": "an interrupt function that retains a masked or sampled value across consumers or volatile reads, or materializes a Boolean from a bit test whose mask is computed at runtime, whose operand is a 16-bit word whose high byte can be nonzero, whose word value comes from a byte read needing zero-extension staging, or whose comparison is against a nonzero constant",
       "diagnostic": "E10245",
-      "reason": "The cooperative NMI route admits no invocation-private RAM or zero-page homes. A Boolean from a bit test whose constant mask is other than 1, 2 or 4 cannot be normalized by a shift chain that meets the expert floor: single-bit masks 8 and above exceed the expert's largest-path cycles, and multi-bit or zero masks need a branch or a constant fold. A runtime mask has no fixed shift count, and a wider-than-byte operand needs a zero-extension proof. A masked value shared by several consumers, and several simultaneously retained samples, are live across later operations and have no bounded retention mechanism on this route. The compiler fails closed rather than guessing.",
-      "owner": "issue #149",
-      "decision": "Issue #148 delivered the mask-2 and mask-4 shift-chain Boolean values in both polarities, including elided-local, mirrored-mask, mirrored-zero-test and byte memory-write forms, with zero private storage and expert-equal or better output. The remaining forms need an inline branch materialization, a zero-extension proof, or bounded storage; they are tracked by issue #149."
+      "reason": "The cooperative NMI route admits no invocation-private RAM or zero-page homes. A masked value shared by several consumers and several simultaneously retained samples are live across later operations and have no bounded retention mechanism on this route. A 16-bit word mask can set the high byte, so it needs two masked bytes and a join or temporary. A runtime word local from a byte read stages its zero-extension low byte in a private home. A computed mask needs a temporary before the AND, so the read cannot stay in A. A comparison against a nonzero constant is outside the selected zero-test materialization. The compiler fails closed rather than guessing.",
+      "owner": "issue #150",
+      "decision": "Issue #149 delivered the remaining materialization forms: constant masks 8+ and multi-bit masks through the expert inline branch, the zero-mask fold, the all-ones load identity, an addressable runtime mask, a byte-masked word (identity, shift or branch by mask), and a single-use constant local, with zero private storage and expert-equal or better output. The remaining forms need bounded storage, a wider join, a zero-extension staging proof, an addressable computed mask or a general comparison branch; they are tracked by issue #150."
     }
   ]
 }

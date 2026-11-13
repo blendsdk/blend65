@@ -22,6 +22,7 @@ import { prepareAggregateInduction } from "./lower-induction.js";
 import { byteComplementNoCode } from "./byte-value-availability.js";
 import { prepareByteComplements } from "./lower-unary.js";
 import { lowerOperation } from "./lower-operation.js";
+import { lowerBooleanBranch } from "./lower-boolean-branch.js";
 import { appendMergeCopies } from "./lower-merge-copies.js";
 import { appendImmediateByteBitwise, appendScalarPrefix } from "./lower-scalar.js";
 import { canOmitComparisonCaptureReload } from "./byte-capture-observers.js";
@@ -123,6 +124,7 @@ export function lowerFunction(
     zeroFlagValues,
     booleanValues,
     booleanShiftValues,
+    booleanBranchValues,
     byteOrdinalAdditions,
     ordinalRawReads,
     ordinalRawWrites,
@@ -166,6 +168,7 @@ export function lowerFunction(
     zeroFlagValues: new Set(zeroFlagValues),
     booleanValues: new Set(booleanValues),
     booleanShiftValues: new Map(booleanShiftValues),
+    booleanBranchValues,
     elidedLocalBindings: input.elidedLocalBindings ?? new Set<string>(),
     byteOrdinalAdditions,
     ...(input.observerEvidence === true && input.optimizationFacts !== undefined
@@ -246,6 +249,7 @@ export function lowerFunction(
     let variableShiftIndex = 0;
     let checkedDivisionIndex = 0;
     let checkedBoundsIndex = 0;
+    let booleanBranchIndex = 0;
     let aggregateCopyIndex = 0;
     let aggregateFillIndex = 0;
     let aggregateBuildIndex = 0;
@@ -466,6 +470,47 @@ export function lowerFunction(
           indirectCallIndex += 1;
           continue;
         }
+      }
+      if (
+        operation.kind === "binary" &&
+        (operation.operator === "==" || operation.operator === "!=") &&
+        (state.booleanBranchValues.has(operation.left) ||
+          state.booleanBranchValues.has(operation.right)) &&
+        state.materializedValues.has(operation.result)
+      ) {
+        const maskedId = state.booleanBranchValues.has(operation.left)
+          ? operation.left
+          : operation.right;
+        const masked = state.values.get(maskedId);
+        const inA =
+          (masked?.kind === "register" && masked.registers === "a" && masked.bytes === 1) ||
+          (masked?.kind === "zero-extended" &&
+            masked.low.kind === "register" &&
+            masked.low.registers === "a" &&
+            masked.low.bytes === 1);
+        if (inA) {
+          const split = lowerBooleanBranch(
+            operation,
+            state,
+            currentLabel,
+            currentInstructions,
+            booleanBranchIndex,
+          );
+          loweredBlocks.push(...split.blocks);
+          currentLabel = split.continuation;
+          currentInstructions = [];
+          state.values.set(
+            operation.result,
+            Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
+          );
+          state.forwardedRegisterValues.add(operation.result);
+          booleanBranchIndex += 1;
+          continue;
+        }
+        // A selected masked value may have folded to a constant (for example a
+        // single-use constant local). Withdraw the premature forwarding claim
+        // and let the ordinary comparison fold materialize the constant.
+        state.forwardedRegisterValues.delete(operation.result);
       }
       if (operation.kind !== "platform" || operation.capability !== "c64.video.waitNextFrame") {
         const selected =

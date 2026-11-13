@@ -437,25 +437,6 @@ describe.each(PROFILES)("delivered NMI Boolean values on %s", (profile) => {
   );
 });
 
-/** A single-bit mask that is eight or higher cannot beat the expert branch materialization. */
-const REJECTED_MASK_EIGHT = program(
-  FLAG_DECLARATION,
-  "    finished = ((readAndClearPendingSources() & 8) != 0);",
-);
-
-/** A multi-bit mask cannot be normalized by shifting. */
-const REJECTED_MASK_THREE = program(
-  FLAG_DECLARATION,
-  "    finished = ((readAndClearPendingSources() & 3) != 0);",
-);
-
-/** A runtime mask is not a compile-time constant, so no shift count is known. */
-const REJECTED_RUNTIME_MASK = program(
-  `${FLAG_DECLARATION}
-place(at: $C001) let maskValue: byte = 2;`,
-  "    finished = ((readAndClearPendingSources() & maskValue) != 0);",
-);
-
 /** Five simultaneously live samples cannot all stay in the accumulator. */
 const REJECTED_FIVE_SAMPLES = `module Game;
 import { setNMIExclusive, restoreNMI } from c64.system;
@@ -494,20 +475,8 @@ async function expectRejected(source: string, profile: string): Promise<void> {
   });
 }
 
-/** Masks outside the delivered threshold and persistent private homes stay rejected. */
+/** Mask-independent persistent private homes stay rejected. */
 describe.each(PROFILES)("residual NMI private-home rejection on %s", (profile) => {
-  it("should reject a Boolean from the constant mask eight", async () => {
-    await expectRejected(REJECTED_MASK_EIGHT, profile);
-  }, 60_000);
-
-  it("should reject a Boolean from the multi-bit constant mask three", async () => {
-    await expectRejected(REJECTED_MASK_THREE, profile);
-  }, 60_000);
-
-  it("should reject a Boolean from a placed runtime mask", async () => {
-    await expectRejected(REJECTED_RUNTIME_MASK, profile);
-  }, 60_000);
-
   it("should reject five simultaneously retained sampled bytes", async () => {
     await expectRejected(REJECTED_FIVE_SAMPLES, profile);
   }, 60_000);

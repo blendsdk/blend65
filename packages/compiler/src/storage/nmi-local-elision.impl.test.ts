@@ -192,7 +192,17 @@ describe("single-use NMI local proof", () => {
     expect(found.has(bindingIdentityKey(local))).toBe(false);
   });
 
-  it("rejects a non-direct initializer", () => {
+  it("rejects a non-constant, non-read initializer", () => {
+    const other = sourceBinding(220);
+    expect(
+      nmiRegisterOnlyLocals(
+        handler([load("read", other), store("read"), load("sample"), store("sample", destination)]),
+        excluded,
+      ).size,
+    ).toBe(0);
+  });
+
+  it("elides a single-use constant local", () => {
     const constant: SemanticOperation = {
       kind: "constant",
       result: "read",
@@ -201,12 +211,12 @@ describe("single-use NMI local proof", () => {
       integer: null,
       span,
     };
-    expect(
-      nmiRegisterOnlyLocals(
-        handler([constant, store("read"), load("sample"), store("sample", destination)]),
-        excluded,
-      ).size,
-    ).toBe(0);
+    const elided = nmiRegisterOnlyLocals(
+      handler([constant, store("read"), load("sample"), store("sample", destination)]),
+      excluded,
+    );
+    expect(elided.has(bindingIdentityKey(local))).toBe(true);
+    expect(elided.get(bindingIdentityKey(local))?.loadIndex).toBe(2);
   });
 
   it("rejects a load in a different block", () => {
