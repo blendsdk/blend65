@@ -50,6 +50,40 @@ function main(): void { poke($D018, c64.vic.vicCharsetSelect($1800)); }
     expect(selected.message).toMatch(/character-ROM/iu);
   }, 60_000);
 
+  // A placed sprite array is checked at its resolved address, not only when the
+  // source passes a literal address.
+  it.each([
+    ["$1000", /character-ROM|VIC-visible/iu],
+    ["$4000", /outside|VIC-visible/iu],
+  ])(
+    "should reject a VIC-visible placed array at %s",
+    async (address, message) => {
+      const selected = await diagnostic(
+        `module Game;
+place(at: ${address}) const SPRITES: byte[64] = embed("sprites.bin");
+function main(): void { poke($D018, c64.vic.vicSpriteBlock(&SPRITES)); }
+`,
+        "E10273",
+      );
+      expect(selected.message).toMatch(message);
+    },
+    60_000,
+  );
+
+  // The same window is legal for ordinary CPU-readable data. The VIC restriction
+  // applies to a resolved object a VIC consumer claims, not to every address.
+  it("should allow ordinary CPU data at $1000 without a VIC consumer", async () => {
+    const result = await withProject(
+      `module Game;
+place(at: $1000) const TABLE: byte[64] = embed("sprites.bin");
+function main(): void { poke($D020, TABLE[0]); }
+`,
+      [{ path: "sprites.bin", bytes: patternedBytes(64, 51) }],
+      async (project) => buildProject({ project }),
+    );
+    expect(result.kind).toBe("success");
+  }, 60_000);
+
   it("should reject a dynamic non-asset field argument as E10273", async () => {
     const selected = await diagnostic(
       `module Game;

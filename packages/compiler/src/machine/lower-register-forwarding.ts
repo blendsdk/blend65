@@ -106,6 +106,7 @@ export function selectRegisterForwarding(
   addressValues?: ReadonlySet<string>,
   zeroExtensionValues?: ReadonlySet<string>,
   stackRetainedLocalKeys?: ReadonlySet<string>,
+  materializedValues: ReadonlySet<string> = new Set(),
 ): {
   /** Values whose sole adjacent consumer can use their still-live registers. */
   readonly forwardedRegisterValues: ReadonlySet<string>;
@@ -129,6 +130,8 @@ export function selectRegisterForwarding(
   readonly directBcdWrites: ReadonlyMap<string, MemoryWriteOperation>;
   /** Static place addresses consumed directly by one raw read or write. */
   readonly staticRawAddresses: ReadonlySet<string>;
+  /** Ordinary loads whose byte is already in A from an adjacent raw read of the same home. */
+  readonly forwardedPlaceLoads: ReadonlyMap<string, string>;
   /** Second byte operands read into X to preserve the first operand in A. */
   readonly subtractRightInX: ReadonlySet<string>;
   /** First word-add operands whose high byte survives the second read in Y. */
@@ -287,6 +290,7 @@ export function selectRegisterForwarding(
   const ordinalRawWrites = new Map<string, { readonly base: number; readonly index: string }>();
   const directBcdWrites = new Map<string, MemoryWriteOperation>();
   const staticRawAddresses = new Set<string>();
+  const forwardedPlaceLoads = new Map<string, string>();
   const subtractRightInX = new Set<string>();
   const wordAddLeftHighInY = new Set<string>();
   const wordSubtractLeftHighInY = new Set<string>();
@@ -297,16 +301,39 @@ export function selectRegisterForwarding(
       if (
         producer.kind === "place-address" &&
         producer.place.path.length === 0 &&
-        (producer.place.rootType?.kind === "array" || producer.place.rootType?.kind === "struct") &&
+        producer.place.rootType !== undefined &&
         singleUseValues.has(producer.result) &&
         block.operations.some(
           (operation, candidateIndex) =>
             candidateIndex > index &&
-            operation.kind === "memory-write" &&
+            (operation.kind === "memory-read" || operation.kind === "memory-write") &&
             operation.address === producer.result,
         )
       ) {
         staticRawAddresses.add(producer.result);
+        const readIndex = nextMachineOperationIndex(block, index);
+        const read = block.operations[readIndex];
+        if (
+          read?.kind === "memory-read" &&
+          read.address === producer.result &&
+          read.width === 1 &&
+          !singleUseValues.has(read.result) &&
+          !materializedValues.has(read.result)
+        ) {
+          const loadIndex = nextMachineOperationIndex(block, readIndex);
+          const load = block.operations[loadIndex];
+          if (
+            load?.kind === "load" &&
+            load.place.path.length === 0 &&
+            typeBytes(load.type) === 1 &&
+            bindingIdentityKey(load.place.root) === bindingIdentityKey(producer.place.root) &&
+            singleUseValues.has(load.result)
+          ) {
+            // The volatile raw read already holds the byte in A; the next ordinary
+            // read of the same private home can consume that value without a reload.
+            forwardedPlaceLoads.set(load.result, read.result);
+          }
+        }
       }
       if (
         producer.kind === "binary" &&
@@ -1313,6 +1340,7 @@ export function selectRegisterForwarding(
     ordinalRawWrites,
     directBcdWrites,
     staticRawAddresses,
+    forwardedPlaceLoads,
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,

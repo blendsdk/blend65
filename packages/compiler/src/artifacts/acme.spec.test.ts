@@ -223,6 +223,31 @@ describe("terminal ACME artifacts", () => {
     });
     expect(failedResult).toEqual(expect.objectContaining({ kind: "error", reason: "process" }));
 
+    const pathFailed = await fakeAcme(
+      root,
+      "path-failed.mjs",
+      'process.stderr.write("Error: Cannot open toplevel file \\"out.asm\\".\\n"); process.exit(1);',
+    );
+    const pathResult = await runAcme({
+      tool: await discovered(pathFailed),
+      stagingDirectory: join(root, "path-failed-staging"),
+      artifactName: "game",
+      serialization: serialization.result,
+      layout: serialization.input.layout,
+    });
+    expect(pathResult).toEqual(
+      expect.objectContaining({
+        kind: "error",
+        reason: "process",
+        diagnostic: expect.stringContaining("could not open"),
+      }),
+    );
+    if (pathResult.kind === "error") {
+      expect(pathResult.diagnostic).not.toContain(root);
+      expect(pathResult.diagnostic).not.toContain("staging");
+      expect(pathResult.diagnostic).not.toContain("out.asm");
+    }
+
     const excessive = await fakeAcme(
       root,
       "excessive.mjs",

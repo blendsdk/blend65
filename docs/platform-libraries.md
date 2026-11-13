@@ -203,8 +203,33 @@ eight retained bytes, and a retained local across a control-flow join or call. T
 forms use an inline branch, a shift chain, the identity, a constant fold, or a bounded
 hardware-stack slot and meet or beat the expert sequence. The remaining forms need a wider
 join or a broader retention proof and are tracked by
-[#150](https://github.com/blendsdk/blend65/issues/150), not language restrictions or
+[#151](https://github.com/blendsdk/blend65/issues/151),
+[#152](https://github.com/blendsdk/blend65/issues/152) and
+[#153](https://github.com/blendsdk/blend65/issues/153), not language restrictions or
 recommended source workarounds.
+
+## C64 VIC data placement
+
+Taking the address of a `const` array does **not** make it page-aligned and does not
+claim that the VIC can see it. The compiler places ordinary declared data where the
+resident image has room; a VIC consumer must use the validated VIC operation:
+
+```blend65
+module Game;
+const SPRITES: byte[64] = embed("player.spd");
+
+function main(): void {
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+}
+```
+
+`vicSpriteBlock` checks the resolved address for 64-byte alignment, VIC bank
+visibility and freedom from the character-ROM and active-screen windows. The same
+check applies to an explicitly `place(at:)` array: a VIC-visible object placed in
+`$1000-$1FFF` or outside the selected graphics bank is rejected with `E10273`
+instead of assembling into a silently invisible object. Address arithmetic such as
+`hi(&SPRITES) * 4` is ordinary user arithmetic; it is not a VIC placement proof.
+Use `vicSpriteBlock` when the VIC must read the bytes.
 
 ## Qualification
 

@@ -137,6 +137,8 @@ export function machineFunctionSegments(
         block.label.startsWith(`${id}.copy.`) ||
         block.label.startsWith(`${id}.move.`) ||
         block.label.startsWith(`${id}.fill.`) ||
+        // A switch dispatch test split into its low/high byte comparisons.
+        block.label.startsWith(`${id}.switch.`) ||
         block.label.startsWith(`${id}.indirect.`) ||
         // A layout bridge belongs to the same source edge, not a new source operation.
         block.label.startsWith(`${id}.fallthrough.`) ||

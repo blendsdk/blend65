@@ -91,9 +91,15 @@ async function runProcess(
   signal?: AbortSignal,
 ): Promise<
   | { readonly kind: "complete"; readonly stdout: string; readonly stderr: string }
-  | { readonly kind: "error"; readonly reason: "process" | "output-limit" | "cancelled" }
+  | {
+      readonly kind: "error";
+      readonly reason: "process" | "output-limit" | "cancelled";
+      readonly stdout: string;
+      readonly stderr: string;
+    }
 > {
-  if (signal?.aborted === true) return Object.freeze({ kind: "error", reason: "cancelled" });
+  if (signal?.aborted === true)
+    return Object.freeze({ kind: "error", reason: "cancelled", stdout: "", stderr: "" });
   return new Promise((resolve) => {
     const child = spawn(executable, args, { shell: false, stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
@@ -106,7 +112,12 @@ async function runProcess(
     const finish = (
       result:
         | { readonly kind: "complete"; readonly stdout: string; readonly stderr: string }
-        | { readonly kind: "error"; readonly reason: "process" | "output-limit" | "cancelled" },
+        | {
+            readonly kind: "error";
+            readonly reason: "process" | "output-limit" | "cancelled";
+            readonly stdout: string;
+            readonly stderr: string;
+          },
     ) => {
       if (settled) return;
       settled = true;
@@ -136,12 +147,17 @@ async function runProcess(
     child.stdout.on("data", (chunk: Buffer) => append("stdout", chunk));
     child.stderr.on("data", (chunk: Buffer) => append("stderr", chunk));
     child.once("error", () =>
-      finish({ kind: "error", reason: cancelled ? "cancelled" : "process" }),
+      finish({
+        kind: "error",
+        reason: cancelled ? "cancelled" : "process",
+        stdout,
+        stderr,
+      }),
     );
     child.once("close", (code) => {
-      if (cancelled) finish({ kind: "error", reason: "cancelled" });
-      else if (limited) finish({ kind: "error", reason: "output-limit" });
-      else if (timedOut || code !== 0) finish({ kind: "error", reason: "process" });
+      if (cancelled) finish({ kind: "error", reason: "cancelled", stdout, stderr });
+      else if (limited) finish({ kind: "error", reason: "output-limit", stdout, stderr });
+      else if (timedOut || code !== 0) finish({ kind: "error", reason: "process", stdout, stderr });
       else finish({ kind: "complete", stdout, stderr });
     });
     signal?.addEventListener("abort", abort, { once: true });
@@ -277,7 +293,20 @@ export async function runAcme(input: AcmeRunInput): Promise<AcmeRunResult> {
   const processResult = await runProcess(input.tool.executable, args, input.signal);
   if (processResult.kind === "error") {
     await removeOwnedStaging(input.stagingDirectory);
-    return failure(processResult.reason, `ACME execution failed: ${processResult.reason}`);
+    // A missing input/output path is a host or invocation failure, not a
+    // source-rejection claim. Keep the diagnostic path-oriented without
+    // exposing compiler-owned absolute staging paths.
+    const pathFailure =
+      processResult.reason === "process" &&
+      /\b(?:cannot|could not|unable to) open\b|\bno such file\b|\bpermission denied\b/iu.test(
+        `${processResult.stdout}\n${processResult.stderr}`,
+      );
+    return failure(
+      processResult.reason,
+      pathFailure
+        ? "ACME could not open a generated input or output path"
+        : `ACME execution failed: ${processResult.reason}`,
+    );
   }
   if (/\b(?:error|serious)\b/i.test(`${processResult.stdout}\n${processResult.stderr}`)) {
     await removeOwnedStaging(input.stagingDirectory);

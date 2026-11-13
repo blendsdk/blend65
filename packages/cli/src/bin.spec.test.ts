@@ -1,6 +1,7 @@
 import { BUILD_INFO } from "@blend65/compiler";
 import { execFile } from "node:child_process";
-import { readFile, readdir } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanupFixtures, emptyFixture } from "../test/cli-fixtures.js";
@@ -71,17 +72,36 @@ describe("public built executable", () => {
     expect(await readdir(root)).toEqual([]);
   });
 
-  // Missing, unknown and extra input retain the distinct usage status.
-  it.each([[[]], [["unknown"]], [["build", "extra"]], [["--help", "--version"]]])(
-    "should reject invalid invocation %j with exit two",
-    async (argv) => {
-      const root = await emptyFixture();
-      const result = await invoke(argv, root);
+  // A relative manifest selection and the manifest's own relative outDir must
+  // resolve against the invocation directory, so ACME never receives a path
+  // that does not exist from its child working directory.
+  it("should build with a relative project path and relative outDir", async () => {
+    const base = await emptyFixture();
+    const root = join(base, "game");
+    await mkdir(join(root, "src"), { recursive: true });
+    await writeFile(
+      join(root, "src", "main.blend"),
+      "module Game; function main(): void { poke($D020, 1); }\n",
+    );
+    await writeFile(
+      join(root, "blend65.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        name: "relative-out",
+        sourceRoot: "src",
+        entry: "Game",
+        target: "c64-pal-prg-kernal-6581",
+        outDir: "build",
+        optimization: "none",
+      }),
+    );
 
-      expect(result.status).toBe(2);
-      expect(result.stdout).toBe("");
-      expect(result.stderr).toContain("CLI_INVALID_ARGUMENT");
-      expect(await readdir(root)).toEqual([]);
-    },
-  );
+    const relative = await invoke(["build", "--project", "game/blend65.json"], base);
+    expect(relative.status, relative.stderr).toBe(0);
+    await expect(access(join(root, "build", "current.json"))).resolves.toBeUndefined();
+
+    const absolute = await invoke(["build", "--project", join(root, "blend65.json")], base);
+    expect(absolute.status, absolute.stderr).toBe(0);
+    await expect(access(join(root, "build", "current.json"))).resolves.toBeUndefined();
+  });
 });

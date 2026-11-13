@@ -37,6 +37,7 @@ import { lowerIndirectCall, lowerInterruptSink } from "./lower-indirect.js";
 import { lowerVariableShift } from "./lower-variable-shift.js";
 import { selectGuardedShiftCount } from "./lower-guarded-shift.js";
 import { hasByteReturnArms, selectTerminalByteLeaves } from "./lower-terminal-byte.js";
+import { selectSwitchDispatch } from "./switch-dispatch.js";
 import { lowerCheckedDivision } from "./lower-checked-division.js";
 import { lowerBoundsGuards, ordinalBoundsForFunction } from "./lower-bounds.js";
 import { lowerAggregateReturn, lowerAggregateReturnLoop } from "./lower-aggregate-return.js";
@@ -150,6 +151,7 @@ export function lowerFunction(
     ordinalRawWrites,
     directBcdWrites,
     staticRawAddresses,
+    forwardedPlaceLoads,
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,
@@ -163,6 +165,7 @@ export function lowerFunction(
     complementFree?.addressValues,
     input.zeroExtensionValues,
     retainedKeys,
+    materializedValues,
   );
   // The retention proof admitted the shape; this second derivation fixes the
   // same dominance order so every load's slot offset is path-independent. A
@@ -224,6 +227,7 @@ export function lowerFunction(
       : {}),
     directBcdWrites,
     staticRawAddresses,
+    forwardedPlaceLoads,
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,
@@ -867,8 +871,17 @@ export function lowerFunction(
   helperUses.push(...state.helperUses.map((use) => Object.freeze({ ...use, caller: owner })));
   warnings.push(...state.warnings);
   const sourceName = input.bindingNames?.get(bindingIdentityKey(owner));
+  // A runtime switch test chain is shaped before terminal/byte selection so no
+  // downstream pass has to rediscover the shared selector or equality scratch.
+  const dispatch = selectSwitchDispatch(loweredBlocks, input.profile.cpu);
+  if (dispatch.removedRequestIds.size > 0) {
+    for (let index = state.requests.length - 1; index >= 0; index -= 1) {
+      if (dispatch.removedRequestIds.has(state.requests[index]!.id))
+        state.requests.splice(index, 1);
+    }
+  }
   let selectedBlocks = selectTerminalByteLeaves(
-    Object.freeze([...loweredBlocks, ...state.helperBlocks]),
+    Object.freeze([...dispatch.blocks, ...state.helperBlocks]),
     state,
     returnsToStartup,
     sourceFunction,

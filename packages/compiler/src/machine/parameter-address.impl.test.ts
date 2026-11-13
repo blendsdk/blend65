@@ -52,10 +52,11 @@ describe("copied parameter address binding", () => {
       operand?.kind === "storage" && operand.requestId.includes(":parameter:") ? [operand] : [],
     );
     // A copied parameter is not a two-byte borrowed pointer to somebody else's object.
-    expect(parameterOperands.map(({ addressByte, offset }) => ({ addressByte, offset }))).toEqual([
-      { addressByte: "low", offset: 0 },
-      { addressByte: "high", offset: 0 },
-    ]);
+    // The fixed home is read directly, so there are no low/high address bytes.
+    expect(parameterOperands).toHaveLength(1);
+    expect(parameterOperands[0]).toMatchObject({ kind: "storage", offset: 0 });
+    expect(parameterOperands[0]!.addressByte).toBeUndefined();
+    expect(instructions.some(({ mode }) => mode === "indirect-indexed-y")).toBe(false);
     const inventory = inventoryStorage(wholeProgramFor([fn]));
     const closure = closeStorage(inventory, selectedProfile().storage, lowered.binder);
     expect(closure.kind).toBe("complete");

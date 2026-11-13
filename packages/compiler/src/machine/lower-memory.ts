@@ -262,6 +262,39 @@ export function lowerMemoryRead(
     );
     return observeRawSequence(instructions, operation, context);
   }
+  if (address.kind === "static-address" || address.kind === "symbol-address") {
+    const instructions: MachineInstruction[] = [];
+    for (let offset = 0; offset < operation.width; offset += 1) {
+      const form = staticAddressForm(address, offset);
+      const opcode =
+        operation.width === 1
+          ? context.byteRegister === "x"
+            ? "ldx"
+            : "lda"
+          : offset === 1
+            ? "ldx"
+            : "lda";
+      instructions.push(
+        machineInstruction(
+          context.cpu,
+          opcode,
+          form.mode,
+          form.operand,
+          [
+            Object.freeze({
+              kind: "read" as const,
+              address: form.effect,
+              width: 1 as const,
+              volatile: true,
+              order: offset,
+            }),
+          ],
+          operation.span,
+        ),
+      );
+    }
+    return observeRawSequence(instructions, operation, context);
+  }
   if (address.kind === "constant") {
     const low = address.value & 0xffff;
     const instructions: MachineInstruction[] = [

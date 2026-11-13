@@ -126,6 +126,8 @@ export interface FunctionLoweringState {
   readonly materializedValues: ReadonlySet<string>;
   /** One-use A/AX results consumed by the next instruction-producing operation. */
   readonly forwardedRegisterValues: Set<string>;
+  /** Ordinary loads whose byte is already in A from an adjacent raw read of the same home. */
+  readonly forwardedPlaceLoads: ReadonlyMap<string, string>;
   /** Values whose fresh Z may be consumed by an adjacent closed zero test. */
   readonly zeroFlagValues: Set<string>;
   /** Values proved to hold exactly `0` or `1` from a `mask == 1` bit test. */

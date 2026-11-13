@@ -68,6 +68,43 @@ function loadedValueStage(
 }
 
 /**
+ * A forwarded raw read may serve an ordinary load only when that load's sole
+ * consumer is the immediately following machine operation. Calls, dynamic
+ * addresses, merges and staged arguments can clobber or need to retain A.
+ */
+function adjacentForwardedConsumer(
+  result: string,
+  block: SemanticBlock | undefined,
+  operationIndex: number | undefined,
+  state: FunctionLoweringState,
+): boolean {
+  if (block === undefined || operationIndex === undefined) return false;
+  if (!state.singleUseValues.has(result)) return false;
+  let index = operationIndex + 1;
+  while (block.operations[index]?.kind === "constant") index += 1;
+  const consumer = block.operations[index];
+  if (consumer === undefined)
+    return block.terminator.kind === "return" && block.terminator.value === result;
+  if (
+    consumer.kind === "store" &&
+    consumer.value === result &&
+    consumer.place.path.every((component) => component.kind === "field")
+  )
+    return true;
+  if (
+    consumer.kind === "binary" &&
+    ["&", "|", "^", "==", "!="].includes(consumer.operator) &&
+    consumer.left === result
+  )
+    return true;
+  return (
+    consumer.kind === "platform" &&
+    consumer.arguments.length === 1 &&
+    consumer.arguments[0] === result
+  );
+}
+
+/**
  * Select one typed operation, preserving source order. The owning block, when
  * supplied by the function selector, proves immediate branch consumption. Its
  * byte-return-arm proof permits a disposable index only at that terminal consumer.
@@ -273,6 +310,33 @@ export function lowerOperation(
         );
         state.forwardedRegisterValues.add(operation.result);
         state.zeroFlagValues.add(operation.result);
+        return Object.freeze([]);
+      }
+    }
+    const forwardedRead = state.forwardedPlaceLoads.get(operation.result);
+    if (
+      forwardedRead !== undefined &&
+      !state.subtractRightInX.has(forwardedRead) &&
+      typeBytes(operation.type) === 1 &&
+      loadedValueStage(operation, state) === null &&
+      adjacentForwardedConsumer(operation.result, block, operationIndex, state)
+    ) {
+      const source = loweredPlace(
+        operation.place,
+        typeBytes(operation.type),
+        isSignedType(operation.type),
+        state,
+      );
+      if (source.kind === "storage") {
+        state.values.set(
+          operation.result,
+          Object.freeze({
+            kind: "register" as const,
+            registers: "a" as const,
+            bytes: 1,
+            signed: isSignedType(operation.type),
+          }),
+        );
         return Object.freeze([]);
       }
     }
@@ -922,7 +986,9 @@ export function lowerOperation(
     if (
       state.staticRawAddresses?.has(operation.result) &&
       operation.place.path.length === 0 &&
-      (operation.place.rootType?.kind === "array" || operation.place.rootType?.kind === "struct") &&
+      (operation.place.rootType?.kind === "array" ||
+        operation.place.rootType?.kind === "struct" ||
+        operation.place.rootType?.kind === "scalar") &&
       !isReturnedLocalPlace(operation.place, state)
     ) {
       const owner = state.input.program.semantic.functions.find(
@@ -931,8 +997,12 @@ export function lowerOperation(
       const parameter = owner?.parameters.some(
         ({ id }) => bindingIdentityKey(id) === bindingIdentityKey(operation.place.root),
       );
+      // A borrowed aggregate parameter's own home holds a pointer; only a scalar
+      // value parameter is safe to address as its copied storage.
+      const aggregate =
+        operation.place.rootType?.kind === "array" || operation.place.rootType?.kind === "struct";
       const placed = loweredPlace(operation.place, 2, false, state);
-      if (!parameter && placed.kind === "storage") {
+      if (!(parameter === true && aggregate) && placed.kind === "storage") {
         state.values.set(
           operation.result,
           Object.freeze({
@@ -945,7 +1015,7 @@ export function lowerOperation(
         );
         return Object.freeze([]);
       }
-      if (!parameter && placed.kind === "label") {
+      if (!(parameter === true && aggregate) && placed.kind === "label") {
         state.values.set(
           operation.result,
           Object.freeze({
