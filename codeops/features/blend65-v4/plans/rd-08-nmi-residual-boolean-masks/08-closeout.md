@@ -12,11 +12,11 @@ One rule on the existing Boolean identity closes the actionable non-`1` NMI Bool
 
 - a single-use byte `&` with a compile-time constant mask `2` or `4`;
 - the masked value is consumed by one materialized `== 0`/`!= 0` comparison with one A consumer;
-- the comparison result feeds one byte store, constant-address byte memory write, or Boolean return;
+- the comparison result feeds one byte store or Boolean return;
 - lowering emits one `LSR A` per bit position and one `EOR #$01` for `== 0`.
 
 The rule covers the masked value and zero test in either operand order, the elided single-use local,
-the mirrored local `&` operand, and the byte memory-write consumer. The mask-`1` identity keeps its
+the mirrored local `&` operand, and the Boolean return boundary. The mask-`1` identity keeps its
 existing output. The NMI private-home proof, the storage model and the specification are untouched;
 no storage is created or moved after closure.
 
@@ -33,7 +33,10 @@ no storage is created or moved after closure.
 | `let s = read(); flag = ((s & 2) != 0)` | Builds, local home omitted |
 | `let s = read(); flag = ((2 & s) != 0)` | Builds, local home omitted |
 | `let s = read(); flag = ((s & 4) == 0)` | Builds, local home omitted |
-| `let s = read(); poke($0402, (s & 2) != 0)` | Builds direct memory write, no staging |
+
+A source-level `poke` of a Boolean is not a delivered form: the frontend rejects a boolean-to-byte
+conversion with `E10086`. The lowering keeps the constant-address byte memory-write branch for
+internal machine shapes, and the impl test pins it defensively, but it is not a user source form.
 
 ## Measured costs
 
@@ -115,8 +118,8 @@ Three read-only post-implementation audits ran against the final diff:
 
 | Lens | Verdict | Material findings and disposition |
 |---|---|---|
-| Machine code | PASS WITH FIXES | The delivered sequences meet or beat the expert branch on bytes and path-max cycles; the shift is the best local expert sequence, so the closeout does not claim a beat over the best expert. The local mirrored `&` claim was not supported and is now delivered with a test. The mirrored zero test is now delivered instead of left as an internal-failure risk. Handler totals, memory-write and return output are pinned. |
-| SFA/ABI | PASS WITH FIXES | No storage request is created; the shift map is per-function state and is not persisted through closure. The local elision remains pre-SFA and the mirrored `&` order is accepted. The #147 retirement removes only the mask-two negative. Return and memory-write consumers now have exact output tests. |
+| Machine code | PASS WITH FIXES | The delivered sequences meet or beat the expert branch on bytes and path-max cycles; the shift is the best local expert sequence, so the closeout does not claim a beat over the best expert. The local mirrored `&` claim was not supported and is now delivered with a test. The mirrored zero test is now delivered instead of left as an internal-failure risk. Handler totals and Boolean-return output are pinned; the machine-level memory-write branch is covered defensively but is not source-expressible. |
+| SFA/ABI | PASS WITH FIXES | No storage request is created; the shift map is per-function state and is not persisted through closure. The local elision remains pre-SFA and the mirrored `&` order is accepted. The #147 retirement removes only the mask-two negative. The Boolean-return path now has an exact output test; the machine-level memory-write branch is covered defensively. |
 | Target platform | PASS WITH FIXES | The `$DD0D` read remains exactly once; both VICE cases are genuine Timer B/Timer A NMIs with `$C000 = 1` and `$E147`. Mask `4` is ICR bit `2` (TOD alarm), not FLAG; the runtime boundary now says so. The release record distinguishes mask-2 runtime evidence from mask-4 byte evidence. The ledger includes mask `0`, the word operand and the shared masked value. |
 
 ## Verification

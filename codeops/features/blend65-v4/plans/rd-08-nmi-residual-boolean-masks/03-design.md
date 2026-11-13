@@ -21,8 +21,9 @@ shift count:  k = 1 for mask 2, k = 2 for mask 4
 consumer:     the next machine operation is == / != with the masked value on
               either side and a constant zero as the other operand
               the comparison result is single-use
-following:    a byte store, a constant-address byte memory write, or a Boolean return
-              consuming the comparison result
+following:    a byte store or Boolean return consuming the comparison result
+              (a constant-address byte memory write is also accepted at the machine
+              boundary, but a source-level Boolean cannot be poked)
 effect:       booleanShiftValues.set(producer.result, k)
               forwardedRegisterValues.add(producer.result)
               forwardedRegisterValues.add(comparison.result)
@@ -60,7 +61,7 @@ shift forms. Its emitted bytes do not change.
 | A at the `AND` | #147's platform-to-bitwise rule keeps a single-use direct read in A for a constant-mask `&`. An elided local load is already register A. |
 | Masked value | `x & 2^k` is exactly `0` or `2^k`; `LSR` repeated `k` times produces exactly `0` or `1`. |
 | Inverse | `EOR #$01` maps `0`/`1` to `1`/`0`, which is exactly `== 0`. |
-| A at the store | The comparison result is forwarded, so the single following byte store/memory write/return consumes A directly. |
+| A at the store | The comparison result is forwarded, so the single following byte store or Boolean return consumes A directly. The defensive memory-write branch is machine-level only; a source Boolean cannot be poked. |
 | Flags | `LSR` sets N/Z from the final value and C from the shifted-out bit; the store consumes A, not a flag. `EOR #1` sets N/Z but the result is stored, not branched. |
 | Private storage | The masked value and comparison result are never materialized. No request is invented. |
 | NMI proof | Unchanged. The handler still has no non-installation request. |

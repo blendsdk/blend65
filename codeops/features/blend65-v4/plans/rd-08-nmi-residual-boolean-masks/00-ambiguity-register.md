@@ -17,8 +17,9 @@ register records the implementation-shape decisions and the restrictions that re
 
 The mask may be written on either side of `&`; the existing bitwise lowering commutes a constant
 left operand. The zero test may also be written with the zero on either side (`0 != (x & mask)`).
-The comparison result must be consumed by exactly one byte store, constant-address byte memory
-write, or Boolean return.
+The comparison result must be consumed by exactly one byte store or Boolean return. The lowering
+also accepts a constant-address byte memory write for internal machine shapes, but a Boolean cannot
+be poked at source level: the type system rejects a boolean-to-byte conversion (E10086).
 
 **Rationale:** these are the single-bit masks whose shift-chain normalization meets or beats the
 expert branch materialization in bytes and maximum cycles. Mask `1` is already delivered by #147 and
