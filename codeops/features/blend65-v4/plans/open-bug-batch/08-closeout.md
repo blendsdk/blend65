@@ -1,7 +1,7 @@
 # Open bug correctness batch — closeout
 
 > **Plan**: [99-execution-plan.md](99-execution-plan.md)
-> **Issues**: #77, #76, #68, #90, #66, #91, #99, #55
+> **Issues**: #77, #76, #68, #90, #66, #91, #99, #55 — all closed with evidence comments.
 > **Status**: implemented and verified locally; no push.
 
 ## Delivered changes
@@ -33,7 +33,7 @@
 | Machine/storage package subset | 79 files, 980 passed |
 | Targeted scope | 6/6 |
 | Targeted VIC diagnostics | 7/7 |
-| Targeted CLI | 9/9 including relative/absolute relative-outDir build |
+| Targeted CLI | 70/70 package tests including relative/absolute relative-outDir build |
 | `spec/` | clean |
 
 ## Notes
