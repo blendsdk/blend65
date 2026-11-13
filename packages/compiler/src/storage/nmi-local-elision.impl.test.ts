@@ -4,6 +4,7 @@ import type { BindingId } from "../frontend/semantic-types.js";
 import type { SemanticFunction, SemanticOperation } from "../semantic/operations.js";
 import { nmiLocalElisionKey, nmiRegisterOnlyLocals } from "../semantic/nmi-register-locals.js";
 import {
+  BOOLEAN,
   BYTE,
   VOID,
   semanticBlock,
@@ -82,6 +83,56 @@ describe("single-use NMI local proof", () => {
       storeIndex: 1,
       loadIndex: 2,
     });
+  });
+
+  it("finds the adjacent pair when the load is the right bitwise operand", () => {
+    const constant: SemanticOperation = {
+      kind: "constant",
+      result: "two",
+      value: 2n,
+      type: BYTE,
+      integer: null,
+      span,
+    };
+    const masked: SemanticOperation = {
+      kind: "binary",
+      result: "masked",
+      operator: "&",
+      left: "two",
+      right: "sample",
+      type: BYTE,
+      integer: null,
+      span,
+    };
+    const zero: SemanticOperation = {
+      kind: "constant",
+      result: "zero",
+      value: 0n,
+      type: BYTE,
+      integer: null,
+      span,
+    };
+    const condition: SemanticOperation = {
+      kind: "binary",
+      result: "done",
+      operator: "!=",
+      left: "masked",
+      right: "zero",
+      type: BOOLEAN,
+      integer: null,
+      span,
+    };
+    const fn = handler([
+      read(),
+      store("read"),
+      load("sample"),
+      constant,
+      masked,
+      zero,
+      condition,
+      store("done", destination),
+    ]);
+    expect(nmiRegisterOnlyLocals(fn, excluded).has(bindingIdentityKey(local))).toBe(true);
   });
 
   it("rejects a local whose address is taken", () => {

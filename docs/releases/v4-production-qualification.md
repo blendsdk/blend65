@@ -13,7 +13,7 @@ a readiness product, score, or second evidence database.
 | Fact | Value |
 | ---- | ----- |
 | Candidate code commit | `bb10e0d116d19a1d96f169a09d14f02ff0daa0f8` |
-| Working tree at freeze | clean at `bb10e0d1`; later documentation/test-evidence commits and the post-candidate `V4-TAKEOVER-1` and NMI source-read deliveries (#100/#147) are recorded separately and do not rewrite this candidate |
+| Working tree at freeze | clean at `bb10e0d1`; later documentation/test-evidence commits and the post-candidate `V4-TAKEOVER-1` and NMI source-read deliveries (#100/#147/#148) are recorded separately and do not rewrite this candidate |
 | Compiler version | `0.1.0` |
 | Specification corpus | 45 files; `BLEND65-SPEC-4-2ea3decf9362644b657e9d20ffeadb318028615958263147e579bfeeb5aada0e` |
 | Normative specification identity | `BLEND65-SPEC-4-038b70e906c48ad9649793fce39602886fbbf21e3b0f9bdec3b7faaa63fd538b` (18 normative files) |
@@ -168,8 +168,8 @@ identity `BLEND65-SPEC-4-038b70e9…`; the 397-key extraction passes against the
 The 18 rows marked `rd-05`, `rd-06`, or `rd-07` are proved by those closed owners; they are not
 gaps. Two expressiveness items are explicitly deferred: `v4-multi-screen-sprite-pointer` (`E10273`,
 `T-27`/issue #140) and the remaining NMI source-read forms in
-`v4-nmi-retained-source-reads` (`E10245`, issue #148; issue #147 delivered the bare zero, mask-one
-Boolean, addressable-mask and single-use-local forms).
+`v4-nmi-retained-source-reads` (`E10245`, issue #149; issues #147 and #148 delivered the bare zero,
+mask-one/mask-two/mask-four Boolean, addressable-mask and single-use-local forms).
 
 Optimizer whole-program results at the final candidate:
 
@@ -378,7 +378,7 @@ installed prefix; library and asset examples are covered by the package and root
 | Source-installed raw NMI | Default raw NMI route verified; source installer deferred because the frozen text withholds the unbounded-NMI exception | `V4-TAKEOVER-F2` |
 | Physical timing, analogue SID, real drive, board/chip revisions | `Unknown` | `V4-HW-1` |
 | Multi-screen sprite pointer | Deferred expressiveness item | `T-27` / issue #140 |
-| Remaining NMI source-read forms (`E10245`) | Deferred expressiveness/implementation limit; bare zero, mask-one Boolean, addressable mask and single-use local forms delivered | issue #148 |
+| Remaining NMI source-read forms (`E10245`) | Deferred expressiveness/implementation limit; bare zero, mask-one/two/four Boolean, addressable mask and single-use local forms delivered | issue #149 |
 | `size` acquisition 66-byte local floor | Tracked measured gap; issue #145 | RD-08 backlog |
 | Open optimizer/parity debt | Linked measured issues #95, #97, #104, #107–#133, #135, #136, #139 | RD-08 backlog |
 | Unused return/argument staging homes | Minor certified-RAM/debug evidence debt; issue #146 | SFA/debug |
@@ -456,8 +456,8 @@ time of writing.
 RD-10 did not expire a prior deferral's stated rationale. Every remaining item has a concrete
 owner: takeover delivered under `V4-TAKEOVER-1` with residual findings `V4-TAKEOVER-F2/F3`;
 physical evidence `V4-HW-1`; Windows/macOS `V4-HOST-1`; CharPad
-3.88 and GoatTracker `V4-ASSET-1`/`T-19`; remaining E10245 NMI source-read forms issue #148
-(issues #100 and #147 delivered the ordinary forms); multi-screen pointer issue #140;
+3.88 and GoatTracker `V4-ASSET-1`/`T-19`; remaining E10245 NMI source-read forms issue #149
+(issues #100, #147 and #148 delivered the ordinary forms); multi-screen pointer issue #140;
 `size` gap issue #145; staging-home debt issue #146; open optimizer debt issues #95, #97, #104,
 #107–#133, #135, #136, #139; C64U future pressure in the handoff packet. No orphaned owner
 remains.
@@ -489,13 +489,16 @@ remain owned follow-ups, not part of the claim.
 
 ### 13.1 Post-candidate NMI source-read delivery
 
-Issues #100 and #147 improve compiler lowering for ordinary NMI source reads after the `bb10e0d1`
-candidate. They do not add a profile, change the support statement or rewrite the candidate evidence.
-The delivered forms are recorded in
-[`rd-08-nmi-residual-source-reads`](../../codeops/features/blend65-v4/plans/rd-08-nmi-residual-source-reads/08-closeout.md);
-the remaining non-`1` Boolean mask and multi-sample storage boundary are owned by issue #148. Runtime
-evidence for the new forms is PAL/6581 `VICE-verified / hardware-unverified`; physical, host and
-producer rows keep their existing owners.
+Issues #100, #147 and #148 improve compiler lowering for ordinary NMI source reads after the
+`bb10e0d1` candidate. They do not add a profile, change the support statement or rewrite the
+candidate evidence. The delivered forms are recorded in
+[`rd-08-nmi-residual-source-reads`](../../codeops/features/blend65-v4/plans/rd-08-nmi-residual-source-reads/08-closeout.md)
+and
+[`rd-08-nmi-residual-boolean-masks`](../../codeops/features/blend65-v4/plans/rd-08-nmi-residual-boolean-masks/08-closeout.md);
+the remaining Boolean masks (eight and above, multi-bit, runtime) and the multi-sample route
+limitation are owned by issue #149. Runtime evidence for the mask-2 forms is PAL/6581
+`VICE-verified / hardware-unverified`; mask 4 has four-profile assembled-byte evidence only.
+Physical, host and producer rows keep their existing owners.
 
 ### 13.1 Delivered behavior
 

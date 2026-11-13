@@ -71,12 +71,15 @@ without invocation-private RAM or zero-page storage. This is a final storage pro
 not a syntax ban on locals or helpers. The compiler reports E10245 when that proof
 fails, and E10278 when device ownership or handback state is unproved. A consuming
 read assigned to a global, a bare zero test, a bit condition with a constant or
-directly addressable mask, a Boolean mask-one value (including its inverse), and a
-single-use local with an adjacent consumer now build with no private storage. Several
-simultaneously retained samples and a Boolean value from a mask other than `1` still
-hit E10245. The first is a genuine storage requirement; the second needs a separate
-materialization and cost proof. They are tracked by
-[issue #148](https://github.com/blendsdk/blend65/issues/148), not language restrictions
+directly addressable mask, a Boolean mask-one value (including its inverse), the
+shift-normalized mask-two and mask-four values (both polarities), and a single-use local
+with an adjacent consumer now build with no private storage. Several simultaneously
+retained samples, a Boolean value from a constant mask of eight or higher, a multi-bit or
+zero constant mask, a runtime mask, a wider-than-byte operand, and a masked value shared
+by several consumers still hit E10245. The remaining Boolean forms need an inline branch
+materialization, a zero-extension proof or a constant fold; the retained forms need
+bounded storage that this route does not provide. They are tracked by
+[issue #149](https://github.com/blendsdk/blend65/issues/149), not language restrictions
 or recommended source workarounds.
 
 Qualification is **VICE-verified / hardware-unverified**. Unrestricted external

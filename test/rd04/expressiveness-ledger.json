@@ -58,11 +58,11 @@
     {
       "id": "v4-nmi-retained-source-reads",
       "status": "deferred",
-      "sourceForm": "an interrupt function that retains several sampled bytes, or assigns a Boolean value from a bit test whose constant mask is not 1",
+      "sourceForm": "an interrupt function that retains several sampled or masked bytes, or materializes a Boolean from a bit test whose constant mask is other than 1, 2, or 4, whose mask is not a compile-time constant, or whose operand is wider than a byte",
       "diagnostic": "E10245",
-      "reason": "The cooperative NMI route requires private-home-free reentrancy. A Boolean from a mask other than 1 is 0 or mask, not 0/1, and materializing it is larger than the expert sequence. Several simultaneously retained samples genuinely need private storage across volatile reads. The compiler fails closed rather than guessing.",
-      "owner": "issue #148",
-      "decision": "Issue #147 delivered the bare zero test, Boolean mask-one value and inverse, directly addressable mask, and single-use local forms with zero private storage and expert-equal output. The remaining Boolean form needs a separate cost proof; multi-sample storage is a documented contract boundary, not compiler-invented scratch."
+      "reason": "The cooperative NMI route admits no invocation-private RAM or zero-page homes. A Boolean from a bit test whose constant mask is other than 1, 2 or 4 cannot be normalized by a shift chain that meets the expert floor: single-bit masks 8 and above exceed the expert's largest-path cycles, and multi-bit or zero masks need a branch or a constant fold. A runtime mask has no fixed shift count, and a wider-than-byte operand needs a zero-extension proof. A masked value shared by several consumers, and several simultaneously retained samples, are live across later operations and have no bounded retention mechanism on this route. The compiler fails closed rather than guessing.",
+      "owner": "issue #149",
+      "decision": "Issue #148 delivered the mask-2 and mask-4 shift-chain Boolean values in both polarities, including elided-local, mirrored-mask, mirrored-zero-test and byte memory-write forms, with zero private storage and expert-equal or better output. The remaining forms need an inline branch materialization, a zero-extension proof, or bounded storage; they are tracked by issue #149."
     }
   ]
 }

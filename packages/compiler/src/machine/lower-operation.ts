@@ -399,16 +399,57 @@ export function lowerOperation(
         state.zeroFlagValues.has(operation.left) &&
         state.branchConditions.has(operation.result) &&
         !state.materializedValues.has(operation.result);
+      const booleanMasked =
+        state.booleanShiftValues.has(operation.left) || state.booleanValues.has(operation.left)
+          ? operation.left
+          : state.booleanShiftValues.has(operation.right)
+            ? operation.right
+            : undefined;
+      const booleanShift =
+        booleanMasked === undefined
+          ? undefined
+          : (state.booleanShiftValues.get(booleanMasked) ??
+            (state.booleanValues.has(booleanMasked) ? 0 : undefined));
+      const maskedValue = booleanMasked === operation.left ? left : right;
+      const zeroValue = booleanMasked === operation.left ? right : left;
       const booleanIdentity =
         (operation.operator === "==" || operation.operator === "!=") &&
-        left.kind === "register" &&
-        left.registers === "a" &&
-        left.bytes === 1 &&
-        right.kind === "constant" &&
-        right.bytes === 1 &&
-        right.value === 0 &&
-        state.booleanValues.has(operation.left) &&
+        booleanMasked !== undefined &&
+        maskedValue.kind === "register" &&
+        maskedValue.registers === "a" &&
+        maskedValue.bytes === 1 &&
+        zeroValue.kind === "constant" &&
+        zeroValue.bytes === 1 &&
+        zeroValue.value === 0 &&
+        booleanShift !== undefined &&
         state.materializedValues.has(operation.result);
+      const booleanIdentityInstructions = (() => {
+        if (!booleanIdentity || booleanShift === undefined) return null;
+        const instructions: MachineInstruction[] = [];
+        for (let shift = 0; shift < booleanShift; shift += 1)
+          instructions.push(
+            machineInstruction(
+              state.input.profile.cpu,
+              "lsr",
+              "accumulator",
+              null,
+              [],
+              operation.span,
+            ),
+          );
+        if (operation.operator === "==")
+          instructions.push(
+            machineInstruction(
+              state.input.profile.cpu,
+              "eor",
+              "immediate",
+              Object.freeze({ kind: "immediate", value: 1 }),
+              [],
+              operation.span,
+            ),
+          );
+        return Object.freeze(instructions);
+      })();
       lowered = readOwnsZero
         ? Object.freeze({
             instructions: Object.freeze([]),
@@ -418,22 +459,9 @@ export function lowerOperation(
               usesFlag: "z" as const,
             }),
           })
-        : booleanIdentity
+        : booleanIdentityInstructions !== null
           ? Object.freeze({
-              instructions: Object.freeze(
-                operation.operator === "=="
-                  ? [
-                      machineInstruction(
-                        state.input.profile.cpu,
-                        "eor",
-                        "immediate",
-                        Object.freeze({ kind: "immediate", value: 1 }),
-                        [],
-                        operation.span,
-                      ),
-                    ]
-                  : [],
-              ),
+              instructions: booleanIdentityInstructions,
               result: Object.freeze({
                 kind: "register" as const,
                 registers: "a" as const,

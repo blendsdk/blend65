@@ -156,9 +156,14 @@ interrupt function onBit(): void {
 }
 
 // A mask-one bit test is already a Boolean value, including its inverse.
+// Masks two and four are shift-normalized to the same 0/1 value.
 interrupt function onBoolean(): void {
   timerFinished = (c64.cia2.readAndClearPendingSources() & 1) != 0;
   timerFinished = (c64.cia2.readAndClearPendingSources() & 1) == 0;
+  timerFinished = (c64.cia2.readAndClearPendingSources() & 2) != 0;
+  timerFinished = (c64.cia2.readAndClearPendingSources() & 2) == 0;
+  timerFinished = (c64.cia2.readAndClearPendingSources() & 4) != 0;
+  timerFinished = (c64.cia2.readAndClearPendingSources() & 4) == 0;
 }
 
 // A single-use local with an adjacent consumer stays in the accumulator.
@@ -169,11 +174,13 @@ interrupt function onLocal(): void {
 ```
 
 The read is still exactly one volatile access. A handler that needs a real private home
-still fails `E10245`; that includes several simultaneously retained samples and a Boolean
-value from a bit test whose constant mask is not `1` (the masked value is `0` or `mask`,
-not `0`/`1`). Those are tracked by
-[#148](https://github.com/blendsdk/blend65/issues/148); the multi-sample rejection is a
-contract boundary, not compiler-invented scratch.
+still fails `E10245`. That includes several simultaneously retained samples, a Boolean
+value from a constant mask of eight or higher, a multi-bit or zero constant mask, a
+runtime mask, a wider-than-byte operand, and a masked value shared by several consumers. Masks two and four are delivered because their shift chain meets or beats the
+expert materialization; the rest need an inline branch block or a bounded retention
+mechanism. They are tracked by
+[#149](https://github.com/blendsdk/blend65/issues/149), not language restrictions or
+recommended source workarounds.
 
 ## Qualification
 

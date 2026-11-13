@@ -222,16 +222,23 @@ export function nmiRegisterOnlyLocals(
 
     if (valueUseCount(fn, load.operation.result) !== 1) continue;
     const consumer = singleConsumer(fn, load.operation.result);
+    const binaryConsumer = consumer?.operation.kind === "binary" ? consumer.operation : null;
+    const bitwisePeer =
+      binaryConsumer !== null &&
+      (binaryConsumer.operator === "&" ||
+        binaryConsumer.operator === "|" ||
+        binaryConsumer.operator === "^") &&
+      (binaryConsumer.left === load.operation.result ||
+        binaryConsumer.right === load.operation.result)
+        ? binaryConsumer.left === load.operation.result
+          ? binaryConsumer.right
+          : binaryConsumer.left
+        : null;
     const peer =
-      consumer !== null &&
-      consumer.operation.kind === "binary" &&
-      consumer.operation.left === load.operation.result &&
-      (consumer.operation.operator === "&" ||
-        consumer.operation.operator === "|" ||
-        consumer.operation.operator === "^") &&
-      directByteLoad(fn, consumer.operation.right) &&
-      valueUseCount(fn, consumer.operation.right) === 1
-        ? consumer.operation.right
+      bitwisePeer !== null &&
+      directByteLoad(fn, bitwisePeer) &&
+      valueUseCount(fn, bitwisePeer) === 1
+        ? bitwisePeer
         : null;
     if (
       consumer === null ||
@@ -251,22 +258,22 @@ export function nmiRegisterOnlyLocals(
         consumer.operation.value === load.operation.result &&
         consumer.operation.width === 1 &&
         constants.has(consumer.operation.address);
-    } else if (
-      consumer.operation.kind === "binary" &&
-      consumer.operation.left === load.operation.result
-    ) {
+    } else if (consumer.operation.kind === "binary") {
       const operator = consumer.operation.operator;
+      const left = consumer.operation.left === load.operation.result;
+      const right = consumer.operation.right === load.operation.result;
+      const other = left ? consumer.operation.right : consumer.operation.left;
       if (operator === "==" || operator === "!=") {
         takesA =
-          zeroConstant(fn, consumer.operation.right) &&
+          left &&
+          zeroConstant(fn, other) &&
           consumer.operation.type.kind === "scalar" &&
           consumer.operation.type.name === "boolean";
       } else if (operator === "&" || operator === "|" || operator === "^") {
         takesA =
+          (left || right) &&
           byteType(consumer.operation.type) &&
-          (constants.has(consumer.operation.right) ||
-            (directByteLoad(fn, consumer.operation.right) &&
-              valueUseCount(fn, consumer.operation.right) === 1));
+          (constants.has(other) || (directByteLoad(fn, other) && valueUseCount(fn, other) === 1));
       }
     }
     if (!takesA) continue;

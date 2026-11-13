@@ -129,6 +129,8 @@ export interface FunctionLoweringState {
   readonly zeroFlagValues: Set<string>;
   /** Values proved to hold exactly `0` or `1` from a `mask == 1` bit test. */
   readonly booleanValues: Set<string>;
+  /** Values proved Boolean from a single-bit mask, with their normalization shift count. */
+  readonly booleanShiftValues: ReadonlyMap<string, number>;
   /** NMI local bindings whose request was omitted before SFA allocation. */
   readonly elidedLocalBindings: ReadonlySet<string>;
   /** Exact sole adjacent indexed additions selected from that access's unsigned proof. */

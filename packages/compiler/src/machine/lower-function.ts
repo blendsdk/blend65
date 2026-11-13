@@ -122,6 +122,7 @@ export function lowerFunction(
     forwardedRegisterValues,
     zeroFlagValues,
     booleanValues,
+    booleanShiftValues,
     byteOrdinalAdditions,
     ordinalRawReads,
     ordinalRawWrites,
@@ -164,6 +165,7 @@ export function lowerFunction(
     forwardedRegisterValues: new Set(forwardedRegisterValues),
     zeroFlagValues: new Set(zeroFlagValues),
     booleanValues: new Set(booleanValues),
+    booleanShiftValues: new Map(booleanShiftValues),
     elidedLocalBindings: input.elidedLocalBindings ?? new Set<string>(),
     byteOrdinalAdditions,
     ...(input.observerEvidence === true && input.optimizationFacts !== undefined

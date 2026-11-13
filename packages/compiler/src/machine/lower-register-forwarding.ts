@@ -110,6 +110,8 @@ export function selectRegisterForwarding(
   readonly zeroFlagValues: ReadonlySet<string>;
   /** Values proved to hold exactly `0` or `1` from a `mask == 1` bit test. */
   readonly booleanValues: ReadonlySet<string>;
+  /** Values proved Boolean from a single-bit mask, mapped to their normalization shift count. */
+  readonly booleanShiftValues: ReadonlyMap<string, number>;
   /** Nonwrapping additions consumed only by their next stride-one indexed access. */
   readonly byteOrdinalAdditions: ReadonlySet<string>;
   /** Proved `constant + byte index` addresses consumed only by their next raw read. */
@@ -209,6 +211,17 @@ export function selectRegisterForwarding(
   const directByteLoadOperand = (block: SemanticBlock, value: string): boolean =>
     directByteLoad(block, value) && singleUseValues.has(value);
   /**
+   * Map a proved constant single-bit mask to its normalization shift count.
+   *
+   * `x & 2` is 0 or 2, so one right shift gives 0 or 1. Only masks 2 and 4
+   * have a shift tail that does not exceed the best expert materialization in
+   * both bytes and largest-path cycles.
+   */
+  const booleanMaskShift = (value: string | undefined): number | undefined => {
+    const mask = value === undefined ? undefined : literals.get(value);
+    return mask === 2n ? 1 : mask === 4n ? 2 : undefined;
+  };
+  /**
    * A write index must survive value evaluation in its own home. Constants and
    * loads qualify; computed temporaries may be overlaid by the value temporary.
    */
@@ -228,6 +241,7 @@ export function selectRegisterForwarding(
   const forwardedRegisterValues = new Set<string>();
   const zeroFlagValues = new Set<string>();
   const booleanValues = new Set<string>();
+  const booleanShiftValues = new Map<string, number>();
   const byteOrdinalAdditions = new Set<string>();
   const ordinalRawReads = new Map<string, { readonly base: number; readonly index: string }>();
   const ordinalRawWrites = new Map<string, { readonly base: number; readonly index: string }>();
@@ -594,6 +608,49 @@ export function selectRegisterForwarding(
           }
         }
       }
+      // A sole `binary &` result with a single-bit constant mask of 2 or 4 is
+      // exactly 0 or the mask. One shift per bit position normalizes it to 0/1
+      // without a branch. Only a materialized value is selected; a branch
+      // condition already consumes the AND result's Z directly.
+      if (
+        producer.kind === "binary" &&
+        producer.operator === "&" &&
+        typeBytes(producer.type) === 1 &&
+        producer.result !== null &&
+        singleUseValues.has(producer.result)
+      ) {
+        const shift = booleanMaskShift(producer.left) ?? booleanMaskShift(producer.right);
+        if (shift !== undefined) {
+          const consumerIndex = nextMachineOperationIndex(block, index);
+          const consumer = block.operations[consumerIndex];
+          if (
+            consumer?.kind === "binary" &&
+            ["==", "!="].includes(consumer.operator) &&
+            ((consumer.left === producer.result && zeroValues.has(consumer.right)) ||
+              (consumer.right === producer.result && zeroValues.has(consumer.left))) &&
+            singleUseValues.has(consumer.result)
+          ) {
+            const following = block.operations[nextMachineOperationIndex(block, consumerIndex)];
+            const takesA =
+              (following?.kind === "store" &&
+                typeBytes(following.type) === 1 &&
+                following.value === consumer.result &&
+                following.place.path.length === 0) ||
+              (following?.kind === "memory-write" &&
+                following.width === 1 &&
+                following.value === consumer.result &&
+                constantValues.has(following.address)) ||
+              (following === undefined &&
+                block.terminator.kind === "return" &&
+                block.terminator.value === consumer.result);
+            if (takesA) {
+              booleanShiftValues.set(producer.result, shift);
+              forwardedRegisterValues.add(producer.result);
+              forwardedRegisterValues.add(consumer.result);
+            }
+          }
+        }
+      }
       if (
         producer.kind === "binary" &&
         producer.operator === "&" &&
@@ -919,6 +976,7 @@ export function selectRegisterForwarding(
     forwardedRegisterValues,
     zeroFlagValues,
     booleanValues,
+    booleanShiftValues,
     byteOrdinalAdditions,
     ordinalRawReads,
     ordinalRawWrites,

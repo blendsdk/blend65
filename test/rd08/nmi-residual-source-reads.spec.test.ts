@@ -533,13 +533,6 @@ describe.each(PROFILES)("residual register-only NMI source reads on %s", (profil
   }, 60_000);
 });
 
-/** A Boolean value from mask two is not already 0/1, so it keeps a real private home. */
-const BOOLEAN_MASK_TWO = program(
-  "place(at: $C000) let finished: boolean = false;",
-  "    finished = ((readAndClearPendingSources() & 2) != 0);",
-  "!finished",
-);
-
 /** Five simultaneously live samples cannot all stay in the accumulator. */
 const FIVE_RETAINED_SAMPLES = `module Game;
 import { setNMIExclusive, restoreNMI } from c64.system;
@@ -587,10 +580,6 @@ async function expectRejected(source: string, profile: string, primary: string):
 
 /** Real private homes and unsupported operand shapes stay rejected on every profile. */
 describe.each(PROFILES)("residual NMI private-home rejection on %s", (profile) => {
-  it("should reject a Boolean value from the constant mask two", async () => {
-    await expectRejected(BOOLEAN_MASK_TWO, profile, "& 2) != 0");
-  }, 60_000);
-
   it("should reject five simultaneously retained sampled bytes", async () => {
     await expectRejected(FIVE_RETAINED_SAMPLES, profile, "peek($0404)");
   }, 60_000);
