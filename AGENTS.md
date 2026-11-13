@@ -49,6 +49,32 @@ compiler suite. Local Linux root tests include ACME/VICE journeys; run emulator 
 There is no `lint` or aggregate `verify` script. Commands above come from manifests/configuration;
 a guidance refresh alone does not establish that build or compiler tests pass.
 
+### Test execution policy (mandatory)
+
+**Do not run the complete test corpus after every edit.** The full suite is a checkpoint and
+release gate, not the inner loop. Choose the smallest tier that proves the change, then run the
+scheduled checkpoint.
+
+| Moment | Required command |
+| --- | --- |
+| Inner edit loop | `yarn test:fast`, or `yarn test:changed` when files changed |
+| Before a normal commit checkpoint | `yarn test:changed --host`, then `yarn test` |
+| Phase closeout or production release | `yarn test:full` after install, build and typecheck |
+| Any change to SFA/ABI, interrupts, layout, platform profiles, assets or cross-cutting compiler semantics | Run the affected VICE tests, then `yarn test:full` at the checkpoint |
+
+- `yarn test:changed` is the default per-change command. It always runs the fast tier, then only
+  the changed compiler areas and changed root test files. Add `--host` or `--vice` when the change
+  crosses those boundaries.
+- A change is not verified by "tests exist"; the impacted tier must actually run and pass.
+- Never delete, skip or weaken a test, oracle or VICE journey to make a tier faster. Tiering changes
+  when a test runs, never whether it remains in the complete gate.
+- If the impact map is uncertain or the change is cross-cutting, run `yarn test` (host) before the
+  checkpoint and `yarn test:full` at the checkpoint. Do not guess a narrower tier.
+- The complete VICE tier is serialized and belongs to `test:full`; concurrent `x64sc` instances are
+  not permitted.
+- Do not report a task complete while an impacted test is failing, and do not use a passing fast
+  tier as a substitute for a required checkpoint tier.
+
 ## Project structure
 
 - `packages/compiler/` — real `@blend65/compiler` project library.
