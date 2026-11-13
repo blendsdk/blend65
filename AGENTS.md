@@ -74,6 +74,9 @@ scheduled checkpoint.
   not permitted.
 - Do not report a task complete while an impacted test is failing, and do not use a passing fast
   tier as a substitute for a required checkpoint tier.
+- `yarn test:full` is a release gate: current local evidence is about 86 minutes (host checkpoint
+  about 17 minutes plus the serialized VICE tier about 69 minutes). Budget it; never run it per
+  edit.
 
 ## Project structure
 
