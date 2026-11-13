@@ -10,7 +10,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            tier: host
+          - os: windows-latest
+            tier: foundation
+    name: ${{ matrix.os }} / ${{ matrix.tier }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -57,5 +62,7 @@ jobs:
         run: yarn typecheck
       - name: Test
         env:
-          BLEND65_FOUNDATION_CI: "1"
+          # Linux runs the host checkpoint (fast + integration, no emulator).
+          # Windows keeps the foundation/boundary root gate.
+          BLEND65_FOUNDATION_CI: ${{ matrix.tier == 'foundation' && '1' || '0' }}
         run: yarn test

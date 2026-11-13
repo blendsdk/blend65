@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import { filesForTier } from "./test/test-tiers";
+import { hostWorkers } from "./test/vitest-workers";
 
 /**
  * Host root tier: fast and integration tests together. This is the default
@@ -11,7 +12,7 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["test/setup-matchers.ts"],
     fileParallelism: true,
-    maxWorkers: 4,
+    maxWorkers: hostWorkers,
     minWorkers: 1,
     testTimeout: 120_000,
   },

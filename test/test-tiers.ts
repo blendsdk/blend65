@@ -17,7 +17,7 @@ export interface ClassifiedTest {
  * concurrent x64sc instances contend for CPU and monitor ports.
  */
 const VICE_IMPORT =
-  /\b(?:startVice|stopVice|withLibraryVice|withVice|ViceMonitor|setAccessTracepoint(?:Range)?|vice-runtime|vice-fixture|vice-sources|vice-monitor|runProject)\b/u;
+  /\b(?:startVice|stopVice|withLibraryVice|withVice|ViceMonitor|setAccessTracepoint(?:Range)?|vice-runtime|vice-fixture|vice-sources|vice-monitor|vice-driver|runProject)\b/u;
 
 /**
  * Build/check helpers invoke the real public compiler and usually ACME. They

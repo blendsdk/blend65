@@ -400,7 +400,8 @@ authorizes an automatic push in this repository.
   `codeops/features/blend65-v4/00-roadmap.md` (portfolio roll-up `codeops/00-roadmap.md`,
   numerically synchronized at integration). Read it
   at the start of every task; update it at each lifecycle transition (the `roadmap` skill drives this).
-- Current CI verifies the owned foundation only; it has no emulator tier.
+- Linux CI runs the host checkpoint (fast + integration, no emulator); Windows CI runs the
+  foundation/boundary root gate. Neither runs VICE; the complete VICE tier stays local/release.
   Historical emulator results are not v4 qualification. Later local emulator suites
   must run sequentially so concurrent `x64sc` instances do not contend.
 
