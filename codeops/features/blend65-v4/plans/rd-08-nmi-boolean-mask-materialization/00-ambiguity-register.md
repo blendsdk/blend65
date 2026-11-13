@@ -98,9 +98,9 @@ currently stages a private byte.
 
 **Decision:** A masked value shared by several consumers and several simultaneously retained samples
 remain `E10245`. No NMI proof, storage allowance or route contract changes. They are re-owned by a
-follow-up issue before #149 closes. A 16-bit word mask, a runtime word local, a computed
-(non-addressable) mask and a masked value compared to a nonzero constant are recorded with the same
-owner.
+follow-up issue before #149 closes. A 16-bit word mask, a computed (non-addressable) mask, a masked
+value compared to a nonzero constant, more than eight retained bytes, and a retained local across a
+join or call are recorded with the same owner.
 
 **Rationale:** those forms need bounded storage live across consumers or volatile reads. The
 cooperative route admits no invocation-private RAM/zero-page homes, and no bounded stack-retention

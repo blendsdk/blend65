@@ -10,7 +10,11 @@ import {
   interruptRetainedBlocks,
 } from "../semantic/interrupt-context-facts.js";
 import { valueLifetimes } from "../semantic/value-lifetimes.js";
-import { nmiLocalElisionKey, nmiRegisterOnlyLocals } from "../semantic/nmi-register-locals.js";
+import {
+  nmiLocalElisionKey,
+  nmiRegisterOnlyLocals,
+  nmiStackRetainedLocals,
+} from "../semantic/nmi-register-locals.js";
 import type { SemanticPosition, ValueLifetime, WholeProgram } from "../semantic/whole-program.js";
 import type { ExecutionDomain } from "../semantic/interrupt-domains.js";
 import type {
@@ -339,6 +343,9 @@ export function inventoryStorage(
   const requests: StorageRequest[] = [];
   const results: FunctionResultLocation[] = [];
   const elidedLocalBindings = new Set<string>();
+  const zeroExtensionValues = new Set<string>();
+  const stackRetainedBindings = new Set<string>();
+  const stackRetainedLocalKeys = new Set<string>();
   const functions = new Map(
     program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
   );
@@ -414,6 +421,8 @@ export function inventoryStorage(
         const fn = Object.freeze({ ...source, blocks });
         const elidedLocals =
           domain === "nmi" ? nmiRegisterOnlyLocals(fn, elisionExcluded) : new Map();
+        const stackLocals =
+          domain === "nmi" ? nmiStackRetainedLocals(fn, elisionExcluded) : new Map();
         const lifetimes = proof === undefined ? program.lifetimes : valueLifetimes(fn);
         if (fn.result.kind === "array" || fn.result.kind === "struct") {
           const id = valueRequestId(
@@ -512,6 +521,13 @@ export function inventoryStorage(
           if (returnedLocals.get(bindingIdentityKey(fn.id)) === key) continue;
           if (elidedLocals.has(key)) {
             elidedLocalBindings.add(nmiLocalElisionKey("nmi", activationRoot, key));
+            const conversionResult = elidedLocals.get(key)?.conversionResult;
+            if (conversionResult !== undefined) zeroExtensionValues.add(conversionResult);
+            continue;
+          }
+          if (stackLocals.has(key)) {
+            stackRetainedBindings.add(nmiLocalElisionKey("nmi", activationRoot, key));
+            stackRetainedLocalKeys.add(key);
             continue;
           }
           requests.push(
@@ -743,5 +759,14 @@ export function inventoryStorage(
     ...(elidedLocalBindings.size === 0
       ? {}
       : { elidedLocalBindings: Object.freeze(elidedLocalBindings) }),
+    ...(zeroExtensionValues.size === 0
+      ? {}
+      : { zeroExtensionValues: Object.freeze(zeroExtensionValues) }),
+    ...(stackRetainedBindings.size === 0
+      ? {}
+      : { stackRetainedBindings: Object.freeze(stackRetainedBindings) }),
+    ...(stackRetainedLocalKeys.size === 0
+      ? {}
+      : { stackRetainedLocalKeys: Object.freeze(stackRetainedLocalKeys) }),
   });
 }

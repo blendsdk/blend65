@@ -204,6 +204,24 @@ export function lowerOperation(
   if (operation.kind === "load") {
     if (operation.place.path.length === 0) {
       state.loadOrigins.set(operation.result, bindingIdentityKey(operation.place.root));
+      const stackKey = nmiLocalElisionKey(
+        state.interruptDepth.domain,
+        state.interruptDepth.activationRoot,
+        bindingIdentityKey(operation.place.root),
+      );
+      if (state.stackRetainedBindings.has(stackKey)) {
+        const slot = state.stackSlots.get(stackKey);
+        if (slot === undefined)
+          throw loweringFailure(
+            "Stack-retained NMI local was loaded before its store",
+            operation.span,
+          );
+        state.values.set(
+          operation.result,
+          Object.freeze({ kind: "stack", slot, bytes: 1, signed: false }),
+        );
+        return Object.freeze([]);
+      }
       if (
         state.elidedLocalBindings.has(
           nmiLocalElisionKey(
@@ -231,6 +249,15 @@ export function lowerOperation(
                 );
         const stored = initializer === undefined ? undefined : state.values.get(initializer.value);
         if (stored?.kind === "constant") {
+          state.values.set(operation.result, stored);
+          return Object.freeze([]);
+        }
+        if (
+          stored?.kind === "zero-extended" &&
+          stored.low.kind === "register" &&
+          stored.low.registers === "a" &&
+          stored.low.bytes === 1
+        ) {
           state.values.set(operation.result, stored);
           return Object.freeze([]);
         }
@@ -280,6 +307,35 @@ export function lowerOperation(
   if (operation.kind === "store") {
     const value = state.values.get(operation.value);
     if (value === undefined) throw loweringFailure("Stored value was not lowered", operation.span);
+    if (
+      operation.place.path.length === 0 &&
+      state.stackRetainedBindings.has(
+        nmiLocalElisionKey(
+          state.interruptDepth.domain,
+          state.interruptDepth.activationRoot,
+          bindingIdentityKey(operation.place.root),
+        ),
+      )
+    ) {
+      if (value.kind !== "register" || value.registers !== "a" || value.bytes !== 1)
+        throw loweringFailure(
+          "Stack-retained NMI local store is not the direct-read or masked byte",
+          operation.span,
+        );
+      state.stackDepth += 1;
+      state.stackXValid = false;
+      state.stackSlots.set(
+        nmiLocalElisionKey(
+          state.interruptDepth.domain,
+          state.interruptDepth.activationRoot,
+          bindingIdentityKey(operation.place.root),
+        ),
+        state.stackDepth,
+      );
+      return Object.freeze([
+        machineInstruction(state.input.profile.cpu, "pha", "implied", null, [], operation.span),
+      ]);
+    }
     const aggregateSource = state.aggregatePlaces.get(operation.value);
     if (
       aggregateSource !== undefined &&
@@ -305,12 +361,16 @@ export function lowerOperation(
       // The only store of this NMI local is its initializer. A constant needs
       // no runtime value; a direct read is already in A. The home was omitted
       // before allocation, so the store emits nothing.
-      if (
-        value.kind !== "constant" &&
-        (value.kind !== "register" || value.registers !== "a" || value.bytes !== 1)
-      )
+      const elidedValue =
+        value.kind === "constant" ||
+        (value.kind === "register" && value.registers === "a" && value.bytes === 1) ||
+        (value.kind === "zero-extended" &&
+          value.low.kind === "register" &&
+          value.low.registers === "a" &&
+          value.low.bytes === 1);
+      if (!elidedValue)
         throw loweringFailure(
-          "Elided NMI local store is not a constant or direct-read initializer",
+          "Elided NMI local store is not a constant, direct-read or zero-extended initializer",
           operation.span,
         );
       return Object.freeze([]);
@@ -769,6 +829,39 @@ export function lowerOperation(
     const value = state.values.get(operation.value);
     if (value?.kind === "register" && !state.forwardedRegisterValues.has(operation.value)) {
       throw loweringFailure("Raw-memory register value was not proved current", operation.span);
+    }
+    if (value?.kind === "stack") {
+      const loaded: MachineInstruction[] = [];
+      appendLoadA(loaded, value, 0, state, operation.span);
+      const values = new Map(state.values);
+      values.set(
+        operation.value,
+        Object.freeze({
+          kind: "register" as const,
+          registers: "a" as const,
+          bytes: 1,
+          signed: false,
+        }),
+      );
+      return Object.freeze([
+        ...loaded,
+        ...lowerMemoryWrite(operation, {
+          observerEvidence: state.input.observerEvidence === true,
+          cpu: state.input.profile.cpu,
+          owner: state.owner,
+          values,
+          pointerRequest: (source) =>
+            requestStorage(
+              state,
+              "dynamic-memory-pointer",
+              "pointer",
+              2,
+              "zero-page-required",
+              source.span,
+              "Page-safe indirect address pair",
+            ),
+        }),
+      ]);
     }
     return lowerMemoryWrite(operation, {
       observerEvidence: state.input.observerEvidence === true,

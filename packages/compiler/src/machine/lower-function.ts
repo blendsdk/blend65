@@ -141,6 +141,8 @@ export function lowerFunction(
     input.program.semantic.functions,
     complementFree?.noCode,
     complementFree?.addressValues,
+    input.zeroExtensionValues,
+    input.stackRetainedLocalKeys,
   );
   const state: FunctionLoweringState = {
     owner,
@@ -170,6 +172,11 @@ export function lowerFunction(
     booleanShiftValues: new Map(booleanShiftValues),
     booleanBranchValues,
     elidedLocalBindings: input.elidedLocalBindings ?? new Set<string>(),
+    zeroExtensionValues: input.zeroExtensionValues ?? new Set<string>(),
+    stackRetainedBindings: input.stackRetainedBindings ?? new Set<string>(),
+    stackDepth: 0,
+    stackSlots: new Map<string, number>(),
+    stackXValid: false,
     byteOrdinalAdditions,
     ...(input.observerEvidence === true && input.optimizationFacts !== undefined
       ? { ordinalRawReads, ordinalRawWrites }
@@ -482,13 +489,16 @@ export function lowerFunction(
           ? operation.left
           : operation.right;
         const masked = state.values.get(maskedId);
+        const stackLoad = masked?.kind === "stack";
         const inA =
           (masked?.kind === "register" && masked.registers === "a" && masked.bytes === 1) ||
           (masked?.kind === "zero-extended" &&
             masked.low.kind === "register" &&
             masked.low.registers === "a" &&
-            masked.low.bytes === 1);
+            masked.low.bytes === 1) ||
+          stackLoad;
         if (inA) {
+          if (stackLoad) appendLoadA(currentInstructions, masked, 0, state, operation.span);
           const split = lowerBooleanBranch(
             operation,
             state,
@@ -670,6 +680,20 @@ export function lowerFunction(
         appendLoadA(currentInstructions, condition, 0, state, state.owner.span);
       }
     }
+    if (block.terminator.kind === "return" && state.stackDepth > 0) {
+      state.stackXValid = false;
+      for (let pop = 0; pop < state.stackDepth; pop += 1)
+        currentInstructions.push(
+          machineInstruction(
+            input.profile.cpu,
+            "pla",
+            "implied",
+            null,
+            [],
+            block.terminator.kind === "return" ? state.owner.span : owner.span,
+          ),
+        );
+    }
     recordInstructionSite();
     loweredBlocks.push(
       Object.freeze({
@@ -749,6 +773,7 @@ export function lowerFunction(
         sourceFunction,
       ),
       ...(sourceName === undefined ? {} : { sourceName }),
+      ...(state.stackDepth === 0 ? {} : { stackBytes: state.stackDepth }),
       ...(byteSelection?.byteAvailabilityProofs === undefined
         ? {}
         : { byteAvailabilityProofs: byteSelection.byteAvailabilityProofs }),

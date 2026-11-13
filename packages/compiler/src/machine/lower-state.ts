@@ -135,6 +135,16 @@ export interface FunctionLoweringState {
   readonly booleanBranchValues: ReadonlySet<string>;
   /** NMI local bindings whose request was omitted before SFA allocation. */
   readonly elidedLocalBindings: ReadonlySet<string>;
+  /** Zero-extending conversion results whose low byte stays in A. */
+  readonly zeroExtensionValues: ReadonlySet<string>;
+  /** NMI local bindings retained on the hardware stack for this handler. */
+  readonly stackRetainedBindings: ReadonlySet<string>;
+  /** Current number of bytes pushed by the handler body. */
+  stackDepth: number;
+  /** Assigned push order for each stack-retained binding. */
+  readonly stackSlots: Map<string, number>;
+  /** Whether X still holds SP for a subsequent stack-relative load. */
+  stackXValid: boolean;
   /** Exact sole adjacent indexed additions selected from that access's unsigned proof. */
   readonly byteOrdinalAdditions?: ReadonlySet<string>;
   /** Proved `constant + byte index` raw-read addresses; absent without size observers. */
@@ -727,6 +737,31 @@ export function appendLoadA(
 ): void {
   if (value.kind === "zero-extended" && offset === 0) {
     appendLoadA(instructions, value.low, 0, state, source);
+    return;
+  }
+  if (value.kind === "stack") {
+    if (offset !== 0) throw loweringFailure("Stack-retained value has only one byte", source);
+    // The retention proof admits only consumers that leave X and SP unchanged,
+    // so one TSX serves every read until the next push or pop.
+    if (!state.stackXValid) {
+      instructions.push(
+        machineInstruction(state.input.profile.cpu, "tsx", "implied", null, [], source),
+      );
+      state.stackXValid = true;
+    }
+    instructions.push(
+      machineInstruction(
+        state.input.profile.cpu,
+        "lda",
+        "absolute-x",
+        Object.freeze({
+          kind: "absolute" as const,
+          value: 0x0100 + state.stackDepth - value.slot + 1,
+        }),
+        [],
+        source,
+      ),
+    );
     return;
   }
   if (value.kind === "register") {

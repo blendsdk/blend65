@@ -30,6 +30,10 @@ export interface NmiRegisterOnlyLocal {
   readonly storeIndex: number;
   /** Load operation index in that block, or null when no load exists. */
   readonly loadIndex: number | null;
+  /** How the elided value is represented at the load site. */
+  readonly representation?: "register" | "constant" | "zero-extended";
+  /** Zero-extending conversion result kept in A, when representation is zero-extended. */
+  readonly conversionResult?: string;
 }
 
 /** One located operation in a source function. */
@@ -42,6 +46,11 @@ interface LocatedOperation {
 /** Return whether one type is the one-byte scalar the rule can keep in A. */
 function byteType(type: SemanticType): boolean {
   return type.kind === "scalar" && type.name === "byte";
+}
+
+/** Return whether one type is the two-byte scalar the zero-extension rule can narrow. */
+function wordType(type: SemanticType): boolean {
+  return type.kind === "scalar" && type.name === "word";
 }
 
 /** Return the definition of one value in a function, if present. */
@@ -240,6 +249,63 @@ export function nmiRegisterOnlyLocals(
       continue;
     }
     if (load === undefined) continue;
+
+    // A single-use word local initialized by a zero-extending byte read and
+    // consumed by a byte-masked `&` needs only the low byte in A. The high byte
+    // is proved zero and never observed.
+    const zeroExtendedRead =
+      initializer !== undefined &&
+      initializer.kind === "convert" &&
+      initializer.conversion === "zero-extend" &&
+      initializer.operand !== undefined &&
+      wordType(store.operation.type) &&
+      wordType(load.operation.type);
+    if (zeroExtendedRead && initializer?.kind === "convert") {
+      const source = definitionOf(fn, initializer.operand)?.operation;
+      const consumer = singleConsumer(fn, load.operation.result);
+      const binaryConsumer = consumer?.operation.kind === "binary" ? consumer.operation : null;
+      const other = binaryConsumer
+        ? binaryConsumer.left === load.operation.result
+          ? binaryConsumer.right
+          : binaryConsumer.right === load.operation.result
+            ? binaryConsumer.left
+            : null
+        : null;
+      const maskDefinition = other === null ? undefined : definitionOf(fn, other)?.operation;
+      const byteMask =
+        maskDefinition?.kind === "constant" &&
+        typeof maskDefinition.value === "bigint" &&
+        maskDefinition.value >= 0n &&
+        maskDefinition.value <= 0xffn;
+      if (
+        source?.kind === "platform" &&
+        byteType(source.type) &&
+        valueUseCount(fn, initializer.result) === 1 &&
+        consumer !== null &&
+        consumer.block.id === load.block.id &&
+        valueUseCount(fn, load.operation.result) === 1 &&
+        binaryConsumer?.operator === "&" &&
+        byteMask &&
+        wordType(binaryConsumer.type) &&
+        consumerGap(load.block, load.index, consumer.index, constants, null)
+      ) {
+        result.set(
+          key,
+          Object.freeze({
+            binding: store.operation.place.root,
+            storeSpan: store.operation.span,
+            loadSpan: load.operation.span,
+            block: store.block.id,
+            storeIndex: store.index,
+            loadIndex: load.index,
+            representation: "zero-extended" as const,
+            conversionResult: initializer.result,
+          }),
+        );
+      }
+      continue;
+    }
+
     if (!byteType(load.operation.type) || !byteType(store.operation.type)) continue;
 
     const valueDefinition = definitionOf(fn, store.operation.value);
@@ -325,4 +391,205 @@ export function nmiRegisterOnlyLocals(
     );
   }
   return result;
+}
+
+/** One NMI local retained in a bounded hardware-stack slot for its whole life. */
+export interface NmiStackRetainedLocal {
+  /** Source binding eliminated from SFA demand. */
+  readonly binding: BindingId;
+  /** Exact initializing store. */
+  readonly storeSpan: SourceSpan;
+  /** Exact loads which read the pushed byte. */
+  readonly loadSpans: readonly SourceSpan[];
+  /** Block containing every access. */
+  readonly block: BlockId;
+  /** Store operation index in that block. */
+  readonly storeIndex: number;
+  /** Load operation indexes in that block. */
+  readonly loadIndexes: readonly number[];
+}
+
+/** Hard upper bound on body-pushed bytes; the cooperative stack reserve is larger. */
+const MAX_STACK_RETAINED_BYTES = 8;
+
+/**
+ * Prove NMI locals whose complete life fits a bounded hardware-stack slot.
+ *
+ * The proof is deliberately narrow: one straight-line interrupt handler with a
+ * void return, no calls, byte locals with one initializer store and one or more
+ * loads, and an initializer already in A (a platform read, a fixed memory read,
+ * or a byte `&`). The value is pushed once and read through `TSX`-relative
+ * addressing; the handler pops every slot before the wrapper restores A/X.
+ * @param fn Exact checked NMI handler body.
+ * @param excluded Global, parameter and returned-local binding keys.
+ * @returns Binding keys mapped to their exact store/load evidence.
+ */
+export function nmiStackRetainedLocals(
+  fn: SemanticFunction,
+  excluded: ReadonlySet<string>,
+): ReadonlyMap<string, NmiStackRetainedLocal> {
+  if (
+    fn.entryKind !== "interrupt" ||
+    fn.blocks.length !== 1 ||
+    fn.blocks[0]!.terminator.kind !== "return" ||
+    fn.result.kind !== "scalar" ||
+    fn.result.name !== "void"
+  )
+    return new Map();
+  const block = fn.blocks[0]!;
+  if (
+    block.operations.some(
+      (operation) => operation.kind === "call" || operation.kind === "indirect-call",
+    )
+  )
+    return new Map();
+  const excludedKeys = new Set([
+    ...excluded,
+    ...fn.parameters.map((parameter) => bindingIdentityKey(parameter.id)),
+  ]);
+  const constants = new Set<string>();
+  for (const operation of block.operations) {
+    if (operation.kind === "constant") constants.add(operation.result);
+    else if (operation.kind === "convert" && constants.has(operation.operand))
+      constants.add(operation.result);
+  }
+  interface Access {
+    readonly stores: {
+      readonly index: number;
+      readonly operation: Extract<SemanticOperation, { kind: "store" }>;
+    }[];
+    readonly loads: {
+      readonly index: number;
+      readonly operation: Extract<SemanticOperation, { kind: "load" }>;
+    }[];
+    rejected: boolean;
+  }
+  const accesses = new Map<string, Access>();
+  for (let index = 0; index < block.operations.length; index += 1) {
+    const operation = block.operations[index]!;
+    for (const use of placeUses(operation)) {
+      const key = bindingIdentityKey(use.place.root);
+      if (excludedKeys.has(key) || use.place.asset !== undefined) continue;
+      const access = accesses.get(key) ?? { stores: [], loads: [], rejected: false };
+      if (use.place.path.length !== 0) access.rejected = true;
+      else if (operation.kind === "store") access.stores.push({ index, operation });
+      else if (operation.kind === "load") access.loads.push({ index, operation });
+      else access.rejected = true;
+      accesses.set(key, access);
+    }
+  }
+  const result = new Map<string, NmiStackRetainedLocal>();
+  const allowed = new Set<SemanticOperation>();
+  /** Admit one operation and every definition it reads. */
+  const admit = (operation: SemanticOperation): void => {
+    if (allowed.has(operation)) return;
+    allowed.add(operation);
+    for (const input of potentialValueInputs(operation)) {
+      const definition = definitionOf(fn, input)?.operation;
+      if (definition !== undefined) admit(definition);
+    }
+  };
+  /** Admit the single downstream consumer of a produced value (for example a store). */
+  const admitConsumer = (operation: SemanticOperation): void => {
+    if (!("result" in operation) || operation.result === null) return;
+    const consumer = singleConsumer(fn, operation.result);
+    if (consumer !== null && !allowed.has(consumer.operation)) {
+      admit(consumer.operation);
+      admitConsumer(consumer.operation);
+    }
+  };
+  for (const [key, access] of accesses) {
+    if (
+      access.rejected ||
+      access.stores.length !== 1 ||
+      access.loads.length === 0 ||
+      access.loads.length > MAX_STACK_RETAINED_BYTES
+    )
+      continue;
+    const store = access.stores[0]!;
+    if (
+      access.loads.some((load) => load.index <= store.index) ||
+      !byteType(store.operation.type) ||
+      access.loads.some((load) => !byteType(load.operation.type))
+    )
+      continue;
+    const valueDefinition = definitionOf(fn, store.operation.value);
+    if (
+      valueDefinition === null ||
+      valueDefinition.block.id !== block.id ||
+      valueDefinition.index >= store.index ||
+      valueUseCount(fn, store.operation.value) !== 1 ||
+      !constantOnlyBetween(block, valueDefinition.index, store.index, constants)
+    )
+      continue;
+    const initializer = valueDefinition.operation;
+    const inA =
+      (initializer.kind === "platform" &&
+        byteType(initializer.type) &&
+        forwardableVolatileByteRead(initializer.capability)) ||
+      (initializer.kind === "memory-read" &&
+        initializer.width === 1 &&
+        constants.has(initializer.address)) ||
+      (initializer.kind === "binary" && initializer.operator === "&" && byteType(initializer.type));
+    if (!inA) continue;
+    if (access.loads.some((load) => valueUseCount(fn, load.operation.result) === 0)) continue;
+    // Only consumers that can materialize a stack byte safely are admitted.
+    // A right-hand arithmetic/bitwise operand would need an addressable mode.
+    const consumers = access.loads.map((load) => singleConsumer(fn, load.operation.result));
+    const safeConsumer = (consumer: LocatedOperation | null, value: string): boolean => {
+      if (consumer === null) return false;
+      const operation = consumer.operation;
+      if (operation.kind === "store") return operation.value === value;
+      if (operation.kind === "memory-write")
+        return operation.value === value && constants.has(operation.address);
+      if (operation.kind !== "binary") return false;
+      if (operation.operator === "==" || operation.operator === "!=")
+        return operation.left === value && zeroConstant(fn, operation.right);
+      return (
+        (operation.operator === "&" || operation.operator === "|" || operation.operator === "^") &&
+        operation.left === value &&
+        (constants.has(operation.right) ||
+          (directByteLoad(fn, operation.right) && valueUseCount(fn, operation.right) === 1))
+      );
+    };
+    if (
+      consumers.some(
+        (consumer, index) => !safeConsumer(consumer, access.loads[index]!.operation.result),
+      )
+    )
+      continue;
+    admit(store.operation);
+    for (const load of access.loads) {
+      admit(load.operation);
+      const consumer = consumers[access.loads.indexOf(load)];
+      if (consumer !== null) {
+        admit(consumer.operation);
+        admitConsumer(consumer.operation);
+      }
+    }
+    result.set(
+      key,
+      Object.freeze({
+        binding: store.operation.place.root,
+        storeSpan: store.operation.span,
+        loadSpans: Object.freeze(access.loads.map((load) => load.operation.span)),
+        block: block.id,
+        storeIndex: store.index,
+        loadIndexes: Object.freeze(access.loads.map((load) => load.index)),
+      }),
+    );
+  }
+  // Any unrelated code in the block could clobber X or SP between a TSX and a
+  // later stack-relative load. The bounded proof admits only constants and the
+  // retained stores/loads, their consumers and their operand definitions.
+  if (
+    block.operations.some(
+      (operation) =>
+        !allowed.has(operation) && operation.kind !== "constant" && operation.kind !== "convert",
+    )
+  )
+    return new Map();
+  // The cap is on the whole handler, not one local: a ninth retained byte is
+  // outside the bounded straight-line proof and must keep its normal rejection.
+  return result.size > MAX_STACK_RETAINED_BYTES ? new Map() : result;
 }

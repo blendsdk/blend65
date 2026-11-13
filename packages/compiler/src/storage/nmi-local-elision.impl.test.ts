@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type { SemanticFunction, SemanticOperation } from "../semantic/operations.js";
-import { nmiLocalElisionKey, nmiRegisterOnlyLocals } from "../semantic/nmi-register-locals.js";
+import {
+  nmiLocalElisionKey,
+  nmiRegisterOnlyLocals,
+  nmiStackRetainedLocals,
+} from "../semantic/nmi-register-locals.js";
 import {
   BOOLEAN,
   BYTE,
@@ -298,5 +302,76 @@ describe("NMI local inventory omission", () => {
       ),
     ).toBe(true);
     expect(inventory.elidedLocalBindings).toBeUndefined();
+  });
+});
+
+/** One byte binary operation. */
+function binary(
+  result: string,
+  operator: "&" | "==" | "!=",
+  left: string,
+  right: string,
+): SemanticOperation {
+  return { kind: "binary", result, operator, left, right, type: BYTE, integer: null, span };
+}
+
+/** One compile-time byte constant. */
+function constant(result: string, value: bigint): SemanticOperation {
+  return { kind: "constant", result, value, type: BYTE, integer: null, span };
+}
+
+/** One fixed-address byte memory read. */
+function peek(result: string, address: string): SemanticOperation {
+  return {
+    kind: "memory-read",
+    result,
+    address,
+    width: 1,
+    byteOrder: "low-first",
+    volatile: true,
+    type: BYTE,
+    integer: null,
+    span,
+  };
+}
+
+describe("bounded stack-retention proof", () => {
+  it("retains a masked local shared by two consumers", () => {
+    const found = nmiStackRetainedLocals(
+      {
+        ...handler([
+          read(),
+          constant("mask", 3n),
+          binary("masked", "&", "read", "mask"),
+          store("masked"),
+          load("first"),
+          store("first", destination),
+          load("second"),
+          store("second", sourceBinding(301)),
+        ]),
+        entryKind: "interrupt",
+      },
+      excluded,
+    );
+    expect([...found.keys()]).toEqual([bindingIdentityKey(local)]);
+    expect(found.get(bindingIdentityKey(local))?.loadIndexes).toEqual([4, 6]);
+  });
+
+  it("rejects a ninth retained byte as a whole-handler bound", () => {
+    const operations: SemanticOperation[] = [];
+    for (let index = 0; index < 9; index += 1) {
+      const root = sourceBinding(500 + index);
+      const address = `address${index}`;
+      operations.push(
+        constant(address, BigInt(0x0400 + index)),
+        peek(`sample${index}`, address),
+        store(`sample${index}`, root),
+        load(`use${index}`, root),
+        store(`use${index}`, destination),
+      );
+    }
+    expect(
+      nmiStackRetainedLocals({ ...handler(operations), entryKind: "interrupt" }, excluded).size,
+    ).toBe(0);
   });
 });

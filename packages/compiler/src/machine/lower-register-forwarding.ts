@@ -1,3 +1,4 @@
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type {
   MemoryWriteOperation,
   SemanticBlock,
@@ -103,6 +104,8 @@ export function selectRegisterForwarding(
   functions: readonly SemanticFunction[] = [],
   noCode?: ReadonlySet<SemanticOperation>,
   addressValues?: ReadonlySet<string>,
+  zeroExtensionValues?: ReadonlySet<string>,
+  stackRetainedLocalKeys?: ReadonlySet<string>,
 ): {
   /** Values whose sole adjacent consumer can use their still-live registers. */
   readonly forwardedRegisterValues: ReadonlySet<string>;
@@ -543,13 +546,19 @@ export function selectRegisterForwarding(
       ) {
         const consumer = block.operations[nextDataOperationIndex(block, index)];
         if (
-          consumer?.kind === "binary" &&
-          ["&", "|", "^"].includes(consumer.operator) &&
-          typeBytes(consumer.type) === 1 &&
-          ((consumer.left === producer.result &&
-            (constantValues.has(consumer.right) || directByteLoadOperand(block, consumer.right))) ||
-            (consumer.right === producer.result &&
-              (constantValues.has(consumer.left) || directByteLoadOperand(block, consumer.left))))
+          (consumer?.kind === "binary" &&
+            ["&", "|", "^"].includes(consumer.operator) &&
+            typeBytes(consumer.type) === 1 &&
+            ((consumer.left === producer.result &&
+              (constantValues.has(consumer.right) ||
+                directByteLoadOperand(block, consumer.right))) ||
+              (consumer.right === producer.result &&
+                (constantValues.has(consumer.left) ||
+                  directByteLoadOperand(block, consumer.left))))) ||
+          (consumer?.kind === "convert" &&
+            consumer.conversion === "zero-extend" &&
+            consumer.operand === producer.result &&
+            zeroExtensionValues?.has(consumer.result) === true)
         ) {
           forwardedRegisterValues.add(producer.result);
         }
@@ -681,6 +690,71 @@ export function selectRegisterForwarding(
             }
           }
         }
+      }
+      // A stack-retained NMI local is loaded into A immediately before its
+      // zero test. The load owns Z, so the same expert branch materializes the
+      // Boolean without a scratch comparison.
+      if (
+        producer.kind === "load" &&
+        producer.place.path.length === 0 &&
+        producer.result !== null &&
+        singleUseValues.has(producer.result) &&
+        stackRetainedLocalKeys?.has(bindingIdentityKey(producer.place.root)) === true
+      ) {
+        const consumerIndex = nextMachineOperationIndex(block, index);
+        const consumer = block.operations[consumerIndex];
+        if (
+          consumer?.kind === "binary" &&
+          ["==", "!="].includes(consumer.operator) &&
+          ((consumer.left === producer.result && zeroValues.has(consumer.right)) ||
+            (consumer.right === producer.result && zeroValues.has(consumer.left))) &&
+          singleUseValues.has(consumer.result)
+        ) {
+          const following = block.operations[nextMachineOperationIndex(block, consumerIndex)];
+          const takesA =
+            (following?.kind === "store" &&
+              typeBytes(following.type) === 1 &&
+              following.value === consumer.result &&
+              following.place.path.length === 0) ||
+            (following?.kind === "memory-write" &&
+              following.width === 1 &&
+              following.value === consumer.result &&
+              constantValues.has(following.address)) ||
+            (following === undefined &&
+              block.terminator.kind === "return" &&
+              block.terminator.value === consumer.result);
+          if (takesA) {
+            booleanBranchValues.add(producer.result);
+            forwardedRegisterValues.add(producer.result);
+            forwardedRegisterValues.add(consumer.result);
+          }
+        }
+      }
+      // A materialized comparison leaves its Boolean in A. When its sole
+      // consumer is the adjacent byte store or return, no semantic home is
+      // needed; the store consumes the flags-derived value directly.
+      if (
+        producer.kind === "binary" &&
+        ["==", "!=", "<", "<=", ">", ">="].includes(producer.operator) &&
+        typeBytes(producer.type) === 1 &&
+        producer.result !== null &&
+        singleUseValues.has(producer.result)
+      ) {
+        const consumer = block.operations[nextMachineOperationIndex(block, index)];
+        if (
+          (consumer?.kind === "store" &&
+            typeBytes(consumer.type) === 1 &&
+            consumer.value === producer.result &&
+            consumer.place.path.length === 0) ||
+          (consumer?.kind === "memory-write" &&
+            consumer.width === 1 &&
+            consumer.value === producer.result &&
+            constantValues.has(consumer.address)) ||
+          (consumer === undefined &&
+            block.terminator.kind === "return" &&
+            block.terminator.value === producer.result)
+        )
+          forwardedRegisterValues.add(producer.result);
       }
       // A sole `binary &` result with any other mask is not shift-normalizable.
       // When its only consumer is a materialized zero test with one A consumer,

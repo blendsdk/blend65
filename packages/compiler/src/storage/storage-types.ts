@@ -117,6 +117,12 @@ export interface StorageInventory {
   readonly results: readonly FunctionResultLocation[];
   /** NMI local bindings whose request was omitted before allocation. */
   readonly elidedLocalBindings?: ReadonlySet<string>;
+  /** Zero-extending conversion results kept in A for an elided word local. */
+  readonly zeroExtensionValues?: ReadonlySet<string>;
+  /** NMI local bindings retained on the hardware stack for this handler. */
+  readonly stackRetainedBindings?: ReadonlySet<string>;
+  /** Source binding keys for those stack-retained locals. */
+  readonly stackRetainedLocalKeys?: ReadonlySet<string>;
 }
 
 /** One inclusive address window available to SFA. */

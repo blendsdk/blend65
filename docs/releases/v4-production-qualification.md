@@ -169,8 +169,8 @@ The 18 rows marked `rd-05`, `rd-06`, or `rd-07` are proved by those closed owner
 gaps. Two expressiveness items are explicitly deferred: `v4-multi-screen-sprite-pointer` (`E10273`,
 `T-27`/issue #140) and the remaining NMI source-read forms in
 `v4-nmi-retained-source-reads` (`E10245`, issue #150; issues #147–#149 delivered the bare zero,
-Boolean masks one/two/four/8+/multi-bit/zero/all-ones, addressable runtime masks, byte-masked words
-and single-use locals).
+Boolean masks one/two/four/8+/multi-bit/zero/all-ones, addressable runtime masks, byte-masked words,
+single-use locals, a shared masked value, five retained samples and the runtime word local).
 
 Optimizer whole-program results at the final candidate:
 
@@ -379,7 +379,7 @@ installed prefix; library and asset examples are covered by the package and root
 | Source-installed raw NMI | Default raw NMI route verified; source installer deferred because the frozen text withholds the unbounded-NMI exception | `V4-TAKEOVER-F2` |
 | Physical timing, analogue SID, real drive, board/chip revisions | `Unknown` | `V4-HW-1` |
 | Multi-screen sprite pointer | Deferred expressiveness item | `T-27` / issue #140 |
-| Remaining NMI retained/staged forms (`E10245`) | Deferred expressiveness/implementation limit; bare zero, Boolean masks one/two/four/8+/multi-bit/zero/all-ones, addressable runtime masks, byte-masked words and single-use locals delivered | issue #150 |
+| Remaining NMI retained/staged forms (`E10245`) | Deferred expressiveness/implementation limit; bare zero, Boolean masks one/two/four/8+/multi-bit/zero/all-ones, addressable runtime masks, byte-masked words, single-use locals, shared masked values, five retained samples and the runtime word local delivered | issue #150 |
 | `size` acquisition 66-byte local floor | Tracked measured gap; issue #145 | RD-08 backlog |
 | Open optimizer/parity debt | Linked measured issues #95, #97, #104, #107–#133, #135, #136, #139 | RD-08 backlog |
 | Unused return/argument staging homes | Minor certified-RAM/debug evidence debt; issue #146 | SFA/debug |
@@ -498,10 +498,11 @@ rewrite the candidate evidence. The delivered forms are recorded in
 [`rd-08-nmi-residual-boolean-masks`](../../codeops/features/blend65-v4/plans/rd-08-nmi-residual-boolean-masks/08-closeout.md)
 and
 [`rd-08-nmi-boolean-mask-materialization`](../../codeops/features/blend65-v4/plans/rd-08-nmi-boolean-mask-materialization/08-closeout.md);
-the remaining retained/staged forms are owned by issue #150. Runtime evidence for the mask-2 forms
-and the #149 mask-3/mask-8 branch witnesses is PAL/6581 `VICE-verified / hardware-unverified`;
-masks 4, the zero/runtime/all-ones forms and the word forms have four-profile assembled-byte
-evidence only. Physical, host and producer rows keep their existing owners.
+the remaining retained/staged forms are owned by issue #150. Runtime evidence for the mask-2 forms,
+the #149 mask-3/mask-8 branch witnesses and the bounded-retention case is PAL/6581
+`VICE-verified / hardware-unverified`; masks 4, the zero/runtime/all-ones forms and the word forms
+have four-profile assembled-byte evidence only. Physical, host and producer rows keep their existing
+owners.
 
 ### 13.1 Delivered behavior
 

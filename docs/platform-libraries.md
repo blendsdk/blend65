@@ -180,6 +180,15 @@ interrupt function onWord(): void {
   timerFinished = (pendingWord & 8) != 0;
 }
 
+// Up to eight bytes in a straight-line handler may also live on the handler's
+// own hardware stack: a shared masked value and five retained samples both
+// build, and the reported hardwareStack includes the pushes.
+interrupt function onRetained(): void {
+  let m: byte = c64.cia2.readAndClearPendingSources() & 3;
+  timerFinished = m != 0;
+  timerFinished = m == 0;
+}
+
 // A single-use local with an adjacent consumer stays in the accumulator.
 interrupt function onLocal(): void {
   let sample: byte = c64.cia2.readAndClearPendingSources();
@@ -188,12 +197,12 @@ interrupt function onLocal(): void {
 ```
 
 The read is still exactly one volatile access. A handler that needs a real private home
-still fails `E10245`. That includes several simultaneously retained samples, a masked
-value shared by several consumers, a 16-bit word mask whose high byte can be nonzero, a
-runtime word local that stages its zero-extension, a computed (non-addressable) mask, and
-a masked value compared to a nonzero constant. The delivered forms use an inline branch, a
-shift chain, the identity, or a constant fold and meet or beat the expert sequence. The
-remaining forms need bounded retention or a wider join and are tracked by
+still fails `E10245`. That includes a 16-bit word mask whose high byte can be nonzero, a
+computed (non-addressable) mask, a masked value compared to a nonzero constant, more than
+eight retained bytes, and a retained local across a control-flow join or call. The delivered
+forms use an inline branch, a shift chain, the identity, a constant fold, or a bounded
+hardware-stack slot and meet or beat the expert sequence. The remaining forms need a wider
+join or a broader retention proof and are tracked by
 [#150](https://github.com/blendsdk/blend65/issues/150), not language restrictions or
 recommended source workarounds.
 

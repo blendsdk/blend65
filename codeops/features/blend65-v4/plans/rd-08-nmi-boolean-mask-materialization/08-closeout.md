@@ -5,6 +5,7 @@
 > **Plan**: [99-execution-plan.md](99-execution-plan.md)
 > **Issue**: [#149](https://github.com/blendsdk/blend65/issues/149)
 > **Residual owner**: [#150](https://github.com/blendsdk/blend65/issues/150)
+> **Retention extension**: [rd-08-nmi-bounded-retention](../rd-08-nmi-bounded-retention/08-closeout.md)
 
 ## Delivered boundary
 
@@ -22,6 +23,11 @@ Issue #149 closes the remaining NMI Boolean **materialization** gap without a pr
 The branch is an inline machine block, not a helper or a storage class. No storage request is
 created, so the NMI private-home proof, the storage model and the specification are untouched.
 
+A follow-on slice added bounded hardware-stack retention for a masked value shared by two consumers,
+five simultaneously retained samples, and the zero-extension staging form of a runtime word local.
+Those bytes live on the handler's own stack and are reported in `hardwareStack`; no private RAM or
+zero-page home is created.
+
 ## Delivered forms
 
 | Form | Result |
@@ -38,6 +44,9 @@ created, so the NMI private-home proof, the storage model and the specification 
 | `place word w; flag = ((w & 8) != 0)` | Builds, branch |
 | `let x: byte = 5; flag = ((x & 8) != 0)` | Builds, constant fold after local elision |
 | `let w: word = 2; flag = ((w & 2) != 0)` | Builds, constant fold after local elision |
+| `let m = read() & 3; a = m != 0; b = m == 0` | Builds, one bounded stack slot |
+| five `peek` samples retained across five `poke`s | Builds, five bounded stack slots |
+| `let w: word = read(); flag = ((w & 2) != 0)` | Builds, zero-extension staging elided |
 | mirrored `&` / mirrored zero test / elided byte local | Builds, same body as the direct form |
 
 The frontend rejects a source-level `poke` of a Boolean with `E10086`; the constant-address byte
@@ -61,6 +70,9 @@ comparison.
 | word mask `2`, `!=` | 13 | 27 | one `LSR`, 13/27 | beats the 16/29 branch |
 | all-ones mask, `!=` | 14 | 27 | load identity, 14/27 | beats the 16/29 branch |
 | constant local, `!=` | 9 | 21 | constant load, 9/21 | meets exactly |
+| shared masked value | 38 | — | one stack slot, expert branches | bounded |
+| five retained samples | 64 | — | five stack slots, five copies | bounded |
+| runtime word local | 13 | 27 | mask-2 shift, no staging | beats the branch |
 
 The all-ones identity removes a redundant `AND #$FF`; the word mask `2` shift removes the branch.
 Every other delivered form is byte-for-byte and cycle-for-cycle the expert sequence, so no generated
@@ -81,25 +93,26 @@ Two sequential VICE 3.10 `x64sc` cases ran on `c64-pal-prg-kernal-6581`:
 | Caller return | `$E147` | `$E147` |
 
 Both use a genuine CIA2 NMI through the installed exclusive route. Timer A sets ICR bit 0, so the
-mask-`3` test is true; the serial bit is clear, so the mask-`8` inverse is true. The zero, runtime,
+mask-`3` test is true; the serial bit is clear, so the mask-`8` inverse is true.
+
+A third sequential case proves the bounded retention: artifact `c022d3bf…`, handler `2631-2725`,
+`a = 1`, `b = 0`, `$0410-$0414 = $11,$22,$33,$44,$55`, caller return `$E147`. The zero, runtime,
 all-ones and word forms have four-profile assembled-byte evidence only. Status remains
-`VICE-verified / hardware-unverified` for the two branch witnesses and assembled-byte-verified for
-the rest.
+`VICE-verified / hardware-unverified` for the branch and retention witnesses and
+assembled-byte-verified for the rest.
 
 ## Restrictions kept
 
 | Form | Result | Owner |
 |---|---|---|
-| Masked value shared by several consumers | `E10245` | [#150](https://github.com/blendsdk/blend65/issues/150) |
-| Several simultaneously retained samples | `E10245` | #150 (route limitation) |
-| 16-bit word mask with a possibly-nonzero high byte | `E10245` | #150 |
-| Runtime word local from a byte read | `E10245` | #150 |
+| 16-bit word mask with a possibly-nonzero high byte | `E10245` | [#150](https://github.com/blendsdk/blend65/issues/150) |
 | Computed/non-addressable runtime mask | `E10245` | #150 |
 | Masked value compared to a nonzero constant | `E10245` | #150 |
+| More than eight retained bytes, a control-flow join, or a calling handler | `E10245` | #150 |
 | Any real private home | `E10245` | Unchanged NMI proof |
 
-`test/rd04/expressiveness-ledger.json` row `v4-nmi-retained-source-reads` records exactly these six
-forms with six probes, owned by #150.
+`test/rd04/expressiveness-ledger.json` row `v4-nmi-retained-source-reads` records exactly these four
+classes with five probes, owned by #150.
 
 ## Deferral-expiry check
 
@@ -123,19 +136,20 @@ producer rows keep their existing owners. `spec/` has no diff.
 
 | Check | Result |
 |---|---|
-| #149 spec oracle | 92/92 pass (17 positives × 4, 6 negatives × 4) |
-| #148 oracle after three authorized retirements | 48/48 pass (five-sample negative kept) |
-| #147 oracle | 40/40 pass |
+| #149 spec oracle | 101/101 pass (materialization + retention + balanced case) |
+| #148 oracle after the authorized retirements | 44/44 pass |
+| #147 oracle after the five-sample retirement | 36/36 pass |
 | Issue #100 oracle | 16/16 pass |
 | Machine impl (mask materialization) | 25/25 pass |
 | Machine impl (shift/branch selection) | 21/21 pass |
-| Storage/elision impl | 11/11 pass |
-| Sequential VICE | 2/2 pass |
+| Storage/elision impl | 13/13 pass |
+| Sequential VICE | 3/3 pass (two materialization + one retention) |
 | Expressiveness-ledger gate | 14/14 pass |
 | Pinned optimizer artifacts | 3/3, 17/17, 12/12 pass |
 | Foundation / profile pipeline | 12/12, 10/10 pass |
 | NMI/CIA2 route slice | 32 files / 778 tests pass |
-| Complete compiler suite | 224 files / 3,780 passed / 2 skipped, zero failures |
+| RD-05 admission | 36/36 pass |
+| Complete compiler suite | 224 files / 3,782 passed / 2 skipped, zero failures |
 | `yarn build` / `yarn typecheck` | 4/4 and 7/7 Turbo tasks |
 | `spec/` | Clean; no file changed |
 

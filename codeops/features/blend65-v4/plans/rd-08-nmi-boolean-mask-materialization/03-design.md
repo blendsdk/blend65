@@ -175,14 +175,14 @@ known in full; a runtime word local is not.
 
 | Case | Result | Reason |
 |---|---|---|
-| Masked value shared by several consumers | `E10245` | The byte is live across consumers and needs bounded storage |
-| Several simultaneously retained samples | `E10245` | Same bounded-retention gap across volatile reads |
 | 16-bit word mask with a possibly-nonzero high byte | `E10245` | Needs two masked bytes plus a join/temporary |
-| Runtime word local from a byte read | `E10245` | The zero-extension conversion stages a private byte |
 | Computed/non-addressable runtime mask | `E10245` | The mask needs a temporary, so the read cannot stay in A |
 | Masked value compared to a nonzero constant | `E10245` | Only the zero-test consumer is selected |
+| More than eight retained bytes, a join or a call | `E10245` | Outside the bounded straight-line stack proof |
 
-All six are re-owned by the follow-up issue. None is a language restriction.
+The shared masked value, five retained samples and runtime word local were delivered by the
+[bounded-retention plan](../rd-08-nmi-bounded-retention/00-index.md). The remaining four classes are
+re-owned by the follow-up issue. None is a language restriction.
 
 ## 8. Blast radius
 

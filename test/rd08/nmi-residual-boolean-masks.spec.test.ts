@@ -1,7 +1,4 @@
-import { access } from "node:fs/promises";
-import { join } from "node:path";
-import { buildProject, checkProject } from "@blend65/compiler";
-import type { BuildResult, CheckResult } from "@blend65/compiler";
+import { buildProject } from "@blend65/compiler";
 import { describe, expect, it } from "vitest";
 import {
   profileRecord,
@@ -24,9 +21,6 @@ const FLAG_ADDRESS = 0xc000;
 const CIA2_INTERRUPT_CONTROL = 0xdd0d;
 /** The installed exclusive NMI handler under test. */
 const HANDLER = "src/game.blend::Game.handler";
-/** The frozen rejection text for an execution path with a private-storage home. */
-const NMI_PRIVATE_STORAGE_MESSAGE =
-  /^Execution path '[^']+' has unbounded private-storage overlap, disallowed unbounded stack use, or unproved generated reentrancy$/;
 
 type Artifacts = Awaited<ReturnType<typeof readProfileArtifacts>>;
 
@@ -435,49 +429,4 @@ describe.each(PROFILES)("delivered NMI Boolean values on %s", (profile) => {
     },
     60_000,
   );
-});
-
-/** Five simultaneously live samples cannot all stay in the accumulator. */
-const REJECTED_FIVE_SAMPLES = `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-interrupt function handler(): void {
-    let a: byte = peek($0400); let b: byte = peek($0401);
-    let c: byte = peek($0402); let d: byte = peek($0403);
-    let e: byte = peek($0404);
-    poke($0410, a); poke($0411, b); poke($0412, c);
-    poke($0413, d); poke($0414, e);
-}
-function main(): void { setNMIExclusive(&handler); restoreNMI(); }`;
-
-/** Both services must reject with the canonical diagnostic and publish nothing. */
-async function expectRejected(source: string, profile: string): Promise<void> {
-  await withProfileProject(source, profile, async (project, root) => {
-    const results: readonly (BuildResult | CheckResult)[] = [
-      await checkProject({ project }),
-      await buildProject({ project, optimization: "none" }),
-    ];
-    const handlerStart = Buffer.byteLength(
-      source.slice(0, source.indexOf("interrupt function handler")),
-    );
-    for (const result of results) {
-      expect(result.kind).toBe("failure");
-      expect(result).not.toHaveProperty("generation");
-      const errors = result.diagnostics.filter((diagnostic) => diagnostic.severity === "error");
-      expect(errors.map(({ code }) => code)).toEqual(["E10245"]);
-      expect(errors[0]!.message).toMatch(NMI_PRIVATE_STORAGE_MESSAGE);
-      const span = errors[0]!.primarySpan;
-      expect(span?.sourceId).toBe("src/game.blend");
-      expect(span!.start).toBeGreaterThanOrEqual(handlerStart);
-      expect(span!.end).toBeLessThanOrEqual(Buffer.byteLength(source));
-      expect(span!.start).toBeLessThan(span!.end);
-    }
-    await expect(access(join(root, "out"))).rejects.toMatchObject({ code: "ENOENT" });
-  });
-}
-
-/** Mask-independent persistent private homes stay rejected. */
-describe.each(PROFILES)("residual NMI private-home rejection on %s", (profile) => {
-  it("should reject five simultaneously retained sampled bytes", async () => {
-    await expectRejected(REJECTED_FIVE_SAMPLES, profile);
-  }, 60_000);
 });

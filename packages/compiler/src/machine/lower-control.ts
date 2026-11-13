@@ -65,6 +65,14 @@ export type LoweredValue =
       readonly signed: boolean;
     }
   | {
+      /** One byte pushed on the hardware stack for the rest of this handler. */
+      readonly kind: "stack";
+      /** One-based push order; the first pushed byte is the deepest. */
+      readonly slot: number;
+      readonly bytes: 1;
+      readonly signed?: boolean;
+    }
+  | {
       /**
        * A proved `constantBase + unsignedByteIndex` address, retained instead of
        * being computed into a temporary word.
@@ -304,6 +312,8 @@ export function operandForValue(value: LoweredValue, offset = 0): MachineOperand
       ? operandForValue(value.low, 0)
       : Object.freeze({ kind: "immediate", value: 0 });
   }
+  if (value.kind === "stack")
+    throw new Error("Stack-retained value is loadable only through appendLoadA");
   if (value.kind === "constant") {
     return Object.freeze({ kind: "immediate", value: (value.value >> (offset * 8)) & 0xff });
   }
@@ -356,6 +366,8 @@ export function modeForValue(
   if (value.kind === "zero-extended") {
     return offset === 0 ? modeForValue(value.low, 0) : "immediate";
   }
+  if (value.kind === "stack")
+    throw new Error("Stack-retained value has no addressable machine mode");
   if (value.kind === "constant") return "immediate";
   if (value.kind === "storage") return "storage";
   if (value.kind === "label")

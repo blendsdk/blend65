@@ -533,18 +533,6 @@ describe.each(PROFILES)("residual register-only NMI source reads on %s", (profil
   }, 60_000);
 });
 
-/** Five simultaneously live samples cannot all stay in the accumulator. */
-const FIVE_RETAINED_SAMPLES = `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-interrupt function handler(): void {
-    let a: byte = peek($0400); let b: byte = peek($0401);
-    let c: byte = peek($0402); let d: byte = peek($0403);
-    let e: byte = peek($0404);
-    poke($0410, a); poke($0411, b); poke($0412, c);
-    poke($0413, d); poke($0414, e);
-}
-function main(): void { setNMIExclusive(&handler); restoreNMI(); }`;
-
 /** Reading the local through its borrowed address needs a real home that NMI may not own. */
 const ADDRESS_TAKEN_LOCAL = program(
   "place(at: $C000) let sampleOut: byte = 0;",
@@ -578,12 +566,8 @@ async function expectRejected(source: string, profile: string, primary: string):
   });
 }
 
-/** Real private homes and unsupported operand shapes stay rejected on every profile. */
+/** Real private homes stay rejected on every profile. */
 describe.each(PROFILES)("residual NMI private-home rejection on %s", (profile) => {
-  it("should reject five simultaneously retained sampled bytes", async () => {
-    await expectRejected(FIVE_RETAINED_SAMPLES, profile, "peek($0404)");
-  }, 60_000);
-
   it("should reject a local read through the borrowed address peek(&sample)", async () => {
     await expectRejected(ADDRESS_TAKEN_LOCAL, profile, "peek(&sample)");
   }, 60_000);

@@ -92,8 +92,9 @@ export function createC64NmiEntries(
   );
   const stackDemands = entries.flatMap((entry, index) => {
     if (entry.contexts.length === 0) return [];
-    const entryStackBytes = wrappers[index]!.nmiEntryStackBytes;
-    if (entryStackBytes === undefined) throw new Error("Selected NMI entry has no stack cost");
+    const wrapperStackBytes = wrappers[index]!.nmiEntryStackBytes;
+    if (wrapperStackBytes === undefined) throw new Error("Selected NMI entry has no stack cost");
+    const entryStackBytes = wrapperStackBytes + (entry.body.stackBytes ?? 0);
     return [
       Object.freeze({
         id: entry.id,

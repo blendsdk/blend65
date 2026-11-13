@@ -87,10 +87,11 @@ an addressable runtime mask, the all-ones mask, and a byte-masked word (mask `1`
 shift, other byte masks branch) build with zero private storage on all four cooperative profiles.
 The emitted handler is the expert branch, identity, shift or constant load.
 
-A masked value shared by several consumers, several simultaneously retained samples, a 16-bit word
-mask, a runtime word local that needs a zero-extension staging home, a computed runtime mask, and a
-masked value compared to a nonzero constant still fail `E10245` and are recorded with a live
-follow-up owner (#150).
+The follow-on [bounded-retention plan](../rd-08-nmi-bounded-retention/00-index.md) now delivers the
+shared masked value, five retained samples and the runtime word local. A 16-bit word mask, a computed
+runtime mask, a masked value compared to a nonzero constant, more than eight retained bytes, and a
+retained local across a join or call still fail `E10245` and are recorded with a live follow-up
+owner (#150).
 
 ## Exit Boundary
 

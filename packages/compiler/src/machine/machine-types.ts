@@ -541,6 +541,8 @@ export interface AggregateAddressCache {
 
 /** One reachable source/startup function in structured machine form. */
 export interface MachineFunction {
+  /** Maximum bytes the body itself pushes on the hardware stack. */
+  readonly stackBytes?: number;
   /** Actual full-object capture demands, not a proof that their copies or consumers are safe. */
   readonly observerCaptures?: readonly {
     /** Exact original evaluated aggregate operation. */
@@ -672,6 +674,12 @@ export interface MachineLoweringInput {
   readonly logicalStorage?: StorageInventory;
   /** NMI local bindings omitted before allocation; lowering only realises this exact set. */
   readonly elidedLocalBindings?: ReadonlySet<string>;
+  /** Zero-extending conversion results whose low byte stays in A. */
+  readonly zeroExtensionValues?: ReadonlySet<string>;
+  /** NMI local bindings retained on the hardware stack for this handler. */
+  readonly stackRetainedBindings?: ReadonlySet<string>;
+  /** Source binding keys for those stack-retained locals. */
+  readonly stackRetainedLocalKeys?: ReadonlySet<string>;
   /** Size mode may place ordinary function homes in spare zero-page bytes. */
   readonly preferZeroPage?: boolean;
   /** Exact selected target facts. */

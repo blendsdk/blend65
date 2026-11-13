@@ -97,6 +97,26 @@ export function lowerConversion(
       state,
     );
   }
+  if (
+    operation.conversion === "zero-extend" &&
+    state.zeroExtensionValues.has(operation.result) &&
+    operand.kind === "register" &&
+    operand.registers === "a" &&
+    operand.bytes === 1
+  ) {
+    // A single-use word local consumed by a byte mask observes only the low
+    // byte. Keep it in A instead of staging the conversion input in RAM.
+    state.values.set(
+      operation.result,
+      Object.freeze({
+        kind: "zero-extended" as const,
+        low: operand,
+        bytes: 2 as const,
+        signed: false,
+      }),
+    );
+    return Object.freeze([]);
+  }
   const instructions: MachineInstruction[] = [];
   let low = operand;
   if (low.kind === "register") {

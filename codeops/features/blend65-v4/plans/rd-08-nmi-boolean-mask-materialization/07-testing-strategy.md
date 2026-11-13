@@ -118,8 +118,9 @@ and caller return. A missing or unidentifiable runtime must fail the case, never
 
 ## Regression evidence
 
-- The #148 oracle passes 48/48 after the three authorized mask-8/mask-3/runtime negative
-  retirements (five samples kept); the #147 oracle 40/40 and the #100 oracle 16/16.
+- The #148 oracle passes 44/44 after the authorized mask-8/mask-3/runtime/five-sample
+  retirements; the #147 oracle 36/36 (five-sample retired, borrowed local kept) and the #100 oracle
+  16/16.
 - `test/rd04/expressiveness-ledger.spec.test.ts` passes with the narrowed row.
 - `test/rd05/nmi-route-*.spec.test.ts` and `test/rd05/cia2-*.spec.test.ts` stay green.
 - Pinned optimizer artifacts (`test/rd08/optimizer-*`) stay green.

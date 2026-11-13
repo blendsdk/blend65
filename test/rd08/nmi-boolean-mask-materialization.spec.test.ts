@@ -20,6 +20,8 @@ const PROFILES = [
 
 /** The placed Boolean flag stays at its declared address. */
 const FLAG_ADDRESS = 0xc000;
+/** The second placed Boolean of the shared-retention form. */
+const SECOND_ADDRESS = 0xc001;
 /** A placed runtime mask is addressed directly by the handler. */
 const MASK_ADDRESS = 0xc001;
 /** A placed word value occupies two bytes at its declared address. */
@@ -118,10 +120,10 @@ const FLAG_AND_WORD: readonly PlacedSymbol[] = [
  * the zero-mask fold, an all-ones mask that leaves the value unchanged, an addressable
  * runtime mask in both operand orders, a byte-masked word, a bit-zero-masked word, a
  * single-use constant word local, a single-use constant byte local, a single-use
- * sampled byte local, and the mirrored comparison orders. Each materialization is the
- * expert inline branch, a folded constant load, a direct store of the already-canonical
- * masked byte, or — for a zero-extended word masked with the constant two — a single
- * shift, with no private storage.
+ * sampled byte local, a word local widened from a device byte read, and the mirrored
+ * comparison orders. Each materialization is the expert inline branch, a folded constant
+ * load, a direct store of the already-canonical masked byte, or — for a value masked with
+ * the constant two — a single shift, with no private storage.
  */
 const POSITIVE_FORMS: readonly PositiveForm[] = [
   {
@@ -313,6 +315,24 @@ place(at: $C100) let w: word = 2;`,
     inverse: false,
     constant: null,
     handlerBytes: 16,
+    placed: FLAG_ONLY,
+  },
+  {
+    // The byte read is widened in place: the low byte stays in A, the high byte is
+    // proved zero, and the byte mask observes that low byte only, so no staging home
+    // for the converted word is created.
+    title: "a Boolean from a runtime word local",
+    declaration: FLAG_DECLARATION,
+    body: `    let w: word = readAndClearPendingSources();
+    finished = ((w & 2) != 0);`,
+    mask: 0x02,
+    readsDevice: true,
+    wordAddress: null,
+    branch: false,
+    shift: true,
+    inverse: false,
+    constant: null,
+    handlerBytes: 13,
     placed: FLAG_ONLY,
   },
   {
@@ -669,39 +689,325 @@ describe.each(PROFILES)("materialized NMI Boolean masks on %s", (profile) => {
   );
 });
 
-/** A masked value shared by two consumers needs storage live across both. */
+/** The shared form places the two Booleans it writes and nothing else. */
+const FLAG_AND_SECOND: readonly PlacedSymbol[] = [
+  { address: FLAG_ADDRESS, size: 1 },
+  { address: SECOND_ADDRESS, size: 1 },
+];
+
+/** The five sampled bytes, read once each in source order. */
+const SAMPLE_SOURCES: readonly number[] = [0x0400, 0x0401, 0x0402, 0x0403, 0x0404];
+/** The five copy destinations, written once each in source order. */
+const SAMPLE_TARGETS: readonly number[] = [0x0410, 0x0411, 0x0412, 0x0413, 0x0414];
+
+/**
+ * The masked value is shared by two consumers, so one byte is pushed once and both
+ * comparisons read it back from the same stack slot.
+ */
 const SHARED_MASKED_VALUE = program(
   `${FLAG_DECLARATION}
 place(at: $C001) let second: boolean = false;`,
-  `    let m: byte = readAndClearPendingSources() & 2;
+  `    let m: byte = readAndClearPendingSources() & 3;
     finished = m != 0;
     second = m == 0;`,
 );
 
-/** Five simultaneously live samples cannot all stay in the accumulator. */
-const FIVE_SAMPLES = `module Game;
+/** Five sampled bytes stay live until five later copies have consumed them. */
+const FIVE_RETAINED_SAMPLES = `module Game;
 import { setNMIExclusive, restoreNMI } from c64.system;
 interrupt function handler(): void {
-    let a: byte = peek($0400); let b: byte = peek($0401);
-    let c: byte = peek($0402); let d: byte = peek($0403);
+    let a: byte = peek($0400);
+    let b: byte = peek($0401);
+    let c: byte = peek($0402);
+    let d: byte = peek($0403);
     let e: byte = peek($0404);
-    poke($0410, a); poke($0411, b); poke($0412, c);
-    poke($0413, d); poke($0414, e);
+    poke($0410, a);
+    poke($0411, b);
+    poke($0412, c);
+    poke($0413, d);
+    poke($0414, e);
 }
-function main(): void { setNMIExclusive(&handler); restoreNMI(); }`;
+function main(): void {
+    setNMIExclusive(&handler);
+    restoreNMI();
+}`;
+
+/** Narrow an untyped build result at the test boundary. */
+function isBuildResult(value: unknown): value is BuildResult {
+  if (value === null || typeof value !== "object") return false;
+  const kind = Reflect.get(value, "kind");
+  return kind === "success" || kind === "failure";
+}
+
+/**
+ * Call the public build service with an explicit optimization mode. The static option
+ * type does not yet name every runtime mode, so the mode travels through the same
+ * runtime allowlist that the command line uses.
+ */
+async function buildWithMode(project: string, optimization: string): Promise<BuildResult> {
+  const value: unknown = await Reflect.apply(buildProject, undefined, [{ project, optimization }]);
+  if (!isBuildResult(value)) throw new TypeError("Expected a complete build result");
+  return value;
+}
+
+/**
+ * Build one retention witness and prove the storage boundary: the handler owns no
+ * private data, the zero-page and scratch resources stay empty, and the reported
+ * hardware-stack peak is the real one. Returns the decoded handler for shape checks.
+ */
+async function buildRetained(
+  source: string,
+  profile: string,
+  hardwareStack: number,
+  placed: readonly PlacedSymbol[],
+  optimization: string = "none",
+): Promise<HandlerInstruction[]> {
+  return withProfileProject(source, profile, async (project) => {
+    const built = await buildWithMode(project, optimization);
+    expect(built.kind, JSON.stringify(built.diagnostics)).toBe("success");
+    if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
+    const artifacts = await readProfileArtifacts(built);
+    expect(profileRecords(artifacts.build.artifacts).some(({ kind }) => kind === "primary")).toBe(
+      true,
+    );
+    expect(artifacts.memory.acmeReconciled).toBe(true);
+    const totals = profileRecord(artifacts.costs.totals);
+    expect(resource(totals, "zeroPage")).toBe(0);
+    expect(resource(totals, "scratch")).toBe(0);
+    expect(resource(totals, "hardwareStack")).toBe(hardwareStack);
+    expectPlacedGlobals(artifacts, placed);
+    expectNoHandlerPrivateHome(artifacts);
+    return handlerInstructions(artifacts);
+  });
+}
+
+/** Count the handler instructions that use one opcode. */
+function opcodeCount(instructions: readonly HandlerInstruction[], opcode: number): number {
+  return instructions.filter((instruction) => instruction.opcode === opcode).length;
+}
+
+/** Resolve the published instruction a conditional branch reaches. */
+function branchLanding(
+  instructions: readonly HandlerInstruction[],
+  branch: HandlerInstruction,
+): HandlerInstruction {
+  const target = branchTarget(branch);
+  const landing = instructions.find(({ start }) => start === target);
+  if (landing === undefined) throw new Error("Branch target is not a published instruction");
+  return landing;
+}
+
+/**
+ * Every absolute memory access in the handler, in emission order. Conditional
+ * branches carry an eight-bit displacement, so they are not memory accesses.
+ */
+function absoluteAccesses(instructions: readonly HandlerInstruction[]): [number, number][] {
+  const accesses: [number, number][] = [];
+  for (const instruction of instructions) {
+    if (instruction.opcode === 0xf0) continue;
+    if (instruction.operand !== null && instruction.operand > 0xff)
+      accesses.push([instruction.opcode, instruction.operand]);
+  }
+  return accesses;
+}
+
+/**
+ * The wrapper saves A and X, the body pops one byte per retained slot, and the
+ * wrapper then restores X with TAX and A with the final PLA before returning.
+ */
+function expectRestoreTail(instructions: readonly HandlerInstruction[], bodyPops: number): void {
+  const tail = [...Array<number>(bodyPops + 1).fill(0x68), 0xaa, 0x68, 0x40];
+  expect(instructions.slice(-tail.length).map(({ opcode }) => opcode)).toEqual(tail);
+}
+
+/**
+ * The masked byte is pushed once and both comparisons load it back from the same
+ * stack slot, so the device is read once, the mask is applied once, and no byte is
+ * kept in RAM. The `!=` arm stores one; the `==` arm inverts before storing. The
+ * X-register save exists because the body uses TSX, and that one stack-pointer read
+ * serves both slot loads.
+ */
+function expectSharedMaskedValueBody(instructions: readonly HandlerInstruction[]): void {
+  expect(opcodeCount(instructions, 0x48)).toBe(3);
+  expect(opcodeCount(instructions, 0x68)).toBe(3);
+  expect(opcodeCount(instructions, 0xba)).toBe(1);
+  expect(opcodeCount(instructions, 0xaa)).toBe(1);
+  expect(opcodeCount(instructions, 0xd8)).toBe(1);
+  expect(opcodeCount(instructions, 0x49)).toBe(1);
+
+  // One consuming device read and exactly one mask operation with the constant three.
+  const deviceReads = instructions.filter(
+    ({ opcode, operand }) => opcode === 0xad && operand === CIA2_INTERRUPT_CONTROL,
+  );
+  expect(deviceReads).toHaveLength(1);
+  const masks = instructions.filter(({ opcode }) => opcode === 0x29 || opcode === 0x2d);
+  expect(masks).toHaveLength(1);
+  expect(masks[0]!.operand).toBe(0x03);
+
+  // The masked value is pushed immediately after the mask; the wrapper's two saves
+  // happened before the device read.
+  const maskIndex = instructions.indexOf(masks[0]!);
+  expect(instructions[maskIndex + 1]!.opcode).toBe(0x48);
+  const pushIndexes = instructions
+    .map((instruction, index) => ({ instruction, index }))
+    .filter(({ instruction }) => instruction.opcode === 0x48)
+    .map(({ index }) => index);
+  expect(pushIndexes.filter((index) => index < maskIndex)).toHaveLength(2);
+
+  // Two loads of the one retained slot, each immediately followed by its zero branch.
+  // The stack pointer is read into X once, immediately before the first load, and the
+  // second load reuses that X: an expert would not re-read SP between two loads.
+  const branches = instructions.filter(({ opcode }) => opcode === 0xf0);
+  expect(branches).toHaveLength(2);
+  expect(instructions.filter(({ opcode }) => BRANCH_OPCODES.has(opcode))).toHaveLength(2);
+  for (const branch of branches) {
+    const index = instructions.indexOf(branch);
+    expect([instructions[index - 1]!.opcode, instructions[index - 1]!.operand]).toEqual([
+      0xbd, 0x0101,
+    ]);
+  }
+  const slotLoads = instructions.filter(({ opcode }) => opcode === 0xbd);
+  expect(slotLoads.map(({ operand }) => operand)).toEqual([0x0101, 0x0101]);
+  const stackPointerRead = instructions.findIndex(({ opcode }) => opcode === 0xba);
+  expect(stackPointerRead + 1).toBe(instructions.indexOf(slotLoads[0]!));
+
+  // The `!=` branch skips only the store of one; the `==` branch lands on the
+  // inversion that turns the loaded one into zero.
+  expect([
+    branchLanding(instructions, branches[0]!).opcode,
+    branchLanding(instructions, branches[0]!).operand,
+  ]).toEqual([0x8d, FLAG_ADDRESS]);
+  expect([
+    branchLanding(instructions, branches[1]!).opcode,
+    branchLanding(instructions, branches[1]!).operand,
+  ]).toEqual([0x49, 0x01]);
+  expect(
+    instructions.filter(({ opcode, operand }) => opcode === 0xa9 && operand === 0x01),
+  ).toHaveLength(2);
+
+  // The inverted value is stored straight away, with no further arithmetic.
+  const inversion = instructions.findIndex(
+    ({ opcode, operand }) => opcode === 0x49 && operand === 0x01,
+  );
+  expect([instructions[inversion + 1]!.opcode, instructions[inversion + 1]!.operand]).toEqual([
+    0x8d,
+    SECOND_ADDRESS,
+  ]);
+
+  // Exactly the two placed Booleans are stored, in source order.
+  const stores = instructions.filter(({ opcode }) => STORE_OPCODES.has(opcode));
+  expect(stores.map(({ opcode, operand }) => [opcode, operand])).toEqual([
+    [0x8d, FLAG_ADDRESS],
+    [0x8d, SECOND_ADDRESS],
+  ]);
+
+  // One device read, two slot reads of the same offset, and the two stores: no other
+  // RAM address is touched, so the retained byte has no private home.
+  expect(absoluteAccesses(instructions)).toEqual([
+    [0xad, CIA2_INTERRUPT_CONTROL],
+    [0xbd, 0x0101],
+    [0x8d, FLAG_ADDRESS],
+    [0xbd, 0x0101],
+    [0x8d, SECOND_ADDRESS],
+  ]);
+  expect(instructions.filter(({ opcode }) => COMPARE_OPCODES.has(opcode))).toEqual([]);
+  expect(instructions.filter(({ opcode }) => ADC_OPCODES.has(opcode))).toEqual([]);
+
+  expectRestoreTail(instructions, 1);
+  expect(instructions.at(-1)!.opcode).toBe(0x40);
+}
+
+/**
+ * Five sampled bytes are pushed once each and read back from five distinct stack
+ * slots, deepest first, so every copy reads its own sample and no sample is kept in
+ * RAM. One stack-pointer read turns SP into X for the whole run of slot reads. The
+ * handler contains no comparison, hence no branch.
+ */
+function expectFiveSampleBody(instructions: readonly HandlerInstruction[]): void {
+  expect(opcodeCount(instructions, 0x48)).toBe(7);
+  expect(opcodeCount(instructions, 0x68)).toBe(7);
+  expect(opcodeCount(instructions, 0xba)).toBe(1);
+  expect(opcodeCount(instructions, 0xaa)).toBe(1);
+  expect(opcodeCount(instructions, 0xd8)).toBe(1);
+  expect(instructions.filter(({ opcode }) => BRANCH_OPCODES.has(opcode))).toEqual([]);
+
+  // Each sample is read once, in source order.
+  const sampleReads = instructions.filter(
+    ({ opcode, operand }) =>
+      opcode === 0xad && operand !== null && SAMPLE_SOURCES.includes(operand),
+  );
+  expect(sampleReads.map(({ operand }) => operand)).toEqual([...SAMPLE_SOURCES]);
+
+  // Five slot reads with five distinct offsets: the first pushed sample is deepest.
+  // A single stack-pointer read immediately before the first read establishes X, and
+  // every following read reuses it instead of re-reading SP.
+  const slotLoads = instructions.filter(({ opcode }) => opcode === 0xbd);
+  expect(slotLoads.map(({ operand }) => operand)).toEqual([0x0105, 0x0104, 0x0103, 0x0102, 0x0101]);
+  const stackPointerRead = instructions.findIndex(({ opcode }) => opcode === 0xba);
+  expect(stackPointerRead + 1).toBe(instructions.indexOf(slotLoads[0]!));
+
+  // Each slot read feeds one copy store, in the same order.
+  const stores = instructions.filter(({ opcode }) => STORE_OPCODES.has(opcode));
+  expect(stores.map(({ opcode, operand }) => [opcode, operand])).toEqual(
+    SAMPLE_TARGETS.map((target) => [0x8d, target]),
+  );
+
+  // All five pushes precede the first slot read: the samples are retained before use.
+  const lastPush = instructions.reduce(
+    (last, instruction, index) => (instruction.opcode === 0x48 ? index : last),
+    -1,
+  );
+  expect(lastPush).toBeLessThan(instructions.indexOf(slotLoads[0]!));
+
+  expect(absoluteAccesses(instructions)).toEqual([
+    ...SAMPLE_SOURCES.map((address): [number, number] => [0xad, address]),
+    ...SAMPLE_TARGETS.flatMap((target, index): [number, number][] => [
+      [0xbd, 0x0105 - index],
+      [0x8d, target],
+    ]),
+  ]);
+
+  expectRestoreTail(instructions, 5);
+  expect(instructions.at(-1)!.opcode).toBe(0x40);
+}
+
+describe.each(PROFILES)("bounded NMI stack retention on %s", (profile) => {
+  it("should retain one masked byte shared by two consumers", async () => {
+    const instructions = await buildRetained(SHARED_MASKED_VALUE, profile, 6, FLAG_AND_SECOND);
+    expectSharedMaskedValueBody(instructions);
+  }, 60_000);
+
+  it("should retain five sampled bytes across five later copies", async () => {
+    const instructions = await buildRetained(FIVE_RETAINED_SAMPLES, profile, 10, []);
+    expectFiveSampleBody(instructions);
+  }, 60_000);
+});
+
+/** One cooperative profile is enough to cover the default optimization mode. */
+const DEFAULT_MODE_PROFILE = "c64-pal-prg-kernal-6581";
+
+/**
+ * The default optimization mode must not need private storage and must keep the
+ * expert retention shape: one stack-pointer read reused by the shared slot loads.
+ */
+describe(`bounded NMI stack retention in the default mode on ${DEFAULT_MODE_PROFILE}`, () => {
+  it("should retain one masked byte shared by two consumers", async () => {
+    const instructions = await buildRetained(
+      SHARED_MASKED_VALUE,
+      DEFAULT_MODE_PROFILE,
+      6,
+      FLAG_AND_SECOND,
+      "balanced",
+    );
+    expectSharedMaskedValueBody(instructions);
+  }, 60_000);
+});
 
 /** A word mask whose high byte can be nonzero needs two masked bytes and a join. */
 const WIDE_WORD_MASK = program(
   `${FLAG_DECLARATION}
 place(at: $C100) let w: word = 2;`,
   "    finished = ((w & 258) != 0);",
-);
-
-/** A runtime word local needs a zero-extension staging home. */
-const RUNTIME_WORD_LOCAL = program(
-  FLAG_DECLARATION,
-  `    let w: word = readAndClearPendingSources();
-    finished = ((w & 2) != 0);`,
 );
 
 /** A mask computed at run time has no address the handler can read directly. */
@@ -716,6 +1022,47 @@ place(at: $C001) let maskValue: byte = 1;`,
 const MASKED_VALUE_AGAINST_EIGHT = program(
   FLAG_DECLARATION,
   "    finished = ((readAndClearPendingSources() & 8) == 8);",
+);
+
+/** Nine retained bytes exceed the bounded proof, which admits at most eight. */
+const NINE_RETAINED_SAMPLES = `module Game;
+import { setNMIExclusive, restoreNMI } from c64.system;
+interrupt function handler(): void {
+    let a0: byte = peek($0400);
+    let a1: byte = peek($0401);
+    let a2: byte = peek($0402);
+    let a3: byte = peek($0403);
+    let a4: byte = peek($0404);
+    let a5: byte = peek($0405);
+    let a6: byte = peek($0406);
+    let a7: byte = peek($0407);
+    let a8: byte = peek($0408);
+    poke($0410, a0);
+    poke($0411, a1);
+    poke($0412, a2);
+    poke($0413, a3);
+    poke($0414, a4);
+    poke($0415, a5);
+    poke($0416, a6);
+    poke($0417, a7);
+    poke($0418, a8);
+}
+function main(): void {
+    setNMIExclusive(&handler);
+    restoreNMI();
+}`;
+
+/**
+ * A branch splits the handler into several blocks, so the sampled byte would have to
+ * survive the join in memory. The retention proof covers one straight-line block only.
+ */
+const SAMPLE_ACROSS_BRANCH = program(
+  FLAG_DECLARATION,
+  `    let sample: byte = readAndClearPendingSources();
+    if ((sample & 1) != 0) {
+        finished = true;
+    }
+    finished = sample != 0;`,
 );
 
 /** Both services must reject with the canonical diagnostic and publish nothing. */
@@ -744,22 +1091,10 @@ async function expectRejected(source: string, profile: string): Promise<void> {
   });
 }
 
-/** Retention and width limits still need private storage that the route does not admit. */
+/** Width, mask-address, comparison and proof-scope limits still need private storage. */
 describe.each(PROFILES)("residual NMI mask rejection on %s", (profile) => {
-  it("should reject a masked value shared by two consumers", async () => {
-    await expectRejected(SHARED_MASKED_VALUE, profile);
-  }, 60_000);
-
-  it("should reject five simultaneously retained sampled bytes", async () => {
-    await expectRejected(FIVE_SAMPLES, profile);
-  }, 60_000);
-
   it("should reject a word mask with a possibly-nonzero high byte", async () => {
     await expectRejected(WIDE_WORD_MASK, profile);
-  }, 60_000);
-
-  it("should reject a runtime word local that needs staging", async () => {
-    await expectRejected(RUNTIME_WORD_LOCAL, profile);
   }, 60_000);
 
   it("should reject a runtime-computed mask that has no address", async () => {
@@ -768,5 +1103,13 @@ describe.each(PROFILES)("residual NMI mask rejection on %s", (profile) => {
 
   it("should reject a masked value compared with a nonzero constant", async () => {
     await expectRejected(MASKED_VALUE_AGAINST_EIGHT, profile);
+  }, 60_000);
+
+  it("should reject nine simultaneously retained sampled bytes", async () => {
+    await expectRejected(NINE_RETAINED_SAMPLES, profile);
+  }, 60_000);
+
+  it("should reject a sampled byte retained across a branch join", async () => {
+    await expectRejected(SAMPLE_ACROSS_BRANCH, profile);
   }, 60_000);
 });

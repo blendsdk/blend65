@@ -75,12 +75,14 @@ directly addressable mask, a Boolean bit test for mask one (identity), masks two
 (shift), any other nonzero constant mask (expert inline branch), the zero mask (constant
 fold), the all-ones mask (load identity), an addressable runtime mask, a byte-masked word,
 and a single-use local with an adjacent consumer now build with no private storage.
-Several simultaneously retained samples, a masked value shared by several consumers, a
-16-bit word mask whose high byte can be nonzero, a runtime word local that stages its
-zero-extension, a computed (non-addressable) mask, and a masked value compared to a
-nonzero constant still hit E10245. The remaining forms need bounded storage or a wider
-join; they are tracked by [issue #150](https://github.com/blendsdk/blend65/issues/150),
-not language restrictions or recommended source workarounds.
+A masked value shared by two consumers, up to five retained samples, and a runtime word
+local from a byte read also build: the retained bytes live in bounded hardware-stack slots
+(at most eight) and the reported `hardwareStack` includes them. A 16-bit word mask whose high
+byte can be nonzero, a computed (non-addressable) mask, a masked value compared to a
+nonzero constant, more than eight retained bytes, and a retained local across a join or call
+still hit E10245. The remaining forms need a wider join or a broader retention proof; they
+are tracked by [issue #150](https://github.com/blendsdk/blend65/issues/150), not language
+restrictions or recommended source workarounds.
 
 Qualification is **VICE-verified / hardware-unverified**. Unrestricted external
 nesting and aggregate stack capacity, retained-firmware completion, and hard timing

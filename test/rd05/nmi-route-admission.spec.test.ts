@@ -23,10 +23,17 @@ const reentrancyMessage =
 /** One opaque class carries all three unproved external obligations. */
 const externalEffect =
   "external-nmi-aggregate-stack+retained-nmi-firmware-completion+external-nmi-finite-deadline";
-/** Five simultaneously retained bytes cannot all live in the three CPU registers. */
+/**
+ * Nine simultaneously retained bytes exceed the bounded straight-line stack proof:
+ * the hardware-stack slots hold at most eight such values, so a ninth retained byte
+ * cannot be proved and the route stays unproved.
+ */
 const retainedReads = `let a: byte = peek($0400); let b: byte = peek($0401);
 let c: byte = peek($0402); let d: byte = peek($0403); let e: byte = peek($0404);
-poke($0410, a); poke($0411, b); poke($0412, c); poke($0413, d); poke($0414, e);`;
+let f: byte = peek($0405); let g: byte = peek($0406); let h: byte = peek($0407);
+let i: byte = peek($0408); poke($0410, a); poke($0411, b); poke($0412, c);
+poke($0413, d); poke($0414, e); poke($0415, f); poke($0416, g); poke($0417, h);
+poke($0418, i);`;
 
 /** Keep the installed route balanced so only its selected reentrancy proof is at issue. */
 function chainedSource(body: string, helper = ""): string {
@@ -114,16 +121,16 @@ describe.each(profiles)("cooperative NMI admission on %s", (profile) => {
   // Exclusive ownership and selected private storage remain distinct rejection conditions.
   it.each([
     [
-      "the exclusive handler retains five samples",
+      "the exclusive handler retains nine samples",
       `module Game;
 import { setNMIExclusive, restoreNMI } from c64.system;
 interrupt function handler(): void { ${retainedReads} }
 function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
       undefined,
     ],
-    ["the handler retains five samples", chainedSource(retainedReads), "setNMI(&handler)"],
+    ["the handler retains nine samples", chainedSource(retainedReads), "setNMI(&handler)"],
     [
-      "an ordinary helper retains five samples",
+      "an ordinary helper retains nine samples",
       chainedSource("retainSamples();", `function retainSamples(): void { ${retainedReads} }`),
       "setNMI(&handler)",
     ],
