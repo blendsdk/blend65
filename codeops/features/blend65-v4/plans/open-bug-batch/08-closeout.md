@@ -31,6 +31,7 @@
 | Targeted CIA2 runtime | 4/4; borrowed read returns `$1F` |
 | Targeted raw-footprint/NMI regressions | 128/128 |
 | Targeted VICE regression set | 109/109 (purity, switch, CIA2 runtime, raw footprints) |
+| Complete VICE tier | 119 files passed / 1 skipped; 2,233 tests passed / 4 skipped |
 | Machine/storage package subset | 79 files, 980 passed |
 | Targeted scope | 6/6 |
 | Targeted VIC diagnostics | 7/7 |
