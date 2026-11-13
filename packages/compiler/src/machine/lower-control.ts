@@ -65,12 +65,54 @@ export type LoweredValue =
       readonly signed: boolean;
     }
   | {
+      /**
+       * A single selected bit from each word byte, aligned by one shift so the
+       * comparison can combine them with ORA (any bit) or AND (both bits).
+       * The first byte is already shifted in A; the other is addressable.
+       */
+      readonly kind: "word-aligned";
+      /** Byte whose selected bit is shifted in A. */
+      readonly first: LoweredValue;
+      /** Offset of that byte in the word place. */
+      readonly firstOffset: number;
+      /** Right shifts already applied to the first byte. */
+      readonly shift: number;
+      /** Other byte, combined at the lower selected-bit position. */
+      readonly other: LoweredValue;
+      /** Offset of the other byte in the word place. */
+      readonly otherOffset: number;
+      /** Combine both selected bits with ORA (any) or AND (both). */
+      readonly combine: "ora" | "and";
+      /** Bit position of the combined selected bits before normalization. */
+      readonly normalize: number;
+      readonly bytes: 2;
+      readonly signed: boolean;
+    }
+  | {
+      /**
+       * Low masked byte in A plus the addressable operand and high mask byte
+       * needed for the expert two-byte join. Only the selected word-mask
+       * comparison may consume this value; every address mode fails closed.
+       */
+      readonly kind: "masked-word";
+      /** Addressable word operand whose high byte the join reloads. */
+      readonly operand: LoweredValue;
+      /** High byte of the compile-time mask. */
+      readonly highMask: number;
+      /** Low byte of the compile-time mask. */
+      readonly lowMask: number;
+      readonly bytes: 2;
+      readonly signed: boolean;
+    }
+  | {
       /** One byte pushed on the hardware stack for the rest of this handler. */
       readonly kind: "stack";
       /** One-based push order; the first pushed byte is the deepest. */
       readonly slot: number;
       readonly bytes: 1;
       readonly signed?: boolean;
+      /** The final top-slot use consumes the byte with PLA instead of a load. */
+      readonly consume?: boolean;
     }
   | {
       /**

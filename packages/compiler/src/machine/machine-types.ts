@@ -32,9 +32,20 @@ import type { BooleanCallProof } from "./lower-call.js";
 import type { ByteComplementFacts, ByteComplementProof } from "./byte-value-availability.js";
 import type { OptimizationFacts } from "./optimization-facts.js";
 
+/** One masked-value comparison selected for an inline expert branch. */
+export interface BooleanMaskTest {
+  /** How the masked value is represented at the comparison. */
+  readonly form: "byte" | "word" | "word-align" | "word-high";
+  /** Byte or word constant compared against the masked value. */
+  readonly constant: number;
+  /** Compile-time mask value, or null for a runtime mask. */
+  readonly mask: number | null;
+  /** High mask byte of the word form; absent for the byte form. */
+  readonly highMask?: number;
+}
+
 /** Symbolic byte identity retained for final reference/candidate observer checks. */
-export interface ByteWindowAddress {
-  /** Existing SFA request or resident data symbol, never a provisional numeric address. */
+export interface ByteWindowAddress {  /** Existing SFA request or resident data symbol, never a provisional numeric address. */
   readonly kind: "home" | "symbol";
   /** Exact request or symbol identity. */
   readonly id: string;
@@ -680,6 +691,8 @@ export interface MachineLoweringInput {
   readonly stackRetainedBindings?: ReadonlySet<string>;
   /** Source binding keys for those stack-retained locals. */
   readonly stackRetainedLocalKeys?: ReadonlySet<string>;
+  /** Stack-retained load results consumed with PLA at their final top-slot use. */
+  readonly stackConsumedValues?: ReadonlySet<string>;
   /** Size mode may place ordinary function homes in spare zero-page bytes. */
   readonly preferZeroPage?: boolean;
   /** Exact selected target facts. */

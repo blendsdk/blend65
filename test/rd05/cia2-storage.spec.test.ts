@@ -1,4 +1,5 @@
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import { buildProfileSource, profileRecord, profileRecords } from "./profile-fixture.js";
 import { CIA2_PROFILES, cia2Lease, expectCia2Rejected } from "./cia2-fixture.js";
 
 /** Five simultaneously retained volatile bytes cannot all fit in the three CPU registers. */
@@ -11,9 +12,16 @@ const reentrancyMessage =
   /^Execution path '[^']+' has unbounded private-storage overlap, disallowed unbounded stack use, or unproved generated reentrancy$/;
 
 describe.each(CIA2_PROFILES)("CIA2 private-storage closure on %s", (target) => {
-  // Exclusive device ownership does not turn invocation-private homes into shared state.
-  it("should reject five volatile samples retained by the exclusive callback", async () => {
-    await expectCia2Rejected(cia2Lease("", retainedSamples), target, "E10245", reentrancyMessage);
+  // Exclusive device ownership still admits only the handler's own hardware stack.
+  it("should retain five volatile samples in the exclusive callback", async () => {
+    const artifacts = await buildProfileSource(cia2Lease("", retainedSamples), target);
+    expect(artifacts.memory.acmeReconciled).toBe(true);
+    const totals = profileRecord(artifacts.costs.totals);
+    const standard = (id: string) =>
+      profileRecords(totals.resources).find((row) => row.kind === "standard" && row.id === id);
+    expect(standard("zeroPage")?.value).toBe(0);
+    expect(standard("scratch")?.value).toBe(0);
+    expect(standard("hardwareStack")?.value).toBe(10);
   }, 60_000);
 
   // The complete transitive route includes ordinary helper locals and generated scratch.

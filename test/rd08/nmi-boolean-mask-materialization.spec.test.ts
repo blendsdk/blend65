@@ -1,7 +1,5 @@
-import { access } from "node:fs/promises";
-import { join } from "node:path";
-import { buildProject, checkProject } from "@blend65/compiler";
-import type { BuildResult, CheckResult } from "@blend65/compiler";
+import { buildProject } from "@blend65/compiler";
+import type { BuildResult } from "@blend65/compiler";
 import { describe, expect, it } from "vitest";
 import {
   profileRecord,
@@ -854,20 +852,19 @@ function expectSharedMaskedValueBody(instructions: readonly HandlerInstruction[]
     .map(({ index }) => index);
   expect(pushIndexes.filter((index) => index < maskIndex)).toHaveLength(2);
 
-  // Two loads of the one retained slot, each immediately followed by its zero branch.
-  // The stack pointer is read into X once, immediately before the first load, and the
-  // second load reuses that X: an expert would not re-read SP between two loads.
+  // Two uses of the one retained slot. The first reads it through the single
+  // stack-pointer read; the second is the last top-slot use and consumes it
+  // with PLA, so the return emits no body pop.
   const branches = instructions.filter(({ opcode }) => opcode === 0xf0);
   expect(branches).toHaveLength(2);
   expect(instructions.filter(({ opcode }) => BRANCH_OPCODES.has(opcode))).toHaveLength(2);
-  for (const branch of branches) {
+  for (const [ordinal, branch] of branches.entries()) {
     const index = instructions.indexOf(branch);
-    expect([instructions[index - 1]!.opcode, instructions[index - 1]!.operand]).toEqual([
-      0xbd, 0x0101,
-    ]);
+    const expected = ordinal === 0 ? [0xbd, 0x0101] : [0x68, null];
+    expect([instructions[index - 1]!.opcode, instructions[index - 1]!.operand]).toEqual(expected);
   }
   const slotLoads = instructions.filter(({ opcode }) => opcode === 0xbd);
-  expect(slotLoads.map(({ operand }) => operand)).toEqual([0x0101, 0x0101]);
+  expect(slotLoads.map(({ operand }) => operand)).toEqual([0x0101]);
   const stackPointerRead = instructions.findIndex(({ opcode }) => opcode === 0xba);
   expect(stackPointerRead + 1).toBe(instructions.indexOf(slotLoads[0]!));
 
@@ -901,19 +898,18 @@ function expectSharedMaskedValueBody(instructions: readonly HandlerInstruction[]
     [0x8d, SECOND_ADDRESS],
   ]);
 
-  // One device read, two slot reads of the same offset, and the two stores: no other
-  // RAM address is touched, so the retained byte has no private home.
+  // One device read, one indexed slot read, the PLA consume and the two stores:
+  // no other RAM address is touched, so the retained byte has no private home.
   expect(absoluteAccesses(instructions)).toEqual([
     [0xad, CIA2_INTERRUPT_CONTROL],
     [0xbd, 0x0101],
     [0x8d, FLAG_ADDRESS],
-    [0xbd, 0x0101],
     [0x8d, SECOND_ADDRESS],
   ]);
   expect(instructions.filter(({ opcode }) => COMPARE_OPCODES.has(opcode))).toEqual([]);
   expect(instructions.filter(({ opcode }) => ADC_OPCODES.has(opcode))).toEqual([]);
 
-  expectRestoreTail(instructions, 1);
+  expectRestoreTail(instructions, 0);
   expect(instructions.at(-1)!.opcode).toBe(0x40);
 }
 
@@ -938,11 +934,10 @@ function expectFiveSampleBody(instructions: readonly HandlerInstruction[]): void
   );
   expect(sampleReads.map(({ operand }) => operand)).toEqual([...SAMPLE_SOURCES]);
 
-  // Five slot reads with five distinct offsets: the first pushed sample is deepest.
-  // A single stack-pointer read immediately before the first read establishes X, and
-  // every following read reuses it instead of re-reading SP.
+  // Four indexed slot reads with distinct offsets and a final top-slot PLA:
+  // the first pushed sample is deepest. One stack-pointer read establishes X.
   const slotLoads = instructions.filter(({ opcode }) => opcode === 0xbd);
-  expect(slotLoads.map(({ operand }) => operand)).toEqual([0x0105, 0x0104, 0x0103, 0x0102, 0x0101]);
+  expect(slotLoads.map(({ operand }) => operand)).toEqual([0x0105, 0x0104, 0x0103, 0x0102]);
   const stackPointerRead = instructions.findIndex(({ opcode }) => opcode === 0xba);
   expect(stackPointerRead + 1).toBe(instructions.indexOf(slotLoads[0]!));
 
@@ -961,13 +956,14 @@ function expectFiveSampleBody(instructions: readonly HandlerInstruction[]): void
 
   expect(absoluteAccesses(instructions)).toEqual([
     ...SAMPLE_SOURCES.map((address): [number, number] => [0xad, address]),
-    ...SAMPLE_TARGETS.flatMap((target, index): [number, number][] => [
+    ...[0, 1, 2, 3].flatMap((index): [number, number][] => [
       [0xbd, 0x0105 - index],
-      [0x8d, target],
+      [0x8d, SAMPLE_TARGETS[index]!],
     ]),
+    [0x8d, SAMPLE_TARGETS[4]!],
   ]);
 
-  expectRestoreTail(instructions, 5);
+  expectRestoreTail(instructions, 4);
   expect(instructions.at(-1)!.opcode).toBe(0x40);
 }
 
@@ -1000,116 +996,5 @@ describe(`bounded NMI stack retention in the default mode on ${DEFAULT_MODE_PROF
       "balanced",
     );
     expectSharedMaskedValueBody(instructions);
-  }, 60_000);
-});
-
-/** A word mask whose high byte can be nonzero needs two masked bytes and a join. */
-const WIDE_WORD_MASK = program(
-  `${FLAG_DECLARATION}
-place(at: $C100) let w: word = 2;`,
-  "    finished = ((w & 258) != 0);",
-);
-
-/** A mask computed at run time has no address the handler can read directly. */
-const COMPUTED_RUNTIME_MASK = program(
-  `${FLAG_DECLARATION}
-place(at: $C001) let maskValue: byte = 1;`,
-  `    let m: byte = maskValue | 1;
-    finished = ((readAndClearPendingSources() & m) != 0);`,
-);
-
-/** Comparing the masked byte with a nonzero constant needs that masked byte kept. */
-const MASKED_VALUE_AGAINST_EIGHT = program(
-  FLAG_DECLARATION,
-  "    finished = ((readAndClearPendingSources() & 8) == 8);",
-);
-
-/** Nine retained bytes exceed the bounded proof, which admits at most eight. */
-const NINE_RETAINED_SAMPLES = `module Game;
-import { setNMIExclusive, restoreNMI } from c64.system;
-interrupt function handler(): void {
-    let a0: byte = peek($0400);
-    let a1: byte = peek($0401);
-    let a2: byte = peek($0402);
-    let a3: byte = peek($0403);
-    let a4: byte = peek($0404);
-    let a5: byte = peek($0405);
-    let a6: byte = peek($0406);
-    let a7: byte = peek($0407);
-    let a8: byte = peek($0408);
-    poke($0410, a0);
-    poke($0411, a1);
-    poke($0412, a2);
-    poke($0413, a3);
-    poke($0414, a4);
-    poke($0415, a5);
-    poke($0416, a6);
-    poke($0417, a7);
-    poke($0418, a8);
-}
-function main(): void {
-    setNMIExclusive(&handler);
-    restoreNMI();
-}`;
-
-/**
- * A branch splits the handler into several blocks, so the sampled byte would have to
- * survive the join in memory. The retention proof covers one straight-line block only.
- */
-const SAMPLE_ACROSS_BRANCH = program(
-  FLAG_DECLARATION,
-  `    let sample: byte = readAndClearPendingSources();
-    if ((sample & 1) != 0) {
-        finished = true;
-    }
-    finished = sample != 0;`,
-);
-
-/** Both services must reject with the canonical diagnostic and publish nothing. */
-async function expectRejected(source: string, profile: string): Promise<void> {
-  await withProfileProject(source, profile, async (project, root) => {
-    const results: readonly (BuildResult | CheckResult)[] = [
-      await checkProject({ project }),
-      await buildProject({ project, optimization: "none" }),
-    ];
-    const handlerStart = Buffer.byteLength(
-      source.slice(0, source.indexOf("interrupt function handler")),
-    );
-    for (const result of results) {
-      expect(result.kind).toBe("failure");
-      expect(result).not.toHaveProperty("generation");
-      const errors = result.diagnostics.filter((diagnostic) => diagnostic.severity === "error");
-      expect(errors.map(({ code }) => code)).toEqual(["E10245"]);
-      expect(errors[0]!.message).toMatch(NMI_PRIVATE_STORAGE_MESSAGE);
-      const span = errors[0]!.primarySpan;
-      expect(span?.sourceId).toBe("src/game.blend");
-      expect(span!.start).toBeGreaterThanOrEqual(handlerStart);
-      expect(span!.end).toBeLessThanOrEqual(Buffer.byteLength(source));
-      expect(span!.start).toBeLessThan(span!.end);
-    }
-    await expect(access(join(root, "out"))).rejects.toMatchObject({ code: "ENOENT" });
-  });
-}
-
-/** Width, mask-address, comparison and proof-scope limits still need private storage. */
-describe.each(PROFILES)("residual NMI mask rejection on %s", (profile) => {
-  it("should reject a word mask with a possibly-nonzero high byte", async () => {
-    await expectRejected(WIDE_WORD_MASK, profile);
-  }, 60_000);
-
-  it("should reject a runtime-computed mask that has no address", async () => {
-    await expectRejected(COMPUTED_RUNTIME_MASK, profile);
-  }, 60_000);
-
-  it("should reject a masked value compared with a nonzero constant", async () => {
-    await expectRejected(MASKED_VALUE_AGAINST_EIGHT, profile);
-  }, 60_000);
-
-  it("should reject nine simultaneously retained sampled bytes", async () => {
-    await expectRejected(NINE_RETAINED_SAMPLES, profile);
-  }, 60_000);
-
-  it("should reject a sampled byte retained across a branch join", async () => {
-    await expectRejected(SAMPLE_ACROSS_BRANCH, profile);
   }, 60_000);
 });

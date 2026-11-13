@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { buildProject, checkProject } from "@blend65/compiler";
 import type { BuildResult, CheckResult } from "@blend65/compiler";
 import {
+  profileRecord,
   profileRecords,
   profileSpan,
   readProfileArtifacts,
@@ -24,9 +25,8 @@ const reentrancyMessage =
 const externalEffect =
   "external-nmi-aggregate-stack+retained-nmi-firmware-completion+external-nmi-finite-deadline";
 /**
- * Nine simultaneously retained bytes exceed the bounded straight-line stack proof:
- * the hardware-stack slots hold at most eight such values, so a ninth retained byte
- * cannot be proved and the route stays unproved.
+ * Nine simultaneously retained bytes fit the generated exclusive entry's proved
+ * hardware-stack capacity; the stock chained route keeps its separate frame proof.
  */
 const retainedReads = `let a: byte = peek($0400); let b: byte = peek($0401);
 let c: byte = peek($0402); let d: byte = peek($0403); let e: byte = peek($0404);
@@ -118,33 +118,50 @@ describe.each(profiles)("cooperative NMI admission on %s", (profile) => {
     });
   });
 
-  // Exclusive ownership and selected private storage remain distinct rejection conditions.
-  it.each([
-    [
-      "the exclusive handler retains nine samples",
-      `module Game;
+  // The generated exclusive entry admits nine retained bytes on its own stack.
+  it("should admit the exclusive route when it retains nine samples", async () => {
+    const source = `module Game;
 import { setNMIExclusive, restoreNMI } from c64.system;
 interrupt function handler(): void { ${retainedReads} }
-function main(): void { setNMIExclusive(&handler); restoreNMI(); }`,
-      undefined,
-    ],
-    ["the handler retains nine samples", chainedSource(retainedReads), "setNMI(&handler)"],
-    [
-      "an ordinary helper retains nine samples",
-      chainedSource("retainSamples();", `function retainSamples(): void { ${retainedReads} }`),
-      "setNMI(&handler)",
-    ],
-  ] as const)(
-    "should reject with a canonical reentrancy error when %s",
-    async (_condition, source, primary) => {
-      await withProfileProject(source, profile, async (project, root) => {
-        const checked = await checkProject({ project });
-        const built = await buildProject({ project, optimization: "none" });
-        expectRejected([checked, built], source, "E10245", primary);
-        await expect(access(join(root, "out"))).rejects.toMatchObject({ code: "ENOENT" });
-      });
-    },
-  );
+function main(): void { setNMIExclusive(&handler); restoreNMI(); }`;
+    await withProfileProject(source, profile, async (project) => {
+      const built = await buildProject({ project, optimization: "none" });
+      expect(built.kind, JSON.stringify(built.diagnostics)).toBe("success");
+      if (built.kind !== "success") return;
+      const artifacts = await readProfileArtifacts(built);
+      const totals = profileRecord(artifacts.costs.totals);
+      const standard = (id: string) =>
+        profileRecords(totals.resources).find((row) => row.kind === "standard" && row.id === id);
+      expect(standard("zeroPage")?.value).toBe(0);
+      expect(standard("scratch")?.value).toBe(0);
+      expect(standard("hardwareStack")?.value).toBe(14);
+    });
+  });
+
+  // The stock chained route keeps its separate frame contract and stays rejected.
+  it("should reject the chained route when it retains nine samples", async () => {
+    const source = chainedSource(retainedReads);
+    await withProfileProject(source, profile, async (project, root) => {
+      const checked = await checkProject({ project });
+      const built = await buildProject({ project, optimization: "none" });
+      expectRejected([checked, built], source, "E10245", "setNMI(&handler)");
+      await expect(access(join(root, "out"))).rejects.toMatchObject({ code: "ENOENT" });
+    });
+  });
+
+  // A helper on the NMI path still needs private homes the route cannot provide.
+  it("should reject with a canonical reentrancy error when an ordinary helper retains nine samples", async () => {
+    const source = chainedSource(
+      "retainSamples();",
+      `function retainSamples(): void { ${retainedReads} }`,
+    );
+    await withProfileProject(source, profile, async (project, root) => {
+      const checked = await checkProject({ project });
+      const built = await buildProject({ project, optimization: "none" });
+      expectRejected([checked, built], source, "E10245", "setNMI(&handler)");
+      await expect(access(join(root, "out"))).rejects.toMatchObject({ code: "ENOENT" });
+    });
+  });
 
   // Handler kind and ABI provenance are never repaired by admitting a chained route.
   it.each([
@@ -194,7 +211,10 @@ function main(): void { setNMI(word(&handler)); restoreNMI(); }`,
             (await stat(join(out, entry))).isFile() ? readFile(join(out, entry)) : null,
           ),
         );
-        const invalid = chainedSource(retainedReads);
+        const invalid = chainedSource(
+          "retainSamples();",
+          `function retainSamples(): void { ${retainedReads} }`,
+        );
         await writeFile(join(root, "src/game.blend"), invalid);
         const checked = await checkProject({ project });
         const built = await buildProject({ project, optimization: "none" });

@@ -176,6 +176,22 @@ function main(): void { asm_cli(); asm_nop(); ${main} }`,
     ),
   },
   {
+    id: "v4-nmi-chained-retention",
+    sources: [
+      `module Game;
+import { setNMI, restoreNMI } from c64.system;
+interrupt function handler(): void {
+  let a: byte = peek($0400); let b: byte = peek($0401); let c: byte = peek($0402);
+  let d: byte = peek($0403); let e: byte = peek($0404); let f: byte = peek($0405);
+  let g: byte = peek($0406); let h: byte = peek($0407); let i: byte = peek($0408);
+  poke($0410, a); poke($0411, b); poke($0412, c);
+  poke($0413, d); poke($0414, e); poke($0415, f);
+  poke($0416, g); poke($0417, h); poke($0418, i);
+}
+function main(): void { setNMI(&handler); restoreNMI(); }`,
+    ],
+  },
+  {
     id: "v4-nmi-retained-source-reads",
     // Retention forms that still need storage the cooperative NMI route cannot provide: a word
     // mask whose high byte can be nonzero, a mask computed at run time, a comparison against a

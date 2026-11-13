@@ -69,7 +69,7 @@ describe("integer-resource transport edges", () => {
     async (profile) => {
       await expect(
         Reflect.apply(startVice, undefined, ["unused.prg", 1000, profile]),
-      ).rejects.toThrow("exact cooperative C64 profile");
+      ).rejects.toThrow("exact resident C64 PRG profile");
     },
   );
 });

@@ -2,6 +2,7 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.js";
+import { nmiLocalElisionKey, nmiStackPlan } from "../semantic/nmi-register-locals.js";
 import type {
   SemanticBlock,
   SemanticOperation,
@@ -23,6 +24,7 @@ import { byteComplementNoCode } from "./byte-value-availability.js";
 import { prepareByteComplements } from "./lower-unary.js";
 import { lowerOperation } from "./lower-operation.js";
 import { lowerBooleanBranch } from "./lower-boolean-branch.js";
+import { lowerMaskedComparison } from "./lower-mask-branch.js";
 import { appendMergeCopies } from "./lower-merge-copies.js";
 import { appendImmediateByteBitwise, appendScalarPrefix } from "./lower-scalar.js";
 import { canOmitComparisonCaptureReload } from "./byte-capture-observers.js";
@@ -119,12 +121,30 @@ export function lowerFunction(
     fixedLoops.counterFacts,
     loopFacts,
   );
+  // The inventory accumulates retained keys across every handler. A machine
+  // context must use only the keys whose places occur in its own body; a
+  // function-local plan cannot be derived from another handler's keys.
+  const functionBindingKeys = new Set<string>();
+  for (const block of blocks)
+    for (const operation of block.operations) {
+      if (
+        operation.kind === "load" ||
+        operation.kind === "store" ||
+        operation.kind === "place-address"
+      )
+        functionBindingKeys.add(bindingIdentityKey(operation.place.root));
+    }
+  const retainedKeys =
+    interruptDepth.domain === "nmi" && input.stackRetainedLocalKeys !== undefined
+      ? new Set([...input.stackRetainedLocalKeys].filter((key) => functionBindingKeys.has(key)))
+      : undefined;
   const {
     forwardedRegisterValues,
     zeroFlagValues,
     booleanValues,
     booleanShiftValues,
     booleanBranchValues,
+    booleanMaskTests,
     byteOrdinalAdditions,
     ordinalRawReads,
     ordinalRawWrites,
@@ -142,8 +162,17 @@ export function lowerFunction(
     complementFree?.noCode,
     complementFree?.addressValues,
     input.zeroExtensionValues,
-    input.stackRetainedLocalKeys,
+    retainedKeys,
   );
+  // The retention proof admitted the shape; this second derivation fixes the
+  // same dominance order so every load's slot offset is path-independent. A
+  // missing plan is an invariant failure, never a silent depth-zero fallback.
+  const stackPlan =
+    retainedKeys === undefined || retainedKeys.size === 0
+      ? null
+      : nmiStackPlan(sourceFunction?.entry ?? blocks[0]!.id, blocks, retainedKeys);
+  if (retainedKeys !== undefined && retainedKeys.size > 0 && stackPlan === null)
+    throw loweringFailure("Retained NMI bindings have no static stack plan", owner.span);
   const state: FunctionLoweringState = {
     owner,
     fixedLoops,
@@ -171,12 +200,24 @@ export function lowerFunction(
     booleanValues: new Set(booleanValues),
     booleanShiftValues: new Map(booleanShiftValues),
     booleanBranchValues,
+    booleanMaskTests,
     elidedLocalBindings: input.elidedLocalBindings ?? new Set<string>(),
     zeroExtensionValues: input.zeroExtensionValues ?? new Set<string>(),
     stackRetainedBindings: input.stackRetainedBindings ?? new Set<string>(),
+    stackConsumedValues: input.stackConsumedValues ?? new Set<string>(),
     stackDepth: 0,
-    stackSlots: new Map<string, number>(),
+    stackSlots:
+      stackPlan === null
+        ? new Map<string, number>()
+        : new Map(
+            [...stackPlan.slots].map(([key, slot]) => [
+              nmiLocalElisionKey(interruptDepth.domain, interruptDepth.activationRoot, key),
+              slot,
+            ]),
+          ),
     stackXValid: false,
+    stackXDepth: 0,
+    stackXBulkDepth: null,
     byteOrdinalAdditions,
     ...(input.observerEvidence === true && input.optimizationFacts !== undefined
       ? { ordinalRawReads, ordinalRawWrites }
@@ -223,6 +264,19 @@ export function lowerFunction(
   let indirectCallIndex = 0;
   for (const block of fixedLoops.blocks) {
     enterFixedLoopBlock(block, state);
+    // A join must agree on the live push count, and X never survives a block
+    // boundary as a usable stack-pointer copy. Both facts are reset here.
+    state.stackXValid = false;
+    state.stackXBulkDepth = null;
+    if (stackPlan !== null) {
+      const depth = stackPlan.depths.get(state.currentSemanticBlockId);
+      if (depth === undefined)
+        throw loweringFailure(
+          "Retained NMI block is absent from the static stack plan",
+          state.owner.span,
+        );
+      state.stackDepth = depth;
+    }
     const occurrenceStart = loweredBlocks.length;
     const byteReturnArms = !returnsToStartup && hasByteReturnArms(block, blocks, blockIndexes);
     state.divisionReuse = null;
@@ -481,6 +535,49 @@ export function lowerFunction(
       if (
         operation.kind === "binary" &&
         (operation.operator === "==" || operation.operator === "!=") &&
+        state.materializedValues.has(operation.result) &&
+        (state.booleanMaskTests.has(operation.left) || state.booleanMaskTests.has(operation.right))
+      ) {
+        const maskedId = state.booleanMaskTests.has(operation.left)
+          ? operation.left
+          : operation.right;
+        const test = state.booleanMaskTests.get(maskedId)!;
+        const maskedValue = state.values.get(maskedId);
+        // A constant local can fold the masked value below a selected test.
+        // Withdraw the forwarding claim and let the ordinary constant
+        // comparison materialize the value; never hand a constant to the
+        // register/branch lowerer.
+        if (maskedValue !== undefined && maskedValue.kind === "constant") {
+          state.forwardedRegisterValues.delete(operation.result);
+        } else {
+          const split = lowerMaskedComparison(
+            operation,
+            test,
+            maskedValue,
+            state,
+            currentLabel,
+            currentInstructions,
+            booleanBranchIndex,
+          );
+          if (split.instructions !== undefined) {
+            currentInstructions.push(...split.instructions);
+          } else {
+            loweredBlocks.push(...split.blocks);
+            currentLabel = split.continuation;
+            currentInstructions = [];
+          }
+          state.values.set(
+            operation.result,
+            Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
+          );
+          state.forwardedRegisterValues.add(operation.result);
+          booleanBranchIndex += 1;
+          continue;
+        }
+      }
+      if (
+        operation.kind === "binary" &&
+        (operation.operator === "==" || operation.operator === "!=") &&
         (state.booleanBranchValues.has(operation.left) ||
           state.booleanBranchValues.has(operation.right)) &&
         state.materializedValues.has(operation.result)
@@ -682,17 +779,56 @@ export function lowerFunction(
     }
     if (block.terminator.kind === "return" && state.stackDepth > 0) {
       state.stackXValid = false;
-      for (let pop = 0; pop < state.stackDepth; pop += 1)
+      const source = state.owner.span;
+      if (state.stackXBulkDepth !== null && state.stackDepth >= 6) {
+        // X still holds the SP from the last TSX and every remaining slot is
+        // dead. Six bytes/ten cycles replace six or more PLA bytes.
+        const bulk = state.stackXBulkDepth;
+        const instruction = (opcode: string) =>
+          machineInstruction(input.profile.cpu, opcode, "implied", null, [], source);
         currentInstructions.push(
+          instruction("txa"),
+          instruction("clc"),
           machineInstruction(
             input.profile.cpu,
-            "pla",
-            "implied",
-            null,
+            "adc",
+            "immediate",
+            Object.freeze({ kind: "immediate", value: bulk }),
             [],
-            block.terminator.kind === "return" ? state.owner.span : owner.span,
+            source,
           ),
+          instruction("tax"),
+          instruction("txs"),
         );
+        state.stackDepth = 0;
+      } else if (state.stackDepth >= 7) {
+        // No cached X base (for example a call clobbered it). Re-read the
+        // current SP and raise it by the remaining depth; 7 bytes/12 cycles.
+        const remaining = state.stackDepth;
+        const instruction = (opcode: string) =>
+          machineInstruction(input.profile.cpu, opcode, "implied", null, [], source);
+        currentInstructions.push(
+          instruction("tsx"),
+          instruction("txa"),
+          instruction("clc"),
+          machineInstruction(
+            input.profile.cpu,
+            "adc",
+            "immediate",
+            Object.freeze({ kind: "immediate", value: remaining }),
+            [],
+            source,
+          ),
+          instruction("tax"),
+          instruction("txs"),
+        );
+        state.stackDepth = 0;
+      } else {
+        for (let pop = 0; pop < state.stackDepth; pop += 1)
+          currentInstructions.push(
+            machineInstruction(input.profile.cpu, "pla", "implied", null, [], source),
+          );
+      }
     }
     recordInstructionSite();
     loweredBlocks.push(
@@ -773,7 +909,11 @@ export function lowerFunction(
         sourceFunction,
       ),
       ...(sourceName === undefined ? {} : { sourceName }),
-      ...(state.stackDepth === 0 ? {} : { stackBytes: state.stackDepth }),
+      ...(stackPlan !== null
+        ? { stackBytes: stackPlan.total }
+        : state.stackDepth === 0
+          ? {}
+          : { stackBytes: state.stackDepth }),
       ...(byteSelection?.byteAvailabilityProofs === undefined
         ? {}
         : { byteAvailabilityProofs: byteSelection.byteAvailabilityProofs }),

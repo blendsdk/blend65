@@ -57,12 +57,21 @@
     },
     {
       "id": "v4-nmi-retained-source-reads",
-      "status": "deferred",
+      "status": "retired",
       "sourceForm": "an interrupt function that materializes a Boolean from a 16-bit word mask whose high byte can be nonzero, a computed/non-addressable runtime mask, or a comparison against a nonzero constant, or that retains more than eight bytes or keeps a retained local across a control-flow join or call",
       "diagnostic": "E10245",
-      "reason": "The cooperative NMI route admits no invocation-private RAM or zero-page homes. Byte values in a straight-line handler are now retained on the handler's own hardware stack (at most eight bytes, pushed and popped with a reported peak), and a single-use word local from a byte read keeps its low byte in A. The remaining forms are outside that bounded proof: a 16-bit word mask can set the high byte and needs a two-byte join, a computed mask needs a temporary before the AND, a nonzero comparison is outside the selected zero-test branch, and more than eight bytes or a cross-join lifetime needs a wider retention proof. The compiler fails closed rather than guessing.",
-      "owner": "issue #150",
-      "decision": "Issue #149 delivered the shared masked value, five simultaneously retained samples and the runtime word local in addition to the earlier materialization forms, with zero private RAM/zero-page storage and a reported hardware-stack peak. The remaining five forms are tracked by issue #150 for a wider join or a broader retention proof."
+      "reason": "The cooperative NMI route still admits no invocation-private RAM or zero-page homes. A word mask now joins both masked bytes with an inline branch, a computed mask is retained on the handler's own hardware stack and consumed as an absolute,X ALU operand, and a nonzero comparison materializes from A with CMP or the single-bit identity branch. The retention proof now spans control-flow joins and stack-balanced calls, uses a dominance slot plan, and is bounded by the platform hardware-stack capacity instead of a fixed eight bytes. All five probes build with no private home and the reported peak is exact.",
+      "owner": "RD-08 residual NMI forms (issue #150, closed)",
+      "decision": "Issue #150 delivered the wide word-mask join, the computed runtime mask, the nonzero masked comparison, capacity-bounded retention, and multi-block/calling retention. The ledger probes are retained as the regression witnesses for the delivered forms; no residual source form remains in this row."
+    },
+    {
+      "id": "v4-nmi-chained-retention",
+      "status": "deferred",
+      "sourceForm": "a retained local in an interrupt function installed through the stock chained setNMI route",
+      "diagnostic": "E10245",
+      "reason": "The generated exclusive NMI entry is the delivered bounded-retention boundary. The stock chained route keeps its separate stock frame and ownership contract; the compiler fails closed rather than binding the exclusive stack plan onto it. A retained local in a chained handler therefore still needs a private home the cooperative route cannot provide.",
+      "owner": "issue #153",
+      "decision": "Issue #150 delivered the exclusive-route retention forms. The chained-route retention proof is a separate route extension tracked by issue #153."
     }
   ]
 }

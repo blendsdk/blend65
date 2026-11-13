@@ -117,6 +117,10 @@ export function lowerIndirectCall(
         operation.span,
       ),
     ];
+    // The thunk and its target may use X and the stack; the retained slice
+    // re-reads SP before its next stack-relative load.
+    state.stackXValid = false;
+    state.stackXBulkDepth = null;
     if (operation.result !== null) {
       const bytes = typeBytes(operation.type) === 1 ? 1 : 2;
       const retained = retainMachineValue(

@@ -74,15 +74,23 @@ read assigned to a global, a bare zero test, a bit condition with a constant or
 directly addressable mask, a Boolean bit test for mask one (identity), masks two and four
 (shift), any other nonzero constant mask (expert inline branch), the zero mask (constant
 fold), the all-ones mask (load identity), an addressable runtime mask, a byte-masked word,
-and a single-use local with an adjacent consumer now build with no private storage.
-A masked value shared by two consumers, up to five retained samples, and a runtime word
-local from a byte read also build: the retained bytes live in bounded hardware-stack slots
-(at most eight) and the reported `hardwareStack` includes them. A 16-bit word mask whose high
-byte can be nonzero, a computed (non-addressable) mask, a masked value compared to a
-nonzero constant, more than eight retained bytes, and a retained local across a join or call
-still hit E10245. The remaining forms need a wider join or a broader retention proof; they
-are tracked by [issue #150](https://github.com/blendsdk/blend65/issues/150), not language
-restrictions or recommended source workarounds.
+and a single-use local with an adjacent consumer build with no private storage.
+A masked value shared by two consumers, a computed runtime mask, nine or more retained
+samples, and a retained local across a control-flow join or a stack-balanced call also
+build: the retained bytes live on the handler's own hardware stack, slot offsets come
+from a dominance plan, and the reported `hardwareStack` is the exact peak.
+A word mask with one selected bit per byte aligns the two bits with one `LSR` and
+combines them with `ORA` (any bit) or `AND` (both bits); a multi-bit mask uses the
+two-byte branch join. A masked value compared with a nonzero constant uses the
+single-bit identity or an expert `EOR` per byte. No private RAM or zero-page home is
+created. A retained byte whose final use is the live top slot is consumed with `PLA`.
+The remaining non-goals are a
+retained store inside a loop, more than one return block with different live push
+counts, and a handler whose call graph is not stack-balanced; these are not source
+workarounds the documented forms require. The hardware-stack retention proof is
+scoped to the generated exclusive entry; a handler installed through the stock
+chained `setNMI` route keeps its separate frame contract and still reports E10245
+(issue #153).
 
 Qualification is **VICE-verified / hardware-unverified**. Unrestricted external
 nesting and aggregate stack capacity, retained-firmware completion, and hard timing

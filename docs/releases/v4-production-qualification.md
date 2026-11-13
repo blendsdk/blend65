@@ -166,11 +166,11 @@ The complete-language ledger covers every named key with no unowned row. The non
 `test/rd04/normative-coverage.json` record and its validator are pinned to the active normative
 identity `BLEND65-SPEC-4-038b70e9…`; the 397-key extraction passes against the live `spec/` tree.
 The 18 rows marked `rd-05`, `rd-06`, or `rd-07` are proved by those closed owners; they are not
-gaps. Two expressiveness items are explicitly deferred: `v4-multi-screen-sprite-pointer` (`E10273`,
-`T-27`/issue #140) and the remaining NMI source-read forms in
-`v4-nmi-retained-source-reads` (`E10245`, issue #150; issues #147–#149 delivered the bare zero,
-Boolean masks one/two/four/8+/multi-bit/zero/all-ones, addressable runtime masks, byte-masked words,
-single-use locals, a shared masked value, five retained samples and the runtime word local).
+gaps. One expressiveness item remains explicitly deferred: `v4-multi-screen-sprite-pointer`
+(`E10273`, `T-27`/issue #140). The former NMI source-read row `v4-nmi-retained-source-reads`
+(`E10245`) is retired: issue #150 delivered the wide word-mask join, the computed runtime mask, the
+nonzero masked comparisons, capacity-bounded retention, and multi-block/calling retention, with the
+five ledger probes building on every cooperative profile.
 
 Optimizer whole-program results at the final candidate:
 
@@ -379,7 +379,7 @@ installed prefix; library and asset examples are covered by the package and root
 | Source-installed raw NMI | Default raw NMI route verified; source installer deferred because the frozen text withholds the unbounded-NMI exception | `V4-TAKEOVER-F2` |
 | Physical timing, analogue SID, real drive, board/chip revisions | `Unknown` | `V4-HW-1` |
 | Multi-screen sprite pointer | Deferred expressiveness item | `T-27` / issue #140 |
-| Remaining NMI retained/staged forms (`E10245`) | Deferred expressiveness/implementation limit; bare zero, Boolean masks one/two/four/8+/multi-bit/zero/all-ones, addressable runtime masks, byte-masked words, single-use locals, shared masked values, five retained samples and the runtime word local delivered | issue #150 |
+| Remaining NMI retained/staged forms (`E10245`) | Delivered by issue #150: wide word-mask join, computed runtime mask, nonzero byte and word comparisons, capacity-bounded retention, multi-block and calling retention; ledger row retired, four-profile oracle and two sequential VICE cases pass | issue #150 (closed) |
 | `size` acquisition 66-byte local floor | Tracked measured gap; issue #145 | RD-08 backlog |
 | Open optimizer/parity debt | Linked measured issues #95, #97, #104, #107–#133, #135, #136, #139 | RD-08 backlog |
 | Unused return/argument staging homes | Minor certified-RAM/debug evidence debt; issue #146 | SFA/debug |
@@ -457,12 +457,10 @@ time of writing.
 RD-10 did not expire a prior deferral's stated rationale. Every remaining item has a concrete
 owner: takeover delivered under `V4-TAKEOVER-1` with residual findings `V4-TAKEOVER-F2/F3`;
 physical evidence `V4-HW-1`; Windows/macOS `V4-HOST-1`; CharPad
-3.88 and GoatTracker `V4-ASSET-1`/`T-19`; remaining E10245 NMI retained/staged forms issue #150
-(issues #100 and #147–#149 delivered the ordinary and materialized forms); multi-screen pointer
-issue #140;
+3.88 and GoatTracker `V4-ASSET-1`/`T-19`; multi-screen pointer issue #140;
 `size` gap issue #145; staging-home debt issue #146; open optimizer debt issues #95, #97, #104,
-#107–#133, #135, #136, #139; C64U future pressure in the handoff packet. No orphaned owner
-remains.
+#107–#133, #135, #136, #139; C64U future pressure in the handoff packet. The former NMI
+retained/staged row is retired by issue #150, so no orphaned owner remains.
 
 ### Decision
 
@@ -491,18 +489,22 @@ remain owned follow-ups, not part of the claim.
 
 ### 13.1 Post-candidate NMI source-read delivery
 
-Issues #100 and #147–#149 improve compiler lowering for ordinary and materialized NMI source
+Issues #100 and #147–#150 improve compiler lowering for ordinary and materialized NMI source
 reads after the `bb10e0d1` candidate. They do not add a profile, change the support statement or
 rewrite the candidate evidence. The delivered forms are recorded in
 [`rd-08-nmi-residual-source-reads`](../../codeops/features/blend65-v4/plans/rd-08-nmi-residual-source-reads/08-closeout.md),
-[`rd-08-nmi-residual-boolean-masks`](../../codeops/features/blend65-v4/plans/rd-08-nmi-residual-boolean-masks/08-closeout.md)
+[`rd-08-nmi-residual-boolean-masks`](../../codeops/features/blend65-v4/plans/rd-08-nmi-residual-boolean-masks/08-closeout.md),
+[`rd-08-nmi-boolean-mask-materialization`](../../codeops/features/blend65-v4/plans/rd-08-nmi-boolean-mask-materialization/08-closeout.md),
+[`rd-08-nmi-bounded-retention`](../../codeops/features/blend65-v4/plans/rd-08-nmi-bounded-retention/08-closeout.md)
 and
-[`rd-08-nmi-boolean-mask-materialization`](../../codeops/features/blend65-v4/plans/rd-08-nmi-boolean-mask-materialization/08-closeout.md);
-the remaining retained/staged forms are owned by issue #150. Runtime evidence for the mask-2 forms,
-the #149 mask-3/mask-8 branch witnesses and the bounded-retention case is PAL/6581
-`VICE-verified / hardware-unverified`; masks 4, the zero/runtime/all-ones forms and the word forms
-have four-profile assembled-byte evidence only. Physical, host and producer rows keep their existing
-owners.
+[`rd-08-nmi-residual-forms`](../../codeops/features/blend65-v4/plans/rd-08-nmi-residual-forms/08-closeout.md).
+Issue #150 closes the line: the aligned word-mask comparison, computed runtime mask, nonzero byte and word
+comparisons, capacity-bounded retention, and multi-block/calling retention are delivered, and the
+`v4-nmi-retained-source-reads` ledger row is retired. Runtime evidence for the mask-2 forms, the
+#149 mask-3/mask-8 branch witnesses, the bounded-retention case and the #150 materialization and
+retention witnesses is PAL/6581 `VICE-verified / hardware-unverified`; the other three cooperative
+profiles have four-profile assembled-byte evidence only. Physical, host and producer rows keep their
+existing owners.
 
 ### 13.1 Delivered behavior
 

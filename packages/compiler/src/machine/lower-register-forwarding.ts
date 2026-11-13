@@ -6,7 +6,7 @@ import type {
   SemanticOperation,
 } from "../semantic/operations.js";
 import { canReceiveByteArgumentInA } from "./lower-call.js";
-import type { MachineBlock } from "./machine-types.js";
+import type { BooleanMaskTest, MachineBlock } from "./machine-types.js";
 import { typeBytes } from "./lower-state.js";
 import {
   directVolatileByteRead,
@@ -117,6 +117,8 @@ export function selectRegisterForwarding(
   readonly booleanShiftValues: ReadonlyMap<string, number>;
   /** Masked values materialized as a Boolean through an inline expert branch. */
   readonly booleanBranchValues: ReadonlySet<string>;
+  /** Masked values whose `==`/`!=` comparison uses the general mask branch. */
+  readonly booleanMaskTests: ReadonlyMap<string, BooleanMaskTest>;
   /** Nonwrapping additions consumed only by their next stride-one indexed access. */
   readonly byteOrdinalAdditions: ReadonlySet<string>;
   /** Proved `constant + byte index` addresses consumed only by their next raw read. */
@@ -245,6 +247,18 @@ export function selectRegisterForwarding(
     const literal = literals.get(value);
     return literal !== undefined && literal >= 0n && literal <= 0xffn ? Number(literal) : undefined;
   };
+  /** Return whether one value is a whole-word place load whose high byte is reloadable. */
+  const addressableWordLoad = (block: SemanticBlock, value: string | undefined): boolean => {
+    if (value === undefined) return false;
+    const definition = block.operations.find(
+      (operation) => "result" in operation && operation.result === value,
+    );
+    return (
+      definition?.kind === "load" &&
+      definition.place.path.length === 0 &&
+      typeBytes(definition.type) === 2
+    );
+  };
   /**
    * A write index must survive value evaluation in its own home. Constants and
    * loads qualify; computed temporaries may be overlaid by the value temporary.
@@ -267,6 +281,7 @@ export function selectRegisterForwarding(
   const booleanValues = new Set<string>();
   const booleanShiftValues = new Map<string, number>();
   const booleanBranchValues = new Set<string>();
+  const booleanMaskTests = new Map<string, BooleanMaskTest>();
   const byteOrdinalAdditions = new Set<string>();
   const ordinalRawReads = new Map<string, { readonly base: number; readonly index: string }>();
   const ordinalRawWrites = new Map<string, { readonly base: number; readonly index: string }>();
@@ -820,6 +835,151 @@ export function selectRegisterForwarding(
           }
         }
       }
+      // A masked byte compared with a nonzero byte constant needs a general
+      // materialized comparison. A single-bit mask equal to the constant is the
+      // inverted zero test; every other constant uses CMP #C before the same
+      // expert branch. The masked value and comparison result stay in A.
+      if (
+        producer.kind === "binary" &&
+        producer.operator === "&" &&
+        producer.result !== null &&
+        singleUseValues.has(producer.result) &&
+        (typeBytes(producer.type) === 1 ||
+          (typeBytes(producer.type) === 2 &&
+            (byteLiteral(producer.left) !== undefined ||
+              byteLiteral(producer.right) !== undefined)))
+      ) {
+        const constantMask = byteLiteral(producer.left) ?? byteLiteral(producer.right);
+        const runtimeMask =
+          constantMask === undefined &&
+          typeBytes(producer.type) === 1 &&
+          ((producer.left !== undefined &&
+            forwardedRegisterValues.has(producer.left) &&
+            directByteLoadOperand(block, producer.right)) ||
+            (producer.right !== undefined &&
+              forwardedRegisterValues.has(producer.right) &&
+              directByteLoadOperand(block, producer.left)));
+        if ((constantMask !== undefined && constantMask !== 0) || runtimeMask) {
+          const consumerIndex = nextMachineOperationIndex(block, index);
+          const consumer = block.operations[consumerIndex];
+          if (consumer?.kind === "binary" && ["==", "!="].includes(consumer.operator)) {
+            const maskedOnLeft = consumer.left === producer.result;
+            const other = maskedOnLeft
+              ? consumer.right
+              : consumer.right === producer.result
+                ? consumer.left
+                : undefined;
+            const constant = other === undefined ? undefined : literals.get(other);
+            const following = block.operations[nextMachineOperationIndex(block, consumerIndex)];
+            const takesA =
+              (following?.kind === "store" &&
+                typeBytes(following.type) === 1 &&
+                following.value === consumer.result &&
+                following.place.path.length === 0) ||
+              (following?.kind === "memory-write" &&
+                following.width === 1 &&
+                following.value === consumer.result &&
+                constantValues.has(following.address)) ||
+              (following === undefined &&
+                block.terminator.kind === "return" &&
+                block.terminator.value === consumer.result);
+            if (
+              constant !== undefined &&
+              constant > 0n &&
+              constant <= 0xffn &&
+              takesA &&
+              singleUseValues.has(consumer.result)
+            ) {
+              booleanMaskTests.set(
+                producer.result,
+                Object.freeze({
+                  form: "byte" as const,
+                  constant: Number(constant),
+                  mask: constantMask ?? null,
+                }),
+              );
+              forwardedRegisterValues.add(producer.result);
+              forwardedRegisterValues.add(consumer.result);
+            }
+          }
+        }
+      }
+      // A word mask whose high byte can be nonzero needs both masked bytes and
+      // a join, not a temporary. The low masked byte stays in A; the addressable
+      // operand's high byte is tested only when the low byte is zero. The join
+      // serves the zero constant and a single-bit mask equal to the constant.
+      if (
+        producer.kind === "binary" &&
+        producer.operator === "&" &&
+        typeBytes(producer.type) === 2 &&
+        producer.result !== null &&
+        singleUseValues.has(producer.result)
+      ) {
+        const leftMask = literals.get(producer.left);
+        const rightMask = literals.get(producer.right);
+        const maskValue = leftMask !== undefined ? leftMask : rightMask;
+        const operandId =
+          leftMask !== undefined
+            ? producer.right
+            : rightMask !== undefined
+              ? producer.left
+              : undefined;
+        const highMaskBits = maskValue === undefined ? 0n : (maskValue >> 8n) & 0xffn;
+        const validMask =
+          maskValue !== undefined && maskValue > 0n && maskValue < 0x10000n && highMaskBits !== 0n;
+        if (validMask && addressableWordLoad(block, operandId)) {
+          const consumerIndex = nextMachineOperationIndex(block, index);
+          const consumer = block.operations[consumerIndex];
+          if (consumer?.kind === "binary" && ["==", "!="].includes(consumer.operator)) {
+            const maskedOnLeft = consumer.left === producer.result;
+            const other = maskedOnLeft
+              ? consumer.right
+              : consumer.right === producer.result
+                ? consumer.left
+                : undefined;
+            const constant = other === undefined ? undefined : literals.get(other);
+            const mask = Number(maskValue);
+            const usableConstant = constant !== undefined && constant >= 0n && constant <= 0xffffn;
+            const following = block.operations[nextMachineOperationIndex(block, consumerIndex)];
+            const takesA =
+              (following?.kind === "store" &&
+                typeBytes(following.type) === 1 &&
+                following.value === consumer.result &&
+                following.place.path.length === 0) ||
+              (following?.kind === "memory-write" &&
+                following.width === 1 &&
+                following.value === consumer.result &&
+                constantValues.has(following.address)) ||
+              (following === undefined &&
+                block.terminator.kind === "return" &&
+                block.terminator.value === consumer.result);
+            const lowBits = mask & 0xff;
+            const highBits = (mask >> 8) & 0xff;
+            const oneBit = (value: number): boolean => value > 0 && (value & (value - 1)) === 0;
+            const highOnly = lowBits === 0;
+            const aligned =
+              oneBit(lowBits) && oneBit(highBits) && (constant === 0n || constant === maskValue);
+            const selected = usableConstant && (!highOnly || (constant! & 0xffn) === 0n);
+            if (selected && takesA && singleUseValues.has(consumer.result)) {
+              booleanMaskTests.set(
+                producer.result,
+                Object.freeze({
+                  form: highOnly
+                    ? ("word-high" as const)
+                    : aligned
+                      ? ("word-align" as const)
+                      : ("word" as const),
+                  constant: Number(constant),
+                  mask,
+                  highMask: (mask >> 8) & 0xff,
+                }),
+              );
+              forwardedRegisterValues.add(producer.result);
+              forwardedRegisterValues.add(consumer.result);
+            }
+          }
+        }
+      }
       if (
         producer.kind === "binary" &&
         producer.operator === "&" &&
@@ -1147,6 +1307,7 @@ export function selectRegisterForwarding(
     booleanValues,
     booleanShiftValues,
     booleanBranchValues,
+    booleanMaskTests,
     byteOrdinalAdditions,
     ordinalRawReads,
     ordinalRawWrites,

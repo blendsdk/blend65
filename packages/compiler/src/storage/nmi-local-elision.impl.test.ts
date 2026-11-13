@@ -308,7 +308,7 @@ describe("NMI local inventory omission", () => {
 /** One byte binary operation. */
 function binary(
   result: string,
-  operator: "&" | "==" | "!=",
+  operator: "&" | "|" | "==" | "!=",
   left: string,
   right: string,
 ): SemanticOperation {
@@ -357,7 +357,7 @@ describe("bounded stack-retention proof", () => {
     expect(found.get(bindingIdentityKey(local))?.loadIndexes).toEqual([4, 6]);
   });
 
-  it("rejects a ninth retained byte as a whole-handler bound", () => {
+  it("retains nine bytes because the platform capacity is the whole-handler bound", () => {
     const operations: SemanticOperation[] = [];
     for (let index = 0; index < 9; index += 1) {
       const root = sourceBinding(500 + index);
@@ -372,6 +372,150 @@ describe("bounded stack-retention proof", () => {
     }
     expect(
       nmiStackRetainedLocals({ ...handler(operations), entryKind: "interrupt" }, excluded).size,
-    ).toBe(0);
+    ).toBe(9);
+  });
+
+  it("retains a computed mask consumed as the right operand of a bitwise AND", () => {
+    const maskLocal = sourceBinding(320);
+    const globalMask = sourceBinding(330);
+    const found = nmiStackRetainedLocals(
+      {
+        ...handler([
+          load("outer", globalMask),
+          constant("one", 1n),
+          binary("m", "|", "outer", "one"),
+          store("m", maskLocal),
+          read("consumed"),
+          load("mask", maskLocal),
+          binary("masked", "&", "consumed", "mask"),
+        ]),
+        entryKind: "interrupt",
+      },
+      new Set([...excluded, bindingIdentityKey(globalMask)]),
+    );
+    expect(found.has(bindingIdentityKey(maskLocal))).toBe(true);
+    expect(found.get(bindingIdentityKey(maskLocal))?.loadIndexes).toEqual([5]);
+  });
+
+  it("rejects a store that reaches a join without dominating it", () => {
+    const extra = sourceBinding(620);
+    const blocks = [
+      semanticBlock("entry", [constant("cond", 1n), read("readP"), store("readP", local)], {
+        kind: "branch",
+        condition: "cond",
+        whenTrue: "s",
+        whenFalse: "j",
+      }),
+      semanticBlock(
+        "s",
+        [
+          constant("cond2", 1n),
+          read("readQ"),
+          store("readQ", extra),
+          load("useQ", extra),
+          store("useQ", destination),
+        ],
+        {
+          kind: "branch",
+          condition: "cond2",
+          whenTrue: "r",
+          whenFalse: "j",
+        },
+      ),
+      semanticBlock("r", [], { kind: "return", value: null }),
+      semanticBlock("j", [constant("cond3", 1n), load("useP", local), store("useP", destination)], {
+        kind: "jump",
+        target: "j",
+      }),
+    ];
+    const fn: SemanticFunction = {
+      ...semanticFunction(100, "handler", [], VOID, blocks),
+      entryKind: "interrupt",
+    };
+    expect(nmiStackRetainedLocals(fn, excluded).size).toBe(0);
+  });
+
+  it("retains a computed mask consumed as the left operand of a bitwise AND", () => {
+    const maskLocal = sourceBinding(321);
+    const globalMask = sourceBinding(331);
+    const found = nmiStackRetainedLocals(
+      {
+        ...handler([
+          load("outer", globalMask),
+          constant("one", 1n),
+          binary("m", "|", "outer", "one"),
+          store("m", maskLocal),
+          read("consumed"),
+          load("mask", maskLocal),
+          binary("masked", "&", "mask", "consumed"),
+        ]),
+        entryKind: "interrupt",
+      },
+      new Set([...excluded, bindingIdentityKey(globalMask)]),
+    );
+    expect(found.has(bindingIdentityKey(maskLocal))).toBe(true);
+  });
+
+  it("elides a nested zero-mask fold across an intervening volatile read", () => {
+    const globalMask = sourceBinding(640);
+    const fn: SemanticFunction = {
+      ...handler([
+        load("outer", globalMask),
+        constant("zero", 0n),
+        binary("zeroed", "&", "outer", "zero"),
+        constant("one", 1n),
+        binary("m", "|", "zeroed", "one"),
+        store("m"),
+        read("consumed"),
+        load("sample"),
+        binary("masked", "&", "consumed", "sample"),
+        store("masked", destination),
+      ]),
+      entryKind: "interrupt",
+    };
+    const excludedWithMask = new Set([...excluded, bindingIdentityKey(globalMask)]);
+    expect(nmiRegisterOnlyLocals(fn, excludedWithMask).has(bindingIdentityKey(local))).toBe(true);
+    expect(nmiStackRetainedLocals(fn, excludedWithMask).size).toBe(0);
+  });
+
+  it("does not consume a top slot when a later non-consuming use needs it", () => {
+    const helper = sourceBinding(700);
+    const fn: SemanticFunction = {
+      ...handler([
+        read("readP"),
+        store("readP", local),
+        load("first", local),
+        store("first", destination),
+        { kind: "call", result: null, callee: helper, arguments: [], type: VOID, span },
+        load("second", local),
+        constant("zero", 0n),
+        binary("combined", "|", "second", "zero"),
+        store("combined", destination),
+      ]),
+      entryKind: "interrupt",
+    };
+    const found = nmiStackRetainedLocals(fn, excluded);
+    expect(found.has(bindingIdentityKey(local))).toBe(true);
+    expect(found.get(bindingIdentityKey(local))?.consumeResult).toBeNull();
+  });
+
+  it("elides a local initialized by a zero-mask bitwise expression", () => {
+    const globalMask = sourceBinding(630);
+    const fn: SemanticFunction = {
+      ...handler([
+        load("outer", globalMask),
+        constant("zero", 0n),
+        binary("m", "&", "outer", "zero"),
+        store("m"),
+        read("consumed"),
+        load("sample"),
+        binary("masked", "&", "consumed", "sample"),
+        store("masked", destination),
+      ]),
+      entryKind: "interrupt",
+    };
+    const excludedWithMask = new Set([...excluded, bindingIdentityKey(globalMask)]);
+    expect(nmiRegisterOnlyLocals(fn, excludedWithMask).has(bindingIdentityKey(local))).toBe(true);
+    expect(nmiStackRetainedLocals(fn, excludedWithMask).size).toBe(0);
   });
 });

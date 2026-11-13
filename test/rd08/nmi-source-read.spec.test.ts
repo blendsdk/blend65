@@ -1,14 +1,5 @@
-import { access } from "node:fs/promises";
-import { join } from "node:path";
-import { buildProject, checkProject } from "@blend65/compiler";
-import type { BuildResult, CheckResult } from "@blend65/compiler";
 import { describe, expect, it } from "vitest";
-import {
-  buildProfileSource,
-  profileRecord,
-  profileRecords,
-  withProfileProject,
-} from "../rd05/profile-fixture.js";
+import { buildProfileSource, profileRecord, profileRecords } from "../rd05/profile-fixture.js";
 
 /** Every cooperative profile shares the same source-level NMI contract. */
 const PROFILES = [
@@ -296,7 +287,7 @@ describe.each(PROFILES)("register-only NMI source reads on %s", (profile) => {
   }, 60_000);
 });
 
-/** Five simultaneously retained samples cannot be register-only. */
+/** Five simultaneously retained samples use bounded hardware-stack slots. */
 const FIVE_RETAINED_SAMPLES = `module Game;
 import { setNMIExclusive, restoreNMI } from c64.system;
 interrupt function timerHandler(): void {
@@ -308,32 +299,15 @@ interrupt function timerHandler(): void {
 }
 function main(): void { setNMIExclusive(&timerHandler); restoreNMI(); }`;
 
-/** Both services must reject with the canonical diagnostic and publish nothing. */
-async function expectRejected(source: string, profile: string, primary: string): Promise<void> {
-  await withProfileProject(source, profile, async (project, root) => {
-    const results: readonly (BuildResult | CheckResult)[] = [
-      await checkProject({ project }),
-      await buildProject({ project, optimization: "none" }),
-    ];
-    for (const result of results) {
-      expect(result.kind).toBe("failure");
-      expect(result).not.toHaveProperty("generation");
-      const errors = result.diagnostics.filter((diagnostic) => diagnostic.severity === "error");
-      expect(errors.map(({ code }) => code)).toEqual(["E10245"]);
-      expect(errors[0]!.message).toMatch(NMI_PRIVATE_STORAGE_MESSAGE);
-      const span = errors[0]!.primarySpan;
-      expect(span?.sourceId).toBe("src/game.blend");
-      const start = Buffer.byteLength(source.slice(0, source.indexOf(primary)));
-      expect(span!.start).toBeGreaterThanOrEqual(start);
-      expect(span!.end).toBeLessThanOrEqual(Buffer.byteLength(source));
-    }
-    await expect(access(join(root, "out"))).rejects.toMatchObject({ code: "ENOENT" });
-  });
-}
-
-/** Several simultaneously retained samples still need a private home the NMI proof forbids. */
-describe.each(PROFILES)("NMI private-home rejection on %s", (profile) => {
-  it("should reject five simultaneously retained samples", async () => {
-    await expectRejected(FIVE_RETAINED_SAMPLES, profile, "peek($0404)");
+/** The five retained bytes live on the handler stack and use no private home. */
+describe.each(PROFILES)("NMI bounded stack retention on %s", (profile) => {
+  it("should retain five sampled bytes without private storage", async () => {
+    const artifacts = await buildProfileSource(FIVE_RETAINED_SAMPLES, profile);
+    expect(artifacts.memory.acmeReconciled).toBe(true);
+    const totals = profileRecord(artifacts.costs.totals);
+    expect(resource(totals, "zeroPage")).toBe(0);
+    expect(resource(totals, "scratch")).toBe(0);
+    expect(resource(totals, "hardwareStack")).toBe(10);
+    expectNoHandlerPrivateHome(artifacts);
   }, 60_000);
 });

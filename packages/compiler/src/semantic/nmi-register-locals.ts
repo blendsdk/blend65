@@ -6,6 +6,10 @@ import { forwardableVolatileByteRead } from "./direct-byte-reads.js";
 import type { ExecutionDomain } from "./interrupt-domains.js";
 import type { BlockId, SemanticBlock, SemanticFunction, SemanticOperation } from "./operations.js";
 import { potentialValueInputs } from "./value-lifetimes.js";
+import { blockReaches, nmiControlFacts, nmiStackPlan } from "./nmi-stack-plan.js";
+
+export { nmiStackPlan } from "./nmi-stack-plan.js";
+export type { NmiStackPlan } from "./nmi-stack-plan.js";
 
 /** Stable elision identity shared by inventory and machine lowering. */
 export function nmiLocalElisionKey(
@@ -138,6 +142,60 @@ function zeroConstant(fn: SemanticFunction, value: string): boolean {
   return definition.operation.kind === "convert" && zeroConstant(fn, definition.operation.operand);
 }
 
+/** Return the packed width of one scalar type without importing the machine layer. */
+function scalarWidth(type: SemanticType): number {
+  if (type.kind !== "scalar") return 8;
+  return type.name === "word" || type.name === "sword" ? 16 : 8;
+}
+
+/**
+ * Return the compile-time value of a byte expression whose non-constant part is
+ * neutralized by a zero mask, or null when any part stays runtime.
+ *
+ * The lowering folds a zero `&`, a constant bitwise expression and constant
+ * conversions. This mirror keeps the retention proof from calling a value "in A"
+ * when lowering will actually produce a constant.
+ */
+function foldedConstant(
+  fn: SemanticFunction,
+  value: string,
+  seen: ReadonlySet<string> = new Set<string>(),
+): bigint | null {
+  if (seen.has(value)) return null;
+  const nextSeen = new Set(seen);
+  nextSeen.add(value);
+  const definition = definitionOf(fn, value)?.operation;
+  if (definition === undefined) return null;
+  if (definition.kind === "constant")
+    return typeof definition.value === "boolean" ? (definition.value ? 1n : 0n) : definition.value;
+  if (definition.kind === "convert") {
+    const inner = foldedConstant(fn, definition.operand, nextSeen);
+    if (inner === null) return null;
+    const width = scalarWidth(definition.type);
+    const mask = (1n << BigInt(width)) - 1n;
+    if (definition.conversion === "truncate") return inner & 0xffn;
+    if (definition.conversion === "zero-extend") return inner & mask;
+    if (definition.conversion === "sign-extend") {
+      if ((inner & 0x80n) !== 0n) return (inner | (mask ^ 0xffn)) & mask;
+      return inner & mask;
+    }
+    return inner & mask;
+  }
+  if (definition.kind === "binary" && ["&", "|", "^"].includes(definition.operator)) {
+    const left = foldedConstant(fn, definition.left, nextSeen);
+    const right = foldedConstant(fn, definition.right, nextSeen);
+    if (definition.operator === "&" && (left === 0n || right === 0n)) return 0n;
+    if (left === null || right === null) return null;
+    const width = scalarWidth(definition.type);
+    const mask = (1n << BigInt(width)) - 1n;
+    const leftBits = left & mask;
+    const rightBits = right & mask;
+    if (definition.operator === "&") return leftBits & rightBits;
+    return definition.operator === "|" ? leftBits | rightBits : leftBits ^ rightBits;
+  }
+  return null;
+}
+
 /** Return whether one value is an empty-path byte load the ALU can address directly. */
 function directByteLoad(fn: SemanticFunction, value: string): boolean {
   const definition = definitionOf(fn, value);
@@ -146,6 +204,41 @@ function directByteLoad(fn: SemanticFunction, value: string): boolean {
     definition.operation.place.path.length === 0 &&
     byteType(definition.operation.type)
   );
+}
+
+/**
+ * Return whether lowering one byte value necessarily leaves it in A.
+ *
+ * A platform byte read, a fixed-address byte read, and a byte bitwise result
+ * that cannot fold are all produced in A by their own lowering. A constant or a
+ * wider value is deliberately absent: the retention store would have nothing to
+ * push.
+ */
+function producesByteInA(
+  fn: SemanticFunction,
+  value: string,
+  constants: ReadonlySet<string>,
+): boolean {
+  const definition = definitionOf(fn, value)?.operation;
+  if (definition === undefined) return false;
+  if (foldedConstant(fn, value) !== null) return false;
+  if (definition.kind === "platform")
+    return byteType(definition.type) && forwardableVolatileByteRead(definition.capability);
+  if (definition.kind === "memory-read")
+    return definition.width === 1 && constants.has(definition.address);
+  if (definition.kind === "binary") {
+    if (!["&", "|", "^"].includes(definition.operator) || !byteType(definition.type)) return false;
+    // A zero mask folds to a constant at lowering; nothing would be in A to push.
+    const zero = (value: string): boolean => {
+      const operand = definitionOf(fn, value)?.operation;
+      if (operand?.kind === "constant") return operand.value === 0n;
+      return operand?.kind === "convert" && zero(operand.operand);
+    };
+    if (definition.operator === "&" && (zero(definition.left) || zero(definition.right)))
+      return false;
+    return !(constants.has(definition.left) && constants.has(definition.right));
+  }
+  return false;
 }
 
 /**
@@ -210,15 +303,15 @@ export function nmiRegisterOnlyLocals(
     const store = access.stores[0]!;
     const load = access.loads[0];
     const initializer = definitionOf(fn, store.operation.value)?.operation;
-    const constantInitializer =
-      initializer !== undefined &&
-      (initializer.kind === "constant" ||
-        (initializer.kind === "convert" && constants.has(initializer.operand)));
+    const constantInitializer = foldedConstant(fn, store.operation.value) !== null;
     if (load !== undefined) {
+      // A direct read in A must not be clobbered before its store; a constant
+      // needs no register and safely crosses any intervening effect.
       if (
         store.block.id !== load.block.id ||
         load.index <= store.index ||
-        !constantOnlyBetween(store.block, store.index, load.index, constants)
+        (!constantInitializer &&
+          !constantOnlyBetween(store.block, store.index, load.index, constants))
       )
         continue;
     }
@@ -401,25 +494,34 @@ export interface NmiStackRetainedLocal {
   readonly storeSpan: SourceSpan;
   /** Exact loads which read the pushed byte. */
   readonly loadSpans: readonly SourceSpan[];
-  /** Block containing every access. */
+  /** Block containing the store. */
   readonly block: BlockId;
   /** Store operation index in that block. */
   readonly storeIndex: number;
-  /** Load operation indexes in that block. */
+  /** Load operation indexes in source order. */
   readonly loadIndexes: readonly number[];
+  /** Block, index, result and A-consumability of every load. */
+  readonly loads: readonly {
+    readonly block: BlockId;
+    readonly index: number;
+    readonly result: string;
+    readonly consumable: boolean;
+  }[];
+  /** Load result consumed with PLA because it is the last top-of-stack use. */
+  readonly consumeResult: string | null;
 }
 
-/** Hard upper bound on body-pushed bytes; the cooperative stack reserve is larger. */
-const MAX_STACK_RETAINED_BYTES = 8;
-
 /**
- * Prove NMI locals whose complete life fits a bounded hardware-stack slot.
+ * Prove NMI locals whose complete life fits the handler's hardware stack.
  *
- * The proof is deliberately narrow: one straight-line interrupt handler with a
- * void return, no calls, byte locals with one initializer store and one or more
- * loads, and an initializer already in A (a platform read, a fixed memory read,
- * or a byte `&`). The value is pushed once and read through `TSX`-relative
- * addressing; the handler pops every slot before the wrapper restores A/X.
+ * A byte local has exactly one initializer store and one or more loads. The
+ * initializer is already in A (a platform read, a fixed memory read, or a byte
+ * bitwise that cannot fold). Every load has one safe consumer. Every store
+ * dominates every load of its binding and the single return, no store sits in a
+ * cycle, and all stores are dominance-comparable, so the push order is static.
+ * The value is pushed once and read through `TSX`-relative addressing; the
+ * handler pops every slot before the wrapper restores A/X. The byte count is
+ * bounded by the platform's proved stack capacity, not a fixed cap.
  * @param fn Exact checked NMI handler body.
  * @param excluded Global, parameter and returned-local binding keys.
  * @returns Binding keys mapped to their exact store/load evidence.
@@ -428,56 +530,51 @@ export function nmiStackRetainedLocals(
   fn: SemanticFunction,
   excluded: ReadonlySet<string>,
 ): ReadonlyMap<string, NmiStackRetainedLocal> {
-  if (
-    fn.entryKind !== "interrupt" ||
-    fn.blocks.length !== 1 ||
-    fn.blocks[0]!.terminator.kind !== "return" ||
-    fn.result.kind !== "scalar" ||
-    fn.result.name !== "void"
-  )
+  if (fn.entryKind !== "interrupt" || fn.result.kind !== "scalar" || fn.result.name !== "void")
     return new Map();
-  const block = fn.blocks[0]!;
-  if (
-    block.operations.some(
-      (operation) => operation.kind === "call" || operation.kind === "indirect-call",
-    )
-  )
-    return new Map();
+  const facts = nmiControlFacts(fn.entry, fn.blocks);
+  if (facts === null) return new Map();
   const excludedKeys = new Set([
     ...excluded,
     ...fn.parameters.map((parameter) => bindingIdentityKey(parameter.id)),
   ]);
   const constants = new Set<string>();
-  for (const operation of block.operations) {
-    if (operation.kind === "constant") constants.add(operation.result);
-    else if (operation.kind === "convert" && constants.has(operation.operand))
-      constants.add(operation.result);
-  }
+  for (const block of fn.blocks)
+    for (const operation of block.operations) {
+      if (operation.kind === "constant") constants.add(operation.result);
+      else if (operation.kind === "convert" && constants.has(operation.operand))
+        constants.add(operation.result);
+    }
   interface Access {
     readonly stores: {
+      readonly block: BlockId;
       readonly index: number;
       readonly operation: Extract<SemanticOperation, { kind: "store" }>;
     }[];
     readonly loads: {
+      readonly block: BlockId;
       readonly index: number;
       readonly operation: Extract<SemanticOperation, { kind: "load" }>;
     }[];
     rejected: boolean;
   }
   const accesses = new Map<string, Access>();
-  for (let index = 0; index < block.operations.length; index += 1) {
-    const operation = block.operations[index]!;
-    for (const use of placeUses(operation)) {
-      const key = bindingIdentityKey(use.place.root);
-      if (excludedKeys.has(key) || use.place.asset !== undefined) continue;
-      const access = accesses.get(key) ?? { stores: [], loads: [], rejected: false };
-      if (use.place.path.length !== 0) access.rejected = true;
-      else if (operation.kind === "store") access.stores.push({ index, operation });
-      else if (operation.kind === "load") access.loads.push({ index, operation });
-      else access.rejected = true;
-      accesses.set(key, access);
+  for (const block of fn.blocks)
+    for (let index = 0; index < block.operations.length; index += 1) {
+      const operation = block.operations[index]!;
+      for (const use of placeUses(operation)) {
+        const key = bindingIdentityKey(use.place.root);
+        if (excludedKeys.has(key) || use.place.asset !== undefined) continue;
+        const access = accesses.get(key) ?? { stores: [], loads: [], rejected: false };
+        if (use.place.path.length !== 0) access.rejected = true;
+        else if (operation.kind === "store")
+          access.stores.push({ block: block.id, index, operation });
+        else if (operation.kind === "load")
+          access.loads.push({ block: block.id, index, operation });
+        else access.rejected = true;
+        accesses.set(key, access);
+      }
     }
-  }
   const result = new Map<string, NmiStackRetainedLocal>();
   const allowed = new Set<SemanticOperation>();
   /** Admit one operation and every definition it reads. */
@@ -499,42 +596,40 @@ export function nmiStackRetainedLocals(
     }
   };
   for (const [key, access] of accesses) {
-    if (
-      access.rejected ||
-      access.stores.length !== 1 ||
-      access.loads.length === 0 ||
-      access.loads.length > MAX_STACK_RETAINED_BYTES
-    )
-      continue;
+    if (access.rejected || access.stores.length !== 1 || access.loads.length === 0) continue;
     const store = access.stores[0]!;
     if (
-      access.loads.some((load) => load.index <= store.index) ||
       !byteType(store.operation.type) ||
       access.loads.some((load) => !byteType(load.operation.type))
     )
       continue;
+    // Every load must be dominated by the store. Same-block order is the store
+    // index; a later block must have the store block in its dominator set.
+    const dominatesLoad = (load: { readonly block: BlockId; readonly index: number }): boolean =>
+      load.block === store.block
+        ? load.index > store.index
+        : facts.dominators.get(load.block)?.has(store.block) === true;
+    if (access.loads.some((load) => !dominatesLoad(load))) continue;
     const valueDefinition = definitionOf(fn, store.operation.value);
     if (
       valueDefinition === null ||
-      valueDefinition.block.id !== block.id ||
+      valueDefinition.block.id !== store.block ||
       valueDefinition.index >= store.index ||
       valueUseCount(fn, store.operation.value) !== 1 ||
-      !constantOnlyBetween(block, valueDefinition.index, store.index, constants)
+      !constantOnlyBetween(
+        fn.blocks.find((block) => block.id === store.block)!,
+        valueDefinition.index,
+        store.index,
+        constants,
+      )
     )
       continue;
-    const initializer = valueDefinition.operation;
-    const inA =
-      (initializer.kind === "platform" &&
-        byteType(initializer.type) &&
-        forwardableVolatileByteRead(initializer.capability)) ||
-      (initializer.kind === "memory-read" &&
-        initializer.width === 1 &&
-        constants.has(initializer.address)) ||
-      (initializer.kind === "binary" && initializer.operator === "&" && byteType(initializer.type));
+    const inA = producesByteInA(fn, store.operation.value, constants);
     if (!inA) continue;
     if (access.loads.some((load) => valueUseCount(fn, load.operation.result) === 0)) continue;
     // Only consumers that can materialize a stack byte safely are admitted.
-    // A right-hand arithmetic/bitwise operand would need an addressable mode.
+    // A right-hand bitwise operand is safe when the other operand is already in
+    // A; the ALU consumes the stack byte through absolute,X addressing.
     const consumers = access.loads.map((load) => singleConsumer(fn, load.operation.result));
     const safeConsumer = (consumer: LocatedOperation | null, value: string): boolean => {
       if (consumer === null) return false;
@@ -545,11 +640,20 @@ export function nmiStackRetainedLocals(
       if (operation.kind !== "binary") return false;
       if (operation.operator === "==" || operation.operator === "!=")
         return operation.left === value && zeroConstant(fn, operation.right);
+      if (operation.operator !== "&" && operation.operator !== "|" && operation.operator !== "^")
+        return false;
+      if (operation.left === value)
+        return (
+          constants.has(operation.right) ||
+          (directByteLoad(fn, operation.right) && valueUseCount(fn, operation.right) === 1) ||
+          (producesByteInA(fn, operation.right, constants) &&
+            valueUseCount(fn, operation.right) === 1)
+        );
+      if (operation.right !== value) return false;
+      // The left operand owns A at the ALU instruction. Its read still executes
+      // exactly once at its source point, before the stack byte is consumed.
       return (
-        (operation.operator === "&" || operation.operator === "|" || operation.operator === "^") &&
-        operation.left === value &&
-        (constants.has(operation.right) ||
-          (directByteLoad(fn, operation.right) && valueUseCount(fn, operation.right) === 1))
+        valueUseCount(fn, operation.left) === 1 && producesByteInA(fn, operation.left, constants)
       );
     };
     if (
@@ -567,29 +671,99 @@ export function nmiStackRetainedLocals(
         admitConsumer(consumer.operation);
       }
     }
+    const loadEvidence = access.loads.map((load, index) => {
+      const operation = consumers[index]?.operation;
+      // PLA is legal only for a plain A consumer. A bitwise consumer addresses
+      // the stack byte with absolute,X, where SP must not move.
+      const consumable =
+        operation?.kind === "store" ||
+        operation?.kind === "memory-write" ||
+        (operation?.kind === "binary" &&
+          (operation.operator === "==" || operation.operator === "!=") &&
+          operation.left === load.operation.result &&
+          zeroConstant(fn, operation.right));
+      return Object.freeze({
+        block: load.block,
+        index: load.index,
+        result: load.operation.result,
+        consumable,
+      });
+    });
     result.set(
       key,
       Object.freeze({
         binding: store.operation.place.root,
         storeSpan: store.operation.span,
         loadSpans: Object.freeze(access.loads.map((load) => load.operation.span)),
-        block: block.id,
+        block: store.block,
         storeIndex: store.index,
         loadIndexes: Object.freeze(access.loads.map((load) => load.index)),
+        loads: Object.freeze(loadEvidence),
+        consumeResult: null,
       }),
     );
   }
-  // Any unrelated code in the block could clobber X or SP between a TSX and a
-  // later stack-relative load. The bounded proof admits only constants and the
-  // retained stores/loads, their consumers and their operand definitions.
-  if (
-    block.operations.some(
-      (operation) =>
-        !allowed.has(operation) && operation.kind !== "constant" && operation.kind !== "convert",
-    )
-  )
-    return new Map();
-  // The cap is on the whole handler, not one local: a ninth retained byte is
-  // outside the bounded straight-line proof and must keep its normal rejection.
-  return result.size > MAX_STACK_RETAINED_BYTES ? new Map() : result;
+  // Only the retention slice and scalar accesses to excluded global/parameter
+  // homes may sit between a push and its load. Those accesses emit A-only
+  // loads/stores. A call is admitted because the callee is an ordinary function
+  // whose stack use is balanced; the lowering re-reads SP after it. Any other
+  // operation could change X or SP and is rejected.
+  const safeExcludedAccess = (operation: SemanticOperation): boolean =>
+    (operation.kind === "load" || operation.kind === "store") &&
+    operation.place.path.length === 0 &&
+    excludedKeys.has(bindingIdentityKey(operation.place.root)) &&
+    operation.type.kind === "scalar" &&
+    operation.type.name !== "void";
+  for (const block of fn.blocks)
+    for (const operation of block.operations)
+      if (
+        !allowed.has(operation) &&
+        operation.kind !== "constant" &&
+        operation.kind !== "convert" &&
+        operation.kind !== "call" &&
+        operation.kind !== "indirect-call" &&
+        !safeExcludedAccess(operation)
+      )
+        return new Map();
+  // A join can only be exact when every retained store either dominates a load
+  // or cannot reach it. A store that can reach a load without dominating it
+  // makes the live depth path-dependent, so the same slot address is wrong on
+  // one of the paths.
+  const sites = [...result.values()].flatMap((local) => [...local.loads]);
+  for (const load of sites) {
+    for (const other of result.values()) {
+      const storeBlock = other.block;
+      const dominates =
+        storeBlock === load.block
+          ? other.storeIndex < load.index
+          : facts.dominators.get(load.block)?.has(storeBlock) === true;
+      if (dominates || storeBlock === load.block) continue;
+      if (blockReaches(facts.successors, storeBlock, load.block)) return new Map();
+    }
+  }
+  // The structural plan is the whole-handler bound: a join must agree on the
+  // live push count, every store must dominate the return, and no store may be
+  // loop-carried. The platform capacity check is the byte-count bound.
+  const plan = nmiStackPlan(fn.entry, fn.blocks, new Set(result.keys()));
+  if (plan === null) return new Map();
+  // The last top-slot load in the single return block can be consumed with PLA:
+  // the byte is in A and SP rises by one, so the return pops one fewer byte.
+  // A right-hand bitwise operand is excluded because the other operand owns A.
+  const final = new Map<string, NmiStackRetainedLocal>();
+  for (const [key, local] of result) {
+    const slot = plan.slots.get(key);
+    let consumeResult: string | null = null;
+    if (slot === plan.total) {
+      // The last load in the return block is the last use on every path that
+      // reaches that block. A later non-consumable use (for example a bitwise
+      // operand) must keep the slot live; only a consumable final use may pop.
+      const returnLoads = local.loads
+        .filter((load) => load.block === facts.returnBlock)
+        .sort((left, right) => right.index - left.index);
+      const last = returnLoads[0];
+      consumeResult = last?.consumable === true ? last.result : null;
+    }
+    final.set(key, Object.freeze({ ...local, consumeResult }));
+  }
+  return final;
 }

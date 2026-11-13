@@ -12,6 +12,7 @@ import type { MachineInstruction } from "./machine-types.js";
 import {
   loweringFailure,
   appendLoadA,
+  ensureStackX,
   isSignedType,
   loweredPlace,
   loadA,
@@ -280,12 +281,151 @@ export function lowerBitwise(
       left.kind === "static-address")
   )
     [left, right] = [right, left];
+  // A byte retained on the handler's own stack is a direct ALU operand. The
+  // other operand is made current in A first (a register value emits nothing),
+  // then one stack-pointer read makes the slot addressable. The volatile read
+  // which produced the other operand already happened once at its source point.
+  if (width === 1 && (left.kind === "stack" || right.kind === "stack")) {
+    const stackOperand = left.kind === "stack" ? left : right;
+    if (stackOperand.kind === "stack") {
+      const other = left.kind === "stack" ? right : left;
+      const instructions: MachineInstruction[] = [];
+      appendLoadA(instructions, other, 0, state, operation.span);
+      ensureStackX(instructions, state, operation.span);
+      instructions.push(
+        machineInstruction(
+          state.input.profile.cpu,
+          opcode,
+          "absolute-x",
+          Object.freeze({
+            kind: "absolute" as const,
+            value: 0x0100 + state.stackDepth - stackOperand.slot + 1,
+          }),
+          [],
+          operation.span,
+        ),
+      );
+      return Object.freeze({
+        instructions: Object.freeze(instructions),
+        result: Object.freeze({
+          kind: "register" as const,
+          registers: "a" as const,
+          bytes: 1 as const,
+          signed: isSignedType(operation.type),
+        }),
+      });
+    }
+  }
   // A byte-sized AND mask proves the word's high byte is zero. Keep the
   // source word width, but do not compute or store that already-known byte.
   const byteMask = (value: LoweredValue): boolean =>
     value.kind === "constant" && value.value >= 0 && value.value <= 0xff;
   const zeroHigh = width === 2 && opcode === "and" && (byteMask(left) || byteMask(right));
   if (zeroHigh && byteMask(left) && !byteMask(right)) [left, right] = [right, left];
+  // A mask confined to the high byte needs no low-byte load or join; the high
+  // byte's masked value is the whole word value.
+  const wordMaskTest = state.booleanMaskTests.get(operation.result);
+  const constantSide = left.kind === "constant" ? left : right.kind === "constant" ? right : null;
+  if (
+    wordMaskTest?.form === "word-high" &&
+    opcode === "and" &&
+    width === 2 &&
+    constantSide !== null
+  ) {
+    const operand = left.kind === "constant" ? right : left;
+    const instructions: MachineInstruction[] = [];
+    appendLoadA(instructions, operand, 1, state, operation.span);
+    instructions.push(
+      machineInstruction(
+        state.input.profile.cpu,
+        "and",
+        "immediate",
+        Object.freeze({ kind: "immediate", value: wordMaskTest.highMask ?? 0 }),
+        [],
+        operation.span,
+      ),
+    );
+    return Object.freeze({
+      instructions: Object.freeze(instructions),
+      result: Object.freeze({
+        kind: "register" as const,
+        registers: "a" as const,
+        bytes: 1 as const,
+        signed: false,
+      }),
+    });
+  }
+  if (
+    wordMaskTest?.form === "word-align" &&
+    opcode === "and" &&
+    width === 2 &&
+    constantSide !== null
+  ) {
+    const mask = constantSide.value;
+    const bitPosition = (value: number): number => {
+      let position = 0;
+      while ((value & (1 << position)) === 0) position += 1;
+      return position;
+    };
+    const lowPosition = bitPosition(mask & 0xff);
+    const highPosition = bitPosition((mask >> 8) & 0xff);
+    const firstOffset = lowPosition >= highPosition ? 0 : 1;
+    const otherOffset = firstOffset === 0 ? 1 : 0;
+    const shift = Math.abs(lowPosition - highPosition);
+    const operand = left.kind === "constant" ? right : left;
+    const instructions: MachineInstruction[] = [];
+    appendLoadA(instructions, operand, firstOffset, state, operation.span);
+    for (let step = 0; step < shift; step += 1)
+      instructions.push(
+        machineInstruction(state.input.profile.cpu, "lsr", "accumulator", null, [], operation.span),
+      );
+    return Object.freeze({
+      instructions: Object.freeze(instructions),
+      result: Object.freeze({
+        kind: "word-aligned" as const,
+        first: operand,
+        firstOffset,
+        shift,
+        other: operand,
+        otherOffset,
+        combine: wordMaskTest.constant === 0 ? ("ora" as const) : ("and" as const),
+        normalize: Math.min(lowPosition, highPosition),
+        bytes: 2 as const,
+        signed: isSignedType(operation.type),
+      }),
+    });
+  }
+  // A selected wide word mask keeps only the low masked byte in A. The join
+  // lowers the high masked byte at the comparison, so no two-byte temporary is
+  // requested and the operand's high byte must stay reloadable.
+  if (wordMaskTest?.form === "word" && opcode === "and" && width === 2 && constantSide !== null) {
+    const mask = constantSide.value;
+    const operand = left.kind === "constant" ? right : left;
+    const lowMask = mask & 0xff;
+    const instructions: MachineInstruction[] = [];
+    appendLoadA(instructions, operand, 0, state, operation.span);
+    instructions.push(
+      machineInstruction(
+        state.input.profile.cpu,
+        "and",
+        "immediate",
+        Object.freeze({ kind: "immediate", value: lowMask }),
+        [],
+        operation.span,
+      ),
+    );
+    return Object.freeze({
+      instructions: Object.freeze(instructions),
+      result: Object.freeze({
+        kind: "masked-word" as const,
+        operand,
+        highMask: wordMaskTest.highMask ?? (mask >> 8) & 0xff,
+        lowMask,
+        bytes: 2 as const,
+        signed: isSignedType(operation.type),
+      }),
+    });
+  }
   const request =
     width === 1 || zeroHigh
       ? null

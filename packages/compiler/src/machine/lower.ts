@@ -137,6 +137,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
       zeroExtensionValues: initialInventory.zeroExtensionValues ?? new Set<string>(),
       stackRetainedBindings: initialInventory.stackRetainedBindings ?? new Set<string>(),
       stackRetainedLocalKeys: initialInventory.stackRetainedLocalKeys ?? new Set<string>(),
+      stackConsumedValues: initialInventory.stackConsumedValues ?? new Set<string>(),
     });
     const routeDepths = interruptRouteDepths(input.program, contexts);
     const routeSlots = new Map<SemanticOperation, Set<string>>();

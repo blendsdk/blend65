@@ -70,6 +70,11 @@ export function lowerConversion(
     if (bytes !== 1 || operand.bytes !== 2) {
       throw loweringFailure("Integer truncation has unsupported widths", operation.span);
     }
+    if (operand.kind === "masked-word" || operand.kind === "word-aligned")
+      throw loweringFailure(
+        "A joined word-mask value has no complete converted representation",
+        operation.span,
+      );
     const truncated: LoweredValue =
       operand.kind === "register"
         ? Object.freeze({ kind: "register", registers: "a", bytes: 1, signed })

@@ -123,6 +123,8 @@ export interface StorageInventory {
   readonly stackRetainedBindings?: ReadonlySet<string>;
   /** Source binding keys for those stack-retained locals. */
   readonly stackRetainedLocalKeys?: ReadonlySet<string>;
+  /** Load results consumed with PLA because they are the last top-of-stack use. */
+  readonly stackConsumedValues?: ReadonlySet<string>;
 }
 
 /** One inclusive address window available to SFA. */

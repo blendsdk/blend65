@@ -218,7 +218,13 @@ export function lowerOperation(
           );
         state.values.set(
           operation.result,
-          Object.freeze({ kind: "stack", slot, bytes: 1, signed: false }),
+          Object.freeze({
+            kind: "stack",
+            slot,
+            bytes: 1,
+            signed: false,
+            consume: state.stackConsumedValues.has(operation.result),
+          }),
         );
         return Object.freeze([]);
       }
@@ -324,6 +330,7 @@ export function lowerOperation(
         );
       state.stackDepth += 1;
       state.stackXValid = false;
+      state.stackXBulkDepth = null;
       state.stackSlots.set(
         nmiLocalElisionKey(
           state.interruptDepth.domain,

@@ -378,6 +378,10 @@ export function lowerDirectCall(
       operation.span,
     ),
   );
+  // A callee may freely use X and the stack; the retained slice re-reads SP
+  // before its next stack-relative load.
+  state.stackXValid = false;
+  state.stackXBulkDepth = null;
   if (operation.result !== null) {
     if (aggregateResult !== null) {
       state.values.set(operation.result, aggregateResult.result);

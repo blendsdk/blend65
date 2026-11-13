@@ -346,6 +346,7 @@ export function inventoryStorage(
   const zeroExtensionValues = new Set<string>();
   const stackRetainedBindings = new Set<string>();
   const stackRetainedLocalKeys = new Set<string>();
+  const stackConsumedValues = new Set<string>();
   const functions = new Map(
     program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
   );
@@ -421,8 +422,19 @@ export function inventoryStorage(
         const fn = Object.freeze({ ...source, blocks });
         const elidedLocals =
           domain === "nmi" ? nmiRegisterOnlyLocals(fn, elisionExcluded) : new Map();
+        // The straight-line hardware-stack retention is proved on the generated
+        // exclusive NMI entry. The stock chained route keeps its separate frame
+        // contract and does not reuse this proof.
+        const exclusiveNmi =
+          program.interruptRoutes?.some(
+            (route) =>
+              bindingIdentityKey(route.handler) === bindingIdentityKey(fn.id) &&
+              route.sink.capability === "c64.system.setNMIExclusive",
+          ) === true;
         const stackLocals =
-          domain === "nmi" ? nmiStackRetainedLocals(fn, elisionExcluded) : new Map();
+          domain === "nmi" && exclusiveNmi
+            ? nmiStackRetainedLocals(fn, elisionExcluded)
+            : new Map();
         const lifetimes = proof === undefined ? program.lifetimes : valueLifetimes(fn);
         if (fn.result.kind === "array" || fn.result.kind === "struct") {
           const id = valueRequestId(
@@ -528,6 +540,8 @@ export function inventoryStorage(
           if (stackLocals.has(key)) {
             stackRetainedBindings.add(nmiLocalElisionKey("nmi", activationRoot, key));
             stackRetainedLocalKeys.add(key);
+            const consume = stackLocals.get(key)?.consumeResult;
+            if (consume !== null && consume !== undefined) stackConsumedValues.add(consume);
             continue;
           }
           requests.push(
@@ -768,5 +782,8 @@ export function inventoryStorage(
     ...(stackRetainedLocalKeys.size === 0
       ? {}
       : { stackRetainedLocalKeys: Object.freeze(stackRetainedLocalKeys) }),
+    ...(stackConsumedValues.size === 0
+      ? {}
+      : { stackConsumedValues: Object.freeze(stackConsumedValues) }),
   });
 }

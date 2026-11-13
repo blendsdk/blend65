@@ -30,6 +30,7 @@ import {
 import { type AggregateInductionRuntime } from "./lower-induction.js";
 import type { MultiplyHelper } from "./lower-multiply.js";
 import type { DivideHelper } from "./lower-division.js";
+import type { BooleanMaskTest } from "./machine-types.js";
 import type {
   MachineBlock,
   MachineDataObject,
@@ -133,18 +134,26 @@ export interface FunctionLoweringState {
   readonly booleanShiftValues: ReadonlyMap<string, number>;
   /** Masked values materialized as a Boolean through an inline expert branch. */
   readonly booleanBranchValues: ReadonlySet<string>;
+  /** Masked values whose `==`/`!=` comparison materializes through the general mask branch. */
+  readonly booleanMaskTests: ReadonlyMap<string, BooleanMaskTest>;
   /** NMI local bindings whose request was omitted before SFA allocation. */
   readonly elidedLocalBindings: ReadonlySet<string>;
   /** Zero-extending conversion results whose low byte stays in A. */
   readonly zeroExtensionValues: ReadonlySet<string>;
   /** NMI local bindings retained on the hardware stack for this handler. */
   readonly stackRetainedBindings: ReadonlySet<string>;
+  /** Retained load results which consume their top slot with PLA. */
+  readonly stackConsumedValues: ReadonlySet<string>;
   /** Current number of bytes pushed by the handler body. */
   stackDepth: number;
   /** Assigned push order for each stack-retained binding. */
   readonly stackSlots: Map<string, number>;
   /** Whether X still holds SP for a subsequent stack-relative load. */
   stackXValid: boolean;
+  /** Stack depth at the TSX which established the current X value. */
+  stackXDepth: number;
+  /** Bulk-pop adjustment when the final consume left X as a valid stack base. */
+  stackXBulkDepth: number | null;
   /** Exact sole adjacent indexed additions selected from that access's unsigned proof. */
   readonly byteOrdinalAdditions?: ReadonlySet<string>;
   /** Proved `constant + byte index` raw-read addresses; absent without size observers. */
@@ -727,6 +736,35 @@ export function loadA(
   }
 }
 
+/**
+ * Make X hold the current stack pointer, reusing an earlier `TSX` only while
+ * the retained slice proves that nothing changed X or the stack pointer. The
+ * retention proof admits only A-only consumers between a push and its load; a
+ * push, a call or a block boundary clears the fact before the next load.
+ * @param instructions Current block's emitted instructions.
+ * @param state Exact lowering state carrying the stack-pointer validity fact.
+ * @param source Source span attributed to a fresh stack-pointer read.
+ */
+export function ensureStackX(
+  instructions: MachineInstruction[],
+  state: FunctionLoweringState,
+  source: SourceSpan,
+): void {
+  if (state.stackXValid) return;
+  state.stackXDepth = state.stackDepth;
+  state.stackXBulkDepth = null;
+  const instruction = machineInstruction(
+    state.input.profile.cpu,
+    "tsx",
+    "implied",
+    null,
+    [],
+    source,
+  );
+  instructions.push(instruction);
+  state.stackXValid = true;
+}
+
 /** Append the load needed to make one byte current in A; a register value is already current. */
 export function appendLoadA(
   instructions: MachineInstruction[],
@@ -741,14 +779,23 @@ export function appendLoadA(
   }
   if (value.kind === "stack") {
     if (offset !== 0) throw loweringFailure("Stack-retained value has only one byte", source);
-    // The retention proof admits only consumers that leave X and SP unchanged,
-    // so one TSX serves every read until the next push or pop.
-    if (!state.stackXValid) {
+    if (value.consume === true) {
+      // The proof proved this is the last top-slot use. PLA leaves the byte in A
+      // and raises SP, so the return emits one fewer pop. X still holds the SP
+      // from the last TSX; keep it as the base for a bulk cleanup.
+      if (state.stackDepth !== value.slot)
+        throw loweringFailure("Consumed stack slot is not the live top", source);
+      if (state.stackXValid) state.stackXBulkDepth = state.stackXDepth;
       instructions.push(
-        machineInstruction(state.input.profile.cpu, "tsx", "implied", null, [], source),
+        machineInstruction(state.input.profile.cpu, "pla", "implied", null, [], source),
       );
-      state.stackXValid = true;
+      state.stackDepth -= 1;
+      state.stackXValid = false;
+      return;
     }
+    // The retention proof admits only consumers that leave X and SP unchanged,
+    // so one TSX serves every read until the next push, pop, call or register write.
+    ensureStackX(instructions, state, source);
     instructions.push(
       machineInstruction(
         state.input.profile.cpu,
