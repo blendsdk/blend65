@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { analyzeProjectOverlay, loadProject } from "@blend65/compiler/frontend";
 import type { SourceSpan } from "@blend65/compiler/frontend";
-import { buildProject } from "@blend65/compiler";
 import type { BuildSuccess } from "@blend65/compiler";
+import { cachedBuildProject } from "../build-cache.js";
 
 /** Analyze a real temporary project with an explicit selected target and optional profile module. */
 export async function analyzeProfileSource(source: string, target: string, profileModule?: string) {
@@ -117,7 +117,7 @@ export async function buildProfileSource(
   optimization: "none" | "balanced" | "speed" | "size" = "none",
 ) {
   return withProfileProject(source, target, async (project) => {
-    const built = await buildProject({ project, optimization });
+    const built = await cachedBuildProject({ project, optimization });
     if (built.kind !== "success") throw new Error(JSON.stringify(built.diagnostics));
     return readProfileArtifacts(built);
   });

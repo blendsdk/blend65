@@ -26,19 +26,28 @@ Run from the repository root:
 - `yarn install --frozen-lockfile`
 - `yarn build` — Turbo invokes real package reference builds.
 - `yarn typecheck` — checks use fresh dependency declarations.
-- `yarn test` — owned workspace tests and the full root suite on local Linux.
-  `BLEND65_FOUNDATION_CI=1` or Windows selects four root foundation/boundary
-  files in `vitest.config.ts`; package suites remain complete.
+- `yarn test` — host checkpoint: owned workspace tests, then the host root tier
+  (fast + integration, parallel). VICE is not included.
+- `yarn test:full` — complete checkpoint: `yarn test` plus the serialized VICE tier.
+- `yarn test:fast` — pure host root tests only; no real compiler build and no emulator.
+  Use this for the inner edit loop.
+- `yarn test:integration` — root tests with real public builds/ACME, no emulator.
+- `yarn test:vice` — every root test that launches or drives a real emulator; serialized.
+- `yarn test:host` — fast + integration root tiers together.
+- `yarn test:changed` — fast tier plus only the changed package areas and changed root test
+  files; add `--host` or `--vice` to include those complete tiers before a checkpoint.
 - `yarn prettier --check <files>` — targeted touched-file formatting; do not
   reformat unrelated files.
 
-Verification is impact-based. During implementation use directed tests. Before
-a phase checkpoint run install, build, typecheck and the complete owned tests.
-Markdown/skill-only changes validate formatting, links, source keys and the
-relevant qualification cases, not the compiler suite. Local Linux root tests include
-ACME/VICE journeys; run emulator cases sequentially. There is no `lint` or aggregate
-`verify` script. Commands above come from manifests/configuration; a guidance
-refresh alone does not establish that build or compiler tests pass.
+Verification is impact-based. During implementation use the directed tests and `test:fast`;
+before a phase checkpoint run install, build, typecheck and the complete owned tests
+(`yarn test:full`). Emulator tests are the serialized VICE tier, not the inner loop. Markdown/skill-only
+changes validate formatting, links, source keys and the relevant qualification cases, not the
+compiler suite. Local Linux root tests include ACME/VICE journeys; run emulator cases sequentially.
+`BLEND65_FOUNDATION_CI=1` or Windows selects the four foundation/boundary root files in
+`vitest.config.ts`; package suites remain complete.
+There is no `lint` or aggregate `verify` script. Commands above come from manifests/configuration;
+a guidance refresh alone does not establish that build or compiler tests pass.
 
 ## Project structure
 

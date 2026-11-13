@@ -127,14 +127,25 @@ describe("saved input query purity", () => {
         const query = libraryEntry(artifacts, "src/library.blend::SavedPurity.query");
         const completed = libraryEntry(artifacts, "src/library.blend::SavedPurity.completed");
         await withLibraryVice(built, artifacts, profile, async (monitor, stopAt) => {
+          // Positive control: startup touches both ranges, so a range checkpoint
+          // that never fires would be a broken oracle rather than a pure query.
+          const zeroPageProbe = await monitor.setAccessTracepointRange(0, 1, "load");
+          const mmioProbe = await monitor.setAccessTracepointRange(0xd000, 0xdfff, "load");
           await stopAt(query);
+          const startupHits = monitor.takeCheckpointHits();
+          expect(startupHits).toContain(zeroPageProbe);
+          expect(startupHits).toContain(mmioProbe);
+          await monitor.deleteCheckpoint(zeroPageProbe);
+          await monitor.deleteCheckpoint(mmioProbe);
           const checkpoints = new Set<number>();
           try {
             // Trace installation occurs while stopped after ordinary initialization and IRQ exclusion.
-            const addresses = [0, 1, ...Array.from({ length: 4096 }, (_, index) => 0xd000 + index)];
-            for (const address of addresses)
-              for (const operation of ["load", "store"] as const)
-                checkpoints.add(await monitor.setAccessTracepoint(address, operation));
+            // Range checkpoints cover the same proof with four monitor records instead of
+            // thousands of per-address records, which dominated the whole test suite.
+            checkpoints.add(await monitor.setAccessTracepointRange(0, 1, "load"));
+            checkpoints.add(await monitor.setAccessTracepointRange(0, 1, "store"));
+            checkpoints.add(await monitor.setAccessTracepointRange(0xd000, 0xdfff, "load"));
+            checkpoints.add(await monitor.setAccessTracepointRange(0xd000, 0xdfff, "store"));
             for (const [name, rows, joystick1, joystick2, down, uncertain] of cases) {
               const bytes = Uint8Array.from([...rows, joystick1, joystick2, 0]);
               const expected = Array.from({ length: 74 }, () => 1);

@@ -72,6 +72,12 @@ export interface ViceMonitor {
   readonly setExecuteCheckpoint: (address: number) => Promise<number>;
   /** Add one non-stopping byte access tracepoint and return its monitor identity. */
   readonly setAccessTracepoint: (address: number, operation: "load" | "store") => Promise<number>;
+  /** Add one non-stopping access tracepoint over an inclusive address range. */
+  readonly setAccessTracepointRange: (
+    start: number,
+    end: number,
+    operation: "load" | "store",
+  ) => Promise<number>;
   /** Add one stopping store checkpoint and return its monitor identity; the caller deletes it. */
   readonly setStoreCheckpoint: (address: number) => Promise<number>;
   /** Add one stopping load checkpoint and return its monitor identity; the caller deletes it. */
@@ -471,6 +477,44 @@ export async function openViceMonitor(port: number, processId: number): Promise<
     if (response.body.length !== 0) throw new Error("VICE joyport command returned data");
   };
 
+  /**
+   * Add one non-stopping access tracepoint for an inclusive address range.
+   * One range checkpoint replaces thousands of per-address checkpoints when a
+   * test only needs to prove that no access occurred anywhere in the range.
+   */
+  const accessTracepoint = async (
+    start: number,
+    end: number,
+    operation: "load" | "store",
+  ): Promise<number> => {
+    if (
+      !Number.isInteger(start) ||
+      !Number.isInteger(end) ||
+      start < 0 ||
+      end > 0xffff ||
+      start > end
+    ) {
+      throw new RangeError("VICE tracepoint range must be ordered 16-bit addresses");
+    }
+    const body = new Uint8Array(9);
+    const view = new DataView(body.buffer);
+    view.setUint16(0, start, true);
+    view.setUint16(2, end, true);
+    body[4] = 0;
+    body[5] = 1;
+    body[6] = operation === "load" ? 1 : 2;
+    body[7] = 0;
+    body[8] = 0;
+    const response = await request(0x12, body, 0x11);
+    if (response.body.length < 23) throw new Error("VICE tracepoint response is truncated");
+    const id = uint32(response.body, 0);
+    if (process.env.BLEND65_DEBUG_CHECKPOINTS === "1")
+      process.stderr.write(
+        `VICE-ACCESS range=$${start.toString(16)}-$${end.toString(16)} operation=${operation} id=${id}\n`,
+      );
+    return id;
+  };
+
   return Object.freeze<ViceMonitor>({
     viceInfo: async () => {
       const { body } = await request(0x85, new Uint8Array(0));
@@ -510,28 +554,9 @@ export async function openViceMonitor(port: number, processId: number): Promise<
       if (response.body.length < 23) throw new Error("VICE checkpoint response is truncated");
       return uint32(response.body, 0);
     },
-    setAccessTracepoint: async (address, operation) => {
-      if (!Number.isInteger(address) || address < 0 || address > 0xffff) {
-        throw new RangeError("VICE tracepoint address must be a 16-bit integer");
-      }
-      const body = new Uint8Array(9);
-      const view = new DataView(body.buffer);
-      view.setUint16(0, address, true);
-      view.setUint16(2, address, true);
-      body[4] = 0;
-      body[5] = 1;
-      body[6] = operation === "load" ? 1 : 2;
-      body[7] = 0;
-      body[8] = 0;
-      const response = await request(0x12, body, 0x11);
-      if (response.body.length < 23) throw new Error("VICE tracepoint response is truncated");
-      const id = uint32(response.body, 0);
-      if (process.env.BLEND65_DEBUG_CHECKPOINTS === "1")
-        process.stderr.write(
-          `VICE-ACCESS address=$${address.toString(16)} operation=${operation} id=${id}\n`,
-        );
-      return id;
-    },
+    setAccessTracepoint: async (address, operation) =>
+      accessTracepoint(address, address, operation),
+    setAccessTracepointRange: accessTracepoint,
     setStoreCheckpoint: async (address) => {
       if (!Number.isInteger(address) || address < 0 || address > 0xffff) {
         throw new RangeError("VICE store checkpoint address must be a 16-bit integer");

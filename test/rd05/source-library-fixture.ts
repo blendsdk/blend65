@@ -1,7 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { buildProject, checkProject } from "@blend65/compiler";
+import { checkProject } from "@blend65/compiler";
 import type { BuildSuccess } from "@blend65/compiler";
+import { cachedBuildProject } from "../build-cache.js";
 import { expect } from "vitest";
 import type { ViceMonitor } from "../m1/vice-monitor.js";
 import { startVice, stopVice } from "../m1/vice-runtime.js";
@@ -39,7 +40,7 @@ export async function withLibraryBuild<T>(
     const checked = await checkProject({ project });
     expect(checked.kind, JSON.stringify(checked.diagnostics)).toBe("success");
     if (checked.kind !== "success") throw new Error("Expected legal source-library input");
-    const built = await buildProject({ project, optimization: "none" });
+    const built = await cachedBuildProject({ project, optimization: "none" });
     expect(built.kind, JSON.stringify(built.diagnostics)).toBe("success");
     if (built.kind !== "success") throw new Error("Expected a complete source-library build");
     const artifacts = await readProfileArtifacts(built);

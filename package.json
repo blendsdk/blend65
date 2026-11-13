@@ -13,7 +13,14 @@
   "scripts": {
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test && vitest run"
+    "test": "turbo run test && node scripts/run-root-tests.mjs --host",
+    "test:fast": "yarn workspace @blend65/compiler test:fast --reporter=dot --silent && vitest run --config vitest.fast.config.ts --reporter=dot --silent",
+    "test:host": "vitest run --config vitest.host.config.ts --reporter=dot --silent",
+    "test:integration": "vitest run --config vitest.integration.config.ts --reporter=dot --silent",
+    "test:vice": "vitest run --config vitest.vice.config.ts --reporter=dot --silent",
+    "test:changed": "node --experimental-strip-types scripts/test-changed.mjs",
+    "test:package": "turbo run test",
+    "test:full": "turbo run test && node scripts/run-root-tests.mjs"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
