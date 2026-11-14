@@ -191,7 +191,9 @@ async function checkSource(options: BuildOptions): Promise<CheckedSourceResult> 
     };
   }
   if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
-  const semantic = buildSemanticProgram(analyzed);
+  const semantic = buildSemanticProgram(analyzed, {
+    boundsCheck: selectedSnapshot.manifest.boundsCheck,
+  });
   if (semantic.kind === "error") {
     return { kind: "failure", failure: failure("source", semantic.diagnostics) };
   }

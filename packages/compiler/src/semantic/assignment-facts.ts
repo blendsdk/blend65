@@ -1,5 +1,4 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
-import type { SemanticType } from "../frontend/semantic-types.js";
 import type {
   SemanticBlock,
   SemanticFunction,
@@ -7,32 +6,22 @@ import type {
   SemanticPlace,
   SemanticProgram,
 } from "./operations.js";
+import { joinPath, placePath } from "./callable-paths.js";
+import {
+  addRawWrite,
+  allDynamicIndicesBounded,
+  callableLeaves,
+  definitionsOf,
+  hasDynamicIndex,
+  killFlow,
+  placeByteRange,
+  possibleCallableRanges,
+  rangeIsKilled,
+  subtractStore,
+} from "./raw-write-kills.js";
+import type { PlacedRange } from "./raw-write-kills.js";
 
-/** A dynamic index may select any element; named fields never alias each other. */
-export function placePath(place: SemanticPlace): string {
-  return place.path
-    .map((part) => (part.kind === "field" ? `field:${part.name}` : "index:*"))
-    .join("\0");
-}
-
-/** Attach a child aggregate path without confusing a field with its similarly named sibling. */
-export function joinPath(parent: string, child: string): string {
-  return parent.length === 0 ? child : child.length === 0 ? parent : `${parent}\0${child}`;
-}
-
-/** Enumerate only callable leaves, without allocating a path for every array element. */
-export function callablePaths(type: SemanticType): readonly string[] {
-  if (type.kind === "function" || type.kind === "interrupt-handler") return [""];
-  if (type.kind === "struct") {
-    return type.fields.flatMap((field) =>
-      callablePaths(field.type).map((path) => joinPath(`field:${field.name}`, path)),
-    );
-  }
-  if (type.kind === "array" && type.length > 0) {
-    return callablePaths(type.element).map((path) => joinPath("index:*", path));
-  }
-  return [];
-}
+export { callablePaths, joinPath, placePath } from "./callable-paths.js";
 
 /** Must-assignment facts at each block entry and after its operations. */
 interface AssignmentFlow {
@@ -211,28 +200,57 @@ export function assignmentFacts(
   blocks: readonly SemanticBlock[],
   initial: ReadonlySet<string>,
   callEffects: CallWriteEffects,
+  placed: ReadonlyMap<string, PlacedRange> = new Map(),
+  boundsChecked = true,
 ): {
   readonly unknown: ReadonlyMap<SemanticOperation, readonly string[]>;
   readonly beforeCalls: ReadonlyMap<SemanticOperation, ReadonlySet<string>>;
 } {
   const flow = assignmentFlow(entry, blocks, initial, callEffects);
+  const definitions = definitionsOf(blocks);
+  const killedFlow = killFlow(entry, blocks, definitions, placed);
   const unknown = new Map<SemanticOperation, readonly string[]>();
   const beforeCalls = new Map<SemanticOperation, ReadonlySet<string>>();
   for (const block of blocks) {
     const facts = flow.input.get(block.id);
     if (facts === undefined) continue;
     const assigned = new Set(facts);
+    let killed = killedFlow.input.get(block.id) ?? Object.freeze([]);
     for (const operation of block.operations) {
       if (operation.kind === "load" || operation.kind === "place-address") {
         const root = bindingIdentityKey(operation.place.root);
         const path = placePath(operation.place);
-        const missing = callablePaths(operation.type).filter(
-          (leaf) => !isAssigned(assigned, root, joinPath(path, leaf)),
-        );
+        const base = placeByteRange(operation.place, definitions);
+        const dynamic = hasDynamicIndex(operation.place, definitions);
+        const possible = dynamic ? possibleCallableRanges(operation.place, definitions) : null;
+        const boundedDynamic = dynamic && allDynamicIndicesBounded(operation.place, definitions);
+        const missing = callableLeaves(operation.type).flatMap((leaf) => {
+          // An unchecked, unbounded index may leave the object entirely, so any
+          // known kill can be reachable. A checked or proved-bounded index stays
+          // within the declared elements and is matched by possible leaf ranges.
+          const corrupted = dynamic
+            ? boundsChecked || boundedDynamic
+              ? possible !== null &&
+                possible.some((range) => range.path === leaf.path && rangeIsKilled(killed, range))
+              : killed.length > 0
+            : base !== null &&
+              rangeIsKilled(killed, {
+                root: base.root,
+                start: base.start + leaf.start,
+                end: base.start + leaf.end,
+              });
+          return corrupted || !isAssigned(assigned, root, joinPath(path, leaf.path))
+            ? [leaf.path]
+            : [];
+        });
         if (missing.length > 0) unknown.set(operation, missing);
       } else if (operation.kind === "store") {
         const key = assignmentKey(operation.place);
         if (key !== null) assigned.add(key);
+        const range = placeByteRange(operation.place, definitions);
+        if (range !== null) killed = subtractStore(killed, range);
+      } else if (operation.kind === "memory-write") {
+        killed = addRawWrite(killed, operation, definitions, placed);
       } else if (operation.kind === "call" || operation.kind === "indirect-call") {
         beforeCalls.set(operation, new Set(assigned));
         applyCallWrite(assigned, operation, callEffects);

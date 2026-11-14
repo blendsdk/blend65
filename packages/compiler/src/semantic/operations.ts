@@ -504,4 +504,6 @@ export interface SemanticProgram {
   readonly residentAssetRoots?: readonly string[];
   /** Runtime global initializer roots in proved execution order. */
   readonly initializerOrder: readonly BindingId[];
+  /** Whether later compilation inserts bounds guards for dynamic indices. */
+  readonly boundsChecked?: boolean;
 }

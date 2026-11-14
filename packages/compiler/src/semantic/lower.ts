@@ -204,7 +204,10 @@ function lowerGlobal(
 }
 
 /** Build the target-neutral semantic program only from a complete frontend result. */
-export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildResult {
+export function buildSemanticProgram(
+  analysis: AnalysisResult,
+  options: { readonly boundsCheck?: boolean } = {},
+): SemanticBuildResult {
   if (analysis.kind !== "complete") return analysis;
   const frontend = analysis.program;
   const bindingsByKey = new Map(
@@ -287,6 +290,7 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
         (binding) => !embeddedBindings.has(bindingIdentityKey(binding)),
       ),
     ),
+    boundsChecked: options.boundsCheck ?? true,
   });
   const quiescence = checkLoadQuiescence(program);
   if (quiescence !== null) {

@@ -1,4 +1,4 @@
-import { semanticTypesEqual } from "../frontend/semantic-type-relations.js";
+import { semanticTypeSize, semanticTypesEqual } from "../frontend/semantic-type-relations.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId, FunctionType } from "../frontend/semantic-types.js";
 import {
@@ -164,6 +164,17 @@ export function resolveTargetSets(
   // call site. Address-taken functions remain independent entries. Source export
   // controls visibility; it does not erase assignments made by an ordinary caller.
   const globalRoots = new Set(program.globals.map((global) => bindingIdentityKey(global.id)));
+  // Explicitly placed storage has a proved absolute interval, so a constant
+  // raw write can be checked for overlap before code generation.
+  const placedRanges = new Map<string, { start: number; end: number }>();
+  for (const global of program.globals) {
+    const at = global.placement?.at;
+    if (at === null || at === undefined) continue;
+    placedRanges.set(bindingIdentityKey(global.id), {
+      start: at,
+      end: at + semanticTypeSize(global.type),
+    });
+  }
   const allGlobalAssignments = new Set(initializedGlobals);
   for (const root of globalRoots) allGlobalAssignments.add(root);
   for (const context of contexts) {
@@ -256,6 +267,8 @@ export function resolveTargetSets(
         context.blocks,
         initial,
         callEffects,
+        placedRanges,
+        program.boundsChecked ?? true,
       ).beforeCalls) {
         if (operation.kind !== "call") continue;
         const callee = bindingIdentityKey(operation.callee);
@@ -304,6 +317,8 @@ export function resolveTargetSets(
       context.blocks,
       initial,
       callEffects,
+      placedRanges,
+      program.boundsChecked ?? true,
     ).unknown) {
       unknownReads.set(operation, paths);
     }
