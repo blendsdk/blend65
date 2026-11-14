@@ -8,6 +8,7 @@ import { initializerBytes } from "./lower-data.js";
 import { sinkTerminalChoice } from "./lower-control.js";
 import { checkLoadQuiescence } from "./load-quiescence.js";
 import { enforceLoadDestinationConstraints } from "./load-destination-constraints.js";
+import { alignBlockIndexStorage } from "./block-index-alignment.js";
 import type {
   AggregateDestination,
   SemanticFunction,
@@ -257,9 +258,13 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
       inputs: analysis.inputs,
     });
   }
+  // A block-index expression proves the hardware alignment its storage needs.
+  // Apply that demand before layout; explicit, zero-page and runtime-index
+  // placements are preserved exactly as written.
+  const alignedGlobals = alignBlockIndexStorage(functions, constrained.globals);
   const program: SemanticProgram = Object.freeze({
     main: mainCandidates[0]!.id,
-    globals: constrained.globals,
+    globals: alignedGlobals,
     functions: Object.freeze(
       functions.map((fn) => sinkTerminalChoice(fn, functions, bindingsByKey)),
     ),
