@@ -1,0 +1,343 @@
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import type { SemanticType } from "../frontend/semantic-types.js";
+import type {
+  SemanticBlock,
+  SemanticFunction,
+  SemanticOperation,
+  SemanticPlace,
+  SemanticProgram,
+} from "./operations.js";
+
+/** A dynamic index may select any element; named fields never alias each other. */
+export function placePath(place: SemanticPlace): string {
+  return place.path
+    .map((part) => (part.kind === "field" ? `field:${part.name}` : "index:*"))
+    .join("\0");
+}
+
+/** Attach a child aggregate path without confusing a field with its similarly named sibling. */
+export function joinPath(parent: string, child: string): string {
+  return parent.length === 0 ? child : child.length === 0 ? parent : `${parent}\0${child}`;
+}
+
+/** Enumerate only callable leaves, without allocating a path for every array element. */
+export function callablePaths(type: SemanticType): readonly string[] {
+  if (type.kind === "function" || type.kind === "interrupt-handler") return [""];
+  if (type.kind === "struct") {
+    return type.fields.flatMap((field) =>
+      callablePaths(field.type).map((path) => joinPath(`field:${field.name}`, path)),
+    );
+  }
+  if (type.kind === "array" && type.length > 0) {
+    return callablePaths(type.element).map((path) => joinPath("index:*", path));
+  }
+  return [];
+}
+
+/** Must-assignment facts at each block entry and after its operations. */
+interface AssignmentFlow {
+  /** Keys definitely assigned on entry to each reachable block. */
+  readonly input: ReadonlyMap<string, ReadonlySet<string>>;
+  /** Keys definitely assigned after each reachable block's operations. */
+  readonly output: ReadonlyMap<string, ReadonlySet<string>>;
+}
+
+/** Global keys definitely written by a call, independent of the caller's entry facts. */
+export type CallWriteEffects = ReadonlyMap<string, ReadonlySet<string>>;
+
+/** Ordered startup facts: what is assigned before main and at each initializer entry. */
+export interface StartupAssignmentFacts {
+  /** Keys definitely assigned after every ordered startup initializer completes. */
+  readonly startup: ReadonlySet<string>;
+  /** Keys definitely assigned before each global initializer runs. */
+  readonly initializerEntry: ReadonlyMap<string, ReadonlySet<string>>;
+}
+
+/** Immutable empty fact set shared by every analysis that proves no assignment. */
+const NO_ASSIGNMENTS: ReadonlySet<string> = Object.freeze(new Set<string>());
+
+/** Whole-object writes cover child paths; a field write covers only that field. */
+export function assignmentKey(place: SemanticPlace): string | null {
+  if (place.path.some((part) => part.kind === "index")) return null;
+  return joinPath(bindingIdentityKey(place.root), placePath(place));
+}
+
+/** An assigned ancestor contains every one of its descendants. */
+function isAssigned(assigned: ReadonlySet<string>, root: string, path: string): boolean {
+  if (assigned.has(root)) return true;
+  let prefix = "";
+  for (const part of path.split("\0")) {
+    if (part.length === 0) continue;
+    prefix = joinPath(prefix, part);
+    if (assigned.has(joinPath(root, prefix))) return true;
+  }
+  return false;
+}
+
+/** Add the global keys a directly called function definitely writes on every returning path. */
+function applyCallWrite(
+  assigned: Set<string>,
+  operation: Extract<SemanticOperation, { readonly kind: "call" | "indirect-call" }>,
+  effects: CallWriteEffects,
+): void {
+  // An indirect call contributes no guarantee: its finite target set is proved
+  // separately and may contain functions with different write behavior.
+  if (operation.kind !== "call") return;
+  for (const key of effects.get(bindingIdentityKey(operation.callee)) ?? NO_ASSIGNMENTS)
+    assigned.add(key);
+}
+
+/**
+ * Values whose callable identity is a direct source function address, possibly
+ * selected by a conditional merge. A load, parameter, call result or conversion
+ * carries provenance the summary cannot re-prove, so it is not transferable.
+ */
+export function callableValuePredicate(
+  blocks: readonly SemanticBlock[],
+): (value: string) => boolean {
+  const definitions = new Map<string, SemanticOperation>();
+  for (const block of blocks) {
+    for (const operation of block.operations) {
+      const result = "result" in operation ? operation.result : null;
+      if (result !== null && result !== undefined) definitions.set(result, operation);
+    }
+  }
+  const memo = new Map<string, boolean>();
+  const isCallable = (value: string): boolean => {
+    const known = memo.get(value);
+    if (known !== undefined) return known;
+    const definition = definitions.get(value);
+    let safe = false;
+    if (definition?.kind === "function-address") safe = true;
+    else if (definition?.kind === "merge")
+      safe = definition.incoming.every(({ value: incoming }) => isCallable(incoming));
+    memo.set(value, safe);
+    return safe;
+  };
+  return isCallable;
+}
+
+/** Compute must-assignment facts over one executable control-flow graph. */
+function assignmentFlow(
+  entry: string,
+  blocks: readonly SemanticBlock[],
+  initial: ReadonlySet<string>,
+  callEffects: CallWriteEffects,
+  acceptStore: (value: string) => boolean = () => true,
+): AssignmentFlow {
+  const byId = new Map(blocks.map((block) => [block.id, block] as const));
+  const reachable = new Set<string>();
+  const pending = [entry];
+  while (pending.length > 0) {
+    const id = pending.pop()!;
+    if (reachable.has(id)) continue;
+    const block = byId.get(id);
+    if (block === undefined) throw new Error(`Semantic CFG references missing block '${id}'`);
+    reachable.add(id);
+    if (block.terminator.kind === "jump") pending.push(block.terminator.target);
+    else if (block.terminator.kind === "branch") {
+      pending.push(block.terminator.whenTrue, block.terminator.whenFalse);
+    }
+  }
+  const active = blocks.filter((block) => reachable.has(block.id));
+  const predecessors = new Map(active.map((block) => [block.id, new Set<string>()] as const));
+  const allAssigned = new Set(initial);
+  for (const block of active) {
+    for (const operation of block.operations) {
+      if (operation.kind === "store") {
+        const key = assignmentKey(operation.place);
+        if (key !== null && acceptStore(operation.value)) allAssigned.add(key);
+      } else if (operation.kind === "call") {
+        applyCallWrite(allAssigned, operation, callEffects);
+      }
+    }
+    const successors =
+      block.terminator.kind === "jump"
+        ? [block.terminator.target]
+        : block.terminator.kind === "branch"
+          ? [block.terminator.whenTrue, block.terminator.whenFalse]
+          : [];
+    for (const successor of successors) predecessors.get(successor)?.add(block.id);
+  }
+  const output = new Map(active.map((block) => [block.id, new Set(allAssigned)] as const));
+  const input = new Map<string, Set<string>>();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const block of active) {
+      const before = block.id === entry ? new Set(initial) : new Set(allAssigned);
+      if (block.id !== entry) {
+        for (const predecessor of predecessors.get(block.id) ?? []) {
+          const facts = output.get(predecessor)!;
+          for (const key of before) if (!facts.has(key)) before.delete(key);
+        }
+      }
+      input.set(block.id, before);
+      const after = new Set(before);
+      for (const operation of block.operations) {
+        if (operation.kind === "store") {
+          const key = assignmentKey(operation.place);
+          if (key !== null && acceptStore(operation.value)) after.add(key);
+        } else if (operation.kind === "call") {
+          applyCallWrite(after, operation, callEffects);
+        }
+      }
+      const previous = output.get(block.id)!;
+      if (after.size !== previous.size || [...after].some((key) => !previous.has(key))) {
+        output.set(block.id, after);
+        changed = true;
+      }
+    }
+  }
+  return { input, output };
+}
+
+/** Intersect every returning block's facts into an entry-independent call summary. */
+function definiteExit(flow: AssignmentFlow, blocks: readonly SemanticBlock[]): ReadonlySet<string> {
+  let summary: Set<string> | null = null;
+  for (const block of blocks) {
+    if (block.terminator.kind !== "return") continue;
+    const facts = flow.output.get(block.id);
+    if (facts === undefined) continue;
+    if (summary === null) summary = new Set(facts);
+    else for (const key of [...summary]) if (!facts.has(key)) summary.delete(key);
+  }
+  return summary === null ? NO_ASSIGNMENTS : summary;
+}
+
+/** Must-assignment facts at reads and calls within one executable control-flow graph. */
+export function assignmentFacts(
+  entry: string,
+  blocks: readonly SemanticBlock[],
+  initial: ReadonlySet<string>,
+  callEffects: CallWriteEffects,
+): {
+  readonly unknown: ReadonlyMap<SemanticOperation, readonly string[]>;
+  readonly beforeCalls: ReadonlyMap<SemanticOperation, ReadonlySet<string>>;
+} {
+  const flow = assignmentFlow(entry, blocks, initial, callEffects);
+  const unknown = new Map<SemanticOperation, readonly string[]>();
+  const beforeCalls = new Map<SemanticOperation, ReadonlySet<string>>();
+  for (const block of blocks) {
+    const facts = flow.input.get(block.id);
+    if (facts === undefined) continue;
+    const assigned = new Set(facts);
+    for (const operation of block.operations) {
+      if (operation.kind === "load" || operation.kind === "place-address") {
+        const root = bindingIdentityKey(operation.place.root);
+        const path = placePath(operation.place);
+        const missing = callablePaths(operation.type).filter(
+          (leaf) => !isAssigned(assigned, root, joinPath(path, leaf)),
+        );
+        if (missing.length > 0) unknown.set(operation, missing);
+      } else if (operation.kind === "store") {
+        const key = assignmentKey(operation.place);
+        if (key !== null) assigned.add(key);
+      } else if (operation.kind === "call" || operation.kind === "indirect-call") {
+        beforeCalls.set(operation, new Set(assigned));
+        applyCallWrite(assigned, operation, callEffects);
+      }
+    }
+  }
+  return { unknown, beforeCalls };
+}
+
+/**
+ * Prove the global keys each function definitely writes on every returning path.
+ * A caller may rely on those keys after the call returns. Summaries are
+ * entry-independent, so the analysis starts every body with no assignments and
+ * grows a worklist whenever a directly called function proves a new write. This
+ * transfers a callee's definite writes back into its caller's facts without
+ * assuming any particular call order or single caller.
+ *
+ * Only a whole bare callable global with no taken address and no placement is
+ * transferable. A raw write can replace callable bytes after the typed
+ * assignment, so broader storage keeps its pre-existing conservative proof.
+ */
+export function callWriteSummaries(
+  functions: ReadonlyMap<string, SemanticFunction>,
+  transferableRoots: ReadonlySet<string>,
+): CallWriteEffects {
+  const effects = new Map<string, ReadonlySet<string>>();
+  const callers = new Map<string, Set<string>>();
+  for (const [owner, fn] of functions) {
+    const direct = new Set<string>();
+    for (const block of fn.blocks) {
+      for (const operation of block.operations) {
+        if (operation.kind === "call") direct.add(bindingIdentityKey(operation.callee));
+      }
+    }
+    for (const callee of direct) {
+      const known = callers.get(callee) ?? new Set<string>();
+      known.add(owner);
+      callers.set(callee, known);
+    }
+  }
+  const pending = new Set(functions.keys());
+  while (pending.size > 0) {
+    const owner = pending.values().next().value;
+    if (owner === undefined) break;
+    pending.delete(owner);
+    const fn = functions.get(owner);
+    if (fn === undefined) continue;
+    const flow = assignmentFlow(
+      fn.entry,
+      fn.blocks,
+      NO_ASSIGNMENTS,
+      effects,
+      callableValuePredicate(fn.blocks),
+    );
+    const summary = new Set<string>();
+    for (const key of definiteExit(flow, fn.blocks)) {
+      // A field path belongs to the global binding before its first NUL separator.
+      // Only a whole bare callable global is transferable; a field or element
+      // path keeps its pre-existing conservative proof.
+      if (key.includes("\0") || !transferableRoots.has(key)) continue;
+      summary.add(key);
+    }
+    const previous = effects.get(owner) ?? NO_ASSIGNMENTS;
+    if (summary.size === previous.size && [...summary].every((key) => previous.has(key))) continue;
+    effects.set(owner, summary);
+    for (const caller of callers.get(owner) ?? []) pending.add(caller);
+  }
+  return effects;
+}
+
+/**
+ * Carry definite writes through the ordered startup initializers. Every
+ * initializer runs before main, so an assignment made by a called helper during
+ * startup is visible at main's entry. Later initializers also see the writes of
+ * earlier ones. A non-returning initializer contributes no post-startup fact.
+ *
+ * Newly transferred facts are limited to the same whole bare callable globals
+ * as call summaries. Already-initialized globals keep their pre-existing facts.
+ */
+export function startupAssignmentFacts(
+  program: SemanticProgram,
+  initializedGlobals: ReadonlySet<string>,
+  callEffects: CallWriteEffects,
+  transferableRoots: ReadonlySet<string>,
+): StartupAssignmentFacts {
+  const globals = new Map(
+    program.globals.map((global) => [bindingIdentityKey(global.id), global] as const),
+  );
+  const startup = new Set(initializedGlobals);
+  const initializerEntry = new Map<string, ReadonlySet<string>>();
+  for (const binding of program.initializerOrder) {
+    const owner = bindingIdentityKey(binding);
+    const global = globals.get(owner);
+    if (global === undefined || global.entry === null) continue;
+    initializerEntry.set(owner, new Set(startup));
+    const flow = assignmentFlow(
+      global.entry,
+      global.blocks,
+      startup,
+      callEffects,
+      callableValuePredicate(global.blocks),
+    );
+    for (const key of definiteExit(flow, global.blocks)) {
+      if (!key.includes("\0") && transferableRoots.has(key)) startup.add(key);
+    }
+  }
+  return { startup, initializerEntry };
+}

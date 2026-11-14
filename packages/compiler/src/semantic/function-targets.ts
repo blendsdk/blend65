@@ -1,6 +1,16 @@
 import { semanticTypesEqual } from "../frontend/semantic-type-relations.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
-import type { BindingId, FunctionType, SemanticType } from "../frontend/semantic-types.js";
+import type { BindingId, FunctionType } from "../frontend/semantic-types.js";
+import {
+  assignmentFacts,
+  assignmentKey,
+  callWriteSummaries,
+  callablePaths,
+  callableValuePredicate,
+  joinPath,
+  placePath,
+  startupAssignmentFacts,
+} from "./assignment-facts.js";
 import type {
   IndirectCallOperation,
   PlatformOperation,
@@ -45,18 +55,6 @@ function addTargets<Key>(
 /** Function identities retained separately for each aggregate member path. */
 type PathTargets = Map<string, Set<string>>;
 
-/** A dynamic index may select any element; named fields never alias each other. */
-function placePath(place: SemanticPlace): string {
-  return place.path
-    .map((part) => (part.kind === "field" ? `field:${part.name}` : "index:*"))
-    .join("\0");
-}
-
-/** Attach a child aggregate path without confusing a field with its similarly named sibling. */
-function joinPath(parent: string, child: string): string {
-  return parent.length === 0 ? child : child.length === 0 ? parent : `${parent}\0${child}`;
-}
-
 /** Add all known member targets from one value to another value or storage binding. */
 function addPathTargets<Key>(
   facts: Map<Key, PathTargets>,
@@ -96,130 +94,6 @@ function selectPathTargets(source: PathTargets | undefined, path: string): PathT
     }
   }
   return selected;
-}
-
-/** Enumerate only callable leaves, without allocating a path for every array element. */
-function callablePaths(type: SemanticType): readonly string[] {
-  if (type.kind === "function" || type.kind === "interrupt-handler") return [""];
-  if (type.kind === "struct") {
-    return type.fields.flatMap((field) =>
-      callablePaths(field.type).map((path) => joinPath(`field:${field.name}`, path)),
-    );
-  }
-  if (type.kind === "array" && type.length > 0) {
-    return callablePaths(type.element).map((path) => joinPath("index:*", path));
-  }
-  return [];
-}
-
-/** Whole-object writes cover child paths; a field write covers only that field. */
-function assignmentKey(place: SemanticPlace): string | null {
-  if (place.path.some((part) => part.kind === "index")) return null;
-  return joinPath(bindingIdentityKey(place.root), placePath(place));
-}
-
-/** An assigned ancestor contains every one of its descendants. */
-function isAssigned(assigned: ReadonlySet<string>, root: string, path: string): boolean {
-  if (assigned.has(root)) return true;
-  let prefix = "";
-  for (const part of path.split("\0")) {
-    if (part.length === 0) continue;
-    prefix = joinPath(prefix, part);
-    if (assigned.has(joinPath(root, prefix))) return true;
-  }
-  return false;
-}
-
-/** Must-assignment facts at reads and calls within one executable CFG. */
-function assignmentFacts(
-  entry: string,
-  blocks: readonly SemanticBlock[],
-  initial: ReadonlySet<string>,
-): {
-  readonly unknown: ReadonlyMap<SemanticOperation, readonly string[]>;
-  readonly beforeCalls: ReadonlyMap<SemanticOperation, ReadonlySet<string>>;
-} {
-  const byId = new Map(blocks.map((block) => [block.id, block] as const));
-  const reachable = new Set<string>();
-  const pending = [entry];
-  while (pending.length > 0) {
-    const id = pending.pop()!;
-    if (reachable.has(id)) continue;
-    const block = byId.get(id);
-    if (block === undefined) throw new Error(`Semantic CFG references missing block '${id}'`);
-    reachable.add(id);
-    if (block.terminator.kind === "jump") pending.push(block.terminator.target);
-    else if (block.terminator.kind === "branch") {
-      pending.push(block.terminator.whenTrue, block.terminator.whenFalse);
-    }
-  }
-  const active = blocks.filter((block) => reachable.has(block.id));
-  const predecessors = new Map(active.map((block) => [block.id, new Set<string>()] as const));
-  const allAssigned = new Set(initial);
-  for (const block of active) {
-    for (const operation of block.operations) {
-      if (operation.kind === "store") {
-        const key = assignmentKey(operation.place);
-        if (key !== null) allAssigned.add(key);
-      }
-    }
-    const successors =
-      block.terminator.kind === "jump"
-        ? [block.terminator.target]
-        : block.terminator.kind === "branch"
-          ? [block.terminator.whenTrue, block.terminator.whenFalse]
-          : [];
-    for (const successor of successors) predecessors.get(successor)?.add(block.id);
-  }
-  const output = new Map(active.map((block) => [block.id, new Set(allAssigned)] as const));
-  const input = new Map<string, Set<string>>();
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const block of active) {
-      const before = block.id === entry ? new Set(initial) : new Set(allAssigned);
-      if (block.id !== entry) {
-        for (const predecessor of predecessors.get(block.id) ?? []) {
-          const facts = output.get(predecessor)!;
-          for (const key of before) if (!facts.has(key)) before.delete(key);
-        }
-      }
-      input.set(block.id, before);
-      const after = new Set(before);
-      for (const operation of block.operations) {
-        if (operation.kind === "store") {
-          const key = assignmentKey(operation.place);
-          if (key !== null) after.add(key);
-        }
-      }
-      const previous = output.get(block.id)!;
-      if (after.size !== previous.size || [...after].some((key) => !previous.has(key))) {
-        output.set(block.id, after);
-        changed = true;
-      }
-    }
-  }
-  const unknown = new Map<SemanticOperation, readonly string[]>();
-  const beforeCalls = new Map<SemanticOperation, ReadonlySet<string>>();
-  for (const block of active) {
-    const assigned = new Set(input.get(block.id));
-    for (const operation of block.operations) {
-      if (operation.kind === "load" || operation.kind === "place-address") {
-        const root = bindingIdentityKey(operation.place.root);
-        const path = placePath(operation.place);
-        const missing = callablePaths(operation.type).filter(
-          (leaf) => !isAssigned(assigned, root, joinPath(path, leaf)),
-        );
-        if (missing.length > 0) unknown.set(operation, missing);
-      } else if (operation.kind === "store") {
-        const key = assignmentKey(operation.place);
-        if (key !== null) assigned.add(key);
-      } else if (operation.kind === "call" || operation.kind === "indirect-call") {
-        beforeCalls.set(operation, new Set(assigned));
-      }
-    }
-  }
-  return { unknown, beforeCalls };
 }
 
 /** Infer callable and handler provenance through values, typed storage and calls. */
@@ -302,18 +176,64 @@ export function resolveTargetSets(
       }
     }
   }
-  const independent = new Set([
-    bindingIdentityKey(program.main),
-    ...addressTaken.keys(),
-    ...handlerAddresses,
-  ]);
+  // A new call-write guarantee is limited to a bare callable global with no
+  // placement and no taken address. Aggregate fields, placed globals and raw
+  // aliases stay on the conservative pre-existing proof path. Corruption by an
+  // arbitrary numeric raw write remains the separate target-proof boundary.
+  const rawAddressRoots = new Set<string>();
+  for (const context of contexts) {
+    for (const block of context.blocks) {
+      for (const operation of block.operations) {
+        if (operation.kind === "place-address" && operation.type.kind === "scalar")
+          rawAddressRoots.add(bindingIdentityKey(operation.place.root));
+      }
+    }
+  }
+  // A destination is transferable only when every compiler-visible store to it
+  // assigns a direct callable source. One non-qualifying write anywhere means
+  // the definite assignment no longer proves the stored function identity.
+  const unsafeStoreRoots = new Set<string>();
+  for (const context of contexts) {
+    const safeValue = callableValuePredicate(context.blocks);
+    for (const block of context.blocks) {
+      for (const operation of block.operations) {
+        if (operation.kind !== "store") continue;
+        const key = assignmentKey(operation.place);
+        if (key === null || !safeValue(operation.value))
+          unsafeStoreRoots.add(bindingIdentityKey(operation.place.root));
+      }
+    }
+  }
+  const transferableRoots = new Set(
+    program.globals
+      .filter(
+        (global) =>
+          global.type.kind === "function" &&
+          (global.placement === null || global.placement === undefined),
+      )
+      .map((global) => bindingIdentityKey(global.id))
+      .filter((root) => !rawAddressRoots.has(root) && !unsafeStoreRoots.has(root)),
+  );
+  const callEffects = callWriteSummaries(functions, transferableRoots);
+  const startup = startupAssignmentFacts(
+    program,
+    initializedGlobals,
+    callEffects,
+    transferableRoots,
+  );
+  const mainKey = bindingIdentityKey(program.main);
+  const independent = new Set([mainKey, ...addressTaken.keys(), ...handlerAddresses]);
+  const independentEntry = (key: string): ReadonlySet<string> =>
+    key === mainKey ? startup.startup : initializedGlobals;
   const entryAssigned = new Map(
     program.functions.map(
       (fn) =>
         [
           bindingIdentityKey(fn.id),
           new Set(
-            independent.has(bindingIdentityKey(fn.id)) ? initializedGlobals : allGlobalAssignments,
+            independent.has(bindingIdentityKey(fn.id))
+              ? independentEntry(bindingIdentityKey(fn.id))
+              : allGlobalAssignments,
           ),
         ] as const,
     ),
@@ -326,13 +246,17 @@ export function resolveTargetSets(
       const fn = functions.get(context.owner);
       const initial =
         fn === undefined
-          ? context.initial
+          ? (startup.initializerEntry.get(context.owner) ?? context.initial)
           : new Set([
               ...entryAssigned.get(context.owner)!,
               ...fn.parameters.map((parameter) => bindingIdentityKey(parameter.id)),
             ]);
-      for (const [operation, assigned] of assignmentFacts(context.entry, context.blocks, initial)
-        .beforeCalls) {
+      for (const [operation, assigned] of assignmentFacts(
+        context.entry,
+        context.blocks,
+        initial,
+        callEffects,
+      ).beforeCalls) {
         if (operation.kind !== "call") continue;
         const callee = bindingIdentityKey(operation.callee);
         if (!functions.has(callee)) continue;
@@ -351,7 +275,7 @@ export function resolveTargetSets(
     }
     for (const fn of program.functions) {
       const key = bindingIdentityKey(fn.id);
-      const next = new Set(independent.has(key) ? initializedGlobals : allGlobalAssignments);
+      const next = new Set(independent.has(key) ? independentEntry(key) : allGlobalAssignments);
       for (const caller of incoming.get(key) ?? []) {
         for (const assignment of next) if (!caller.has(assignment)) next.delete(assignment);
       }
@@ -370,13 +294,17 @@ export function resolveTargetSets(
     const fn = functions.get(context.owner);
     const initial =
       fn === undefined
-        ? context.initial
+        ? (startup.initializerEntry.get(context.owner) ?? context.initial)
         : new Set([
             ...entryAssigned.get(context.owner)!,
             ...fn.parameters.map((parameter) => bindingIdentityKey(parameter.id)),
           ]);
-    for (const [operation, paths] of assignmentFacts(context.entry, context.blocks, initial)
-      .unknown) {
+    for (const [operation, paths] of assignmentFacts(
+      context.entry,
+      context.blocks,
+      initial,
+      callEffects,
+    ).unknown) {
       unknownReads.set(operation, paths);
     }
   }
@@ -503,6 +431,26 @@ export function resolveTargetSets(
             valuePaths.get(valueKey(owner, operation.fill)),
             "index:*",
           ) || changed;
+      }
+      // A partial array initializer leaves the omitted elements with
+      // indeterminate bytes. If a callable leaf can live in an omitted element,
+      // the merged index path has no finite target and stays unknown. Without
+      // this, a supplied element's target would be reused for an uninitialized
+      // sibling because every array index shares the same proof path.
+      if (
+        operation.type.kind === "array" &&
+        operation.fill === null &&
+        operation.elements.length < operation.type.length
+      ) {
+        const callable = callablePaths(operation.type);
+        if (callable.length > 0) {
+          for (const path of callable) {
+            changed =
+              addPathTargets(valuePaths, output, new Map([[path, new Set([UNKNOWN_TARGET])]])) ||
+              changed;
+          }
+          changed = addTargets(valueTargets, output, [UNKNOWN_TARGET]) || changed;
+        }
       }
       return (
         addTargets(valueTargets, output, [

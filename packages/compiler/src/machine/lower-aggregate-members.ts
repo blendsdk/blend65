@@ -43,15 +43,16 @@ export function memberWrites(
       );
     }
     const bytes = typeBytes(operation.type.element);
-    return Object.freeze(
-      Array.from({ length: operation.type.length }, (_, index) => {
-        const valueId = operation.elements[index]?.value ?? operation.fill;
-        if (valueId === null || valueId === undefined) {
-          throw loweringFailure("Fixed array construction is missing an element", operation.span);
-        }
-        return Object.freeze({ valueId, start: index * bytes, bytes });
-      }),
-    );
+    const writes: MemberWrite[] = [];
+    for (let index = 0; index < operation.type.length; index += 1) {
+      const valueId = operation.elements[index]?.value ?? operation.fill;
+      // Omitted elements keep their indeterminate stored bits. The frontend
+      // warns for a partial mutable initializer; lowering must not invent a
+      // zero fill the source never wrote.
+      if (valueId === null || valueId === undefined) continue;
+      writes.push(Object.freeze({ valueId, start: index * bytes, bytes }));
+    }
+    return Object.freeze(writes);
   }
   if (operation.type.kind !== "struct") {
     throw loweringFailure("Aggregate construction requires an aggregate type", operation.span);
