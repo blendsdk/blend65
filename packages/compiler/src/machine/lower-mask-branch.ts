@@ -405,6 +405,29 @@ export function lowerMaskedComparison(
           mask: test.highMask ?? null,
         })
       : test;
+  // A compile-time mask that clears a bit the constant requires makes the
+  // equality statically impossible. The masked value and its AND are dead, but
+  // the operand's single read already happened; materialize the constant.
+  if (byteTest.mask !== null && (byteTest.constant & ~byteTest.mask & 0xff) !== 0) {
+    const value = operation.operator === "==" ? 0 : 1;
+    // The prefix already holds the operand's single read in the current block;
+    // only the constant Boolean instruction is new.
+    const instructions = [
+      machineInstruction(
+        state.input.profile.cpu,
+        "lda",
+        "immediate",
+        Object.freeze({ kind: "immediate", value }),
+        [],
+        operation.span,
+      ),
+    ];
+    return Object.freeze({
+      blocks: Object.freeze([]),
+      continuation: entryLabel,
+      instructions: Object.freeze(instructions),
+    });
+  }
   const identity =
     byteTest.mask !== null && byteTest.constant === byteTest.mask && singleBitMask(byteTest.mask);
   const effective = identity ? invertedOperator(operation.operator) : operation.operator;

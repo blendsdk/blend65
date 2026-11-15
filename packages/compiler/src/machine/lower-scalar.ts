@@ -229,6 +229,31 @@ export function lowerBitwise(
     throw loweringFailure("Bitwise lowering requires a byte or word result", operation.span);
   }
   const widthMask = width === 1 ? 0xff : 0xffff;
+  // A selected byte mask whose constant needs a cleared bit can never match.
+  // The mask itself is dead, but the operand's single volatile read still
+  // executes exactly once and stays in A for the constant Boolean store.
+  const impossible = state.booleanMaskTests.get(operation.result);
+  if (
+    opcode === "and" &&
+    width === 1 &&
+    impossible?.form === "byte" &&
+    impossible.mask !== null &&
+    (impossible.constant & ~impossible.mask & 0xff) !== 0
+  ) {
+    const operand =
+      left.kind === "constant" && (left.value & 0xff) === impossible.mask ? right : left;
+    const instructions: MachineInstruction[] = [];
+    appendLoadA(instructions, operand, 0, state, operation.span);
+    return Object.freeze({
+      instructions: Object.freeze(instructions),
+      result: Object.freeze({
+        kind: "register" as const,
+        registers: "a" as const,
+        bytes: 1 as const,
+        signed: false,
+      }),
+    });
+  }
   // A zero mask clears every bit regardless of the other operand. Evaluation is
   // already complete, so the volatile read or call still happened exactly once.
   if (
