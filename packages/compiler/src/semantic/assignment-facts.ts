@@ -288,6 +288,8 @@ export interface AssignmentFactOptions {
   readonly placed?: ReadonlyMap<string, PlacedRange> | undefined;
   /** Whether later compilation inserts runtime bounds guards. */
   readonly boundsChecked?: boolean | undefined;
+  /** Roots a runtime raw write can name; private locals and by-value scalars are excluded. */
+  readonly opaqueRoots?: ReadonlySet<string> | undefined;
 }
 
 /** One call's killed facts immediately before its argument effects. */
@@ -356,22 +358,43 @@ export function assignmentFacts(
             operation.place.rootType.length === 0;
           const corrupted = dynamic
             ? unsizedDynamic
-              ? rangeIsKilled(killed, { root, start: 0, end: Number.MAX_SAFE_INTEGER })
+              ? rangeIsKilled(
+                  killed,
+                  { root, start: 0, end: Number.MAX_SAFE_INTEGER },
+                  options.opaqueRoots,
+                )
               : boundsChecked(options) || boundedDynamic
                 ? possible !== null &&
-                  possible.some((range) => range.path === leaf.path && rangeIsKilled(killed, range))
+                  possible.some((range) =>
+                    range.path === leaf.path
+                      ? rangeIsKilled(killed, range, options.opaqueRoots)
+                      : false,
+                  )
                 : killed.length > 0
             : base !== null &&
-              rangeIsKilled(killed, {
-                root: base.root,
-                start: base.start + leaf.start,
-                end: base.start + leaf.end,
-              });
+              rangeIsKilled(
+                killed,
+                {
+                  root: base.root,
+                  start: base.start + leaf.start,
+                  end: base.start + leaf.end,
+                },
+                options.opaqueRoots,
+              );
           // The unknown path is relative to the loaded value, not the source
           // place; an aggregate copy selects it again at its own prefix.
-          return corrupted || !isAssigned(assigned, root, joinPath(assignedPath, leaf.path))
-            ? [leaf.path]
-            : [];
+          const assignedNow = isAssigned(assigned, root, joinPath(assignedPath, leaf.path));
+          if (process.env.BLEND65_DEBUG_167 === "1" && root.includes("711:769"))
+            console.error(
+              "cb",
+              corrupted,
+              assignedNow,
+              JSON.stringify([...assigned]),
+              options.opaqueRoots === undefined
+                ? "no-roots"
+                : String(options.opaqueRoots.has(root)),
+            );
+          return corrupted || !assignedNow ? [leaf.path] : [];
         });
         if (missing.length > 0) unknown.set(operation, missing);
       } else if (operation.kind === "store") {

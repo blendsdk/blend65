@@ -67,6 +67,8 @@ export interface InterproceduralKillInput {
   readonly placed: ReadonlyMap<string, PlacedRange>;
   /** Whether later compilation inserts runtime bounds guards. */
   readonly boundsChecked: boolean;
+  /** Roots a runtime raw write can name. */
+  readonly opaqueRoots: ReadonlySet<string>;
   /** Must-assignment summaries already proved for direct calls. */
   readonly callWriteEffects: CallWriteEffects;
 }
@@ -799,6 +801,7 @@ export function analyzeInterproceduralKills(
           opaqueAliases: opaque.has(context.owner),
           placed: input.placed,
           boundsChecked: input.boundsChecked,
+          opaqueRoots: input.opaqueRoots,
         },
       );
       for (const [operation, kills] of result.beforeCallKills) {

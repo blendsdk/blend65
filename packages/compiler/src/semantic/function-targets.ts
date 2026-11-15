@@ -654,12 +654,21 @@ export function resolveTargetSets(
       ];
     },
   );
+  const opaqueRoots = new Set<string>([
+    ...program.globals.map((global) => bindingIdentityKey(global.id)),
+    ...program.functions.flatMap((fn) =>
+      fn.parameters
+        .filter((parameter) => parameter.type.kind === "struct" || parameter.type.kind === "array")
+        .map((parameter) => bindingIdentityKey(parameter.id)),
+    ),
+  ]);
   const killFacts: InterproceduralKillResult = analyzeInterproceduralKills({
     program,
     contexts: [...functionKillContexts, ...initializerKillContexts],
     indirectTargets: provisionalTargets,
     placed: placedRanges,
     boundsChecked: program.boundsChecked ?? true,
+    opaqueRoots,
     callWriteEffects: callEffects,
   });
   const killedReads = new Map<SemanticOperation, readonly string[]>();
@@ -676,6 +685,7 @@ export function resolveTargetSets(
         opaqueAliases: killFacts.opaqueAliases.has(context.owner),
         placed: placedRanges,
         boundsChecked: program.boundsChecked ?? true,
+        opaqueRoots,
       },
     ).unknown) {
       killedReads.set(operation, paths);

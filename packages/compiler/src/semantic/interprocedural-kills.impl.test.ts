@@ -258,6 +258,19 @@ function main(): void {
 }`);
   });
 
+  it("accepts a private local callable after an opaque callee write", () => {
+    expectAccepted(`module Game;
+let chosen: fn(): byte;
+function chosenFn(): byte { return 37; }
+function corrupt(): void { poke(peekw($0330), 0); }
+function main(): void {
+  chosen = &chosenFn;
+  let local: fn(): byte = &chosenFn;
+  corrupt();
+  poke($C000, local());
+}`);
+  });
+
   it("accepts an opaque write with no later callable read", () => {
     expectAccepted(`module Game;
 function main(): void { poke(peekw($0330), 0); poke($C000, 7); }`);

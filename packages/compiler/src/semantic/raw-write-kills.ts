@@ -434,12 +434,21 @@ export function subtractStore(kills: KilledFacts, store: KilledRange): KilledFac
   return normalizeKills(remaining);
 }
 
-/** Whether a place interval overlaps any killed byte. */
-export function rangeIsKilled(kills: KilledFacts, range: KilledRange): boolean {
-  return kills.some(
-    (killed) =>
-      killed.root === OPAQUE_ROOT ||
-      (killed.root === range.root && killed.start < range.end && range.start < killed.end),
+/**
+ * Whether a place interval overlaps any killed byte. An opaque runtime write
+ * reaches only roots it can name through the source alias model: globals and
+ * borrowed aggregate parameters. A private local or a by-value scalar
+ * parameter cannot be named by a callee or a runtime pointer.
+ */
+export function rangeIsKilled(
+  kills: KilledFacts,
+  range: KilledRange,
+  opaqueRoots?: ReadonlySet<string>,
+): boolean {
+  return kills.some((killed) =>
+    killed.root === OPAQUE_ROOT
+      ? opaqueRoots === undefined || opaqueRoots.has(range.root)
+      : killed.root === range.root && killed.start < range.end && range.start < killed.end,
   );
 }
 
