@@ -667,6 +667,28 @@ export function foldedRegisterReloads(before: Body, after: Body): FoldProof {
             )
       )
         continue;
+      // A reference zero gate (`CPX #0`) after the count load must survive in
+      // the selected artifact. A fresh-zero lowering omits that gate and relies
+      // on the later LDX's Z; folding the LDX to a TAX at the store would let an
+      // intervening value load own Z and test the value instead of the count.
+      const zeroGate = items
+        .slice(index + 1)
+        .find(
+          (item) =>
+            item.source.opcode === "cpx" &&
+            item.source.operand?.kind === "immediate" &&
+            item.source.operand.value === 0,
+        );
+      if (zeroGate !== undefined) {
+        const selectedGate = after.items.some(
+          (item) =>
+            item.source.opcode === "cpx" &&
+            item.source.operand?.kind === "immediate" &&
+            item.source.operand.value === 0 &&
+            item.source.source === zeroGate.source.source,
+        );
+        if (!selectedGate) continue;
+      }
       const source = store.source.source ?? load.source.source;
       const tax = after.items.find(
         (item) => item.source.opcode === "tax" && item.source.source === source,

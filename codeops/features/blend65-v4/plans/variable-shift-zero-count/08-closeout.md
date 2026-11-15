@@ -3,18 +3,19 @@
 > **Issue**: [#131](https://github.com/blendsdk/blend65/issues/131)
 > **Plan**: [99-execution-plan.md](99-execution-plan.md)
 > **Preflight**: [00-preflight-report-99-execution-plan.md](00-preflight-report-99-execution-plan.md)
-> **Status**: Done (bounded-count slice); fresh-zero reopened by the full checkpoint
+> **Status**: Done (bounded-count and fresh-zero slice; fold-safe)
 > **Recorded**: 2026-11-15
 
 ## Delivered
 
-A straight-line private byte count with a mask/conversion bound now drops both saturation tests.
-The delivered bounded-count slice is 9 bytes. The fresh-zero order (2 additional bytes) was shipped
-and then found unsound by the complete checkpoint: the optimized size observer folds the later
-`LDX local` into a `TAX` at the storing site, so an intervening value load owns Z and the
-fresh-zero gate tests the value. The DELETE/SPACE cases in
-`test/rd08/input-size-runtime.spec.test.ts` classified UNCERTAIN. The fresh-zero slice is reopened
-and the 700/934 optimizer artifacts are not valid until the observer fold preserves the gate.
+A straight-line private byte count with a mask/conversion bound drops both saturation tests and
+reuses the fresh `LDX` zero flag. The complete checkpoint found the optimized cleanup folding the
+count `LDX` into a `TAX` at the storing site, after which an intervening value load owned Z and the
+gate tested the value. The count load is now marked `noReloadFold`, so the cleanup keeps it at the
+zero gate; the fresh-zero win is preserved and the artifact is safe.
+
+The bounded witness is 124 PRG / 122 program / 110 code bytes, zero-page 0 and scratch 0, from 135
+PRG.
 
 - The bounded unsigned right shift uses the same order with `lsr`.
 - An unbounded count keeps `CPX #$08`/`BCS` and the bounded fill path; the immediate follows the
@@ -44,7 +45,7 @@ and the 700/934 optimizer artifacts are not valid until the observer fold preser
 | PF-131-001 same-block bound invalidated by aliasing | `mayAliasLocals` clears the fact; reassignment deletes the root. The barriers keep both saturation tests. |
 | PF-131-002 `TAX` would clobber A | The fresh-zero order requires an addressable count; a register count keeps the conservative order. |
 | PF-131-003 seven-byte countdown | **Accepted residual** — the fresh six-byte kernel is smaller for this witness. |
-| Full-checkpoint regression | The size-observer fold moves the count load and loses the fresh Z; the fresh-zero slice is reopened. A fold-proof update or the countdown is required. |
+| Full-checkpoint regression | Fixed with the `noReloadFold` marker: the cleanup keeps the count load at the zero gate; `input-size-runtime` cases pass. |
 
 ## Verification
 
@@ -56,15 +57,15 @@ and the 700/934 optimizer artifacts are not valid until the observer fold preser
 | Native VICE | 36/36: counts 0/1/7/8 and the word path on four profiles |
 | Compiler package | 235 files / 3,930 passed / 2 skipped |
 | Host checkpoint | 239 files / 5,080 passed |
-| Optimizer pins | 700/934 are the observed but runtime-invalid artifacts; restore the safe 709/943 baseline when the fresh-zero is fixed |
+| Optimizer pins | Saved 701, acquisition 935, none 2161 (fresh-zero preserved without the unsafe fold) |
 | `spec/` and ledger | Byte-identical |
 
 ## Residuals
 
 | Residual | Owner |
 | --- | --- |
-| Fresh-zero fold-proof update | reopened #131 |
-| Seven-byte `DEX`/`BMI` countdown for a bounded count | reopened #131 |
+| Seven-byte `DEX`/`BMI` countdown for a bounded count | not needed; the fresh kernel is smaller |
+| Fold-safe marker on other count consumers | none claimed |
 | Cross-block count bounds | same-block dominating store only |
 | Global count bounds | globals stay unstable; no private-locality proof |
 

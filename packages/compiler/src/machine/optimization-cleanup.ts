@@ -385,6 +385,7 @@ function foldRegisterReloads(
           after === undefined
             ? !terminatorFlags.some((flag) => flag === "n" || flag === "z")
             : after.defines.flags.includes("n") && after.defines.flags.includes("z");
+        if (instructions[load]!.noReloadFold === true) continue;
         if (!flagsDead || remove.has(load) || inserts.has(at)) continue;
         inserts.set(
           at,

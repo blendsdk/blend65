@@ -438,6 +438,12 @@ export interface MachineInstruction {
   readonly foldedBlockIndex?: true;
   /** Loader or call-site attribution for one instruction in a KERNAL load sequence. */
   readonly loadUnitRole?: "loader" | "callSite";
+  /**
+   * The instruction's N/Z are consumed at its current position and must not be
+   * folded into an earlier TAX/TYA. A variable-shift count keeps its zero gate
+   * here; moving the transfer earlier would let an intervening value load own Z.
+   */
+  readonly noReloadFold?: true;
 }
 
 /** Unconditional transfer to another structured block. */

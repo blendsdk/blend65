@@ -18,7 +18,7 @@ describe("measured optimizer output identity", () => {
   it("pins the saved size and direct-lowering artifacts byte-for-byte", async () => {
     const source = await fixture("input-saved-caller.blend");
     const size = await buildProfileSource(source, PROFILE, "size");
-    expect(size.prg.length - 2, "saved size payload").toBe(700);
+    expect(size.prg.length - 2, "saved size payload").toBe(701);
     // The optimized baseline is a validated candidate recipe, never the raw
     // canonical reference that bypasses the final-observer gate.
     const decision = (size.costs.decisions as readonly Record<string, unknown>[])[0]!;
@@ -27,7 +27,7 @@ describe("measured optimizer output identity", () => {
     const baseline = candidates.find((candidate) => candidate.id === decision.baselineCandidateId)!;
     expect((baseline.feasibility as Record<string, unknown>).kind).toBe("feasible");
     expect(digest(size.prg), "saved size PRG").toBe(
-      "0bda6315c01384015811fcc61f8bd467ef9ffb290fdd05262657c651828aa884",
+      "0dcf3b28e8c7733734358c463ac9cffa7583a0c3164ad023da53dfc19deca8ec",
     );
     const none = await buildProfileSource(source, PROFILE, "none");
     expect(none.prg.length - 2, "saved none payload").toBe(2161);
@@ -40,21 +40,21 @@ describe("measured optimizer output identity", () => {
     const saved = await fixture("input-saved-caller.blend");
     for (const mode of ["balanced", "speed"] as const) {
       const artifacts = await buildProfileSource(saved, PROFILE, mode);
-      expect(artifacts.prg.length - 2, `saved ${mode} payload`).toBe(700);
+      expect(artifacts.prg.length - 2, `saved ${mode} payload`).toBe(701);
     }
     const acquisition = await fixture("input-caller.blend");
     for (const mode of ["balanced", "speed"] as const) {
       const artifacts = await buildProfileSource(acquisition, PROFILE, mode);
-      expect(artifacts.prg.length - 2, `acquisition ${mode} payload`).toBe(934);
+      expect(artifacts.prg.length - 2, `acquisition ${mode} payload`).toBe(935);
     }
   }, 600_000);
 
   it("pins the acquisition size artifact byte-for-byte", async () => {
     const source = await fixture("input-caller.blend");
     const size = await buildProfileSource(source, PROFILE, "size");
-    expect(size.prg.length - 2, "acquisition size payload").toBe(934);
+    expect(size.prg.length - 2, "acquisition size payload").toBe(935);
     expect(digest(size.prg), "acquisition size PRG").toBe(
-      "3be66a6d9a422712fe1da68ff5854b5ebc84d529159f0d99b90dffd7210e6f25",
+      "761eb2bb4e87fed84d336d3f57a5218e5dbd07797e09f81e5846dcd2bcf5eefc",
     );
   }, 180_000);
 });

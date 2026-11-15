@@ -213,15 +213,20 @@ export function lowerVariableShift(
       appendLoadA(lowInstructions, left, 0, state, source);
     } else {
       if (freshCountZero) appendLoadA(entryInstructions, left, 0, state, source);
+      const countLoad = machineInstruction(
+        cpu,
+        countLow.kind === "register" ? "tax" : "ldx",
+        countLow.kind === "register" ? "implied" : modeForValue(countLow, 0),
+        countLow.kind === "register" ? null : operandForValue(countLow, 0),
+        [],
+        source,
+      );
+      // The zero gate below consumes this load's N/Z at this position. Do not
+      // let the size cleanup fold it to an earlier TAX/TYA at the storing site.
       entryInstructions.push(
-        machineInstruction(
-          cpu,
-          countLow.kind === "register" ? "tax" : "ldx",
-          countLow.kind === "register" ? "implied" : modeForValue(countLow, 0),
-          countLow.kind === "register" ? null : operandForValue(countLow, 0),
-          [],
-          source,
-        ),
+        countLow.kind === "register"
+          ? countLoad
+          : Object.freeze({ ...countLoad, noReloadFold: true }),
       );
       if (!freshCountZero) appendLoadA(entryInstructions, left, 0, state, source);
     }
