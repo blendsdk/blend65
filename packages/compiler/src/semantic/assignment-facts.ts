@@ -19,7 +19,7 @@ import {
   rangeIsKilled,
   subtractStore,
 } from "./raw-write-kills.js";
-import type { PlacedRange } from "./raw-write-kills.js";
+import type { AliasRelations, KilledFacts, PlacedRange } from "./raw-write-kills.js";
 
 export { callablePaths, joinPath, placePath } from "./callable-paths.js";
 
@@ -194,23 +194,63 @@ function definiteExit(flow: AssignmentFlow, blocks: readonly SemanticBlock[]): R
   return summary === null ? NO_ASSIGNMENTS : summary;
 }
 
+/** State and callbacks for one must-assignment and kill analysis pass. */
+export interface AssignmentFactOptions {
+  /** Kills already present on entry, for a callee analysed at a call site. */
+  readonly initialKills?: KilledFacts | undefined;
+  /** Apply a call's translated kill summary to the state after the call. */
+  readonly callEffect?:
+    | ((
+        operation: Extract<SemanticOperation, { readonly kind: "call" | "indirect-call" }>,
+        kills: KilledFacts,
+      ) => KilledFacts)
+    | undefined;
+  /** May-alias relations for this body's parameters and globals. */
+  readonly aliases?: AliasRelations | undefined;
+  /** Whether an unresolved parameter forces every raw write to stay opaque. */
+  readonly opaqueAliases?: boolean | undefined;
+  /** Proved absolute intervals of explicitly placed globals. */
+  readonly placed?: ReadonlyMap<string, PlacedRange> | undefined;
+  /** Whether later compilation inserts runtime bounds guards. */
+  readonly boundsChecked?: boolean | undefined;
+}
+
+/** One call's killed facts immediately before its argument effects. */
+export type CallKillFacts = ReadonlyMap<
+  Extract<SemanticOperation, { readonly kind: "call" | "indirect-call" }>,
+  KilledFacts
+>;
+
 /** Must-assignment facts at reads and calls within one executable control-flow graph. */
 export function assignmentFacts(
   entry: string,
   blocks: readonly SemanticBlock[],
   initial: ReadonlySet<string>,
   callEffects: CallWriteEffects,
-  placed: ReadonlyMap<string, PlacedRange> = new Map(),
-  boundsChecked = true,
+  options: AssignmentFactOptions = {},
 ): {
   readonly unknown: ReadonlyMap<SemanticOperation, readonly string[]>;
   readonly beforeCalls: ReadonlyMap<SemanticOperation, ReadonlySet<string>>;
+  readonly beforeCallKills: CallKillFacts;
+  readonly exitKills: ReadonlyMap<string, KilledFacts>;
 } {
   const flow = assignmentFlow(entry, blocks, initial, callEffects);
   const definitions = definitionsOf(blocks);
-  const killedFlow = killFlow(entry, blocks, definitions, placed);
+  const placed = options.placed ?? new Map<string, PlacedRange>();
+  const killedFlow = killFlow(entry, blocks, definitions, placed, {
+    initial: options.initialKills,
+    aliases: options.aliases,
+    opaqueAliases: options.opaqueAliases,
+    boundsChecked: options.boundsChecked,
+    callEffect: options.callEffect,
+  });
   const unknown = new Map<SemanticOperation, readonly string[]>();
   const beforeCalls = new Map<SemanticOperation, ReadonlySet<string>>();
+  const beforeCallKills = new Map<
+    Extract<SemanticOperation, { readonly kind: "call" | "indirect-call" }>,
+    KilledFacts
+  >();
+  const exitKills = new Map<string, KilledFacts>();
   for (const block of blocks) {
     const facts = flow.input.get(block.id);
     if (facts === undefined) continue;
@@ -228,11 +268,20 @@ export function assignmentFacts(
           // An unchecked, unbounded index may leave the object entirely, so any
           // known kill can be reachable. A checked or proved-bounded index stays
           // within the declared elements and is matched by possible leaf ranges.
+          // An any-size array parameter has no fixed extent, so a dynamic read
+          // cannot enumerate its elements. Any known kill may reach the selected
+          // element; treat the read conservatively instead of empty.
+          const unsizedDynamic =
+            dynamic &&
+            operation.place.rootType?.kind === "array" &&
+            operation.place.rootType.length === 0;
           const corrupted = dynamic
-            ? boundsChecked || boundedDynamic
-              ? possible !== null &&
-                possible.some((range) => range.path === leaf.path && rangeIsKilled(killed, range))
-              : killed.length > 0
+            ? unsizedDynamic
+              ? rangeIsKilled(killed, { root, start: 0, end: Number.MAX_SAFE_INTEGER })
+              : boundsChecked(options) || boundedDynamic
+                ? possible !== null &&
+                  possible.some((range) => range.path === leaf.path && rangeIsKilled(killed, range))
+                : killed.length > 0
             : base !== null &&
               rangeIsKilled(killed, {
                 root: base.root,
@@ -250,14 +299,30 @@ export function assignmentFacts(
         const range = placeByteRange(operation.place, definitions);
         if (range !== null) killed = subtractStore(killed, range);
       } else if (operation.kind === "memory-write") {
-        killed = addRawWrite(killed, operation, definitions, placed);
+        killed = addRawWrite(
+          killed,
+          operation,
+          definitions,
+          placed,
+          options.aliases,
+          options.opaqueAliases,
+          boundsChecked(options),
+        );
       } else if (operation.kind === "call" || operation.kind === "indirect-call") {
         beforeCalls.set(operation, new Set(assigned));
+        beforeCallKills.set(operation, killed);
         applyCallWrite(assigned, operation, callEffects);
+        killed = options.callEffect?.(operation, killed) ?? killed;
       }
     }
+    exitKills.set(block.id, killed);
   }
-  return { unknown, beforeCalls };
+  return { unknown, beforeCalls, beforeCallKills, exitKills };
+}
+
+/** Read the selected bounds-check mode with the compiler default. */
+function boundsChecked(options: AssignmentFactOptions): boolean {
+  return options.boundsChecked ?? true;
 }
 
 /**
@@ -268,9 +333,11 @@ export function assignmentFacts(
  * transfers a callee's definite writes back into its caller's facts without
  * assuming any particular call order or single caller.
  *
- * Only a whole bare callable global with no taken address and no placement is
- * transferable. A raw write can replace callable bytes after the typed
- * assignment, so broader storage keeps its pre-existing conservative proof.
+ * Only a whole bare callable global is transferable. A field or element keeps
+ * its pre-existing conservative proof. The address-taken and placement status
+ * no longer blocks the transfer: the store writes the complete callable bytes
+ * with a direct source address, and a later raw write is carried by the
+ * byte-interval kill analysis rather than by refusing the typed assignment.
  */
 export function callWriteSummaries(
   functions: ReadonlyMap<string, SemanticFunction>,

@@ -115,21 +115,21 @@ No new diagnostic code is introduced; the call fails the existing `E10277`.
 
 ## Tasks
 
-- [ ] T-161.1 Reproduce helper-kill, caller-kill/callee-read, borrowed-parameter, parameter–global,
+- [x] T-161.1 Reproduce helper-kill, caller-kill/callee-read, borrowed-parameter, parameter–global,
       same-actual, distinct-actual, adjacent-placed, forwarded, singleton-indirect, transitive,
       startup, definite-restore and opaque-destination witnesses.
-- [ ] T-161.2 Author the public specification oracle before implementation; confirm RED.
-- [ ] T-161.3 Extend `raw-write-kills.ts` with the opaque sentinel, possible place intervals,
+- [x] T-161.2 Author the public specification oracle before implementation; confirm RED.
+- [x] T-161.3 Extend `raw-write-kills.ts` with the opaque sentinel, possible place intervals,
       displaced alias relations and placed expansion; keep the existing dynamic-index control green.
-- [ ] T-161.4 Add `interprocedural-kills.ts`: entry-independent local summaries, alias-aware kill
+- [x] T-161.4 Add `interprocedural-kills.ts`: entry-independent local summaries, alias-aware kill
       propagation, call-site translation, the monotone entry-kill worklist, the provisional
       indirect-target union, ordered startup transfer and the definite-restore subtraction.
-- [ ] T-161.5 Integrate the new facts into `assignment-facts.ts` without changing the assignment
+- [x] T-161.5 Integrate the new facts into `assignment-facts.ts` without changing the assignment
       semantics or the `UNKNOWN_TARGET` empty-set rule.
-- [ ] T-161.6 Implementation tests for every witness, including distinct-actual non-aliasing,
+- [x] T-161.6 Implementation tests for every witness, including distinct-actual non-aliasing,
       disjoint-field controls and the pinned accepted-output bytes.
-- [ ] T-161.7 Independent review: correctness, semantics, SFA/ABI and emitted code.
-- [ ] T-161.8 Complete `yarn test` and the wave `yarn test:full` checkpoint; closeout, roadmap and
+- [x] T-161.7 Independent review: correctness, semantics, SFA/ABI and emitted code.
+- [x] T-161.8 Complete `yarn test` and the wave `yarn test:full` checkpoint; closeout, roadmap and
       issue evidence. Keep the runtime-destination residual explicitly owned.
 
 ## Acceptance
@@ -162,7 +162,7 @@ No new diagnostic code is introduced; the call fails the existing `E10277`.
 | Field-level caller-kill restoration through a helper | #157 |
 | Bounded local index ranges | #163 |
 | Handler raw write overlapping an asynchronous callable read | interrupt ownership analysis |
-| Constant address overlapping an automatically placed callable after layout | new post-layout conflict issue, filed at closeout |
+| Constant address overlapping an automatically placed callable after layout | #164 |
 | Alias precision across call sites with different actual objects | union relation, conservative by design; no context-sensitive clone |
 | Runtime destination that stays unresolved | accepted AR-P1 boundary, now conservatively rejected after the write |
 

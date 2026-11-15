@@ -64,6 +64,52 @@ export interface KilledRange {
 /** Killed ranges retained in a stable order for equality and overlap checks. */
 export type KilledFacts = readonly KilledRange[];
 
+/**
+ * Root identity of a kill whose destination could not be resolved. Such a write
+ * may have reached any callable byte, so every later callable read is unproved
+ * until a definite typed store replaces the bytes. The value cannot collide with
+ * a binding identity because those never contain a NUL byte.
+ */
+export const OPAQUE_ROOT = "\0opaque";
+
+/** One root whose bytes may overlap a source root at a fixed displacement. */
+export type AliasTarget =
+  | {
+      /** Overlapping root identity. */
+      readonly root: string;
+      /** Byte displacement: source offset `o` corresponds to `o + delta`. */
+      readonly delta: number;
+    }
+  | {
+      /** The source may alias any storage whose actual object is unresolved. */
+      readonly all: true;
+    };
+
+/** May-alias relations for one executable body, keyed by source root. */
+export type AliasRelations = ReadonlyMap<string, readonly AliasTarget[]>;
+
+/** State and callbacks threaded through one kill-flow computation. */
+export interface KillFlowOptions {
+  /** Kills already present on entry, for a callee analysed at a call site. */
+  readonly initial?: KilledFacts | undefined;
+  /** May-alias relations for this body's parameters and globals. */
+  readonly aliases?: AliasRelations | undefined;
+  /** Whether an unresolved parameter forces every raw write to stay opaque. */
+  readonly opaqueAliases?: boolean | undefined;
+  /** Whether later compilation inserts runtime bounds guards. */
+  readonly boundsChecked?: boolean | undefined;
+  /** Apply a call's translated kill summary to the state after the call. */
+  readonly callEffect?:
+    | ((
+        operation: Extract<SemanticOperation, { readonly kind: "call" | "indirect-call" }>,
+        kills: KilledFacts,
+      ) => KilledFacts)
+    | undefined;
+}
+
+/** The single conservative kill used when a raw destination cannot be resolved. */
+const OPAQUE_KILL: KilledRange = Object.freeze({ root: OPAQUE_ROOT, start: 0, end: 1 });
+
 /** One value definition retained for constant index resolution. */
 export type Definitions = ReadonlyMap<string, SemanticOperation>;
 
@@ -209,6 +255,82 @@ export function indexUpperBound(value: string, definitions: Definitions): number
   return null;
 }
 
+/** The conservative kill that invalidates every later callable read. */
+export function opaqueKill(): KilledFacts {
+  return Object.freeze([OPAQUE_KILL]);
+}
+
+/** Whether a fact set contains a kill that may cover any root. */
+export function hasOpaqueKill(kills: KilledFacts): boolean {
+  return kills.some(({ root }) => root === OPAQUE_ROOT);
+}
+
+/**
+ * Enumerate every possible whole-value byte interval of one place. A runtime
+ * index expands to the declared elements; a constant index selects one. The
+ * result is null when a step cannot be followed or an empty array leaves no
+ * possible element.
+ */
+export function possiblePlaceRanges(
+  place: SemanticPlace,
+  definitions: Definitions,
+): readonly KilledRange[] | null {
+  const root = bindingIdentityKey(place.root);
+  const walk = (
+    type: SemanticType | undefined,
+    start: number,
+    steps: readonly SemanticPlacePath[],
+  ): readonly KilledRange[] | null => {
+    if (steps.length === 0) {
+      if (type === undefined) return null;
+      return [{ root, start, end: start + semanticTypeSize(type) }];
+    }
+    const [step, ...rest] = steps;
+    if (step.kind === "field") {
+      if (type?.kind !== "struct") return null;
+      const field = type.fields.find(({ name }) => name === step.name);
+      if (field === undefined) return null;
+      return walk(field.type, start + field.offset, rest);
+    }
+    if (type?.kind !== "array" || type.length === 0) return null;
+    const stride = semanticTypeSize(type.element);
+    const index = constantValue(definitions.get(step.value), definitions);
+    if (index !== null) {
+      if (index < 0 || index >= type.length) return null;
+      return walk(type.element, start + stride * index, rest);
+    }
+    const bound = indexUpperBound(step.value, definitions);
+    const count = bound === null ? type.length : Math.min(type.length, bound + 1);
+    const ranges: KilledRange[] = [];
+    for (let element = 0; element < count; element += 1) {
+      const child = walk(type.element, start + element * stride, rest);
+      if (child === null) return null;
+      ranges.push(...child);
+    }
+    return ranges;
+  };
+  return walk(place.rootType, 0, place.path);
+}
+
+/**
+ * Resolve a raw write destination to every possible byte interval. An exact
+ * place returns one interval. A checked or proved-bounded dynamic index returns
+ * its declared elements. An unchecked unbounded index may leave the object, so
+ * it returns null and the caller keeps the write opaque.
+ */
+export function possibleWriteRanges(
+  place: SemanticPlace,
+  definitions: Definitions,
+  boundsChecked: boolean,
+): readonly KilledRange[] | null {
+  if (!hasDynamicIndex(place, definitions)) {
+    const exact = placeByteRange(place, definitions);
+    return exact === null ? null : [exact];
+  }
+  if (!boundsChecked && !allDynamicIndicesBounded(place, definitions)) return null;
+  return possiblePlaceRanges(place, definitions);
+}
+
 /** Whether every runtime index in the place is proved inside its array. */
 export function allDynamicIndicesBounded(place: SemanticPlace, definitions: Definitions): boolean {
   let type: SemanticType | undefined = place.rootType;
@@ -269,6 +391,13 @@ export function unionKills(left: KilledFacts, right: KilledFacts): KilledFacts {
 export function subtractStore(kills: KilledFacts, store: KilledRange): KilledFacts {
   const remaining: KilledRange[] = [];
   for (const range of kills) {
+    // Only a definite typed store to the same root can restore its bytes. An
+    // opaque kill has no known root and stays until it is replaced by such a
+    // store in a later step.
+    if (range.root === OPAQUE_ROOT) {
+      remaining.push(range);
+      continue;
+    }
     if (range.root !== store.root || range.end <= store.start || store.end <= range.start) {
       remaining.push(range);
       continue;
@@ -284,7 +413,9 @@ export function subtractStore(kills: KilledFacts, store: KilledRange): KilledFac
 /** Whether a place interval overlaps any killed byte. */
 export function rangeIsKilled(kills: KilledFacts, range: KilledRange): boolean {
   return kills.some(
-    (killed) => killed.root === range.root && killed.start < range.end && range.start < killed.end,
+    (killed) =>
+      killed.root === OPAQUE_ROOT ||
+      (killed.root === range.root && killed.start < range.end && range.start < killed.end),
   );
 }
 
@@ -310,24 +441,95 @@ export function addRawWrite(
   operation: Extract<SemanticOperation, { readonly kind: "memory-write" }>,
   definitions: Definitions,
   placed: ReadonlyMap<string, PlacedRange>,
+  aliases: AliasRelations = new Map(),
+  opaqueAliases = false,
+  boundsChecked = true,
 ): KilledFacts {
+  // An unresolved parameter may alias any storage, so every write in that body
+  // stays opaque until a definite typed store replaces the affected bytes.
+  if (opaqueAliases) return unionKills(kills, opaqueKill());
   const address = throughAddressConversions(operation.address, definitions);
   if (address?.kind === "place-address") {
-    const range = placeByteRange(address.place, definitions);
-    if (range === null) return kills;
-    let next = normalizeKills([
-      ...kills,
-      { root: range.root, start: range.start, end: range.start + operation.width },
-    ]);
-    // A placed root has a proved absolute address, so the same write can also
-    // overlap an adjacent placed object.
-    const placedRoot = placed.get(range.root);
-    if (placedRoot !== undefined)
-      next = addPlacedWrite(next, placedRoot.start + range.start, operation.width, placed);
+    const ranges = possibleWriteRanges(address.place, definitions, boundsChecked);
+    if (ranges === null) return unionKills(kills, opaqueKill());
+    let next = kills;
+    for (const range of ranges)
+      next = addKilledInterval(
+        next,
+        { root: range.root, start: range.start, end: range.start + operation.width },
+        placed,
+        aliases,
+      );
     return next;
   }
   const constant = constantValue(address, definitions);
-  return constant === null ? kills : addPlacedWrite(kills, constant, operation.width, placed);
+  if (constant === null) return unionKills(kills, opaqueKill());
+  // A constant address is resolved through every placed object it may overlap.
+  // Project each overlap through the same alias path as a place-address write,
+  // so a constant write inside a helper also reaches a borrowed parameter of
+  // that object.
+  let next = kills;
+  for (const [root, interval] of placed) {
+    const start = Math.max(constant, interval.start);
+    const end = Math.min(constant + operation.width, interval.end);
+    if (start >= end) continue;
+    next = addKilledInterval(
+      next,
+      { root, start: start - interval.start, end: end - interval.start },
+      placed,
+      aliases,
+    );
+  }
+  return next;
+}
+
+/**
+ * Add one killed interval and project it onto every assumed alias with its byte
+ * displacement. The projection follows the alias graph so a forwarded parameter
+ * reaches the storage its caller's caller supplied.
+ */
+export function addKilledInterval(
+  kills: KilledFacts,
+  range: KilledRange,
+  placed: ReadonlyMap<string, PlacedRange>,
+  aliases: AliasRelations,
+): KilledFacts {
+  const added: KilledRange[] = [];
+  const seen = new Set<string>();
+  const pending: { readonly root: string; readonly delta: number }[] = [
+    { root: range.root, delta: 0 },
+  ];
+  let opaque = false;
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    if (seen.has(`${current.root}\0${current.delta}`)) continue;
+    seen.add(`${current.root}\0${current.delta}`);
+    // A contradictory or cyclic relation graph must not grow without bound; a
+    // bounded projection falls back to the conservative opaque kill.
+    if (seen.size > 256) {
+      opaque = true;
+      break;
+    }
+    added.push({
+      root: current.root,
+      start: range.start + current.delta,
+      end: range.end + current.delta,
+    });
+    for (const target of aliases.get(current.root) ?? []) {
+      if ("all" in target) {
+        opaque = true;
+        continue;
+      }
+      pending.push({ root: target.root, delta: current.delta + target.delta });
+    }
+  }
+  let next = normalizeKills([...kills, ...added]);
+  for (const interval of added) {
+    const base = placed.get(interval.root);
+    if (base === undefined) continue;
+    next = addPlacedWrite(next, base.start + interval.start, interval.end - interval.start, placed);
+  }
+  return opaque ? unionKills(next, opaqueKill()) : next;
 }
 
 /** Follow only conversions that preserve the full address value. */
@@ -357,13 +559,15 @@ export interface KillFlow {
 /**
  * Compute may-killed byte facts over one executable body. A join unions kills
  * because corruption on any path makes a later read unsafe. A typed store
- * removes only the bytes it completely replaces.
+ * removes only the bytes it completely replaces. A call may add the translated
+ * kills of every possible callee.
  */
 export function killFlow(
   entry: string,
   blocks: readonly SemanticBlock[],
   definitions: Definitions,
   placed: ReadonlyMap<string, PlacedRange>,
+  options: KillFlowOptions = {},
 ): KillFlow {
   const byId = new Map(blocks.map((block) => [block.id, block] as const));
   const reachable = new Set<string>();
@@ -389,15 +593,14 @@ export function killFlow(
           : [];
     for (const successor of successors) predecessors.get(successor)?.add(block.id);
   }
-  const output = new Map(
-    active.map((block) => [block.id, Object.freeze([]) as KilledFacts] as const),
-  );
+  const trailing: KilledFacts = Object.freeze([]);
+  const output = new Map(active.map((block) => [block.id, trailing] as const));
   const input = new Map<string, KilledFacts>();
   let changed = true;
   while (changed) {
     changed = false;
     for (const block of active) {
-      let before: KilledFacts = Object.freeze([]);
+      let before: KilledFacts = block.id === entry ? (options.initial ?? trailing) : trailing;
       if (block.id !== entry) {
         for (const predecessor of predecessors.get(block.id) ?? [])
           before = unionKills(before, output.get(predecessor)!);
@@ -409,7 +612,17 @@ export function killFlow(
           const range = placeByteRange(operation.place, definitions);
           if (range !== null) after = subtractStore(after, range);
         } else if (operation.kind === "memory-write") {
-          after = addRawWrite(after, operation, definitions, placed);
+          after = addRawWrite(
+            after,
+            operation,
+            definitions,
+            placed,
+            options.aliases,
+            options.opaqueAliases,
+            options.boundsChecked ?? true,
+          );
+        } else if (operation.kind === "call" || operation.kind === "indirect-call") {
+          after = options.callEffect?.(operation, after) ?? after;
         }
       }
       const previous = output.get(block.id)!;

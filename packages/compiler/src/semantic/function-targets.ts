@@ -11,6 +11,11 @@ import {
   placePath,
   startupAssignmentFacts,
 } from "./assignment-facts.js";
+import { analyzeInterproceduralKills } from "./interprocedural-kills.js";
+import type {
+  InterproceduralKillContext,
+  InterproceduralKillResult,
+} from "./interprocedural-kills.js";
 import type {
   IndirectCallOperation,
   PlatformOperation,
@@ -187,19 +192,12 @@ export function resolveTargetSets(
       }
     }
   }
-  // A new call-write guarantee is limited to a bare callable global with no
-  // placement and no taken address. Aggregate fields, placed globals and raw
-  // aliases stay on the conservative pre-existing proof path. Corruption by an
-  // arbitrary numeric raw write remains the separate target-proof boundary.
-  const rawAddressRoots = new Set<string>();
-  for (const context of contexts) {
-    for (const block of context.blocks) {
-      for (const operation of block.operations) {
-        if (operation.kind === "place-address" && operation.type.kind === "scalar")
-          rawAddressRoots.add(bindingIdentityKey(operation.place.root));
-      }
-    }
-  }
+  // A call-write guarantee covers a bare callable global, including one whose
+  // address is taken or that has an explicit placement. The definite store
+  // writes the complete callable bytes with a direct source address; any later
+  // raw write is carried by the separate byte-interval kill analysis, so taking
+  // the address no longer invalidates the typed assignment transfer. Aggregate
+  // fields remain the separate field-transfer precision boundary.
   // A destination is transferable only when every compiler-visible store to it
   // assigns a direct callable source. One non-qualifying write anywhere means
   // the definite assignment no longer proves the stored function identity.
@@ -217,13 +215,9 @@ export function resolveTargetSets(
   }
   const transferableRoots = new Set(
     program.globals
-      .filter(
-        (global) =>
-          global.type.kind === "function" &&
-          (global.placement === null || global.placement === undefined),
-      )
+      .filter((global) => global.type.kind === "function")
       .map((global) => bindingIdentityKey(global.id))
-      .filter((root) => !rawAddressRoots.has(root) && !unsafeStoreRoots.has(root)),
+      .filter((root) => !unsafeStoreRoots.has(root)),
   );
   const callEffects = callWriteSummaries(functions, transferableRoots);
   const startup = startupAssignmentFacts(
@@ -249,26 +243,26 @@ export function resolveTargetSets(
         ] as const,
     ),
   );
+  const initialFor = (context: (typeof contexts)[number]): ReadonlySet<string> => {
+    const fn = functions.get(context.owner);
+    return fn === undefined
+      ? (startup.initializerEntry.get(context.owner) ?? context.initial)
+      : new Set([
+          ...entryAssigned.get(context.owner)!,
+          ...fn.parameters.map((parameter) => bindingIdentityKey(parameter.id)),
+        ]);
+  };
   let entryChanged = true;
   while (entryChanged) {
     entryChanged = false;
     const incoming = new Map<string, ReadonlySet<string>[]>();
     for (const context of contexts) {
-      const fn = functions.get(context.owner);
-      const initial =
-        fn === undefined
-          ? (startup.initializerEntry.get(context.owner) ?? context.initial)
-          : new Set([
-              ...entryAssigned.get(context.owner)!,
-              ...fn.parameters.map((parameter) => bindingIdentityKey(parameter.id)),
-            ]);
       for (const [operation, assigned] of assignmentFacts(
         context.entry,
         context.blocks,
-        initial,
+        initialFor(context),
         callEffects,
-        placedRanges,
-        program.boundsChecked ?? true,
+        { placed: placedRanges, boundsChecked: program.boundsChecked ?? true },
       ).beforeCalls) {
         if (operation.kind !== "call") continue;
         const callee = bindingIdentityKey(operation.callee);
@@ -300,27 +294,6 @@ export function resolveTargetSets(
         entryAssigned.set(key, next);
         entryChanged = true;
       }
-    }
-  }
-  const unknownReads = new Map<SemanticOperation, readonly string[]>();
-  for (const context of contexts) {
-    const fn = functions.get(context.owner);
-    const initial =
-      fn === undefined
-        ? (startup.initializerEntry.get(context.owner) ?? context.initial)
-        : new Set([
-            ...entryAssigned.get(context.owner)!,
-            ...fn.parameters.map((parameter) => bindingIdentityKey(parameter.id)),
-          ]);
-    for (const [operation, paths] of assignmentFacts(
-      context.entry,
-      context.blocks,
-      initial,
-      callEffects,
-      placedRanges,
-      program.boundsChecked ?? true,
-    ).unknown) {
-      unknownReads.set(operation, paths);
     }
   }
   const valueKey = (owner: string, value: ValueId): string => `${owner}\0${value}`;
@@ -541,6 +514,13 @@ export function resolveTargetSets(
     return false;
   };
 
+  /**
+   * Poisoned callable reads, published only after the interprocedural kill
+   * closure. The first target settle runs without poison; the final settle
+   * propagates it through the same target facts.
+   */
+  let unknownReads: ReadonlyMap<SemanticOperation, readonly string[]> = new Map();
+
   /** Facts only grow, so this loop stops once every reachable target has propagated. */
   const settle = (): void => {
     let changed = true;
@@ -582,6 +562,85 @@ export function resolveTargetSets(
       }
     }
   }
+  // Carry the provisional targets into the kill closure. Every candidate is an
+  // upper bound on the final set: extra targets can only add kills, and the
+  // final poisoned set may only shrink.
+  const provisionalTargets = new Map<IndirectCallOperation, readonly string[]>();
+  for (const context of contexts) {
+    for (const block of context.blocks) {
+      for (const operation of block.operations) {
+        if (operation.kind !== "indirect-call") continue;
+        const proven = [...(indirectTargets.get(operation) ?? [])].filter(
+          (target) => target !== UNKNOWN_TARGET,
+        );
+        provisionalTargets.set(
+          operation,
+          proven.length > 0 ? proven : matchingAddresses(operation.signature),
+        );
+      }
+    }
+  }
+  const contextByOwner = new Map(contexts.map((context) => [context.owner, context] as const));
+  const functionKillContexts: InterproceduralKillContext[] = program.functions.map((fn) => {
+    const owner = bindingIdentityKey(fn.id);
+    const context = contextByOwner.get(owner);
+    return {
+      owner,
+      entry: fn.entry,
+      blocks: fn.blocks,
+      initial: context === undefined ? new Set() : initialFor(context),
+      parameters: fn.parameters,
+      initializer: false,
+    };
+  });
+  const initializerKillContexts: InterproceduralKillContext[] = program.initializerOrder.flatMap(
+    (binding) => {
+      const owner = bindingIdentityKey(binding);
+      const global = program.globals.find(
+        (candidate) => bindingIdentityKey(candidate.id) === owner,
+      );
+      if (global === undefined || global.entry === null) return [];
+      const context = contextByOwner.get(owner);
+      return [
+        {
+          owner,
+          entry: global.entry,
+          blocks: global.blocks,
+          initial: context === undefined ? new Set() : initialFor(context),
+          parameters: [],
+          initializer: true,
+        },
+      ];
+    },
+  );
+  const killFacts: InterproceduralKillResult = analyzeInterproceduralKills({
+    program,
+    contexts: [...functionKillContexts, ...initializerKillContexts],
+    indirectTargets: provisionalTargets,
+    placed: placedRanges,
+    boundsChecked: program.boundsChecked ?? true,
+    callWriteEffects: callEffects,
+  });
+  const killedReads = new Map<SemanticOperation, readonly string[]>();
+  for (const context of contexts) {
+    for (const [operation, paths] of assignmentFacts(
+      context.entry,
+      context.blocks,
+      initialFor(context),
+      callEffects,
+      {
+        initialKills: killFacts.entryKills.get(context.owner),
+        callEffect: killFacts.callEffect,
+        aliases: killFacts.aliases.get(context.owner),
+        opaqueAliases: killFacts.opaqueAliases.has(context.owner),
+        placed: placedRanges,
+        boundsChecked: program.boundsChecked ?? true,
+      },
+    ).unknown) {
+      killedReads.set(operation, paths);
+    }
+  }
+  unknownReads = killedReads;
   settle();
   for (const context of contexts) {
     for (const block of context.blocks) {
