@@ -59,6 +59,11 @@ here. The check is repeated at the start of every wave because the plan inventor
 and the affected contracts change; a new candidate only becomes valid with new
 evidence, never with repetition.
 
+**Wave 2 re-check (2026-11-15T12:48:44Z).** None. #146 is an SFA inventory/debug-evidence defect
+(`sfa-abi-auditor`), and #153 is chained-NMI retention with a stock frame and ownership contract
+(`sfa-abi-auditor` + `target-platform-auditor`). Both are already assigned by
+`codeops/agent-routing.md`; no candidate has a unique capability gap.
+
 This section is the durable record. `codeops/specialist-check.json` holds the
 machine-readable check time and plan inventory.
 
@@ -88,7 +93,7 @@ machine-readable check time and plan inventory.
 | --- | --- | --- |
 | Specialist assessment | Done | This section; `codeops/specialist-check.json` at `2026-11-15T08:28:44Z` |
 | 1 | Done — #161, #157, #162 | `../interprocedural-raw-write-kills/08-closeout.md` · `../callable-field-helper-transfer/08-closeout.md` · `../constant-index-callable-recovery/08-closeout.md` |
-| 2 | Backlog | — |
+| 2 | Executing — #146 done, #153 next | `../sfa-staging-home-reuse/08-closeout.md` |
 | 3 | Backlog; #158 user-gated | — |
 | 4 | Backlog | — |
 | 5 | Backlog | — |

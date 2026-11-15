@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-15T08:28:44Z",
+  "checkedAt": "2026-11-15T12:48:44Z",
   "plans": [
     "codeops/features/_maintenance/plans/opencode-native-migration",
     "codeops/features/asm-parity/plans/rd-01-parity-measurement-infrastructure",
@@ -31,12 +31,15 @@
     "codeops/features/blend65-ri/plans/rd-18-slice-8-hardware",
     "codeops/features/blend65-ri/plans/rd-18-slice-8b-strings-embed",
     "codeops/features/blend65-v4/plans/block-index-alignment",
+    "codeops/features/blend65-v4/plans/callable-field-helper-transfer",
     "codeops/features/blend65-v4/plans/canonical-fixed-object-abi",
     "codeops/features/blend65-v4/plans/cia-analysis-memoization",
     "codeops/features/blend65-v4/plans/cia-enabled-memoization",
     "codeops/features/blend65-v4/plans/cia2-startup-preservation",
+    "codeops/features/blend65-v4/plans/constant-index-callable-recovery",
     "codeops/features/blend65-v4/plans/constant-nested-construction",
     "codeops/features/blend65-v4/plans/interprocedural-raw-write-kills",
+    "codeops/features/blend65-v4/plans/issue-wave-delivery",
     "codeops/features/blend65-v4/plans/keyboard-ingress-proof",
     "codeops/features/blend65-v4/plans/keyboard-scan-proof",
     "codeops/features/blend65-v4/plans/masked-index-containment",

@@ -675,23 +675,41 @@ export function retainMachineValue(
       ),
     ) ??
       false);
-  const request = requestStorage(
-    state,
-    `retained-value:${resultId}`,
-    "temporary",
-    register.bytes,
-    (loopValue &&
-      state.input.preferZeroPage === true &&
-      state.input.sourceFacts?.loopPolicy === "mixed") ||
-      (options.zeroPagePreferred === true &&
+  // Reuse the SFA staging home the inventory already planned for this exact
+  // value. The alternative machine home would leave the planned home
+  // unaccessed, consuming RAM and publishing a debug location nothing writes.
+  const planned =
+    state.interruptDepth.domain === "main"
+      ? state.input.logicalStorage?.requests.find(
+          (request) =>
+            bindingIdentityKey(request.owner) === bindingIdentityKey(state.owner) &&
+            request.value === resultId &&
+            (request.storageClass === "return-stage" ||
+              request.storageClass === "argument-stage") &&
+            (request.domain === undefined || request.domain === "main") &&
+            request.activationRoot === undefined &&
+            request.bytes === register.bytes,
+        )
+      : undefined;
+  const request =
+    planned ??
+    requestStorage(
+      state,
+      `retained-value:${resultId}`,
+      "temporary",
+      register.bytes,
+      (loopValue &&
         state.input.preferZeroPage === true &&
-        register.bytes === 1)
-      ? "zero-page-preferred"
-      : "ram",
-    source,
-    "Semantic value retained across later machine clobbers",
-    value.kind === "zero-extended" ? null : type,
-  );
+        state.input.sourceFacts?.loopPolicy === "mixed") ||
+        (options.zeroPagePreferred === true &&
+          state.input.preferZeroPage === true &&
+          register.bytes === 1)
+        ? "zero-page-preferred"
+        : "ram",
+      source,
+      "Semantic value retained across later machine clobbers",
+      value.kind === "zero-extended" ? null : type,
+    );
   const retained: LoweredValue = Object.freeze({
     kind: "storage",
     requestId: request.id,
