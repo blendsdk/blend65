@@ -3,29 +3,18 @@
 > **Issue**: [#131](https://github.com/blendsdk/blend65/issues/131)
 > **Plan**: [99-execution-plan.md](99-execution-plan.md)
 > **Preflight**: [00-preflight-report-99-execution-plan.md](00-preflight-report-99-execution-plan.md)
-> **Status**: Done (bounded-count and fresh-zero slice)
+> **Status**: Done (bounded-count slice); fresh-zero reopened by the full checkpoint
 > **Recorded**: 2026-11-15
 
 ## Delivered
 
-A straight-line private byte count with a mask/conversion bound now drops both saturation tests and
-loads the addressable value before the count:
-
-```asm
-lda seed
-sta count
-lda #$01
-ldx count
-beq continue
-loop:
-  asl
-  dex
-  bne loop
-```
-
-The bounded witness is 124 PRG / 122 program / 110 code bytes, zero-page 0 and scratch 0, from 135
-PRG. That is 11 bytes: 9 from removing the unreachable saturation guard and its block, and 2 from
-reusing the fresh `LDX` zero flag instead of `CPX #0`.
+A straight-line private byte count with a mask/conversion bound now drops both saturation tests.
+The delivered bounded-count slice is 9 bytes. The fresh-zero order (2 additional bytes) was shipped
+and then found unsound by the complete checkpoint: the optimized size observer folds the later
+`LDX local` into a `TAX` at the storing site, so an intervening value load owns Z and the
+fresh-zero gate tests the value. The DELETE/SPACE cases in
+`test/rd08/input-size-runtime.spec.test.ts` classified UNCERTAIN. The fresh-zero slice is reopened
+and the 700/934 optimizer artifacts are not valid until the observer fold preserves the gate.
 
 - The bounded unsigned right shift uses the same order with `lsr`.
 - An unbounded count keeps `CPX #$08`/`BCS` and the bounded fill path; the immediate follows the
@@ -55,6 +44,7 @@ reusing the fresh `LDX` zero flag instead of `CPX #0`.
 | PF-131-001 same-block bound invalidated by aliasing | `mayAliasLocals` clears the fact; reassignment deletes the root. The barriers keep both saturation tests. |
 | PF-131-002 `TAX` would clobber A | The fresh-zero order requires an addressable count; a register count keeps the conservative order. |
 | PF-131-003 seven-byte countdown | **Accepted residual** — the fresh six-byte kernel is smaller for this witness. |
+| Full-checkpoint regression | The size-observer fold moves the count load and loses the fresh Z; the fresh-zero slice is reopened. A fold-proof update or the countdown is required. |
 
 ## Verification
 
@@ -66,14 +56,15 @@ reusing the fresh `LDX` zero flag instead of `CPX #0`.
 | Native VICE | 36/36: counts 0/1/7/8 and the word path on four profiles |
 | Compiler package | 235 files / 3,930 passed / 2 skipped |
 | Host checkpoint | 239 files / 5,080 passed |
-| Optimizer pins | Saved 709→700, `none` 2163→2161, acquisition 943→934 (payload) with new exact PRG digests |
+| Optimizer pins | 700/934 are the observed but runtime-invalid artifacts; restore the safe 709/943 baseline when the fresh-zero is fixed |
 | `spec/` and ledger | Byte-identical |
 
 ## Residuals
 
 | Residual | Owner |
 | --- | --- |
-| Seven-byte `DEX`/`BMI` countdown for a bounded non-fresh count | not needed for this witness; the six-byte fresh kernel is smaller |
+| Fresh-zero fold-proof update | reopened #131 |
+| Seven-byte `DEX`/`BMI` countdown for a bounded count | reopened #131 |
 | Cross-block count bounds | same-block dominating store only |
 | Global count bounds | globals stay unstable; no private-locality proof |
 
