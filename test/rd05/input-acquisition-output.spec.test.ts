@@ -17,8 +17,10 @@ describe.each(sourceLibraryProfiles)("input acquisition output on %s", (profile)
     expectLibraryAccounting(artifacts);
     // This complete fast artifact includes startup, acquisition, both queries,
     // caller, helper code, callback and its thirteen serialized placement bytes.
-    // The small artifact is a separate877-byte/longer-path tradeoff, not a
-    // byte minimum to combine with the fast artifact's CPU path witnesses.
+    // The equal-contract expert looped form is 877 payload bytes / 898 general /
+    // 912 combined and one fewer stack byte. That is the correct `size` byte
+    // minimum; the current 943-byte output is 66 bytes above it because the
+    // looped transform is not admitted to the size frontier.
     expect(artifacts.prg.length - 2).toBeLessThanOrEqual(963);
     const saved = libraryGlobalAddress(
       artifacts,
