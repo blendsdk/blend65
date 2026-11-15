@@ -87,7 +87,7 @@ machine-readable check time and plan inventory.
 | Wave | State | Evidence |
 | --- | --- | --- |
 | Specialist assessment | Done | This section; `codeops/specialist-check.json` at `2026-11-15T08:28:44Z` |
-| 1 | Executing — #161 done, #157 next | `../interprocedural-raw-write-kills/08-closeout.md` |
+| 1 | Executing — #161 and #157 done, #162 next | `../callable-field-helper-transfer/08-closeout.md` |
 | 2 | Backlog | — |
 | 3 | Backlog; #158 user-gated | — |
 | 4 | Backlog | — |

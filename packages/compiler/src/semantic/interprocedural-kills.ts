@@ -1,4 +1,3 @@
-import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { assignmentFacts, assignmentKey, callableValuePredicate } from "./assignment-facts.js";
 import type { CallWriteEffects } from "./assignment-facts.js";
@@ -25,6 +24,7 @@ import type {
   PlacedRange,
 } from "./raw-write-kills.js";
 import { reachableBlocks } from "./value-lifetimes.js";
+import { argumentOrigins } from "./callable-paths.js";
 import type {
   BlockId,
   IndirectCallOperation,
@@ -123,37 +123,6 @@ function prepare(context: InterproceduralKillContext): PreparedContext {
     definitions: definitionsOf(context.blocks),
     parameterKeys: new Set(context.parameters.map((parameter) => bindingIdentityKey(parameter.id))),
   };
-}
-
-/**
- * Resolve one call argument to the places its value borrows. A load or an
- * address names one place; a conversion keeps the same bytes; a merge unions
- * every incoming place. Any other producer has no proved origin.
- */
-function argumentOrigins(
-  value: string | undefined,
-  definitions: Definitions,
-): readonly SemanticPlace[] | null {
-  if (value === undefined) return null;
-  const visited = new Set<string>();
-  const resolve = (current: string): readonly SemanticPlace[] | null => {
-    if (visited.has(current)) return null;
-    visited.add(current);
-    const operation = definitions.get(current);
-    if (operation === undefined) return null;
-    if (operation.kind === "load" || operation.kind === "place-address") return [operation.place];
-    if (operation.kind === "convert") return resolve(operation.operand);
-    if (operation.kind !== "merge") return null;
-    const places: SemanticPlace[] = [];
-    for (const incoming of operation.incoming) {
-      const resolved = resolve(incoming.value);
-      if (resolved === null) return null;
-      places.push(...resolved);
-    }
-    return places;
-  };
-  const places = resolve(value);
-  return places === null || places.length === 0 ? null : places;
 }
 
 /**
@@ -410,20 +379,18 @@ function buildAliasRelations(
 }
 
 /** Recall one function's global bare callable stores as a definite summary. */
-function definiteRestorations(
-  fn: SemanticFunction,
-  globalRoots: ReadonlySet<string>,
-): readonly KilledRange[] {
+function definiteRestorations(fn: SemanticFunction): readonly KilledRange[] {
   const safeValue = callableValuePredicate(fn.blocks);
+  const definitions = definitionsOf(fn.blocks);
   const candidates = new Map<string, KilledRange>();
   for (const block of fn.blocks) {
     for (const operation of block.operations) {
       if (operation.kind !== "store" || !safeValue(operation.value)) continue;
       const key = assignmentKey(operation.place);
-      if (key === null || key.includes("\0") || !globalRoots.has(key)) continue;
-      const type = operation.place.rootType;
-      if (operation.place.path.length !== 0 || type?.kind !== "function") continue;
-      candidates.set(key, { root: key, start: 0, end: semanticTypeSize(type) });
+      if (key === null) continue;
+      const range = placeByteRange(operation.place, definitions);
+      if (range === null) continue;
+      candidates.set(key, range);
     }
   }
   if (candidates.size === 0) return NO_KILLS;
@@ -553,8 +520,7 @@ export function analyzeInterproceduralKills(
     }
   }
   const restorations = new Map<string, readonly KilledRange[]>();
-  for (const [owner, fn] of functions)
-    restorations.set(owner, definiteRestorations(fn, globalRoots));
+  for (const [owner, fn] of functions) restorations.set(owner, definiteRestorations(fn));
   const aliasFacts = buildAliasRelations(
     prepared,
     functions,
@@ -692,13 +658,52 @@ export function analyzeInterproceduralKills(
   };
 
   /** Translate every possible callee's definite restores into a common set. */
-  const sharedRestores = (operation: CallLike): readonly KilledRange[] => {
-    const targets = targetsOf(operation);
+  /** Translate one callee's definite field/global restores to the caller. */
+  const translateRestores = (
+    operation: CallLike,
+    target: string,
+    entry: PreparedContext,
+  ): readonly KilledRange[] => {
+    const callee = functions.get(target);
+    if (callee === undefined) return NO_KILLS;
+    const translated: KilledRange[] = [];
+    for (const range of restorations.get(target) ?? []) {
+      if (globalRoots.has(range.root)) {
+        translated.push(range);
+        continue;
+      }
+      const index = callee.parameters.findIndex(
+        (parameter) => bindingIdentityKey(parameter.id) === range.root,
+      );
+      if (index < 0) continue;
+      const ranges = actualRanges(
+        operation.arguments[index],
+        entry.definitions,
+        input.boundsChecked,
+      );
+      // A definite restore needs a single definite actual object; a may-origin
+      // union or an unresolved index cannot name the repaired bytes.
+      if (ranges === null || ranges.length !== 1) continue;
+      const origin = ranges[0]!;
+      translated.push({
+        root: origin.root,
+        start: origin.start + range.start,
+        end: origin.start + range.end,
+      });
+    }
+    return translated;
+  };
+  const sharedRestores = (operation: CallLike, entry: PreparedContext): readonly KilledRange[] => {
     let common: Map<string, KilledRange> | null = null;
-    for (const target of targets) {
-      const known = new Map((restorations.get(target) ?? []).map((range) => [range.root, range]));
+    for (const target of targetsOf(operation)) {
+      const known = new Map(
+        translateRestores(operation, target, entry).map((range) => [
+          `${range.root}\0${range.start}\0${range.end}`,
+          range,
+        ]),
+      );
       if (common === null) common = known;
-      else for (const root of [...common.keys()]) if (!known.has(root)) common.delete(root);
+      else for (const key of [...common.keys()]) if (!known.has(key)) common.delete(key);
     }
     return [...(common?.values() ?? [])];
   };
@@ -710,7 +715,7 @@ export function analyzeInterproceduralKills(
     // A definite restore repairs only the kills that entered the callee. A kill
     // the callee produces after its store survives this update.
     let next = kills;
-    for (const restore of sharedRestores(operation)) next = subtractStore(next, restore);
+    for (const restore of sharedRestores(operation, entry)) next = subtractStore(next, restore);
     let produced = NO_KILLS;
     for (const target of targets)
       produced = unionKills(produced, outgoing(operation, target, entry));

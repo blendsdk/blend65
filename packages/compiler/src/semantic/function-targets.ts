@@ -192,40 +192,64 @@ export function resolveTargetSets(
       }
     }
   }
-  // A call-write guarantee covers a bare callable global, including one whose
-  // address is taken or that has an explicit placement. The definite store
-  // writes the complete callable bytes with a direct source address; any later
-  // raw write is carried by the separate byte-interval kill analysis, so taking
-  // the address no longer invalidates the typed assignment transfer. Aggregate
-  // fields remain the separate field-transfer precision boundary.
-  // A destination is transferable only when every compiler-visible store to it
-  // assigns a direct callable source. One non-qualifying write anywhere means
-  // the definite assignment no longer proves the stored function identity.
-  const unsafeStoreRoots = new Set<string>();
+  // A call-write guarantee covers a whole bare callable global and a callable
+  // field under a global or borrowed aggregate parameter. The definite store
+  // writes a direct source address; a later raw write is carried by the
+  // byte-interval kill analysis. A store to a sibling non-callable field is
+  // irrelevant; an unsafe store to a callable key, an indexed store or a
+  // whole-root store excludes only the affected scope.
+  const unsafeKeys = new Set<string>();
+  const unsafeRoots = new Set<string>();
   for (const context of contexts) {
     const safeValue = callableValuePredicate(context.blocks);
     for (const block of context.blocks) {
       for (const operation of block.operations) {
         if (operation.kind !== "store") continue;
+        const root = bindingIdentityKey(operation.place.root);
         const key = assignmentKey(operation.place);
-        if (key === null || !safeValue(operation.value))
-          unsafeStoreRoots.add(bindingIdentityKey(operation.place.root));
+        if (key === null) {
+          // An indexed store cannot be represented by a whole-field key; keep
+          // the complete root conservative.
+          unsafeRoots.add(root);
+          continue;
+        }
+        if (safeValue(operation.value)) continue;
+        unsafeKeys.add(key);
+        if (!key.includes("\0")) unsafeRoots.add(root);
       }
     }
   }
+  const parameterRoots = new Set(
+    program.functions.flatMap((fn) =>
+      fn.parameters.map((parameter) => bindingIdentityKey(parameter.id)),
+    ),
+  );
   const transferableRoots = new Set(
-    program.globals
-      .filter((global) => global.type.kind === "function")
-      .map((global) => bindingIdentityKey(global.id))
-      .filter((root) => !unsafeStoreRoots.has(root)),
+    [
+      ...program.globals
+        .filter((global) => callablePaths(global.type).length > 0)
+        .map((global) => bindingIdentityKey(global.id)),
+      ...program.functions.flatMap((fn) =>
+        fn.parameters
+          .filter(
+            (parameter) =>
+              (parameter.type.kind === "struct" || parameter.type.kind === "array") &&
+              callablePaths(parameter.type).length > 0,
+          )
+          .map((parameter) => bindingIdentityKey(parameter.id)),
+      ),
+    ].filter((root) => !unsafeRoots.has(root)),
   );
-  const callEffects = callWriteSummaries(functions, transferableRoots);
-  const startup = startupAssignmentFacts(
-    program,
-    initializedGlobals,
-    callEffects,
-    transferableRoots,
-  );
+  const acceptKey = (key: string): boolean => {
+    const boundary = key.indexOf("\0");
+    const root = boundary < 0 ? key : key.slice(0, boundary);
+    if (!transferableRoots.has(root) || unsafeKeys.has(key)) return false;
+    // A whole-parameter store rebinds the borrowed reference, not the caller's
+    // object, so only a field path under a parameter is transferable.
+    return !(parameterRoots.has(root) && boundary < 0);
+  };
+  const callEffects = callWriteSummaries(functions, acceptKey);
+  const startup = startupAssignmentFacts(program, initializedGlobals, callEffects, acceptKey);
   const mainKey = bindingIdentityKey(program.main);
   const independent = new Set([mainKey, ...addressTaken.keys(), ...handlerAddresses]);
   const independentEntry = (key: string): ReadonlySet<string> =>
@@ -453,18 +477,35 @@ export function resolveTargetSets(
           ? [bindingIdentityKey(operation.callee)]
           : [...(indirectTargets.get(operation) ?? [])];
       let changed = false;
+      const summary =
+        operation.kind === "call"
+          ? callEffects.get(bindingIdentityKey(operation.callee))
+          : undefined;
+      // A field the callee definitely overwrites must not inherit the caller's
+      // pre-call unknown; the store summary supplies the exact source instead.
+      const excluded = new Map<number, Set<string>>();
+      for (const entry of summary?.keys ?? []) {
+        if (entry.parameter === null) continue;
+        const boundary = entry.key.indexOf("\0");
+        if (boundary < 0) continue;
+        const path = entry.key.slice(boundary + 1);
+        const known = excluded.get(entry.parameter) ?? new Set<string>();
+        known.add(path);
+        excluded.set(entry.parameter, known);
+      }
       for (const calleeKey of callees) {
         const callee = functions.get(calleeKey);
         if (callee === undefined) continue;
         for (let index = 0; index < operation.arguments.length; index += 1) {
           const parameter = callee.parameters[index];
           if (parameter === undefined) continue;
+          const source = valuePaths.get(valueKey(owner, operation.arguments[index]!));
+          const filtered =
+            source === undefined
+              ? undefined
+              : new Map([...source].filter(([path]) => !(excluded.get(index)?.has(path) ?? false)));
           changed =
-            addPathTargets(
-              bindingPaths,
-              bindingIdentityKey(parameter.id),
-              valuePaths.get(valueKey(owner, operation.arguments[index]!)),
-            ) || changed;
+            addPathTargets(bindingPaths, bindingIdentityKey(parameter.id), filtered) || changed;
           if (parameter.type.kind === "struct" || parameter.type.kind === "array") {
             for (const place of valueAliases.get(valueKey(owner, operation.arguments[index]!)) ??
               []) {
