@@ -275,6 +275,40 @@ export function resolvePlacementTransforms(
             ),
           });
         }
+        if (operand?.kind === "label" && operand.addressTransform === "block-index") {
+          const interval = placed.get(operand.label);
+          if (interval === undefined) {
+            return fail(instruction, `Block index '${operand.label}' has no placed storage`, [
+              `label=${operand.label}`,
+            ]);
+          }
+          const address = interval.start + (operand.offset ?? 0);
+          if (address < 0 || address > 0xffff) {
+            return fail(
+              instruction,
+              `Block index address $${address.toString(16)} is outside cpu16`,
+              [`label=${operand.label}`],
+            );
+          }
+          if ((address & 0x3f) !== 0) {
+            return fail(
+              instruction,
+              `Block index '${operand.label}' requires 64-byte alignment; $${address.toString(16)} is not aligned`,
+              [`label=${operand.label}`, `address=$${address.toString(16)}`],
+            );
+          }
+          const value = (address >> 6) & 0xff;
+          const memory = instruction.memory.map((effect) => resolveEffect(effect, instruction));
+          if (memory.some((effect) => effect === null)) return null;
+          return Object.freeze({
+            ...instruction,
+            operand: Object.freeze({ kind: "immediate" as const, value }),
+            foldedBlockIndex: true as const,
+            memory: Object.freeze(
+              memory.filter((effect): effect is NonNullable<typeof effect> => effect !== null),
+            ),
+          });
+        }
         if (operand?.kind !== "label" || operand.transform === undefined) {
           const memory = instruction.memory.map((effect) => resolveEffect(effect, instruction));
           if (memory.some((effect) => effect === null)) return null;

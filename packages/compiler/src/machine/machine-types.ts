@@ -45,7 +45,8 @@ export interface BooleanMaskTest {
 }
 
 /** Symbolic byte identity retained for final reference/candidate observer checks. */
-export interface ByteWindowAddress {  /** Existing SFA request or resident data symbol, never a provisional numeric address. */
+export interface ByteWindowAddress {
+  /** Existing SFA request or resident data symbol, never a provisional numeric address. */
   readonly kind: "home" | "symbol";
   /** Exact request or symbol identity. */
   readonly id: string;
@@ -375,7 +376,7 @@ export type MachineOperand =
       readonly addressByte?: "low" | "high";
       readonly transform?: VicFieldTransform;
       /** Layout-owned address relation resolved after final placement. */
-      readonly addressTransform?: "sprite-pointer-table";
+      readonly addressTransform?: "sprite-pointer-table" | "block-index";
     }
   | {
       readonly kind: "storage";
@@ -433,6 +434,8 @@ export interface MachineInstruction {
   readonly foldedIdentity?: true;
   /** Immediate value produced by one final-placement VIC field transform. */
   readonly foldedVicField?: true;
+  /** Layout resolved a symbolic block index to its immediate value. */
+  readonly foldedBlockIndex?: true;
   /** Loader or call-site attribution for one instruction in a KERNAL load sequence. */
   readonly loadUnitRole?: "loader" | "callSite";
 }

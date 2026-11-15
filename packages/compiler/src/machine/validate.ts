@@ -14,7 +14,9 @@ function validOperand(instruction: MachineInstruction): boolean {
         operand.value >= 0 &&
         operand.value <= 0xff) ||
       (operand.kind === "label" &&
-        (operand.addressByte !== undefined || operand.transform !== undefined))
+        (operand.addressByte !== undefined ||
+          operand.transform !== undefined ||
+          operand.addressTransform !== undefined))
     );
   }
   if (mode === "relative") return operand.kind === "label";

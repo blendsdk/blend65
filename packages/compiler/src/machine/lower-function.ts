@@ -6,10 +6,17 @@ import { nmiLocalElisionKey, nmiStackPlan } from "../semantic/nmi-register-local
 import type {
   SemanticBlock,
   SemanticOperation,
+  SemanticPlace,
   SemanticTerminator,
 } from "../semantic/operations.js";
 import type { StorageRequest } from "../storage/storage-types.js";
-import { lowerTerminator, machineCost, machineInstruction, machineState } from "./lower-control.js";
+import {
+  bindingLabel,
+  lowerTerminator,
+  machineCost,
+  machineInstruction,
+  machineState,
+} from "./lower-control.js";
 import {
   prepareFixedLoops,
   enterFixedLoopBlock,
@@ -34,6 +41,9 @@ import {
   selectByteWindows,
 } from "./lower-register-forwarding.js";
 import { lowerIndirectCall, lowerInterruptSink } from "./lower-indirect.js";
+import { potentialValueInputs } from "../semantic/value-lifetimes.js";
+import { constantValue } from "../semantic/raw-write-kills.js";
+import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import { lowerVariableShift } from "./lower-variable-shift.js";
 import { selectGuardedShiftCount } from "./lower-guarded-shift.js";
 import { hasByteReturnArms, selectTerminalByteLeaves } from "./lower-terminal-byte.js";
@@ -64,6 +74,108 @@ import {
   appendLoadA,
   functionValueUses,
 } from "./lower-state.js";
+
+/** One layout-resolved block-index label and its static byte offset. */
+interface BlockIndexLabel {
+  readonly label: string;
+  readonly offset: number;
+}
+
+/** Static field/constant-index offset of one addressed place. */
+function staticPlaceOffset(
+  place: SemanticPlace,
+  definitions: ReadonlyMap<string, SemanticOperation>,
+): number | null {
+  let type = place.rootType;
+  let offset = 0;
+  for (const step of place.path) {
+    if (step.kind === "field") {
+      if (type?.kind !== "struct") return null;
+      const field = type.fields.find(({ name }) => name === step.name);
+      if (field === undefined) return null;
+      offset += field.offset;
+      type = field.type;
+      continue;
+    }
+    if (type?.kind !== "array") return null;
+    const index = constantValue(definitions.get(step.value!), definitions);
+    if (index === null || index < 0 || index >= type.length) return null;
+    offset += semanticTypeSize(type.element) * index;
+    type = type.element;
+  }
+  return offset;
+}
+
+/**
+ * Find binary block-index results whose only consumer is a `lo`. Their
+ * symbolic address and the `/64` or `>>6` result both lower to link-time
+ * labels instead of runtime pointer staging and shifts.
+ */
+function blockIndexFoldValues(
+  blocks: readonly SemanticBlock[],
+  program: {
+    readonly semantic: {
+      readonly globals: readonly {
+        readonly id: BindingId;
+        readonly zeropage?: boolean;
+        readonly placement?: { readonly at: number | null } | null;
+      }[];
+    };
+  },
+): {
+  readonly binaries: ReadonlyMap<string, BlockIndexLabel>;
+  readonly addresses: ReadonlyMap<string, BlockIndexLabel>;
+} {
+  const definitions = new Map<string, SemanticOperation>();
+  for (const block of blocks)
+    for (const operation of block.operations) {
+      const result = "result" in operation ? operation.result : null;
+      if (result !== null && result !== undefined) definitions.set(result, operation);
+    }
+  const uses = new Map<string, number>();
+  const count = (value: string): void => {
+    uses.set(value, (uses.get(value) ?? 0) + 1);
+  };
+  for (const block of blocks) {
+    for (const operation of block.operations)
+      for (const value of potentialValueInputs(operation)) count(value);
+    if (block.terminator.kind === "branch") count(block.terminator.condition);
+    else if (block.terminator.kind === "return" && block.terminator.value !== null)
+      count(block.terminator.value);
+  }
+  const binaries = new Map<string, BlockIndexLabel>();
+  const addresses = new Map<string, BlockIndexLabel>();
+  for (const block of blocks) {
+    for (const operation of block.operations) {
+      if (operation.kind !== "unary" || operation.operator !== "lo") continue;
+      const binary = definitions.get(operation.operand);
+      if (binary?.kind !== "binary") continue;
+      const right = constantValue(definitions.get(binary.right), definitions);
+      if (binary.operator === "/" ? right !== 64 : binary.operator === ">>" ? right !== 6 : true)
+        continue;
+      let address = definitions.get(binary.left);
+      while (address?.kind === "convert") address = definitions.get(address.operand);
+      if (address?.kind !== "place-address" || address.place.asset !== undefined) continue;
+      const rootKey = bindingIdentityKey(address.place.root);
+      const global = program.semantic.globals.find(
+        (candidate) => bindingIdentityKey(candidate.id) === rootKey,
+      );
+      if (global === undefined) continue;
+      // Explicit placement and zero-page storage keep their exact contract. Only
+      // the automatic placement strengthened by the block-index pass can fold.
+      if (global.zeropage === true) continue;
+      if (global.placement?.at !== null && global.placement?.at !== undefined) continue;
+      if ((uses.get(binary.result) ?? 0) !== 1) continue;
+      if ((uses.get(address.result) ?? 0) !== 1) continue;
+      const offset = staticPlaceOffset(address.place, definitions);
+      if (offset === null || offset % 64 !== 0) continue;
+      const label = bindingLabel("global", address.place.root);
+      binaries.set(binary.result, { label, offset });
+      addresses.set(address.result, { label, offset });
+    }
+  }
+  return { binaries, addresses };
+}
 
 /** Lower one ordered block list into one machine function. */
 export function lowerFunction(
@@ -176,6 +288,7 @@ export function lowerFunction(
       : nmiStackPlan(sourceFunction?.entry ?? blocks[0]!.id, blocks, retainedKeys);
   if (retainedKeys !== undefined && retainedKeys.size > 0 && stackPlan === null)
     throw loweringFailure("Retained NMI bindings have no static stack plan", owner.span);
+  const blockIndexFolds = blockIndexFoldValues(blocks, input.program);
   const state: FunctionLoweringState = {
     owner,
     fixedLoops,
@@ -198,6 +311,8 @@ export function lowerFunction(
       ),
     ),
     materializedValues,
+    blockIndexFolds: blockIndexFolds.binaries,
+    blockIndexAddresses: blockIndexFolds.addresses,
     forwardedRegisterValues: new Set(forwardedRegisterValues),
     zeroFlagValues: new Set(zeroFlagValues),
     booleanValues: new Set(booleanValues),

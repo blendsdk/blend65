@@ -64,6 +64,13 @@ evidence, never with repetition.
 (`sfa-abi-auditor` + `target-platform-auditor`). Both are already assigned by
 `codeops/agent-routing.md`; no candidate has a unique capability gap.
 
+**Wave 2 blocker (2026-11-15).** #146 is delivered. #153 is blocked: enabling the
+straight-line stack-retention proof for `setNMI` produces no `stackRetainedBindings` for the
+chained handler, and the public build fails `COMPILER_INCOMPLETE` at machine storage binding. The
+stock chained entry uses a different generated-entry binding path than `setNMIExclusive`; proving
+the stock NMINV frame and the handler's RTS return is the missing work. The gate change was
+reverted; #153 stays open with this evidence rather than binding an unproved stack plan.
+
 This section is the durable record. `codeops/specialist-check.json` holds the
 machine-readable check time and plan inventory.
 
@@ -93,7 +100,7 @@ machine-readable check time and plan inventory.
 | --- | --- | --- |
 | Specialist assessment | Done | This section; `codeops/specialist-check.json` at `2026-11-15T08:28:44Z` |
 | 1 | Done — #161, #157, #162 | `../interprocedural-raw-write-kills/08-closeout.md` · `../callable-field-helper-transfer/08-closeout.md` · `../constant-index-callable-recovery/08-closeout.md` |
-| 2 | Executing — #146 done, #153 next | `../sfa-staging-home-reuse/08-closeout.md` |
-| 3 | Backlog; #158 user-gated | — |
+| 2 | Blocked on #153 — #146 done | `../sfa-staging-home-reuse/08-closeout.md`; #153 needs the stock chained entry stack-binding proof |
+| 3 | Executing — #160 done, #159 next; #158 user-gated | `../block-index-immediate-fold/08-closeout.md` |
 | 4 | Backlog | — |
 | 5 | Backlog | — |

@@ -42,6 +42,8 @@ export type LoweredValue =
       /** First byte of a scalar view inside the same resident data symbol. */
       readonly offset?: number;
       readonly transform?: VicFieldTransform;
+      /** A layout-resolved 64-byte block index derived from the label address. */
+      readonly addressTransform?: "block-index";
       /** Source-owned zero-page data has a proved one-byte physical address. */
       readonly zeroPage?: boolean;
     }
@@ -372,6 +374,7 @@ export function operandForValue(value: LoweredValue, offset = 0): MachineOperand
       label: value.label,
       offset: (value.offset ?? 0) + offset,
       ...(value.transform === undefined ? {} : { transform: value.transform }),
+      ...(value.addressTransform === undefined ? {} : { addressTransform: value.addressTransform }),
     });
   }
   if (value.kind === "symbol-address") {
@@ -413,7 +416,11 @@ export function modeForValue(
   if (value.kind === "constant") return "immediate";
   if (value.kind === "storage") return "storage";
   if (value.kind === "label")
-    return value.transform !== undefined ? "immediate" : value.zeroPage ? "zero-page" : "absolute";
+    return value.transform !== undefined || value.addressTransform !== undefined
+      ? "immediate"
+      : value.zeroPage
+        ? "zero-page"
+        : "absolute";
   if (value.kind === "symbol-address") return "immediate";
   if (value.kind === "static-address")
     return value.requestId !== undefined ? "storage" : "absolute";

@@ -526,6 +526,15 @@ export function lowerUnary(
   if (operation.operator === "+") {
     return Object.freeze({ instructions: Object.freeze([]), result: operand });
   }
+  if (
+    operation.operator === "lo" &&
+    operand.kind === "label" &&
+    operand.addressTransform === "block-index"
+  ) {
+    // The block index is already a layout-resolved byte. Keep it symbolic so
+    // the consumer emits one immediate load instead of materializing A first.
+    return Object.freeze({ instructions: Object.freeze([]), result: operand });
+  }
   if (operation.operator === "lo" || operation.operator === "hi") {
     const offset = operation.operator === "lo" ? 0 : 1;
     if (offset >= operand.bytes) {

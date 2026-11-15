@@ -124,6 +124,16 @@ export interface FunctionLoweringState {
   readonly branchConditions: ReadonlySet<string>;
   /** Values that must survive beyond their immediate production. */
   readonly materializedValues: ReadonlySet<string>;
+  /** Binary block-index results whose only consumer is a folding `lo`. */
+  readonly blockIndexFolds?: ReadonlyMap<
+    string,
+    { readonly label: string; readonly offset: number }
+  >;
+  /** Symbolic address results folded into a link-time label for a block index. */
+  readonly blockIndexAddresses?: ReadonlyMap<
+    string,
+    { readonly label: string; readonly offset: number }
+  >;
   /** One-use A/AX results consumed by the next instruction-producing operation. */
   readonly forwardedRegisterValues: Set<string>;
   /** Ordinary loads whose byte is already in A from an adjacent raw read of the same home. */

@@ -670,13 +670,30 @@ export function lowerOperation(
           operation.span,
         );
       }
-      lowered = lowerFixedShift(
-        operation,
-        left,
-        right.value,
-        operation.operator === "<<" ? "left" : "right",
-        state,
-      );
+      const block =
+        operation.operator === ">>" && right.value === 6
+          ? state.blockIndexFolds?.get(operation.result)
+          : undefined;
+      lowered =
+        block !== undefined
+          ? Object.freeze({
+              instructions: Object.freeze([]),
+              result: Object.freeze({
+                kind: "label" as const,
+                label: block.label,
+                ...(block.offset === 0 ? {} : { offset: block.offset }),
+                bytes: 1,
+                signed: false,
+                addressTransform: "block-index" as const,
+              }),
+            })
+          : lowerFixedShift(
+              operation,
+              left,
+              right.value,
+              operation.operator === "<<" ? "left" : "right",
+              state,
+            );
     } else if (operation.operator === "*") {
       if (right.kind === "constant") {
         lowered = lowerConstantMultiply(operation, left, right.value, state);
@@ -690,7 +707,32 @@ export function lowerOperation(
       }
     } else if (operation.operator === "/" || operation.operator === "%") {
       const divisor = right.kind === "constant" ? right.value : null;
-      if (
+      if (process.env.BLEND65_DEBUG_FOLD === "1")
+        console.error(
+          "div",
+          operation.result,
+          right.kind,
+          divisor,
+          left.kind,
+          state.blockIndexFolds?.has(operation.result),
+        );
+      const block =
+        operation.operator === "/" && divisor === 64
+          ? state.blockIndexFolds?.get(operation.result)
+          : undefined;
+      if (block !== undefined) {
+        lowered = Object.freeze({
+          instructions: Object.freeze([]),
+          result: Object.freeze({
+            kind: "label" as const,
+            label: block.label,
+            ...(block.offset === 0 ? {} : { offset: block.offset }),
+            bytes: 1,
+            signed: false,
+            addressTransform: "block-index" as const,
+          }),
+        });
+      } else if (
         !isSignedType(operation.type) &&
         divisor !== null &&
         divisor > 0 &&
@@ -978,6 +1020,20 @@ export function lowerOperation(
     return Object.freeze([]);
   }
   if (operation.kind === "place-address") {
+    const folded = state.blockIndexAddresses?.get(operation.result);
+    if (folded !== undefined) {
+      state.values.set(
+        operation.result,
+        Object.freeze({
+          kind: "label" as const,
+          label: folded.label,
+          ...(folded.offset === 0 ? {} : { offset: folded.offset }),
+          bytes: 2,
+          signed: false,
+        }),
+      );
+      return Object.freeze([]);
+    }
     if (operation.captureValue === true) {
       const captured = lowerCapturedAggregatePlace(operation, state);
       state.values.set(operation.result, captured.result);
