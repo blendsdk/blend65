@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-15T12:48:44Z",
+  "checkedAt": "2026-11-15T14:15:14Z",
   "plans": [
     "codeops/features/_maintenance/plans/opencode-native-migration",
     "codeops/features/asm-parity/plans/rd-01-parity-measurement-infrastructure",
@@ -31,6 +31,7 @@
     "codeops/features/blend65-ri/plans/rd-18-slice-8-hardware",
     "codeops/features/blend65-ri/plans/rd-18-slice-8b-strings-embed",
     "codeops/features/blend65-v4/plans/block-index-alignment",
+    "codeops/features/blend65-v4/plans/block-index-immediate-fold",
     "codeops/features/blend65-v4/plans/callable-field-helper-transfer",
     "codeops/features/blend65-v4/plans/canonical-fixed-object-abi",
     "codeops/features/blend65-v4/plans/cia-analysis-memoization",
@@ -79,7 +80,9 @@
     "codeops/features/blend65-v4/plans/rd-10-production-qualification",
     "codeops/features/blend65-v4/plans/returned-local-destination",
     "codeops/features/blend65-v4/plans/root-suite-remediation",
+    "codeops/features/blend65-v4/plans/runtime-block-index-alignment",
     "codeops/features/blend65-v4/plans/runtime-switch-label-order",
+    "codeops/features/blend65-v4/plans/sfa-staging-home-reuse",
     "codeops/features/blend65-v4/plans/test-tier-optimization",
     "codeops/features/blend65-v4/plans/whole-input-cost-closure",
     "codeops/features/compiler-readiness/plans/rd-01-specification-inventory",

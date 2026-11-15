@@ -71,6 +71,11 @@ stock chained entry uses a different generated-entry binding path than `setNMIEx
 the stock NMINV frame and the handler's RTS return is the missing work. The gate change was
 reverted; #153 stays open with this evidence rather than binding an unproved stack plan.
 
+**Wave 3 re-check (2026-11-15).** None. #160 is lowering/output debt (`machine-code-auditor`),
+#159 is alignment and VIC visibility (`machine-code-auditor` + `target-platform-auditor`), #158 is a
+diagnostic contract (`semantics-reviewer`), and #145 is a size measurement (`machine-code-auditor`).
+No new capability gap; #158 remains user-gated.
+
 This section is the durable record. `codeops/specialist-check.json` holds the
 machine-readable check time and plan inventory.
 
