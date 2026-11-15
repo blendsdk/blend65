@@ -4,7 +4,10 @@ import type {
   SemanticBlock,
   SemanticFunction,
   SemanticOperation,
+  SemanticPlace,
 } from "../semantic/operations.js";
+import type { BindingId } from "../frontend/semantic-types.js";
+import type { SemanticGlobal } from "../semantic/operations.js";
 import { canReceiveByteArgumentInA } from "./lower-call.js";
 import type { BooleanMaskTest, MachineBlock } from "./machine-types.js";
 import { typeBytes } from "./lower-state.js";
@@ -107,6 +110,7 @@ export function selectRegisterForwarding(
   zeroExtensionValues?: ReadonlySet<string>,
   stackRetainedLocalKeys?: ReadonlySet<string>,
   materializedValues: ReadonlySet<string> = new Set(),
+  globals: readonly SemanticGlobal[] = [],
 ): {
   /** Values whose sole adjacent consumer can use their still-live registers. */
   readonly forwardedRegisterValues: ReadonlySet<string>;
@@ -132,6 +136,10 @@ export function selectRegisterForwarding(
   readonly staticRawAddresses: ReadonlySet<string>;
   /** Ordinary loads whose byte is already in A from an adjacent raw read of the same home. */
   readonly forwardedPlaceLoads: ReadonlyMap<string, string>;
+  /** Aggregate element loads whose byte is already in A from an adjacent store. */
+  readonly forwardedStoreLoads: ReadonlyMap<string, string>;
+  /** Element loads whose byte is the last constant left in A by an aggregate. */
+  readonly forwardedAggregateLoads: ReadonlyMap<string, string>;
   /** Second byte operands read into X to preserve the first operand in A. */
   readonly subtractRightInX: ReadonlySet<string>;
   /** First word-add operands whose high byte survives the second read in Y. */
@@ -141,6 +149,36 @@ export function selectRegisterForwarding(
   /** Second word-subtract operands needing one low-byte staging home. */
   readonly wordSubtractRightLowStaged: ReadonlySet<string>;
 } {
+  const parameterRoots = new Set(
+    functions.flatMap((fn) => fn.parameters.map((parameter) => bindingIdentityKey(parameter.id))),
+  );
+  const globalRoots = new Set(globals.map((global) => bindingIdentityKey(global.id)));
+  const privateStoreRoot = (root: BindingId): boolean => {
+    const key = bindingIdentityKey(root);
+    return !globalRoots.has(key) && !parameterRoots.has(key);
+  };
+  const localDefinitions = new Map<string, SemanticOperation>();
+  for (const block of blocks)
+    for (const operation of block.operations) {
+      const result = "result" in operation ? operation.result : null;
+      if (result !== null && result !== undefined) localDefinitions.set(result, operation);
+    }
+  const constantValue = (value: string): bigint | null => {
+    const operation = localDefinitions.get(value);
+    if (operation?.kind === "constant" && typeof operation.value === "bigint")
+      return operation.value;
+    if (operation?.kind === "convert") return constantValue(operation.operand);
+    return null;
+  };
+  const placeSignature = (place: SemanticPlace): string =>
+    JSON.stringify([
+      bindingIdentityKey(place.root),
+      place.path.map((step) =>
+        step.kind === "field"
+          ? ["field", step.name]
+          : ["index", constantValue(step.value)?.toString() ?? "*"],
+      ),
+    ]);
   const constantValues = new Set<string>();
   const literals = new Map<string, bigint>();
   const zeroValues = new Set<string>();
@@ -291,6 +329,8 @@ export function selectRegisterForwarding(
   const directBcdWrites = new Map<string, MemoryWriteOperation>();
   const staticRawAddresses = new Set<string>();
   const forwardedPlaceLoads = new Map<string, string>();
+  const forwardedStoreLoads = new Map<string, string>();
+  const forwardedAggregateLoads = new Map<string, string>();
   const subtractRightInX = new Set<string>();
   const wordAddLeftHighInY = new Set<string>();
   const wordSubtractLeftHighInY = new Set<string>();
@@ -334,6 +374,63 @@ export function selectRegisterForwarding(
             forwardedPlaceLoads.set(load.result, read.result);
           }
         }
+      }
+      if (
+        producer.kind === "store" &&
+        typeBytes(producer.type) === 1 &&
+        producer.place.path.length > 0 &&
+        producer.place.path.every(
+          (step) =>
+            step.kind === "field" || (step.kind === "index" && constantValue(step.value) !== null),
+        ) &&
+        privateStoreRoot(producer.place.root) &&
+        constantValue(producer.value) !== null
+      ) {
+        const loadIndex = nextMachineOperationIndex(block, index);
+        const load = block.operations[loadIndex];
+        if (
+          load?.kind === "load" &&
+          typeBytes(load.type) === 1 &&
+          singleUseValues.has(load.result) &&
+          placeSignature(load.place) === placeSignature(producer.place)
+        )
+          forwardedStoreLoads.set(load.result, producer.value);
+      }
+      if (
+        producer.kind === "aggregate" &&
+        producer.destination?.kind === "place" &&
+        producer.destination.place.path.length === 0 &&
+        privateStoreRoot(producer.destination.place.root) &&
+        producer.type.kind === "array" &&
+        producer.fill === null &&
+        producer.elements.length > 0
+      ) {
+        const last = producer.elements[producer.elements.length - 1];
+        const lastIndex = BigInt(producer.elements.length - 1);
+        let loadIndex = nextMachineOperationIndex(block, index);
+        const wholeStore = block.operations[loadIndex];
+        if (
+          wholeStore?.kind === "store" &&
+          wholeStore.value === producer.result &&
+          bindingIdentityKey(wholeStore.place.root) ===
+            bindingIdentityKey(producer.destination.place.root)
+        )
+          loadIndex = nextMachineOperationIndex(block, loadIndex);
+        const load = block.operations[loadIndex];
+        if (
+          last !== undefined &&
+          last.field === null &&
+          constantValue(last.value) !== null &&
+          load?.kind === "load" &&
+          typeBytes(load.type) === 1 &&
+          singleUseValues.has(load.result) &&
+          bindingIdentityKey(load.place.root) ===
+            bindingIdentityKey(producer.destination.place.root) &&
+          load.place.path.length === 1 &&
+          load.place.path[0]?.kind === "index" &&
+          constantValue(load.place.path[0].value) === lastIndex
+        )
+          forwardedAggregateLoads.set(load.result, last.value);
       }
       if (
         producer.kind === "binary" &&
@@ -1341,6 +1438,8 @@ export function selectRegisterForwarding(
     directBcdWrites,
     staticRawAddresses,
     forwardedPlaceLoads,
+    forwardedStoreLoads,
+    forwardedAggregateLoads,
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,

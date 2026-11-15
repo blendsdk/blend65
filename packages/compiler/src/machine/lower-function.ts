@@ -264,6 +264,8 @@ export function lowerFunction(
     directBcdWrites,
     staticRawAddresses,
     forwardedPlaceLoads,
+    forwardedStoreLoads,
+    forwardedAggregateLoads,
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,
@@ -278,6 +280,7 @@ export function lowerFunction(
     input.zeroExtensionValues,
     retainedKeys,
     materializedValues,
+    input.program.semantic.globals,
   );
   // The retention proof admitted the shape; this second derivation fixes the
   // same dominance order so every load's slot offset is path-independent. A
@@ -353,6 +356,8 @@ export function lowerFunction(
     directBcdWrites,
     staticRawAddresses,
     forwardedPlaceLoads,
+    forwardedStoreLoads,
+    forwardedAggregateLoads,
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,

@@ -97,6 +97,12 @@ function adjacentForwardedConsumer(
     consumer.left === result
   )
     return true;
+  if (consumer.kind === "memory-write" && consumer.value === result) {
+    const address = block.operations.find(
+      (operation) => "result" in operation && operation.result === consumer.address,
+    );
+    return address?.kind === "constant";
+  }
   return (
     consumer.kind === "platform" &&
     consumer.arguments.length === 1 &&
@@ -310,6 +316,45 @@ export function lowerOperation(
         );
         state.forwardedRegisterValues.add(operation.result);
         state.zeroFlagValues.add(operation.result);
+        return Object.freeze([]);
+      }
+    }
+    const forwardedAggregate = state.forwardedAggregateLoads.get(operation.result);
+    if (
+      forwardedAggregate !== undefined &&
+      typeBytes(operation.type) === 1 &&
+      adjacentForwardedConsumer(operation.result, block, operationIndex, state) &&
+      state.values.get(forwardedAggregate)?.kind === "constant"
+    ) {
+      state.values.set(
+        operation.result,
+        Object.freeze({
+          kind: "register" as const,
+          registers: "a" as const,
+          bytes: 1,
+          signed: false,
+        }),
+      );
+      return Object.freeze([]);
+    }
+    const forwardedStore = state.forwardedStoreLoads.get(operation.result);
+    if (
+      forwardedStore !== undefined &&
+      typeBytes(operation.type) === 1 &&
+      adjacentForwardedConsumer(operation.result, block, operationIndex, state)
+    ) {
+      const stored = state.values.get(forwardedStore);
+      const source =
+        stored?.kind === "constant"
+          ? Object.freeze({
+              kind: "register" as const,
+              registers: "a" as const,
+              bytes: 1,
+              signed: false,
+            })
+          : stored;
+      if (source?.kind === "register" && source.registers === "a" && source.bytes === 1) {
+        state.values.set(operation.result, source);
         return Object.freeze([]);
       }
     }
