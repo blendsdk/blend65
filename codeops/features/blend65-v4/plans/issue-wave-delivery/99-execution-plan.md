@@ -101,6 +101,6 @@ machine-readable check time and plan inventory.
 | Specialist assessment | Done | This section; `codeops/specialist-check.json` at `2026-11-15T08:28:44Z` |
 | 1 | Done — #161, #157, #162 | `../interprocedural-raw-write-kills/08-closeout.md` · `../callable-field-helper-transfer/08-closeout.md` · `../constant-index-callable-recovery/08-closeout.md` |
 | 2 | Blocked on #153 — #146 done | `../sfa-staging-home-reuse/08-closeout.md`; #153 needs the stock chained entry stack-binding proof |
-| 3 | Executing — #160 done, #159 next; #158 user-gated | `../block-index-immediate-fold/08-closeout.md` |
+| 3 | Executing — #160 done; #159 alignment slice done, bank diagnostic blocked on #158; #145 next | `../block-index-immediate-fold/08-closeout.md` · `../runtime-block-index-alignment/08-closeout.md` |
 | 4 | Backlog | — |
 | 5 | Backlog | — |

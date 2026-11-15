@@ -222,6 +222,47 @@ function blockDemand(
 }
 
 /**
+ * Prove the effective byte offset of one addressed place for a required
+ * alignment. A runtime index is admitted only when its element stride is a
+ * multiple of the alignment and the static prefix/suffix remains aligned, so
+ * every selected element preserves the demand.
+ */
+function placeAlignment(
+  place: SemanticPlace,
+  align: number,
+  definitions: Definitions,
+): number | null {
+  let type: SemanticType | undefined = place.rootType;
+  let offset = 0;
+  let dynamic = false;
+  for (const step of place.path) {
+    if (step.kind === "field") {
+      if (type?.kind !== "struct") return null;
+      const field = type.fields.find(({ name }) => name === step.name);
+      if (field === undefined) return null;
+      offset += field.offset;
+      type = field.type;
+      continue;
+    }
+    if (type?.kind !== "array") return null;
+    const stride = semanticTypeSize(type.element);
+    const index = constantValue(definitions.get(step.value), definitions);
+    if (index === null) {
+      if (stride % align !== 0) return null;
+      dynamic = true;
+    } else {
+      if (index < 0 || index >= type.length) return null;
+      offset += stride * index;
+    }
+    type = type.element;
+  }
+  // A runtime contribution is `index * stride`; the remaining static offset must
+  // already be a multiple of the demand. The stride check above proves the rest.
+  if (dynamic && offset % align !== 0) return null;
+  return offset % align === 0 ? offset : null;
+}
+
+/**
  * Record the alignment a module object needs when its address is used as a
  * block index.
  *
@@ -254,7 +295,7 @@ export function alignBlockIndexStorage(
       if (address === undefined || address.place.asset !== undefined) return;
       const key = bindingIdentityKey(address.place.root);
       if (!byKey.has(key)) return;
-      const offset = staticPlaceOffset(address.place, definitions);
+      const offset = placeAlignment(address.place, align, definitions);
       if (offset === null) return;
       const known = demands.get(key) ?? [];
       known.push({ align, offset });

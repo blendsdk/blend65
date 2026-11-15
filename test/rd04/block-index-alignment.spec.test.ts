@@ -219,12 +219,12 @@ function main(): void { c64.vic.setSpritePointer(0, lo(&frame.image / 64)); }`,
     expect(intervalAt(built.artifacts, start).alignmentBytes).toBeLessThan(64);
   });
 
-  // A runtime index is ordinary arithmetic; it must not be rejected or
-  // speculative padding must not be added on its behalf.
-  forEachProfile("should preserve a runtime-index element address", async (profile) => {
+  // A byte-stride runtime index is ordinary arithmetic; it must not be rejected
+  // or receive speculative padding it cannot preserve.
+  forEachProfile("should preserve a byte-stride runtime-index element address", async (profile) => {
     const built = await build(
       `module Game;
-let blocks: byte[2][64];
+let blocks: byte[128];
 function main(): void {
   let index: byte = peek($0400);
   c64.vic.setSpritePointer(0, lo(&blocks[index] / 64));

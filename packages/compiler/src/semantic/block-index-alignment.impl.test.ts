@@ -112,7 +112,7 @@ function main(): void { poke($D018, lo(&blocks[1] / 64)); }`,
     expect(globalNamed(lowered.program.globals, "blocks").placement).toMatchObject({ align: 64 });
   });
 
-  it("leaves a runtime element index untouched", () => {
+  it("proves a 64-byte-stride runtime element aligned", () => {
     const lowered = lowerSource(
       `module Game;
 let blocks: byte[2][64];
@@ -123,7 +123,21 @@ function main(): void {
     );
     expect(lowered.kind).toBe("complete");
     if (lowered.kind !== "complete") return;
-    expect(globalNamed(lowered.program.globals, "blocks").placement).toBeUndefined();
+    expect(globalNamed(lowered.program.globals, "blocks").placement).toMatchObject({ align: 64 });
+  });
+
+  it("leaves a byte-stride runtime element untouched", () => {
+    const lowered = lowerSource(
+      `module Game;
+let buffer: byte[128];
+function main(): void {
+  let index: byte = peek($0400);
+  poke($D018, lo(&buffer[index] / 64));
+}`,
+    );
+    expect(lowered.kind).toBe("complete");
+    if (lowered.kind !== "complete") return;
+    expect(globalNamed(lowered.program.globals, "buffer").placement).toBeUndefined();
   });
 
   it("accepts an aligned field offset", () => {
