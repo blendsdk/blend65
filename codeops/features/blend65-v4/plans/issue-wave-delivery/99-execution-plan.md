@@ -81,6 +81,13 @@ precision (`machine-code-auditor`, with `sfa-abi-auditor` for the bound facts), 
 selection (`machine-code-auditor`), and #139/#135/#133/#132/#131/#151/#152 are existing codegen/NMI
 owners. No new capability gap.
 
+**Wave 5 corpus blocker (2026-11-15).** #72 and the corpus-driven parity rows (#70, #53, #73)
+reference `packages/test-harness/test/golden/` and `examples/boing-ball`, which are absent from this
+v4 checkout. `git ls-tree` finds them only on `feat/asm-parity`. Authoring the twin here would mean
+porting the whole parity harness and corpus, a separate user-owned scope decision. #140 is the
+RD-06 residual set owned by this v4 feature and proceeds next; the corpus rows stay open until the
+harness is ported or re-scoped.
+
 This section is the durable record. `codeops/specialist-check.json` holds the
 machine-readable check time and plan inventory.
 
@@ -113,4 +120,4 @@ machine-readable check time and plan inventory.
 | 2 | Blocked on #153 — #146 done | `../sfa-staging-home-reuse/08-closeout.md`; #153 needs the stock chained entry stack-binding proof |
 | 3 | Done (bounded) — #160 done; #159 alignment slice done with bank diagnostic blocked on #158; #145 measured non-win | `../block-index-immediate-fold/08-closeout.md` · `../runtime-block-index-alignment/08-closeout.md` · `../acquisition-size-gap/08-closeout.md` |
 | 4 | Done (bounded) — #124/#131/#132/#139/#151/#154/#163 done; #155 measured; #135/#133/#152 blocked | `../cross-join-nmi-consumption/08-closeout.md` |
-| 5 | Backlog | — |
+| 5 | Blocked on corpus — #140 next | The #72 corpus files exist only on `feat/asm-parity`; the v4 checkout has no `packages/test-harness` or `examples/boing-ball`. #140 is v4-applicable. |
