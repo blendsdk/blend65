@@ -483,10 +483,13 @@ export function ordinalBoundsForFunction(
    * from its dominating store even though no comparison edge exists. This is
    * the only fact the shift consumer needs; joins keep their conservative path.
    */
-  const straightShift = new Map<SemanticOperation, ReadonlyMap<string, bigint>>();
+  const straightBounds = new Map<SemanticOperation, ReadonlyMap<string, bigint>>();
   for (const block of blocks) {
     const bindings = new Map<string, bigint>();
     for (const operation of block.operations) {
+      // The write's own address/index is evaluated before the write, so its
+      // bound survives even though the write itself may alias locals.
+      const beforeAlias = operation.kind === "memory-write" ? new Map(bindings) : null;
       if (mayAliasLocals(operation)) {
         bindings.clear();
       }
@@ -502,13 +505,39 @@ export function ordinalBoundsForFunction(
           if (fact !== undefined) bindings.set(root, fact);
         }
       }
-      if (!isByteShift(operation)) continue;
-      let fact = bound(operation.right);
-      let source = definitions.get(operation.right);
-      while (source?.kind === "convert") source = definitions.get(source.operand);
-      if (fact === undefined && source?.kind === "load" && source.place.path.length === 0)
-        fact = bindings.get(bindingIdentityKey(source.place.root));
-      if (fact !== undefined) straightShift.set(operation, new Map([[operation.right, fact]]));
+      if (isByteShift(operation)) {
+        let fact = bound(operation.right);
+        let source = definitions.get(operation.right);
+        while (source?.kind === "convert") source = definitions.get(source.operand);
+        if (fact === undefined && source?.kind === "load" && source.place.path.length === 0)
+          fact = bindings.get(bindingIdentityKey(source.place.root));
+        if (fact !== undefined) straightBounds.set(operation, new Map([[operation.right, fact]]));
+      }
+      if (operation.kind === "memory-read" || operation.kind === "memory-write") {
+        const address = definitions.get(operation.address);
+        if (address?.kind !== "binary" || address.operator !== "+") continue;
+        for (const [baseValue, indexValue] of [
+          [address.left, address.right],
+          [address.right, address.left],
+        ] as const) {
+          if (literal(baseValue) === undefined) continue;
+          let fact = bound(indexValue);
+          let source = definitions.get(indexValue);
+          const converted = source?.kind === "convert" ? source.operand : indexValue;
+          while (source?.kind === "convert") source = definitions.get(source.operand);
+          const scope = beforeAlias ?? bindings;
+          if (fact === undefined && source?.kind === "load" && source.place.path.length === 0)
+            fact = scope.get(bindingIdentityKey(source.place.root));
+          if (fact !== undefined)
+            straightBounds.set(
+              operation,
+              new Map([
+                [indexValue, fact],
+                [converted, fact],
+              ]),
+            );
+        }
+      }
     }
   }
   const result = new Map<SemanticOperation, ReadonlyMap<string, bigint>>();
@@ -532,7 +561,7 @@ export function ordinalBoundsForFunction(
    */
   const maximumAt = (operation: SemanticOperation, value: string): bigint | undefined => {
     const local =
-      straightShift.get(operation)?.get(value) ??
+      straightBounds.get(operation)?.get(value) ??
       guarded.get(operation)?.get(value) ??
       bound(value);
     const loop = loopBounds.get(value);
@@ -567,6 +596,9 @@ export function ordinalBoundsForFunction(
           address.integer.signed === false
         )
           for (const ordinal of [address.right, address.left]) {
+            // The literal side is the base, not the ordinal; its own numeric
+            // bound would otherwise win and hide the real index.
+            if (literal(ordinal) !== undefined) continue;
             const definition = definitions.get(ordinal);
             const source = definition?.kind === "convert" ? definition.operand : ordinal;
             const maximum =
