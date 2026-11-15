@@ -19,7 +19,7 @@ describe.each(sourceLibraryProfiles)("input acquisition output on %s", (profile)
     // caller, helper code, callback and its thirteen serialized placement bytes.
     // The equal-contract expert looped form is 877 payload bytes / 898 general /
     // 912 combined and one fewer stack byte. That is the correct `size` byte
-    // minimum; the current 943-byte output is 66 bytes above it because the
+    // minimum; the current 934-byte output is 57 bytes above it because the
     // looped transform is not admitted to the size frontier.
     expect(artifacts.prg.length - 2).toBeLessThanOrEqual(963);
     const saved = libraryGlobalAddress(

@@ -448,6 +448,25 @@ export function ordinalBoundsForFunction(
     pure.set(key, result);
     return result;
   };
+  /** Whether one operation can change an otherwise unexposed local scalar. */
+  const mayAliasLocals = (operation: SemanticOperation): boolean => {
+    if (operation.kind === "call") {
+      // The correctness baseline keeps its conservative call barrier.
+      if (input.observerEvidence !== true) return true;
+      const callee = calleeOf(operation);
+      return callee === undefined || !pureQuery(callee);
+    }
+    return (
+      operation.kind === "indirect-call" ||
+      operation.kind === "platform" ||
+      (operation.kind === "store" && operation.place.path.length > 0) ||
+      (operation.kind === "aggregate" &&
+        operation.destination?.kind === "place" &&
+        operation.destination.place.path.length > 0) ||
+      (operation.kind === "memory-write" &&
+        rawMayObserve(literal(operation.address), operation.width, windows))
+    );
+  };
   const guarded = guardedOrdinalBounds(
     blocks[0]!.id,
     blocks,
@@ -455,27 +474,43 @@ export function ordinalBoundsForFunction(
     unstableRoots,
     literal,
     bound,
-    (operation) => {
-      if (operation.kind === "call") {
-        // The correctness baseline keeps its conservative call barrier.
-        if (input.observerEvidence !== true) return true;
-        const callee = calleeOf(operation);
-        return callee === undefined || !pureQuery(callee);
-      }
-      return (
-        operation.kind === "indirect-call" ||
-        operation.kind === "platform" ||
-        (operation.kind === "store" && operation.place.path.length > 0) ||
-        (operation.kind === "aggregate" &&
-          operation.destination?.kind === "place" &&
-          operation.destination.place.path.length > 0) ||
-        (operation.kind === "memory-write" &&
-          rawMayObserve(literal(operation.address), operation.width, windows))
-      );
-    },
+    mayAliasLocals,
     undefined,
     input.observerEvidence === true,
   );
+  /**
+   * A straight-line block can prove a private local's mask/conversion bound
+   * from its dominating store even though no comparison edge exists. This is
+   * the only fact the shift consumer needs; joins keep their conservative path.
+   */
+  const straightShift = new Map<SemanticOperation, ReadonlyMap<string, bigint>>();
+  for (const block of blocks) {
+    const bindings = new Map<string, bigint>();
+    for (const operation of block.operations) {
+      if (mayAliasLocals(operation)) {
+        bindings.clear();
+      }
+      if (operation.kind === "store" && operation.place.path.length === 0) {
+        const root = bindingIdentityKey(operation.place.root);
+        bindings.delete(root);
+        if (!unstableRoots.has(root)) {
+          let value = definitions.get(operation.value);
+          while (value?.kind === "convert") value = definitions.get(value.operand);
+          let fact = bound(operation.value);
+          if (fact === undefined && value?.kind === "load" && value.place.path.length === 0)
+            fact = bindings.get(bindingIdentityKey(value.place.root));
+          if (fact !== undefined) bindings.set(root, fact);
+        }
+      }
+      if (!isByteShift(operation)) continue;
+      let fact = bound(operation.right);
+      let source = definitions.get(operation.right);
+      while (source?.kind === "convert") source = definitions.get(source.operand);
+      if (fact === undefined && source?.kind === "load" && source.place.path.length === 0)
+        fact = bindings.get(bindingIdentityKey(source.place.root));
+      if (fact !== undefined) straightShift.set(operation, new Map([[operation.right, fact]]));
+    }
+  }
   const result = new Map<SemanticOperation, ReadonlyMap<string, bigint>>();
   const loopBounds = new Map<string, bigint>();
   for (const loop of selectedLoops)
@@ -496,7 +531,10 @@ export function ordinalBoundsForFunction(
    * keep the existing use-site-before-ordinary choice and its invalidation rules.
    */
   const maximumAt = (operation: SemanticOperation, value: string): bigint | undefined => {
-    const local = guarded.get(operation)?.get(value) ?? bound(value);
+    const local =
+      straightShift.get(operation)?.get(value) ??
+      guarded.get(operation)?.get(value) ??
+      bound(value);
     const loop = loopBounds.get(value);
     if (local === undefined) return loop;
     if (loop === undefined) return local;

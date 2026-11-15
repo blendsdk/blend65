@@ -177,7 +177,10 @@ export function lowerVariableShift(
     const countLow = right.kind === "zero-extended" ? right.low : right;
     // Only private homes can swap these reads. Loading X last owns a fresh
     // count-zero flag; labels or live registers keep the conservative order.
-    const freshCountZero = boundedCount && left.kind === "storage" && countLow.kind === "storage";
+    // Loading the value first and the count last leaves X holding the count and
+    // its fresh N/Z for the zero gate. An immediate or addressable value load
+    // does not touch X; a live count register would need TAX and clobber A.
+    const freshCountZero = boundedCount && countLow.kind !== "register";
     const result: LoweredValue = Object.freeze({
       kind: "register",
       registers: "a",
