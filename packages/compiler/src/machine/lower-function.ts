@@ -289,6 +289,15 @@ export function lowerFunction(
   if (retainedKeys !== undefined && retainedKeys.size > 0 && stackPlan === null)
     throw loweringFailure("Retained NMI bindings have no static stack plan", owner.span);
   const blockIndexFolds = blockIndexFoldValues(blocks, input.program);
+  const returnAdjacentValues = new Set<string>();
+  for (const block of blocks) {
+    if (block.terminator.kind !== "return" || block.terminator.value === null) continue;
+    const value = block.terminator.value;
+    const definition = block.operations.findIndex(
+      (operation) => "result" in operation && operation.result === value,
+    );
+    if (definition === block.operations.length - 1) returnAdjacentValues.add(value);
+  }
   const state: FunctionLoweringState = {
     owner,
     fixedLoops,
@@ -311,6 +320,7 @@ export function lowerFunction(
       ),
     ),
     materializedValues,
+    returnAdjacentValues,
     blockIndexFolds: blockIndexFolds.binaries,
     blockIndexAddresses: blockIndexFolds.addresses,
     forwardedRegisterValues: new Set(forwardedRegisterValues),

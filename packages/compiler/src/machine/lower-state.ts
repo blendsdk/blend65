@@ -124,6 +124,8 @@ export interface FunctionLoweringState {
   readonly branchConditions: ReadonlySet<string>;
   /** Values that must survive beyond their immediate production. */
   readonly materializedValues: ReadonlySet<string>;
+  /** Values defined by the last operation before a return of that exact value. */
+  readonly returnAdjacentValues?: ReadonlySet<string>;
   /** Binary block-index results whose only consumer is a folding `lo`. */
   readonly blockIndexFolds?: ReadonlyMap<
     string,
@@ -671,6 +673,7 @@ export function retainMachineValue(
   }
   if (
     !state.materializedValues.has(resultId) ||
+    state.returnAdjacentValues?.has(resultId) === true ||
     (state.forwardedRegisterValues.has(resultId) && !checkedOrdinal && !checkedRead) ||
     register.kind !== "register" ||
     !hasSemanticLifetime

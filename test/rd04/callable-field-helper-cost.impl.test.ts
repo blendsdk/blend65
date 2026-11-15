@@ -57,7 +57,7 @@ function main(): void { prepare(); poke($C000, invoke(box)); }`;
         codeBytes: code,
         zeroPage: resource("zeroPage"),
         scratch: resource("scratch"),
-      }).toEqual({ prgBytes: 713, programBytes: 711, codeBytes: 699, zeroPage: 2, scratch: 0 });
+      }).toEqual({ prgBytes: 707, programBytes: 705, codeBytes: 693, zeroPage: 2, scratch: 0 });
     });
   }, 120_000);
 });
