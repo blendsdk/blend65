@@ -78,6 +78,16 @@ const STORED_STARTUP_STATE = Object.freeze({
   bytes: 7,
 });
 
+/** Stored-P without a Y save: the program never changes Y. */
+const STORED_NO_Y_STARTUP_STATE = Object.freeze({
+  ...STARTUP_STATE,
+  status: 2,
+  cpuDirection: 3,
+  cpuPort: 4,
+  cia2Direction: 5,
+  bytes: 6,
+});
+
 /** Raw takeover needs the caller/register state and the two owned port bytes only. */
 const TAKEOVER_STARTUP_STATE = Object.freeze({
   ...STARTUP_STATE,
@@ -88,10 +98,12 @@ const TAKEOVER_STARTUP_STATE = Object.freeze({
 });
 
 /** Return CPU-independent save offsets for one exact startup construction. */
-export function startupStateLayout(policy: C64StartupPolicy) {
+export function startupStateLayout(policy: C64StartupPolicy, preserveY = false) {
   if (policy === "takeover") return TAKEOVER_STARTUP_STATE;
   return policy === "compact-stored"
-    ? STORED_STARTUP_STATE
+    ? preserveY
+      ? STORED_NO_Y_STARTUP_STATE
+      : STORED_STARTUP_STATE
     : policy === "full"
       ? STARTUP_STATE
       : COMPACT_STARTUP_STATE;
@@ -128,20 +140,24 @@ export function startupStateInstruction(
  * @param policy Exact internal construction, already checked for display independence.
  * @returns Platform state layout, ordered fragments and actual platform stack demand.
  */
-export function createStartupStatus(cpu: TargetProfile["cpu"], policy: C64StartupPolicy) {
+export function createStartupStatus(
+  cpu: TargetProfile["cpu"],
+  policy: C64StartupPolicy,
+  preserveY = false,
+) {
   const takeover = policy === "takeover";
   const compact =
     policy === "compact-unrolled" || policy === "compact-looped" || policy === "compact-stored";
   const stored = policy === "compact-stored";
   const held = compact && !stored;
-  const state = startupStateLayout(policy);
+  const state = startupStateLayout(policy, preserveY);
   const entry = [
     ...(held
       ? []
       : [
           startupStateInstruction(cpu, "sta", state.a),
           startupStateInstruction(cpu, "stx", state.x),
-          startupStateInstruction(cpu, "sty", state.y),
+          ...(stored && preserveY ? [] : [startupStateInstruction(cpu, "sty", state.y)]),
         ]),
     machineInstruction(cpu, "php", "implied", null),
     ...(compact || takeover ? [machineInstruction(cpu, "sei", "implied", null)] : []),
@@ -207,7 +223,7 @@ export function createStartupStatus(cpu: TargetProfile["cpu"], policy: C64Startu
         machineInstruction(cpu, "pha", "implied", null),
         startupStateInstruction(cpu, "lda", state.a),
         startupStateInstruction(cpu, "ldx", state.x),
-        startupStateInstruction(cpu, "ldy", state.y),
+        ...(stored && preserveY ? [] : [startupStateInstruction(cpu, "ldy", state.y)]),
         machineInstruction(cpu, "plp", "implied", null),
       ];
   const stackDemand: StartupStackDemand = Object.freeze(

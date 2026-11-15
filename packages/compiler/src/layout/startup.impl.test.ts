@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { machineCost } from "../machine/lower-control.js";
+import { machineCost, machineInstruction } from "../machine/lower-control.js";
 import type { MachineFunction, MachineProgram } from "../machine/machine-types.js";
 import { selectTargetProfile } from "../target/profile.js";
 import { bindC64StartupState, createC64Startup, createC64StartupStateData } from "./startup.js";
@@ -126,6 +126,86 @@ describe("C64 startup binding", () => {
     expect(full.stackDemand).toEqual({ heldBytes: 0, transientPeakBytes: 1 });
     expect(full.startup.blocks[0]!.instructions[0]?.opcode).toBe("sta");
     expect(full.startup.blocks[1]!.instructions[0]?.opcode).toBe("lda");
+  });
+
+  it("binds the no-Y stored startup from the whole-program proof", () => {
+    const c64Startup = {
+      initializerLabels: [],
+      mainLabel: "main",
+      displayIndependent: true,
+      startupPolicy: "compact-stored" as const,
+    };
+    const startup = createC64Startup({ ...c64Startup, profile: profile() });
+    if (startup.kind !== "complete") throw new Error("Expected stored startup");
+    const base: MachineProgram = {
+      functions: [],
+      data: [createC64StartupStateData(c64Startup)],
+      startup: startup.startup,
+      c64Startup,
+      requiredStorage: [],
+    };
+    const bound = bindC64StartupState(base, [], profile());
+    expect(bound).not.toBeNull();
+    if (bound === null) return;
+    expect(bound.c64Startup?.preserveY).toBe(true);
+    expect(bound.data.find(({ id }) => id === "platform.startup-state")?.bytes).toHaveLength(6);
+    const instructions = bound.startup.blocks.flatMap((block) => block.instructions);
+    expect(instructions.some(({ opcode }) => opcode === "sty" || opcode === "ldy")).toBe(false);
+
+    const block = base.startup.blocks[0]!;
+    const changed: MachineProgram = {
+      ...base,
+      startup: {
+        ...base.startup,
+        blocks: [
+          {
+            ...block,
+            instructions: [
+              ...block.instructions,
+              machineInstruction(
+                profile().cpu,
+                "ldy",
+                "absolute",
+                Object.freeze({ kind: "absolute" as const, value: 0 }),
+              ),
+            ],
+          },
+          ...base.startup.blocks.slice(1),
+        ],
+      },
+    };
+    const rejected = bindC64StartupState(changed, [], profile());
+    expect(rejected?.c64Startup?.preserveY).not.toBe(true);
+    expect(rejected?.data.find(({ id }) => id === "platform.startup-state")?.bytes).toHaveLength(7);
+  });
+
+  it("omits the Y save when the whole program preserves Y", () => {
+    const input = {
+      initializerLabels: [],
+      mainLabel: "main",
+      displayIndependent: true,
+      startupPolicy: "compact-stored" as const,
+      preserveY: true,
+      profile: profile(),
+    };
+    const result = createC64Startup(input);
+    if (result.kind !== "complete") throw new Error("Expected preserved-Y startup");
+    expect(result.stackDemand).toEqual({ heldBytes: 0, transientPeakBytes: 1 });
+    expect(createC64StartupStateData(input).bytes).toHaveLength(6);
+    expect(startupBytes(result.startup)).toBe(80);
+    const instructions = result.startup.blocks.flatMap((block) => block.instructions);
+    const cycles = instructions.reduce((sum, instruction) => sum + instruction.cost.minCycles, 6);
+    expect(cycles).toBe(127);
+    expect(result.startup.blocks[0]!.instructions.slice(0, 7).map(({ opcode }) => opcode)).toEqual([
+      "sta",
+      "stx",
+      "php",
+      "sei",
+      "pla",
+      "sta",
+      "cld",
+    ]);
+    expect(instructions.some(({ opcode }) => opcode === "sty" || opcode === "ldy")).toBe(false);
   });
 
   it("stores status without a held byte or stack reset and charges the complete fragments", () => {

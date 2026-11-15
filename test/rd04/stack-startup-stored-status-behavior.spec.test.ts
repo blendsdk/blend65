@@ -173,8 +173,8 @@ describe.sequential("stored-status startup native behavior", () => {
             expect(startup[0]).toMatchObject({
               kind: "bss",
               resourceClass: "general",
-              size: 7 + borrowed.length,
-              payloadBytes: 7 + borrowed.length,
+              size: 6 + borrowed.length,
+              payloadBytes: 6 + borrowed.length,
             });
             const bounded = profileRecords(artifacts.memory.stackDomains).filter(
               (row) => row.id === "bounded-component-capacity",

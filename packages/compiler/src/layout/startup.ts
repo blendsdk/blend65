@@ -30,6 +30,8 @@ export interface C64StartupInput {
   readonly startupPolicy?: C64StartupPolicy;
   /** Actual allocated zero-page bytes borrowed from the cooperative BASIC caller. */
   readonly borrowedZeroPage?: readonly number[];
+  /** Whole-program proof that no reachable code changes Y; stored-P may omit its save. */
+  readonly preserveY?: boolean;
   /** Callable module-initializer labels in proved execution order. */
   readonly initializerLabels: readonly string[];
   /** Exact ordered initializer actions when some operations can be safely inlined. */
@@ -80,10 +82,16 @@ function deviceMode(address: number): "zero-page" | "absolute" {
 
 /** Return the resident data object used to restore the caller and C64 after main returns. */
 export function createC64StartupStateData(
-  input: Pick<C64StartupInput, "displayIndependent" | "startupPolicy" | "borrowedZeroPage"> = {},
+  input: Pick<
+    C64StartupInput,
+    "displayIndependent" | "startupPolicy" | "borrowedZeroPage" | "preserveY"
+  > = {},
   ownership: C64ProfileOwnership = "cooperative",
 ): MachineDataObject {
-  const state = startupStateLayout(compactPolicy(input, ownership).policy);
+  const state = startupStateLayout(
+    compactPolicy(input, ownership).policy,
+    input.preserveY === true,
+  );
   return Object.freeze({
     id: C64_STARTUP_STATE_ID,
     kind: "bss",
@@ -161,7 +169,34 @@ export function bindC64StartupState(
       ...Array.from({ length: data.bytes.length }, (_, offset) => data.placement!.at! + offset),
     );
   }
-  const bound = Object.freeze({ ...configuration, borrowedZeroPage: Object.freeze(borrowed) });
+  const yStateOffset = startupStateLayout("compact-stored").y;
+  const startupY = new Set(
+    program.startup.blocks.flatMap((block) =>
+      block.instructions.filter(
+        (instruction) =>
+          (instruction.opcode === "sty" || instruction.opcode === "ldy") &&
+          instruction.operand?.kind === "label" &&
+          instruction.operand.label === C64_STARTUP_STATE_ID &&
+          instruction.operand.offset === yStateOffset,
+      ),
+    ),
+  );
+  const yChanged = [...program.functions, program.startup].some((fn) =>
+    fn.blocks.some((block) =>
+      block.instructions.some(
+        (instruction) =>
+          ["ldy", "tay", "iny", "dey", "ply"].includes(instruction.opcode) &&
+          !startupY.has(instruction),
+      ),
+    ),
+  );
+  const preserveY =
+    configuration.startupPolicy === "compact-stored" && !yChanged ? true : configuration.preserveY;
+  const bound = Object.freeze({
+    ...configuration,
+    ...(preserveY === true ? { preserveY: true } : {}),
+    borrowedZeroPage: Object.freeze(borrowed),
+  });
   const result = createC64Startup({ ...bound, profile });
   if (result.kind !== "complete") return null;
   return Object.freeze({
@@ -237,7 +272,7 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
     });
   }
   const { compact, looped } = policy;
-  const status = createStartupStatus(cpu, policy.policy);
+  const status = createStartupStatus(cpu, policy.policy, input.preserveY === true);
   const { state } = status;
   const borrowed = borrowedBasicBytes(input);
   const machine = input.profile.machine;

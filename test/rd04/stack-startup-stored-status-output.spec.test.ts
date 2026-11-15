@@ -98,7 +98,7 @@ describe("stored-status startup whole-artifact resource bounds", () => {
         expect(artifacts.prg.length).toBeGreaterThan(2);
         const payload = artifacts.prg.length - 2;
         expect(integer(totals.programBytes)).toBe(payload);
-        expect(payload).toBeLessThanOrEqual(477);
+        expect(payload).toBeLessThanOrEqual(471);
         expect(resource(totals, "zeroPage")).toBe(0);
         expect(resource(totals, "scratch")).toBe(0);
         expect(resource(totals, "hardwareStack")).toBe(188);
@@ -106,17 +106,17 @@ describe("stored-status startup whole-artifact resource bounds", () => {
         const intervals = profileRecords(artifacts.memory.intervals);
         const startup = intervals.filter((row) => row.id === "platform.startup-state");
         expect(startup).toHaveLength(1);
-        // A, X, Y, P, CPU DDR/port and CIA2 DDRA need seven saved bytes.
-        // This source borrows no BASIC workspace and needs no display state.
+        // A, X, P, CPU DDR/port and CIA2 DDRA need six saved bytes. The
+        // whole program preserves Y, so its save is omitted.
         expect(startup[0]).toMatchObject({
           kind: "bss",
           resourceClass: "general",
-          size: 7,
-          payloadBytes: 7,
+          size: 6,
+          payloadBytes: 6,
         });
         const resident = resource(totals, "residentRam");
         expect(resident).toBe(residentBytes(intervals));
-        expect(resident).toBeLessThanOrEqual(484);
+        expect(resident).toBeLessThanOrEqual(477);
         const zeroPage = intervals.filter((row) => row.resourceClass === "zeroPage");
         expect(zeroPage.reduce((sum, row) => sum + integer(row.size), 0)).toBe(0);
 
