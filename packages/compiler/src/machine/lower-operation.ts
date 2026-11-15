@@ -245,6 +245,21 @@ export function lowerOperation(
     return Object.freeze([]);
   }
   if (operation.kind === "load") {
+    if (state.heldByteValues?.has(operation.result) === true) {
+      // The incoming edge proved A still holds this exact stable byte, and the
+      // block begins with this load, so no instruction can have changed A.
+      state.loadOrigins.set(operation.result, bindingIdentityKey(operation.place.root));
+      state.values.set(
+        operation.result,
+        Object.freeze({
+          kind: "register" as const,
+          registers: "a" as const,
+          bytes: 1,
+          signed: isSignedType(operation.type),
+        }),
+      );
+      return Object.freeze([]);
+    }
     if (operation.place.path.length === 0) {
       state.loadOrigins.set(operation.result, bindingIdentityKey(operation.place.root));
       const stackKey = nmiLocalElisionKey(

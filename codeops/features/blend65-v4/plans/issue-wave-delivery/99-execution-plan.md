@@ -112,5 +112,5 @@ machine-readable check time and plan inventory.
 | 1 | Done — #161, #157, #162 | `../interprocedural-raw-write-kills/08-closeout.md` · `../callable-field-helper-transfer/08-closeout.md` · `../constant-index-callable-recovery/08-closeout.md` |
 | 2 | Blocked on #153 — #146 done | `../sfa-staging-home-reuse/08-closeout.md`; #153 needs the stock chained entry stack-binding proof |
 | 3 | Done (bounded) — #160 done; #159 alignment slice done with bank diagnostic blocked on #158; #145 measured non-win | `../block-index-immediate-fold/08-closeout.md` · `../runtime-block-index-alignment/08-closeout.md` · `../acquisition-size-gap/08-closeout.md` |
-| 4 | Executing — #124/#139/#154/#163 done; #155 measured; #135/#133 blocked; #132 next | `../predicate-proved-return/08-closeout.md` |
+| 4 | Executing — #124/#132/#139/#154/#163 done; #155 measured; #135/#133 blocked; #131 next | `../stable-byte-classifier/08-closeout.md` |
 | 5 | Backlog | — |

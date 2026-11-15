@@ -121,15 +121,31 @@ export function lowerComparison(
     });
   }
   if (operator === "==" || operator === "!=") {
-    appendLoadA(instructions, left, 0, state, operation.span);
+    // A held classifier byte is already in A. CMP preserves it across the whole
+    // equality chain, where EOR would destroy it and force a reload per test.
+    const constantRight = right.kind === "constant" ? right : null;
+    const heldByte =
+      width === 1 && constantRight !== null && state.heldByteValues?.has(operation.left) === true;
+    if (!heldByte) appendLoadA(instructions, left, 0, state, operation.span);
     // A fresh LDA already sets exactly the N/Z that EOR #0 would leave.
     // A live register alone is insufficient: a call may return A with other flags.
     const loadedZeroTest =
+      !heldByte &&
       width === 1 &&
-      right.kind === "constant" &&
-      right.value === 0 &&
+      constantRight?.value === 0 &&
       instructions.at(-1)?.opcode === "lda";
-    if (!loadedZeroTest)
+    if (heldByte && constantRight !== null) {
+      instructions.push(
+        machineInstruction(
+          state.input.profile.cpu,
+          "cmp",
+          "immediate",
+          Object.freeze({ kind: "immediate", value: constantRight.value & 0xff }),
+          [],
+          operation.span,
+        ),
+      );
+    } else if (!loadedZeroTest)
       instructions.push(
         machineInstruction(
           state.input.profile.cpu,

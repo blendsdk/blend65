@@ -17,6 +17,7 @@ import {
   machineInstruction,
   machineState,
 } from "./lower-control.js";
+import { selectHeldByteEntryLoads } from "./held-byte.js";
 import {
   prepareFixedLoops,
   enterFixedLoopBlock,
@@ -292,6 +293,8 @@ export function lowerFunction(
   if (retainedKeys !== undefined && retainedKeys.size > 0 && stackPlan === null)
     throw loweringFailure("Retained NMI bindings have no static stack plan", owner.span);
   const blockIndexFolds = blockIndexFoldValues(blocks, input.program);
+  const heldByteValues =
+    interruptDepth.domain === "main" ? selectHeldByteEntryLoads(blocks).values : new Set<string>();
   const returnAdjacentValues = new Set<string>();
   for (const block of blocks) {
     if (block.terminator.kind !== "return" || block.terminator.value === null) continue;
@@ -324,6 +327,7 @@ export function lowerFunction(
     ),
     materializedValues,
     returnAdjacentValues,
+    heldByteValues,
     blockIndexFolds: blockIndexFolds.binaries,
     blockIndexAddresses: blockIndexFolds.addresses,
     forwardedRegisterValues: new Set(forwardedRegisterValues),

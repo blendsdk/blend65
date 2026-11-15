@@ -126,6 +126,8 @@ export interface FunctionLoweringState {
   readonly materializedValues: ReadonlySet<string>;
   /** Values defined by the last operation before a return of that exact value. */
   readonly returnAdjacentValues?: ReadonlySet<string>;
+  /** Leading classifier loads served from A because the incoming edge still holds the byte. */
+  readonly heldByteValues?: ReadonlySet<string>;
   /** Binary block-index results whose only consumer is a folding `lo`. */
   readonly blockIndexFolds?: ReadonlyMap<
     string,
