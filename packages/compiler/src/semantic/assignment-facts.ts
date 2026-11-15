@@ -11,6 +11,7 @@ import {
   addRawWrite,
   allDynamicIndicesBounded,
   callableLeaves,
+  constantValue,
   definitionsOf,
   hasDynamicIndex,
   killFlow,
@@ -63,6 +64,42 @@ const NO_ASSIGNMENTS: ReadonlySet<string> = Object.freeze(new Set<string>());
 export function assignmentKey(place: SemanticPlace): string | null {
   if (place.path.some((part) => part.kind === "index")) return null;
   return joinPath(bindingIdentityKey(place.root), placePath(place));
+}
+
+/**
+ * Encode one assignment path with constant indices distinguished from a runtime
+ * index. A runtime index returns null because one element store cannot prove a
+ * must-assignment for every possible element.
+ */
+export function assignmentKeyWith(
+  place: SemanticPlace,
+  definitions: ReadonlyMap<string, SemanticOperation>,
+): string | null {
+  const parts: string[] = [];
+  for (const part of place.path) {
+    if (part.kind === "field") {
+      parts.push(`field:${part.name}`);
+      continue;
+    }
+    const index = constantValue(definitions.get(part.value), definitions);
+    if (index === null) return null;
+    parts.push(`index:${index}`);
+  }
+  return joinPath(bindingIdentityKey(place.root), parts.join("\0"));
+}
+
+/** The constant-aware assignment path, with a runtime index kept collapsed. */
+function assignmentPathWith(
+  place: SemanticPlace,
+  definitions: ReadonlyMap<string, SemanticOperation>,
+): string {
+  return place.path
+    .map((part) => {
+      if (part.kind === "field") return `field:${part.name}`;
+      const index = constantValue(definitions.get(part.value), definitions);
+      return index === null ? "index:*" : `index:${index}`;
+    })
+    .join("\0");
 }
 
 /** An assigned ancestor contains every one of its descendants. */
@@ -170,7 +207,7 @@ function assignmentFlow(
   for (const block of active) {
     for (const operation of block.operations) {
       if (operation.kind === "store") {
-        const key = assignmentKey(operation.place);
+        const key = assignmentKeyWith(operation.place, definitions);
         if (key !== null && acceptStore(operation.value)) allAssigned.add(key);
       } else if (operation.kind === "call") {
         applyCallWrite(allAssigned, operation, callEffects, definitions);
@@ -201,7 +238,7 @@ function assignmentFlow(
       const after = new Set(before);
       for (const operation of block.operations) {
         if (operation.kind === "store") {
-          const key = assignmentKey(operation.place);
+          const key = assignmentKeyWith(operation.place, definitions);
           if (key !== null && acceptStore(operation.value)) after.add(key);
         } else if (operation.kind === "call") {
           applyCallWrite(after, operation, callEffects, definitions);
@@ -295,7 +332,7 @@ export function assignmentFacts(
     for (const operation of block.operations) {
       if (operation.kind === "load" || operation.kind === "place-address") {
         const root = bindingIdentityKey(operation.place.root);
-        const path = placePath(operation.place);
+        const assignedPath = assignmentPathWith(operation.place, definitions);
         const base = placeByteRange(operation.place, definitions);
         const dynamic = hasDynamicIndex(operation.place, definitions);
         const possible = dynamic ? possibleCallableRanges(operation.place, definitions) : null;
@@ -324,13 +361,15 @@ export function assignmentFacts(
                 start: base.start + leaf.start,
                 end: base.start + leaf.end,
               });
-          return corrupted || !isAssigned(assigned, root, joinPath(path, leaf.path))
+          // The unknown path is relative to the loaded value, not the source
+          // place; an aggregate copy selects it again at its own prefix.
+          return corrupted || !isAssigned(assigned, root, joinPath(assignedPath, leaf.path))
             ? [leaf.path]
             : [];
         });
         if (missing.length > 0) unknown.set(operation, missing);
       } else if (operation.kind === "store") {
-        const key = assignmentKey(operation.place);
+        const key = assignmentKeyWith(operation.place, definitions);
         if (key !== null) assigned.add(key);
         const range = placeByteRange(operation.place, definitions);
         if (range !== null) killed = subtractStore(killed, range);
