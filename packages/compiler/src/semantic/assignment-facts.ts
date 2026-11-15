@@ -14,13 +14,15 @@ import {
   constantValue,
   definitionsOf,
   hasDynamicIndex,
+  indexUpperBound,
   killFlow,
+  placeBoundKey,
   placeByteRange,
   possibleCallableRanges,
   rangeIsKilled,
   subtractStore,
 } from "./raw-write-kills.js";
-import type { AliasRelations, KilledFacts, PlacedRange } from "./raw-write-kills.js";
+import type { AliasRelations, IndexBounds, KilledFacts, PlacedRange } from "./raw-write-kills.js";
 
 export { callablePaths, joinPath, placePath } from "./callable-paths.js";
 
@@ -328,6 +330,7 @@ export function assignmentFacts(
     const facts = flow.input.get(block.id);
     if (facts === undefined) continue;
     const assigned = new Set(facts);
+    const bounds: Map<string, number> = new Map();
     let killed = killedFlow.input.get(block.id) ?? Object.freeze([]);
     for (const operation of block.operations) {
       if (operation.kind === "load" || operation.kind === "place-address") {
@@ -335,8 +338,11 @@ export function assignmentFacts(
         const assignedPath = assignmentPathWith(operation.place, definitions);
         const base = placeByteRange(operation.place, definitions);
         const dynamic = hasDynamicIndex(operation.place, definitions);
-        const possible = dynamic ? possibleCallableRanges(operation.place, definitions) : null;
-        const boundedDynamic = dynamic && allDynamicIndicesBounded(operation.place, definitions);
+        const possible = dynamic
+          ? possibleCallableRanges(operation.place, definitions, bounds)
+          : null;
+        const boundedDynamic =
+          dynamic && allDynamicIndicesBounded(operation.place, definitions, bounds);
         const missing = callableLeaves(operation.type).flatMap((leaf) => {
           // An unchecked, unbounded index may leave the object entirely, so any
           // known kill can be reachable. A checked or proved-bounded index stays
@@ -373,6 +379,10 @@ export function assignmentFacts(
         if (key !== null) assigned.add(key);
         const range = placeByteRange(operation.place, definitions);
         if (range !== null) killed = subtractStore(killed, range);
+        const bound = indexUpperBound(operation.value, definitions, bounds as IndexBounds);
+        const boundKey = placeBoundKey(operation.place);
+        if (bound === null) bounds.delete(boundKey);
+        else bounds.set(boundKey, bound);
       } else if (operation.kind === "memory-write") {
         killed = addRawWrite(
           killed,

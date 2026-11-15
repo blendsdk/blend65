@@ -113,6 +113,17 @@ const OPAQUE_KILL: KilledRange = Object.freeze({ root: OPAQUE_ROOT, start: 0, en
 /** One value definition retained for constant index resolution. */
 export type Definitions = ReadonlyMap<string, SemanticOperation>;
 
+/** Proved upper bounds for local places, keyed by root and constant-aware path. */
+export type IndexBounds = ReadonlyMap<string, number>;
+
+/** Stable key for one place under a bound analysis. */
+export function placeBoundKey(place: SemanticPlace): string {
+  return JSON.stringify([
+    bindingIdentityKey(place.root),
+    place.path.map((step) => (step.kind === "field" ? ["field", step.name] : ["index", "*"])),
+  ]);
+}
+
 /** Resolve one constant expression, including truncating conversions. */
 export function constantValue(
   operation: SemanticOperation | undefined,
@@ -196,6 +207,7 @@ export interface PossibleLeaf extends KilledRange {
 export function possibleCallableRanges(
   place: SemanticPlace,
   definitions: Definitions,
+  bounds: IndexBounds = new Map(),
 ): readonly PossibleLeaf[] {
   const root = bindingIdentityKey(place.root);
   const walk = (
@@ -223,7 +235,7 @@ export function possibleCallableRanges(
     const stride = semanticTypeSize(type.element);
     const index = constantValue(definitions.get(step.value), definitions);
     if (index !== null) return walk(type.element, start + stride * index, rest);
-    const bound = indexUpperBound(step.value, definitions);
+    const bound = indexUpperBound(step.value, definitions, bounds);
     const count = bound === null ? type.length : Math.min(type.length, bound + 1);
     return Array.from({ length: count }, (_, element) =>
       walk(type.element, start + element * stride, rest),
@@ -233,18 +245,26 @@ export function possibleCallableRanges(
 }
 
 /** A proved upper bound for one index value, or null when it is unknown. */
-export function indexUpperBound(value: string, definitions: Definitions): number | null {
+export function indexUpperBound(
+  value: string,
+  definitions: Definitions,
+  bounds: IndexBounds = new Map(),
+): number | null {
   const operation = definitions.get(value);
+  if (operation?.kind === "load" || operation?.kind === "place-address") {
+    const bound = bounds.get(placeBoundKey(operation.place));
+    if (bound !== undefined) return bound;
+  }
   if (operation?.kind === "constant")
     return typeof operation.value === "boolean"
       ? operation.value
         ? 1
         : 0
       : Number(operation.value);
-  if (operation?.kind === "convert") return indexUpperBound(operation.operand, definitions);
+  if (operation?.kind === "convert") return indexUpperBound(operation.operand, definitions, bounds);
   if (operation?.kind === "merge")
     return operation.incoming.reduce<number | null>((maximum, incoming) => {
-      const bound = indexUpperBound(incoming.value, definitions);
+      const bound = indexUpperBound(incoming.value, definitions, bounds);
       if (bound === null) return null;
       return maximum === null ? bound : Math.max(maximum, bound);
     }, null);
@@ -332,7 +352,11 @@ export function possibleWriteRanges(
 }
 
 /** Whether every runtime index in the place is proved inside its array. */
-export function allDynamicIndicesBounded(place: SemanticPlace, definitions: Definitions): boolean {
+export function allDynamicIndicesBounded(
+  place: SemanticPlace,
+  definitions: Definitions,
+  bounds: IndexBounds = new Map(),
+): boolean {
   let type: SemanticType | undefined = place.rootType;
   for (const step of place.path) {
     if (step.kind === "field") {
@@ -346,7 +370,7 @@ export function allDynamicIndicesBounded(place: SemanticPlace, definitions: Defi
     const array = type;
     const index = constantValue(definitions.get(step.value), definitions);
     if (index === null) {
-      const bound = indexUpperBound(step.value, definitions);
+      const bound = indexUpperBound(step.value, definitions, bounds);
       if (bound === null || bound >= array.length) return false;
     } else if (index >= array.length) return false;
     type = array.element;
