@@ -76,6 +76,11 @@ reverted; #153 stays open with this evidence rather than binding an unproved sta
 diagnostic contract (`semantics-reviewer`), and #145 is a size measurement (`machine-code-auditor`).
 No new capability gap; #158 remains user-gated.
 
+**Wave 4 re-check (2026-11-15).** None. #124/#154/#163 are machine lowering and semantic
+precision (`machine-code-auditor`, with `sfa-abi-auditor` for the bound facts), #155 is startup
+selection (`machine-code-auditor`), and #139/#135/#133/#132/#131/#151/#152 are existing codegen/NMI
+owners. No new capability gap.
+
 This section is the durable record. `codeops/specialist-check.json` holds the
 machine-readable check time and plan inventory.
 
