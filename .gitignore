@@ -4,3 +4,6 @@ dist/
 coverage/
 .turbo/
 test/.tmp-*/
+
+# Example build output (examples/boing-ball follows the manifest outDir convention)
+examples/boing-ball/out/
