@@ -81,12 +81,10 @@ precision (`machine-code-auditor`, with `sfa-abi-auditor` for the bound facts), 
 selection (`machine-code-auditor`), #167 is the callable-read alias boundary (`semantics-reviewer`),
 and #139/#135/#133/#132/#131/#151/#152 are existing codegen/NMI owners. No new capability gap.
 
-**Wave 5 corpus blocker (2026-11-15).** #72 and the corpus-driven parity rows (#70, #53, #73)
-reference `packages/test-harness/test/golden/` and `examples/boing-ball`, which are absent from this
-v4 checkout. `git ls-tree` finds them only on `feat/asm-parity`. Authoring the twin here would mean
-porting the whole parity harness and corpus, a separate user-owned scope decision. #140 is the
-RD-06 residual set owned by this v4 feature and proceeds next; the corpus rows stay open until the
-harness is ported or re-scoped.
+**Wave 5 corpus decision (2026-11-16).** The user scoped the corpus port to the boing-ball fixture
+only. `examples/boing-ball` and `examples/boing-ball/twin.asm` now live in v4; the behavior oracle
+samples frames 2/6/10/99/100 and the cost oracle pins 1,599 code bytes vs the twin's 402. The
+remaining corpus fixtures (#70/#53/#73) are separate slices; the measured expert gap is #168.
 
 This section is the durable record. `codeops/specialist-check.json` holds the
 machine-readable check time and plan inventory.
@@ -120,4 +118,4 @@ machine-readable check time and plan inventory.
 | 2 | Blocked on #153 — #146 done | `../sfa-staging-home-reuse/08-closeout.md`; #153 needs the stock chained entry stack-binding proof |
 | 3 | Done (bounded) — #160 done; #159 alignment slice done with bank diagnostic blocked on #158; #145 measured non-win | `../block-index-immediate-fold/08-closeout.md` · `../runtime-block-index-alignment/08-closeout.md` · `../acquisition-size-gap/08-closeout.md` |
 | 4 | Done (bounded) — #124/#131/#132/#139/#151/#154/#163/#167 done; #155 measured; #135/#133/#152 blocked | `../dynamic-callable-array-proof/08-closeout.md` |
-| 5 | Done (bounded) — #140 T-20–T-27 verified; #72/#70/#53/#73 await the corpus scope decision | `../ordinal-write-straight-line/08-closeout.md` |
+| 5 | Done (bounded) — #140 T-20–T-27 verified; #72 boing-ball twin delivered; #70/#53/#73 follow | `../boing-ball-twin/08-closeout.md` · #168 |

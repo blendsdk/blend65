@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "name": "boing-ball",
+  "sourceRoot": "src",
+  "entry": "Main",
+  "target": "c64-pal-prg-kernal-6581",
+  "assetPaths": ["assets"],
+  "outDir": "out",
+  "optimization": "none"
+}
