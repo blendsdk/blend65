@@ -31,6 +31,30 @@ xrhi = $0c
 msb = $0d
 
 start:
+  ; This nonreturning program needs no caller-state snapshot or unreachable
+  ; teardown, but it still establishes the cooperative profile's live state.
+  ; Write the owned port latch bits before making those bits outputs.
+  cld
+  lda $01
+  and #$f8
+  ora #$06
+  sta $01
+  lda $00
+  ora #$07
+  sta $00
+
+  ; Input pull-ups select VIC bank zero without changing CIA2's unreadable
+  ; output latch. Preserve every unrelated port direction and keep stock IRQs.
+  lda $dd02
+  and #$fc
+  sta $dd02
+  lda #$14
+  sta $d018
+  lda #0
+  sta $d015
+  sta $d01b
+
+applicationStart:
   lda #15
   sta $d01c
   lda #0
@@ -66,11 +90,10 @@ start:
   sta tick
 
   jsr positions
-  ; Enable before entering the pointer section: that section falls through
-  ; into the per-frame tail, so it is the loop's entry, not a returnable call.
+  jsr pointers
+  ; Every coordinate and pointer is ready before the sprites become visible.
   lda #15
   sta $d015
-  jsr pointers
 
 loop:
 wait:
@@ -182,7 +205,7 @@ rotatecolors:
   sta $d028
   sta $d029
   sta $d02a
-  jmp pointers
+  jmp updatePointers
 colorsnormal:
   lda #1
   sta $d025
@@ -191,6 +214,13 @@ colorsnormal:
   sta $d028
   sta $d029
   sta $d02a
+
+updatePointers:
+  jsr pointers
+
+afterrotate:
+  jsr positions
+  jmp loop
 
 pointers:
   lda frame
@@ -208,10 +238,7 @@ pointers:
   clc
   adc #1
   sta $07fb
-
-afterrotate:
-  jsr positions
-  jmp loop
+  rts
 
 positions:
   lda xlo
@@ -237,10 +264,12 @@ nolow:
 noright:
   lda xlo
   sta $d000
+  ; X preserves the right coordinate while A supplies the left one. This
+  ; keeps the source's exact write order without reloading either byte.
+  ldx xrlo
+  stx $d002
   sta $d004
-  lda xrlo
-  sta $d002
-  sta $d006
+  stx $d006
   lda y
   sta $d001
   sta $d003

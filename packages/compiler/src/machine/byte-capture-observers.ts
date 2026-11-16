@@ -10,9 +10,24 @@ import {
   rawMaySelectHardwareRam,
   valueDefinitions,
 } from "../semantic/aggregate-place-proof.js";
-import type { MemoryReadOperation, SemanticFunction } from "../semantic/operations.js";
+import type {
+  MemoryReadOperation,
+  MemoryWriteOperation,
+  SemanticFunction,
+} from "../semantic/operations.js";
+import type { WholeProgram } from "../semantic/whole-program.js";
 import { reachableBlocks } from "../semantic/value-lifetimes.js";
 import type { MachineInstruction, MachineLoweringInput } from "./machine-types.js";
+
+/** Exact source publications whose complete hardware fetches stay in immutable asset storage. */
+export interface ByteCapturePublicationProof {
+  /** Closed program from which the publication proof was derived. */
+  readonly program: WholeProgram;
+  /** Actual exclusively-main source owner, not an equal-looking replacement. */
+  readonly source: SemanticFunction;
+  /** Original source writes proved to publish only disjoint immutable asset bytes. */
+  readonly writes: ReadonlySet<MemoryWriteOperation>;
+}
 
 /**
  * Exclude observers before an exact fresh byte capture remains in A instead of its home.
@@ -31,12 +46,14 @@ import type { MachineInstruction, MachineLoweringInput } from "./machine-types.j
  * @param input Existing closed program and complete selected-profile storage windows.
  * @param source The actual source owner of the selected main-domain capture.
  * @param capture The unique fresh, fixed-address one-byte read before its save.
+ * @param publicationProof Optional exact asset-publication proof for an anonymous value only.
  * @returns Whether the existing facts exclude relevant observers, without guessing.
  */
 export function hasUnobservedByteCapture(
   input: MachineLoweringInput,
   source: SemanticFunction,
   capture: MemoryReadOperation,
+  publicationProof?: ByteCapturePublicationProof,
 ): boolean {
   const program = input.program;
   if (
@@ -96,9 +113,16 @@ export function hasUnobservedByteCapture(
           )
             return false;
           if (operation.kind === "memory-write") {
+            const provedPublication =
+              publicationProof?.program === program &&
+              publicationProof.source === source &&
+              body === source &&
+              !asynchronous &&
+              publicationProof.writes.has(operation);
             if (
               address === undefined ||
-              rawMaySelectHardwareRam(address, operation.width, input.profile)
+              (rawMaySelectHardwareRam(address, operation.width, input.profile) &&
+                !provedPublication)
             )
               return false;
             // Processor-port writes can change the address space, including a
