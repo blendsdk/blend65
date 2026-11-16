@@ -55,7 +55,7 @@ slice does not silently accept it.
 | Cost pins | 1,599 / 7,167 / 0 vs 402 / 7,167 / 12 |
 | Compiler package | 236 files / 3,939 passed / 2 skipped (unchanged; root-only additions) |
 | Host checkpoint | 244 files / 5,112 passed (the new cost oracle included) |
-| Complete `yarn test:full` | Host/compiler green; `boing-ball-parity` VICE passed (1/1) and the cost oracle passed (1/1). The only failures were the known host-load `vic-collision-vice` timing case (2/16), unrelated to this slice; that file passed 16/16 on an isolated serialized rerun in the preceding checkpoint. |
+| Complete `yarn test:full` | Host/compiler green; `boing-ball-parity` VICE passed (1/1) and the cost oracle passed (1/1). The only failures were the known host-load `vic-collision-vice` timing case (2/16), unrelated to this slice; that file passed 16/16 on an isolated serialized rerun immediately after the checkpoint. |
 | `spec/` and ledger | Byte-identical |
 
 ## Residuals
