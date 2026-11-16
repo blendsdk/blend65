@@ -82,7 +82,7 @@ describe.sequential("ordinary function values", () => {
       "  let second: byte = returned(8);",
       "  let callbacks: (fn(byte): byte)[2] = [&plusOne, &plusTwo];",
       "  poke($0440, 1);",
-      "  let which: byte = peek($0440);",
+      "  let which: byte = peek($0440) & 1;",
       "  let third: byte = callbacks[word(which)](10);",
       "  poke($0420, first);",
       "  poke($0421, second);",

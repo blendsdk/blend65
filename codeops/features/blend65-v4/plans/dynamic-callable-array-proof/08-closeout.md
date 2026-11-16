@@ -1,44 +1,57 @@
-# Dynamic callable array proof — blocked closeout
+# Dynamic callable array proof — closeout
 
 > **Issue**: [#167](https://github.com/blendsdk/blend65/issues/167)
 > **Plan**: [99-execution-plan.md](99-execution-plan.md)
 > **Preflight**: [00-preflight-report-99-execution-plan.md](00-preflight-report-99-execution-plan.md)
-> **Status**: Blocked — public-oracle conflict; sound escape slice delivered
+> **Status**: Done
 > **Recorded**: 2026-11-16
 
-## Outcome
+## Delivered
 
-The RD-04 acceptance `callbacks[word(which)](10)` remains **E10277** when `which` is an unbounded
-raw-memory byte and an opaque call preceded the read. The first attempt relaxed the opaque reach in
-the unchecked/unbounded branch; the independent semantics review rejected it (SM-001) with a
-counterexample in which the out-of-bounds read lands on another nameable opaque root. The
-conservative rule is restored.
+The RD-04 acceptance now proves its dynamic index in bounds while keeping the same runtime behavior:
 
-The same read class is pinned as a **rejection** by `test/rd04/bounded-local-index.spec.test.ts`.
-The two public oracles conflict, and the frozen spec supports the rejection
-(`spec/08-arrays-strings.md` AR-8; `spec/06-functions.md` §4.3; E10277). A specification-test edit
-needs explicit user authorization, so #167 stays open.
+```blend65
+let which: byte = peek($0440) & 1;
+let third: byte = callbacks[word(which)](10);
+```
 
-## Delivered sound slice
+The VICE program still returns `[7, 9, 12, 5, 1, 2, 4, 3, 4]`.
 
-- Address-taken storage joins `opaqueRoots`: a non-aggregate `place-address` (`&local`,
-  `word(&local)`) and an aggregate place passed as a call argument. Aggregate materialization and
-  local copies are excluded.
-- The unchecked/unbounded dynamic read keeps `killed.length > 0`: any known kill rejects. Checked
-  and proved-bounded reads keep their element-range proof.
-- Implementation tests: escaped-address rejection, concrete-placed-kill rejection, private-local
-  scalar acceptance after an opaque write, aggregate-copy acceptance, and the unbounded-array
-  rejection at `boundsCheck=false`.
-- `test/rd05/canonical-fixed-object-abi-fallback.spec.test.ts` follows the verified #166 artifact
-  change: 2163→2161 (`74b9d6b8…`).
+The first attempt relaxed the opaque-kill reach in the unchecked/unbounded branch. Independent
+semantics review rejected it (SM-001): an out-of-bounds index can leave the array and land on
+another nameable opaque root, so the certified target set can be incomplete. AR-8 forbids assuming
+a runtime index stays in bounds, and `test/rd04/bounded-local-index.spec.test.ts` already pins that
+class as E10277. The conservative rule is retained and the oracle conflict was resolved with the
+user-authorized bounded-index edit on 2026-11-16.
+
+## Sound rule
+
+- An opaque runtime write reaches only roots it can name through the source alias model: globals,
+  borrowed aggregate parameters and address-taken storage.
+- A non-aggregate `place-address` (`&local`, `word(&local)`) and an aggregate place passed as a call
+  argument join `opaqueRoots`. Aggregate materialization and ordinary local copies do not, so a
+  `let copy = box;` is not poisoned.
+- An unchecked, unbounded dynamic read still treats any known kill as reachable. Checked and
+  proved-bounded reads keep their element-range proof.
+
+## Implementation
+
+| File | Change |
+| --- | --- |
+| `packages/compiler/src/semantic/function-targets.ts` | Address-taken roots join `opaqueRoots` (non-aggregate `place-address`, aggregate call arguments) |
+| `packages/compiler/src/semantic/assignment-facts.ts` | Conservative unchecked rule retained; comments and options documented; leftover debug block removed |
+| `packages/compiler/src/semantic/raw-write-kills.ts` | Opaque-reach documentation includes address-taken storage |
+| `packages/compiler/src/semantic/interprocedural-kills.impl.test.ts` | Escaped-address, unbounded-array, concrete-placed-kill rejections and aggregate-copy/scalar acceptances |
+| `test/rd04/function-values.spec.test.ts` | User-authorized bounded index `& 1`; observations unchanged |
+| `test/rd05/canonical-fixed-object-abi-fallback.spec.test.ts` | Verified #166 artifact identity 2163→2161 |
 
 ## Independent review
 
 | Finding | Severity | Resolution |
 | --- | --- | --- |
-| SM-001 unbounded opaque reach is unsound | MAJOR | **Blocking**; conservative rule restored, oracle decision requested. |
-| SM-002 aggregate materialization is not address-taking | MINOR | Fixed: type/call-argument discriminator + copy regression. |
-| SM-003 comments, stale PF and evidence | MINOR | Fixed in this record; the #156 "any kill" row is accurate again. |
+| SM-001 unbounded opaque reach is unsound | MAJOR | Fixed by retaining the conservative rule and bounding the RD-04 index. |
+| SM-002 aggregate materialization is not address-taking | MINOR | Fixed with the type/call-argument discriminator + copy regression. |
+| SM-003 comments, stale PF and evidence | MINOR | Fixed; the #156 "any kill" row is accurate again. |
 
 Review lineage: semantics reviewer, expert skill `2.0.4` (content commit `0e2a6280…`),
 specification identity `BLEND65-SPEC-4-038b70e9…`.
@@ -48,38 +61,24 @@ specification identity `BLEND65-SPEC-4-038b70e9…`.
 | Tier | Result |
 | --- | --- |
 | Implementation | 26/26 in `interprocedural-kills.impl.test.ts` |
+| RD-04 VICE acceptance | Pass; observed `[7, 9, 12, 5, 1, 2, 4, 3, 4]` |
+| #163 bounded-index oracle | 16/16; the unbounded class still rejects |
 | Compiler package | 236 files / 3,939 passed / 2 skipped |
 | Host checkpoint | 243 files / 5,111 passed |
-| RD-04 VICE acceptance | **Red by design**: E10277 pending the oracle ruling |
-| #163 bounded-index oracle | Green: the same unbounded class rejects |
+| Complete `yarn test:full` | Host and compiler green; the only failure is the known host-load `vic-collision-vice` timing case (1373/2378 root tests passed, 4 skipped, 1 failed), which passed 16/16 on an isolated serialized rerun. |
 | `spec/` and ledger | Byte-identical |
-
-## Decision requested
-
-**Recommended**: authorize the minimal oracle edit so the RD-04 acceptance proves its index in
-bounds while keeping the dynamic-index intent and observation bytes:
-
-```blend65
-let which: byte = peek($0440) & 1;
-let third: byte = callbacks[word(which)](10);
-```
-
-This aligns the test with the #163 contract; the unbounded class stays rejected.
-
-**Alternative** (not recommended): rule that an unchecked out-of-bounds callable read is outside the
-typed target contract. That contradicts AR-8 and the #163 oracle and needs a spec/ambiguity decision
-record.
 
 ## Residuals
 
 | Residual | Owner |
 | --- | --- |
-| RD-04 acceptance for an unbounded callable-array read | user oracle ruling |
-| Volatile raw-memory constant forwarding | separate slice; interrupt-writer proof required |
+| Volatile raw-memory forwarding for `poke($addr, c); peek($addr)` | separate slice; asynchronous-writer proof required |
 | Hidden aggregate-return destination | unresolved boundary, no observed source escape |
+| Cross-block bounds | existing #163 precision debt |
 
 ## Deferral-expiry check
 
-No deferral's reason is invalidated. The change narrows `opaqueRoots` precision and restores the
-signed-off AR-8 conservative behavior. The #161 residual that named #167 remains open with this
-clear blocker.
+No deferral's reason is invalidated. The sound escape rule sharpens the existing `opaqueRoots`
+model; the conservative unbounded rule, the #163 precision debt, the checked-index path and the
+callable-invalidation tests keep their owners. The #161 residual that named #167 is satisfied by the
+bounded RD-04 witness and the delivered escape rule.
