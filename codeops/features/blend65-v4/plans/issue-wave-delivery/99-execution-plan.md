@@ -120,4 +120,4 @@ machine-readable check time and plan inventory.
 | 2 | Blocked on #153 — #146 done | `../sfa-staging-home-reuse/08-closeout.md`; #153 needs the stock chained entry stack-binding proof |
 | 3 | Done (bounded) — #160 done; #159 alignment slice done with bank diagnostic blocked on #158; #145 measured non-win | `../block-index-immediate-fold/08-closeout.md` · `../runtime-block-index-alignment/08-closeout.md` · `../acquisition-size-gap/08-closeout.md` |
 | 4 | Done (bounded) — #124/#131/#132/#139/#151/#154/#163/#167 done; #155 measured; #135/#133/#152 blocked | `../dynamic-callable-array-proof/08-closeout.md` |
-| 5 | Executing — #140 T-20 extension done; #72/#70/#53/#73 corpus-blocked | `../ordinal-write-straight-line/08-closeout.md` |
+| 5 | Done (bounded) — #140 T-20–T-27 verified; #72/#70/#53/#73 await the corpus scope decision | `../ordinal-write-straight-line/08-closeout.md` |
