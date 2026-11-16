@@ -662,6 +662,26 @@ export function resolveTargetSets(
         .map((parameter) => bindingIdentityKey(parameter.id)),
     ),
   ]);
+  // A local whose address is taken can be named by a callee or a runtime
+  // pointer, so an opaque raw write must keep invalidating its callable bytes.
+  // An aggregate place-address is also emitted for value materialization and
+  // local copies; only `&place` (a non-aggregate result) or an aggregate
+  // passed to a call can actually escape this body.
+  const borrowedArguments = new Set<string>();
+  for (const context of contexts)
+    for (const block of context.blocks)
+      for (const operation of block.operations) {
+        if (
+          operation.kind === "call" ||
+          operation.kind === "indirect-call" ||
+          operation.kind === "platform"
+        )
+          for (const argument of operation.arguments) borrowedArguments.add(argument);
+        if (operation.kind !== "place-address") continue;
+        const aggregate = operation.type.kind === "struct" || operation.type.kind === "array";
+        if (!aggregate || borrowedArguments.has(operation.result))
+          opaqueRoots.add(bindingIdentityKey(operation.place.root));
+      }
   const killFacts: InterproceduralKillResult = analyzeInterproceduralKills({
     program,
     contexts: [...functionKillContexts, ...initializerKillContexts],

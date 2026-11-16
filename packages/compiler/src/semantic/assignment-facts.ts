@@ -288,7 +288,11 @@ export interface AssignmentFactOptions {
   readonly placed?: ReadonlyMap<string, PlacedRange> | undefined;
   /** Whether later compilation inserts runtime bounds guards. */
   readonly boundsChecked?: boolean | undefined;
-  /** Roots a runtime raw write can name; private locals and by-value scalars are excluded. */
+  /**
+   * Roots a runtime raw write can name: globals, borrowed aggregate parameters
+   * and address-taken storage. A private local that never escapes and a
+   * by-value scalar parameter cannot be named by a callee or runtime pointer.
+   */
   readonly opaqueRoots?: ReadonlySet<string> | undefined;
 }
 
@@ -347,8 +351,10 @@ export function assignmentFacts(
           dynamic && allDynamicIndicesBounded(operation.place, definitions, bounds);
         const missing = callableLeaves(operation.type).flatMap((leaf) => {
           // An unchecked, unbounded index may leave the object entirely, so any
-          // known kill can be reachable. A checked or proved-bounded index stays
-          // within the declared elements and is matched by possible leaf ranges.
+          // known kill can be reachable. This is the conservative unchecked-array
+          // contract: a runtime index is never assumed to stay in bounds. A
+          // checked or proved-bounded index is matched by the possible leaf
+          // ranges instead.
           // An any-size array parameter has no fixed extent, so a dynamic read
           // cannot enumerate its elements. Any known kill may reach the selected
           // element; treat the read conservatively instead of empty.
@@ -384,16 +390,6 @@ export function assignmentFacts(
           // The unknown path is relative to the loaded value, not the source
           // place; an aggregate copy selects it again at its own prefix.
           const assignedNow = isAssigned(assigned, root, joinPath(assignedPath, leaf.path));
-          if (process.env.BLEND65_DEBUG_167 === "1" && root.includes("711:769"))
-            console.error(
-              "cb",
-              corrupted,
-              assignedNow,
-              JSON.stringify([...assigned]),
-              options.opaqueRoots === undefined
-                ? "no-roots"
-                : String(options.opaqueRoots.has(root)),
-            );
           return corrupted || !assignedNow ? [leaf.path] : [];
         });
         if (missing.length > 0) unknown.set(operation, missing);

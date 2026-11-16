@@ -84,7 +84,7 @@ The full serialized VICE checkpoint belongs to the wave close after #157 and #16
 | Constant address overlapping an automatically placed callable after layout | [#164](https://github.com/blendsdk/blend65/issues/164) |
 | Alias precision inside a helper called with different actual objects | union relation, conservative by design |
 | Causal E10277 related spans | diagnostic precision debt (SM-004) |
-| Opaque runtime write reach | limited to globals and borrowed aggregate parameters; private locals and by-value scalar parameters are not nameable by a callee. The dynamic local-array callable proof remains #167. |
+| Opaque runtime write reach | limited to globals, borrowed aggregate parameters and address-taken storage; private locals and by-value scalar parameters are not nameable by a callee. The dynamic local-array callable proof is blocked on the RD-04/#163 oracle conflict; see [#167](../dynamic-callable-array-proof/08-closeout.md). |
 
 ## Deferral-expiry check
 

@@ -528,9 +528,9 @@ describe.sequential("fixed-object generic fallback and unchanged output contract
     );
     const artifacts = await buildProfileSource(source, "c64-pal-prg-kernal-6581", "none");
     expectLibraryAccounting(artifacts);
-    expect(artifacts.prg.length - 2).toBe(2163);
+    expect(artifacts.prg.length - 2).toBe(2161);
     expect(createHash("sha256").update(artifacts.prg).digest("hex")).toBe(
-      "0417b7da8c4eabb022e6ec868e0d8dcaf4b4727da83d43e29fcbe98e16a02a93",
+      "74b9d6b8ab3e81b309284652a061682f718ef3543f22bd3f8505753d22b99252",
     );
   }, 180_000);
 });

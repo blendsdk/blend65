@@ -78,8 +78,8 @@ No new capability gap; #158 remains user-gated.
 
 **Wave 4 re-check (2026-11-15).** None. #124/#154/#163 are machine lowering and semantic
 precision (`machine-code-auditor`, with `sfa-abi-auditor` for the bound facts), #155 is startup
-selection (`machine-code-auditor`), and #139/#135/#133/#132/#131/#151/#152 are existing codegen/NMI
-owners. No new capability gap.
+selection (`machine-code-auditor`), #167 is the callable-read alias boundary (`semantics-reviewer`),
+and #139/#135/#133/#132/#131/#151/#152 are existing codegen/NMI owners. No new capability gap.
 
 **Wave 5 corpus blocker (2026-11-15).** #72 and the corpus-driven parity rows (#70, #53, #73)
 reference `packages/test-harness/test/golden/` and `examples/boing-ball`, which are absent from this
@@ -119,5 +119,5 @@ machine-readable check time and plan inventory.
 | 1 | Done — #161, #157, #162 | `../interprocedural-raw-write-kills/08-closeout.md` · `../callable-field-helper-transfer/08-closeout.md` · `../constant-index-callable-recovery/08-closeout.md` |
 | 2 | Blocked on #153 — #146 done | `../sfa-staging-home-reuse/08-closeout.md`; #153 needs the stock chained entry stack-binding proof |
 | 3 | Done (bounded) — #160 done; #159 alignment slice done with bank diagnostic blocked on #158; #145 measured non-win | `../block-index-immediate-fold/08-closeout.md` · `../runtime-block-index-alignment/08-closeout.md` · `../acquisition-size-gap/08-closeout.md` |
-| 4 | Done (bounded) — #124/#131/#132/#139/#151/#154/#163 done; #155 measured; #135/#133/#152 blocked | `../cross-join-nmi-consumption/08-closeout.md` |
+| 4 | Done (bounded) — #124/#131/#132/#139/#151/#154/#163 done; #155 measured; #135/#133/#152 blocked; #167 blocked on the RD-04/#163 oracle conflict | `../dynamic-callable-array-proof/08-closeout.md` |
 | 5 | Executing — #140 T-20 extension done; #72/#70/#53/#73 corpus-blocked | `../ordinal-write-straight-line/08-closeout.md` |

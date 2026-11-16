@@ -6,7 +6,7 @@ import { buildSemanticProgram } from "./lower.js";
 import { closeWholeProgram } from "./whole-program.js";
 
 /** Lower one real source file without host I/O or generated output. */
-function lowerSource(text: string) {
+function lowerSource(text: string, boundsCheck = true) {
   const source: SourceRecord = {
     sourceId: "src/game.blend",
     text,
@@ -44,12 +44,12 @@ function lowerSource(text: string) {
   };
   const analyzed = analyzeProject(snapshot);
   if (analyzed.kind !== "complete") throw new Error(JSON.stringify(analyzed.diagnostics));
-  return buildSemanticProgram(analyzed, { boundsCheck: true });
+  return buildSemanticProgram(analyzed, { boundsCheck });
 }
 
 /** Expect the closed program to reject the call after the raw mutation. */
-function expectRejected(source: string): void {
-  const lowered = lowerSource(source);
+function expectRejected(source: string, boundsCheck = true): void {
+  const lowered = lowerSource(source, boundsCheck);
   if (lowered.kind !== "complete") throw new Error(JSON.stringify(lowered.diagnostics));
   const closed = closeWholeProgram(lowered.program);
   expect(closed.kind).toBe("error");
@@ -58,8 +58,8 @@ function expectRejected(source: string): void {
 }
 
 /** Expect the closed program to keep a finite callable target. */
-function expectAccepted(source: string): void {
-  const lowered = lowerSource(source);
+function expectAccepted(source: string, boundsCheck = true): void {
+  const lowered = lowerSource(source, boundsCheck);
   if (lowered.kind !== "complete") throw new Error(JSON.stringify(lowered.diagnostics));
   expect(closeWholeProgram(lowered.program).kind).toBe("complete");
 }
@@ -268,6 +268,67 @@ function main(): void {
   let local: fn(): byte = &chosenFn;
   corrupt();
   poke($C000, local());
+}`);
+  });
+
+  it("rejects an unbounded private local callable array after an opaque indirect call", () => {
+    expectRejected(
+      `module Game;
+let step: byte = 0;
+function record(tag: byte): void { poke($0424 + word(step), tag); step += 1; }
+function plusOne(value: byte): byte { record(3); return value + 1; }
+function plusTwo(value: byte): byte { record(4); return value + 2; }
+function choose(useOne: boolean): fn(byte): byte {
+  record(1);
+  return useOne ? &plusOne : &plusTwo;
+}
+function main(): void {
+  let first: byte = choose(false)(0);
+  let callbacks: (fn(byte): byte)[2] = [&plusOne, &plusTwo];
+  let which: byte = peek($0400);
+  poke($C000, callbacks[word(which)](10));
+  poke($0420, first);
+}`,
+      false,
+    );
+  });
+
+  it("rejects a dynamically read callable local whose address escaped", () => {
+    expectRejected(`module Game;
+function chosen(): byte { return 37; }
+function corruptDynamic(): void { poke(peekw($0330), 0); }
+function publish(address: word): void { poke(address, 0); }
+function main(): void {
+  let local: fn(): byte = &chosen;
+  publish(word(&local));
+  corruptDynamic();
+  poke($C000, local());
+}`);
+  });
+
+  it("rejects an unbounded dynamic callable read after a constant placed write", () => {
+    expectRejected(`module Game;
+place(at: $C100) let table: (fn(): byte)[2];
+function chosen(): byte { return 37; }
+function corrupt(): void { pokew($C100, 0); }
+function main(): void {
+  table[0] = &chosen;
+  table[1] = &chosen;
+  corrupt();
+  poke($C000, table[peek($0400)]());
+}`);
+  });
+
+  it("accepts a private struct copy after an opaque callee write", () => {
+    expectAccepted(`module Game;
+struct Box { cb: fn(): byte; }
+function chosen(): byte { return 37; }
+function corrupt(): void { poke(peekw($0330), 0); }
+function main(): void {
+  let box: Box = { cb: &chosen };
+  let copy: Box = box;
+  corrupt();
+  poke($C000, box.cb());
 }`);
   });
 

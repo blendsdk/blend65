@@ -24,8 +24,8 @@ PRG.
 - A word count keeps the high-byte path and both saturation tests.
 - The fresh-flags six-byte `BEQ`/shift kernel is already smaller than the issue's seven-byte
   `DEX`/`BMI` countdown, so the countdown is not emitted for this witness.
-- The same win moved the optimizer pins: saved `size`/balanced/speed 709→700, `none` 2163→2161,
-  acquisition 943→934. The #145 payload gap narrows from 66 to 57 bytes.
+- The same win moved the optimizer pins: saved `size`/balanced/speed 709→701, `none` 2163→2161,
+  acquisition 943→935. The #145 payload gap narrows from 66 to 58 bytes.
 
 ## Implementation
 
@@ -55,8 +55,8 @@ PRG.
 | Assembly oracle | 20/20 across four profiles |
 | Cost pin | 124/122/110, zero-page 0, scratch 0 |
 | Native VICE | 36/36: counts 0/1/7/8 and the word path on four profiles |
-| Compiler package | 235 files / 3,930 passed / 2 skipped |
-| Host checkpoint | 239 files / 5,080 passed |
+| Compiler package | 236 files / 3,934 passed / 2 skipped |
+| Host checkpoint | 243 files / 5,111 passed |
 | Optimizer pins | Saved 701, acquisition 935, none 2161 (fresh-zero preserved without the unsafe fold) |
 | `spec/` and ledger | Byte-identical |
 

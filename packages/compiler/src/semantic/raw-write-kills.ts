@@ -436,9 +436,10 @@ export function subtractStore(kills: KilledFacts, store: KilledRange): KilledFac
 
 /**
  * Whether a place interval overlaps any killed byte. An opaque runtime write
- * reaches only roots it can name through the source alias model: globals and
- * borrowed aggregate parameters. A private local or a by-value scalar
- * parameter cannot be named by a callee or a runtime pointer.
+ * reaches only roots it can name through the source alias model: globals,
+ * borrowed aggregate parameters and address-taken storage. A private local
+ * whose address never escapes, or a by-value scalar parameter, cannot be named
+ * by a callee or a runtime pointer.
  */
 export function rangeIsKilled(
   kills: KilledFacts,
