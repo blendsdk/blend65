@@ -3,7 +3,7 @@ import type { TargetProfile } from "../target/profile.js";
 import { selectC64KernalFacts } from "../profile/c64-kernal.js";
 import { repairMachineBranches } from "../machine/block-layout.js";
 import { validateMachineProgram } from "../machine/bind.js";
-import { machineInstruction } from "../machine/lower-control.js";
+import { machineInstruction, machineSuccessors } from "../machine/lower-control.js";
 import type { MachineBlock, MachineFunction, MachineProgram } from "../machine/machine-types.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic } from "../project/types.js";
@@ -242,11 +242,46 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   const startupBlocks = input.program.startup.blocks;
   const entryIndex = startupBlocks.findIndex(({ label }) => label === "startup.entry");
   const restoreIndex = startupBlocks.findIndex(({ label }) => label === "startup.restore");
-  if (entryIndex !== 0 || restoreIndex <= 0 || restoreIndex >= startupBlocks.length) {
+  const restoreOmitted =
+    input.profile.machine.ownership === "cooperative" &&
+    input.program.c64Startup?.restoreRequired === false;
+  if (
+    entryIndex !== 0 ||
+    (restoreOmitted
+      ? restoreIndex !== -1
+      : restoreIndex <= 0 || restoreIndex >= startupBlocks.length)
+  ) {
     return Object.freeze({ kind: "error", reason: "invalid-code-size", objectId: null });
   }
-  const entryBlocks = startupBlocks.slice(0, restoreIndex);
-  const restoreBlocks = startupBlocks.slice(restoreIndex);
+  const partition = restoreOmitted ? startupBlocks.length : restoreIndex;
+  const entryBlocks = startupBlocks.slice(0, partition);
+  const restoreBlocks = startupBlocks.slice(partition);
+  if (restoreOmitted) {
+    // Rebinding reconstructs startup, but it must not hide stale references in a
+    // selected function. Even an unreachable address operand would dangle later.
+    const namesRestore = (label: string): boolean =>
+      label === "startup.restore" || label.startsWith("startup.restore.");
+    if (
+      [input.program.startup, ...input.program.functions].some(
+        (fn) =>
+          namesRestore(fn.id) ||
+          fn.blocks.some(
+            (block) =>
+              namesRestore(block.label) ||
+              machineSuccessors(block).some(namesRestore) ||
+              block.instructions.some(
+                (instruction) =>
+                  instruction.operand?.kind === "label" && namesRestore(instruction.operand.label),
+              ),
+          ),
+      )
+    )
+      return Object.freeze({
+        kind: "error",
+        reason: "invalid-code-size",
+        objectId: "startup.restore",
+      });
+  }
   const startupLabels = new Set(startupBlocks.map(({ label }) => label));
   if (startupLabels.size !== startupBlocks.length) {
     return Object.freeze({ kind: "error", reason: "invalid-code-size", objectId: null });
@@ -258,6 +293,13 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   }
   const entryBaseBytes = entrySizes.reduce<number>((sum, bytes) => sum + bytes!, 0);
   const restoreBytes = restoreSizes.reduce<number>((sum, bytes) => sum + bytes!, 0);
+  if (!restoreOmitted && restoreBytes <= 0) {
+    return Object.freeze({
+      kind: "error",
+      reason: "invalid-code-size",
+      objectId: "startup.restore",
+    });
+  }
   const mainTargets = entryBlocks.flatMap(({ terminator }) =>
     terminator.kind === "fallthrough" && !startupLabels.has(terminator.target)
       ? [terminator.target]
@@ -451,22 +493,26 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     );
     codePieces.push({ start: origin, end: origin + 2 });
   }
-  const restoreOrigin = freeSourceStart(
-    input.profile.packager.startupAddress + entryBytes,
-    restoreBytes,
-    1,
-    undefined,
-    [...codePieces, ...fixedReservations],
-    input.profile,
-  );
-  if (restoreOrigin === null) {
-    return Object.freeze({ kind: "error", reason: "code-conflict", objectId: "startup.restore" });
-  }
-  codePieces.push({ start: restoreOrigin, end: restoreOrigin + restoreBytes - 1 });
   const repairedFunctions = orderedFunctions.map((fn) => repairedById.get(fn.id)!);
-  const placedRestore = placeStartupPath(restoreBlocks, restoreOrigin);
-  if (placedRestore === null) {
-    return Object.freeze({ kind: "error", reason: "branch-layout", objectId: "startup.restore" });
+  let placedRestore: readonly MachineBlock[] = [];
+  if (!restoreOmitted) {
+    const restoreOrigin = freeSourceStart(
+      input.profile.packager.startupAddress + entryBytes,
+      restoreBytes,
+      1,
+      undefined,
+      [...codePieces, ...fixedReservations],
+      input.profile,
+    );
+    if (restoreOrigin === null) {
+      return Object.freeze({ kind: "error", reason: "code-conflict", objectId: "startup.restore" });
+    }
+    codePieces.push({ start: restoreOrigin, end: restoreOrigin + restoreBytes - 1 });
+    const placed = placeStartupPath(restoreBlocks, restoreOrigin);
+    if (placed === null) {
+      return Object.freeze({ kind: "error", reason: "branch-layout", objectId: "startup.restore" });
+    }
+    placedRestore = placed;
   }
   const placedStartup = Object.freeze({
     ...input.program.startup,

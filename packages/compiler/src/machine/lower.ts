@@ -65,7 +65,7 @@ import { bindFixedLoopContext } from "./fixed-loop-selection.js";
 import { validByteComplementFacts } from "./byte-value-availability.js";
 import { lowerData, lowerConstantInitializer } from "./lower-data.js";
 import { createLoweringProducer } from "./lowering-provenance.js";
-import { hasDisplayIndependentStartup } from "./lower-startup.js";
+import { hasDisplayIndependentStartup, omitUnreachableRestore } from "./lower-startup.js";
 import { createC64NmiEntries } from "./nmi-entry.js";
 import type { PendingC64NmiEntry } from "./nmi-entry.js";
 export * from "./lower-state.js";
@@ -568,12 +568,15 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
       throw loweringFailure("Main function is absent", input.program.semantic.main.span);
     }
     const mainLabel = bindingLabel("fn", mainFunction.id);
+    const withoutRestore = omitUnreachableRestore(input, mainFunction, selectedFunctions);
+    const startupFunctions = withoutRestore ?? selectedFunctions;
     const c64Startup = Object.freeze({
       initializerLabels: Object.freeze([]),
       initializers: Object.freeze(startupInitializers),
       mainLabel,
       displayIndependent: compactStartup,
       startupPolicy,
+      ...(withoutRestore === null ? {} : { restoreRequired: false }),
     });
     const startup = createC64Startup({ ...c64Startup, profile: input.profile });
     if (startup.kind === "error") {
@@ -583,7 +586,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
 
     // Optimized candidates run the explicit rule list after function selection and
     // before storage projection. Direct none lowering passes no facts and stays inert.
-    let optimizedFunctions: readonly MachineFunction[] = [...selectedFunctions, ...startupEntries];
+    let optimizedFunctions: readonly MachineFunction[] = [...startupFunctions, ...startupEntries];
     if (input.optimizationFacts !== undefined) {
       const draft: MachineProgram = Object.freeze({
         ...(input.sourceFacts === undefined
@@ -596,7 +599,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
                 pendingObservers: true as const,
               }),
             }),
-        functions: Object.freeze(selectedFunctions),
+        functions: Object.freeze(startupFunctions),
         data: Object.freeze([]),
         startup: startup.startup,
         c64Startup,

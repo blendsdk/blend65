@@ -1,5 +1,5 @@
 import { bindingIdentityKey, semanticTypeKey } from "../frontend/semantic-types.js";
-import type { SemanticOperation } from "../semantic/operations.js";
+import type { SemanticFunction, SemanticOperation } from "../semantic/operations.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
 import { reachableBlocks } from "../semantic/value-lifetimes.js";
 import { operationValueUses } from "../semantic/lower-control.js";
@@ -12,6 +12,87 @@ import {
   placeUses,
   valueDefinitions,
 } from "../semantic/aggregate-place-proof.js";
+import { bindingLabel, machineSuccessors } from "./lower-control.js";
+import type { MachineFunction, MachineLoweringInput } from "./machine-types.js";
+import { proveSpritePublications } from "./sprite-publication-proof.js";
+
+/** Whether a symbolic edge or address names any part of cooperative restoration. */
+function namesRestore(label: string): boolean {
+  return label === "startup.restore" || label.startsWith("startup.restore.");
+}
+
+/**
+ * Remove only dead main-return edges after ordinary machine selection has completed.
+ *
+ * Semantic nonreturnability is not enough: the selected machine graph must independently
+ * exclude every restore entry. The bounded source certificate also excludes code/data
+ * observers, calls and firmware-routing changes. Unsupported owners retain normal restoration.
+ * Source blocks are never pruned, so earlier identity-bound value selection remains valid.
+ * @param input Original closed source and selected profile.
+ * @param source Actual source main, not a transformed body.
+ * @param functions Selected functions before startup construction.
+ * @returns Functions with dead restore edges removed, or null when restoration must remain.
+ */
+export function omitUnreachableRestore(
+  input: MachineLoweringInput,
+  source: SemanticFunction,
+  functions: readonly MachineFunction[],
+): readonly MachineFunction[] | null {
+  const ownership = input.program.interruptOwnership;
+  if (
+    input.metadataOnly === true ||
+    ownership === undefined ||
+    ownership.diagnostics.length !== 0 ||
+    ownership.returningBodies?.get(bindingIdentityKey(source.id)) !== false ||
+    functions.length !== 1 ||
+    proveSpritePublications(input, source) === null
+  )
+    return null;
+  const main = functions[0]!;
+  const entry = main.blocks[0];
+  if (main.id !== bindingLabel("fn", source.id) || entry === undefined) return null;
+  const blocks = new Map(main.blocks.map((block) => [block.label, block]));
+  if (blocks.size !== main.blocks.length) return null;
+  // An address or embedded call cannot be erased as if it were a dead return edge.
+  if (
+    main.blocks.some((block) =>
+      block.instructions.some(
+        (instruction) =>
+          instruction.opcode === "jsr" ||
+          (instruction.operand?.kind === "label" && namesRestore(instruction.operand.label)),
+      ),
+    )
+  )
+    return null;
+  const reached = new Set<string>();
+  const pending = [entry.label];
+  for (let cursor = 0; cursor < pending.length; cursor += 1) {
+    const label = pending[cursor]!;
+    if (reached.has(label)) continue;
+    const block = blocks.get(label);
+    if (block === undefined || block.terminator.kind === "return") return null;
+    reached.add(label);
+    for (const target of machineSuccessors(block)) {
+      if (namesRestore(target)) return null;
+      pending.push(target);
+    }
+  }
+  return Object.freeze([
+    Object.freeze({
+      ...main,
+      blocks: Object.freeze(
+        main.blocks.map((block) =>
+          !reached.has(block.label) && machineSuccessors(block).some(namesRestore)
+            ? Object.freeze({
+                ...block,
+                terminator: Object.freeze({ kind: "unreachable" as const }),
+              })
+            : block,
+        ),
+      ),
+    }),
+  ]);
+}
 
 /**
  * Make one conservative startup choice using facts already closed for lowering.

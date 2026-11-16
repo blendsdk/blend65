@@ -2,8 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: #168, continuation after the bounded publication/poll checkpoint.
-> **Progress**: 0/7 tasks (0%)
-> **Status**: Preflight passed; predecessor green checkpoint and local commit required.
+> **Progress**: 7/7 tasks (100%)
+> **Status**: Complete — bounded teardown checkpoint green; #168 continues
+> **Predecessor**: `46292b77` — actual full checkpoint exit zero; local commit, no push.
 > **Reasoning**: high — startup/control-flow ownership, source observations and final artifact closure.
 
 ## Objective and scope
@@ -23,7 +24,8 @@ expert, expressiveness-ledger, hidden configuration or other issue owner changes
 
 **Hard dependency:** finish and locally commit the publication-proof checkpoint first. Do not add
 new RED test files or change implementation while that checkpoint's test discovery is running.
-No push. Record the actual predecessor commit before this plan becomes executable.
+No push. The recorded predecessor now satisfies this gate; no teardown tests or implementation
+were present in that checkpoint.
 
 ## Grounded current state
 
@@ -147,15 +149,60 @@ VICE-verified / hardware-unverified only after actual execution.
 
 ## Tasks
 
-- [ ] T-168-D1 After the predecessor is green and committed and this plan passes preflight, independently author/freeze new behavior and byte/cost specifications; record meaningful RED before code.
-- [ ] T-168-D2 Carry the exact nonreturnability/observer/selected-machine eligibility fact through the existing lowering handoff; verify producer/fallback interface controls without claiming final layout GREEN.
-- [ ] T-168-D3 Teach the existing constructor to omit only the restore block; verify unchanged entry, snapshots and default/returning/takeover controls.
-- [ ] T-168-D4 Complete rebinding/layout/packaging and dead-reference handling; verify all new public specifications, unchanged boing startup/trace/frame/poll oracles and freshly measured downward code pins.
-- [ ] T-168-D5 Add implementation controls for malformed/stale facts, side-entry/observer barriers and closure/scale; run affected regression tiers.
-- [ ] T-168-D6 Obtain the six applicable independent review lenses, resolve and re-verify findings without broadening this unit.
-- [ ] T-168-D7 Run the impact-based host and complete serialized checkpoint, record the measured residual and deferral-expiry assessment, sync roadmaps and make a green local checkpoint via the git-commit skill; never push or close #168 without its complete boundary.
+- [x] T-168.9 D1 — After the predecessor is green and committed and this plan passes preflight, independently author/freeze new behavior and byte/cost specifications; record meaningful RED before code. Four independently authored files frozen at 44 cases. Meaningful RED: compiler 10 failures/26 passing controls, public 4 failures/4 passing returning controls. Before freeze, the author added the legal IRQ adapter, corrected two CIA controls to configuration writes and split producer versus constructor assertions for staged verification, preserving every assertion. No forbidden input exposure or teardown implementation at freeze; see [verification](08-verification.md).
+- [x] T-168.10 D2 — Carry the exact nonreturnability/observer/selected-machine eligibility fact through the existing lowering handoff; verify producer/fallback interface controls without claiming final layout GREEN. Producer-only selection and conservative controls pass 13/13; the constructor-integration case is deliberately excluded until D3. Compiler reference build passes. Existing source identities survive selection; only dead machine return references change. No final layout GREEN claimed.
+- [x] T-168.11 D3 — Teach the existing constructor to omit only the restore block; verify unchanged entry, snapshots and default/returning/takeover controls. New producer/constructor plus existing startup/cooperative/takeover controls pass 79/79 and compiler build passes. Existing constructor partition only; no new family or snapshot change.
+- [x] T-168.12 D4 — Complete rebinding/layout/packaging and dead-reference handling; verify all new public specifications, unchanged boing startup/trace/frame/poll oracles and freshly measured downward code pins. All 44 new specifications pass after exact AR-P1/P2 sampler corrections; 41 unchanged poll controls pass. Serialized startup/100-checkpoint source trace/original frame VICE 5/5 pass. Fresh compiler cost pin 1,593→1,309 (281 restore + 3 dead jump), payload 7,167/ZP 0; equivalent-twin gap 867. Entry 328 and snapshot 49 unchanged. No complete new checkpoint or whole-program parity claim.
+- [x] T-168.13 D5 — Add implementation controls for malformed/stale facts, side-entry/observer barriers and closure/scale; run affected regression tiers. Fifteen new implementation cases cover cold/live restore edges, address materialization, calls, duplicate/missing/foreign graph identities, metadata-only fallback, 6,001-block iterative traversal and all four existing cooperative constructor policies. Six directed compiler files pass 98/98; existing startup/profile and layout controls also pass. Public output/cost 9/9 and directed VICE 5/5 pass.
+- [x] T-168.14 D6 — Obtain the six applicable independent review lenses, resolve and re-verify findings without broadening this unit. Correctness, semantics/DX, SFA/ABI, platform, emitted-code and host-performance reviews are clear. RV-001's exact approved sampler fixes are independently fix-reviewed. No transformation finding or new scope survives; see [findings](05-findings.md). Primary-supplied execution/byte/hash evidence is distinguished from independent static review; runtime remains bounded PAL/6581 and hardware-unverified.
+- [x] T-168.15 D7 — Run the impact-based host and complete serialized checkpoint, record the measured residual and deferral-expiry assessment, sync roadmaps and make a green local checkpoint via the git-commit skill; never push or close #168 without its complete boundary. Install/build/typecheck and changed+host pass. Actual `yarn test:full` exits zero in 5,006.38 s: compiler 245 files/4,046 passed + 2 skipped; host 247/5,161; serialized VICE 130 passed files/2,379 passed tests + existing 1-file/4-test skips. It includes complete workspace and host checks; no duplicate outer `yarn test`. Deferral assessment and measured residual are recorded; coherent local checkpoint commit follows immediately. No push or issue closure.
+
+## Runtime ambiguity register
+
+### AR-P1 — frozen public test sampler key — user-owned oracle exception
+
+The primary supplied the independent author an incorrect evidence-field name: BASIC-stub bytes
+are accounted under component `startup`, not `stub`. The frozen new public test at
+`test/rd05/nonreturning-startup.spec.test.ts:86` therefore fails before its unchanged 12-byte
+expectation can inspect the actual record. The admitted component set in
+`packages/compiler/src/artifacts/costs-evidence-validator.ts:51–64` includes `startup`, not `stub`.
+Fresh artifact `c96c66d5-143b-4047-aa2b-65050fd03f6b` records
+`{ id: "program:basic.stub", component: "startup", bytes: 12 }`.
+
+**Recommended correction:** change only that new frozen test's sampler argument `"stub"` to
+`"startup"`, preserving the 12-byte expectation and every source/behavior/cost assertion. Do not
+change the evidence schema or emit a fake alias to satisfy the sampler. This is a primary handoff
+error, not authority to edit a frozen oracle silently. Record the exact user decision before any
+test edit, then re-freeze and rerun all four specification files. No test has been changed after
+freeze; no new behavior failure, green public run, runtime result or new-unit commit is claimed.
+
+**User decision:** user selected **Approve correction (Recommended)** in this conversation for
+the exact one-argument change in the named new specification file. Applied only `"stub"` →
+`"startup"`; the 12-byte expectation and every other assertion remain unchanged. Re-freeze and
+complete rerun follow; no evidence-schema or compiler behavior change is authorized by this ruling.
+
+### AR-P2 — half-open public interval adapter — user-owned oracle exception
+
+After AR-P1's authorized key fix, four public positives reach the snapshot assertion and report
+50 versus 49. The implementation's state is still 49 bytes. Public memory intervals use exclusive
+ends (`memory-evidence-validator.ts:160–165`, `size === end - start`), unlike inclusive internal
+layout intervals. The independent correctness reviewer reports RV-001 MAJOR: the new adapter both
+adds one to snapshot size and includes one byte beyond each code interval in its poll sampler.
+
+**Recommended exact correction in `test/rd05/nonreturning-startup.spec.test.ts` only:**
+line 70 `byteCount(interval.end) - loadAddress + 3` → `... + 2`; line 95
+`byteCount(state.end) - byteCount(state.start) + 1` → `byteCount(state.end) - byteCount(state.start)`.
+Keep the 49-byte expectation, seven-byte poll, code-only filtering and every other assertion.
+The independent challenger converges, confidence high. Reading the reported `size` field instead
+is viable but would drop the existing independent endpoint-derived check; changing 49 to 50 or
+altering the evidence schema is not a valid remedy. No such edit is authorized by AR-P1.
+
+**User decision:** user selected **Approve two fixes (Recommended)** in this conversation for
+these exact two expressions in the named new test. Applied only `+3` → `+2` at the code-slice
+boundary and removed the snapshot `+1`; 49 and every other expectation remain unchanged.
 
 **Verify:** directed new constructor/producer/layout tests, existing startup and boing suites;
-`yarn test:changed --host`, then `yarn test`; phase checkpoint after frozen install/build/typecheck
-with `yarn test:full`. VICE remains serialized. Plan-only work validates targeted formatting,
+`yarn test:changed --host`, then the complete workspace and host checks included in `yarn test:full`
+after frozen install/build/typecheck. This subsumes a duplicate outer `yarn test`; it does not omit
+any host or emulator test. VICE remains serialized. Plan-only work validates targeted formatting,
 file links and source keys, not a premature compiler capability claim.

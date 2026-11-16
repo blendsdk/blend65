@@ -24,6 +24,8 @@ export type { C64StartupPolicy } from "./startup-status.js";
 
 /** Inputs needed to construct the selected cooperative C64 startup. */
 export interface C64StartupInput {
+  /** False only when normal restoration is proved unreachable and unobserved; omitted retains it. */
+  readonly restoreRequired?: boolean;
   /** Closed-program proof that no source owner depends on the display defaults. */
   readonly displayIndependent?: boolean;
   /** Selected construction; omitted keeps the established proof-derived compact default. */
@@ -272,6 +274,11 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
     });
   }
   const { compact, looped } = policy;
+  // Entry captures remain observable work even when the return path cannot execute.
+  // Only the emitted restore partition is conditional; its snapshot layout is unchanged.
+  const keepStartupBlock = (block: { readonly label: string }): boolean =>
+    input.restoreRequired !== false ||
+    (block.label !== "startup.restore" && !block.label.startsWith("startup.restore."));
   const status = createStartupStatus(cpu, policy.policy, input.preserveY === true);
   const { state } = status;
   const borrowed = borrowedBasicBytes(input);
@@ -532,143 +539,153 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       startup: Object.freeze({
         id: "startup",
         origin: 0x080d,
-        blocks: Object.freeze([
-          Object.freeze({
-            label: "startup.entry",
-            instructions: Object.freeze(entry),
-            terminator: Object.freeze({ kind: "fallthrough", target: "startup.capture" }),
-          }),
-          Object.freeze({
-            label: "startup.capture",
-            instructions: Object.freeze([
-              machineInstruction(
-                cpu,
-                "lda",
-                "absolute-x",
-                Object.freeze({ kind: "absolute", value: first }),
-                [
-                  Object.freeze({
-                    kind: "read" as const,
-                    address: Object.freeze({ kind: "absolute" as const, value: first }),
-                    width: 1,
-                    volatile: false,
-                    order: 0,
-                  }),
-                ],
-              ),
-              machineInstruction(
-                cpu,
-                "sta",
-                "absolute-x",
-                Object.freeze({ kind: "label", label: C64_STARTUP_STATE_ID, offset: state.bytes }),
-                [
-                  Object.freeze({
-                    kind: "write" as const,
-                    address: Object.freeze({
-                      kind: "symbolic" as const,
-                      label: C64_STARTUP_STATE_ID,
-                      offset: state.bytes,
+        blocks: Object.freeze(
+          [
+            Object.freeze({
+              label: "startup.entry",
+              instructions: Object.freeze(entry),
+              terminator: Object.freeze({ kind: "fallthrough", target: "startup.capture" }),
+            }),
+            Object.freeze({
+              label: "startup.capture",
+              instructions: Object.freeze([
+                machineInstruction(
+                  cpu,
+                  "lda",
+                  "absolute-x",
+                  Object.freeze({ kind: "absolute", value: first }),
+                  [
+                    Object.freeze({
+                      kind: "read" as const,
+                      address: Object.freeze({ kind: "absolute" as const, value: first }),
+                      width: 1,
+                      volatile: false,
+                      order: 0,
                     }),
-                    width: 1,
-                    volatile: false,
-                    order: 0,
-                  }),
-                ],
-              ),
-              machineInstruction(cpu, "dex", "implied", null),
-            ]),
-            terminator: Object.freeze({
-              kind: "branch" as const,
-              opcode: "bpl" as const,
-              target: "startup.capture",
-              fallthrough: captureDone,
-              uses: machineState([], ["n"]),
-              cost: machineCost(cpu, "bpl", "relative"),
-            }),
-          }),
-          ...(initializerInstructions.length > 0
-            ? [
-                Object.freeze({
-                  label: "startup.entry.initializers",
-                  instructions: Object.freeze(initializerInstructions),
-                  terminator: Object.freeze({
-                    kind: "fallthrough" as const,
-                    target: "startup.entry.main",
-                  }),
-                }),
-              ]
-            : []),
-          Object.freeze({
-            label: "startup.entry.main",
-            instructions: Object.freeze(mainEntry),
-            terminator: Object.freeze({ kind: "fallthrough", target: input.mainLabel }),
-          }),
-          Object.freeze({
-            label: "startup.restore",
-            instructions: Object.freeze(restorePrefix),
-            terminator: Object.freeze({
-              kind: "fallthrough",
-              target: "startup.restore.borrow",
-            }),
-          }),
-          Object.freeze({
-            label: "startup.restore.borrow",
-            instructions: Object.freeze([
-              machineInstruction(
-                cpu,
-                "lda",
-                "absolute-x",
-                Object.freeze({ kind: "label", label: C64_STARTUP_STATE_ID, offset: state.bytes }),
-                [
+                  ],
+                ),
+                machineInstruction(
+                  cpu,
+                  "sta",
+                  "absolute-x",
                   Object.freeze({
-                    kind: "read" as const,
-                    address: Object.freeze({
-                      kind: "symbolic" as const,
-                      label: C64_STARTUP_STATE_ID,
-                      offset: state.bytes,
+                    kind: "label",
+                    label: C64_STARTUP_STATE_ID,
+                    offset: state.bytes,
+                  }),
+                  [
+                    Object.freeze({
+                      kind: "write" as const,
+                      address: Object.freeze({
+                        kind: "symbolic" as const,
+                        label: C64_STARTUP_STATE_ID,
+                        offset: state.bytes,
+                      }),
+                      width: 1,
+                      volatile: false,
+                      order: 0,
                     }),
-                    width: 1,
-                    volatile: false,
-                    order: 0,
-                  }),
-                ],
-              ),
-              machineInstruction(
-                cpu,
-                "sta",
-                "absolute-x",
-                Object.freeze({ kind: "absolute", value: first }),
-                [
+                  ],
+                ),
+                machineInstruction(cpu, "dex", "implied", null),
+              ]),
+              terminator: Object.freeze({
+                kind: "branch" as const,
+                opcode: "bpl" as const,
+                target: "startup.capture",
+                fallthrough: captureDone,
+                uses: machineState([], ["n"]),
+                cost: machineCost(cpu, "bpl", "relative"),
+              }),
+            }),
+            ...(initializerInstructions.length > 0
+              ? [
                   Object.freeze({
-                    kind: "write" as const,
-                    address: Object.freeze({ kind: "absolute" as const, value: first }),
-                    width: 1,
-                    volatile: false,
-                    order: 0,
+                    label: "startup.entry.initializers",
+                    instructions: Object.freeze(initializerInstructions),
+                    terminator: Object.freeze({
+                      kind: "fallthrough" as const,
+                      target: "startup.entry.main",
+                    }),
                   }),
-                ],
-              ),
-              machineInstruction(cpu, "dex", "implied", null),
-            ]),
-            terminator: Object.freeze({
-              kind: "branch" as const,
-              opcode: "bpl" as const,
-              target: "startup.restore.borrow",
-              fallthrough: "startup.restore.tail",
-              uses: machineState([], ["n"]),
-              cost: machineCost(cpu, "bpl", "relative"),
+                ]
+              : []),
+            Object.freeze({
+              label: "startup.entry.main",
+              instructions: Object.freeze(mainEntry),
+              terminator: Object.freeze({ kind: "fallthrough", target: input.mainLabel }),
             }),
-          }),
-          Object.freeze({
-            label: "startup.restore.tail",
-            instructions: Object.freeze(restoreSuffix),
-            terminator: Object.freeze({
-              kind: "return" as const,
-              opcode: "rts" as const,
-              cost: machineCost(cpu, "rts", "implied"),
+            Object.freeze({
+              label: "startup.restore",
+              instructions: Object.freeze(restorePrefix),
+              terminator: Object.freeze({
+                kind: "fallthrough",
+                target: "startup.restore.borrow",
+              }),
             }),
-          }),
-        ]),
+            Object.freeze({
+              label: "startup.restore.borrow",
+              instructions: Object.freeze([
+                machineInstruction(
+                  cpu,
+                  "lda",
+                  "absolute-x",
+                  Object.freeze({
+                    kind: "label",
+                    label: C64_STARTUP_STATE_ID,
+                    offset: state.bytes,
+                  }),
+                  [
+                    Object.freeze({
+                      kind: "read" as const,
+                      address: Object.freeze({
+                        kind: "symbolic" as const,
+                        label: C64_STARTUP_STATE_ID,
+                        offset: state.bytes,
+                      }),
+                      width: 1,
+                      volatile: false,
+                      order: 0,
+                    }),
+                  ],
+                ),
+                machineInstruction(
+                  cpu,
+                  "sta",
+                  "absolute-x",
+                  Object.freeze({ kind: "absolute", value: first }),
+                  [
+                    Object.freeze({
+                      kind: "write" as const,
+                      address: Object.freeze({ kind: "absolute" as const, value: first }),
+                      width: 1,
+                      volatile: false,
+                      order: 0,
+                    }),
+                  ],
+                ),
+                machineInstruction(cpu, "dex", "implied", null),
+              ]),
+              terminator: Object.freeze({
+                kind: "branch" as const,
+                opcode: "bpl" as const,
+                target: "startup.restore.borrow",
+                fallthrough: "startup.restore.tail",
+                uses: machineState([], ["n"]),
+                cost: machineCost(cpu, "bpl", "relative"),
+              }),
+            }),
+            Object.freeze({
+              label: "startup.restore.tail",
+              instructions: Object.freeze(restoreSuffix),
+              terminator: Object.freeze({
+                kind: "return" as const,
+                opcode: "rts" as const,
+                cost: machineCost(cpu, "rts", "implied"),
+              }),
+            }),
+          ].filter(keepStartupBlock),
+        ),
       }),
     });
   }
@@ -680,22 +697,24 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
     startup: Object.freeze({
       id: "startup",
       origin: 0x080d,
-      blocks: Object.freeze([
-        Object.freeze({
-          label: "startup.entry",
-          instructions: Object.freeze(entry),
-          terminator: Object.freeze({ kind: "fallthrough", target: input.mainLabel }),
-        }),
-        Object.freeze({
-          label: "startup.restore",
-          instructions: Object.freeze(restore),
-          terminator: Object.freeze({
-            kind: "return",
-            opcode: "rts",
-            cost: machineCost(cpu, "rts", "implied"),
+      blocks: Object.freeze(
+        [
+          Object.freeze({
+            label: "startup.entry",
+            instructions: Object.freeze(entry),
+            terminator: Object.freeze({ kind: "fallthrough", target: input.mainLabel }),
           }),
-        }),
-      ]),
+          Object.freeze({
+            label: "startup.restore",
+            instructions: Object.freeze(restore),
+            terminator: Object.freeze({
+              kind: "return",
+              opcode: "rts",
+              cost: machineCost(cpu, "rts", "implied"),
+            }),
+          }),
+        ].filter(keepStartupBlock),
+      ),
     }),
   });
 }

@@ -116,3 +116,17 @@ and local commit before D1 creates any RED file. Record that predecessor commit 
 resulting metadata-only plan change before execution. No new tests or implementation exist yet.
 Future byte savings, whole-program parity, steady-state timing and physical hardware remain
 unverified. External firmware stack/reentrancy/deadline limits are not qualified by this pass.
+
+## Execution-entry metadata check
+
+The predecessor gate is satisfied by local commit `46292b77`, after actual `yarn test:full`
+exit zero (5,101.66 s; VICE 130 files/2,379 passed, existing skips). The only post-audit target
+changes at entry record that commit, mark execution started and clarify that the dependency is
+satisfied. The primary checked these metadata-only changes; signatures, scope, cases and task
+ordering are unchanged. The audited hash above remains the design baseline, not a promise that
+later crash-safe checklist updates preserve its bytes.
+
+The task helper accepts `T-N.N`, not the original `T-168-DN` labels. Checklist identifiers were
+normalized to `T-168.9`–`T-168.15`, retaining D1–D7 in their descriptions and preserving all scope,
+ordering and verification obligations. This is progress metadata only; no parser or extra index
+was introduced to work around the helper's mini-plan limitations.
