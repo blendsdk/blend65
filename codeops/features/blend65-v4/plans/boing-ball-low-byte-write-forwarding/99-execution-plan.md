@@ -2,8 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: [#168](https://github.com/blendsdk/blend65/issues/168), not whole-program closeout
-> **Progress**: 0/6 tasks (0%)
-> **Status**: Executing — independent preflight passed; additive specification authoring
+> **Progress**: 6/6 tasks (100%)
+> **Status**: Done — six reviews and actual complete checkpoint GREEN; bounded local checkpoint
+> **Qualified checkpoint**: `sh_1eb38546b001YqIr0lDUtvYty1` — actual `yarn test:full` exits zero; all 41 guarded inputs unchanged
 > **Baseline**: `ee9bb67d`; clean local green checkpoint, never pushed
 > **Phase baseline tree**: `d93fc479e9fc34899fe0d4a01a9fa0d3092be81e` — complete clean worktree at task entry, before all plan/specification work
 > **Scope**: strict
@@ -118,7 +119,7 @@ The implementation-blind author owns only these new files:
 
 | File | Required expectations |
 | --- | --- |
-| `packages/compiler/src/machine/low-byte-write-forwarding.spec.test.ts` | Exact new selector arm, complete uses, identity and conservative observers; preserve old addition selection. Split a second concern-specific `.spec.test.ts` only if needed to stay near 300 lines. |
+| `packages/compiler/src/machine/low-byte-write-forwarding.spec.test.ts` and `low-byte-write-forwarding-barriers.spec.test.ts` | Exact new selector arm and producer/address shapes; separate complete-use/identity/observer barriers. Preserve all independently authored 49 cases and old addition selection. |
 | `test/rd05/low-byte-write-forwarding.spec.test.ts` | Public canonical-none assembly and actual CPU bytes on all four cooperative profiles; complete boing cost/resource bounds and continued fallback source acceptance. |
 | `test/rd05/low-byte-write-forwarding-vice.spec.test.ts` | Independent low-byte values, A/flags, exact 257 ordered device writes and unchanged stack through existing serialized monitor. |
 
@@ -126,8 +127,13 @@ Supply only governing contract, allowed semantic/type declarations and fixture s
 Forbidden to author: all machine/semantic/storage implementation bodies, generated output,
 implementation tests, existing qualification cases/graders/maps and prior review answers.
 Allowed imports do not authorize reading tested implementations. The execution owner supplies
-mixed-file declaration excerpts and runs RED/adapter validation. No new shared fixture is needed;
-the selector spec may have its own small source-to-closure adapter.
+mixed-file declaration excerpts and runs RED/adapter validation. Formatting expanded the original
+selector specification to 573 lines. Extract only its already-authored source-to-closure and
+mutation adapter, unchanged, into component-local `low-byte-write-forwarding-test-support.ts`,
+shared by the two immediately owned selector specifications. This test-only fixture replaces
+duplication; it is not shared test infrastructure, a new harness, runner or analyzer. The native
+spec author writes only specification files; the execution owner mechanically extracts the adapter
+before freeze, with independent structural fit recheck and all 49 expectations unchanged.
 
 | Input/control | Independent expectation |
 | --- | --- |
@@ -176,12 +182,12 @@ Source keys: `BLEND65-SPEC-4-038b70e9`, `MOS-PGM-1976`, `CBM-C64-PRG-1982`.
 
 ## Tasks
 
-- [ ] T-168.29 Preflight this bounded plan; independently author/validate additive specifications, record meaningful RED and freeze before implementation.
-- [ ] T-168.30 Extend only the existing producer predicate and pass selector/public assembly specifications; preserve all old contracts and frozen hashes.
-- [ ] T-168.31 Run independent runtime and unchanged boing behavior/startup/trace/frame/poll checks; measure complete current costs and update only verified downward implementation pins.
-- [ ] T-168.32 Add implementation controls for complete uses, stale identity, no post-closure capture demand and bounded shared scans/query count; run directed regression tiers.
-- [ ] T-168.33 Obtain six independent execution reviews; resolve and reverify findings within exact authority. Stop for any reserved scope or oracle decision.
-- [ ] T-168.34 Run frozen install/build/typecheck, changed+host and actual complete workspace/host/serialized VICE checkpoint; record scoped residual/deferral assessment, sync roadmaps and commit locally through the git-commit skill. Never push or close #168 from this bounded unit.
+- [x] T-168.29 Preflight this bounded plan; independently author/validate additive specifications, record meaningful RED and freeze before implementation. Completed 2026-11-17 21:05: six preflight clusters clear; independent author preserves 49 selector cases across 29 producer/address + 20 barrier cases, 16 public and four runtime cases. Actual RED: two missing-selection positives and eight anonymous-pair output failures; 55 negative/acceptance controls pass. Corrected prefreeze async/monitor signature adapters, no changed semantic expectation; all four 257-write runtime cases pass. Local fixture extraction independently fit-rechecked. Five spec/fixture hashes frozen in verification before production code. Compiler/helper and directed spec static checks pass with the separately reproduced pre-existing optional-root typing defect disclosed.
+- [x] T-168.30 Extend only the existing producer predicate and pass selector/public assembly specifications; preserve all old contracts and frozen hashes. Completed 2026-11-17 21:07: one producer arm in the existing selector; shared counts/reachability/certificate and old addition contract unchanged. New and old selector specifications107/107, public output38/38 and compiler reference build pass. All five new frozen hashes match; no existing-oracle edits. Documentation self-check clear.
+- [x] T-168.31 Run independent runtime and unchanged boing behavior/startup/trace/frame/poll checks; measure complete current costs and update only verified downward implementation pins. Completed 2026-11-17 21:11: fresh canonical code1,193/SFA37/resident7,253; exactly eight capture homes gone, payload7,167/entry326/snapshot49/ZP0/scratch0 unchanged. Actual selected six-byte cores and identical326-byte startup verified. Downward implementation pin passes in80/80 host output/cost regressions. Affected serialized VICE13/13 pass across six files, including four-profile257-write behavior and unchanged boing trace/startup/frame comparison. Gap751; whole-frame timing still Unknown.
+- [x] T-168.32 Add implementation controls for complete uses, stale identity, no post-closure capture demand and bounded shared scans/query count; run directed regression tiers. Completed 2026-11-17 21:11: all eight implementation controls pass, covering nonmutation, malformed graphs, conflicting definitions, iterative6,000-block chain,256 extractions sharing one real certificate query and absent capture demands in closed inventory/required storage. Ten directed compiler files178/178 and five host files80/80 pass. Frozen hashes and documentation self-check remain clear.
+- [x] T-168.33 Obtain six independent execution reviews; resolve and reverify findings within exact authority. Completed 2026-11-17: correctness, semantics/DX, SFA/ABI, machine-code, target-platform and host-performance all return no findings. Exact code/storage/flag/MMIO and resource boundaries reviewed; five-field current release metadata and bounded authority excerpts supplied where requested. Host reviewer received exact patch/new-file delta after initial packet insufficiency; no verdict inferred before completed review. No fix, wider support or old-oracle exception needed. Directed GREEN unchanged; final host/complete checkpoint remains due.
+- [x] T-168.34 Run frozen install/build/typecheck, changed+host and actual complete workspace/host/serialized VICE checkpoint; record scoped residual/deferral assessment, sync roadmaps and commit locally through the git-commit skill. Completed 2026-11-17 22:50: changed+host and fresh host checkpoint passed; final formatting/frozen install/build/typecheck pass. Actual complete job sh_1eb38546b001YqIr0lDUtvYty1 exits0 in4,533.332s: cached compiler253files/4,223passed+2existing skips and CLI70/server21/editor18 replay the immediately preceding fresh host checkpoint; fresh complete host249files/5,199tests and serialized VICE133files/2,387tests pass, with only existing1file/4test VICE skips. All41 inputs and five frozen oracle/fixture hashes unchanged. Safe-return passes with original waits; old timeout cause remains Unknown. Scoped deferral assessment reconfirmed; feature roadmap updated, portfolio cascade remains integration-owned on v3. Coherent green local commit follows; no push or #168 closure.
 
 **Task verify:** new selector specifications with unchanged byte-write selector specs; new public
 output spec with unchanged byte-write/publication/poll/dead-teardown/cost cases; affected serialized

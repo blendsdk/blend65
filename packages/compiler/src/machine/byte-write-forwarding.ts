@@ -5,7 +5,7 @@ import type { MachineLoweringInput } from "./machine-types.js";
 import { proveSpritePublications } from "./sprite-publication-proof.js";
 
 /**
- * Keep an anonymous byte sum in A for its sole immediately adjacent fixed write.
+ * Keep a proved anonymous byte result in A for its sole adjacent fixed write.
  *
  * Complete use counts establish register lifetime, not memory invisibility. The
  * unchanged whole-program certificate must separately exclude every observer of
@@ -65,24 +65,43 @@ export function selectAnonymousByteWriteValues(
   for (const block of reached) {
     for (const [index, operation] of block.operations.entries()) {
       if (
-        operation.kind !== "binary" ||
-        operation.operator !== "+" ||
+        (operation.kind !== "binary" && operation.kind !== "unary") ||
         operation.type.kind !== "scalar" ||
         operation.type.name !== "byte" ||
-        operation.integer?.width !== 8 ||
-        operation.integer.signed ||
-        !operation.integer.wrap ||
         !singleUseValues.has(operation.result) ||
         uses.get(operation.result) !== 1
       )
         continue;
-      const right = definitions.get(operation.right);
+      const right = operation.kind === "binary" ? definitions.get(operation.right) : undefined;
+      const addition =
+        operation.kind === "binary" &&
+        operation.operator === "+" &&
+        operation.integer?.width === 8 &&
+        !operation.integer.signed &&
+        operation.integer.wrap &&
+        right?.kind === "constant" &&
+        typeof right.value === "bigint" &&
+        right.value >= 1n &&
+        right.value <= 255n;
+      const load = block.operations[index - 1];
+      // The original named-word read stays in place. Only its extracted byte's
+      // anonymous home disappears; no other operation may intervene or share it.
+      const lowByte =
+        operation.kind === "unary" &&
+        operation.operator === "lo" &&
+        load?.kind === "load" &&
+        load.result === operation.operand &&
+        definitions.get(operation.operand) === load &&
+        load.type.kind === "scalar" &&
+        load.type.name === "word" &&
+        load.place.path.length === 0 &&
+        load.place.rootType?.kind === "scalar" &&
+        load.place.rootType.name === "word" &&
+        singleUseValues.has(load.result) &&
+        uses.get(load.result) === 1;
+      if (!addition && !lowByte) continue;
       const write = block.operations[index + 1];
       if (
-        right?.kind !== "constant" ||
-        typeof right.value !== "bigint" ||
-        right.value < 1n ||
-        right.value > 255n ||
         write?.kind !== "memory-write" ||
         write.value !== operation.result ||
         write.width !== 1 ||

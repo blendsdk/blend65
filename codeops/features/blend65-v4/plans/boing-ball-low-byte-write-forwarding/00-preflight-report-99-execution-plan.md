@@ -65,3 +65,20 @@ existing oracle, frozen specification/expert, helper, timeout, observer proof or
 has changed. Expert reported lineage: `2.0.4` /
 `0e2a6280ddf77e42252b7a50b85cf9ea3d732b15`; source keys and normative headings are in the
 target. Whole-frame timing and physical behavior remain Unknown.
+
+## Bounded execution-entry refinement
+
+The audited hash binds the original plan, before mutable execution metadata/task marks.
+Formatting later expanded the independently authored selector specification to 573 lines.
+Its exact 49 expectations were partitioned into two concern files; the existing small
+source-to-closure/mutation adapter was mechanically extracted into component-local
+`low-byte-write-forwarding-test-support.ts`. Only the handoff/file-organization paragraph
+changed; producer, observer, semantic and acceptance contracts stayed unchanged.
+
+The same independent fit auditor `ses_e14f9f685ffe8v46Xo12JNGAJi` rechecked that precise
+plan/helper delta and returned no findings in dimensions 7/10: no new harness, runner,
+analyzer or material support mechanism. The author confirms unchanged cases and reports no
+forbidden exposure; executed split RED reproduces the original two intended failures/47
+controls before freeze. This bounded structural recheck supplements, rather than replaces,
+the original six-context scan. Subsequent execution qualification is owned by
+[verification](08-verification.md), not this static preflight verdict.
