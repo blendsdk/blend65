@@ -57,7 +57,7 @@ describe("impossible masked comparison accepted output", () => {
         codeBytes: code,
         zeroPage: resource("zeroPage"),
         scratch: resource("scratch"),
-      }).toEqual({ prgBytes: 655, programBytes: 653, codeBytes: 641, zeroPage: 0, scratch: 0 });
+      }).toEqual({ prgBytes: 653, programBytes: 651, codeBytes: 639, zeroPage: 0, scratch: 0 });
     });
   }, 120_000);
 });

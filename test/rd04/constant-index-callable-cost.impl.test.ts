@@ -59,7 +59,7 @@ function main(): void {
         codeBytes: code,
         zeroPage: resource("zeroPage"),
         scratch: resource("scratch"),
-      }).toEqual({ prgBytes: 780, programBytes: 778, codeBytes: 766, zeroPage: 6, scratch: 0 });
+      }).toEqual({ prgBytes: 778, programBytes: 776, codeBytes: 764, zeroPage: 6, scratch: 0 });
     });
   }, 120_000);
 });

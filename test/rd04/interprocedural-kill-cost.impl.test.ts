@@ -37,9 +37,9 @@ let callback: fn(): byte;
 function chosen(): byte { return 37; }
 function repair(): void { callback = &chosen; }
 function main(): void { pokew(&callback, 0); repair(); poke($C000, callback()); }`,
-    prgBytes: 712,
-    programBytes: 710,
-    codeBytes: 698,
+    prgBytes: 710,
+    programBytes: 708,
+    codeBytes: 696,
     zeroPage: 4,
     scratch: 0,
   },
@@ -50,9 +50,9 @@ place(at: $C100) let callback: fn(): byte;
 function chosen(): byte { return 37; }
 function repair(): void { callback = &chosen; }
 function main(): void { pokew(&callback, 0); repair(); poke($C000, callback()); }`,
-    prgBytes: 712,
-    programBytes: 710,
-    codeBytes: 698,
+    prgBytes: 710,
+    programBytes: 708,
+    codeBytes: 696,
     zeroPage: 4,
     scratch: 0,
   },
@@ -63,9 +63,9 @@ let callback: fn(): byte;
 function chosen(): byte { return 37; }
 function corruptThenRepair(): void { pokew(&callback, 0); callback = &chosen; }
 function main(): void { callback = &chosen; corruptThenRepair(); poke($C000, callback()); }`,
-    prgBytes: 722,
-    programBytes: 720,
-    codeBytes: 708,
+    prgBytes: 720,
+    programBytes: 718,
+    codeBytes: 706,
     zeroPage: 4,
     scratch: 0,
   },
@@ -76,9 +76,9 @@ struct Box { prefix: byte; cb: fn(): byte; }
 let box: Box;
 function chosen(): byte { return 37; }
 function main(): void { box.cb = &chosen; poke(&box.prefix, 0); poke($C000, box.cb()); }`,
-    prgBytes: 755,
-    programBytes: 753,
-    codeBytes: 741,
+    prgBytes: 753,
+    programBytes: 751,
+    codeBytes: 739,
     zeroPage: 6,
     scratch: 0,
   },
@@ -89,9 +89,9 @@ struct Box { data: byte[2]; cb: fn(): byte; }
 let box: Box;
 function chosen(): byte { return 37; }
 function main(): void { box.cb = &chosen; poke(&box.data[peek($0400) & 1], 0); poke($C000, box.cb()); }`,
-    prgBytes: 775,
-    programBytes: 773,
-    codeBytes: 761,
+    prgBytes: 773,
+    programBytes: 771,
+    codeBytes: 759,
     zeroPage: 6,
     scratch: 0,
   },
@@ -104,9 +104,9 @@ let right: Box;
 function chosen(): byte { return 37; }
 function inspect(p: Box): void { poke($C000, p.cb()); }
 function main(): void { left.cb = &chosen; right.cb = &chosen; inspect(left); inspect(right); pokew(&left.cb, 0); poke($C000, right.cb()); }`,
-    prgBytes: 863,
-    programBytes: 861,
-    codeBytes: 849,
+    prgBytes: 861,
+    programBytes: 859,
+    codeBytes: 847,
     zeroPage: 8,
     scratch: 0,
   },
@@ -114,9 +114,9 @@ function main(): void { left.cb = &chosen; right.cb = &chosen; inspect(left); in
     name: "opaque write without a later callable read",
     source: `module Game;
 function main(): void { poke(peekw($0330), 0); poke($C000, 7); }`,
-    prgBytes: 669,
-    programBytes: 667,
-    codeBytes: 655,
+    prgBytes: 667,
+    programBytes: 665,
+    codeBytes: 653,
     zeroPage: 2,
     scratch: 0,
   },
@@ -128,9 +128,9 @@ let box: Box;
 function chosen(): byte { return 37; }
 function corruptPrefix(p: Box): void { poke(&p.prefix, 0); }
 function main(): void { box.cb = &chosen; corruptPrefix(box); poke($C000, box.cb()); }`,
-    prgBytes: 771,
-    programBytes: 769,
-    codeBytes: 757,
+    prgBytes: 769,
+    programBytes: 767,
+    codeBytes: 755,
     zeroPage: 6,
     scratch: 0,
   },
@@ -142,9 +142,9 @@ let other: word;
 function chosen(): byte { return 37; }
 function touchOther(): void { pokew(&other, 0); }
 function main(): void { callback = &chosen; other = 0; touchOther(); poke($C000, callback()); }`,
-    prgBytes: 675,
-    programBytes: 673,
-    codeBytes: 661,
+    prgBytes: 673,
+    programBytes: 671,
+    codeBytes: 659,
     zeroPage: 0,
     scratch: 0,
   },

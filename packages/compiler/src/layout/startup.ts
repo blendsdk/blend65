@@ -215,21 +215,35 @@ export function bindC64StartupState(
   });
 }
 
-/** Save one byte from a named device register. */
+/**
+ * Capture a device byte in a register and its existing restoration snapshot.
+ *
+ * A is ordinary scratch. A caller choosing X or Y must leave that register
+ * untouched until it consumes the captured value; the snapshot still survives
+ * later register reuse and supplies normal restoration.
+ * @param cpu Selected CPU instruction forms.
+ * @param address Exact device address read once.
+ * @param offset Existing platform-snapshot byte.
+ * @param register Register which carries this readback beyond the snapshot store.
+ * @returns The ordered volatile read and platform-state store.
+ */
 function saveDevice(
   cpu: TargetProfile["cpu"],
   address: number,
   offset: number,
+  register: "a" | "x" | "y" = "a",
 ): readonly MachineInstruction[] {
+  const load = register === "x" ? "ldx" : register === "y" ? "ldy" : "lda";
+  const store = register === "x" ? "stx" : register === "y" ? "sty" : "sta";
   return Object.freeze([
     machineInstruction(
       cpu,
-      "lda",
+      load,
       deviceMode(address),
       Object.freeze({ kind: "absolute", value: address }),
       [deviceEffect("read", address)],
     ),
-    stateInstruction(cpu, "sta", offset),
+    stateInstruction(cpu, store, offset),
   ]);
 }
 
@@ -333,8 +347,12 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       stateInstruction(cpu, "stx", state.cpuDirection),
     );
   } else {
+    // Caller registers are already saved. The remaining captures use A only,
+    // so X/Y can carry these exact readbacks until the ordered mapping writes.
     for (const { address, offset } of preservedDevices) {
-      entry.push(...saveDevice(cpu, address, offset));
+      const register =
+        address === cpu.portDirectionAddress ? "x" : address === cpu.portDataAddress ? "y" : "a";
+      entry.push(...saveDevice(cpu, address, offset, register));
     }
   }
   if (!looped) {
@@ -345,15 +363,7 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
   entry.push(
     ...(compact
       ? saveDevice(cpu, cpu.portDataAddress, state.cpuPort)
-      : [
-          machineInstruction(
-            cpu,
-            "lda",
-            deviceMode(cpu.portDataAddress),
-            Object.freeze({ kind: "absolute", value: cpu.portDataAddress }),
-            [deviceEffect("read", cpu.portDataAddress)],
-          ),
-        ]),
+      : [machineInstruction(cpu, "tya", "implied", null)]),
     machineInstruction(cpu, "and", "immediate", Object.freeze({ kind: "immediate", value: 0xf8 })),
     machineInstruction(cpu, "ora", "immediate", Object.freeze({ kind: "immediate", value: 0x06 })),
     machineInstruction(
@@ -363,17 +373,7 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       Object.freeze({ kind: "absolute", value: cpu.portDataAddress }),
       [deviceEffect("write", cpu.portDataAddress)],
     ),
-    ...(compact
-      ? [machineInstruction(cpu, "txa", "implied", null)]
-      : [
-          machineInstruction(
-            cpu,
-            "lda",
-            deviceMode(cpu.portDirectionAddress),
-            Object.freeze({ kind: "absolute", value: cpu.portDirectionAddress }),
-            [deviceEffect("read", cpu.portDirectionAddress)],
-          ),
-        ]),
+    machineInstruction(cpu, "txa", "implied", null),
     machineInstruction(cpu, "ora", "immediate", Object.freeze({ kind: "immediate", value: 0x07 })),
     machineInstruction(
       cpu,

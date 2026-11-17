@@ -26,8 +26,8 @@ function main(): void {
 }`;
 
 const cases = [
-  { optimization: "none" as const, prgBytes: 679, programBytes: 677, codeBytes: 665, zeroPage: 2 },
-  { optimization: "size" as const, prgBytes: 643, programBytes: 641, codeBytes: 629, zeroPage: 1 },
+  { optimization: "none" as const, prgBytes: 677, programBytes: 675, codeBytes: 663, zeroPage: 2 },
+  { optimization: "size" as const, prgBytes: 641, programBytes: 639, codeBytes: 627, zeroPage: 1 },
 ];
 
 describe("straight-line ordinal write accepted output", () => {

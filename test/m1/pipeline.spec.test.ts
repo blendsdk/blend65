@@ -131,7 +131,7 @@ describe("public M1 generation", () => {
       start: spriteAddress,
       end: spriteAddress + 512,
       alignmentBytes: 64,
-      paddingBeforeBytes: 2936,
+      paddingBeforeBytes: 2938,
     });
     expect(placedRange.visibility).toEqual(expect.arrayContaining([expect.stringMatching(/vic/i)]));
 

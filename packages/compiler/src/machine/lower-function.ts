@@ -1,5 +1,6 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { selectAnonymousComparisonValues } from "./sprite-publication-proof.js";
+import { selectAnonymousByteWriteValues } from "./byte-write-forwarding.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.js";
@@ -340,6 +341,7 @@ export function lowerFunction(
         singleUseValues,
         materializedValues,
       ),
+      ...selectAnonymousByteWriteValues(input, sourceFunction, blocks, singleUseValues),
     ]),
     zeroFlagValues: new Set(zeroFlagValues),
     booleanValues: new Set(booleanValues),

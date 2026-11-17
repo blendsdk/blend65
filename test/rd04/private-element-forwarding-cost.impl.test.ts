@@ -55,7 +55,7 @@ function main(): void {
         codeBytes: code,
         zeroPage: resource("zeroPage"),
         scratch: resource("scratch"),
-      }).toEqual({ prgBytes: 634, programBytes: 632, codeBytes: 620, zeroPage: 0, scratch: 0 });
+      }).toEqual({ prgBytes: 632, programBytes: 630, codeBytes: 618, zeroPage: 0, scratch: 0 });
     });
   }, 120_000);
 });

@@ -53,7 +53,7 @@ function main(): void { c64.vic.setSpritePointer(0, lo(&buffer / 64)); }`;
         codeBytes: code,
         zeroPage: resource("zeroPage"),
         scratch: resource("scratch"),
-      }).toEqual({ prgBytes: 631, programBytes: 629, codeBytes: 617, zeroPage: 0, scratch: 0 });
+      }).toEqual({ prgBytes: 629, programBytes: 627, codeBytes: 615, zeroPage: 0, scratch: 0 });
     });
   }, 120_000);
 });

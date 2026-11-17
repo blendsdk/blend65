@@ -124,9 +124,9 @@ describe.sequential("ball cooperative startup prerequisites", () => {
           const incoming = await monitor.readCpuRegisters();
           expect(incoming.p & 8, "the injected entry really has decimal mode set").toBe(8);
           const vectors = await monitor.readMemory(0x0314, 0x0319);
-          // All CPU-port bits are outputs so the upper latch bits can be observed.
+          // Keep cassette sense and motor-off high so stock IRQ service leaves the sentinel stable.
           // CIA2 low pins initially select a different bank; its hidden latch must survive.
-          await monitor.writeMemory(0x0000, Uint8Array.of(0xff, 0xa7));
+          await monitor.writeMemory(0x0000, Uint8Array.of(0xff, 0xb7));
           await monitor.writeIo(0xdd02, Uint8Array.of(0xff));
           await monitor.writeIo(0xdd00, Uint8Array.of(0xa0));
           await monitor.writeIo(0xdd02, Uint8Array.of(0xa7));
@@ -164,7 +164,7 @@ describe.sequential("ball cooperative startup prerequisites", () => {
           expect(trace.indexOf(`store:${0xdd02}`)).toBeGreaterThan(direction);
           expect(trace).toContain(`store:${0xd018}`);
           expect(trace).toContain(`store:${0xd015}`);
-          expect((await monitor.readMemory(0x0001, 0x0001))[0]).toBe(0xa6);
+          expect((await monitor.readMemory(0x0001, 0x0001))[0]).toBe(0xb6);
           expect((await monitor.readIo(0xdd02, 0xdd02))[0]).toBe(0xa4);
           expect(
             (await monitor.readIo(0xdd00, 0xdd00))[0]! & 3,

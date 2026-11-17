@@ -79,3 +79,24 @@ The primary checked the sole subsequent target edit: its status line now records
 preflight rather than requiring it. No signature, behavior, ownership, dependency or task changed;
 the current binding above includes that metadata-only edit. Later crash-safe task/status updates
 do not amend the audited design.
+
+At execution entry, the primary checked the clean plan checkpoint `27ebf448` and recorded its
+complete Git tree as the phase baseline. The target's only entry changes record that baseline
+and mark specification authoring started. Scope, signature, acceptance and ordering are unchanged;
+no implementation or specification was present at entry.
+
+## Bounded pre-freeze test-granularity check
+
+Formatting expanded the independently authored selector specification to 509 lines. Before freeze
+or production implementation, the handoff was split into positive/shape and usage/identity/observer
+specification files. One small component-local real-source fixture and typed mutation adapter
+reuses the original author's setup for those two immediate consumers; no existing helper, shared
+runner or infrastructure changes. The primary owns that mechanical extraction because the native
+spec author writes only specification files. All 58 selector cases and assertions must remain.
+
+The independent fit reviewer checked only this amendment and its direct consequences, finding no
+D7/D10 defect or material support escalation. It did not inspect the partitioning files while the
+author was editing them; exact reconciliation and freeze remain the execution owner's obligation.
+The two root specifications and all production/scope/observer contracts are unchanged. Public
+existing-build RED is seven assembly failures/15 acceptance passes; the independent 257-write
+VICE behavior case passes. Those are primary execution results, not reviewer execution.

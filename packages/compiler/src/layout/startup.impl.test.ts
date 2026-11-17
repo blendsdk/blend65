@@ -81,7 +81,7 @@ describe("C64 startup binding", () => {
     expect(createC64StartupStateData().bytes).toHaveLength(49);
     expect(compact.data[0]!.bytes).toHaveLength(3);
     expect(startupBytes(compact.startup)).toBe(69);
-    expect(startupBytes(full.startup)).toBe(609);
+    expect(startupBytes(full.startup)).toBe(607);
   });
 
   it("holds the original status on the stack and copies it for the compact main entry", () => {

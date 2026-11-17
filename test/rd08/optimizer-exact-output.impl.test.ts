@@ -30,9 +30,9 @@ describe("measured optimizer output identity", () => {
       "0dcf3b28e8c7733734358c463ac9cffa7583a0c3164ad023da53dfc19deca8ec",
     );
     const none = await buildProfileSource(source, PROFILE, "none");
-    expect(none.prg.length - 2, "saved none payload").toBe(2161);
+    expect(none.prg.length - 2, "saved none payload").toBe(2159);
     expect(digest(none.prg), "saved none PRG").toBe(
-      "74b9d6b8ab3e81b309284652a061682f718ef3543f22bd3f8505753d22b99252",
+      "f40c0fa82e77b7ab74fc932d8267d84934724851be65170c71282f757271f6e6",
     );
   }, 180_000);
 

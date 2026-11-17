@@ -2,9 +2,10 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: #168 continuation, not whole-program parity closeout.
-> **Progress**: 0/6 tasks (0%)
-> **Status**: Preflight passed — ready for independent specifications before code
+> **Progress**: 6/6 tasks (100%)
+> **Status**: Done — byte-write and startup dependency pass the complete gate; combined local checkpoint
 > **Baseline**: `4e116829` — predecessor complete checkpoint green and locally committed; no push.
+> **Phase baseline tree**: `f76728aeef90f81e5fad917d2c9e28c4140c2c09` — clean local plan checkpoint `27ebf448`.
 > **Scope**: strict
 > **Reasoning**: high — anonymous memory observation, accumulator/flags and pre-emission storage closure
 
@@ -120,11 +121,18 @@ inventory/binder closure; absent anonymous homes must not reappear during final 
 
 Only these new files may be authored by the implementation-blind spec author:
 
-| Owned file                                                         | Boundary                                                                                                                      |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `packages/compiler/src/machine/byte-write-forwarding.spec.test.ts` | Signature-only selector positives and conservative barriers, including malformed/missing identity facts and all-use counting. |
-| `test/rd05/byte-write-forwarding.spec.test.ts`                     | Public `none` assembly and complete costs; four cooperative profiles; returning/unsupported sources stay accepted.            |
-| `test/rd05/byte-write-forwarding-vice.spec.test.ts`                | Independent byte-wrap/flags/MMIO behavior through the existing serialized monitor, PAL/6581.                                  |
+| Owned file                                                                  | Boundary                                                                                                           |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `packages/compiler/src/machine/byte-write-forwarding.spec.test.ts`          | Signature-only selector positives and arithmetic/address boundaries.                                               |
+| `packages/compiler/src/machine/byte-write-forwarding-barriers.spec.test.ts` | Conservative usage, identity and observer barriers, including complete all-use counting.                           |
+| `test/rd05/byte-write-forwarding.spec.test.ts`                              | Public `none` assembly and complete costs; four cooperative profiles; returning/unsupported sources stay accepted. |
+| `test/rd05/byte-write-forwarding-vice.spec.test.ts`                         | Independent byte-wrap/flags/MMIO behavior through the existing serialized monitor, PAL/6581.                       |
+
+One component-local `machine/byte-write-forwarding-test-support.ts` may hold only the real source
+fixture and its typed test-input mutations, shared by the two immediately owned selector files.
+This is a small direct fixture, not shared test infrastructure, a runner, analyzer or framework.
+It avoids duplicating the existing source-to-closure adapter while keeping each specification
+near the 200–300-line test-file target. No existing test helper is modified.
 
 The author may read governing requirements, semantic/type declarations, known boing source and
 manifest, and supplied existing fixture signatures. Forbidden: new selector, transformation and
@@ -169,12 +177,18 @@ Source keys: `BLEND65-SPEC-4-038b70e9`, `MOS-PGM-1976`, `CBM-C64-PRG-1982`.
 
 ## Tasks
 
-- [ ] T-168.16 Independently author the three assigned specifications from this contract/signatures after preflight; validate adapters, record meaningful RED and freeze before code.
-- [ ] T-168.17 Implement the focused selector and existing forwarding-set union; pass selector and public assembly specifications without changing old observation helpers or source.
-- [ ] T-168.18 Verify independent byte/flags behavior and unchanged boing startup/trace/frame/poll suites; measure complete costs and update only downward implementation pins.
-- [ ] T-168.19 Add implementation controls for stale/cold/multiple uses, retention/binder closure and bounded query/scan costs; run affected regression tiers.
-- [ ] T-168.20 Obtain all six independent phase reviews; resolve findings within exact authority and reverify, without widening this unit.
-- [ ] T-168.21 After install/build/typecheck and changed+host, run the actual complete workspace/host/serialized VICE checkpoint; record residual/deferral assessment, sync roadmap and commit a coherent green checkpoint through the git-commit skill. Never push or close #168 without its complete boundary.
+- [x] T-168.16 Independently author the assigned specifications from this contract/signatures after preflight; validate adapters, record meaningful RED and freeze before code. Four specification files preserve 58 selector (31 + 27), 22 public and one 257-checkpoint VICE case, 81 total. Actual public RED: seven assembly failures/15 acceptance controls pass; independent 257-write behavior passes. Before freeze, the author split concerns without changing expectations and confirmed the local fixture must retain original candidate identity across negative mutations. Primary extracted that fixture and applied the confirmed setup clarification. Root hashes remain unchanged. All five spec/fixture hashes are frozen in [verification](08-verification.md); no production implementation exists. Missing selector-module collection is not counted as meaningful RED.
+- [x] T-168.17 Implement the focused selector and existing forwarding-set union; pass selector and public assembly specifications without changing old observation helpers or source. Both selector files pass 58/58; public assembly/cost specifications pass 22/22; compiler reference build passes. One focused selector and the existing forwarding-set union only. No existing observer, scalar/memory lowerer, startup or source change.
+- [x] T-168.18 Verify independent byte/flags behavior and unchanged boing startup/trace/frame/poll suites; measure complete costs and update only downward implementation pins. Serialized VICE passes 6/6 including all 257 byte/flags checkpoints and the five unchanged boing oracles. Public/new and unchanged poll/publication/teardown/cost checks pass 72/72. Fresh code 1,309→1,243: ten anonymous STA/LDA pairs (60 bytes), two shorter existing branch forms (6 bytes). Distinct SFA 55→45, resident RAM 7,271→7,261; payload 7,167, entry 328/snapshot 49/ZP 0 unchanged. Downward implementation pin verified. Equivalent-twin code gap 801; whole-frame timing remains Unknown.
+- [x] T-168.19 Add implementation controls for stale/cold/multiple uses, retention/binder closure and bounded query/scan costs; run affected regression tiers. Seven implementation controls pass, covering original identity, malformed graph, 6,000-block entry chain, 256 candidates and pre-closure demand absence. Frozen specifications cover cold/multiple/terminator uses. Nine directed compiler files pass 151/151; public/regression/cost 72/72 and serialized VICE 6/6 pass. Query-count complexity still requires independent static review; no wall-clock gate or globally linear claim for the inherited proof.
+- [x] T-168.20 Obtain all six independent phase reviews; resolve findings within exact authority and reverify, without widening this unit. Correctness, semantics/DX, SFA/ABI, platform, machine-code and host-performance reviews are clear. All frozen hashes match, no existing specification diff or oracle exception. Machine reviewer decoded current owner-supplied address-tagged bytes and reconciled complete costs; independent baseline-byte comparison remains Unknown. Host reviewer received exact inline production patch after native external-diff denial, without retry/bypass. No production finding or new scope survives; see [findings](05-findings.md).
+- [x] T-168.21 After install/build/typecheck and changed+host, run the actual complete workspace/host/serialized VICE checkpoint; record residual/deferral assessment, sync roadmap and commit a coherent green checkpoint through the git-commit skill. Completed2026-11-17 18:44: TP-002 dependency7/7; actual complete job `sh_1ea5288ac001jZT0Yph4wjFmAL` exits0 in4,784.128s with all40 inputs unchanged. Workspace cache replays compiler250/4,166+2existing skips and other packages109; fresh host248/5,183 and serialized VICE132/2,383 pass (existing1file/4test skips). Fresh formatting/install/build/typecheck pass. Original runtime20-second waits unchanged; earlier failures, Unknown timeout cause and reboot-cleared raw evidence remain documented. Six reviews clear; residual/deferral assessment reconciled and roadmaps synced. Coherent green local commit follows; code1,241/gap799 and whole-frame timing remain #168-owned. No push or issue closure.
+
+## Runtime ambiguity register
+
+| ID              | Question / authority boundary                                                                                                                                                                                                                                                                                     | State                                                                                                                                                                                                                                                                                                                  |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AR-P1 (runtime) | May admitted stock firmware independently change upper port bits while cooperative IRQ service stays enabled, with the compiler's own mapping writes still required to use the captured readbacks? The saved-value formula in §5.1 is explicit and is not replaced with live-value preservation by this question. | Resolved by explicit user approval on 2026-11-17: independent stock-firmware mutations are allowed; compiler mapping writes must use captured values. Separate bounded specification-first startup repair authorized. No new input restriction, IRQ redesign, frozen specification or existing-oracle edit authorized. |
 
 **Verify:** directed compiler and public integration suites; affected serialized VICE; then
 `yarn test:changed --host`. At phase checkpoint `yarn install --frozen-lockfile`, `yarn build`,
