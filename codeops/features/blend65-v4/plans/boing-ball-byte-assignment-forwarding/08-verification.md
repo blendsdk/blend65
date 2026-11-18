@@ -1,8 +1,8 @@
 # Byte arithmetic assignment forwarding — evidence
 
-> **Status**: Actual complete checkpoint GREEN; local commit and cleanup pending
+> **Status**: Done — actual complete checkpoint GREEN; local commit `9bbc9ead` and owned cleanup complete
 > **Baseline**: `ec8a696e`, clean tree at entry
-> **Progress authority**: [execution plan](99-execution-plan.md), 5/6
+> **Progress authority**: [execution plan](99-execution-plan.md), 6/6
 
 Sections are chronological. Earlier pending/GREEN states retain historical context;
 the final full-gate diagnosis section owns current status.
@@ -343,5 +343,9 @@ closeout and introduces no new source restriction or orphan deferral.
 
 The original failed-run frames, pre-PHA hardware timing reachability, external aggregate stack,
 firmware completion/deadlines and physical behavior remain Unknown. Runtime evidence stays
-VICE-verified / hardware-unverified. Local commit and owned cleanup are the remaining closeout
-operations; the feature-branch portfolio roll-up remains integration-owned.
+VICE-verified / hardware-unverified. GREEN implementation is committed locally as `9bbc9ead`,
+and owned cleanup is complete. The temporary evidence tree and baseline dependency symlink
+were removed without following the symlink; repository dependencies were untouched.
+Raw logs/manifests/witnesses no longer exist; committed summaries and hashes preserve the
+durable evidence. This6/6 closeout changes documentation only, not source or frozen oracles.
+No push; the feature-branch portfolio roll-up remains integration-owned.

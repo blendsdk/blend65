@@ -2,8 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: [#168](https://github.com/blendsdk/blend65/issues/168); bounded continuation, not parity closeout
-> **Progress**: 5/6 tasks (83.3%)
-> **Status**: Complete verification GREEN — local commit and owned cleanup pending
+> **Progress**: 6/6 tasks (100%)
+> **Status**: Done — GREEN implementation committed locally; owned cleanup complete; #168 remains open
+> **Implementation commit**: `9bbc9ead` — no push
 > **Completed checkpoint**: `sh_1f0ca5405001VwYtT4PvOtS3t5` — actual `yarn test:full` exits0 in4,428.818s;44 inputs unchanged
 > **Prior failed checkpoint**: `sh_1f004276f001RhNIj0UrSIh2jh` — exits1;42 inputs unchanged; retained historical evidence
 > **Baseline**: `ec8a696e`, clean green local checkpoint; no push
@@ -198,7 +199,7 @@ decisive authority. No qualification answer maps or cases are used.
 - [x] T-168.37 Verify independent runtime plus unchanged boing startup/source trace/frame/poll; measure complete output/storage/padding costs and update only the downward implementation pin. Completed 2026-11-18: code1,151/SFA30/resident7,246/payload7,167 measured; seven exact capture homes absent and actual direct ADC/SBC-to-named-STA cores verified. Startup326 bytes identical. Downward implementation pin passes; seven affected serialized VICE files29/29 pass in121.128s, including16 independent257-pair cases and unchanged startup/source/frame tests. Remaining code gap709; whole-frame timing Unknown.
 - [x] T-168.38 Add implementation controls for complete uses/identity, one certificate query, bounded traversal and absent final capture demands; run directed compiler/host regressions. Completed 2026-11-18: eight controls pass, including original-object preservation, default no-proof path, malformed graphs,6,000-block iterative traversal,256 assignments/one real query and absent inventory/required capture requests. Directed14 compiler files253/253 and seven host files111/111 pass. Seven current oracle/fixture hashes match; only approved AR-P1 exception.
 - [x] T-168.39 Obtain all six independent execution reviews against the actual baseline/delta; resolve/reverify findings only within exact authority, stopping for reserved scope/oracle decisions. Completed 2026-11-18: correctness, semantics/DX, SFA/ABI, emitted code, platform and host performance return no findings. Direct code/schema authority and exact AR-P1 boundary checked; artifact/test execution remains primary-owned. Required current metadata/router/SFA excerpts supplied with explicit limits. No fix or expanded exception needed. Host and complete gates remain due.
-- [~] T-168.40 Run final frozen install/build/typecheck/formatting, changed+host, fresh host and actual complete serialized VICE checkpoint; record residual/deferral evidence, sync feature roadmap, commit green locally via git-commit skill and clean owned temps. Verification complete 2026-11-19: final prechecks pass; actual full exits0 in4,428.818s, fresh host5,230 and serialized VICE2,403 pass/4existing skips. Workspace results replay prior fresh compiler4,298/2existing skips, CLI70/server21/editor18. All44 inputs unchanged; AR-P2 normal3/controlled12/fault18/protocol6 and three fix reviews clear. Local commit/owned cleanup remain; never push or close #168.
+- [x] T-168.40 Run final frozen install/build/typecheck/formatting, changed+host, fresh host and actual complete serialized VICE checkpoint; record residual/deferral evidence, sync feature roadmap, commit green locally via git-commit skill and clean owned temps. Complete 2026-11-19: final prechecks pass; actual full exits0 in4,428.818s, fresh host5,230 and serialized VICE2,403 pass/4existing skips. Workspace results replay prior fresh compiler4,298/2existing skips, CLI70/server21/editor18. All44 inputs unchanged; AR-P2 normal3/controlled12/fault18/protocol6 and three fix reviews clear. GREEN implementation committed locally as `9bbc9ead`; owned temporary tree and baseline dependency symlink removed safely. No push; #168 remains open.
 
 **Task verify:** explicit new selector specification files plus existing byte-/low-byte-write and
 publication tests; new public output with unchanged poll/cost cases; affected VICE serially.
@@ -360,3 +361,18 @@ This is the successful complete invocation, not an isolated-pass substitute. The
 gate remains historical evidence. The original failed runs' raw frame mechanism is still not
 recovered. Local checkpoint and cleanup follow; #168 remains open for the709-byte gap and
 equivalent whole-frame timing.
+
+### Local closeout — complete
+
+GREEN implementation commit `9bbc9ead` contains the17 owned files. The worktree was clean
+after that commit, and all44 guarded inputs were checked again before cleanup.
+The owned temporary tree
+`/tmp/opencode/codeops/runtime-008dc7dd-b8e9-44f8-b007-488e536fa932/issue168-arithmetic-5jvUID/`
+is removed. Its baseline dependency symlink was unlinked without following it; repository
+dependencies and other runtime files were untouched. Raw logs, manifests and temporary witnesses
+no longer exist; durable summaries and hashes remain in the committed evidence documents.
+
+This final documentation update records6/6 without changing source or frozen oracles.
+Only Markdown formatting, links, checklist consistency and the documentation-only diff need
+revalidation; the completed full checkpoint remains the applicable runtime evidence.
+No push or #168 closeout. Remaining work is the709-byte equivalent code gap and whole-frame timing.

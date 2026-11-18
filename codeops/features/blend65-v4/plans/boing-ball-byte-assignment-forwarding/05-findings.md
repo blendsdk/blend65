@@ -1,6 +1,6 @@
 # Byte assignment forwarding — execution review
 
-> **Status**: All reviews clear; actual complete checkpoint GREEN, no open finding
+> **Status**: Done — all reviews clear, actual complete checkpoint GREEN; local commit `9bbc9ead` and owned cleanup complete
 > **Baseline**: `ec8a696e`; phase tree `d9fb65a8ddf111f5f1cb2e8c01179e35c6d04e8e`
 > **Scope**: strict; one selector arm/caller and exact approved AR-P1/AR-P2 exceptions
 

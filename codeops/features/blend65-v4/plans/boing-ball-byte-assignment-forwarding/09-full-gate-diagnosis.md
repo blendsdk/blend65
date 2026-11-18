@@ -3,10 +3,10 @@
 > **Status**: Closed — approved amendment qualified/reviewed/frozen and actual complete gate GREEN
 > **Owner**: byte-assignment forwarding / #168 verification dependency
 > **Failed job**: `sh_1f004276f001RhNIj0UrSIh2jh`
-> **Progress**:5/6 tasks; full gate GREEN, local commit/cleanup pending
+> **Progress**:6/6 tasks; full gate GREEN, local commit `9bbc9ead` and owned cleanup complete
 
 Chronological evidence record: the final approved-amendment and complete-GREEN sections
-supersede earlier pending states. Local commit and cleanup remain separate closeout operations.
+supersede earlier pending states. Local commit and owned cleanup are complete.
 
 ## Observed facts
 
@@ -369,7 +369,9 @@ transcription and SF-001 bookkeeping defects are fixed and re-reviewed, not waiv
 checkpoint now qualifies the bounded compiler unit. The original `$F69D` failed run is not
 reconstructed and no blanket ROM, external stack/deadline or physical-hardware claim is made.
 
-The earlier failed log and intermediate records remain historical evidence until local
-checkpoint/cleanup. After durable recording, remove only this run's owned temporary tree,
-without following its baseline `node_modules` symlink. #168 remains open; this diagnosis does
-not establish whole-program parity or whole-frame timing.
+GREEN implementation is committed locally as `9bbc9ead`. After rechecking all44 inputs and
+the clean worktree, the owned temporary tree was removed; its baseline `node_modules` symlink
+was unlinked without following it. Repository dependencies and other runtime files were
+untouched. The raw failed/GREEN logs, manifests and witnesses no longer exist; the committed
+summaries and hashes above are the durable historical record.
+#168 remains open; this6/6 closeout does not establish whole-program parity or whole-frame timing.
