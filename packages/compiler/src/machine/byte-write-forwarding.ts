@@ -9,13 +9,15 @@ import { proveSpritePublications } from "./sprite-publication-proof.js";
  *
  * Complete use counts establish register lifetime, not memory invisibility. The
  * unchanged whole-program certificate must separately exclude every observer of
- * an omitted home across the complete storage windows. Named stores never qualify.
+ * an omitted home across the complete storage windows. Named source stores remain;
+ * the optional arithmetic arm only omits their anonymous input captures.
  * Selection precedes storage closure, so the home is not introduced and removed
  * after allocation. Unsupported or stale source associations retain normal lowering.
  * @param input Closed source and exact selected profile.
  * @param source Actual main body, absent for generated initializer bodies.
  * @param blocks Original blocks in their original identity order.
  * @param singleUseValues Existing operation-use inventory; independently rechecked here.
+ * @param includeNamedArithmeticStores Explicitly admit adjacent whole-byte arithmetic assignments.
  * @returns IDs whose fresh accumulator value may bypass anonymous retention.
  */
 export function selectAnonymousByteWriteValues(
@@ -23,6 +25,7 @@ export function selectAnonymousByteWriteValues(
   source: SemanticFunction | undefined,
   blocks: readonly SemanticBlock[],
   singleUseValues: ReadonlySet<string>,
+  includeNamedArithmeticStores = false,
 ): ReadonlySet<string> {
   const candidates = new Set<string>();
   if (
@@ -72,6 +75,27 @@ export function selectAnonymousByteWriteValues(
         uses.get(operation.result) !== 1
       )
         continue;
+      const write = block.operations[index + 1];
+      if (
+        includeNamedArithmeticStores &&
+        operation.kind === "binary" &&
+        (operation.operator === "+" || operation.operator === "-") &&
+        operation.integer?.width === 8 &&
+        !operation.integer.signed &&
+        operation.integer.wrap &&
+        write?.kind === "store" &&
+        write.value === operation.result &&
+        write.type.kind === "scalar" &&
+        write.type.name === "byte" &&
+        write.place.path.length === 0 &&
+        write.place.rootType?.kind === "scalar" &&
+        write.place.rootType.name === "byte"
+      ) {
+        // The byte emitter leaves its result in A, and a whole-byte store needs
+        // no address setup. Keep that named write; omit only its input capture.
+        candidates.add(operation.result);
+        continue;
+      }
       const right = operation.kind === "binary" ? definitions.get(operation.right) : undefined;
       const addition =
         operation.kind === "binary" &&
@@ -100,7 +124,6 @@ export function selectAnonymousByteWriteValues(
         singleUseValues.has(load.result) &&
         uses.get(load.result) === 1;
       if (!addition && !lowByte) continue;
-      const write = block.operations[index + 1];
       if (
         write?.kind !== "memory-write" ||
         write.value !== operation.result ||

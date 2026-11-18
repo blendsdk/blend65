@@ -341,7 +341,7 @@ export function lowerFunction(
         singleUseValues,
         materializedValues,
       ),
-      ...selectAnonymousByteWriteValues(input, sourceFunction, blocks, singleUseValues),
+      ...selectAnonymousByteWriteValues(input, sourceFunction, blocks, singleUseValues, true),
     ]),
     zeroFlagValues: new Set(zeroFlagValues),
     booleanValues: new Set(booleanValues),

@@ -28,7 +28,7 @@ function numeric(value: unknown, label: string): number {
  * loop, so the byte and storage costs are the tracked rows for now.
  */
 const expected = {
-  exampleCodeBytes: 1193,
+  exampleCodeBytes: 1151,
   exampleProgramBytes: 7167,
   exampleZeroPage: 0,
   twinCodeBytes: 442,
