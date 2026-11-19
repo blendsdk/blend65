@@ -2,8 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-33 / #164
-> **Progress**: 0/6 tasks (0%)
-> **Status**: Planned — no implementation or new tests authored
+> **Progress**: 6/6 tasks (100%)
+> **Status**: Done — the unsafe acceptance is repaired and verified; #164 stays open for what this unit does not cover
+> **Phase baseline tree**: `0a9ae8e4d89c6019eae81fcc8459ca703adfb840`
 > **Baseline**: `acbc1c8c`, clean `feature/v4-rebuild`
 > **Scope**: strict; automatic global storage and final build admission
 > **Reasoning**: high — physical placement must preserve the call proof already consumed by SFA and lowering
@@ -16,13 +17,16 @@ a constant write changes an automatically placed global callable's bytes, but th
 uses its earlier source-function target.
 
 The user approved a separate bounded repair plan, **without waiver**, after that diagnosis.
-This document plans corrective work; it does not authorize starting implementation in this run,
-close #164, change the frozen language, or approve a release.
+The user requested execution on 2026-11-19. This invocation runs only T-33.1, not repair
+implementation, issue closure, a frozen-language change or release approval.
 
 **Planning target:** the diagnosed automatic-global proof boundary in `blend65-v4`.
 **Context artifacts:** the diagnostic mini-plan; normative function, memory and diagnostic rules;
 existing semantic target/kill analysis; data lowering, final layout and build admission.
 **Planning modification set:** this mini-plan and the new T-33 feature-roadmap row.
+**T-33.1 modification set (strict):** this mini-plan, only T-33's feature-roadmap row and the new
+`test/rd04/automatic-callable-placement.spec.test.ts`. Existing tests/helpers and production code
+remain read-only; intentional RED is not committed.
 
 **Smallest viable design:** supply actual global intervals to the existing order-sensitive,
 interprocedural target analysis through a small diagnostic-only adapter. Validate each real
@@ -182,17 +186,154 @@ those files. Capture baseline accepted controls before changing production sourc
 New implementation tests then cover projection identity/endpoints/omission errors, subset checks,
 reachable calls, semantic candidate rejection and exact fallback. Use existing test fixtures only.
 
+## T-33.3 implementation-test record
+
+Two new files add 22 tests that need no filesystem, assembler or emulator:
+
+| File | Covers |
+| --- | --- |
+| `packages/compiler/src/semantic/final-placement-proof.impl.test.ts` (13) | Both skip conditions, byte-exact overlap including the two endpoint cases, source order before and after the call, restoration by a complete typed assignment, the three sites a lost proof must name, and that the earlier target set is really found by the containment check |
+| `packages/compiler/src/services/final-callable-proof.impl.test.ts` (9) | Inclusive-to-half-open conversion at a real layout, an inlined constant that was never materialized, all three producer disagreements, the canonical failure, and the optional representation's withdrawal with its partial facts kept |
+
+The containment test exists because the earlier target set is looked up by operation identity; it
+asserts the lookup returns the closed set rather than only that no widening was reported. The
+withdrawal test closes the gap T-33.2 reported, since no public fixture can reach that branch.
+
+Two corrections came out of this chunk. A withdrawn construction previously described itself as a
+resource rejection, which understated a lost source proof; it now says the construction places
+callable storage under a raw write. The rejection family it reports was already `semantics`.
+
+### Accepted output is unchanged
+
+The nine-profile, four-mode control matrix was re-run against the repaired compiler: **36/36
+accepted with no diagnostics**. The anchor payload is still 659 bytes with SHA-256
+`a4364e5135963aeb192abfb88cb6c320d3c54c0a32126ec5299b6c93d2b0a717`, byte-identical to the baseline
+captured before any source change, and the cost vector is unchanged at 657 program bytes, 711
+resident RAM, 2 hardware-stack bytes and zero zero-page or scratch. No storage demand was added.
+
+## T-33.4 directed coverage record
+
+All runs below are on the tree after the review repairs.
+
+| Command | Coverage | Result |
+| --- | --- | --- |
+| `yarn vitest run --config vitest.integration.config.ts test/rd04/automatic-callable-placement.spec.test.ts test/rd04/raw-write-callable-invalidation.spec.test.ts test/rd04/interprocedural-kill-cost.impl.test.ts` | The new oracle across nine profiles × four modes, plus the existing raw-write invalidation suite over its four cooperative profiles and the interprocedural cost checks | **113 passed** |
+| `yarn vitest run --config vitest.vice.config.ts test/rd04/callable-field-helper-vice.spec.test.ts` | Real emulator, serialized, four cooperative profiles | **4 passed** |
+| Nine-profile, four-mode control matrix | Accepted output identity | **36/36**, payload digest unchanged |
+
+The emulator case proves that a program whose callable storage is genuinely untouched still calls
+the right function at runtime, so the new rejection did not become an over-rejection in practice.
+
+`yarn test:changed --host` was started against the earlier tree and reported 1,282 fast, 497
+semantic, 985 service and 60 oracle tests passing before it was stopped part-way through the host
+tier, once the review repairs had superseded the tree it was testing. It is **not** counted as
+evidence here; the complete gate in T-33.6 covers the same ground on the final tree.
+
+Still unqualified by this unit, unchanged from the plan: callable values in function-local storage,
+interference between an interrupt handler and the main program over callable bytes, automatic
+relocation instead of rejection, and physical hardware.
+
+## T-33.5 review record
+
+Three reviews returned first. Every finding was inside this unit's own new code, so each was
+repaired rather than waived; nothing needed a specification, oracle or placement-policy change.
+
+| Finding | Severity | Disposition |
+| --- | --- | --- |
+| SM-001 — the error never named the address that made it true, so the author could not act on it | MAJOR | Fixed. The write note now reads "replaces the callable bytes placed at $xxxx–$xxxx here". |
+| MC-002 — a lost proof in the stack-preference alternative, which was never going to be published, failed the whole build | MAJOR | Fixed at that call site: this outcome now drops the preference and keeps the original construction, which is proved on its own. |
+| SM-002 — cause notes were filtered by a root the call may not name, which could leave no write note at all | MINOR | Fixed. When the filter matches nothing, every covering write is shown. |
+| RV-001 — a parameter comment claimed a handler proof the function does not perform | MINOR | Fixed. The comment now says handler sinks keep their earlier proof and why. |
+| RV-002 / MC-003 — blocks and definitions were walked twice, and cause collection ran on the accepted path | MINOR | Fixed. Each body is prepared once and the cause data is derived only on the first failure. |
+| RV-003 — a global absent from the producer's data but present in the layout was read as "no storage" | MINOR | Fixed. That direction is now a producer disagreement too. |
+| MC-001 — a zero-size global could raise a false producer disagreement and fail the build | MINOR | Fixed by skipping zero-size globals before the interval lookup, which also settles the reviewer's open question about declaring one. |
+| RV-004 — the pre-serialization re-check still has no executing test | MINOR | Record corrected rather than tested; see below. |
+
+The cost review found the first version far too expensive, and one of its findings was also a
+correctness exposure.
+
+| Finding | Severity | Disposition |
+| --- | --- | --- |
+| PE-001 — every materialized global was handed to an analysis that treats neighbouring storage as aliasing, making it quadratic in global count and, past 256 adjacent globals, collapsing into a blanket rejection of every indirect call | MAJOR | Fixed. Only globals whose type can hold a callable value are passed, which restores the sparse map the earlier closure already used and removes the exposure. |
+| PE-002 — the skip asked whether a program writes raw memory at all, which on this machine is nearly always true, so the re-proof ran up to 44 times per build | MAJOR | Fixed. The skip now asks whether a write can actually reach one of those callable ranges; a write to a hardware register or to a typed place no longer forces the work, and a write the analysis cannot read still counts. |
+| PE-003 — value definitions were built for every body before anything needed them | MINOR | Fixed. Each body builds them on first use. |
+| PE-004 — the cheapest check expanded one entry per array element to answer a yes-or-no question | MINOR | Fixed by using the path form that does not expand elements. |
+| PE-005 — the guard before serialization repeats a proof the same pair already passed | MINOR | Kept deliberately as a last guard, now cheap for ordinary programs after the two fixes above. Recorded rather than removed. |
+| Stale comment claiming at most 36 construction recipes | MINOR | Corrected to 42. |
+
+The narrowing in PE-001 is worth stating plainly: a typed write that runs past the end of its own
+object into a neighbouring callable global is not caught. That was equally true before this unit,
+so it is not a regression, and it is not the condition #164 describes.
+
+The storage and calling-convention review confirmed the parts that matter most — nothing is added
+after storage closes, the projection stays on module-level globals, the containment guard is sound
+and not vacuous, and a target captured before a corrupting argument keeps its proof. It raised two
+MAJOR findings by static reasoning, both about rejecting legal source. Each was given its own
+decisive probe on this tree, and **neither reproduces**:
+
+| Finding | Probe | Result |
+| --- | --- | --- |
+| SF-002 — enough adjacent globals would form one long alias chain, collapse into a blanket unknown and refuse every indirect call | 300 module variables holding function values, one raw write, one call through the first | **Builds, no diagnostics** |
+| SF-003 — a raw write inside a never-called function would poison a reachable call | First the plain shape, then the reviewer's exact shape: a never-called function writes over the chosen bytes and then calls the helper that performs the call | **Both build, no diagnostics** |
+
+SF-002 was written against the first version, which handed every materialized global to the
+analysis; the cost repair above already removed that condition, which is why the chain never forms.
+SF-003's channel is closed because an unreachable function contributes no kills to a reachable one.
+
+SF-001 (MINOR) notes that cause collection reads constant addresses only, so a write through a
+typed place would not be named. Left as is, with reasoning rather than silence: supplying chosen
+addresses can only add kills through a constant write that lands on callable bytes, because a
+write through a typed place projects only onto storage its own bytes overlap, and callable globals
+do not overlap each other. Every failure this check introduces therefore has a constant write to
+name, and the fallback added for SM-002 prevents an empty note list in any case.
+
+The deviation recorded in T-33.2 was reviewed: treating the data producer's own emitted output as
+the record of what exists was judged an acceptable simplification, because it is that producer's
+filter output and cannot drift from it. The reviewer's condition was the missing opposite
+direction, which RV-003 now covers.
+
+The pre-serialization re-check remains hooked but unexercised, and deliberately so: every path that
+reaches it has already proved the same pair, so no fixture can present it with an invalid one. It
+stays as a last guard against a future selection change. The earlier T-33.2 note that T-33.3 would
+reach all three previously unexercised hooks was too optimistic; it reached two.
+
+A semantics reviewer point worth carrying forward: this makes a correct rejection depend on an
+address the compiler chose, so the same source can build in one optimization mode and not another.
+Moving the automatic variable out of the way instead of rejecting is the better long-term answer
+and remains open work on #164, outside this unit.
+
+## T-33.6 complete checkpoint
+
+Ran once on the final tree: `yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck`,
+`yarn test:full`.
+
+| Stage | Result |
+| --- | --- |
+| Install | Already up to date, lockfile unchanged |
+| Build | 4/4 workspace tasks |
+| Typecheck | 7/7 tasks |
+| Workspace package tests | compiler 4,322 passed with 2 existing skips; CLI 70; language server 21; extension 18 |
+| Root host tier | 252 files, **5,290 passed** |
+| Root emulator tier | 133 files, **2,402 passed**, 4 existing skips, 1 failed |
+
+The single failure is the known VIC sprite-collision latch case under full-suite load, in
+`test/rd05/vic-collision-vice.spec.test.ts`. It reads a collision mask through the emulator and has
+no callable value, function pointer or raw write over callable storage anywhere in it, so this unit
+cannot reach it. Re-run alone on the serialized emulator configuration it passes **16/16**, which is
+the same behaviour this case showed at the previous checkpoint. It is a pre-existing timing
+sensitivity under load, not a regression, and nothing about it is waived here.
+
 ## Small execution chunks
 
 Run at most one numbered chunk per invocation and report its real state. An implementation chunk
 may remain `[~]` across runs; do not claim GREEN or commit a tree with failing impacted tests.
 
-- [ ] T-33.1 Independently author the assigned specification tests, run meaningful RED, bind oracle hashes and capture accepted-control baselines. No production code.
-- [ ] T-33.2 Implement the bounded producer record, final-range projection, semantic adapter and all real admission/fallback hooks; run the independent specification tests GREEN without changing their oracles.
-- [ ] T-33.3 Add focused implementation tests and harden ordering, mapping, target capture, subset closure and failure/publication behavior; verify no accepted target bytes or SFA demands were added.
-- [ ] T-33.4 Run directed host/import-boundary coverage, all-mode/profile controls and affected sequential VICE acceptance cases using existing helpers and waits; record exact coverage and any still-unqualified domains.
-- [ ] T-33.5 Obtain the applicable independent reviews below; record and resolve findings under user authority. No waiver, unapproved oracle edit or implicit issue close.
-- [ ] T-33.6 Run the complete checkpoint once after install/build/typecheck, close the bounded unit with exact evidence/residual owners, synchronize the roadmap and commit GREEN locally through the git-commit skill. Never push automatically.
+- [x] T-33.1 Independently author the assigned specification tests, run meaningful RED, bind oracle hashes and capture accepted-control baselines. No production code. Verified 2026-11-19: 60 cases authored blind; the actual run is 49 failed / 11 passed, every failure on the same behavior assertion; oracle hash frozen; accepted-control matrix 36/36. The independent oracle review stays with the other reviews in T-33.5.
+- [x] T-33.2 Implement the bounded producer record, final-range projection, semantic adapter and all real admission/fallback hooks; run the independent specification tests GREEN without changing their oracles. Verified 2026-11-19: the frozen oracle is 60/60 with its hash unchanged; build, `yarn typecheck` and `yarn test:fast` are clean; the six closest existing callable suites stay at 239/239.
+- [x] T-33.3 Add focused implementation tests and harden ordering, mapping, target capture, subset closure and failure/publication behavior; verify no accepted target bytes or SFA demands were added. Verified 2026-11-19: 22 new implementation tests pass, including the candidate withdrawal the oracle cannot reach; the control PRG stays byte-identical to its pre-change digest with unchanged costs.
+- [x] T-33.4 Run directed host/import-boundary coverage, all-mode/profile controls and affected sequential VICE acceptance cases using existing helpers and waits; record exact coverage and any still-unqualified domains. Verified 2026-11-19: directed integration 113/113, serialized emulator 4/4 on the cooperative profiles, control matrix 36/36 with an unchanged payload digest.
+- [x] T-33.5 Obtain the applicable independent reviews below; record and resolve findings under user authority. No waiver, unapproved oracle edit or implicit issue close. Verified 2026-11-19: five independent reviews; every actionable finding repaired inside this unit's own code, the two inferred MAJOR regressions refuted by their own probes, and the remaining item recorded with reasoning. Nothing waived.
+- [x] T-33.6 Run the complete checkpoint once after install/build/typecheck, close the bounded unit with exact evidence/residual owners, synchronize the roadmap and commit GREEN locally through the git-commit skill. Never push automatically. Verified 2026-11-19: install, build and typecheck clean; host tier 5,290 passed; emulator tier 2,402 passed with the one known collision-latch case, which passes 16/16 alone. Committed locally; nothing pushed.
 
 Do not commit the intentional RED stage or a partially GREEN implementation. Keep implementation
 with one owner until the coherent reviewed checkpoint; leave accurate partial progress when paused.
@@ -279,6 +420,196 @@ targets, exact new-file/roadmap-insertion scope and unchanged product/frozen inp
 or emulator tests. Owned validation scratch is cleaned. Portfolio synchronization remains deferred
 off the integration branch.
 
-Planning is complete; execution remains **0/6**. The assigned new spec file has not been written,
-no implementation started and no product finding was waived. The local documentation checkpoint
-records this plan; nothing is pushed. Execution requires a later user request.
+Planning completed at `d66be6e2`. Execution was requested on 2026-11-19 and remains **0/6**
+until the first chunk's evidence is complete. No product finding is waived.
+
+## T-33.1 execution record
+
+Entry checks: the current-schema mini-plan is the complete lightweight plan. There is no open
+material ambiguity or unresolved plan-review finding. The known MAJOR #164 product defect is the
+explicitly authorized repair target, not an accepted risk. Specification-first ordering and the
+one-chunk limit remain mandatory.
+
+Baseline: `d66be6e20c4c2f25cc93d1091e35901051d65b20`, clean `feature/v4-rebuild`;
+phase tree `0a9ae8e4d89c6019eae81fcc8459ca703adfb840`.
+The independent author receives approved behavior requirements, normative rules and public
+build/artifact interfaces, not this plan's implementation design or production source.
+Parent owns all actual command execution and accepted-control capture.
+
+### Accepted-control baselines
+
+Thirty-six uncached builds of the disjoint reference source, nine selected profiles × four modes,
+all succeeded with no diagnostics. Every build reports the same two-byte automatic interval for the
+module-level callable and the same costs: 657 program bytes, 711 resident RAM, 2 hardware-stack
+bytes, 0 zero page and 0 scratch. The eight PRG profiles publish `.prg` payloads; the selected D64
+profile publishes a 174,848-byte disk image, so its baseline is the image digest rather than a PRG
+digest. The PAL/KERNAL/6581 `none` payload reproduces the earlier recorded digest
+`a4364e5135963aeb192abfb88cb6c320d3c54c0a32126ec5299b6c93d2b0a717` exactly. Per-profile digests
+stay in this run's owned scratch; they are reproducible from the same inputs on demand.
+
+### Specification run and oracle freeze
+
+Actual command:
+`yarn vitest run --config vitest.integration.config.ts test/rd04/automatic-callable-placement.spec.test.ts`.
+Result: **49 failed, 11 passed, 60 total**, 47.13 s.
+
+Every failure is the same behavior assertion — the published representation is accepted while the
+constant write still covers that same representation's own callable bytes. None is an import,
+missing-file, assembler or timeout failure, so the RED is meaningful rather than incidental.
+The eleven passing cases are the intended already-correct controls: disjoint sibling bytes, a word
+ending exactly at the callable, a following sibling starting at the endpoint (each on both packed
+roots), a write before the assignment, a write after the last call, complete typed reassignment,
+captured-target evaluation order and left-to-right argument effects. They must keep passing after
+the repair.
+
+The reporter printed only ten of the eleven passes; the write-before-assignment control was dropped
+from its rendered list. A separate filtered run confirmed that case executes and passes rather than
+being skipped, so no pass is unexplained and none is vacuous — each asserts a successful build whose
+final callable bytes are genuinely untouched.
+
+The root test tree is outside `yarn typecheck`, which covers the four workspace packages only, so
+freezing this file cannot introduce a later package typecheck failure.
+
+Frozen oracle: `test/rd04/automatic-callable-placement.spec.test.ts`, 462 lines, SHA-256
+`bfe38c994367c8b262fa6bb44af5cab243f553b0401cf9282a6b0382b8bff611` after formatting.
+Later chunks may not edit this file without exact user approval. It carries no planning identifiers
+or artifact paths in its comments.
+
+The author disclosed two reads beyond its assigned excerpt scope: the shared profile/library test
+helper bodies and the small public entry-point forwarding body. Neither contains callable target
+analysis, final placement logic or expected verdicts, so oracle independence is intact; the
+disclosure is recorded rather than dismissed.
+
+Limits: public fixtures cannot force internal candidate and fallback branches, and cannot prove
+runtime execution counts. Those remain T-33.3 implementation tests and T-33.4 emulator coverage.
+This run changed no production source and no existing test. The failing tree is deliberately
+uncommitted.
+
+## T-33.2 implementation record
+
+### What changed
+
+| File | Change |
+| --- | --- |
+| `packages/compiler/src/semantic/function-targets.ts` | `resolveTargetSets` takes an optional map of absolute global intervals and merges it into the placement facts the existing kill analysis already consumes. Callers without a layout are unchanged. |
+| `packages/compiler/src/semantic/whole-program.ts` | `CallEdge` and `unresolvedCallDiagnostic` are exported, and the diagnostic accepts further cause notes. With no causes its output is byte-identical to before. |
+| `packages/compiler/src/semantic/final-placement-proof.ts` (new) | Re-proves reachable calls against chosen addresses, rejects any widening of a closed target set as a producer fault, and attaches the storage declaration and the covering write to each error. |
+| `packages/compiler/src/services/final-callable-proof.ts` (new) | Joins each source global to the interval the layout gave it, converting the layout's inclusive end to the analysis's half-open end. |
+| `packages/compiler/src/services/size-selection.ts` | `closeCanonicalReference` runs the check once a real layout exists. A `semantics` stage carries an optional representation's withdrawal; the canonical representation fails the build instead. |
+| `packages/compiler/src/services/services.ts` | The exact selected representation is checked again immediately before serialization. |
+
+No lowering decision, placement policy, instruction selection or cost changed, so an accepted
+program keeps the bytes it had. No public package export, CLI flag or specification text changed.
+
+### Design points worth keeping in view
+
+The projection treats data lowering's own output as the record of what exists: a global that
+producer did not materialize has no storage to overwrite, while one it did materialize must be
+placed exactly once at its declared size. Any other combination is reported as a producer
+disagreement rather than silently read as "no overlap".
+
+Supplying addresses can only remove target candidates, never add them, so the check needs no
+second allocation pass. It also skips immediately when a program has no stored callable, no
+materialized intervals or no raw memory write at all, because none of those programs can be
+affected by the addresses chosen.
+
+### Verification
+
+| Command | Result |
+| --- | --- |
+| `yarn workspace @blend65/compiler build` | Clean |
+| `yarn typecheck` | 7/7 tasks successful |
+| `yarn vitest run --config vitest.integration.config.ts test/rd04/automatic-callable-placement.spec.test.ts` | **60 passed, 0 failed** |
+| `yarn test:fast` | 178 files / 2,811 passed with 2 existing skips, then 45 files / 1,282 passed |
+| `yarn prettier --check` on the six touched files | Clean |
+
+The frozen oracle is unchanged: `test/rd04/automatic-callable-placement.spec.test.ts` still hashes
+to `bfe38c994367c8b262fa6bb44af5cab243f553b0401cf9282a6b0382b8bff611` and remains untracked, so the
+green result comes from the compiler rather than from an edited expectation.
+
+One oracle expectation drove a second iteration: a callable packed inside a struct or array names
+its field declaration, which does not point at the stored root. The implementation now also shows
+the declaration of the storage that actually holds the value.
+
+### What this chunk does not yet show
+
+Three hooks exist in code but recorded **zero executions** in every run above: the optional
+representation's `semantics` withdrawal, the re-check immediately before serialization, and both
+producer-disagreement arms. The oracle cannot reach them, because in optimized modes the canonical
+representation fails first and no public fixture can force a candidate or fallback branch. Read
+"every publication path is hooked" as exactly that, not as "every path is exercised"; T-33.3 owns
+the tests that reach them.
+
+The producer evidence was obtained differently from the plan's wording. The plan proposed adding an
+omission record to data lowering; the implementation instead treats membership in that producer's
+own emitted data as the record, which needs no change to the producer and cannot drift from it.
+This is a **design deviation and needs a T-33.5 ruling**, not a delivered plan detail.
+
+Two follow-ups are queued for T-33.3 rather than changed now: a withdrawn candidate's reason text
+still reads as a resource rejection, which understates a lost source proof in candidate evidence;
+and the widening check looks its earlier target set up by operation identity, so its test must
+assert that the lookup actually hits rather than only that no widening was reported.
+
+As an early regression check, the six closest existing callable suites were re-run together and
+stayed at 239/239: raw-write invalidation, its interprocedural form, callable-field helper
+transfer, constant-index recovery, bounded local index and the canonical diagnostic records. The
+seventh related file, `test/rd05/callable-helper-assignment.spec.test.ts`, belongs to the emulator
+tier and was correctly not selected here. Full-suite and emulator coverage remain T-33.4 and are
+not claimed by this chunk.
+
+Author `ses_e0c505687ffeuAf4nE0bpQYMNf`, Sol/high: an external coding-standards read was denied
+by its native permissions. No retry or bypass was attempted. The parent supplied the already
+read applicable standards/routing excerpts through the charter's excerpt path.
+The author also disclosed that a permitted source-library helper read returned bodies beyond the
+profile/signature excerpt scope. No compiler implementation or callable verdict was exposed;
+those bodies are not semantic authority, and the author was instructed not to use or reread them.
+This limited packet overread is disclosed, not silently treated as a fully exact allowlist read.
+
+Reference pre-repair public build: success, diagnostics `[]`, callback CPU16 `[$0A92,$0A94)`,
+659 PRG bytes, SHA-256
+`a4364e5135963aeb192abfb88cb6c320d3c54c0a32126ec5299b6c93d2b0a717`.
+It reproduces the earlier diagnostic control without a cache wrapper.
+### Accepted-control baseline
+
+**36/36 uncached public builds accepted**, diagnostics `[]`: each of the nine selected profiles
+with `none`, `balanced`, `speed` and `size`. Source is exactly the diagnostic reference above,
+SHA-256 `0cf2182bb0160192388a1cc86e0b818501dbc37852ccbba02f32945fe17b0b32`.
+Manifest recipe is the diagnostic reference's ordered fields and two-space/trailing-newline
+format, replacing `target` and `optimization` for each cell. The eight PRG profiles retain
+`name: "callable-reference"`; D64 uses `name: "callable-ref"` within its 16-byte disk-name limit.
+All other inputs remain unchanged.
+
+| Profile group, each in all four modes | Cells | Callable CPU16 interval | File bytes / program bytes | Resident / ZP / scratch / reported stack |
+| --- | --- | --- | --- | --- |
+| `c64-{pal,ntsc}-prg-kernal-{6581,8580}` | 16 | `[$0A92,$0A94)` | 659 / 657 | 711 / 0 / 0 / 2 |
+| `c64-{pal,ntsc}-prg-takeover-{6581,8580}` | 16 | `[$094B,$094D)` | 332 / 330 | 343 / 0 / 0 / 9 |
+| `c64-pal-d64-kernal-6581` | 4 | `[$0A92,$0A94)` | 174848 disk image / 657 | 711 / 0 / 0 / 2 |
+
+PRG SHA-256 is identical across every mode/profile within each PRG group:
+
+- Cooperative: `a4364e5135963aeb192abfb88cb6c320d3c54c0a32126ec5299b6c93d2b0a717`.
+- Takeover: `c6364b6105672d284e27c8fb805335c452d3b3438b6bf1a5470e4c0eedabd94a`.
+
+D64's `primaryArtifact` is `callable-ref.d64`, **not a PRG**. The observed disk-image digests
+are mode-specific build records, not a claim of reproducible package metadata:
+
+| Mode | D64 SHA-256 |
+| --- | --- |
+| `none` | `c572ec4e64b6e717de2f9456ddef5d91d6c83f6695aac6e546654e43946216b3` |
+| `balanced` | `9e4e6e0df4bb8d2b614d7723b0898d43758c2b366d9d480fac5f645221f7e6a0` |
+| `speed` | `0c6decfd40abef86892ff1f865ad283eab6f330455f2e613fd21e2ef562e1bdd` |
+| `size` | `a83cc2221ce0f57cf08c7cd836b6c333781bee257b7650af9b0402cfead2b0f2` |
+
+Two parent probe setup mistakes are excluded from RED: the first D64 attempt used a 17-byte name
+and failed its disk-name limit; a supplemental payload probe assumed a standalone `.prg` file,
+but the successful D64 generation contains only its disk image and sidecars. Neither is evidence
+of callable rejection or an implemented repair. No repeated full-suite run or product change
+followed. No emulator or hardware execution ran; reported costs are build evidence only.
+
+Specification authoring: 60 tests in the sole assigned file, 466 pre-format lines.
+The author also disclosed seeing the small `loadProject` forwarding body in its permitted public
+index read; no callable implementation or existing callable verdicts were read. This adds a
+second bounded interface overread, not a semantic expectation source. Independent oracle review
+will assess the stated blindness boundary. Public fixtures cannot force every internal optional
+candidate/fallback branch or prove runtime exactly-once behavior; those remain later-task evidence.
+RED qualification, review and oracle freeze are pending.

@@ -12,6 +12,7 @@ import {
   startupAssignmentFacts,
 } from "./assignment-facts.js";
 import { analyzeInterproceduralKills } from "./interprocedural-kills.js";
+import type { PlacedRange } from "./raw-write-kills.js";
 import type {
   InterproceduralKillContext,
   InterproceduralKillResult,
@@ -101,10 +102,17 @@ function selectPathTargets(source: PathTargets | undefined, path: string): PathT
   return selected;
 }
 
-/** Infer callable and handler provenance through values, typed storage and calls. */
+/**
+ * Infer callable and handler provenance through values, typed storage and calls.
+ * @param program Checked semantic program whose calls need a finite target proof.
+ * @param handlerSinkCapabilities Platform sinks whose handler argument is proved here.
+ * @param finalGlobalRanges Absolute intervals of materialized globals, once a real
+ * layout has chosen them. Callers without a layout keep explicit placement alone.
+ */
 export function resolveTargetSets(
   program: SemanticProgram,
   handlerSinkCapabilities: ReadonlySet<string>,
+  finalGlobalRanges?: ReadonlyMap<string, PlacedRange>,
 ): ResolvedTargetSets {
   const functions = new Map(
     program.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
@@ -180,6 +188,10 @@ export function resolveTargetSets(
       end: at + semanticTypeSize(global.type),
     });
   }
+  // A chosen layout proves the same kind of interval for storage the source left
+  // automatic, so a constant write to one of those addresses is no longer unknown.
+  for (const [root, interval] of finalGlobalRanges ?? [])
+    placedRanges.set(root, { start: interval.start, end: interval.end });
   const allGlobalAssignments = new Set(initializedGlobals);
   for (const root of globalRoots) allGlobalAssignments.add(root);
   for (const context of contexts) {

@@ -24,6 +24,7 @@ import { selectTargetProfile } from "../target/profile.js";
 import { runAcme } from "../tools/acme.js";
 import { discoverAcme } from "../tools/discovery.js";
 import { prepareEvidence, sizeCostVector } from "./evidence.js";
+import { validateFinalCallableProof } from "./final-callable-proof.js";
 import { buildD64Image, encodeD64Name } from "../packaging/d64/index.js";
 import type { D64Image } from "../packaging/d64/index.js";
 import { validateSizeObservers } from "./size-observers.js";
@@ -302,6 +303,8 @@ function referenceRejectionKind(stage: string): string {
   if (stage === "stack") return "stack";
   if (stage === "payload") return "memory";
   if (stage === "layout") return "layout";
+  // A lost source proof is not a capacity result and must not read as one.
+  if (stage === "semantics") return "semantics";
   return "memory";
 }
 
@@ -602,6 +605,18 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
   if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
   const { layout, certificate } = selectedShared;
   const diagnostics = selectedDiagnostics;
+  // Selection may have chosen a different representation than the one the
+  // reference proved, so the exact published pair is checked once more here.
+  const publishedProof = validateFinalCallableProof(selectedPipeline.program, profile, layout);
+  if (publishedProof.kind !== "valid") {
+    return {
+      kind: "failure",
+      failure:
+        publishedProof.kind === "invalid"
+          ? failure("source", publishedProof.diagnostics)
+          : failure("compiler", [serviceDiagnostic("COMPILER_LAYOUT", publishedProof.reason)]),
+    };
+  }
   const serialization = serializeAcme({
     layout,
     certificate: certificate.certificate,

@@ -147,7 +147,7 @@ function compareBindings(left: BindingId, right: BindingId): number {
 }
 
 /** Only edge facts needed after direct and indirect calls are closed. */
-interface CallEdge {
+export interface CallEdge {
   readonly callee: BindingId;
   readonly span: SourceSpan;
   readonly targetDisplay?: string;
@@ -155,16 +155,36 @@ interface CallEdge {
   readonly signature?: FunctionType;
 }
 
-/** Explain the exact source expression and callable type that could not be proved. */
-function unresolvedCallDiagnostic(call: CallEdge): ProjectDiagnostic {
+/** One further source site that explains why a call target could not be proved. */
+export interface UnresolvedCallCause {
+  /** Exact source span of the contributing operation. */
+  readonly span: SourceSpan;
+  /** Plain explanation of that site's effect on the callable bytes. */
+  readonly message: string;
+}
+
+/**
+ * Explain the exact source expression and callable type that could not be proved.
+ * @param call Closed edge whose callable target has no finite source candidate.
+ * @param causes Further sites to show, such as a memory write over those bytes.
+ * @returns The canonical finite-target error with its declaration and cause notes.
+ * @example unresolvedCallDiagnostic(edge, [{ span, message: "Written here" }])
+ */
+export function unresolvedCallDiagnostic(
+  call: CallEdge,
+  causes: readonly UnresolvedCallCause[] = [],
+): ProjectDiagnostic {
   return projectDiagnostic(
     "E10277",
     `Cannot prove a finite source-function target set for call through '${call.targetDisplay ?? "<unknown>"}' of type '${call.signature === undefined ? "<unknown>" : semanticTypeName(call.signature)}' — keep the value within closed-program typed storage`,
     call.span,
     null,
-    call.calleeDeclaration === undefined
-      ? []
-      : [{ span: call.calleeDeclaration, message: "Function-valued storage is declared here" }],
+    [
+      ...(call.calleeDeclaration === undefined
+        ? []
+        : [{ span: call.calleeDeclaration, message: "Function-valued storage is declared here" }]),
+      ...causes,
+    ],
   );
 }
 

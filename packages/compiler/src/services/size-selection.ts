@@ -42,6 +42,7 @@ import {
   storageResourceWarnings,
 } from "./resource-diagnostics.js";
 import { sizeCostVector, type SizeCostVector } from "./evidence.js";
+import { validateFinalCallableProof } from "./final-callable-proof.js";
 import { startupVisibilityFailure, validateSizeObservers } from "./size-observers.js";
 import type { ObserverValidation } from "./size-observers.js";
 import { closeSharedStorage } from "./shared-storage.js";
@@ -110,7 +111,14 @@ export interface CanonicalResourceRejection {
   /** The reference is unavailable; another proved representation may still fit. */
   readonly kind: "resource-rejected";
   /** Existing producer which established the resource constraint. */
-  readonly stage: "zero-page" | "allocation" | "storage" | "stack" | "payload" | "layout";
+  readonly stage:
+    | "zero-page"
+    | "allocation"
+    | "storage"
+    | "stack"
+    | "payload"
+    | "layout"
+    | "semantics";
   /** Exact existing service result to preserve for direct compilation. */
   readonly failure: ServiceFailure;
   /** Available observations; no invented vector, empty layout or missing-home assumption. */
@@ -552,7 +560,14 @@ export function closeCanonicalReference(
         checked.certificate.certificate.hardwareStackPeak
     ) {
       const reference = closeCanonicalReference(stored.value);
-      if (reference.kind !== "resource-rejected") return reference;
+      // This alternative is only a preference. Where its own addresses put
+      // callable storage under a raw write, the construction about to be
+      // published may still be sound, so that outcome drops the preference
+      // instead of failing the build.
+      const lostCallableProof =
+        reference.kind === "failure" &&
+        reference.failure.diagnostics.some(({ code }) => code === "E10277");
+      if (reference.kind !== "resource-rejected" && !lostCallableProof) return reference;
     }
   }
   const facts = {
@@ -598,6 +613,17 @@ export function closeCanonicalReference(
       (candidate && shared.reason === "invalid-data" && shared.objectId === C64_STARTUP_STATE_ID)
       ? rejected("layout", failed.failure, { ...facts, objectId: shared.objectId })
       : failed;
+  }
+  // Addresses exist only now, so this is the first point where a constant write
+  // can be compared with the callable storage it may cover. An optional
+  // representation that fails here is withdrawn and the canonical one still
+  // decides the build; the canonical representation itself cannot publish.
+  const callableProof = validateFinalCallableProof(checked.program, profile, shared.layout);
+  if (callableProof.kind === "invariant")
+    return terminal("compiler", [projectDiagnostic("COMPILER_LAYOUT", callableProof.reason, null)]);
+  if (callableProof.kind === "invalid") {
+    const failed = terminal("source", callableProof.diagnostics);
+    return candidate ? rejected("semantics", failed.failure, facts) : failed;
   }
   if (checked.requestedStartupPolicy !== undefined) {
     const visibility = startupVisibilityFailure(shared, checked.profile);
@@ -739,7 +765,7 @@ function deriveSizeSourceFacts(input: CheckedSourceInput) {
  * Enumerate only the fixed whole-program recipe frontier. Missing source patterns keep
  * their ordinary axis choice; no per-site Cartesian product or recursive search is formed.
  * @param input Checked source with its source-only loop context.
- * @returns Deterministic Direct/Closed, loop and startup tuples, at most 36 plans.
+ * @returns Deterministic Direct/Closed, loop and startup tuples, at most 42 plans.
  */
 export function sizeSelectionPlans(input: SizeSelectionInput): Iterable<SizeSelectionPlan> {
   const checked = input.checked;
@@ -820,6 +846,8 @@ function rejectionKindForStage(stage: CanonicalResourceRejection["stage"]): stri
   if (stage === "stack") return "stack";
   if (stage === "payload") return "memory";
   if (stage === "layout") return "layout";
+  // A lost source proof is not a capacity result and must not be read as one.
+  if (stage === "semantics") return "semantics";
   return "memory";
 }
 
@@ -961,7 +989,10 @@ export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResu
     return candidateRejected(
       plan,
       rejectionKindForStage(reference.stage),
-      `${reference.stage} resource rejection`,
+      // A lost call proof is not a capacity outcome and must not read as one.
+      reference.stage === "semantics"
+        ? "this construction places callable storage under a raw write"
+        : `${reference.stage} resource rejection`,
       objectId === null ? null : (checked.resourceSpans.get(objectId) ?? null),
       objectId,
     );
