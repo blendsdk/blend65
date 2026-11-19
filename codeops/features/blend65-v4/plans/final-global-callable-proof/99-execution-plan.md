@@ -326,22 +326,25 @@ The single failure is the known VIC sprite-collision latch case under full-suite
 no callable value, function pointer or raw write over callable storage anywhere in it, so this unit
 cannot reach it. Re-run alone on the serialized emulator configuration it passes **16/16**, which is
 the same behaviour this case showed at the previous checkpoint. It is a pre-existing timing
-sensitivity under load, not a regression, and nothing about it is waived here.
+sensitivity under load, not a regression, and nothing about it is waived here. It is now tracked
+as issue #169 so a later checkpoint can refer to it instead of judging it again.
 
-## Open for the user's ruling
+## User ruling
 
-Every review decision below was taken by repair or by evidence, never by waiving anything. Under
-this project's quality policy those dispositions still need the user's ratification, which has not
-been given. Until it is, this unit is complete as engineering and provisional as governance.
+On 2026-11-19 the user ratified every disposition below as recorded, accepted the complete-gate
+outcome on the precedent set at T-30, and asked for the emulator flake to be tracked separately.
+Nothing in this unit is waived: each finding was closed by repair or by evidence.
 
-| Item | Disposition taken | What ratification means |
+Every review decision below was taken by repair or by evidence, never by waiving anything.
+
+| Item | Disposition taken | Ruling |
 | --- | --- | --- |
-| Using the data producer's own emitted output as the record of what exists, instead of the separate omission record this plan described | Accepted, with the opposite-direction check added | Accept the deviation, or ask for the original form |
-| SM-001 and MC-002, both MAJOR | Repaired in this unit's own code and re-verified | Accept the repairs |
-| SF-002 and SF-003, both MAJOR and both inferred rather than run | Refuted by their own probes; no code change | Accept the refutations, or ask for more probing |
-| PE-001 and PE-002, both MAJOR | Repaired; PE-001 also narrowed what the check sees, as recorded above | Accept the repairs and that narrowing |
-| PE-005, the repeated guard before serialization | Kept deliberately | Accept keeping it, or have it removed |
-| The complete gate is not literally all green | The one failure is the known collision-latch case, which passes 16/16 alone, as at the previous checkpoint | Accept that disposition as at T-30, or order one more complete gate |
+| Using the data producer's own emitted output as the record of what exists, instead of the separate omission record this plan described | Accepted, with the opposite-direction check added | Ratified |
+| SM-001 and MC-002, both MAJOR | Repaired in this unit's own code and re-verified | Ratified |
+| SF-002 and SF-003, both MAJOR and both inferred rather than run | Refuted by their own probes; no code change | Ratified |
+| PE-001 and PE-002, both MAJOR | Repaired; PE-001 also narrowed what the check sees, as recorded above | Ratified, including that narrowing |
+| PE-005, the repeated guard before serialization | Kept deliberately | Ratified; the guard stays |
+| The complete gate is not literally all green | The one failure is the known collision-latch case, which passes 16/16 alone, as at the previous checkpoint | Ratified on the T-30 precedent, with the case tracked as its own issue rather than re-judged each checkpoint |
 
 The frozen oracle was verified against the commit itself: `git show HEAD:` on
 `test/rd04/automatic-callable-placement.spec.test.ts` hashes to
