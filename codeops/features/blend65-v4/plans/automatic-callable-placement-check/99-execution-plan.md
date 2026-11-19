@@ -2,8 +2,8 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-164 / #164
-> **Progress**: 3/4 tasks (75%)
-> **Status**: Executing — matching-address artifact verified; final classification pending
+> **Progress**: 4/4 tasks (100%)
+> **Status**: Done — diagnosis only; confirmed MAJOR #164 remains open for separately planned repair, without waiver
 > **Baseline**: `e9a374cf`, clean `feature/v4-rebuild`
 > **Scope**: strict; classification only
 > **Reasoning**: high — final storage placement and the compiler's known call target must agree
@@ -58,7 +58,8 @@ final output inspection cannot settle the classification.
 | [Existing specification cases](../../../../../test/rd04/raw-write-callable-invalidation.spec.test.ts) | Direct-address and explicitly placed cases already have immutable expectations; reuse the public-build pattern, not their address-taking setup. |
 | [Existing artifact inspection](../../../../../test/rd04/interprocedural-kill-cost.impl.test.ts) | Public builds and output inspection already have a project pattern. |
 
-Final language-level classification: **Unknown**, pending T-164.4.
+Language-level classification: **confirmed stale-target-proof defect**, independently supported
+by the T-164.4 semantic and storage reviews below. Runtime behavior remains **Unknown**.
 T-164.2 established the disjoint reference; T-164.3 produced the matching-address artifact
 recorded below. Neither build is a runtime observation.
 The historical T-30 ruling does not authorize a new waiver.
@@ -72,7 +73,7 @@ Complete at most one numbered chunk per run, then report the result.
 - [x] T-164.1 Define this check, validate the documentation and obtain independent planning review. Verified 2026-11-19: formatting, local links, checklist and exact documentation-only scope pass; independent review reports no findings. No public build or emulator run.
 - [x] T-164.2 Build the unrelated-address control and record its exact source, compiler/options/tool identities, diagnostics and final variable interval. Verified 2026-11-19 at `afc1edea`: public API success, no diagnostics; callback `[$0A92,$0A94)`, control disjoint; artifact/document checks pass, bounded documentation review clear and owned cleanup complete.
 - [x] T-164.3 Build the matching-address case; confirm its own final interval and inspect the relevant emitted bytes and call path. If no matching final artifact is obtained, record that limitation rather than claim coverage. Verified 2026-11-19 at `5b7c4b0b`: accepted with no diagnostics; current interval fully matches, zero stores followed by direct call confirmed; capture/document checks and bounded reviews pass; owned cleanup done.
-- [ ] T-164.4 Classify the result, use the minimum sequential VICE observation only if needed, obtain applicable independent reviews, record evidence limits and clean owned temporary files. Commit GREEN documentation locally through the git-commit skill; never push.
+- [x] T-164.4 Classify the result, use the minimum sequential VICE observation only if needed, obtain applicable independent reviews, record evidence limits and clean owned temporary files. Commit GREEN documentation locally through the git-commit skill; never push. Verified 2026-11-19: confirmed proof defect; user approved separate bounded repair planning without waiver; final correctness review has no findings, documentation/artifact checks pass, no emulator needed and owned scratch cleaned. No compiler implementation authorized.
 
 **Task verify:** for T-164.1, targeted Prettier, local links, checklist/roadmap consistency and
 an exact documentation-only diff. For T-164.2–3, successful public-build evidence or exact
@@ -340,3 +341,102 @@ Documentation formatting, local links, durable source/PRG digests, exact two-fil
 checklist arithmetic and unchanged product/frozen inputs pass. No unrelated task advanced.
 No compiler, existing test, oracle, shared helper, timeout, specification, expert authority,
 historical release record or release approval changed. No emulator or push was performed.
+
+## T-164.4 classification and finding gate
+
+Classification baseline: `8ae6ed896fd2144bc4399d763ab48b62d0c7d221`, clean tree
+`9de03b81ab6ea8d23a075a364b3d905c4c8a9d4a`.
+Both durable source digests, the complete matching PRG digest and the reconstructed reference
+PRG digest were checked again: PASS. The product tree has not changed since the recorded public
+build. No new compiler build, emulator observation or full regression gate ran in this chunk.
+
+### Confirmed condition
+
+The accepted matching artifact retains a source-function singleton that is no longer supported
+by its materialized storage. It assigns `$0976`, writes `$0000` over that same two-byte global,
+then emits direct `JSR $0976`. The disjoint control does not have this overlap.
+This establishes an **incorrect finite-target proof**, not an observed runtime result.
+
+Governing normative requirements:
+
+- [Function representation](../../../../../spec/02-type-system.md#23-function-types):
+  materialized function values occupy one target address word; their target sets are proof
+  information, not runtime tags.
+- [Call evaluation and finite proof](../../../../../spec/06-functions.md#43-finite-target-proof):
+  the function-value target is evaluated before arguments; a direct call requires a valid
+  singleton, and a call without a finite proved source set is rejected.
+- [Memory-access effects](../../../../../spec/12-intrinsics.md#31-memory-access):
+  the little-endian word write occurs in source order before the call.
+
+If this overlapping layout is retained without a valid replacement proof, E10277 applies.
+The compiler must not instead call `$0000`, add a hidden null-call runtime, globally forbid
+memory writes, or require explicit source placement/address-taking. A safe automatic placement
+could avoid this overlap, so this diagnosis does not prescribe rejection for every layout.
+The non-normative F018 example corroborates intent but is not used to override the chapters.
+Historical T-30 AR-P1 is batch risk acceptance, not a language waiver or new approval.
+
+### Ownership and cause
+
+The missing fact is the final association between `global.src/game.blend:13:38` and
+`[$0A92,$0A94)`. The semantic placement map includes only explicitly placed objects; the
+constant-write path therefore does not invalidate this automatic global's target fact.
+The singleton is consumed by call lowering before automatic BSS placement.
+
+| Boundary | Inspected source |
+| --- | --- |
+| Incomplete absolute-range map | [`function-targets.ts:172–182`](../../../../../packages/compiler/src/semantic/function-targets.ts) |
+| Constant write compared with that map | [`raw-write-kills.ts:499–517`](../../../../../packages/compiler/src/semantic/raw-write-kills.ts) |
+| Final target publication | [`function-targets.ts:689,706,728–737`](../../../../../packages/compiler/src/semantic/function-targets.ts) |
+| Target consumer / singleton lowering | [`lower-function.ts:649–658`](../../../../../packages/compiler/src/machine/lower-function.ts) and [`lower-indirect.ts:47–55`](../../../../../packages/compiler/src/machine/lower-indirect.ts) |
+| Later automatic BSS placement | [`c64-layout.ts:820–859`](../../../../../packages/compiler/src/layout/c64-layout.ts) |
+| Function-storage reclosure, not global-target revalidation | [`shared-storage.ts:231–270`](../../../../../packages/compiler/src/services/shared-storage.ts) |
+
+The callback is a **global/platform-layout object**, not an SFA home. Neither zero store reaches
+startup state or the three SFA bytes. This witness does not demonstrate invalid frame sharing,
+nor does function-storage reclosure prove that the overwritten global still names the old target.
+
+### Independent reviews and ruling
+
+| Review | Result and evidence boundary |
+| --- | --- |
+| Semantics `ses_e0cebdf5bffeegyfe69KrX7JTD`, Astra/xhigh | SM-001 MAJOR in the pre-existing compiler: finite-target proof fails; no product-owned ambiguity prevents this bounded conclusion. Semantic preservation and silent diagnostic acceptance fail; ordinary source forms must remain usable. No finding in the diagnostic design/evidence packet. |
+| Storage `ses_e0cebdf53ffeo3QJ7NxlFIqNqU`, Astra/xhigh | SF-001 MAJOR in the pre-existing compiler: missing final-placement premise, not invalid SFA overlay. Independently traced the named producer/consumer sources. No finding in the diagnostic storage-review scope; final closeout diff not yet reviewed. |
+| Emitted bytes `ses_e0cf473a1ffe24pswNVP2oo8j7` | Existing T-164.3 review applies to the unchanged captured bytes; decoding and extents have no findings. This is not a new runtime or digest-authentication review. |
+
+SM-001 and SF-001 describe the same #164 proof invariant and are merged below; they are not two
+independent product defects. These reviews used permitted repository evidence and parent-supplied
+qualified expert excerpts. The storage reviewer excluded accidentally exposed historical routing
+smoke-check summaries from its assessment. Neither reviewer authenticated deleted raw sidecars.
+
+| Finding | Severity | Owner | Ruling |
+| --- | --- | --- | --- |
+| SM-001 / SF-001: final global placement and callable target fact disagree | MAJOR | Existing issue #164; separate bounded corrective plan required | User approved fix through a separate bounded plan on 2026-11-19; no waiver, completed repair, issue closure or release approval |
+
+**User ruling (2026-11-19):** the user answered “yes” to recording the confirmed defect without
+accepting it as safe, completing diagnostic closeout, and creating a separate bounded repair plan.
+That plan must reconcile final placement with target validity and preserve the disjoint control.
+No repair design, new analysis framework or broad source restriction is selected here.
+This ruling resumes diagnostic closeout and authorizes repair planning, not implementation.
+It neither resolves the product defect nor permits accepting its output as safe.
+
+### Why no emulator run
+
+VICE cannot decide the language rule or validate a stale source-target proof. The actual compiled
+stores, complete matching interval and direct-call bytes already settle this classification.
+An emulator could add a bounded runtime observation, but it is not necessary for this proof
+finding. No current witness is presented as VICE-verified or hardware-verified.
+
+Runtime effects, physical hardware, general interrupt/stack guarantees and whole-program safety
+remain Unknown. The memory report's existing unproven boundaries remain unchanged.
+Issue #164 is **not fixed or closed**; #168 and current-tree release qualification remain open.
+Final correctness review `ses_e0ce27de3ffebffk8UpwoWc3XZ`, Astra/high, returned **no findings**
+in the bounded diagnostic closeout. It checked the recorded user ruling, merged unresolved product
+finding, classification/repair distinction, unchanged oracle authority and explicit evidence limits.
+It inspected permitted repository documentation and supplied verification results, not raw artifacts
+or a tool-level diff. No security/host-performance audit applies to this documentation-only diff.
+
+The four-task diagnostic checklist is complete. Targeted formatting, links, exact document scope,
+unchanged product/frozen inputs and preserved capture digest checks pass; owned validation scratch
+is cleaned. The local diagnostic checkpoint records this closeout. No temporary artifacts are
+retained and no push is authorized. The product MAJOR finding remains open for the separately
+authorized repair plan; completing this investigation is not completing its fix.
