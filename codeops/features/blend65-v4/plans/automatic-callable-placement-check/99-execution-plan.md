@@ -2,8 +2,8 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-164 / #164
-> **Progress**: 2/4 tasks (50%)
-> **Status**: Executing — reference build verified; matching-address build not started
+> **Progress**: 3/4 tasks (75%)
+> **Status**: Executing — matching-address artifact verified; final classification pending
 > **Baseline**: `e9a374cf`, clean `feature/v4-rebuild`
 > **Scope**: strict; classification only
 > **Reasoning**: high — final storage placement and the compiler's known call target must agree
@@ -58,8 +58,9 @@ final output inspection cannot settle the classification.
 | [Existing specification cases](../../../../../test/rd04/raw-write-callable-invalidation.spec.test.ts) | Direct-address and explicitly placed cases already have immutable expectations; reuse the public-build pattern, not their address-taking setup. |
 | [Existing artifact inspection](../../../../../test/rd04/interprocedural-kill-cost.impl.test.ts) | Public builds and output inspection already have a project pattern. |
 
-Matching-address classification: **Unknown**. T-164.2 produced the disjoint reference artifact
-recorded below, not a matching-address or runtime result.
+Final language-level classification: **Unknown**, pending T-164.4.
+T-164.2 established the disjoint reference; T-164.3 produced the matching-address artifact
+recorded below. Neither build is a runtime observation.
 The historical T-30 ruling does not authorize a new waiver.
 This investigation is not a bugfix: no implementation or new regression oracle is planned.
 Any later repair requires independent specification-first tests and meaningful RED evidence.
@@ -70,7 +71,7 @@ Complete at most one numbered chunk per run, then report the result.
 
 - [x] T-164.1 Define this check, validate the documentation and obtain independent planning review. Verified 2026-11-19: formatting, local links, checklist and exact documentation-only scope pass; independent review reports no findings. No public build or emulator run.
 - [x] T-164.2 Build the unrelated-address control and record its exact source, compiler/options/tool identities, diagnostics and final variable interval. Verified 2026-11-19 at `afc1edea`: public API success, no diagnostics; callback `[$0A92,$0A94)`, control disjoint; artifact/document checks pass, bounded documentation review clear and owned cleanup complete.
-- [ ] T-164.3 Build the matching-address case; confirm its own final interval and inspect the relevant emitted bytes and call path. If no matching final artifact is obtained, record that limitation rather than claim coverage.
+- [x] T-164.3 Build the matching-address case; confirm its own final interval and inspect the relevant emitted bytes and call path. If no matching final artifact is obtained, record that limitation rather than claim coverage. Verified 2026-11-19 at `5b7c4b0b`: accepted with no diagnostics; current interval fully matches, zero stores followed by direct call confirmed; capture/document checks and bounded reviews pass; owned cleanup done.
 - [ ] T-164.4 Classify the result, use the minimum sequential VICE observation only if needed, obtain applicable independent reviews, record evidence limits and clean owned temporary files. Commit GREEN documentation locally through the git-commit skill; never push.
 
 **Task verify:** for T-164.1, targeted Prettier, local links, checklist/roadmap consistency and
@@ -223,3 +224,119 @@ Additional knowledge references: `c64-memory-and-runtime.md#cpu-address-view`,
 `6502-lowering-casebook.md#calls-returns-abi-and-helpers`.
 Source keys: `CBM-C64-PRG-1982`, `MOS-PGM-1976` and `MOS-6510-1982`.
 No runtime, hardware or expert-parity claim is made.
+
+## T-164.3 matching-address evidence
+
+Status: **Verified partial**; claim kind: **Fact** for this artifact inspection.
+One public `buildProject` call succeeded with diagnostics `[]` after the compiler package build
+passed. The source differs from the reference by only `pokew($C100, 0)` becoming
+`pokew($0A92, 0)`; declarations, write width/value, assignment and call are unchanged:
+
+```blend65
+module Game;
+let callback: fn(): byte;
+function chosen(): byte { return 37; }
+function main(): void {
+  callback = &chosen;
+  pokew($0A92, 0);
+  poke($C000, callback());
+}
+```
+
+The manifest is byte-identical to the reference, including project name. Host, target,
+options, assembler executable/options and reported compiler/specification/expert identities
+also match the reference. The compiler Git commit is now
+`5b7c4b0b7debdaf39075de94b78ad709bf95655a`; the chunk baseline tree is
+`6c886d3ffd3dc69653efb03cd9c90f05c4aec053`. Only documentation changed since the reference commit.
+
+| Observation | Current generation |
+| --- | --- |
+| Generation | `3be825da-9c79-4cd0-80bc-d5ac9d8c962b` |
+| Callback identity | `global.src/game.blend:13:38`, mutable CPU16 BSS |
+| Independently checked final interval | `[$0A92,$0A94)`, two bytes; this generation's label and memory record agree |
+| Constant-write interval | `[$0A92,$0A94)`; exactly matches the callback, not another CPU16 interval |
+| Main / chosen intervals | `[$0953,$0976)` / `[$0976,$0979)` |
+| File / code / storage costs | Unchanged: 659 PRG bytes, 645 `code` + 12 `startup`, resident RAM 711, three SFA bytes, ZP 0, scratch 0 |
+| Memory-report limits | Same report bytes as reference: reconciled, runtime safety unproven; external NMI limitations unchanged |
+| Runtime / release claim | None; no emulator, hardware, complete regression gate or installed-package qualification |
+
+### Selected emitted bytes
+
+The current PRG's 35 main-routine bytes are:
+
+```text
+a9 76 8d 92 0a a9 09 8d 93 0a a9 00 8d 92 0a a9 00 8d 93 0a
+20 76 09 8d c7 0a ad c7 0a 8d 00 c0 4c 79 09
+```
+
+These encode the `$0976` pointer assignment, then zero stores to both `$0A92` and `$0A93`,
+then direct `JSR $0976`. Thus the instructions would replace the assigned pointer value
+`$0976` with `$0000` before a direct call to the original function. This is a decoded
+instruction sequence, not a claim that the target program was executed.
+The chosen routine remains `a9 25 60`. No relocation or diagnostic prevented this artifact.
+The source-language verdict, independent contract review and any necessary runtime observation
+remain T-164.4; this chunk authorizes no repair or risk acceptance.
+
+### Identity and checks
+
+| Input / artifact | SHA-256 |
+| --- | --- |
+| Source, 172 bytes | `0e487178b4359e4d302a0a5a9eb85b04c8fad4c695670ec9319707c96c303af3` |
+| PRG | `49f6fa84584958cfea1a109b7ee95b8b550d8d04fb3a5326b1c632998c33fdb5` |
+| `.build.json` | `1e90ac52a754951549f841da3f54b6e62d854d5ebc1aba91a0f0880bb7d821eb` |
+| `.asm` | `9269f058d34a6a471b9fc3a522851061381abbe1996abe9d06e4ba39bf883f5d` |
+
+Manifest, labels, memory and cost-file hashes equal their T-164.2 values. The execution owner
+authenticated all generation-listed artifact digests, returned build digest, exact one-address
+source change, unchanged manifest/compiler/options, ACME executable, current callback label and
+storage interval, and exact main/chosen bytes: PASS.
+Changing only the four write-address operand bytes back to the control values reproduces the
+recorded reference PRG hash. This is a byte-identity check, not a behavior oracle.
+
+### Complete matching PRG bytes
+
+The following 659-byte capture includes the two-byte load address. It preserves the actual
+artifact for later digest verification without retaining a temporary project or inventing
+new compiler output. Reconstruction must verify the recorded SHA-256 before any use.
+
+```text
+01 08 0b 08 0a 00 9e 32 30 36 31 00 00 00 8d 94 0a 8e 95 0a 8c 96 0a 08 68 8d 97 0a ba 8e 98 0a
+d8 a6 00 8e 99 0a a4 01 8c 9a 0a ad 18 d0 8d 9c 0a ad 15 d0 8d 9d 0a ad 10 d0 8d 9e 0a ad 17 d0
+8d 9f 0a ad 1b d0 8d a0 0a ad 1c d0 8d a1 0a ad 1d d0 8d a2 0a ad 20 d0 8d a3 0a ad 21 d0 8d a4
+0a ad 00 d0 8d a5 0a ad 01 d0 8d a6 0a ad 02 d0 8d a7 0a ad 03 d0 8d a8 0a ad 04 d0 8d a9 0a ad
+05 d0 8d aa 0a ad 06 d0 8d ab 0a ad 07 d0 8d ac 0a ad 08 d0 8d ad 0a ad 09 d0 8d ae 0a ad 0a d0
+8d af 0a ad 0b d0 8d b0 0a ad 0c d0 8d b1 0a ad 0d d0 8d b2 0a ad 0e d0 8d b3 0a ad 0f d0 8d b4
+0a ad 27 d0 8d b5 0a ad 28 d0 8d b6 0a ad 29 d0 8d b7 0a ad 2a d0 8d b8 0a ad 2b d0 8d b9 0a ad
+2c d0 8d ba 0a ad 2d d0 8d bb 0a ad 2e d0 8d bc 0a ad f8 07 8d bd 0a ad f9 07 8d be 0a ad fa 07
+8d bf 0a ad fb 07 8d c0 0a ad fc 07 8d c1 0a ad fd 07 8d c2 0a ad fe 07 8d c3 0a ad ff 07 8d c4
+0a 98 29 f8 09 06 85 01 8a 09 07 85 00 ad 02 dd 8d 9b 0a 29 fc 8d 02 dd a9 14 8d 18 d0 a9 00 8d
+15 d0 8d 17 d0 8d 1b d0 8d 1c d0 8d 1d d0 8d 20 d0 8d 21 d0 a9 76 8d 92 0a a9 09 8d 93 0a a9 00
+8d 92 0a a9 00 8d 93 0a 20 76 09 8d c7 0a ad c7 0a 8d 00 c0 4c 79 09 a9 25 60 ad 9c 0a 8d 18 d0
+ad 9d 0a 8d 15 d0 ad 9e 0a 8d 10 d0 ad 9f 0a 8d 17 d0 ad a0 0a 8d 1b d0 ad a1 0a 8d 1c d0 ad a2
+0a 8d 1d d0 ad a3 0a 8d 20 d0 ad a4 0a 8d 21 d0 ad a5 0a 8d 00 d0 ad a6 0a 8d 01 d0 ad a7 0a 8d
+02 d0 ad a8 0a 8d 03 d0 ad a9 0a 8d 04 d0 ad aa 0a 8d 05 d0 ad ab 0a 8d 06 d0 ad ac 0a 8d 07 d0
+ad ad 0a 8d 08 d0 ad ae 0a 8d 09 d0 ad af 0a 8d 0a d0 ad b0 0a 8d 0b d0 ad b1 0a 8d 0c d0 ad b2
+0a 8d 0d d0 ad b3 0a 8d 0e d0 ad b4 0a 8d 0f d0 ad b5 0a 8d 27 d0 ad b6 0a 8d 28 d0 ad b7 0a 8d
+29 d0 ad b8 0a 8d 2a d0 ad b9 0a 8d 2b d0 ad ba 0a 8d 2c d0 ad bb 0a 8d 2d d0 ad bc 0a 8d 2e d0
+ad bd 0a 8d f8 07 ad be 0a 8d f9 07 ad bf 0a 8d fa 07 ad c0 0a 8d fb 07 ad c1 0a 8d fc 07 ad c2
+0a 8d fd 07 ad c3 0a 8d fe 07 ad c4 0a 8d ff 07 ad 9b 0a 8d 02 dd ad 9a 0a 85 01 ad 99 0a 85 00
+ae 98 0a 9a ad 97 0a 48 ad 94 0a ae 95 0a ac 96 0a 28 60
+```
+
+Correctness review `ses_e0cf473a7ffeISdF5j9iTHVP8P`, Astra/high, returned **no findings**
+within the documentation/evidence scope. It inspected permitted repository documents and
+parent-reported verification, not raw temporary files or a tool-level diff.
+Machine-byte review `ses_e0cf473a1ffe24pswNVP2oo8j7`, Astra/xhigh, returned **no findings**
+in decoding and extent arithmetic. It independently confirmed the assignment, both zero stores,
+direct call, 35-byte main, three-byte chosen routine and 659-byte capture extent. Its proof
+ends at the supplied textual bytes; raw-file/digest and label/storage authentication remain
+execution-owner evidence. Neither review determines language legality or runtime behavior.
+
+Durable-capture checks passed: exact source change, complete 659-byte capture equality to the
+generated PRG and its recorded digest, and the four-operand-byte reconstruction hash.
+The owned matching project, generated files and scripts have been removed. The complete PRG
+capture remains digest-verifiable above; raw sidecars are no longer available for reauthentication.
+Documentation formatting, local links, durable source/PRG digests, exact two-file scope,
+checklist arithmetic and unchanged product/frozen inputs pass. No unrelated task advanced.
+No compiler, existing test, oracle, shared helper, timeout, specification, expert authority,
+historical release record or release approval changed. No emulator or push was performed.
