@@ -3,7 +3,7 @@
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-33 / #164
 > **Progress**: 6/6 tasks (100%)
-> **Status**: Done — the unsafe acceptance is repaired and verified; #164 stays open for what this unit does not cover
+> **Status**: Done as engineering, awaiting the user's ruling on the review dispositions; #164 stays open for what this unit does not cover
 > **Phase baseline tree**: `0a9ae8e4d89c6019eae81fcc8459ca703adfb840`
 > **Baseline**: `acbc1c8c`, clean `feature/v4-rebuild`
 > **Scope**: strict; automatic global storage and final build admission
@@ -224,6 +224,11 @@ All runs below are on the tree after the review repairs.
 The emulator case proves that a program whose callable storage is genuinely untouched still calls
 the right function at runtime, so the new rejection did not become an over-rejection in practice.
 
+Provenance, stated exactly: these two runs predate the cost repairs recorded below, which landed
+afterwards. They are not re-stated as final-tree evidence on their own. The complete gate in T-33.6
+re-covered both the host and emulator tiers on the final tree, and that run is what the coverage
+claim rests on.
+
 `yarn test:changed --host` was started against the earlier tree and reported 1,282 fast, 497
 semantic, 985 service and 60 oracle tests passing before it was stopped part-way through the host
 tier, once the review repairs had superseded the tree it was testing. It is **not** counted as
@@ -322,6 +327,25 @@ no callable value, function pointer or raw write over callable storage anywhere 
 cannot reach it. Re-run alone on the serialized emulator configuration it passes **16/16**, which is
 the same behaviour this case showed at the previous checkpoint. It is a pre-existing timing
 sensitivity under load, not a regression, and nothing about it is waived here.
+
+## Open for the user's ruling
+
+Every review decision below was taken by repair or by evidence, never by waiving anything. Under
+this project's quality policy those dispositions still need the user's ratification, which has not
+been given. Until it is, this unit is complete as engineering and provisional as governance.
+
+| Item | Disposition taken | What ratification means |
+| --- | --- | --- |
+| Using the data producer's own emitted output as the record of what exists, instead of the separate omission record this plan described | Accepted, with the opposite-direction check added | Accept the deviation, or ask for the original form |
+| SM-001 and MC-002, both MAJOR | Repaired in this unit's own code and re-verified | Accept the repairs |
+| SF-002 and SF-003, both MAJOR and both inferred rather than run | Refuted by their own probes; no code change | Accept the refutations, or ask for more probing |
+| PE-001 and PE-002, both MAJOR | Repaired; PE-001 also narrowed what the check sees, as recorded above | Accept the repairs and that narrowing |
+| PE-005, the repeated guard before serialization | Kept deliberately | Accept keeping it, or have it removed |
+| The complete gate is not literally all green | The one failure is the known collision-latch case, which passes 16/16 alone, as at the previous checkpoint | Accept that disposition as at T-30, or order one more complete gate |
+
+The frozen oracle was verified against the commit itself: `git show HEAD:` on
+`test/rd04/automatic-callable-placement.spec.test.ts` hashes to
+`bfe38c994367c8b262fa6bb44af5cab243f553b0401cf9282a6b0382b8bff611`, the value frozen at RED.
 
 ## Small execution chunks
 
