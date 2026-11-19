@@ -9,6 +9,31 @@ frozen. Current implementation ownership is
 reference only. Read the active roadmap and selected execution plan before work;
 do not infer current capability or readiness from historical closeouts.
 
+## Prime directive — non-negotiable
+
+Every design, diagnostic and behaviour decision is settled by one question:
+
+> **What would an expert 6502 developer, and an expert developer generally, expect this to do?**
+
+Answer it before reaching for an internal justification. Model the answer against how
+comparable systems languages behave, and say which ones were compared. Convenience of the
+implementation, symmetry with an existing compiler rule, and abstract safety maximalism are
+not answers to it.
+
+Two refinements keep the directive from being misread:
+
+- Where the compiler **knows** a fact — a constant address provably covering storage it chose —
+  acting on it is what an expert expects, and refusing is a service.
+- Where the compiler is **guessing** — an address only known at run time — an expert expects
+  their code to build. Guessing is not grounds for refusal.
+
+Blend65 deliberately differs from C where the specification says so, such as proved call targets
+and the absence of undefined behaviour. Comparable languages are therefore evidence, never an
+override of the specification.
+
+When an existing rule fails this directive, that rule is the defect. Do not propagate it to new
+cases for the sake of consistency; raise it as its own unit of work.
+
 <!-- CODEOPS-PROJECT:START -->
 
 ## Toolchain
