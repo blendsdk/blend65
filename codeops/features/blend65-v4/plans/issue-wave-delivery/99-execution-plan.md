@@ -119,3 +119,70 @@ machine-readable check time and plan inventory.
 | 3 | Done (bounded) — #160 done; #159 alignment slice done with bank diagnostic blocked on #158; #145 measured non-win | `../block-index-immediate-fold/08-closeout.md` · `../runtime-block-index-alignment/08-closeout.md` · `../acquisition-size-gap/08-closeout.md` |
 | 4 | Done (bounded) — #124/#131/#132/#139/#151/#154/#163/#167 done; #155 measured; #135/#133/#152 blocked | `../dynamic-callable-array-proof/08-closeout.md` |
 | 5 | Done (bounded) — #140 T-20–T-27 verified; #72 boing-ball twin delivered; #70/#53/#73 follow | `../boing-ball-twin/08-closeout.md` · #168 |
+| 6 | Direction recorded — unit 1 planned | The residual direction below |
+
+## Wave 6 — residual direction (2026-11-20)
+
+Waves 1–5 closed the inventory they were drawn from, so what remains is not a
+sixth list of issues. It is six different kinds of work, and counting rows hid
+that distinction: a count taken by matching only `RD-`, `T-` and `DEF-` row
+identifiers reported 74 of 89 tracker rows done, while the tracker actually holds
+126 rows — 83 done and 43 open — because 28 RD-08 parity sub-rows and three
+qualification rows carry descriptive identifiers instead. Six further rows parsed
+as open only because they are missing the `RD` column; they are complete. The 43
+open rows are the authority for this section, and every open issue without a
+tracker row gets one disposition line rather than a task.
+
+### Classes of remaining work
+
+| Class | Rows | What the work actually is |
+| --- | --- | --- |
+| Correctness residual | #170's two residuals, T-153, T-159 | A legal program is refused, miscompiled, or refused without a usable diagnostic. Outranks everything below: an author cannot work around a defect the compiler will not name |
+| Measured non-win | T-145, T-155 | The win was implemented, measured against the expert baseline and reverted. Each row already names the unit that is missing, so neither needs another attempt — they need that unit |
+| Blocked on a first-class fact | T-152, T-135, T-133 | The optimization is prototyped and its output verified by hand. The current fact model cannot represent the result, so each needs a model change, not a retry |
+| Parity continuation | T-168 plus the 28 RD-08 backlog sub-rows under DEF-16 | Output quality measured against hand-written expert assembly. The largest body of remaining work by row count |
+| Qualification debt | V4-HW-1, V4-HOST-1, V4-ASSET-1 | Physical hardware, a second host platform, and producer artifacts. No compiler change is available to advance these |
+| Long tail | T-07, T-13, T-17, T-19, DEF-3 | Report-only host costs, retained specification copies, an unscoped audio adapter, a deferred release platform |
+
+### Order
+
+Correctness first, then parity. Within correctness, the unit whose cause is
+already proved runs before the units that still need a proof built.
+
+| Order | Unit | Scope | Why here |
+| --- | --- | --- | --- |
+| 1 | Dispatch residuals (#170) | Terminate the caller's block when no dispatch candidate returns, and give the machine-binding refusal a source span that names the construct | Both causes are proved and both remedies are specified. The lowering half was held back only because it would have invalidated the preceding unit's byte-neutrality evidence, and that evidence expired when the unit closed |
+| 2 | Boing-ball parity continuation (#168) | The remaining code gap against the hand-written twin, and whole-frame timing | The measuring stick exists and the gap is the headline output-quality figure on the board |
+| 3 | Chained NMI retention (T-153) | The stock `NMINV` frame and `RTS` return proof for the chained entry | A correctness residual whose missing unit is named, but which needs a proof built rather than applied |
+
+Rows outside that order are not scheduled by this section. A measured non-win or
+a model-blocked row is promoted only when its named missing unit becomes a plan
+of its own; until then the measurement stands as the answer and re-running it
+would produce the same number.
+
+### Dispositions for open issues without a tracker row
+
+| Issue | Disposition |
+| --- | --- |
+| #171 | Signedness repair landed with the preceding unit. Awaiting a user ruling: close against that commit, or keep open for a sibling-site audit of other lowering routes that retain a register value and could drop the same metadata |
+| #172 | Enhancement, newly filed: a signed comparison against a constant allocates a RAM temporary instead of folding the bias. Unscheduled; it belongs with the parity continuation, not with correctness |
+| #169 | Emulator test-order flake on an idle machine. Disclosed, not a compiler defect; it needs an isolation fix in the test file rather than a compiler unit |
+| #164 | Open with two raw-write residuals routed to it from the preceding unit's reviews |
+| #165, #158 | Diagnostic and restoration contracts that other rows depend on. #158 is user-gated and also gates the last task of T-159 |
+| #140 | Residual parity and evidence debt, verified through T-20–T-27 and carried as evidence rather than as work |
+| #110–#130 | The RD-08 parity block, already owned by the 28 tracker sub-rows under DEF-16. No separate disposition |
+
+### Evidence debt observed while reconciling
+
+#157 and #162 have delivered closeouts under this plan but carry no comment on
+the issue itself, so a reader of the issue tracker alone cannot see that either
+was delivered. Recording the evidence is cheap, but posting to the tracker is
+outward-facing and is left for an explicit decision rather than taken here.
+
+### Decisions reserved to the user
+
+| Item | Why it cannot be settled inside a plan |
+| --- | --- |
+| #171 close-or-audit | Closing an issue is irreversible and the audit scope is a judgement about how much sibling risk to buy |
+| #158 diagnostic contract | Explicitly user-gated, and it gates T-159's remaining task |
+| Any new specialist agent | Reserved authority; the per-wave check above has returned None every time |
