@@ -42,6 +42,7 @@ import {
   storageResourceWarnings,
 } from "./resource-diagnostics.js";
 import { sizeCostVector, type SizeCostVector } from "./evidence.js";
+import { machineBindingDiagnostic } from "./machine-binding-diagnostic.js";
 import { validateFinalCallableProof } from "./final-callable-proof.js";
 import { startupVisibilityFailure, validateSizeObservers } from "./size-observers.js";
 import type { ObserverValidation } from "./size-observers.js";
@@ -509,7 +510,16 @@ export function closeCanonicalStorage(
       ),
     ]);
   const machine = bindMachineProgram(lowered.program, certificate.certificate);
-  if (machine.kind === "error") return incomplete("machine storage binding");
+  if (machine.kind === "error")
+    return terminal("compiler", [
+      machineBindingDiagnostic({
+        program: lowered.program,
+        defect: machine.defect,
+        fallbackSpan:
+          resourceSpans.get(bindingIdentityKey(program.semantic.main)) ??
+          program.semantic.main.span,
+      }),
+    ]);
   return Object.freeze({
     kind: "complete",
     value: completedPipeline(

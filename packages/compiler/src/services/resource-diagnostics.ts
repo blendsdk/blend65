@@ -45,6 +45,27 @@ export function resourceSourceSpans(program: TypedProgram): ReadonlyMap<string, 
   return spans;
 }
 
+/**
+ * Name a generated object or function the way an author would recognize it.
+ *
+ * A display name is optional on generated objects and is a qualified path or dotted name when
+ * present, so the last segment is the spelling the source used. Without one there is nothing but
+ * the link identity left to show.
+ *
+ * @param object Generated object or function, when one was found for the identity.
+ * @param objectId Link identity to fall back on, or null to fall back to a generic noun.
+ * @returns The most recognizable available name.
+ * @example sourceObjectName({ sourceName: "Game.main" }, "fn.main")
+ */
+export function sourceObjectName(
+  object: { readonly sourceName?: string } | undefined,
+  objectId: string | null,
+): string {
+  return object?.sourceName?.includes("/")
+    ? object.sourceName.split("/").at(-1)!
+    : (object?.sourceName?.split(".").at(-1) ?? objectId ?? "object");
+}
+
 /** Attribute a failed final constraint to the source object rather than an internal layout ID. */
 export function sourcePlacementFailure(
   machine: MachineProgram,
@@ -53,9 +74,7 @@ export function sourcePlacementFailure(
 ): ProjectDiagnostic {
   const object = [...machine.data, ...machine.functions].find(({ id }) => id === objectId);
   const key = objectId?.replace(/^(?:global|fn)\./u, "") ?? "";
-  const name = object?.sourceName?.includes("/")
-    ? object.sourceName.split("/").at(-1)!
-    : (object?.sourceName?.split(".").at(-1) ?? objectId ?? "object");
+  const name = sourceObjectName(object, objectId);
   const data = machine.data.find(({ id }) => id === objectId);
   const vicVisible = data?.vicVisible === true;
   const handlerFixed =

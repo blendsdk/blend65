@@ -2,7 +2,7 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-36 / #170
-> **Progress**: 5/7 tasks (71%) · [findings](05-findings.md)
+> **Progress**: 6/7 tasks (86%) · [findings](05-findings.md)
 > **Status**: Executing — oracle frozen at reproduced RED; preflight returned 3 majors, two
 > fixed here and PA-003 awaiting a ruling before half B is implemented
 > **Last Updated**: 2026-11-20
@@ -190,10 +190,10 @@ rather than narrowing it.
       reach a stated expected shape (the `jsr`, an `unreachable` terminator, the retention present,
       a dead tail) proved in T-36.6 rather than merely stopping being refused. The frozen oracle
       must turn GREEN at 50/50 ✅ (evidence below)
-- [ ] T-36.5 Implement half B behind the settled design: the witness, the span on the refusal, and
+- [x] T-36.5 Implement half B behind the settled design: the witness, the span on the refusal, and
       a message that names the construct. Accepted output must stay byte-identical, since a
       diagnostic may not move a single emitted byte
-- [ ] T-36.6 Add implementation tests for both halves — **half A's portion is delivered**
+- [x] T-36.6 Add implementation tests for both halves — **half A's portion is delivered**
       (`test/rd04/nonreturning-dispatch-shape.impl.test.ts`, 30 passed, watched failing without
       the fix); half B's portion waits on the PA-003 ruling: the thunk route's terminator for every
       returning/non-returning candidate combination, the witness for a failing bound program
@@ -527,6 +527,64 @@ was tested (same checksum). So neither suite passes for a reason other than the 
 An earlier run of `yarn test` had its package-tier counts swallowed by a `tail` in the command, so
 those numbers come from a separate `yarn test:package` run served entirely from the task cache
 rather than from the chain's exit status alone.
+
+## T-36.5 and T-36.6 evidence — half B implemented and measured
+
+The refusal now locates itself. Before and after, for the direct-call program that the MC-004
+probe showed still reaches the validator path:
+
+| | Message | Span |
+| --- | --- | --- |
+| Before | `The machine storage binding stage is not complete for this program` | `null` |
+| After | `Machine storage binding did not complete for 'main' — the selected 'adc' has no proved producer for its decimal flag` | `src/game.blend` bytes 125..140 |
+
+Bytes 125..140 are exactly `i + peek($C003)` — the addition that lost its producer, not the
+function header and not a guess. The `help` line reads *"Compiler limitation in generated block
+'…', not an error on this line; please report it with the source shown"*, which is the answer to
+the challenger's objection that a caret under correct source invites an author to edit a line that
+is not wrong.
+
+The validator's finding turned out to be more precise than the design packet's own example
+prose, which guessed the carry flag: `clc` proves carry, and it is the `jsr` that loses the
+**decimal** flag. The message says so.
+
+### The one-way safety property, checked in the code rather than taken on report
+
+The finder ends `if (valid) return null; return defect ?? <synthesised defect>`. So `null` is
+returned only on a positive verdict, and a negative verdict cannot return `null` even if every
+recording site were to miss. Verified directly: the duplicate-label path now returns a defect where
+it returned `false`; the verdict expression `functions.every(…)` is unchanged; the `valid &&= …`
+sites only extract their condition into a local and record beside it, so the deliberate
+non-short-circuiting is intact; and every recording site inside the transfer remains gated on
+`check`, so the fixpoint pass records nothing.
+
+### Verification
+
+| Check | Result |
+| --- | --- |
+| Byte-neutrality — all 7 controls × 4 modes and all 7 examples | **identical** to the half A measurement. A diagnostic moved no byte |
+| Equivalence — 31 validator cases, the 3 frozen boolean oracles, the new defect tests, the contracts test | 90 passed across 6 files |
+| End-to-end refusal tests (`test/rd04/machine-binding-refusal.impl.test.ts`) | 5 passed, and **4 of the 5 fail with half B reverted** |
+| Frozen oracles and `spec/` | untouched; `git status` reports nothing modified, and the dispatch oracle's blob is unchanged |
+| `yarn build`, `tsc --noEmit`, `prettier --check` | exit 0 |
+| Compiler package, full | 260 files / 4,360 passed, 2 skipped |
+| Host tier, full | 5,471 of 5,472 passed; the one failure is an explicit 120-second timeout at 121,013 ms in an emulator-backed file that passes 4/4 in isolation and passed all four profiles at 47–62 seconds in an earlier run. Disclosed with its attribution in the findings, not re-run until green |
+
+The end-to-end layer exists only because the MC-004 probe refuted this plan's earlier claim that
+no legal program could reach the refusal. It pins the code, the presence of a span and the span
+falling inside the author's own file — never an offset, because which internal check reports first
+follows a work-list order that is deterministic per program but not canonical.
+
+One existing implementation test was edited and the change is a strengthening, not a relaxation:
+it asserted exact object equality on the bind error, which the new optional field broke, so it now
+asserts the same three fields through `objectContaining` **and additionally requires** the refusal
+to carry a witness naming the failed check.
+
+### Scope held
+
+Only the validator-detected producer gains a witness, per the ruling. `bind.ts:556`, `:561`,
+`:569` and `:574` are untouched and owned by **#174**. The size-candidate path at
+`size-selection.ts:978` is likewise unchanged.
 
 ## T-36.1 appendix — the control programs the digests were taken from
 These are recorded so the pinned digests above can be re-derived rather than remembered. Each

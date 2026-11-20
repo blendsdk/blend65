@@ -464,14 +464,20 @@ describe("machine contract corrections", () => {
         }),
       ]),
     });
-    expect(
-      bindMachineProgram(
-        Object.freeze({
-          ...lowered.program,
-          functions: Object.freeze([invalidFunction]),
-        }),
-        closure.certificate,
-      ),
-    ).toEqual({ kind: "error", reason: "invalid-storage", requestId: null });
+    const refused = bindMachineProgram(
+      Object.freeze({
+        ...lowered.program,
+        functions: Object.freeze([invalidFunction]),
+      }),
+      closure.certificate,
+    );
+    expect(refused).toEqual(
+      expect.objectContaining({ kind: "error", reason: "invalid-storage", requestId: null }),
+    );
+    // Validating the bound program must hand the failed check outward. Without it the refusal
+    // reaches the author as a bare stage name with nothing to act on or report.
+    expect(refused.kind === "error" ? refused.defect : undefined).toEqual(
+      expect.objectContaining({ reason: expect.stringContaining("not a legal transfer") }),
+    );
   });
 });

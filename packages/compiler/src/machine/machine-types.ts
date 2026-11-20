@@ -1,4 +1,5 @@
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
+import type { MachineProgramDefect } from "./machine-defect.js";
 import type { VicFieldTransform } from "./vic-fields.js";
 import type {
   StorageBinder,
@@ -762,6 +763,11 @@ export type MachineBindingResult =
       readonly kind: "error";
       readonly reason: "certificate" | "missing-storage" | "invalid-storage";
       readonly requestId: string | null;
+      /**
+       * The failed check and its source construct, when the refusal came from validating the
+       * bound program. Storage failures carry their own witness and leave this absent.
+       */
+      readonly defect?: MachineProgramDefect;
     };
 
 /** Legal instruction validation or a rejected candidate without partial output. */

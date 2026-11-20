@@ -1,3 +1,9 @@
+import {
+  machineProgramDefect,
+  UNKNOWN_MACHINE_SITE,
+  type MachineDefectSite,
+  type MachineProgramDefect,
+} from "./machine-defect.js";
 import type {
   MachineBlock,
   MachineFlag,
@@ -10,10 +16,36 @@ const FLAG_BITS: Readonly<Record<MachineFlag, number>> = { n: 1, v: 2, d: 4, i: 
 const ALL_FLAGS = 63;
 // Ordinary calls preserve the language ABI's decimal/interrupt state, not arithmetic flags.
 const ABI_FLAGS = FLAG_BITS.d | FLAG_BITS.i;
+/** Author-facing flag names; a refusal must not ask whoever reads it to decode 'c' or 'z'. */
+const FLAG_NAMES: Readonly<Record<MachineFlag, string>> = {
+  n: "negative",
+  v: "overflow",
+  d: "decimal",
+  i: "interrupt",
+  z: "zero",
+  c: "carry",
+};
 
 /** Convert exact instruction metadata to a small set of established flags. */
 function flagMask(flags: readonly MachineFlag[]): number {
   return flags.reduce((mask, flag) => mask | FLAG_BITS[flag], 0);
+}
+
+/** Flags a consumer needs that no incoming path establishes. */
+function unprovedFlags(
+  required: readonly MachineFlag[],
+  available: number,
+): readonly MachineFlag[] {
+  return required.filter((flag) => (available & FLAG_BITS[flag]) === 0);
+}
+
+/** Spell a set of flags as running prose, so the refusal reads as one sentence. */
+function flagPhrase(flags: readonly MachineFlag[]): string {
+  const names = flags.map((flag) => FLAG_NAMES[flag]);
+  const last = names.at(-1);
+  if (last === undefined) return "processor flags";
+  if (names.length === 1) return `${last} flag`;
+  return `${names.slice(0, -1).join(", ")} and ${last} flags`;
 }
 
 /**
@@ -85,11 +117,36 @@ function meetStatus(left: StatusFacts, right: StatusFacts): StatusFacts {
  * A join retains only facts true on every incoming path. Calls use the callee's proved return
  * facts; they cannot accidentally inherit an earlier comparison across a clobbering routine.
  * This is validation only: it changes no instruction, storage home or cycle cost.
+ *
+ * The verdict is carried by the returned defect rather than a boolean, because a refusal here
+ * is a compiler limitation and the author needs to know which construct provoked it. The
+ * accumulated verdict still decides: a defect is reported only when that verdict is negative,
+ * so a recorded check can never turn an accepted program into a refused one.
+ *
+ * @param program Program whose instructions, terminators and call graph are complete.
+ * @returns The first failing check with its source construct, or null when the program proves out.
+ * @example findMachineFlagsDefect(boundProgram)?.reason
  */
-export function validateMachineFlags(program: MachineProgram): boolean {
+export function findMachineFlagsDefect(program: MachineProgram): MachineProgramDefect | null {
   const functions = [program.startup, ...program.functions];
   const blocks = new Map<string, MachineBlock>();
   const aliases = new Map<string, string>();
+  const owners = new Map<string, string>();
+  let defect: MachineProgramDefect | null = null;
+  /** Supply the block body for a site that named only a label, so its span can be resolved. */
+  const located = (site: MachineDefectSite): MachineProgramDefect => {
+    const block = site.block ?? blocks.get(site.label);
+    return machineProgramDefect(block === undefined ? site : { ...site, block });
+  };
+  /**
+   * Keep the first failing check only.
+   *
+   * Validation deliberately continues past a failure, so later checks describe fallout from the
+   * same cause; the earliest one sits closest to the construct that provoked it.
+   */
+  const record = (site: MachineDefectSite): void => {
+    defect ??= located(site);
+  };
   for (const fn of functions) {
     const first = fn.blocks[0];
     // Storage binding can validate a partial program with no startup instructions.
@@ -97,11 +154,21 @@ export function validateMachineFlags(program: MachineProgram): boolean {
     if (first === undefined) continue;
     aliases.set(fn.id, first.label);
     for (const block of fn.blocks) {
-      if (blocks.has(block.label)) return false;
+      if (blocks.has(block.label)) {
+        return machineProgramDefect({
+          reason: "the compiler generated two code blocks that share one label",
+          functionId: fn.id,
+          label: block.label,
+          block,
+        });
+      }
       blocks.set(block.label, block);
+      owners.set(block.label, fn.id);
     }
   }
   const resolve = (label: string) => aliases.get(label) ?? label;
+  /** Attribute a block to the function that declared it, including a tail-jump destination. */
+  const owner = (label: string) => owners.get(label) ?? UNKNOWN_MACHINE_SITE;
   const cache = new Map<string, FlagSummary>();
   const active = new Set<string>();
   const startup = resolve(program.startup.id);
@@ -111,8 +178,16 @@ export function validateMachineFlags(program: MachineProgram): boolean {
     const entry = resolve(label);
     const cached = cache.get(entry);
     if (cached !== undefined) return cached;
-    if (active.has(entry) || !blocks.has(entry))
+    if (active.has(entry) || !blocks.has(entry)) {
+      record({
+        reason: active.has(entry)
+          ? "a generated call leads back into a function whose own proof is still open"
+          : "a generated call names a function with no body",
+        functionId: owner(entry),
+        label: entry,
+      });
       return { returns: 0, preserves: 0, valid: false, returning: true };
+    }
     active.add(entry);
     const reachable = new Map<string, MachineBlock>();
     const pending = [entry];
@@ -121,6 +196,11 @@ export function validateMachineFlags(program: MachineProgram): boolean {
       if (reachable.has(current)) continue;
       const block = blocks.get(current);
       if (block === undefined) {
+        record({
+          reason: "a generated transfer leads to a code block with no body",
+          functionId: owner(entry),
+          label: current,
+        });
         active.delete(entry);
         return { returns: 0, preserves: 0, valid: false, returning: true };
       }
@@ -150,7 +230,19 @@ export function validateMachineFlags(program: MachineProgram): boolean {
         // PHP snapshots opaque entry state; it does not branch or calculate with those bits.
         if (check && instruction.opcode !== "php") {
           const required = flagMask(instruction.uses.flags);
-          valid &&= (available & required) === required;
+          const proved = (available & required) === required;
+          if (!proved) {
+            record({
+              reason: `the selected '${instruction.opcode}' has no proved producer for its ${flagPhrase(
+                unprovedFlags(instruction.uses.flags, available),
+              )}`,
+              functionId: owner(block.label),
+              label: block.label,
+              block,
+              instruction,
+            });
+          }
+          valid &&= proved;
         }
         if (instruction.opcode === "php") {
           stack.push({ flags: available, preserved });
@@ -159,7 +251,16 @@ export function validateMachineFlags(program: MachineProgram): boolean {
           const saved = stack.pop();
           // PHA may push a previously saved status byte. That restore is legal but opaque;
           // only PHP snapshots carry producer facts. A missing stack byte is malformed.
-          if (check && saved === undefined) valid = false;
+          if (check && saved === undefined) {
+            record({
+              reason: "the selected 'plp' restores a processor-status byte that was never saved",
+              functionId: owner(block.label),
+              label: block.label,
+              block,
+              instruction,
+            });
+            valid = false;
+          }
           available = saved?.flags ?? 0;
           preserved = saved?.preserved ?? 0;
         } else if (instruction.opcode === "jsr") {
@@ -183,7 +284,18 @@ export function validateMachineFlags(program: MachineProgram): boolean {
         (block.terminator.kind === "branch" || block.terminator.kind === "long-branch")
       ) {
         const required = flagMask(block.terminator.uses.flags);
-        valid &&= (available & required) === required;
+        const proved = (available & required) === required;
+        if (!proved) {
+          record({
+            reason: `the generated '${block.terminator.opcode}' branch has no proved producer for its ${flagPhrase(
+              unprovedFlags(block.terminator.uses.flags, available),
+            )}`,
+            functionId: owner(block.label),
+            label: block.label,
+            block,
+          });
+        }
+        valid &&= proved;
       }
       return { flags: available, preserved, stack };
     };
@@ -220,6 +332,12 @@ export function validateMachineFlags(program: MachineProgram): boolean {
             (saved, index) => (saved === null) !== (outgoing.stack[index] === null),
           )
         ) {
+          record({
+            reason:
+              "two generated paths reach the same point holding different hardware-stack contents",
+            functionId: owner(target),
+            label: target,
+          });
           active.delete(entry);
           return { returns: 0, preserves: 0, valid: false, returning: true };
         }
@@ -249,6 +367,14 @@ export function validateMachineFlags(program: MachineProgram): boolean {
     for (const [id, block] of reachable) {
       const outgoing = transfer(block, incoming.get(id)!, true);
       if (block.terminator.kind === "return" || block.instructions.at(-1)?.opcode === "rts") {
+        if (outgoing.stack.length !== 0) {
+          record({
+            reason: "a generated return leaves bytes the function pushed on the hardware stack",
+            functionId: owner(block.label),
+            label: block.label,
+            block,
+          });
+        }
         valid &&= outgoing.stack.length === 0;
         returns &= outgoing.flags;
         preserves &= outgoing.preserved;
@@ -314,5 +440,17 @@ export function validateMachineFlags(program: MachineProgram): boolean {
     cache.set(entry, summary);
     return summary;
   };
-  return functions.every((fn) => fn.blocks.length === 0 || analyze(fn.id).valid);
+  const valid = functions.every((fn) => fn.blocks.length === 0 || analyze(fn.id).valid);
+  if (valid) return null;
+  // Every refusing check above records its site, so this is unreachable today. It exists because
+  // the alternative failure mode is silent and far worse: a refusal with no defect would read as
+  // a proved program and let malformed code through. A vague refusal is the safe direction.
+  return (
+    defect ??
+    machineProgramDefect({
+      reason: "the proof that every consumed processor flag has a producer did not complete",
+      functionId: UNKNOWN_MACHINE_SITE,
+      label: UNKNOWN_MACHINE_SITE,
+    })
+  );
 }

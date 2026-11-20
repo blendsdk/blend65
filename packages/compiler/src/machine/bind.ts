@@ -2,7 +2,8 @@ import type { StorageClosureCertificate, StorageHome } from "../storage/storage-
 import { NMOS_6510, nmosInstructionState } from "../target/nmos6510.js";
 import { machineCost } from "./lower-control.js";
 import { validateMachineInstruction } from "./validate.js";
-import { validateMachineFlags } from "./validate-flags.js";
+import { findMachineFlagsDefect } from "./validate-flags.js";
+import { machineProgramDefect, type MachineProgramDefect } from "./machine-defect.js";
 import type {
   MachineBindingResult,
   MachineFunction,
@@ -12,7 +13,18 @@ import type {
   MachineProgram,
   MachineBlock,
   MachineBodyOrigin,
+  MachineValidationResult,
 } from "./machine-types.js";
+
+/** Explain each rejected-instruction family in the terms whoever wrote the source can check. */
+const INSTRUCTION_DEFECTS: Readonly<
+  Record<Extract<MachineValidationResult, { readonly kind: "error" }>["reason"], string>
+> = {
+  "opcode-mode": "is not a legal instruction form on this CPU",
+  cost: "carries a recorded cycle cost that does not match the instruction",
+  operand: "has an operand that does not fit its addressing mode",
+  flag: "carries recorded processor-state effects that do not match the instruction",
+};
 
 /** Resolve and bounds-check one certified storage home plus byte offset. */
 function resolveHome(
@@ -153,12 +165,17 @@ function validateHomes(
 }
 
 /**
- * Validate every instruction and control transfer in a fully physical machine program.
+ * Locate the first failed check in a fully physical machine program.
+ *
+ * Structure is checked before processor state, exactly as before: a program whose instructions,
+ * transfer targets or block exits are malformed is refused without consulting the flag proof,
+ * whose answer on such a program would not be meaningful anyway.
+ *
  * @param program Program whose storage and layout-owned operands are resolved.
- * @returns Whether every opcode, operand, state fact, cost and control target is valid.
- * @example validateMachineProgram(boundProgram)
+ * @returns The first failing check with its source construct, or null when the program is valid.
+ * @example findMachineProgramDefect(boundProgram)?.reason
  */
-export function validateMachineProgram(program: MachineProgram): boolean {
+export function findMachineProgramDefect(program: MachineProgram): MachineProgramDefect | null {
   const allFlags = Object.freeze(["n", "v", "d", "i", "z", "c"] as const);
   const functions = [program.startup, ...program.functions];
   const labels = new Set([
@@ -214,25 +231,54 @@ export function validateMachineProgram(program: MachineProgram): boolean {
       exactCost(terminator.cost, { bytes: 5, minCycles: 3, maxCycles: 5 })
     );
   };
-  return (
-    functions.every((fn) =>
-      fn.blocks.every(
-        (block) =>
-          block.instructions.every((instruction) => {
-            if (validateMachineInstruction(instruction, NMOS_6510, allFlags).kind !== "complete") {
-              return false;
-            }
-            if (
-              (instruction.opcode === "jsr" || instruction.opcode === "jmp") &&
-              instruction.operand?.kind === "label"
-            ) {
-              return labels.has(instruction.operand.label);
-            }
-            return true;
-          }) && validTerminator(block.terminator),
-      ),
-    ) && validateMachineFlags(program)
-  );
+  for (const fn of functions) {
+    for (const block of fn.blocks) {
+      for (const instruction of block.instructions) {
+        const checked = validateMachineInstruction(instruction, NMOS_6510, allFlags);
+        if (checked.kind !== "complete") {
+          return machineProgramDefect({
+            reason: `the selected '${instruction.opcode}' ${INSTRUCTION_DEFECTS[checked.reason]}`,
+            functionId: fn.id,
+            label: block.label,
+            block,
+            instruction,
+          });
+        }
+        if (
+          (instruction.opcode === "jsr" || instruction.opcode === "jmp") &&
+          instruction.operand?.kind === "label" &&
+          !labels.has(instruction.operand.label)
+        ) {
+          return machineProgramDefect({
+            reason: `the selected '${instruction.opcode}' transfers to generated code the program does not contain`,
+            functionId: fn.id,
+            label: block.label,
+            block,
+            instruction,
+          });
+        }
+      }
+      if (!validTerminator(block.terminator)) {
+        return machineProgramDefect({
+          reason: "the generated exit of a code block is not a legal transfer",
+          functionId: fn.id,
+          label: block.label,
+          block,
+        });
+      }
+    }
+  }
+  return findMachineFlagsDefect(program);
+}
+
+/**
+ * Validate every instruction and control transfer in a fully physical machine program.
+ * @param program Program whose storage and layout-owned operands are resolved.
+ * @returns Whether every opcode, operand, state fact, cost and control target is valid.
+ * @example validateMachineProgram(boundProgram)
+ */
+export function validateMachineProgram(program: MachineProgram): boolean {
+  return findMachineProgramDefect(program) === null;
 }
 
 /** Bind one instruction without creating any storage request. */
@@ -582,8 +628,11 @@ export function bindMachineProgram(
     functions: shared.functions,
     startup: shared.startup,
   });
-  if (!validateMachineProgram(boundProgram)) {
-    return Object.freeze({ kind: "error", reason: "invalid-storage", requestId: null });
+  // Carry the failed check outward: this refusal is a compiler limitation, and without the
+  // construct that provoked it the author is left with nothing to report or work around.
+  const defect = findMachineProgramDefect(boundProgram);
+  if (defect !== null) {
+    return Object.freeze({ kind: "error", reason: "invalid-storage", requestId: null, defect });
   }
   return Object.freeze({
     kind: "complete",

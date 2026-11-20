@@ -202,3 +202,57 @@ Two further Unknowns are recorded rather than guessed: whether the stack-peak mo
 the two saved bytes of an inline tail dispatch, and whether an unaccessed retained-value request
 still reserves RAM once its store disappears. Both need probes that only matter when MC-001 and
 MC-003 are sized, so they are deferred with their owners named.
+
+## An intermittent observed during the half B gate, and its attribution
+
+A full `yarn test` run reported **1 failure of 4,362**:
+`src/services/input-size-frontier.spec.test.ts > complete size frontier on c64-pal-prg-kernal-8580
+> should close a bounded recipe inventory for 64 ordinary sites`. It is a frozen specification
+test, so it was treated as the implementation being wrong until the evidence said otherwise.
+
+It did not reproduce. A second run of the whole compiler package in the same context passed
+**260 files / 4,360 with 2 skipped**, with that exact case green at 51,241 ms, and the file alone
+passed 27/27.
+
+Attribution rests on structure rather than on the re-run alone. The program under test is 64
+`read` functions that each return normally, called directly, writing into a placed array. **It
+contains no function pointer, no indirect call and no non-returning function**, so half A's branch
+— which lives inside the indirect-call lowering behind a test that every candidate never returns —
+cannot be entered for it. Half B changes only the text of a refusal, and this case asserts
+success, so it produces no diagnostic at all. Byte-identity across seven controls in four modes
+and all seven examples agrees.
+
+The file drives the emulator three times per profile under a 300-second budget, and the package
+suite runs its 260 files in parallel workers, so the failure is load-dependent. That is the same
+class as the already-tracked intermittent on the VIC collision latch, though a different file.
+
+It is disclosed here rather than quietly re-run until green.
+
+### A second one, in a different file, which makes it a pattern worth naming
+
+The next full gate run failed once more — a different file, and this time the cause is explicit
+rather than inferred:
+
+```
+FAIL test/rd05/input-saved-query-output.spec.test.ts > saved input output on
+c64-pal-prg-kernal-6581 > fits the complete expert saved-query caller …
+Error: Test timed out in 120000ms.
+```
+
+It took **121,013 ms against a 120,000 ms budget** — over by one second. The other three profiles
+in the same file passed in the same run at 87, 66 and 55 seconds, the file passes 4/4 in isolation,
+and an earlier run of the same tier passed all four profiles at 47–62 seconds. So the budget is
+about twice the quiet-machine cost, and parallel load closes that gap.
+
+Two consecutive gate runs, each with exactly one failure, in different files, both emulator-backed,
+each passing in isolation and on sibling profiles. The pattern is not either file: **the host gate
+carries fixed per-test timeouts sized for a quiet machine and runs its files in parallel**. That
+makes a clean single-shot gate run load-dependent, which is a verification-policy problem rather
+than a compiler defect, and it is the same class as the already-tracked VIC-latch intermittent.
+
+Neither failure is an assertion about compiler output. The totals around them were
+**5,471 of 5,472 passed** on the host tier and a clean **260 files / 4,360 passed** on the package
+tier.
+
+Whether this earns its own issue is a decision for the user: two issues were authorised for this
+unit's remainders, and a third was not.
