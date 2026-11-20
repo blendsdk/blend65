@@ -2,7 +2,7 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-36 / #170
-> **Progress**: 2/7 tasks (29%)
+> **Progress**: 3/7 tasks (43%)
 > **Status**: Executing — baselines captured, witness channel settled
 > **Last Updated**: 2026-11-20
 > **Baseline**: `26c316db`, clean `feature/v4-rebuild`
@@ -136,10 +136,11 @@ discover it.
       in the repository. Capture pre-change baselines for the dispatch controls and all seven
       examples so byte-neutrality is measurable rather than asserted ✅ (evidence below; both
       tables reproduced from independent working directories)
-- [ ] T-36.2 Author the specification oracle for half A from the issue acceptance only, with
+- [x] T-36.2 Author the specification oracle for half A from the issue acceptance only, with
       implementation-blind authorship, and reproduce RED. A never-returning dispatch must compile
       the same way whether or not the call takes an argument. Freeze the oracle by hash; never edit
-      it afterwards
+      it afterwards ✅ (`test/rd04/nonreturning-dispatch-candidates.spec.test.ts`, frozen at
+      `22e01e757bb305d770226f1a8280260b1ac31025`; RED reproduced parent-side)
 - [x] T-36.3 Settle the witness-channel design: reconcile the independent challenger's verdict with
       the recommendation above, record the decision and the rejected options with their reasons,
       then enumerate every consumer the chosen channel touches before writing code ✅ (D-2, D-5,
@@ -264,6 +265,38 @@ dispatch defect that does not exist.
 
 No example declares callable-typed storage, so the corpus is expected to be untouched by either
 half. It is captured as an independent guard, not as the primary evidence.
+
+## T-36.2 evidence — the frozen oracle and its reproduced RED
+
+`test/rd04/nonreturning-dispatch-candidates.spec.test.ts`, frozen at blob
+`22e01e757bb305d770226f1a8280260b1ac31025`. Ten programs — a function variable that may hold
+either of two candidates chosen at run time, a call through it, then ordinary arithmetic and a
+write — each judged by `build` in all four optimization modes and by `check`, for 50 cases. It
+asserts **acceptance only**: no instruction sequence, no diagnostic code, no message, no span, so
+the diagnostic half of this unit cannot make it fail.
+
+**RED reproduced by the parent, not taken on the author's report: 10 failed / 40 passed of 50.**
+
+| Group | Outcome | What it establishes |
+| --- | --- | --- |
+| Zero arguments, both candidates loop forever, `void` and `byte` results, four modes | 8 failed | The defect, in both result shapes |
+| The same two programs under `check` | 2 failed | `check` agrees with `build` in refusing, so an author is not told the program is fine and then refused |
+| One argument, both candidates loop forever | passed | The asymmetry: the twin differing only by an ignored parameter is accepted |
+| Both candidates return, four modes plus `check` | passed | The ordinary surrounding case a repair may not break |
+| Mixed candidates, both declaration orders | passed | A mixed set already works at zero arguments, so the gap is specifically *all* candidates non-returning |
+
+Every failure reports `COMPILER_INCOMPLETE` at error severity — a genuine refusal, not a harness,
+import or type error. Checked independently: the file imports only the public compiler API, the
+shared profile fixture and vitest, so it reaches no machine internals; it carries no plan, task or
+issue identifier; `prettier --check` is clean and `tsc --noEmit -p tsconfig.json` exits 0. The
+repository's `yarn typecheck` reported a full cache hit and would not have checked this file, so
+the direct compiler run is the real evidence.
+
+The author disclosed two things, both recorded rather than waved through. A markdown-scoped search
+for the diagnostic code matched this repository's own plan files, so some baseline text was seen;
+it cannot have shaped the oracle, which asserts acceptance only and can distinguish no dispatch
+shape from another. And the pre-authoring measurement that a never-returning `byte` function is
+accepted today ran through the public API from stdin rather than by reading implementation sources.
 
 ## T-36.1 appendix — the control programs the digests were taken from
 These are recorded so the pinned digests above can be re-derived rather than remembered. Each
