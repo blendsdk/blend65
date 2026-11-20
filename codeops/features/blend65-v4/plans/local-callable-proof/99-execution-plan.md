@@ -431,11 +431,24 @@ intermittent failure, but this run corrected its characterisation:
 | Whole file, idle, first run | failed, profile `…-6581` |
 | Whole file, idle, second run | **16/16 passed** |
 
-So it is not load-dependent as previously recorded. It reproduces on an idle machine in roughly
-half of all whole-file runs, the affected machine profile moves between runs, and it passes
-whenever the earlier cases in the file are skipped. That points at a sampling race inside the test
-against state the preceding cases leave behind, rather than at compiled output: a changed program
-would fail the same case every time.
+So it is not load-dependent as previously recorded. It reproduces on an idle machine, the affected
+machine profile moves between runs, and it passes whenever the earlier cases in the file are
+skipped. That points at a sampling race inside the test against state the preceding cases leave
+behind, rather than at compiled output: a changed program would fail the same case every time.
+
+The ownership question was then settled by measurement rather than by that argument. The compiler
+sources were replaced with the revision preceding this unit, rebuilt, and the same file run three
+times:
+
+| Baseline run | Result |
+| --- | --- |
+| 1 | 1 failed, 15 passed — profile `c64-pal-prg-kernal-6581` |
+| 2 | 1 failed, 15 passed — profile `c64-pal-prg-kernal-6581` |
+| 3 | 1 failed, 15 passed — profile `c64-pal-prg-kernal-8580` |
+
+The failure is therefore present without this unit's changes, at a higher observed rate than with
+them, and the moving profile confirms it is not sensitive to compiled output. The worktree was
+restored to the committed state and rebuilt afterwards.
 
 ## Residual owners
 
