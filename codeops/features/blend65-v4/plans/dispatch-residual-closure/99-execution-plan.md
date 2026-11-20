@@ -222,12 +222,22 @@ and must be re-derived, not inherited.
 | Unfolded signed comparison against a constant | #172 |
 | Sibling lowering routes that retain a register value and could drop the same metadata | #171, pending the user's close-or-audit ruling |
 | Raw-write residuals from the preceding unit's reviews | #164 |
-| Unifying the two span-less refusal constructors across the service layer | Part of the task 3 design decision only if the chosen channel requires it; otherwise untouched |
+| Unifying the two span-less refusal constructors across the service layer | Left separate by D-6 — they return different types and the service-stage one has no program to witness |
+| Any call to a provably non-returning callee refused when work follows it — the direct-call and single-candidate shapes | **#173**, by the MC-004 ruling |
+| The four bind-error producers that still emit a span-less refusal | **#174**, by the PA-003 ruling |
 
-## Open decisions requiring a ruling
+## Decisions ruled by the user — 2026-11-20
 
-Two decisions are outstanding, and neither is mine to settle: one widens the unit's scope, the
-other is irreversible.
+Both were put to the user with options and a recommendation, and both were ruled. The options and
+costs are kept below rather than collapsed to the answer, so a later reader can see what was
+weighed and not merely what was chosen.
+
+| Decision | Ruling | Consequence |
+| --- | --- | --- |
+| MC-004 — the defect class is wider than dispatch | **B** — close this unit on dispatch, own the rest separately | Filed as **#173**. The two still-refused shapes have a tracked owner, and this unit keeps its measured evidence intact |
+| PA-003 — half B's producer scope | **A** — qualify to the validator path | Filed as **#174** for the four remaining bind-error producers. Half B witnesses the one producer with a measured trigger |
+| Where the remainders live | **Two separate issues**, not #170 and not one combined | #170 can honestly close at closeout, and a lowering defect is not filed together with a service-layer diagnostic contract |
+| #171, unrelated and long parked | **Closed** against `ee262fb1`, with the evidence posted | The sibling-site class audit was weighed and deliberately not bundled |
 
 ### MC-004 — the defect class is wider than this unit
 
