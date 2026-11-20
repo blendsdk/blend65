@@ -9,7 +9,7 @@ const PROFILES = [
 ] as const;
 type Artifacts = Awaited<ReturnType<typeof buildProfileSource>>;
 
-/** Every program in this suite declares its destinations inside `Game.main`. */
+/** Every program in this suite assigns its word destinations inside `Game.main`. */
 const MAIN_SCOPE = "src/game.blend::Game.main";
 
 /** The C64 maps hardware registers across this window, so these addresses are never RAM homes. */
@@ -31,18 +31,18 @@ const COPY_FAMILIES = [
 const WRITE_OPCODES = ["sta", "stx", "sty", "inc", "dec", "asl", "lsr", "rol", "ror"];
 
 /**
- * Absolute and zero-page encodings of the accumulator moves a copy would use.
- * The X and Y forms are left to the assembly-text scan: this byte scan exists
- * to catch a copy whose operands are spelled as labels rather than numbers.
+ * Absolute and zero-page encodings of the same one-byte moves, grouped by
+ * register. The assembled scan exists to catch a copy whose assembly operands
+ * are spelled as names rather than numbers.
  */
-const LOAD_ENCODINGS = [
-  { opcode: 0xad, length: 3 },
-  { opcode: 0xa5, length: 2 },
-] as const;
-const STORE_ENCODINGS = [
-  { opcode: 0x8d, length: 3 },
-  { opcode: 0x85, length: 2 },
-] as const;
+const COPY_ENCODINGS: readonly {
+  readonly loads: readonly number[];
+  readonly stores: readonly number[];
+}[] = [
+  { loads: [0xad, 0xa5], stores: [0x8d, 0x85] },
+  { loads: [0xae, 0xa6], stores: [0x8e, 0x86] },
+  { loads: [0xac, 0xa4], stores: [0x8c, 0x84] },
+];
 
 /** Reject a missing report field instead of letting absent evidence read as address zero. */
 function numberField(record: Record<string, unknown>, name: string): number {
@@ -189,28 +189,78 @@ function textCopiesInto(artifacts: Artifacts, targets: readonly number[]): strin
   });
 }
 
-/** Describe assembled CPU byte sequences that copy a RAM byte into `targets`. */
+/** One assembled instruction of the application: where it starts and how long it is. */
+interface Instruction {
+  readonly start: number;
+  readonly length: number;
+}
+
+/**
+ * Instruction extents of the compiled application entry, taken from the public
+ * debug report. Working from declared instruction boundaries keeps platform
+ * startup code and operand bytes that happen to resemble an opcode out of the
+ * assembled scan below.
+ */
+function applicationInstructions(artifacts: Artifacts): readonly Instruction[] {
+  const functions = profileRecords(artifacts.debug.functions).filter(
+    (entry) => entry.qualifiedName === MAIN_SCOPE,
+  );
+  expect(functions, "one compiled application entry").toHaveLength(1);
+  const entry = functions[0];
+  if (entry === undefined) throw new Error("Missing compiled application entry");
+  const indexes = entry.rangeIndexes;
+  if (!Array.isArray(indexes) || indexes.length === 0)
+    throw new Error("Compiled application entry has no instruction ranges");
+  const ranges = profileRecords(artifacts.debug.ranges);
+  // Several source spans can map onto one instruction, so extents are unique by start.
+  const extents = new Map<number, number>();
+  for (const index of indexes) {
+    if (typeof index !== "number" || !Number.isInteger(index))
+      throw new Error("Instruction range does not resolve");
+    const range = ranges[index];
+    if (range === undefined) throw new Error("Instruction range does not resolve");
+    const machine = profileRecord(range.machine);
+    const start = numberField(machine, "start");
+    const end = numberField(machine, "end");
+    expect(end).toBeGreaterThan(start);
+    extents.set(start, end - start);
+  }
+  return [...extents]
+    .map(([start, length]) => ({ start, length }))
+    .sort((left, right) => left.start - right.start);
+}
+
+/** Decode one application instruction into its opcode and its single address operand. */
+function decode(artifacts: Artifacts, instruction: Instruction) {
+  const offset = instruction.start - artifacts.prg.readUInt16LE(0) + 2;
+  if (offset < 2 || offset + instruction.length > artifacts.prg.length)
+    throw new Error("Application instruction lies outside the delivered PRG");
+  const opcode = artifacts.prg[offset];
+  if (opcode === undefined) throw new Error("Application instruction has no opcode");
+  if (instruction.length === 3) return { opcode, address: artifacts.prg.readUInt16LE(offset + 1) };
+  if (instruction.length === 2) return { opcode, address: artifacts.prg[offset + 1] };
+  return { opcode, address: undefined };
+}
+
+/** Describe assembled application instruction pairs that copy a RAM byte into `targets`. */
 function assembledCopiesInto(artifacts: Artifacts, targets: readonly number[]): string[] {
+  const listing = applicationInstructions(artifacts);
   const found: string[] = [];
-  for (const { start, bytes } of codeSegments(artifacts)) {
-    const operandAt = (index: number, length: number): number | undefined => {
-      if (length === 3) return index + 2 < bytes.length ? bytes.readUInt16LE(index + 1) : undefined;
-      return index + 1 < bytes.length ? bytes[index + 1] : undefined;
-    };
-    for (let index = 0; index < bytes.length; index += 1) {
-      for (const store of STORE_ENCODINGS) {
-        if (bytes[index] !== store.opcode) continue;
-        const target = operandAt(index, store.length);
-        if (target === undefined || !targets.includes(target)) continue;
-        for (const load of LOAD_ENCODINGS) {
-          const loadIndex = index - load.length;
-          if (loadIndex < 0 || bytes[loadIndex] !== load.opcode) continue;
-          const source = operandAt(loadIndex, load.length);
-          if (source === undefined || source === target || !isRam(source)) continue;
-          found.push(`copy into $${target.toString(16)} at $${(start + loadIndex).toString(16)}`);
-        }
-      }
-    }
+  for (let index = 1; index < listing.length; index += 1) {
+    const previous = listing[index - 1];
+    const current = listing[index];
+    if (previous === undefined || current === undefined) continue;
+    if (previous.start + previous.length !== current.start) continue;
+    const store = decode(artifacts, current);
+    const load = decode(artifacts, previous);
+    if (store.address === undefined || load.address === undefined) continue;
+    if (!targets.includes(store.address)) continue;
+    if (load.address === store.address || !isRam(load.address)) continue;
+    const copies = COPY_ENCODINGS.some(
+      (family) => family.loads.includes(load.opcode) && family.stores.includes(store.opcode),
+    );
+    if (copies)
+      found.push(`copy into $${store.address.toString(16)} at $${previous.start.toString(16)}`);
   }
   return found;
 }

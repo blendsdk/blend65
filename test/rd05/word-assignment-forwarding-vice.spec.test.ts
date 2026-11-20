@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { startVice, stopVice } from "../m1/vice-runtime.js";
-import { buildProfileSource, profileRecords } from "./profile-fixture.js";
+import { buildProfileSource, profileRecord, profileRecords } from "./profile-fixture.js";
 
 const PROFILE = "c64-pal-prg-kernal-6581";
 const OPTIMIZATIONS = ["none", "balanced", "speed", "size"] as const;
@@ -27,35 +27,39 @@ function numberField(record: Record<string, unknown>, name: string): number {
 }
 
 /**
- * Locate the single application store to one hardware register inside declared
- * CPU code. Searching code intervals keeps asset bytes that happen to resemble
- * an absolute store out of the result.
+ * Locate the single store the application makes to one hardware register.
+ * Instruction extents come from the public debug report, so platform startup
+ * code and operand bytes that happen to resemble a store are never selected.
  */
 function uniqueStorePc(artifacts: Artifacts, address: number): number {
-  const origin = artifacts.prg.readUInt16LE(0);
-  const intervals = profileRecords(artifacts.memory.intervals).filter(
-    (interval) => interval.addressSpaceId === "cpu16" && interval.kind === "code",
+  const functions = profileRecords(artifacts.debug.functions).filter(
+    (entry) => entry.qualifiedName === "src/game.blend::Game.main",
   );
-  expect(intervals.length).toBeGreaterThan(0);
-  const stores: number[] = [];
-  for (const interval of intervals) {
-    const start = numberField(interval, "start");
-    const end = numberField(interval, "end");
-    expect(end - start).toBe(numberField(interval, "size"));
-    expect(start).toBeGreaterThanOrEqual(origin);
-    expect(end - origin + 2).toBeLessThanOrEqual(artifacts.prg.length);
-    for (let pc = start; pc + 3 <= end; pc += 1) {
-      const offset = pc - origin + 2;
-      if (
-        artifacts.prg[offset] === 0x8d &&
-        artifacts.prg[offset + 1] === (address & 0xff) &&
-        artifacts.prg[offset + 2] === address >>> 8
-      )
-        stores.push(pc);
-    }
+  expect(functions, "one compiled application entry").toHaveLength(1);
+  const entry = functions[0];
+  if (entry === undefined) throw new Error("Missing compiled application entry");
+  const indexes = entry.rangeIndexes;
+  if (!Array.isArray(indexes) || indexes.length === 0)
+    throw new Error("Compiled application entry has no instruction ranges");
+  const ranges = profileRecords(artifacts.debug.ranges);
+  const origin = artifacts.prg.readUInt16LE(0);
+  const stores = new Set<number>();
+  for (const index of indexes) {
+    if (typeof index !== "number" || !Number.isInteger(index))
+      throw new Error("Instruction range does not resolve");
+    const range = ranges[index];
+    if (range === undefined) throw new Error("Instruction range does not resolve");
+    const machine = profileRecord(range.machine);
+    const start = numberField(machine, "start");
+    if (numberField(machine, "end") - start !== 3) continue;
+    const offset = start - origin + 2;
+    if (offset < 2 || offset + 3 > artifacts.prg.length)
+      throw new Error("Application instruction lies outside the delivered PRG");
+    if (artifacts.prg[offset] === 0x8d && artifacts.prg.readUInt16LE(offset + 1) === address)
+      stores.add(start);
   }
-  expect(stores, `one store to $${address.toString(16)}`).toHaveLength(1);
-  const pc = stores[0];
+  expect([...stores], `one application store to $${address.toString(16)}`).toHaveLength(1);
+  const pc = [...stores][0];
   if (pc === undefined) throw new Error("Publication store was not found");
   return pc;
 }
@@ -255,12 +259,7 @@ function main(): void {
   last: 0xd007,
   expected: (pass) => {
     const x = 0x00fe + pass;
-    return [
-      ...wordBytes(x + 2),
-      ...wordBytes(x + 4),
-      ...wordBytes(0x1234),
-      ...wordBytes(0x5678),
-    ];
+    return [...wordBytes(x + 2), ...wordBytes(x + 4), ...wordBytes(0x1234), ...wordBytes(0x5678)];
   },
 };
 

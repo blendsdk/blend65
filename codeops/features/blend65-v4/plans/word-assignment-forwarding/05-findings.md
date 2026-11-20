@@ -180,3 +180,55 @@ files.
 The generalisable lesson is the narrow one: `git add -A` is unsafe while a subagent with write
 access is running, and the staging should be scoped to the paths the commit's message actually
 describes.
+
+## The oracle author's two findings, dispositioned
+
+### The stale snapshot it warned about · **resolved**
+
+The author reported that HEAD carried an intermediate, harness-broken copy of its work — the
+consequence of the slip above — whose emulator file used an earlier store-scanning helper that also
+picked up platform startup code and failed the array/struct case. It asked that the working-tree
+version be adopted instead.
+
+Verified and adopted. The refinements are 113 insertions across the two files, and the parent
+confirmed the result rather than the claim: the emulator tier is **9 of 9 green** with the
+working-tree content, and the shape tier reproduces the intended **10 RED / 10 GREEN**. The frozen
+blobs recorded in the plan are the working-tree versions, so the stale snapshot is superseded by
+content rather than by assertion.
+
+### The reported signed-arithmetic build failure · **does not reproduce**
+
+The author reported a live pre-existing defect outside its packet: that `s = s + delta` for a
+`sword`, and the same for `sbyte`, fail to build with
+`E10273 Cannot place 'main' — explicit placement constraints conflict` on
+`c64-pal-prg-kernal-6581` at `none`, with no placement attribute in the source — while a literal
+right-hand side builds fine. It chose the literal form to avoid the problem and recommended filing
+a unit for it.
+
+**Probed directly, and all three shapes build:**
+
+| Program | Result |
+| --- | --- |
+| `let s: sword = 100; let delta: sword = 2; s = s + delta;` | **Builds** |
+| `let s: sword = 100; s = s - 2;` | Builds |
+| `let s: word = 100; let delta: word = 2; s = s + delta;` (control) | Builds |
+
+So the defect is **not** "signed arithmetic with two variable operands". `E10273` is a *placement*
+conflict, and the author's failing program was its own fixture — which places arrays and publishes
+to fixed hardware addresses — so the likely cause is placement pressure in that specific source,
+unrelated to signedness.
+
+**Disposition: no issue filed.** Filing one on an unreproduced characterisation would put a wrong
+defect on the tracker, and the real reproducer is the author's exact fixture, which was not
+retained. The observation is recorded here so that if the same `E10273` appears again in a placing
+fixture, the first hypothesis is placement rather than signedness. The oracle's use of a literal
+right-hand side is unaffected either way: it exercises the same signed high-byte borrow, and it is
+verified on the real CPU.
+
+### A packet error of mine, for the record
+
+The packet pointed the author at `test/rd05/byte-write-forwarding-barriers.spec.test.ts` as a
+structural model. That path is wrong — the barriers sibling lives under
+`packages/compiler/src/machine/`, not `test/rd05/`. The author reported the file as nonexistent,
+which is right about the path I gave and wrong about the file; it then modelled on the actual
+siblings and the result is sound.

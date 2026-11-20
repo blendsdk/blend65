@@ -2,9 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-37 / #168
-> **Progress**: 1/7 tasks (14%) · [findings](05-findings.md)
-> **Status**: Executing — preflight returned 4 majors, all confirmed and all defects in this
-> plan; repaired here. Implementation is held until the reopened exposure task lands
+> **Progress**: 4/7 tasks (57%) · [findings](05-findings.md)
+> **Status**: Executing — preflight majors repaired, oracle frozen at reproduced RED. The gate is
+> red by design until the implementation lands
 > **Last Updated**: 2026-11-20
 > **Baseline**: plan authored at `825778f2`, clean `feature/v4-rebuild`
 > **Scope**: strict; the result home of a word arithmetic operation whose sole consumer is an
@@ -190,19 +190,23 @@ register and must instead direct the existing stores at the destination home.
 - [x] T-37.1 Record the corrected starting state as evidence and repair the two stale "No push"
       notes. Capture pre-change baselines: the seven examples plus boing-ball in all four modes,
       digesting emitted bytes only ✅ (evidence below; reproduced across two independent runs)
-- [ ] T-37.2 **Reopened after preflight.** Bound the byte-exact golden exposure a word-lowering change can shift, before any code.
+- [x] T-37.2 **Reopened after preflight, then closed on method.** Bound the byte-exact golden exposure a word-lowering change can shift, before any code.
       About twenty output oracles under `test/rd05` pin emitted form, and
       `test/rd08/optimizer-exact-output.impl.test.ts` pins artifacts byte-for-byte. Name which can
       reach a word arithmetic assignment. **Not by static prediction** — two attempts at that
       failed, and the honest method is empirical: run the affected tiers before and after and
-      attribute every delta, keeping the over-inclusive list only as a watch list
-- [ ] T-37.3 Author the specification oracle from the required behaviour only, implementation-blind,
+      attribute every delta, keeping the over-inclusive list only as a watch list ✅ (method
+      settled and the before-state established; the attribution itself belongs to T-37.5/T-37.6,
+      where the change exists to attribute)
+- [x] T-37.3 Author the specification oracle from the required behaviour only, implementation-blind,
       and reproduce RED. **Two halves, because a forwarding optimization's risk is firing when it
       must not**: the emitted shape for a word assignment, and the barriers — an intervening use, a
       non-adjacent store, a volatile destination, a partial or indexed place, a signed or
       non-wrapping width, and an operand that could share the destination's home. Freeze by hash
-- [ ] T-37.4 Preflight the plan and this oracle with the applicable specialist lens; resolve every
-      critical and major finding before implementation
+      ✅ (two files, frozen hashes and the reproduced RED split recorded below)
+- [x] T-37.4 Preflight the plan and this oracle with the applicable specialist lens; resolve every
+      critical and major finding before implementation ✅ (0 critical, 4 major all confirmed and
+      repaired, 8 minors applied, 1 refuted on evidence — see the findings)
 - [ ] T-37.5 Implement the smallest sound change: do not request the scratch when the barrier
       condition B1–B6 holds, and give the two existing stores the destination's lowered value.
       **The barrier predicate gets its own module**, as the byte sibling's did — `lower-state.ts`
@@ -295,6 +299,62 @@ named by the preflight as genuinely reaching and worth checking first:
 One oracle leaves the watch list on evidence rather than on hedging: `test/rd04/backend.spec.test.ts`
 contains `total = quotient(value.second, word(peek($0400)) + 1)`, where the arithmetic's consumer is
 a **call argument** rather than a whole-word store, so B1 and B2 exclude it.
+
+## T-37.3 evidence — the frozen oracle and its reproduced RED
+
+Two files, authored implementation-blind and frozen at these blobs:
+
+| File | Blob | Lines | Result |
+| --- | --- | ---: | --- |
+| `test/rd05/word-assignment-forwarding.spec.test.ts` | `e95f185cd0f33fc47ec2f0a6b85d9afc526908e9` | 523 | **10 RED / 10 GREEN of 20** |
+| `test/rd05/word-assignment-forwarding-vice.spec.test.ts` | `fdf074cdf8ae86a446f98a9f30d563764244ec13` | 341 | 9 GREEN of 9 |
+
+**RED reproduced by the parent, not taken on the author's report.** Every one of the ten shape
+failures is the same assertion and the same cause —
+`no copy into the destination: expected [ 'lda $09c7 / sta $09c9', … ] to deeply equal []` — which
+is precisely the scratch-to-destination copy this slice removes. The ten are four profiles × both
+operators, plus both separate-destination cases.
+
+The ten shape-tier acceptance cases pass: a module-level word destination, a `word[]` element, a
+struct field, a `poke` destination, a signed word, chained arithmetic, an escaped address, an
+installed interrupt, a helper-returned operand and a word parameter operand. The nine emulator
+cases pass on the real CPU across all four optimization modes, covering carry past 256, a borrow,
+a separate destination leaving its operand alone, an intervening statement with a reused result,
+an array element and struct field with their neighbours proved untouched, chained arithmetic, and a
+signed word descending through zero.
+
+Those are GREEN **before** implementation, which is the right shape for a barrier: they describe
+behaviour that is already correct, and the risk is a forwarding that starts firing on them. The
+emulator tier was run isolated, per this plan's own rule about load-sensitive emulator timeouts.
+
+Checked independently of the author's report: both files import only vitest, the shared profile
+fixture and the emulator runtime, so they reach no implementation source; neither carries a plan,
+task or issue identifier; `prettier --check` is clean and `tsc --noEmit -p tsconfig.json` exits 0.
+
+### The destination's home is resolved from the debug report, not from the instructions
+
+Worth recording because it is what makes the oracle survive the change it is judging: the
+destination's address is looked up by declaration span in `.debug.json` rather than inferred from
+the stores that write it. An oracle that located the home by pattern-matching those stores would
+break the moment their shape changed — which is exactly what this slice does to them.
+
+### The gate is red by design from here
+
+Freezing at RED means the integration tier and `yarn test` **fail until the implementation lands**.
+That is intended, and is recorded so a later reader does not read it as a regression. The last
+fully green gate is the preceding unit's, at `5f6fe990`.
+
+## T-37.2 — closed on method, with the attribution where it belongs
+
+The deliverable is the method and the before-state, both settled. Static prediction is abandoned
+for the reasons above; the exposure is attributed empirically when there is a change to attribute,
+which is T-37.5 and T-37.6.
+
+The before-state is established rather than assumed: every file changed between the preceding
+unit's clean full gate at `5f6fe990` and the start of this work is under `codeops/`, so that gate
+is still the valid baseline and no redundant full run was needed. From the freeze onward the
+baseline is "green except the ten pinned RED cases", and any *other* failure is this slice's to
+explain.
 
 ## Out of scope
 
