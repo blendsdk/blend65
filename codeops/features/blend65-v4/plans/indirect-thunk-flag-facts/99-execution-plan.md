@@ -2,9 +2,11 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-35 / #170
-> **Progress**: 0/6 tasks (0%)
-> **Status**: Planned — design ruled by the user on 2026-11-20
+> **Progress**: 1/6 tasks (17%)
+> **Status**: Executing — oracle frozen at meaningful RED
+> **Last Updated**: 2026-11-20 09:27
 > **Baseline**: `e79c367b`, clean `feature/v4-rebuild`
+> **Phase baseline tree**: `0ab13159e5e72c90e9f89df72a54b4ceb2f73116`
 > **Scope**: strict; the flag summary of a tail-transferring dispatch thunk
 > **Reasoning**: high — a machine-state validator whose facts must survive every validation site
 > **Created**: 2026-11-20
@@ -189,9 +191,10 @@ Record in T-35.1 which axes moved and why, so the division is evidence rather th
 
 ## Small execution chunks
 
-- [ ] T-35.1 Author the assigned specification tests independently, including the end-to-end
+- [x] T-35.1 Author the assigned specification tests independently, including the end-to-end
       artifact case that crosses every validation site, run meaningful RED, freeze the oracle
-      hash and capture accepted-control baselines. No production code.
+      hash and capture accepted-control baselines. No production code. ✅ (implemented:
+      2026-11-20 09:18 · completed: 2026-11-20 09:27)
 - [ ] T-35.2 Record the candidate set on the thunk block and consume it as a meet at summary
       assembly, keyed on the recorded set, with the active-candidate rule and the redirect comment.
       Make the oracle green without editing it.
@@ -206,6 +209,87 @@ Record in T-35.1 which axes moved and why, so the division is evidence rather th
       dispositions for the user's ruling.
 - [ ] T-35.6 Run the complete checkpoint once, close the unit with its residual owners, sync the
       roadmap and commit locally. Never push automatically.
+
+## T-35.1 evidence
+
+### The frozen oracle
+
+Authored by an independent author that received required behaviour only. The design documents and
+the five repair-site source files were on an explicit forbidden list, and the author confirmed it
+opened none of them; compiler types reached the oracle only through the public package import.
+
+| File | Lines | Frozen blob | Owns |
+| --- | --- | --- | --- |
+| `test/rd04/function-pointer-arithmetic.spec.test.ts` | 256 | `e399500f78a467493cbd7897a128a9b5ff65ea18` | Build in four modes, `check`, route coverage, determinism |
+| `test/rd04/function-pointer-arithmetic-vice.spec.test.ts` | 129 | `52f0a711c03cfe0aff15ee18e75a6852c90fee0f` | Runtime values on a real emulator |
+
+Both hashes are recorded before any production change and must be unchanged at closeout. A failing
+case in either file means the implementation is wrong.
+
+### Meaningful RED, reproduced by the parent
+
+| Tier | Result | Cause |
+| --- | --- | --- |
+| Host | 14 failed, 32 passed of 46 | Every failure is `COMPILER_INCOMPLETE` with category `compiler` |
+| Emulator | 1 failed, 1 passed of 2 | The two-target case is refused; the single-target case ran on a real emulator and returned 11 with the arithmetic applied |
+
+The failing host cases are exactly the required-behaviour axes — eight build cases (addition and
+subtraction across four modes), two `check` cases and four determinism cases. All 32
+route-coverage cases pass, confirming the controls are genuine controls rather than cases that
+happen to be broken too.
+
+The passing emulator case is load-bearing in two ways: it proves the harness and the breakpoint
+work before the repair exists, and it pins that dispatch really reaches the second function, so a
+repair that hardwires dispatch to one target cannot satisfy both cases.
+
+Checks run alongside: `prettier --check` clean on both files, `yarn typecheck` exit 0, and the
+ephemeral-artifact grep finds no reference to any plan, requirement, task or issue identifier in
+either file.
+
+### Accepted-output baselines, captured before any production change
+
+Taken at `c2e78a92` on 2026-11-20, so the repair can be proved byte-neutral for every program
+that already builds. Values are the first 16 hex digits of the payload SHA-256. The three
+optimized modes agree with each other throughout and differ from `none`, which is the expected
+shape.
+
+| Control | `none` | `balanced` / `speed` / `size` |
+| --- | --- | --- |
+| The refused program itself | REFUSED | REFUSED |
+| Arithmetic removed | `cd8de9b31bcf4b0a` | `c2ccac46ff4b3126` |
+| Shift instead of addition | `ff67751273d55750` | `a72500bdbd7905b6` |
+| Addition before the call | `29cf2fd15b7996f1` | `5f233245cd7a6117` |
+| One distinct target | `e76ff7bb639271fc` | `e18b3b8dd6e09fe0` |
+| Callable takes an argument | `e413b11e2b923a41` | `34fded61f5cd1345` |
+| Callable in a local struct field | `3532fa8bf4c4a17b` | `f2752fb234b02131` |
+| Callable in a module-level variable | `64a21367f31b35b9` | `6f725d0a52da977e` |
+| Addition inside a callee after the call | `cd81c6d7b0913c97` | `08e528151970cc71` |
+
+Example corpus, default manifest mode, combined payload digest per project:
+
+| Example | Digest |
+| --- | --- |
+| `boing-ball` | `baf7889ae25c8cd8` |
+| `foundation` | `a1ed15b5d43e08a4` |
+| `m1` | `bbe8c9cfceb1380a` |
+| `rd06-assets` | `07f6e17871ee4851` |
+| `rd06-charpad` | `3ab1e58ecd733a1b` |
+| `rd06-spritepad` | `b0316c1fe746a295` |
+| `rd07-loadable` | `343409058c5a3aa6` |
+
+No example declares callable-typed storage, so the corpus is expected to be untouched by this
+repair; it is captured as an independent guard rather than as the primary evidence.
+
+### Which axes the frozen oracle took
+
+Applying the rule recorded above: the oracle owns the axes reachable from source alone — the
+refused program building in all four modes and under `check`, correct runtime behaviour on the
+emulator, route coverage for every program that already builds, and build determinism. The
+Precision, True-negative and Meet-semantics axes are stated as machine-program shapes and cannot
+be constructed from Blend65 source without knowing how candidates lower, so they move to the
+T-35.3 implementation tests, where synthetic machine programs are already the established idiom.
+The accepted-output identity axis is parent-side evidence rather than an oracle assertion, so that
+no pre-repair hash is frozen into an immutable file.
 
 ## Verification
 
