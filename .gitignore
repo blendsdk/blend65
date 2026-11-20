@@ -5,5 +5,5 @@ coverage/
 .turbo/
 test/.tmp-*/
 
-# Example build output (examples/boing-ball follows the manifest outDir convention)
-examples/boing-ball/out/
+# Example build output: every example writes its artifacts to the manifest outDir
+examples/*/out/
