@@ -2,10 +2,12 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-36 / #170
-> **Progress**: 3/7 tasks (43%)
-> **Status**: Executing — baselines captured, witness channel settled
+> **Progress**: 3/7 tasks (43%) · [findings](05-findings.md)
+> **Status**: Executing — oracle frozen at reproduced RED; preflight returned 3 majors, two
+> fixed here and PA-003 awaiting a ruling before half B is implemented
 > **Last Updated**: 2026-11-20
-> **Baseline**: `26c316db`, clean `feature/v4-rebuild`
+> **Baseline**: plan authored at `26c316db`; accepted-output digests captured at `c6266da9`,
+> both on a clean `feature/v4-rebuild`
 > **Scope**: strict; the dispatch thunk's block termination and the machine-stage refusal diagnostic
 > **Reasoning**: high — a lowering terminator and a validator, both on the refusal path, where a
 > wrong answer either accepts a malformed program or refuses a legal one
@@ -42,10 +44,14 @@ The refusal envelope carries `code = COMPILER_INCOMPLETE`, `span = None`, and th
 No file, no line, no construct.
 
 **No test anywhere in the repository asserts `COMPILER_INCOMPLETE`.** A search of every TypeScript
-file outside `node_modules` finds the code only at its two construction sites,
-`services/services.ts` and `services/size-selection.ts`. This refusal is an internal invariant
-guard that has never had a demonstrated legal trigger, and that fact shapes half B's acceptance
-below.
+file outside `node_modules` finds the code only in two files, across five emission sites — three in
+`services/services.ts` and two in `services/size-selection.ts` — of which the one reached by a bind
+error is `size-selection.ts:244`. This refusal is an internal invariant
+guard with no demonstrated legal trigger **via the validator path on this baseline**, and that fact
+shapes half B's acceptance below. The claim is deliberately narrowed: the feature roadmap records a
+stock chained-NMI program failing the same diagnostic at machine storage binding, but only behind a
+gate change that was reverted, so it may not reproduce here. It weakens a stronger claim without
+refuting this one.
 
 ## Half A — smallest viable design
 
@@ -70,14 +76,28 @@ result is affected too — measured:
 | The same program with one argument | Chain | **Builds** |
 
 So the result's retention instructions and its `state.values` entry are still produced on the
-non-returning path; only the block boundary moves. Dropping the retention would make the
+non-returning path; only the block boundary moves. Stated exactly, to remove an ambiguity a
+reviewer raised: the pushed block's instructions are `retained.instructions` (which already contain
+the prefix, the `jsr` and the retention), `state.values.set(operation.result, retained.value)` is
+unchanged, and `${prefix}.continue` starts empty. Dropping the retention would make the
 subsequent lowering unable to find the value, and dropping the `state.values` entry would fail
 lowering outright. The code after the call is unreachable, which is legal, and the comparison chain
 already emits it the same way.
 
-The route is only reachable with zero arguments, and a program on it today is refused rather than
-compiled, so no program that currently builds can change by a byte. That claim is an acceptance
-check, not an assumption.
+The route is only reachable with zero arguments, but it is **not** true that every program on it is
+refused today, and an earlier draft of this plan claimed so. The refusal needs a post-call flag
+consumer: a non-returning dispatch summarises as preserving nothing, the `jsr` clears what is
+available, and the verdict only turns false when a later instruction actually requires a flag that
+is now missing. A program with no arithmetic after the call therefore **builds today** on exactly
+the path this half changes, in all four modes, and it is pinned as
+`thunk-nonreturning-no-consumer` in the baseline table.
+
+That is also why this half is not structurally neutral by construction: an `unreachable` terminator
+is itself an optimizer input (`optimization-cleanup.ts:183` returns `false` from `flagsDead` for
+that terminator kind), and moving post-call instructions into a fresh continuation takes them out
+of the pre-`jsr` block's peephole window. Byte-neutrality for that control is therefore a measured
+acceptance check, and if its bytes move the delta is stated and justified rather than asserted
+away.
 
 ## Half B — smallest viable design
 
@@ -102,6 +122,12 @@ predicate and express it through one defect finder that returns the first failin
 `validateMachineProgram` becomes that finder compared against `null`, so its signature does not
 move; the refusal path at `bind.ts:585` reads the defect and carries it on the bind error; and the
 message is formatted in `services/`, which is the layer that already owns span fallbacks.
+
+**Modules are named, because both candidate hosts are near the size limit** (`bind.ts` is 592 lines
+and `size-selection.ts` is 1,038, against a split threshold of about 700): the defect type and
+finder live in a new `machine/machine-defect.ts`, and the formatter in a new small module under
+`services/`. The no-ephemeral-identifier rule applies to the **user-facing strings** here as well as
+to comments: neither the message nor the `help` line may name a plan, task or issue.
 
 **One of the six consumers changes.** The decisive reason is not taste: **frozen specification
 oracles assert the boolean directly** — `machine/terminal-legality.spec.test.ts:58`,
@@ -147,8 +173,13 @@ discover it.
       D-6; the challenger ran before any code was written, and its frozen-oracle finding was
       verified by direct search rather than accepted on report)
 - [ ] T-36.4 Implement half A: terminate the caller's block `unreachable` on the thunk route when
-      no candidate returns. Verify the frozen oracle turns GREEN and that the dispatch controls and
-      all seven examples stay byte-identical
+      no candidate returns, uniformly over the result branch. Acceptance is split, because two
+      controls are refused today and so have no digest to preserve: the six controls that build —
+      **including `thunk-nonreturning-no-consumer`, which travels the changed path** — stay
+      byte-identical along with all seven examples, while the two previously-refused shapes must
+      reach a stated expected shape (the `jsr`, an `unreachable` terminator, the retention present,
+      a dead tail) proved in T-36.6 rather than merely stopping being refused. The frozen oracle
+      must turn GREEN at 50/50
 - [ ] T-36.5 Implement half B behind the settled design: the witness, the span on the refusal, and
       a message that names the construct. Accepted output must stay byte-identical, since a
       diagnostic may not move a single emitted byte
@@ -181,6 +212,27 @@ and must be re-derived, not inherited.
 | Raw-write residuals from the preceding unit's reviews | #164 |
 | Unifying the two span-less refusal constructors across the service layer | Part of the task 3 design decision only if the chosen channel requires it; otherwise untouched |
 
+## Open decision requiring a ruling — PA-003, half B's producer scope
+
+Implementation of half B is held until this is answered. The preflight found that
+`size-selection.ts:511-512` maps **any** bind error to the same span-less sentence and discards
+`reason` and `requestId`, and that `bindMachineProgram` has five error returns of which only one is
+the validator. As planned, half B gives a span to one of five producers of an identical message, so
+four paths keep emitting the message this plan calls the defect.
+
+| Option | What it means | Cost |
+| --- | --- | --- |
+| **A — qualify the scope** (recommended) | Only the validator-detected defect gains a witness. The other four bind reasons keep today's message, and the boundary is written into the plan with a named owner for the rest | Smallest sound change, and it keeps this unit bounded. An author hitting one of the other four paths still sees nothing useful. Needs somewhere to record the remainder, which means either filing an issue or adding it to #170's residual list |
+| **B — extend the witness to all five** | The witness also carries `reason` and `requestId`, which `bind.ts:561` and `:569` already compute, so all five producers get a located message | Larger: `certificate` and `missing-storage` have no instruction to witness, so each needs its own span derivation, and the unit grows a second design question |
+
+**Recommendation: A**, because the unit's measured defect is the validator path and option B adds
+span derivation for three failure classes with no measured trigger. The honest cost of A is that
+the plan's own framing — that a span-less refusal is itself a defect — stays true for four paths
+after this unit closes, so the remainder must be recorded as owned work rather than dropped.
+
+Filing a new issue is outward-facing, so that part is not done unilaterally; the ruling also covers
+whether to file one or to extend #170's residual list.
+
 ## Design decisions
 
 | # | Decision | Status |
@@ -189,7 +241,7 @@ and must be re-derived, not inherited.
 | D-2 | The witness channel: a null-returning defect finder behind the unchanged boolean, the defect carried on the bind error, the message formatted in `services/` | Settled by the reconciliation below |
 | D-3 | Half B's acceptance is proved at unit level, with the reason recorded | Settled, and stated so a reviewer can reject it |
 | D-4 | Half A lands before half B, because half B's message is only reachable once the known defect on that path is gone | Settled |
-| D-5 | `validate-flags.ts` captures its first defect into a side slot and leaves its accumulating `valid` dataflow untouched | Settled by the reconciliation below |
+| D-5 | `validate-flags.ts` captures its first defect into a side slot, at the `&&=` sites **and** the five bypass sites, only on `check === true`, with a guaranteed non-null fallback | Rewritten after preflight — the first version could accept a malformed program |
 | D-6 | The two span-less refusal constructors stay separate | Settled — they return different types, and the service-stage one has no program to witness |
 
 ### D-2 and D-5 — challenger reconciliation
@@ -202,10 +254,32 @@ have, which is the reason the decision is now closed rather than merely agreed:
 | --- | --- |
 | Frozen spec oracles assert `validateMachineProgram` as a boolean at seven assertions in three files | Converting all six consumers is **impossible**, not merely noisy. Confirmed by direct search before adoption |
 | `c64-layout.ts:913/918` guards a compaction decision and `size-observers.ts` contributes one clause to a multi-term certificate predicate | Neither has any consumer for a witness, so changing them would add noise for nothing |
-| `machine/` imports `project/diagnostics` as a type only, and cannot reach the span-fallback inputs | The message must be formatted in `services/`, matching how machine lowering failures are already reported |
+| No production module under `machine/` imports `project/diagnostics` at all — the challenger said "as a type only", and the corrected fact is stronger — and it cannot reach the span-fallback inputs | The message must be formatted in `services/`, matching how machine lowering failures are already reported |
 | `validate-flags.ts` accumulates `valid &&= …` **deliberately** without short-circuiting, and its summary cache fill order affects precision | **Do not convert it to early returns.** Capture the first defect into a side slot and leave the dataflow byte-for-byte. This is what makes "no accepted program changes" checkable rather than hoped for |
 | No test anywhere pins the diagnostic code or its message text | Message, span and help text are free to change. Independently confirmed |
 | The eager-witness option costs allocation on the accepted path, and these validators run per size-mode candidate | A `T \| null` finder allocates nothing when the program is accepted, which is also the existing house idiom (`validateHomes` returns `string \| null`) |
+
+### D-5 as rewritten after preflight
+
+The challenger's prescription was necessary but not sufficient, and the preflight caught why. The
+verdict also turns false at five sites that never pass through the `valid &&= …` dataflow:
+`validate-flags.ts:100` (a duplicate block label, a top-level `return false`), `:115` (an active or
+absent entry), `:125` (an absent successor), `:162` (a missing stack byte, a plain assignment
+already gated on `check`), and `:224` (unequal stack shapes at a join). Since the boolean is
+*derived from* the finder, a false verdict with no captured defect would yield `null` and the
+wrapper would read it as `true` — **accepting a malformed program**, which is worse than the defect
+being repaired. The capture implication is one-way: a capture always reaches a false verdict, but a
+false verdict does not imply a capture.
+
+`transfer` also runs twice per block — the fixpoint pass at `:206` with `check = false` and the
+verdict pass at `:250` with `check = true` — so a capture that is not gated on `check` records
+phantom defects from the propagation pass.
+
+The rule, therefore: capture at the `&&=` sites and at all five bypass sites, only on
+`check === true`, and guarantee a **non-null fallback defect whenever the verdict is false**. An
+equivalence test asserts that the finder returning `null` matches the pre-change boolean exactly
+across the existing validator cases and the frozen assertions. Without the fallback, the
+signature-preservation argument does not hold at all.
 
 **The challenger's strongest objection is accepted, not dismissed:** a span on a
 compiler-limitation message points a caret at innocent, correct source, and an author who trusts
@@ -234,6 +308,7 @@ everything else an example emits is included.
 | `thunk-mixed` — one returning, one never-returning | `981f9f52d2780665` | `1447854d79000d08` | `1447854d79000d08` | `1447854d79000d08` |
 | `thunk-result` — two returning candidates with a consumed result | `4cdd3773fcdf2ee3` | `4bdc1996fbccadc0` | `4bdc1996fbccadc0` | `4bdc1996fbccadc0` |
 | `thunk-nonreturning` — **the defect**: no candidate returns, zero arguments | `REFUSED` | `REFUSED` | `REFUSED` | `REFUSED` |
+| `thunk-nonreturning-no-consumer` — no candidate returns, **no post-call flag consumer** | `044801b51c3f54bc` | `39a2c88bc1e0bbcf` | `39a2c88bc1e0bbcf` | `39a2c88bc1e0bbcf` |
 | `chain-nonreturning` — the same program with one argument | `9b933bfd10918db9` | `15d915955d9f73e6` | `15d915955d9f73e6` | `15d915955d9f73e6` |
 | `chain-returning` — returning candidates with one argument | `e291985f6f25f9f3` | `ca42881e1ddabbdf` | `ca42881e1ddabbdf` | `ca42881e1ddabbdf` |
 | `single-target` — one candidate, no dispatch | `ae6b8adac5c9940e` | `d74b449a402f14bc` | `d74b449a402f14bc` | `d74b449a402f14bc` |
@@ -245,7 +320,12 @@ arguments and builds at one argument, exactly like the void case. It is recorded
 design above because it decides whether the fix is uniform over the result branch.
 
 The two rows that matter are adjacent: `thunk-nonreturning` is refused and `chain-nonreturning`
-builds, and they differ only by one unused parameter. The three optimized modes agree with each
+builds, and they differ only by one unused parameter. The
+`thunk-nonreturning-no-consumer` row was added after the preflight and is the most important one
+for byte-neutrality: it is the same never-returning dispatch with nothing after the call, it
+**builds today**, and it travels the exact path this unit changes. It was measured in all four
+modes and reproduced across two independent runs, and its `none` digest matches an independent
+single-program probe. The three optimized modes agree with each
 other and differ from `none` throughout, which is the expected shape.
 
 | Example | Digest |
@@ -348,6 +428,20 @@ function main(): void {
   let i: byte = peek($C002);
   i = i + peek($C003);
   poke($C101, i);
+}
+```
+
+### `thunk-nonreturning-no-consumer`
+
+```
+module Game;
+function spinA(): void { while (true) { } }
+function spinB(): void { while (true) { } }
+function main(): void {
+  let hook: fn(): void = &spinA;
+  if (peek($C000) == 1) { hook = &spinB; }
+  hook();
+  poke($C101, 1);
 }
 ```
 
