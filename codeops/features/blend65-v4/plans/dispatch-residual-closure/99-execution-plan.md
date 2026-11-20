@@ -60,6 +60,21 @@ to it (`lower-indirect.ts:120-164`), so the fix is to close that block instead:
   instructions — structurally what `lower-indirect.ts:249-260` already does for the chain.
 - When **any** candidate returns or is unknown, the current behaviour is correct and unchanged.
 
+The change must be **uniform over the result branch**, which is the combination most easily missed.
+The route already splits on whether the call has a result (`lower-indirect.ts:135`), and a consumed
+result is affected too — measured:
+
+| Program | Route | Result |
+| --- | --- | --- |
+| `let v: byte = hook();` with both `fn(): byte` candidates looping forever, zero arguments | Thunk | **Refused**, same diagnostic |
+| The same program with one argument | Chain | **Builds** |
+
+So the result's retention instructions and its `state.values` entry are still produced on the
+non-returning path; only the block boundary moves. Dropping the retention would make the
+subsequent lowering unable to find the value, and dropping the `state.values` entry would fail
+lowering outright. The code after the call is unreachable, which is legal, and the comparison chain
+already emits it the same way.
+
 The route is only reachable with zero arguments, and a program on it today is refused rather than
 compiled, so no program that currently builds can change by a byte. That claim is an acceptance
 check, not an assumption.
@@ -221,6 +236,12 @@ everything else an example emits is included.
 | `chain-nonreturning` — the same program with one argument | `9b933bfd10918db9` | `15d915955d9f73e6` | `15d915955d9f73e6` | `15d915955d9f73e6` |
 | `chain-returning` — returning candidates with one argument | `e291985f6f25f9f3` | `ca42881e1ddabbdf` | `ca42881e1ddabbdf` | `ca42881e1ddabbdf` |
 | `single-target` — one candidate, no dispatch | `ae6b8adac5c9940e` | `d74b449a402f14bc` | `d74b449a402f14bc` | `d74b449a402f14bc` |
+
+One further shape was measured after the table was captured and is not in it, because it is refused
+and therefore has no digest: a **consumed result** with no returning candidate
+(`let v: byte = hook();`, both candidates `fn(): byte` looping forever) is refused at zero
+arguments and builds at one argument, exactly like the void case. It is recorded in the half A
+design above because it decides whether the fix is uniform over the result branch.
 
 The two rows that matter are adjacent: `thunk-nonreturning` is refused and `chain-nonreturning`
 builds, and they differ only by one unused parameter. The three optimized modes agree with each
