@@ -210,17 +210,76 @@ Reviews dispatched on the phase diff against baseline tree
 `0ab13159e5e72c90e9f89df72a54b4ceb2f73116`. Three of five reviewers reported first; the remaining
 two were still running when this record was written.
 
-| Finding | Phase | Severity | Area | Ruling |
-| --- | --- | --- | --- | --- |
-| SM-001 | T-35 | MAJOR | machine/validate-flags | pending |
-| RV-002 | T-35 | MAJOR | plan/evidence | pending |
-| RV-001 | T-35 | MINOR | plan/evidence | pending |
-| RV-003 | T-35 | MINOR | plan/evidence | pending |
-| RV-004 | T-35 | MINOR | machine/validate-flags | pending |
-| RV-005 | T-35 | MINOR | machine/machine-types | pending |
-| RV-006 | T-35 | MINOR | plan/boundary | pending |
-| SM-002 | T-35 | MINOR | machine/validate-flags | pending |
-| SM-003 | T-35 | MINOR | test/rd04 oracle | pending |
+All five reviewers reported. Correctness, machine-code and performance each returned no critical
+and no major product finding; the two majors below came from the semantics and ABI lenses, and one
+critical came from the ABI lens.
+
+| Finding | Phase | Severity | Area | Origin | Ruling |
+| --- | --- | --- | --- | --- | --- |
+| SA-001 | T-35 | CRITICAL | machine/lower-indirect | pre-existing | pending |
+| SM-001 | T-35 | MAJOR | machine/validate-flags | this unit | pending |
+| RV-002 | T-35 | MAJOR | plan/evidence | this unit | pending |
+| SA-002 | T-35 | MAJOR | semantic/raw-write-kills | pre-existing | pending |
+| SA-003 | T-35 | MAJOR | services/final-callable-proof | pre-existing | pending |
+| RV-001 | T-35 | MINOR | plan/evidence | this unit | pending |
+| RV-003 | T-35 | MINOR | plan/evidence | this unit | pending |
+| RV-004 | T-35 | MINOR | machine/validate-flags | this unit | pending |
+| RV-005 | T-35 | MINOR | machine/machine-types | this unit | pending |
+| RV-006 | T-35 | MINOR | plan/boundary | this unit | pending |
+| SM-002 / SR-002 | T-35 | MINOR | machine/validate-flags | this unit | pending |
+| SM-003 | T-35 | MINOR | test oracle coverage | this unit | pending |
+| SR-001 | T-35 | MINOR | machine/validate-flags | this unit | pending |
+| SR-003 | T-35 | MINOR | machine/validate-flags tests | this unit | pending |
+
+### SA-001, reproduced and attributed by the parent
+
+The dispatch route retains the call result as a register value **without** the `signed` field that
+the direct route sets from the result type (`machine/lower-call.ts:396` has it,
+`machine/lower-indirect.ts:133` does not). Signed-versus-unsigned comparison lowering reads that
+flag authoritatively.
+
+Measured, with the call result consumed inline so it never passes through a typed home:
+
+| Program | Route | Emitted comparison |
+| --- | --- | --- |
+| `if (pick() < 0)` over two `fn(): sbyte` candidates | dispatch | `cmp #$00` then `bcc` — **unsigned** |
+| The identical program with one parameter added | chain | `eor #$80`, `cmp`, `bcc` — signed |
+
+For a returned `-5` the unsigned form takes the wrong branch, with no diagnostic. A first probe
+using `let v: sbyte = pick();` did **not** expose it, because the result then passes through a
+declared local whose home carries the signedness; the inline comparison is what reaches the
+register value.
+
+Attribution matters for ownership, so it was measured rather than assumed: the pre-repair compiler,
+with all three files reverted, emits the identical unsigned form for the same program. This defect
+is **wholly pre-existing** and is neither caused nor widened by this unit.
+
+### SA-002 and SA-003
+
+Both concern the raw-write model behind candidate-set completeness, which this unit's soundness
+depends on but does not establish. SA-002: a raw write whose address is only known at run time
+cannot kill a private local's callable bytes, because such a local is in none of the opaque-root
+sets. SA-003: a frame root whose binding resolved to more than one home, or to none, is excluded
+from the final re-proof and so is never checked against a constant raw write either.
+
+Both are pre-existing, both are already named as out of scope in this plan's boundary 9 and in the
+preceding unit's residual list, and both are issue #164 territory. The ABI lens stated the fair
+framing: once the pointer holds an unlisted address the dispatch route is already undefined
+regardless of flags, so this unit adds no failure mode beyond an already-undefined execution — but
+it does make the flag proof newly depend on completeness, which the comparison-chain route never
+did.
+
+### Verified by the reviews rather than asserted by the plan
+
+| Claim | Who confirmed it, and how |
+| --- | --- |
+| The intersection is a sound summary | Machine-code and ABI lenses independently, from the documented meanings of the two fields and from `JMP (abs)` preserving flags and touching no stack |
+| Omitting the ABI floor from the summary is **required**, not merely tolerated | Machine-code lens, with an exhibit: injecting it would accept a program after an unmodelled external call |
+| The recorded field survives every reconstruction | Correctness and machine-code lenses enumerated fourteen rebuild sites, all spreads, and found that switch shaping runs before helper blocks are appended so it cannot see a dispatch block at all |
+| Hardware-stack depth is unchanged at every instant | ABI lens, against the semantic call-graph accounting |
+| The interrupt-context guard delivers its property | ABI lens, by checking that the guard and the clone see the same lowering context |
+| Added host cost | Performance lens: no new function analysis in a valid program, since every candidate is already analysed and memoised at top level; the addition is bounded map probes and two small objects per dispatch block, dominated by existing work in the same function by three orders of magnitude |
+| Recursion through a function pointer cannot reach the order-dependence in SR-001 | Parent probe: refused at source with `E10180` for both the module-level and local-pointer shapes |
 
 ### SM-001, reproduced from source by the parent
 
