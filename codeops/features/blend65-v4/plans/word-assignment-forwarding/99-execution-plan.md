@@ -2,9 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-37 / #168
-> **Progress**: 2/7 tasks (29%)
-> **Status**: Executing — baselines captured and golden exposure enumerated; oracle and
-> preflight next, both before any code
+> **Progress**: 1/7 tasks (14%) · [findings](05-findings.md)
+> **Status**: Executing — preflight returned 4 majors, all confirmed and all defects in this
+> plan; repaired here. Implementation is held until the reopened exposure task lands
 > **Last Updated**: 2026-11-20
 > **Baseline**: plan authored at `825778f2`, clean `feature/v4-rebuild`
 > **Scope**: strict; the result home of a word arithmetic operation whose sole consumer is an
@@ -24,8 +24,8 @@ of it and closes nothing: #168 stays open afterwards by design.
 
 Two recorded facts were stale and are corrected here before anything is built on them.
 
-**The push state.** Both the portfolio row and the T-168 tracker row record "No push" against the
-local checkpoint `9bbc9ead`. That is no longer true: `git merge-base --is-ancestor 9bbc9ead HEAD`
+**The push state.** Both the portfolio row and the T-168 tracker row *recorded* "No push" against
+the local checkpoint `9bbc9ead`, and both are now repaired. The note was stale: `git merge-base --is-ancestor 9bbc9ead HEAD`
 succeeds and `git branch -r --contains 9bbc9ead` lists `origin/feature/v4-rebuild`. The work was
 pushed; only the notes lag.
 
@@ -71,14 +71,20 @@ sta $2443      ; copy into x high
 An expert writes the destination directly and stops at the sixth instruction. The last four are
 pure copy, 12 bytes and 16 cycles per assignment.
 
-**Uniform across every instance, verified by inspecting all of them**: 8 pairs in `size` mode and
-16 in `none`, in four word assignments — `xr = x + 24` twice, `x = x + 2`, and `x = x - 2`. No pair
-is a legitimate source-level copy; every one is this pattern.
+The four word assignments are `xr = x + 24` twice, `x = x + 2`, and `x = x - 2`, at
+`examples/boing-ball/src/main.blend:77`, `:160` and `:110`.
 
-| Mode | Copy pairs | Code bytes | Also freed |
-| --- | ---: | ---: | --- |
-| `none` | 16 | 96 | the four two-byte temporaries, 8 bytes of RAM |
-| `balanced` / `speed` / `size` | 8 | 48 | same |
+| Mode | Copy pairs matching this pattern | Code bytes |
+| --- | ---: | ---: |
+| `balanced` / `speed` / `size` | 8, all inspected and uniform | 48 |
+| `none` | **at most 8 of the 16 present** — to be attributed in the reopened exposure task | ≤ 96, not yet established |
+
+An earlier draft claimed all 16 `none` pairs were this pattern and that every instance had been
+inspected. **That was wrong, and the preflight caught it.** The 8 `size` pairs were inspected and
+are uniform; the `none` count was taken from a tally and generalized. Re-listed by block, the 16
+`none` pairs are spread across ten blocks — two each in the two self-assignment blocks, three each
+in two others of which only one per block is this pattern, and one each in six further blocks that
+are a different shape entirely. The remaining pairs are not this slice's to remove.
 
 The temporary is not itself waste. `lower-arithmetic.ts:102-110` requests it for a stated reason —
 *"Low byte must survive high-byte arithmetic"* — and that constraint is real: the accumulator is
@@ -114,26 +120,53 @@ has to prove.
 | --- | --- |
 | Overlapping placement is permitted only between requests that do **not** interfere | `allocate.ts:157-170` — `placementBlocked` blocks an address only when `interfere(...)` holds for the pair |
 | Interference is an intersection of live-position sets, and separately forced for persistent requests | `interference.ts:284-291`, `:459-462` |
-| **Every source local and parameter is live at every position in its function** | `inventory.ts:563` and `:508` request `declaredLifetime`, whose `liveAt` is `functionPositions(fn)` — one entry per operation slot in the whole body (`inventory.ts:38-45`, `:67`) |
+| **Every source local and parameter is live at every position in its function** | `inventory.ts:563` and `:508` request `declaredLifetime`, whose `liveAt` is `functionPositions(fn)` — one entry per operation slot in the whole body (`inventory.ts:38-45`, `:69`) |
 
 So any two source locals of one function always have intersecting live sets, always carry a
 `lifetime` interference edge, and therefore can **never** be placed overlapping. A destination local
 and an operand local cannot alias, at any offset, which is exactly the clobber the forwarded form
 would otherwise risk.
 
-One gap was checked rather than assumed: `lifetimesOverlap` returns `false` when two requests have
-different owners (`interference.ts:286`), which would leave a cross-owner pair free to overlap. It
-is closed — the cross-owner requests in this inventory set `persistent: true`
-(`inventory.ts:646`, `:675`, `:701`), and a persistent request is given an edge against everything
-(`interference.ts:460-462`). There is no `global` storage class in this path at all, so module
-statics are not allocated against function locals here.
+Two gaps were checked. The first was **argued wrongly in an earlier draft and is corrected here**:
+`lifetimesOverlap` returns `false` when two requests have different owners
+(`interference.ts:286`), and the draft claimed cross-owner requests all set `persistent: true`.
+They do not — the three cited sites are interrupt-predecessor words only. The correct reason the
+cross-owner case is irrelevant is simpler: one arithmetic's destination and operands resolve to
+homes owned by the **same** function, or to labels, so a cross-owner pair never arises here. There
+is also no `global` storage class in this path, so module statics are not allocated against
+function locals.
 
-**Consequence for the design.** The barrier does not need an address or alias analysis, and must not
-pretend to add one. What it needs is the *shape* conditions, which are the same ones the byte
-sibling already enforces: a whole bare place rather than an indexed or field path
-(`byte-write-forwarding.ts:90`), the arithmetic's result used exactly once, the store adjacent to
-the arithmetic, and the declared width, signedness and wrap flags matching. Those are checkable on
-the semantic operations alone.
+The second gap is **real and becomes a barrier obligation**. `requestStorage`
+(`lower-state.ts:483-514`) creates machine-side requests with **no `domain`**, while
+`lifetimesOverlap` returns `false` on any domain mismatch (`interference.ts:287`) and the explicit
+cross-domain rule needs both domains defined (`:465-475`). So a domain-tagged destination local and
+a domainless machine temporary have **no interference edge at all** and may be overlaid at an
+offset. Today the private scratch is safe because scratch and operand temporary are both
+domainless; forwarding into the local would trade that for a pair the edge builder does not relate.
+
+That the gap exists at all looks like a pre-existing allocator weakness, latent only because
+nothing currently writes a local before reading a temporary. It is not this unit's to fix, and it
+must not be silently relied on either — hence the exclusion in the barrier below.
+
+### The barrier, stated once and normatively
+
+Earlier drafts expressed this three different ways, one of them undecidable. This is the single
+statement the implementation task means, and every clause is checkable on the semantic operations
+alone — no address or alias analysis, which must not be added.
+
+Forward the word arithmetic result into the destination **only when all of these hold**:
+
+| # | Condition | Why |
+| --- | --- | --- |
+| B1 | The store is the operation immediately after the arithmetic | Anything in between may read the old value |
+| B2 | The arithmetic's result is used exactly once, by that store | A second consumer needs the value to still exist |
+| B3 | The destination is a whole bare place — no index, no field path | A computed address can alias anything; the byte sibling enforces the same at `byte-write-forwarding.ts:90` |
+| B4 | The destination resolves to a declared home owned by the same function, with the same `domain` and `activationRoot` | These are the exact preconditions of the non-overlap guarantee above |
+| B5 | **No operand resolves to a machine-created (`machine:`) storage request** | Those carry no `domain`, so the edge builder relates them to nothing and the allocator may overlay them at an offset |
+| B6 | The declared width, signedness and wrap flags match the two-byte unsigned wrapping form | The same discipline the byte sibling applies to its own width |
+
+B1–B3 and B6 mirror the byte sibling. B4 and B5 are what the word case adds, and B5 exists only
+because of the domain gap found above.
 
 **This narrows the unit and is recorded as a plan correction, not as a reason to skip the barriers
 oracle.** The guarantee covers whole scalar locals; it says nothing about an indexed destination, a
@@ -157,10 +190,12 @@ register and must instead direct the existing stores at the destination home.
 - [x] T-37.1 Record the corrected starting state as evidence and repair the two stale "No push"
       notes. Capture pre-change baselines: the seven examples plus boing-ball in all four modes,
       digesting emitted bytes only ✅ (evidence below; reproduced across two independent runs)
-- [x] T-37.2 Enumerate the byte-exact goldens a word-lowering change can shift, before any code.
+- [ ] T-37.2 **Reopened after preflight.** Bound the byte-exact golden exposure a word-lowering change can shift, before any code.
       About twenty output oracles under `test/rd05` pin emitted form, and
       `test/rd08/optimizer-exact-output.impl.test.ts` pins artifacts byte-for-byte. Name which can
-      reach a word arithmetic assignment and why the rest cannot ✅ (4 of 25; evidence below)
+      reach a word arithmetic assignment. **Not by static prediction** — two attempts at that
+      failed, and the honest method is empirical: run the affected tiers before and after and
+      attribute every delta, keeping the over-inclusive list only as a watch list
 - [ ] T-37.3 Author the specification oracle from the required behaviour only, implementation-blind,
       and reproduce RED. **Two halves, because a forwarding optimization's risk is firing when it
       must not**: the emitted shape for a word assignment, and the barriers — an intervening use, a
@@ -168,9 +203,12 @@ register and must instead direct the existing stores at the destination home.
       non-wrapping width, and an operand that could share the destination's home. Freeze by hash
 - [ ] T-37.4 Preflight the plan and this oracle with the applicable specialist lens; resolve every
       critical and major finding before implementation
-- [ ] T-37.5 Implement the smallest sound change: direct the word arithmetic result at the
-      destination home when the barrier condition holds, reusing the existing request seam rather
-      than adding a second analyzer
+- [ ] T-37.5 Implement the smallest sound change: do not request the scratch when the barrier
+      condition B1–B6 holds, and give the two existing stores the destination's lowered value.
+      **The barrier predicate gets its own module**, as the byte sibling's did — `lower-state.ts`
+      is already 884 lines and `lower-arithmetic.ts` 479, so neither may absorb a whole-body
+      analysis. Reuse the existing request and place seams; add no second analyzer beyond that
+      predicate
 - [ ] T-37.6 Add implementation tests for the same witnesses plus the non-regression controls the
       public oracle cannot express, and move the cost pins in the same commit as the fix, with the
       delta stated per mode
@@ -194,9 +232,11 @@ bytes **down**. So the evidence obligation inverts — every changed golden must
 decrease, and any increase anywhere is a regression that stops the unit. Baselines are captured for
 exactly that comparison, not to prove they are unchanged.
 
-The cost impl test documents its own contract as pins that move down and may not drift up silently,
-so moving them is sanctioned; the frozen parity oracle proves the behaviour did not change while
-they moved.
+`test/rd05/boing-ball-parity-cost.impl.test.ts:21-28` documents its own contract as pins that move
+down and may not drift up silently, so moving **that** one is sanctioned. That does not generalize:
+the other cost oracles, including `stable-byte-classifier-cost` and `return-result-forwarding-cost`,
+carry no such contract, so moving any of them needs its own justification recorded against it. The
+frozen parity oracle proves the behaviour did not change while the pins moved.
 
 ## T-37.1 evidence — baselines before any change
 
@@ -228,34 +268,40 @@ one.
 `m1` at 3,153 code bytes is the largest corpus member and the most likely place for an unintended
 delta to show up, so it is the one to watch alongside boing-ball.
 
-## T-37.2 evidence — which goldens this change can reach
+## T-37.2 — reopened, and why the method changed
 
-136 test files declare a word local. Of those, **25 also pin exact output** — a byte count, an exact
-instruction sequence, or a structural equality. Of those 25, only **4** contain the source shape
-this slice can affect, a word-typed variable assigned an addition or subtraction:
+The first attempt was marked complete on an unsound enumeration and the preflight refuted it. The
+detail is in the [findings](05-findings.md); what matters for the plan is the method, because two
+different static detectors both failed:
 
-| Oracle | The reaching source | What it pins |
-| --- | --- | --- |
-| `test/rd05/sprite-publication-forwarding.spec.test.ts` | `address = load + offset - 2;` | **The one to watch.** Exact instruction bytes at computed offsets, plus the register-capture set. Frozen, so it may never be edited |
-| `test/rd05/input-call-guards.spec.test.ts` | `selector = 1 - selector;` | Emulator memory contents — behavioural, so an optimization that preserves behaviour cannot move it |
-| `test/rd08/input-loop-storage.spec.test.ts` | `other = column + 1;` | Evidence-record key sets and occupancy, not byte counts |
-| `test/rd04/backend.spec.test.ts` | `word(peek($0400)) + 1` as a call argument | Assembly comment patterns and staging names. The arithmetic's consumer is a call rather than a whole-word store, so it is probably outside the pattern |
+| Attempt | How it failed |
+| --- | --- |
+| Scan whole test files for a word-typed name assigned an addition | Could not tell Blend source from the TypeScript around it. Two of its four "reaching" oracles were harness `for` loops. It also required a `;`, so it missed every `+=` in a loop header |
+| Scan only Blend sources, and accept `+=` | Same `for`-header blind spot, so it still missed `for (let i: word = 0; i < 8; i += 1)` in the very fixture whose whole-PRG digest is pinned |
+| Make the criterion safely over-inclusive | Returns **173 files, 120 of them frozen oracles** — the generic fixture name `game.blend` appears in most harnesses. That is the corpus, not an exposure set |
 
-The other 21 declare a word local but never assign it an addition or subtraction, so they cannot
-reach the pattern at all.
+So static prediction is not reliable here and is abandoned rather than refined. **The exposure is
+settled empirically**: run the affected tiers before and after the change and attribute every
+delta, which is what the preceding unit did. The over-inclusive list survives as a watch list only.
 
-**No oracle pins a global code-byte total that a general improvement would shift**, which is the
-result that matters: the frozen oracles assert behaviour and located shapes, and the byte totals
-live in impl tests whose documented contract is that they move down. So the slice is not blocked by
-a frozen pin it would have to edit. That was a real risk worth checking before writing code rather
-than discovering at the gate.
+One fact from it changes the risk and is carried forward: **120 of the candidates are frozen
+`.spec.test.ts` oracles, which may never be edited.** If the change shifts even one, this slice is
+blocked or must narrow until it does not — so that has to be proved absent, not assumed. Two were
+named by the preflight as genuinely reaching and worth checking first:
+`test/rd08/optimizer-exact-output.impl.test.ts`, which pins whole-PRG SHA-256 digests, and
+`test/rd05/low-byte-write-forwarding.spec.test.ts`, which is frozen and contains
+`value = value + 257`.
+
+One oracle leaves the watch list on evidence rather than on hedging: `test/rd04/backend.spec.test.ts`
+contains `total = quotient(value.second, word(peek($0400)) + 1)`, where the arithmetic's consumer is
+a **call argument** rather than a whole-word store, so B1 and B2 exclude it.
 
 ## Out of scope
 
 | Item | Why |
 | --- | --- |
 | Whole-frame steady-state timing | The compiler publishes no cycle count for this non-returning loop; it needs that capability first and is its own unit |
-| Word locals in zero page | `inventory.ts:559-562` deliberately leaves word homes in RAM because they cost two scarce zero-page bytes. Worth a measured 34 bytes here and its premise is questionable with 132 zero-page bytes free, but it is a separate policy decision, it helps no `none` build, and it would confound this slice's measurement |
+| Word locals in zero page | `inventory.ts:559-562` deliberately leaves word homes in RAM because they cost two scarce zero-page bytes. Worth a measured 34 bytes here and its premise is questionable with 132 zero-page bytes free, but it is a separate policy decision and it helps no `none` build. **The interaction has a direction, so it is stated rather than left as "would confound":** zero-page homes make each copy pair 4 bytes instead of 6, so doing that first would cut this slice's optimized value from about 48 bytes to about 32, while leaving `none` untouched. This slice's 48-byte figure is therefore conditional on the current RAM-home policy |
 | Enabling zero page in `none` | The issue explicitly requires the canonical `none` reference contract to stay intact |
 | The remaining ~150 absolute accesses and the register-residency gap | The structural half of cause 3; a register-allocation capability, not a slice |
 | Commenting the corrected figures on #168 | Outward-facing; the user's call |
@@ -264,8 +310,8 @@ than discovering at the gate.
 
 | # | Decision | Status |
 | --- | --- | --- |
-| D-1 | A specification oracle **is** authored, in two halves, including barriers | Settled against the advice to rely on the parity oracle alone. The parity oracle proves behaviour is unchanged for *this fixture*; it cannot prove the forwarding declines to fire on shapes the fixture does not contain, which is exactly where a forwarding bug hides. The sibling byte slice shipped a 237-line barriers oracle for the same reason |
-| D-2 | The temporary keeps existing; only its home is redirected | Settled — its stated purpose, that the low byte must survive high-byte arithmetic, is real and unchanged |
+| D-1 | A specification oracle **is** authored, in two halves, including barriers | Settled against the advice to rely on the parity oracle alone, and the preflight agreed on the merits. The parity oracle proves behaviour is unchanged for *this fixture*; it cannot prove the forwarding declines to fire on shapes the fixture does not contain, which is exactly where a forwarding bug hides. The sibling byte slice shipped a 237-line barriers oracle for the same reason |
+| D-2 | The scratch request is **not created** when the destination's home can carry the result; the two existing stores are given the destination's lowered value | Rewritten after preflight. The first version said the home was "redirected", which is not available — a request's home is assigned later by storage closure, not by lowering. `loweredPlace` (`lower-state.ts:548-573`) already hands back the destination's own request id at the point the scratch is requested, so not requesting it is both correct and smaller. The low byte still survives high-byte arithmetic, in the destination |
 | D-3 | The barrier is semantic, not address-based | Forced: selection precedes storage closure by design, so no address is available to inspect |
 | D-4 | Evidence is a justified decrease per golden, not byte-neutrality | Settled, and stated so a reviewer judges the deltas rather than expecting zero |
-| D-5 | `none` is included in the acceptance, not just the optimized modes | Settled — the roadmap records `none` as the release baseline, and this slice is worth twice as much there |
+| D-5 | `none` is included in the acceptance, not just the optimized modes | Settled on the first ground only. The roadmap records `none` as the release baseline, so it belongs in the acceptance. **The claim that the slice is worth twice as much there is withdrawn** — it rested on the 16-pair tally the preflight refuted, and the real figure follows the attribution in the reopened exposure task |
