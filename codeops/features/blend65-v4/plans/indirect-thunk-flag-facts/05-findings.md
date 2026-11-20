@@ -203,3 +203,65 @@ the full CLI pipeline exercises every validation site, which a direct
 | The null-span diagnostic | `COMPILER_INCOMPLETE` carries `primarySpan: null`, `related: []`, `help: null`, `pointer: null`. Named as a second defect in #170; it spans five emission sites (`services/services.ts:156,396,495`, `services/size-selection.ts:244,1017`) and is its own bounded unit |
 | Unmodelled absolute `jsr` | `machine/validate-flags.impl.test.ts:202` pins `{0,0}` for a `jsr` the validator cannot resolve, which would refuse `i = i + 1` after a KERNAL call the same way. `machine/lower-load-unit.ts:174-175,197` compensates with an explicit `cld`. Whether user code can reach a raw KERNAL `jsr` without that compensation is **unverified**; if it can, it is a separate defect of the same family |
 | Cycle accounting and NMI wrappers through a thunk | `services/entry-path-cycles.ts:324` and `machine/nmi-entry.ts:46` are the thunk terminator's other victims. Not refusals, so not this unit |
+
+## Review findings
+
+Reviews dispatched on the phase diff against baseline tree
+`0ab13159e5e72c90e9f89df72a54b4ceb2f73116`. Three of five reviewers reported first; the remaining
+two were still running when this record was written.
+
+| Finding | Phase | Severity | Area | Ruling |
+| --- | --- | --- | --- | --- |
+| SM-001 | T-35 | MAJOR | machine/validate-flags | pending |
+| RV-002 | T-35 | MAJOR | plan/evidence | pending |
+| RV-001 | T-35 | MINOR | plan/evidence | pending |
+| RV-003 | T-35 | MINOR | plan/evidence | pending |
+| RV-004 | T-35 | MINOR | machine/validate-flags | pending |
+| RV-005 | T-35 | MINOR | machine/machine-types | pending |
+| RV-006 | T-35 | MINOR | plan/boundary | pending |
+| SM-002 | T-35 | MINOR | machine/validate-flags | pending |
+| SM-003 | T-35 | MINOR | test/rd04 oracle | pending |
+
+### SM-001, reproduced from source by the parent
+
+A candidate that never returns has no returning block, so `analyze` yields
+`{returns: 0, preserves: 0}` for it, and the meet intersects that in unconditionally. But a
+candidate that never returns is not an incoming path to the code after the call, so it must not
+contribute to the join at all. The comparison-chain route already gets this right: a non-returning
+arm is terminated `unreachable`, so its zeroed facts never reach the shared continuation.
+
+Measured, with a runtime-dependent addition after the call so the arithmetic is not constant-folded
+away:
+
+| Program | Route | Result |
+| --- | --- | --- |
+| Non-returning candidate, no arguments | thunk | **refused** |
+| The identical program with one parameter added | chain | builds |
+| Both candidates return, no arguments | thunk | builds |
+
+So the same source construct compiles or is refused according to its argument count. This is the
+same defect class this unit exists to repair — a provable fact discarded — and by the
+expert-expectation directive the refusal is the defect, not the program.
+
+An earlier probe using `i = i + 1` did **not** reproduce it, because that addition is
+constant-folded to two immediate stores and emits no `adc` at all. The reproduction needs a
+runtime operand. This is recorded because it would otherwise look like a disagreement with the
+reviewer.
+
+### RV-002, confirmed by the parent
+
+The example-corpus digest table in the T-35.1 evidence was produced by the defective measuring
+script, which folded `sha256sum` output — including the generation directory's random identifier —
+into the digest. Those seven values are therefore per-build noise and worthless as baselines. The
+corrected content-only measurement in the T-35.2 evidence is sound and shows pre and post
+agreement, but the superseded table was left standing, so the byte-neutrality claim is
+unverifiable as written at the point a reader meets it.
+
+### Closed reviewer Unknowns
+
+| Unknown | Parent probe result |
+| --- | --- |
+| Oracle blob hashes and modification status | `e399500f78a467493cbd7897a128a9b5ff65ea18` and `52f0a711c03cfe0aff15ee18e75a6852c90fee0f`; Git reports both unmodified |
+| Shared fixture `test/rd05/profile-fixture.ts` modified since the oracle commit | Untouched; its last commit predates the oracle |
+| Whether the diff reaches outside the expected modification set | It does not; the modified set is exactly the ten expected files |
+| Whether a post-lowering pass drops the recorded field | Measured directly at the final validation site: both candidates still present, carriers exactly equal the blocks holding an indirect jump |
