@@ -2,9 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-36 / #170
-> **Progress**: 6/7 tasks (86%) · [findings](05-findings.md)
-> **Status**: Executing — oracle frozen at reproduced RED; preflight returned 3 majors, two
-> fixed here and PA-003 awaiting a ruling before half B is implemented
+> **Progress**: 7/7 tasks (100%) · [closeout](08-closeout.md) · [findings](05-findings.md)
+> **Status**: Complete — both halves delivered and measured, four reviews dispositioned,
+> issue #170 closed
 > **Last Updated**: 2026-11-20
 > **Baseline**: plan authored at `26c316db`; accepted-output digests captured at `c6266da9`,
 > both on a clean `feature/v4-rebuild`
@@ -199,7 +199,7 @@ rather than narrowing it.
       returning/non-returning candidate combination, the witness for a failing bound program
       including the synthesized-block fallback, and the non-regression controls the public oracle
       cannot express
-- [ ] T-36.7 Independent reviews for the affected contracts, then the closeout: disposition every
+- [x] T-36.7 Independent reviews for the affected contracts, then the closeout: disposition every
       finding, run the checkpoint, sync both roadmap tiers, and post the issue evidence. A critical
       or major finding stops for a ruling
 
@@ -567,7 +567,8 @@ non-short-circuiting is intact; and every recording site inside the transfer rem
 | End-to-end refusal tests (`test/rd04/machine-binding-refusal.impl.test.ts`) | 5 passed, and **4 of the 5 fail with half B reverted** |
 | Frozen oracles and `spec/` | untouched; `git status` reports nothing modified, and the dispatch oracle's blob is unchanged |
 | `yarn build`, `tsc --noEmit`, `prettier --check` | exit 0 |
-| Compiler package, full | 260 files / 4,360 passed, 2 skipped |
+| **Closing gate, clean in one shot** | compiler 260 files / **4,364 passed** with 2 skipped; host 258 files / **5,472 passed**; CLI 70; language server 21; VS Code 18; 7 of 7 turbo tasks |
+| Compiler package, earlier full run | 260 files / 4,360 passed, 2 skipped |
 | Host tier, full | 5,471 of 5,472 passed; the one failure is an explicit 120-second timeout at 121,013 ms in an emulator-backed file that passes 4/4 in isolation and passed all four profiles at 47–62 seconds in an earlier run. Disclosed with its attribution in the findings, not re-run until green |
 
 The end-to-end layer exists only because the MC-004 probe refuted this plan's earlier claim that
