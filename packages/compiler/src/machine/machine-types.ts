@@ -531,6 +531,19 @@ export type MachineTerminator =
 export interface MachineBlock {
   /** Construction origins of a shared helper block, not an execution or preemption proof. */
   readonly observerBodies?: readonly MachineBodyOrigin[];
+  /**
+   * Entry labels of every function a tail-transferring dispatch block can reach.
+   *
+   * A block that leaves through `jmp (pointer)` returns nothing itself; the function it reaches
+   * returns to whoever called the block. Validation therefore cannot read this block's own exit
+   * for the facts a caller needs, and must consult the recorded candidates instead. Only a block
+   * whose transfer target is chosen at run time carries this.
+   *
+   * These are plain function entry labels, so the label redirection applied when physically
+   * identical bodies are shared does not rewrite them — it only remaps interrupt-root duplicates
+   * and their block labels. Extending that redirection to other labels means remapping these too.
+   */
+  readonly indirectTargets?: readonly string[];
   /** Stable link label. */
   readonly label: string;
   /** Exact physical origin after final block layout. */

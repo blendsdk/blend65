@@ -2,9 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-35 / #170
-> **Progress**: 1/6 tasks (17%)
-> **Status**: Executing — oracle frozen at meaningful RED
-> **Last Updated**: 2026-11-20 09:27
+> **Progress**: 2/6 tasks (33%)
+> **Status**: Executing — oracle green, dispatch preserved, output byte-neutral
+> **Last Updated**: 2026-11-20 10:01
 > **Baseline**: `e79c367b`, clean `feature/v4-rebuild`
 > **Phase baseline tree**: `0ab13159e5e72c90e9f89df72a54b4ceb2f73116`
 > **Scope**: strict; the flag summary of a tail-transferring dispatch thunk
@@ -195,9 +195,10 @@ Record in T-35.1 which axes moved and why, so the division is evidence rather th
       artifact case that crosses every validation site, run meaningful RED, freeze the oracle
       hash and capture accepted-control baselines. No production code. ✅ (implemented:
       2026-11-20 09:18 · completed: 2026-11-20 09:27)
-- [ ] T-35.2 Record the candidate set on the thunk block and consume it as a meet at summary
+- [x] T-35.2 Record the candidate set on the thunk block and consume it as a meet at summary
       assembly, keyed on the recorded set, with the active-candidate rule and the redirect comment.
-      Make the oracle green without editing it.
+      Make the oracle green without editing it. ✅ (implemented: 2026-11-20 09:52 · completed:
+      2026-11-20 10:01)
 - [ ] T-35.3 Add implementation tests for the meet, the active-candidate fallback, the keying
       distinction against genuinely non-returning callees, and survival of the recorded set through
       binding, body sharing and post-layout compaction. Confirm accepted programs keep their bytes,
@@ -290,6 +291,55 @@ be constructed from Blend65 source without knowing how candidates lower, so they
 T-35.3 implementation tests, where synthetic machine programs are already the established idiom.
 The accepted-output identity axis is parent-side evidence rather than an oracle assertion, so that
 no pre-repair hash is frozen into an immutable file.
+
+## T-35.2 evidence
+
+63 inserted lines across three files, which is the whole repair:
+
+| File | Change |
+| --- | --- |
+| `machine/machine-types.ts` | `indirectTargets?: readonly string[]` on `MachineBlock`, documented with why a tail-transferring block cannot answer from its own exit, and with the label-redirection caveat recorded at the declaration |
+| `machine/lower-indirect.ts` | The dispatch block records `bindingLabel("fn", candidate)` for each proved candidate |
+| `machine/validate-flags.ts` | `dispatchCandidates` plus the meet at summary assembly |
+
+### The soundness guard chosen during implementation
+
+The plan called for keying on the recorded set. Composing a candidate meet onto the block's own
+facts is only equal to a direct call while the block contributes nothing itself, so
+`dispatchCandidates` returns the set only when the block is exactly one indirect `jmp` — which is
+how it is built. A block that ever gained flag-setting work, a call, or stack traffic falls back
+to the previous conservative summary and therefore to a refusal, never to an unsound acceptance.
+This is a soundness precondition on the composition, not the returning-path proxy the design
+rejected.
+
+### Results
+
+| Check | Result |
+| --- | --- |
+| Frozen oracle, host tier | **46/46 passed**, up from 14 failed / 32 passed |
+| Frozen oracle, emulator tier | **2/2 passed**, up from 1 failed / 1 passed. The two-target dispatch returns 37 with the arithmetic applied; the single-target returns 11 |
+| Oracle hashes | `e399500f…` and `52f0a711…` unchanged, and Git reports both files unmodified since their commit |
+| `yarn test:fast` | 180 files / 2,845 passed, 2 skipped; 45 files / 1,282 passed. No failures |
+| `yarn build`, `yarn typecheck` | exit 0 |
+| Leak checks | No plan, requirement, task or issue identifier in the changed source |
+
+### The dispatch survived, which was the point
+
+For the formerly refused program the emitted assembly still contains `jmp ($0af2)` reached by
+`jsr`, contains **zero** `cmp #<(…)` candidate comparisons, and still carries `clc` / `adc #$01`.
+The repair did not buy buildability by degrading the dispatch to a comparison chain.
+
+### Byte-neutrality for programs that already compiled
+
+All eight control programs produce payloads identical to their pre-repair baselines in all four
+modes. Every one of the seven example projects produces a byte-identical artifact, measured by
+building the corpus at the pre-repair source state and again with the repair applied.
+
+A first measurement appeared to show all seven examples changing. That was a defect in the
+measuring script, which folded `sha256sum` output — including the artifact path — into the digest,
+and generation directories carry a random identifier per build. Re-measured on artifact content
+alone, pre and post agree exactly. The mistake is recorded because the corrected method is what
+the closeout evidence depends on.
 
 ## Verification
 

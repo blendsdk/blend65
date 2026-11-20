@@ -16,6 +16,22 @@ function flagMask(flags: readonly MachineFlag[]): number {
   return flags.reduce((mask, flag) => mask | FLAG_BITS[flag], 0);
 }
 
+/**
+ * Transfer candidates of a dispatch block, when they may answer for the block itself.
+ *
+ * The candidates record where control goes, not what happens on the way, so they speak for the
+ * block only while the block is nothing but the transfer. That is how a dispatch block is built.
+ * Should one ever carry additional work, its own effects would matter and the recorded set alone
+ * would no longer describe the call, so the conservative answer is kept instead.
+ */
+function dispatchCandidates(block: MachineBlock | undefined): readonly string[] | null {
+  if (block === undefined) return null;
+  const candidates = block.indirectTargets;
+  if (candidates === undefined || candidates.length === 0) return null;
+  const only = block.instructions.length === 1 ? block.instructions[0] : undefined;
+  return only?.opcode === "jmp" && only.mode === "indirect" ? candidates : null;
+}
+
 /** Follow structured transfers, including a tail jump into another function. */
 function successors(terminator: MachineTerminator): readonly string[] {
   if (terminator.kind === "branch") return [terminator.target, terminator.fallthrough];
@@ -228,8 +244,36 @@ export function validateMachineFlags(program: MachineProgram): boolean {
         hasReturn = true;
       }
     }
+    // A dispatch block transfers to a function chosen at run time and never returns itself,
+    // so its own exit carries no facts. Because the reachable candidates are recorded and the
+    // block adds no effects of its own, calling it is exactly calling one of them, and the
+    // facts a caller may rely on are the ones every candidate guarantees. This is the same
+    // intersection a control-flow join uses, applied across callees instead of edges.
+    const dispatch = dispatchCandidates(blocks.get(entry));
+    let dispatched: FlagSummary | null = null;
+    if (dispatch !== null) {
+      let agreed = { returns: ALL_FLAGS, preserves: ALL_FLAGS };
+      for (const candidate of dispatch) {
+        const target = resolve(candidate);
+        // A candidate whose analysis is already in progress, or whose body is absent,
+        // contributes nothing. It must not be called invalid for that: losing the facts
+        // already costs every consumer after the dispatch its producer, which is the
+        // conservative answer rather than a verdict about the candidate itself.
+        if (active.has(target) || !blocks.has(target)) {
+          agreed = { returns: 0, preserves: 0 };
+          continue;
+        }
+        const candidateSummary = analyze(target);
+        valid &&= candidateSummary.valid;
+        agreed = {
+          returns: agreed.returns & candidateSummary.returns,
+          preserves: agreed.preserves & candidateSummary.preserves,
+        };
+      }
+      dispatched = { ...agreed, valid };
+    }
     active.delete(entry);
-    const summary = {
+    const summary = dispatched ?? {
       returns: hasReturn ? returns : 0,
       preserves: hasReturn ? preserves : 0,
       valid,

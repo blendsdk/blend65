@@ -104,6 +104,11 @@ export function lowerIndirectCall(
           machineInstruction(cpu, "jmp", "indirect", operandForValue(target), [], operation.span),
         ]),
         terminator: Object.freeze({ kind: "unreachable" }),
+        // The pointer can only hold one of these proved candidates, and the block adds no
+        // effects of its own, so calling it behaves exactly like calling whichever candidate
+        // the pointer names. Recording them keeps that knowledge available to later stages,
+        // which would otherwise see only a transfer to an address chosen at run time.
+        indirectTargets: Object.freeze(targets.map((candidate) => bindingLabel("fn", candidate))),
       }),
     );
     const instructions: MachineInstruction[] = [
