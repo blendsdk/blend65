@@ -255,6 +255,9 @@ function indirectJump(): MachineInstruction {
   return machineInstruction(NMOS_6510, "jmp", "indirect", { kind: "absolute", value: 0x0300 });
 }
 
+/** Exact cost of a structured absolute jump, required for a valid jump terminator. */
+const jumpCost = machineCost(NMOS_6510, "jmp", "absolute");
+
 /**
  * A block that leaves through an indirect transfer, optionally naming the functions it can
  * reach and optionally carrying work of its own before the transfer.
@@ -367,6 +370,115 @@ describe("machine flag data flow through a pointer dispatch", () => {
             dispatch({ targets: ["left", "right"], leading: [implied("sec")] }),
           ),
           [candidate("left", [implied("clv")]), candidate("right", [implied("clv")])],
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("ignores a reachable function that never comes back", () => {
+    // A function that loops forever is not one of the caller's incoming paths, so its empty
+    // facts must not be intersected in. Before this was separated from "returns but guarantees
+    // nothing", one such candidate cost every later consumer its producer.
+    const looping: MachineFunction = {
+      id: "right",
+      blocks: [
+        {
+          label: "right.entry",
+          instructions: [],
+          terminator: { kind: "jump", opcode: "jmp", target: "right.entry", cost: jumpCost },
+        },
+      ],
+    };
+    expect(
+      validateMachineProgram(
+        program(consumeThroughDispatch(dispatch({ targets: ["left", "right"] })), [
+          candidate("left", [implied("clv")]),
+          looping,
+        ]),
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps the conservative answer when no reachable function comes back", () => {
+    const looping = (id: string): MachineFunction => ({
+      id,
+      blocks: [
+        {
+          label: `${id}.entry`,
+          instructions: [],
+          terminator: { kind: "jump", opcode: "jmp", target: `${id}.entry`, cost: jumpCost },
+        },
+      ],
+    });
+    expect(
+      validateMachineProgram(
+        program(consumeThroughDispatch(dispatch({ targets: ["left", "right"] })), [
+          looping("left"),
+          looping("right"),
+        ]),
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps the conservative answer when the dispatch block owns a structured exit", () => {
+    // The candidates describe where control goes, not what the block does on the way, so they
+    // answer for the block only while it owns no exit of its own.
+    const exiting: MachineBlock = {
+      label: "dispatch",
+      instructions: [indirectJump()],
+      terminator: { kind: "return" },
+      indirectTargets: ["left", "right"],
+    };
+    expect(
+      validateMachineProgram(
+        program(consumeThroughDispatch(exiting), [
+          candidate("left", [implied("clv")]),
+          candidate("right", [implied("clv")]),
+        ]),
+      ),
+    ).toBe(false);
+  });
+
+  it("intersects across more than two reachable functions", () => {
+    expect(
+      validateMachineProgram(
+        program(consumeThroughDispatch(dispatch({ targets: ["left", "middle", "right"] })), [
+          candidate("left", [implied("clv")]),
+          candidate("middle", [implied("clv")]),
+          candidate("right", [implied("nop")]),
+        ]),
+      ),
+    ).toBe(false);
+  });
+
+  it("stops trusting a fact a reachable function openly overwrites", () => {
+    // Distinct from the opaque-restore case: here the flag has a real producer in the callee,
+    // so `preserved` is cleared while `flags` stays set. That isolates the preserves
+    // intersection from a callee that wipes both fields at once.
+    expect(
+      validateMachineProgram(
+        program(
+          consumeThroughDispatch(dispatch({ targets: ["left", "right"] }), [implied("clv")]),
+          [
+            candidate("left", [implied("nop")]),
+            candidate("right", [
+              machineInstruction(NMOS_6510, "lda", "immediate", { kind: "immediate", value: 0 }),
+            ]),
+          ],
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("is deliberately weaker than examining each reachable function separately", () => {
+    // Every execution leaves the flag defined — the caller produced it and one function
+    // re-produces it — yet intersecting `preserves` and `returns` separately loses it. This
+    // records the documented conservative boundary rather than a defect.
+    expect(
+      validateMachineProgram(
+        program(
+          consumeThroughDispatch(dispatch({ targets: ["left", "right"] }), [implied("clv")]),
+          [candidate("left", [implied("nop")]), candidate("right", [implied("clv")])],
         ),
       ),
     ).toBe(false);

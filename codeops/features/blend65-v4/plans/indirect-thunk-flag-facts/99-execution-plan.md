@@ -2,9 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-35 / #170
-> **Progress**: 4/6 tasks (67%)
+> **Progress**: 5/6 tasks (83%)
 > **Status**: Executing — repair verified and mutation-checked; reviews pending
-> **Last Updated**: 2026-11-20 11:55
+> **Last Updated**: 2026-11-20 14:47
 > **Baseline**: `e79c367b`, clean `feature/v4-rebuild`
 > **Phase baseline tree**: `0ab13159e5e72c90e9f89df72a54b4ceb2f73116`
 > **Scope**: strict; the flag summary of a tail-transferring dispatch thunk
@@ -44,8 +44,10 @@ solver, no cache, no diagnostic and no terminator kind.
 5. The failure direction must stay safe. A dropped or stale recorded set degrades to today's
    `{ returns: 0, preserves: 0 }` and therefore to a refusal. No path may turn it into an accepted
    wrong program.
-6. Accepted programs keep their bytes, costs and storage demands. The recorded set is validation
-   metadata and must not reach the emitters or any cost model.
+6. Accepted programs keep their bytes, costs and storage demands. The recorded set must not reach
+   instruction selection, emission or cost computation. It does participate in the body-identity
+   fingerprint used when physically identical bodies are shared, which soundness requires: two
+   dispatch blocks whose candidate sets differ must not be treated as the same body.
 7. A candidate already under analysis contributes `{ returns: 0, preserves: 0 }` **without**
    marking the summary invalid, so a callable holding its own address keeps its current
    acceptance. `validate-flags.ts:88` returns `valid: false` for an active entry, and that value
@@ -207,8 +209,9 @@ Record in T-35.1 which axes moved and why, so the division is evidence rather th
       suites, the callable suites, the compiler machine and service tests, and the serialized
       emulator case proving the dispatch returns the right value. Record the exact coverage.
       ✅ (implemented: 2026-11-20 11:40 · completed: 2026-11-20 11:55)
-- [ ] T-35.5 Obtain the independent reviews below; repair or refute every finding and record the
-      dispositions for the user's ruling.
+- [x] T-35.5 Obtain the independent reviews below; repair or refute every finding and record the
+      dispositions for the user's ruling. ✅ (implemented: 2026-11-20 14:30 · completed:
+      2026-11-20 14:47)
 - [ ] T-35.6 Run the split checkpoint below rather than the complete corpus, close the unit with
       its residual owners, and sync the roadmap.
 
@@ -240,9 +243,13 @@ subtraction across four modes), two `check` cases and four determinism cases. Al
 route-coverage cases pass, confirming the controls are genuine controls rather than cases that
 happen to be broken too.
 
-The passing emulator case is load-bearing in two ways: it proves the harness and the breakpoint
-work before the repair exists, and it pins that dispatch really reaches the second function, so a
-repair that hardwires dispatch to one target cannot satisfy both cases.
+The passing emulator case proves the harness and the breakpoint work before the repair exists.
+It does **not** prove that dispatch reaches a non-initial candidate: that fixture initialises the
+variable to the second function and never reassigns it, so it has one proved target and takes the
+direct-call arm rather than the dispatch. Runtime variance through the dispatch itself is therefore
+unobserved, and is recorded as a residual below. The protection against a dispatch hardwired to one
+candidate comes from the implementation tests and from the pre-existing expert-call case, not from
+this pair.
 
 Checks run alongside: `prettier --check` clean on both files, `yarn typecheck` exit 0, and the
 ephemeral-artifact grep finds no reference to any plan, requirement, task or issue identifier in
@@ -267,17 +274,25 @@ shape.
 | Callable in a module-level variable | `64a21367f31b35b9` | `6f725d0a52da977e` |
 | Addition inside a callee after the call | `cd81c6d7b0913c97` | `08e528151970cc71` |
 
-Example corpus, default manifest mode, combined payload digest per project:
+Example corpus, default manifest mode, digest of artifact **content** in sorted name order:
 
-| Example | Digest |
+| Example | Digest, unchanged before and after the repair |
 | --- | --- |
-| `boing-ball` | `baf7889ae25c8cd8` |
-| `foundation` | `a1ed15b5d43e08a4` |
-| `m1` | `bbe8c9cfceb1380a` |
-| `rd06-assets` | `07f6e17871ee4851` |
-| `rd06-charpad` | `3ab1e58ecd733a1b` |
-| `rd06-spritepad` | `b0316c1fe746a295` |
-| `rd07-loadable` | `343409058c5a3aa6` |
+| `boing-ball` | `a81a71191d0e51e4` |
+| `foundation` | `282e280d643d13cb` |
+| `m1` | `d78aba55dbc61860` |
+| `rd06-assets` | `2ccc3759607b8def` |
+| `rd06-charpad` | `64ef41c282f16767` |
+| `rd06-spritepad` | `e21c2e34f736cd5c` |
+| `rd07-loadable` | `d95f15033b61f825` |
+
+An earlier version of this table carried different values and has been replaced. Those values were
+produced by a script that folded `sha256sum` output — including each artifact's path — into the
+digest, and a generation directory carries a fresh identifier on every build, so they changed on
+every run and could not serve as baselines. The values above digest artifact bytes only, and were
+produced by building the corpus at the pre-repair source state and again with the repair applied;
+the two runs agree exactly, which is the claim this table is here to support. The control table
+above was never affected, because it takes the hash field alone.
 
 No example declares callable-typed storage, so the corpus is expected to be untouched by this
 repair; it is captured as an independent guard rather than as the primary evidence.
@@ -344,8 +359,10 @@ the closeout evidence depends on.
 
 ## T-35.3 evidence
 
-Eight cases added to `machine/validate-flags.impl.test.ts` (12 with parameter expansion, file now
-24 passing) and a four-mode case in `test/rd04/function-pointer-dispatch.impl.test.ts`.
+Seven declarations added to `machine/validate-flags.impl.test.ts`, expanding to nine cases and
+taking that file from 15 to 24 passing, plus a four-mode case in
+`test/rd04/function-pointer-dispatch.impl.test.ts`. The `test:fast` total moves by exactly nine,
+which is the figure to reconcile against.
 
 ### The cases, and which of them actually discriminate
 

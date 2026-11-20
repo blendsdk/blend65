@@ -8,7 +8,13 @@ import type { InterruptRoute } from "../semantic/whole-program.js";
 import { hasHandlerSideIrqInstall } from "../storage/inventory.js";
 import { contextFunctionLabel } from "./interrupt-specialize.js";
 import { lowerOperation } from "./lower-operation.js";
-import { machineCost, machineInstruction, machineState, operandForValue } from "./lower-control.js";
+import {
+  isSignedType,
+  machineCost,
+  machineInstruction,
+  machineState,
+  operandForValue,
+} from "./lower-control.js";
 import type { MachineBlock, MachineInstruction } from "./machine-types.js";
 import {
   appendLoadA,
@@ -130,7 +136,15 @@ export function lowerIndirectCall(
       const bytes = typeBytes(operation.type) === 1 ? 1 : 2;
       const retained = retainMachineValue(
         operation.result,
-        Object.freeze({ kind: "register", registers: bytes === 1 ? "a" : "ax", bytes }),
+        // Signedness travels with the retained register value and decides whether a later
+        // ordering comparison is lowered signed or unsigned. Omitting it compares a negative
+        // result as a large unsigned one, so it must match what a direct call records.
+        Object.freeze({
+          kind: "register",
+          registers: bytes === 1 ? "a" : "ax",
+          bytes,
+          signed: isSignedType(operation.type),
+        }),
         instructions,
         operation.type,
         operation.span,

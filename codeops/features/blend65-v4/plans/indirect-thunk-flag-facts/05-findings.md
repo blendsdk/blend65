@@ -216,20 +216,20 @@ critical came from the ABI lens.
 
 | Finding | Phase | Severity | Area | Origin | Ruling |
 | --- | --- | --- | --- | --- | --- |
-| SA-001 | T-35 | CRITICAL | machine/lower-indirect | pre-existing | pending |
-| SM-001 | T-35 | MAJOR | machine/validate-flags | this unit | pending |
-| RV-002 | T-35 | MAJOR | plan/evidence | this unit | pending |
-| SA-002 | T-35 | MAJOR | semantic/raw-write-kills | pre-existing | pending |
-| SA-003 | T-35 | MAJOR | services/final-callable-proof | pre-existing | pending |
-| RV-001 | T-35 | MINOR | plan/evidence | this unit | pending |
-| RV-003 | T-35 | MINOR | plan/evidence | this unit | pending |
-| RV-004 | T-35 | MINOR | machine/validate-flags | this unit | pending |
-| RV-005 | T-35 | MINOR | machine/machine-types | this unit | pending |
-| RV-006 | T-35 | MINOR | plan/boundary | this unit | pending |
-| SM-002 / SR-002 | T-35 | MINOR | machine/validate-flags | this unit | pending |
-| SM-003 | T-35 | MINOR | test oracle coverage | this unit | pending |
-| SR-001 | T-35 | MINOR | machine/validate-flags | this unit | pending |
-| SR-003 | T-35 | MINOR | machine/validate-flags tests | this unit | pending |
+| SA-001 | T-35 | CRITICAL | machine/lower-indirect | pre-existing | fixed |
+| SM-001 | T-35 | MAJOR | machine/validate-flags | this unit | fixed |
+| RV-002 | T-35 | MAJOR | plan/evidence | this unit | fixed |
+| SA-002 | T-35 | MAJOR | semantic/raw-write-kills | pre-existing | deferred |
+| SA-003 | T-35 | MAJOR | services/final-callable-proof | pre-existing | deferred |
+| RV-001 | T-35 | MINOR | plan/evidence | this unit | fixed |
+| RV-003 | T-35 | MINOR | plan/evidence | this unit | fixed |
+| RV-004 | T-35 | MINOR | machine/validate-flags | this unit | fixed |
+| RV-005 | T-35 | MINOR | machine/machine-types | this unit | fixed |
+| RV-006 | T-35 | MINOR | plan/boundary | this unit | fixed |
+| SM-002 / SR-002 | T-35 | MINOR | machine/validate-flags | this unit | fixed |
+| SM-003 | T-35 | MINOR | test oracle coverage | this unit | fixed |
+| SR-001 | T-35 | MINOR | machine/validate-flags | this unit | fixed |
+| SR-003 | T-35 | MINOR | machine/validate-flags tests | this unit | fixed |
 
 ### SA-001, reproduced and attributed by the parent
 
@@ -324,3 +324,25 @@ unverifiable as written at the point a reader meets it.
 | Shared fixture `test/rd05/profile-fixture.ts` modified since the oracle commit | Untouched; its last commit predates the oracle |
 | Whether the diff reaches outside the expected modification set | It does not; the modified set is exactly the ten expected files |
 | Whether a post-lowering pass drops the recorded field | Measured directly at the final validation site: both candidates still present, carriers exactly equal the blocks holding an indirect jump |
+
+### Rulings, authorized by the user on 2026-11-20
+
+The user ruled: repair the critical and both in-unit majors here, apply every minor, and route the
+two pre-existing raw-write majors to the issue that already owns that model.
+
+| Finding | Ruling and what was done |
+| --- | --- |
+| SA-001 | **Fixed.** The dispatch route now records the result's signedness, matching the direct route. Filed as its own issue for the record, since it is pre-existing. A directed test asserts both routes lower a signed comparison identically, and fails without the fix |
+| SM-001 | **Fixed.** A `returning` bit now separates "never comes back" from "comes back guaranteeing nothing", and a candidate that never returns is excluded from the intersection instead of emptying it. When no candidate returns the conservative answer is kept |
+| RV-002 | **Fixed.** The defective example table is replaced with content-only digests measured at the pre-repair source state and again with the repair, which agree exactly. The replacement says plainly what was wrong with the old values |
+| SA-002, SA-003 | **Deferred,** recorded on the issue that owns the raw-write model with the audit's analysis and its suggested remedies. Both need a product decision about refusing a computed poke address, which would refuse programs that build today |
+| SM-002 / SR-002 | **Fixed.** Two lenses converged on it: the guard now also requires the block to own no structured exit, which turns a documented assumption into a checked one |
+| SR-001, RV-004 | **Fixed** as documentation. The comment now records that caching the pessimistic answer makes precision order-dependent, that the direction is always toward refusal, and that the program able to expose it is refused earlier as recursion — which the parent confirmed by probe |
+| RV-005 | **Fixed.** The field's documentation now distinguishes it from the whole-program map of the same name, which is keyed by operation and holds binding identities |
+| RV-001, RV-003, RV-006 | **Fixed** as plan corrections. The case arithmetic now reconciles; the overstated claim about the second emulator case is replaced with what that fixture actually proves and the gap moved to residuals; boundary 6 now admits that the recorded set participates in body-identity fingerprinting, which soundness requires |
+| SM-003, SR-003 | **Fixed.** Coverage added for a non-returning candidate, three candidates, a call inside a loop, a candidate that itself dispatches, two calls through one variable, an openly overwritten flag, and the documented conservative boundary. The frozen oracle was **not** edited: it cannot be, and the author of these cases is no longer implementation-blind, so they are implementation tests |
+
+One residual created by this ruling and recorded rather than closed: no emulator case observes the
+dispatch reaching a non-initial candidate at run time, because the fixture that would need to vary
+the selector cannot write it. The implementation tests and the pre-existing expert-call case cover
+the emitted shape instead.

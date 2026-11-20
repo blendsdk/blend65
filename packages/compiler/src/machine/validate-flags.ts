@@ -20,14 +20,16 @@ function flagMask(flags: readonly MachineFlag[]): number {
  * Transfer candidates of a dispatch block, when they may answer for the block itself.
  *
  * The candidates record where control goes, not what happens on the way, so they speak for the
- * block only while the block is nothing but the transfer. That is how a dispatch block is built.
- * Should one ever carry additional work, its own effects would matter and the recorded set alone
- * would no longer describe the call, so the conservative answer is kept instead.
+ * block only while the block is nothing but the transfer and owns no exit of its own. That is how
+ * a dispatch block is built. Should one ever carry additional work or a structured exit, its own
+ * effects would matter and the recorded set alone would no longer describe the call, so the
+ * conservative answer is kept instead.
  */
 function dispatchCandidates(block: MachineBlock | undefined): readonly string[] | null {
   if (block === undefined) return null;
   const candidates = block.indirectTargets;
   if (candidates === undefined || candidates.length === 0) return null;
+  if (block.terminator.kind !== "unreachable") return null;
   const only = block.instructions.length === 1 ? block.instructions[0] : undefined;
   return only?.opcode === "jmp" && only.mode === "indirect" ? candidates : null;
 }
@@ -48,6 +50,14 @@ interface FlagSummary {
   readonly preserves: number;
   /** Every consuming instruction and branch has a producer on all incoming paths. */
   readonly valid: boolean;
+  /**
+   * Whether any path through this callable comes back to its caller.
+   *
+   * Zeroed facts are ambiguous on their own: a callable that returns while guaranteeing nothing
+   * and one that never returns at all both carry no flags. Only the second is absent from the
+   * caller's incoming paths, so the difference has to be carried separately.
+   */
+  readonly returning: boolean;
 }
 
 /** Facts about a status value, including bits still equal to this callable's incoming status. */
@@ -101,7 +111,8 @@ export function validateMachineFlags(program: MachineProgram): boolean {
     const entry = resolve(label);
     const cached = cache.get(entry);
     if (cached !== undefined) return cached;
-    if (active.has(entry) || !blocks.has(entry)) return { returns: 0, preserves: 0, valid: false };
+    if (active.has(entry) || !blocks.has(entry))
+      return { returns: 0, preserves: 0, valid: false, returning: true };
     active.add(entry);
     const reachable = new Map<string, MachineBlock>();
     const pending = [entry];
@@ -111,7 +122,7 @@ export function validateMachineFlags(program: MachineProgram): boolean {
       const block = blocks.get(current);
       if (block === undefined) {
         active.delete(entry);
-        return { returns: 0, preserves: 0, valid: false };
+        return { returns: 0, preserves: 0, valid: false, returning: true };
       }
       reachable.set(current, block);
       pending.push(...successors(block.terminator).map(resolve));
@@ -210,7 +221,7 @@ export function validateMachineFlags(program: MachineProgram): boolean {
           )
         ) {
           active.delete(entry);
-          return { returns: 0, preserves: 0, valid: false };
+          return { returns: 0, preserves: 0, valid: false, returning: true };
         }
         const merged: FlagState = {
           ...meetStatus(previous, outgoing),
@@ -253,30 +264,45 @@ export function validateMachineFlags(program: MachineProgram): boolean {
     let dispatched: FlagSummary | null = null;
     if (dispatch !== null) {
       let agreed = { returns: ALL_FLAGS, preserves: ALL_FLAGS };
+      let anyReturning = false;
       for (const candidate of dispatch) {
         const target = resolve(candidate);
         // A candidate whose analysis is already in progress, or whose body is absent,
         // contributes nothing. It must not be called invalid for that: losing the facts
         // already costs every consumer after the dispatch its producer, which is the
-        // conservative answer rather than a verdict about the candidate itself.
+        // conservative answer rather than a verdict about the candidate itself. The
+        // pessimistic answer is then cached like any other, so the order in which callers
+        // are walked can decide how precise it is. That is sound because the direction is
+        // always toward refusal, and a program that could expose the difference — one whose
+        // pointer can reach the function it is called from — is refused earlier as recursion.
         if (active.has(target) || !blocks.has(target)) {
           agreed = { returns: 0, preserves: 0 };
+          anyReturning = true;
           continue;
         }
         const candidateSummary = analyze(target);
         valid &&= candidateSummary.valid;
+        // A candidate that never comes back is not one of the caller's incoming paths, so
+        // its empty facts must not be intersected in. Intersecting them would cost every
+        // consumer after the call its producer because one reachable function loops forever.
+        if (!candidateSummary.returning) continue;
+        anyReturning = true;
         agreed = {
           returns: agreed.returns & candidateSummary.returns,
           preserves: agreed.preserves & candidateSummary.preserves,
         };
       }
-      dispatched = { ...agreed, valid };
+      // When no candidate returns, nothing is known about a resumption that cannot happen.
+      dispatched = anyReturning
+        ? { ...agreed, valid, returning: true }
+        : { returns: 0, preserves: 0, valid, returning: false };
     }
     active.delete(entry);
     const summary = dispatched ?? {
       returns: hasReturn ? returns : 0,
       preserves: hasReturn ? preserves : 0,
       valid,
+      returning: hasReturn,
     };
     cache.set(entry, summary);
     return summary;

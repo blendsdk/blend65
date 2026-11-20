@@ -542,6 +542,11 @@ export interface MachineBlock {
    * These are plain function entry labels, so the label redirection applied when physically
    * identical bodies are shared does not rewrite them — it only remaps interrupt-root duplicates
    * and their block labels. Extending that redirection to other labels means remapping these too.
+   *
+   * Not to be confused with the whole-program map of the same name, which associates each
+   * indirect call operation with the source bindings it may reach. That one is keyed by operation
+   * and holds binding identities; this one belongs to a single machine block and holds the link
+   * labels those bindings were given.
    */
   readonly indirectTargets?: readonly string[];
   /** Stable link label. */
