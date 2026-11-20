@@ -147,3 +147,36 @@ Cause 1, the seven-byte raster poll, is **verified only by proxy**: the form is 
 modelled on boing-ball rather than on boing-ball's own output. The parent measured it directly in
 the emitted assembly, so it is confirmed, but the plan should cite the measurement rather than the
 fixtures.
+
+## Process slip — the oracle was committed unreviewed, inside a docs commit
+
+Recorded because the commit history would otherwise misrepresent what happened.
+
+Commit `7bb28f50` carries the message *"repair four confirmed preflight majors before writing
+code"* and a body describing only plan repairs. It also contains **815 lines of new test code** —
+`test/rd05/word-assignment-forwarding.spec.test.ts` and
+`test/rd05/word-assignment-forwarding-vice.spec.test.ts` — swept in by a `git add -A` while the
+oracle's author was still running. Their timestamps show they were written about a minute before
+the commit, so they may well have been mid-iteration.
+
+Two things are wrong with that, and neither is the code:
+
+| Problem | Consequence |
+| --- | --- |
+| The message does not describe the contents | Anyone reading the history sees a docs commit and would not look for an oracle in it |
+| The oracle entered the tree without the parent reviewing it or reproducing RED | The protocol's order is author → review → reproduce RED → freeze by hash. Committing first skips three of those |
+
+**What is not done about it.** The commit is pushed to a shared integration branch, so it is not
+rewritten and no history is force-pushed. The files are also left in place rather than reverted,
+because the authoring agent was still live and removing its working files mid-run would corrupt its
+output rather than tidy anything.
+
+**What is done instead.** The oracle is treated as **not yet accepted**: `T-37.3` stays open, and
+the freeze only happens after the parent has read both files, confirmed they reach no
+implementation source, and reproduced RED itself. The freeze commit will record the blob hashes and
+the RED split, which is the evidence that was skipped here. Until then no claim rests on these
+files.
+
+The generalisable lesson is the narrow one: `git add -A` is unsafe while a subagent with write
+access is running, and the staging should be scoped to the paths the commit's message actually
+describes.
