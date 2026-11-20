@@ -1,0 +1,248 @@
+# Indirect-call thunk flag facts (#170, bounded unit)
+
+> **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
+> **Owner**: T-35 / #170
+> **Progress**: 0/6 tasks (0%)
+> **Status**: Planned — design ruled by the user on 2026-11-20
+> **Baseline**: `e79c367b`, clean `feature/v4-rebuild`
+> **Scope**: strict; the flag summary of a tail-transferring dispatch thunk
+> **Reasoning**: high — a machine-state validator whose facts must survive every validation site
+> **Created**: 2026-11-20
+
+## Objective and authority
+
+Stop the compiler refusing a program that calls through a function pointer and then performs an
+addition or subtraction. The cause is located and proved in [the findings](05-findings.md): the
+`jmp (ptr)` dispatch thunk owns no returning block, so `validateMachineFlags` collapses its
+summary to "preserves nothing", the next `adc`/`sbc` loses its decimal-flag producer, and the
+whole program is reported as malformed machine state.
+
+The emitted code is already correct and already qualified —
+`test/rd04/expert-calls.impl.test.ts:83-101` pins the `jsr <thunk>` / `jmp (ptr)` shape as the
+expert expectation and passes today. This unit changes no instruction, no storage home and no
+cycle cost. It repairs bookkeeping about code that was always right.
+
+**Smallest viable design:** record the thunk's finite candidate set on its own block, and have the
+validator summarise the thunk as the meet of those candidates' existing summaries. Add no pass, no
+solver, no cache, no diagnostic and no terminator kind.
+
+## Requirements and boundaries
+
+1. The refused program must build, in all four optimization modes and under `check`, and must
+   still emit the thunk. A repair that replaces the `jmp (ptr)` dispatch with a comparison chain
+   does not satisfy this unit.
+2. The validator keeps its true-negative power. A thunk whose candidate genuinely clobbers a flag
+   consumed after the call must still be refused.
+3. The validator gains precision it is already designed for: when every candidate establishes a
+   flag the caller consumes afterwards, the program must be **accepted**. An ABI-floor design
+   fails this, and the test for it is what distinguishes the chosen design from that shortcut.
+4. Soundness rests on exactly one assumption, named here rather than left to inference: the
+   recorded candidate set is complete. That is the front end's existing finite-target obligation
+   at `machine/lower-indirect.ts:44-46`; this unit inherits it and adds no new dependency.
+5. The failure direction must stay safe. A dropped or stale recorded set degrades to today's
+   `{ returns: 0, preserves: 0 }` and therefore to a refusal. No path may turn it into an accepted
+   wrong program.
+6. Accepted programs keep their bytes, costs and storage demands. The recorded set is validation
+   metadata and must not reach the emitters or any cost model.
+7. A candidate already under analysis contributes `{ returns: 0, preserves: 0 }` **without**
+   marking the summary invalid, so a callable holding its own address keeps its current
+   acceptance. `validate-flags.ts:88` returns `valid: false` for an active entry, and that value
+   must not propagate into the meet.
+8. Named exclusions, recorded in code rather than inferred:
+   - the override keys on the **recorded set**, never on `hasReturn === false`. The latter equally
+     describes callees that genuinely never return, such as the `returningBodies === false` arms at
+     `machine/lower-indirect.ts:215-218`, whose summaries must not change;
+   - the repair claims nothing about BCD safety. `validate-flags.ts:38-43` tracks whether a
+     producer exists and whether a bit still equals the entry bit, not flag values, and `sed` is
+     itself a producer (`:149-151`). A candidate that executes `sed` and returns stays accepted,
+     exactly as a direct call to it is accepted today.
+9. Still unqualified afterwards and explicitly not claimed:
+   - the `COMPILER_INCOMPLETE` diagnostic's missing span, help and pointer. Named as a second
+     defect in #170, spanning `services/services.ts:156,396,495` and
+     `services/size-selection.ts:244,1017`;
+   - worst-case cycle accounting through a thunk (`services/entry-path-cycles.ts:324` abandons a
+     path on an `unreachable` terminator) and NMI wrapper inflation
+     (`machine/nmi-entry.ts:46` calls `preserveAll()` on an indirect `jmp`). Both are the same
+     terminator's victims, neither is a refusal;
+   - the identical hole for a `jsr` the validator cannot resolve, pinned at
+     `machine/validate-flags.impl.test.ts:202`. `machine/lower-load-unit.ts:174-175,197`
+     compensates with an explicit `cld` for the KERNAL route. Whether user code can reach a raw
+     `jsr` without that compensation is **unverified**; if it can, it is a separate defect of the
+     same family and gets its own unit.
+
+Existing `*.spec.test.ts` files, shared helpers, `spec/`, the frozen expert authority and release
+records stay unchanged. The new specification file becomes immutable once its RED is recorded.
+
+## Grounded design
+
+### Why the meet is the sound summary
+
+Every execution of `jsr T`, for thunk `T` with recorded set `S`, transfers control to the entry of
+some candidate in `S` and returns exactly as a direct `jsr` to that candidate would: `jmp (ptr)`
+consumes no stack slot, so the candidate's own `rts` pops the thunk's return address. The sound
+summary of `T` is therefore the intersection over `S` — the same operation the validator already
+applies at a control-flow join (`meetStatus`, `machine/validate-flags.ts:52-54`).
+
+Two sub-conditions make the composition exact rather than approximate. Each candidate's summary is
+computed under the entry assumption `ABI_FLAGS` (`:169`), which is the same assumption used for an
+ordinary direct call, so no re-contextualisation is needed. And `machine/lower-indirect.ts:84-97`
+admits the thunk route only when no candidate has an interrupt-context variant, so the stored
+pointer is the canonical label of the ABI selected at that call site and the runtime value cannot
+be an address outside `S`.
+
+### Where the set is recorded
+
+The set is in hand at `machine/lower-indirect.ts:34` as `targets` and is written onto the thunk
+block at `:100-108`, as `bindingLabel("fn", candidate)` per entry. Labels rather than binding ids,
+because `machine/lower.ts:177` sets a function's `id` to `bindingLabel("fn", semantic.id)` and
+`validate-flags.ts:72,78` resolves a function id to its entry block label, so a recorded label
+feeds `analyze` directly.
+
+A block field is preferred over a program-level map on two grounds: the data is already in scope at
+the write site, whereas a map must be threaded through `FunctionLoweringState` → `lower-function`
+→ `lower.ts`; and it places the fact where the thunk terminator's other two victims would consult
+it.
+
+### Where the set is consumed
+
+At summary assembly, `machine/validate-flags.ts:230-236` — not at the call site. The thunk body
+still goes through the ordinary walk, so the duplicate-label check (`:74`), the stack-shape check
+(`:190-198`) and the per-instruction checks (`:124-127`) keep applying to it. The call site at
+`:107-115` already routes `jsr <thunk>` through `analyze`, and `:143` consumes the summary
+unchanged, so neither needs editing.
+
+### The hazard that decides the unit
+
+`validateMachineProgram` runs at **six call sites**, not one: `machine/bind.ts:585`,
+`services/size-observers.ts:123,124` (physical and final), `layout/c64-layout.ts:913,918`
+(resolved and compacted) and `artifacts/acme-validate.ts:84`. The recorded set must survive every
+block-rewriting pass up to ACME validation.
+
+Audited and safe: `bindFunction` (`machine/bind.ts:283-297`) rebuilds with
+`Object.freeze({ ...block, instructions })`, so optional fields pass through;
+`shareBoundRootBodies` (`:493-543`) fingerprints `JSON.stringify([fn.sourceName, fn.blocks])`
+excluding only observer fields, so the new field participates and two thunks with different sets
+cannot merge; `redirectBoundLabels` (`:446-490`) would not rewrite the field, but its redirect keys
+are only merged-away irq-root ids, which never match a plain `fn.<key>` candidate label — this
+needs a comment at the field declaration so a future extension cannot silently invalidate it;
+`shareBoundByteMultiplyHelpers` and `mergeObserverBlock` spread the existing block.
+
+Unaudited and to be settled by evidence, not argument: `selectTerminalByteLeaves` and
+`selectByteWindows` (`machine/lower-function.ts:1029-1049`), `selectSwitchDispatch` (`:1022`),
+`machine/optimization-cleanup.ts`, and post-layout compaction. Precedent is encouraging but not
+conclusive — the optional block field `observerBodies` is already read at post-layout stages. The
+end-to-end artifact test in T-35.1 is the instrument that settles this, because compiling the
+repro through the full CLI pipeline exercises every validation site, which a direct
+`validateMachineProgram` unit call does not.
+
+### Design challenge
+
+An independent challenger received the defect, five candidate designs and the hazard question
+without being told which was preferred. It selected this design, supplied the keying correction in
+boundary 8, the active-candidate rule in boundary 7, the five-stage hazard, the "producer existence
+is not a flag value" correction in boundary 8, and a sixth option not in the packet — emitting
+`cld` after the thunk `jsr`, which is this codebase's own idiom at
+`machine/lower-load-unit.ts:174-175`. That option is rejected on the expert-expectation directive:
+the precedent applies where the hardware truth is unknown, while here the callees are known
+Blend65 functions whose BCD sequences restore `cld` themselves
+(`machine/lower-arithmetic.ts:193,217,237,272`), so it would pay two bytes and two cycles per
+indirect call to re-establish an invariant that already holds.
+
+The challenger's own strongest argument against the design is recorded rather than dismissed: it
+adds a data channel that must survive many block-rewriting passes, whereas an ABI floor is three
+lines and can never go stale. It is discharged by the safe failure direction in boundary 5 and by
+the end-to-end test, not by denying the hazard.
+
+## Specification-first evidence
+
+The specification file is authored first, independently, and frozen by hash after a meaningful RED.
+Its expectations come from the required behaviour, never from the implementation.
+
+| Axis | Shape | Expected |
+| --- | --- | --- |
+| Repro, end-to-end | The refused program, compiled through the full pipeline to an artifact, in all four modes and under `check` | Builds, emitting `jsr <thunk>` and `jmp (ptr)`. This is the test that enforces metadata survival across every validation site |
+| Precision | Both candidates establish a flag the caller consumes after the call, with no local producer | **Accepted.** An ABI-floor design refuses this |
+| True negative | One candidate performs an opaque restore (`pha`/`plp`), then `adc` after the call | **Refused** — the meet drops the flag. An ABI-floor design wrongly accepts |
+| Meet semantics | One candidate establishes a consumed flag, the other clobbers it | Refused |
+| Thunk body checks still live | Thunk reached with an unbalanced stack shape, or a duplicate label | Refused, as today |
+| Indirect recursion | A callable holding its own address, called through it | Acceptance unchanged from before the repair |
+| Route coverage | Every row of the findings matrix: addition before the call, `i << 1` after, `i - 1` after, single target, call with arguments, struct-field and module-level callables | Each builds via its documented route |
+| Accepted-output identity | The committed example corpus and the thunk-route controls | Byte-identical payloads in all four modes |
+
+Controls that must stay red, unchanged: `machine/validate-flags.impl.test.ts:100,202,220,236`.
+Frozen oracles that must stay green and unedited: `machine/status-provenance.spec.test.ts` and
+`machine/terminal-legality.spec.test.ts`.
+
+### Which axes the frozen oracle may own
+
+Three axes above — Precision, True negative and Meet semantics — are stated as machine-program
+shapes, because that is the level at which the behaviour is defined. An oracle author working only
+from required behaviour may be unable to express them from Blend65 source without knowing how
+candidates lower, and an oracle that encodes lowering knowledge is no longer
+implementation-blind.
+
+Settle this at authoring time rather than mid-RED. Any axis that cannot be reached from source
+alone moves to the T-35.3 implementation tests, where `machine/validate-flags.impl.test.ts`
+already constructs synthetic machine programs directly. The frozen oracle keeps the axes that are
+genuinely source-expressible: the end-to-end repro, route coverage and accepted-output identity.
+Record in T-35.1 which axes moved and why, so the division is evidence rather than convenience.
+
+## Small execution chunks
+
+- [ ] T-35.1 Author the assigned specification tests independently, including the end-to-end
+      artifact case that crosses every validation site, run meaningful RED, freeze the oracle
+      hash and capture accepted-control baselines. No production code.
+- [ ] T-35.2 Record the candidate set on the thunk block and consume it as a meet at summary
+      assembly, keyed on the recorded set, with the active-candidate rule and the redirect comment.
+      Make the oracle green without editing it.
+- [ ] T-35.3 Add implementation tests for the meet, the active-candidate fallback, the keying
+      distinction against genuinely non-returning callees, and survival of the recorded set through
+      binding, body sharing and post-layout compaction. Confirm accepted programs keep their bytes,
+      costs and storage demands.
+- [ ] T-35.4 Run the related suites only: the new oracle, the flag-validation and expert-call
+      suites, the callable suites, the compiler machine and service tests, and the serialized
+      emulator case proving the dispatch returns the right value. Record the exact coverage.
+- [ ] T-35.5 Obtain the independent reviews below; repair or refute every finding and record the
+      dispositions for the user's ruling.
+- [ ] T-35.6 Run the complete checkpoint once, close the unit with its residual owners, sync the
+      roadmap and commit locally. Never push automatically.
+
+## Verification
+
+| Stage | Command |
+| --- | --- |
+| Inner loop | `yarn test:fast` |
+| Directed | the new oracle, `machine/validate-flags.impl.test.ts`, `test/rd04/expert-calls.impl.test.ts`, `test/rd04/function-values.spec.test.ts` |
+| Before the commit checkpoint | `yarn test:changed --host`, then `yarn test` |
+| Phase closeout | `yarn install`, `yarn build`, `yarn typecheck`, then `yarn test:full` |
+
+Commits use the git-commit skill. Pushing is never automatic.
+
+## Specialist Agents
+
+| Role | Bounded responsibility at review |
+| --- | --- |
+| correctness-reviewer | Scope, maintainability, oracle authority, evidence honesty |
+| machine-code-auditor | The meet's soundness, the keying distinction, accepted output keeping its bytes and costs |
+| sfa-abi-auditor | The claim that `jmp (ptr)` consumes no stack slot and the candidate's `rts` returns to the thunk's caller |
+| semantics-reviewer | Retained true negatives, the new precision, and the completeness of the recorded set |
+| performance-auditor | Added host validation cost of the meet across every validation site |
+
+Specialist check: **None new** — these existing roles already own machine-state validation and the
+call ABI, and the unit adds no contract they do not already review.
+
+## Scope of later implementation
+
+Expected production edits: `machine/machine-types.ts` (the optional block field),
+`machine/lower-indirect.ts` (the write site) and `machine/validate-flags.ts` (summary assembly).
+Owned tests: the new specification file and new or affected `*.impl.test.ts`.
+
+## Residual owners
+
+| Residual | Observed behaviour | Owner |
+| --- | --- | --- |
+| `COMPILER_INCOMPLETE` carries no span, help or pointer | An author is told only that an internal stage did not finish | #170, second defect. **On T-35.6 closeout, either keep #170 open for it or file the successor issue first** — this repair makes the path unreachable for this program class but leaves the diagnostic unchanged, so closing #170 on the strength of this unit would orphan a defect with no owner |
+| Cycle accounting abandons any path through a thunk | Worst-case cycle proofs give up rather than refuse | Same terminator, own unit |
+| NMI wrappers over-save around an indirect `jmp` | Larger wrapper than necessary | Same terminator, own unit |
+| A `jsr` the validator cannot resolve collapses the same way | Would refuse arithmetic after a raw KERNAL call; reachability from user code unverified | Separate unit once reachability is established |
+| #164 remainder | Handler/mainline interference, relocation, dual-domain helpers, machine-created storage, borrowed-address bytes, runtime-address writes | #164, still open |
