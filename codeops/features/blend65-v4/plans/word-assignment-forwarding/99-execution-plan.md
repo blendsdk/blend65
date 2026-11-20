@@ -2,8 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-37 / #168
-> **Progress**: 0/7 tasks (0%)
-> **Status**: Planned — preflight due before any code
+> **Progress**: 2/7 tasks (29%)
+> **Status**: Executing — baselines captured and golden exposure enumerated; oracle and
+> preflight next, both before any code
 > **Last Updated**: 2026-11-20
 > **Baseline**: plan authored at `825778f2`, clean `feature/v4-rebuild`
 > **Scope**: strict; the result home of a word arithmetic operation whose sole consumer is an
@@ -117,13 +118,13 @@ register and must instead direct the existing stores at the destination home.
 
 ## Tasks
 
-- [ ] T-37.1 Record the corrected starting state as evidence and repair the two stale "No push"
+- [x] T-37.1 Record the corrected starting state as evidence and repair the two stale "No push"
       notes. Capture pre-change baselines: the seven examples plus boing-ball in all four modes,
-      digesting emitted bytes only
-- [ ] T-37.2 Enumerate the byte-exact goldens a word-lowering change can shift, before any code.
+      digesting emitted bytes only ✅ (evidence below; reproduced across two independent runs)
+- [x] T-37.2 Enumerate the byte-exact goldens a word-lowering change can shift, before any code.
       About twenty output oracles under `test/rd05` pin emitted form, and
       `test/rd08/optimizer-exact-output.impl.test.ts` pins artifacts byte-for-byte. Name which can
-      reach a word arithmetic assignment and why the rest cannot
+      reach a word arithmetic assignment and why the rest cannot ✅ (4 of 25; evidence below)
 - [ ] T-37.3 Author the specification oracle from the required behaviour only, implementation-blind,
       and reproduce RED. **Two halves, because a forwarding optimization's risk is firing when it
       must not**: the emitted shape for a word assignment, and the barriers — an intervening use, a
@@ -160,6 +161,58 @@ exactly that comparison, not to prove they are unchanged.
 The cost impl test documents its own contract as pins that move down and may not drift up silently,
 so moving them is sanctioned; the frozen parity oracle proves the behaviour did not change while
 they moved.
+
+## T-37.1 evidence — baselines before any change
+
+Captured at `24a12aa7`. Digests are the first 16 hex digits of a SHA-256 over emitted bytes only,
+excluding `.build.json` and `current.json`, which record the generation identity and change on
+every run. **Both tables were produced twice from independent runs and agree exactly.**
+
+| Mode | Code bytes | Zero page | Program bytes | Artifact digest |
+| --- | ---: | ---: | ---: | --- |
+| `none` | 1,151 | 0 | 7,167 | `75fecef4c692b1eb` |
+| `balanced` | 1,067 | 10 | 7,167 | `b0e0c7c9a8125564` |
+| `speed` | 1,067 | 10 | 7,167 | `d6de884a648d300e` |
+| `size` | 1,067 | 10 | 7,167 | `a9fd33484fc6af3b` |
+
+| Example | Code bytes | Digest |
+| --- | ---: | --- |
+| `boing-ball` | 1,151 | `75fecef4c692b1eb` |
+| `foundation` | 72 | `aafbc004571cc57c` |
+| `m1` | 3,153 | `edcd65feab8c43c5` |
+| `rd06-assets` | 659 | `93b812b661aac655` |
+| `rd06-charpad` | 632 | `c9eb256171b24324` |
+| `rd06-spritepad` | 640 | `a4d7702851e776a4` |
+| `rd07-loadable` | 682 | `811dd3d3e6d7d011` |
+
+The six non-boing examples carry **the same digests the preceding unit recorded**, which is an
+independent check that the method is stable across units rather than merely self-consistent within
+one.
+
+`m1` at 3,153 code bytes is the largest corpus member and the most likely place for an unintended
+delta to show up, so it is the one to watch alongside boing-ball.
+
+## T-37.2 evidence — which goldens this change can reach
+
+136 test files declare a word local. Of those, **25 also pin exact output** — a byte count, an exact
+instruction sequence, or a structural equality. Of those 25, only **4** contain the source shape
+this slice can affect, a word-typed variable assigned an addition or subtraction:
+
+| Oracle | The reaching source | What it pins |
+| --- | --- | --- |
+| `test/rd05/sprite-publication-forwarding.spec.test.ts` | `address = load + offset - 2;` | **The one to watch.** Exact instruction bytes at computed offsets, plus the register-capture set. Frozen, so it may never be edited |
+| `test/rd05/input-call-guards.spec.test.ts` | `selector = 1 - selector;` | Emulator memory contents — behavioural, so an optimization that preserves behaviour cannot move it |
+| `test/rd08/input-loop-storage.spec.test.ts` | `other = column + 1;` | Evidence-record key sets and occupancy, not byte counts |
+| `test/rd04/backend.spec.test.ts` | `word(peek($0400)) + 1` as a call argument | Assembly comment patterns and staging names. The arithmetic's consumer is a call rather than a whole-word store, so it is probably outside the pattern |
+
+The other 21 declare a word local but never assign it an addition or subtraction, so they cannot
+reach the pattern at all.
+
+**No oracle pins a global code-byte total that a general improvement would shift**, which is the
+result that matters: the frozen oracles assert behaviour and located shapes, and the byte totals
+live in impl tests whose documented contract is that they move down. So the slice is not blocked by
+a frozen pin it would have to edit. That was a real risk worth checking before writing code rather
+than discovering at the gate.
 
 ## Out of scope
 
