@@ -430,24 +430,30 @@ describe("machine contract corrections", () => {
       Object.freeze({ ...firstRequest, alignment: 5 }),
       Object.freeze({ ...firstRequest, region: "zero-page-required" as const }),
     ]) {
-      expect(
-        bindMachineProgram(
-          Object.freeze({
-            ...lowered.program,
-            certifiedStorage: Object.freeze([
-              replacement,
-              ...lowered.program.certifiedStorage!.slice(1),
-            ]),
-          }),
-          closure.certificate,
-        ),
-      ).toEqual(
+      const refusedStorage = bindMachineProgram(
+        Object.freeze({
+          ...lowered.program,
+          certifiedStorage: Object.freeze([
+            replacement,
+            ...lowered.program.certifiedStorage!.slice(1),
+          ]),
+        }),
+        closure.certificate,
+      );
+      expect(refusedStorage).toEqual(
         expect.objectContaining({
           kind: "error",
           reason: "invalid-storage",
           requestId: firstRequest.id,
         }),
       );
+      // The refusal keeps the older stage wording precisely when it carries no failed check,
+      // so a defect appearing on a storage-only refusal would silently change what an author
+      // reads. Matching loosely on the fields above cannot notice that on its own.
+      expect(
+        refusedStorage.kind === "error" ? refusedStorage.defect : null,
+        "a storage refusal has no failed validator check to report",
+      ).toBeUndefined();
     }
 
     const invalidFunction = Object.freeze({

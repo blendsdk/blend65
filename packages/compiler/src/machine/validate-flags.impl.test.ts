@@ -8,36 +8,12 @@ import type {
   MachineProgram,
 } from "./machine-types.js";
 import { validateMachineProgram } from "./bind.js";
-
-/** A tiny closed program isolates validator facts from source lowering. */
-function program(
-  blocks: readonly MachineBlock[],
-  functions: readonly MachineFunction[] = [],
-): MachineProgram {
-  return { startup: { id: "startup", blocks }, functions, data: [], requiredStorage: [] };
-}
-
-function implied(opcode: string): MachineInstruction {
-  return machineInstruction(NMOS_6510, opcode, "implied", null);
-}
-
-function branch(
-  target: string,
-  fallthrough: string,
-  flag: "v" | "z" = "v",
-): MachineBlock["terminator"] {
-  const opcode = flag === "v" ? "bvs" : "beq";
-  return {
-    kind: "branch",
-    opcode,
-    target,
-    fallthrough,
-    uses: machineState([], [flag]),
-    cost: machineCost(NMOS_6510, opcode, "relative"),
-  };
-}
-
-const exit: MachineBlock = { label: "exit", instructions: [], terminator: { kind: "return" } };
+import {
+  branchTerminator as branch,
+  exitBlock as exit,
+  impliedInstruction as implied,
+  machineTestProgram as program,
+} from "./machine-program-test-support.js";
 
 describe("machine flag data flow", () => {
   it.each([false, true])(

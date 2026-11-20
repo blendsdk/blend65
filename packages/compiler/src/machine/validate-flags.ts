@@ -156,6 +156,7 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
     for (const block of fn.blocks) {
       if (blocks.has(block.label)) {
         return machineProgramDefect({
+          stage: "machine flag proof",
           reason: "the compiler generated two code blocks that share one label",
           functionId: fn.id,
           label: block.label,
@@ -167,6 +168,10 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
     }
   }
   const resolve = (label: string) => aliases.get(label) ?? label;
+  // The first failing check found is the one reported. Callees are proved before their callers,
+  // so an author sees the construct that caused the failure rather than a consequence of it.
+  // Within one function the order follows the traversal, not the order the statements were
+  // written, so a program with two failing constructs may name either.
   /** Attribute a block to the function that declared it, including a tail-jump destination. */
   const owner = (label: string) => owners.get(label) ?? UNKNOWN_MACHINE_SITE;
   const cache = new Map<string, FlagSummary>();
@@ -180,6 +185,7 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
     if (cached !== undefined) return cached;
     if (active.has(entry) || !blocks.has(entry)) {
       record({
+        stage: "machine flag proof",
         reason: active.has(entry)
           ? "a generated call leads back into a function whose own proof is still open"
           : "a generated call names a function with no body",
@@ -197,6 +203,7 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
       const block = blocks.get(current);
       if (block === undefined) {
         record({
+          stage: "machine flag proof",
           reason: "a generated transfer leads to a code block with no body",
           functionId: owner(entry),
           label: current,
@@ -233,6 +240,7 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
           const proved = (available & required) === required;
           if (!proved) {
             record({
+              stage: "machine flag proof",
               reason: `the selected '${instruction.opcode}' has no proved producer for its ${flagPhrase(
                 unprovedFlags(instruction.uses.flags, available),
               )}`,
@@ -253,6 +261,7 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
           // only PHP snapshots carry producer facts. A missing stack byte is malformed.
           if (check && saved === undefined) {
             record({
+              stage: "machine flag proof",
               reason: "the selected 'plp' restores a processor-status byte that was never saved",
               functionId: owner(block.label),
               label: block.label,
@@ -287,6 +296,7 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
         const proved = (available & required) === required;
         if (!proved) {
           record({
+            stage: "machine flag proof",
             reason: `the generated '${block.terminator.opcode}' branch has no proved producer for its ${flagPhrase(
               unprovedFlags(block.terminator.uses.flags, available),
             )}`,
@@ -333,6 +343,7 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
           )
         ) {
           record({
+            stage: "machine flag proof",
             reason:
               "two generated paths reach the same point holding different hardware-stack contents",
             functionId: owner(target),
@@ -369,6 +380,7 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
       if (block.terminator.kind === "return" || block.instructions.at(-1)?.opcode === "rts") {
         if (outgoing.stack.length !== 0) {
           record({
+            stage: "machine flag proof",
             reason: "a generated return leaves bytes the function pushed on the hardware stack",
             functionId: owner(block.label),
             label: block.label,
@@ -415,6 +427,12 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
         }
         const candidateSummary = analyze(target);
         valid &&= candidateSummary.valid;
+        // Skipping a non-returning candidate is sound only while "does not return" really means
+        // "cannot resume the caller". Two properties carry that, and both are relied on here
+        // rather than rechecked: a dispatch block is only ever entered by a call, never by a
+        // structured edge, and a routine's return is always its block's terminator rather than
+        // an instruction in the middle of one. If either stops holding, this skip would keep
+        // facts a returning candidate is free to violate, which is the unsound direction.
         // A candidate that never comes back is not one of the caller's incoming paths, so
         // its empty facts must not be intersected in. Intersecting them would cost every
         // consumer after the call its producer because one reachable function loops forever.
@@ -448,6 +466,7 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
   return (
     defect ??
     machineProgramDefect({
+      stage: "machine flag proof",
       reason: "the proof that every consumed processor flag has a producer did not complete",
       functionId: UNKNOWN_MACHINE_SITE,
       label: UNKNOWN_MACHINE_SITE,

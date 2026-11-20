@@ -237,6 +237,7 @@ export function findMachineProgramDefect(program: MachineProgram): MachineProgra
         const checked = validateMachineInstruction(instruction, NMOS_6510, allFlags);
         if (checked.kind !== "complete") {
           return machineProgramDefect({
+            stage: "machine storage binding",
             reason: `the selected '${instruction.opcode}' ${INSTRUCTION_DEFECTS[checked.reason]}`,
             functionId: fn.id,
             label: block.label,
@@ -250,6 +251,7 @@ export function findMachineProgramDefect(program: MachineProgram): MachineProgra
           !labels.has(instruction.operand.label)
         ) {
           return machineProgramDefect({
+            stage: "machine storage binding",
             reason: `the selected '${instruction.opcode}' transfers to generated code the program does not contain`,
             functionId: fn.id,
             label: block.label,
@@ -260,6 +262,7 @@ export function findMachineProgramDefect(program: MachineProgram): MachineProgra
       }
       if (!validTerminator(block.terminator)) {
         return machineProgramDefect({
+          stage: "machine storage binding",
           reason: "the generated exit of a code block is not a legal transfer",
           functionId: fn.id,
           label: block.label,

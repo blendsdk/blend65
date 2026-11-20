@@ -62,20 +62,27 @@ export function machineBindingDiagnostic(failure: MachineBindingFailure): Projec
         ? "generated startup code"
         : "generated code";
   const span = defect.source ?? failure.fallbackSpan;
+  // The refusal names the obligation that actually failed. Proving flag producers and finding
+  // storage homes fail for unrelated reasons, and announcing one as the other misdirects both
+  // the author and whoever reads the report.
+  const stage = defect.stage;
   // Without a span of its own the failing construct cannot be claimed to be "here", so the
   // message names the stage rather than suggesting the pointed-at line selected the instruction.
   const message =
     defect.source === null
-      ? `The ${STAGE} stage did not complete for ${subject} — ${defect.reason}`
-      : `Machine storage binding did not complete for ${subject} — ${defect.reason}`;
+      ? `The ${stage} stage did not complete for ${subject} — ${defect.reason}`
+      : `${stage.charAt(0).toUpperCase()}${stage.slice(1)} did not complete for ${subject} — ${defect.reason}`;
   // The block label already embeds the owning function, so the link identity is added only
   // when nothing else in the message identifies the function.
-  const site =
+  const block =
     defect.blockLabel === UNKNOWN_MACHINE_SITE
-      ? `the ${STAGE} stage`
+      ? `the ${stage} stage`
       : name !== null
         ? `generated block '${defect.blockLabel}'`
         : `generated block '${defect.blockLabel}' of '${defect.functionId}'`;
+  // Someone reading a report needs the selected opcode without having to parse the sentence,
+  // so it is stated here rather than left to the prose that explains the failure.
+  const site = defect.opcode === null ? block : `${block} at '${defect.opcode}'`;
   const help =
     span === null
       ? `Compiler limitation in ${site}; please report it`

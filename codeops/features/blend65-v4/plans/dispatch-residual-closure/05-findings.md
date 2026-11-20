@@ -256,3 +256,79 @@ tier.
 
 Whether this earns its own issue is a decision for the user: two issues were authorised for this
 unit's remainders, and a third was not.
+
+## Half B independent reviews
+
+Two lenses. **0 critical. One major on each, and they are different findings.** Both reviewers run
+read-only, so every empirical claim was re-checked by the parent before disposition.
+
+### The semantics lens independently found #173
+
+Asked to audit the proof's soundness, the semantics reviewer returned **soundness preserved** and
+one major on the expressiveness axis — which turned out to be the same defect the machine-code
+lens had found and the user had already ruled on: a direct call to a proved non-returning callee is
+treated as preserving nothing rather than as making the remainder unreachable. It reached the same
+remedy independently, mirroring the dispatch route's terminator rule at the direct call site.
+
+That is worth recording as corroboration rather than as a new finding: two lenses with different
+briefs, given no knowledge of each other, converged on the same defect and the same fix, and it is
+already filed as **#173** with the user's ruling behind it.
+
+Its soundness verdict rests on two things it verified rather than took on trust: recording is
+observationally inert on the dataflow — it touches no cache, no active set, no work list, and
+`machineProgramDefect` freezes only its own result — and the ordering `if (valid) return null`
+before the fallback makes the unsafe direction unreachable **by construction**, so soundness does
+not depend on every site remembering to record. It also confirmed the decimal flag is genuinely
+the unproved one: the instruction grid declares `adc` as using carry and decimal, and `clc`
+discharges only carry.
+
+### RV-001 — the ruling's framing had excluded a whole axis · **fixed**
+
+The correctness lens found that four production **consumers** discard the witness. This is the
+finding that matters most about process: the earlier audit and the user's ruling were both phrased
+around the five bind-error *producers*, and that phrasing silently excluded the consumers which
+compute a witness and throw it away. Confirmed by search:
+
+| Consumer | Disposition |
+| --- | --- |
+| `size-selection.ts` `closeCanonicalStorage` | already repaired |
+| `size-selection.ts` `closeCanonicalObjectStorage` | **repaired here** |
+| `size-selection.ts` `closeSizeCandidate` | **repaired here**, retaining the candidate plan |
+| `shared-storage.ts:219` and `:255` | routed to **#174**, whose scope was explicitly widened to name the consumer axis so it cannot be lost the same way twice |
+
+The re-review confirmed both new sites: correct fallback span for their scope, category unchanged
+because the previous helper was already compiler-category, and a storage-only refusal through them
+still emits the previous sentence verbatim.
+
+### Minors, all applied
+
+| ID | Finding | Disposition |
+| --- | --- | --- |
+| RV-002 | The new suite's equivalence assertion is a **tautology** — the boolean is *defined* as the finder compared against `null`, so it cannot detect the failure its comment claimed to guard | **Comment corrected** to claim only what it shows: that the two stay derived and that repeated calls agree, which would fail if the defect slot became shared state. The re-review advised keeping the assertion, and said so with a reason: it becomes real equivalence evidence the day the predicate stops being derived. This also corrects an overstatement in this unit's own earlier reporting, where those cases were presented as equivalence evidence |
+| RV-003 | The opcode field was read by no production consumer | **Fixed** — the help line now reads `generated block 'X' at 'adc'`, so a reader gets the opcode without parsing the sentence |
+| RV-004 | The stage name was spelled twice in one file despite a comment claiming it was spelled once | **Fixed** — one constant, with the capitalised form derived from it |
+| RV-005 | No case covered the branch-terminator refusal or three of the four instruction-rejection arms, so a lost recording would silently degrade the message with nothing noticing | **Fixed** — four cases added. The re-review promoted this finding, because it is also what closes its own open verification gap about the structural extraction. Writing it found a further imprecision worth noting: the `operand` rejection also covers a *register*-metadata mismatch, so a wrong-registers instruction is reported as an operand that does not fit its addressing mode |
+| RV-006 | The new suite duplicated four fixture builders from the validator's own suite | **Fixed** — one `machine-program-test-support.ts`, following the package's existing `-test-support` convention, imported by both |
+| RV-007 | Relaxing an exact-equality assertion lost the guarantee that a storage-only refusal carries no witness, which the diagnostic's older-wording branch depends on | **Fixed** — that is now asserted directly |
+| SM-002 | A flag-proof failure was announced as a *storage* failure | **Fixed** — the defect carries which obligation gave up, and the message follows it. The refusal now opens `Machine flag proof did not complete for 'main'`, which is what actually failed |
+| SM-004 | The dispatch meet skips a non-returning candidate, which is sound only while two unstated invariants hold | **Fixed** — both are now stated at the skip, with the consequence if either stops holding |
+| SM-005 | First-captured is traversal order, not source order | **Fixed** — stated where the recorder is defined, including that a program with two failing constructs may name either |
+
+### Accepted residual
+
+**SM-003**: when a call names a function the program gives no body, the defect is attributed to the
+absent callee, so it resolves no span even though the calling instruction has one. Recorded rather
+than fixed: the remedy moves where the defect is recorded, which is the one change in this area
+that would alter *which* construct is reported, and this unit has already measured its evidence
+against the current attribution. It belongs with **#174**, which owns the remaining locations.
+
+### Verification after every fix
+
+| Check | Result |
+| --- | --- |
+| Byte-neutrality — 7 controls × 4 modes, all 7 examples | **identical** to the half A baseline |
+| `packages/compiler/src/machine`, every file | 89 files / 1,197 passed |
+| Validator and defect suites | 47 passed — 31 unchanged validator cases and 16 defect cases |
+| Validator, defect, contracts and the 3 frozen boolean oracles | 94 passed across 6 files |
+| End-to-end refusal | 5 passed |
+| `yarn build`, `tsc --noEmit`, `prettier --check` | exit 0 |

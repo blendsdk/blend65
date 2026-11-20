@@ -10,36 +10,12 @@ import type {
   MachineInstruction,
   MachineProgram,
 } from "./machine-types.js";
-
-/** A tiny closed program isolates the validator's verdicts from source lowering. */
-function program(
-  blocks: readonly MachineBlock[],
-  functions: readonly MachineFunction[] = [],
-): MachineProgram {
-  return { startup: { id: "startup", blocks }, functions, data: [], requiredStorage: [] };
-}
-
-function implied(opcode: string): MachineInstruction {
-  return machineInstruction(NMOS_6510, opcode, "implied", null);
-}
-
-function branch(
-  target: string,
-  fallthrough: string,
-  flag: "v" | "z" = "v",
-): MachineBlock["terminator"] {
-  const opcode = flag === "v" ? "bvs" : "beq";
-  return {
-    kind: "branch",
-    opcode,
-    target,
-    fallthrough,
-    uses: machineState([], [flag]),
-    cost: machineCost(NMOS_6510, opcode, "relative"),
-  };
-}
-
-const exit: MachineBlock = { label: "exit", instructions: [], terminator: { kind: "return" } };
+import {
+  branchTerminator as branch,
+  exitBlock as exit,
+  impliedInstruction as implied,
+  machineTestProgram as program,
+} from "./machine-program-test-support.js";
 
 /** A span proves the defect points at the construct rather than at a default location. */
 const span: SourceSpan = { sourceId: "src/game.blend", start: 4, end: 9 };
@@ -49,10 +25,16 @@ const bodiless: MachineFunction = { id: "helper", blocks: [] };
 
 describe("machine program defect reporting", () => {
   /**
-   * Take the defect while proving it agrees with the boolean verdict.
+   * Take the defect, checking what this assertion can actually establish.
    *
-   * The two must never disagree. A refusal that produced no defect would read as a proved
-   * program to every caller that asks for the boolean, which would accept malformed code.
+   * The boolean predicate is currently defined as the finder compared against null, so this
+   * cannot detect a refusal that produced no defect — both sides would agree. What it does
+   * pin is that the two remain derived from one another and that two calls on the same program
+   * agree, which would fail if the defect slot or the per-call caches ever became shared
+   * state. It becomes real equivalence evidence if the predicate ever stops being derived.
+   *
+   * The evidence that no verdict moved lives in the unchanged boolean cases of the validator's
+   * own suite, not here.
    */
   function defectOf(subject: MachineProgram): MachineProgramDefect | null {
     const defect = findMachineProgramDefect(subject);
@@ -241,5 +223,55 @@ describe("machine program defect reporting", () => {
     );
     expect(defect?.opcode).toBe("jsr");
     expect(defect?.reason).toContain("does not contain");
+  });
+  // The validator rejects an instruction for four distinct reasons. Each needs its own case:
+  // if one of them stopped recording, the program would still be refused and the message would
+  // quietly fall back to the vague wording, which no other test would notice.
+  it("witnesses an instruction form the CPU does not have", () => {
+    const illegal = Object.freeze({
+      ...machineInstruction(NMOS_6510, "clv", "implied", null),
+      mode: "absolute",
+    });
+    const defect = defectOf(
+      program([{ label: "entry", instructions: [illegal], terminator: { kind: "return" } }]),
+    );
+    expect(defect?.opcode).toBe("clv");
+    expect(defect?.reason).toContain("legal instruction form");
+  });
+
+  it("witnesses an operand that does not fit its addressing mode", () => {
+    const oversized = Object.freeze({
+      ...machineInstruction(NMOS_6510, "lda", "immediate", { kind: "literal", value: 0x1234 }),
+    });
+    const defect = defectOf(
+      program([{ label: "entry", instructions: [oversized], terminator: { kind: "return" } }]),
+    );
+    expect(defect?.opcode).toBe("lda");
+    expect(defect?.reason).toContain("operand");
+  });
+
+  it("witnesses recorded processor effects that do not match the instruction", () => {
+    const mislabelled = Object.freeze({
+      ...machineInstruction(NMOS_6510, "clv", "implied", null),
+      // Only the flags differ: a register mismatch is reported as an operand defect instead,
+      // so changing registers here would exercise a different arm than the one intended.
+      defines: machineState([], ["n", "z"]),
+    });
+    const defect = defectOf(
+      program([{ label: "entry", instructions: [mislabelled], terminator: { kind: "return" } }]),
+    );
+    expect(defect?.opcode).toBe("clv");
+    expect(defect?.reason).toContain("processor-state effects");
+  });
+
+  it("witnesses a branch that reads a flag nothing has produced", () => {
+    // The refusal belongs to the terminator rather than to any instruction, so the defect
+    // carries no opcode and must still locate the block it came from.
+    const defect = defectOf(
+      program([{ label: "entry", instructions: [], terminator: branch("exit", "exit") }, exit]),
+    );
+    expect(defect?.opcode).toBe(null);
+    expect(defect?.reason).toContain("branch");
+    expect(defect?.blockLabel).toBe("entry");
   });
 });

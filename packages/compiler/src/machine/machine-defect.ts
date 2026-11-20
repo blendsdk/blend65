@@ -8,6 +8,15 @@ import type { SourceSpan } from "../project/types.js";
  */
 export const UNKNOWN_MACHINE_SITE = "unknown";
 
+/**
+ * The proof obligations whose failure a machine refusal can describe.
+ *
+ * Binding a program to storage and proving that every consumed processor flag has a producer
+ * are separate obligations that fail for unrelated reasons, so each refusal says which one
+ * gave up rather than borrowing the other's name.
+ */
+export type MachineProofStage = "machine storage binding" | "machine flag proof";
+
 /** The part of an instruction a defect reports about. */
 export interface MachineDefectInstruction {
   /** Lowercase mnemonic of the failing instruction. */
@@ -28,6 +37,8 @@ export interface MachineDefectBlock {
 export interface MachineDefectSite {
   /** Failed check, phrased for whoever wrote the source. */
   readonly reason: string;
+  /** Which proof obligation gave up. */
+  readonly stage: MachineProofStage;
   /** Owning function's link identity. */
   readonly functionId: string;
   /** Block label the check belongs to. */
@@ -51,6 +62,14 @@ export interface MachineDefectSite {
 export interface MachineProgramDefect {
   /** Human-readable failed check, phrased without internal labels. */
   readonly reason: string;
+  /**
+   * Which proof gave up, named as an author would describe it.
+   *
+   * Binding a program to storage and proving its processor-flag producers are different
+   * obligations that fail for different reasons, so a flag failure must not be announced as
+   * though a storage home could not be found.
+   */
+  readonly stage: MachineProofStage;
   /** Source that selected the failing instruction, when one exists. */
   readonly source: SourceSpan | null;
   /** Owning function's link identity. */
@@ -80,6 +99,7 @@ export function machineProgramDefect(site: MachineDefectSite): MachineProgramDef
     site.block?.instructions.find((instruction) => instruction.source !== null)?.source ?? null;
   return Object.freeze({
     reason: site.reason,
+    stage: site.stage,
     source: site.instruction?.source ?? blockSpan,
     functionId: site.functionId,
     blockLabel: site.label,

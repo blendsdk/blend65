@@ -740,7 +740,15 @@ export function closeCanonicalObjectStorage(
   if (machine.kind === "error")
     return Object.freeze({
       kind: "failure",
-      failure: incomplete("machine storage binding").failure,
+      failure: terminal("compiler", [
+        machineBindingDiagnostic({
+          program: lowered.program,
+          defect: machine.defect,
+          fallbackSpan:
+            input.resourceSpans.get(bindingIdentityKey(input.program.semantic.main)) ??
+            input.program.semantic.main.span,
+        }),
+      ]).failure,
     });
   return Object.freeze({
     kind: "complete",
@@ -985,7 +993,15 @@ export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResu
     return Object.freeze({
       kind: "failure",
       plan,
-      failure: incomplete("machine storage binding").failure,
+      failure: terminal("compiler", [
+        machineBindingDiagnostic({
+          program: lowered.program,
+          defect: machine.defect,
+          fallbackSpan:
+            checked.resourceSpans.get(bindingIdentityKey(checked.program.semantic.main)) ??
+            checked.program.semantic.main.span,
+        }),
+      ]).failure,
     });
   const pipeline = completedPipeline(
     checked,
