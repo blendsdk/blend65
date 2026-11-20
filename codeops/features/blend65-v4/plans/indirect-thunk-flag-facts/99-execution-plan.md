@@ -2,9 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-35 / #170
-> **Progress**: 3/6 tasks (50%)
+> **Progress**: 4/6 tasks (67%)
 > **Status**: Executing — repair verified and mutation-checked; reviews pending
-> **Last Updated**: 2026-11-20 10:13
+> **Last Updated**: 2026-11-20 11:55
 > **Baseline**: `e79c367b`, clean `feature/v4-rebuild`
 > **Phase baseline tree**: `0ab13159e5e72c90e9f89df72a54b4ceb2f73116`
 > **Scope**: strict; the flag summary of a tail-transferring dispatch thunk
@@ -203,9 +203,10 @@ Record in T-35.1 which axes moved and why, so the division is evidence rather th
       distinction against genuinely non-returning callees, and survival of the recorded set through
       binding, body sharing and post-layout compaction. Confirm accepted programs keep their bytes,
       costs and storage demands. ✅ (implemented: 2026-11-20 10:08 · completed: 2026-11-20 10:13)
-- [ ] T-35.4 Run the related suites only: the new oracle, the flag-validation and expert-call
+- [x] T-35.4 Run the related suites only: the new oracle, the flag-validation and expert-call
       suites, the callable suites, the compiler machine and service tests, and the serialized
       emulator case proving the dispatch returns the right value. Record the exact coverage.
+      ✅ (implemented: 2026-11-20 11:40 · completed: 2026-11-20 11:55)
 - [ ] T-35.5 Obtain the independent reviews below; repair or refute every finding and record the
       dispositions for the user's ruling.
 - [ ] T-35.6 Run the complete checkpoint once, close the unit with its residual owners, sync the
@@ -386,6 +387,35 @@ the program was not made acceptable by replacing the pointer jump with a compari
 | `yarn test:fast` | 180 files / 2,854 passed, 2 skipped; 45 files / 1,282 passed |
 | `prettier`, `typecheck` | clean, exit 0 |
 | Leak checks | no plan, requirement, task or issue identifier in either file |
+
+## T-35.4 evidence
+
+Directed coverage only. The complete corpus is T-35.6's single checkpoint.
+
+| Suite | Files | Result |
+| --- | --- | --- |
+| `test/rd04` host tier, the whole callable and function-value area | 113 | 1,300 passed |
+| Compiler package `machine/`, `services/`, `storage/`, `layout/` | 145 | 2,429 passed, 2 skipped |
+| `yarn test:fast` | 180 + 45 | 2,854 passed / 2 skipped, and 1,282 passed |
+| Frozen oracle, host | 1 | 46/46 |
+| Frozen oracle, emulator | 1 | 2/2 |
+| Dispatch survival, four modes | 1 | 4/4 |
+| Directed emulator set | 5 | 9 passed |
+
+No failures anywhere, and nothing skipped that was previously running.
+
+### The emulator result that matters most
+
+`test/rd04/expert-calls.impl.test.ts` passes. That case independently requires the published
+assembly to contain at least three dispatch blocks of the exact form `jsr <label>` into
+`<label>: jmp ($xxxx)`, and requires the pointer's low byte not to be `$FF`. It is the repository's
+existing statement of what expert output for a pointer call looks like, it was written before this
+unit, and it is unchanged. Its passing is the strongest available evidence that the repair left the
+generated dispatch alone rather than buying buildability with worse code.
+
+`test/rd04/callable-field-helper-vice.spec.test.ts` (4 cases) and
+`test/rd04/function-values.spec.test.ts` cover the neighbouring callable routes on a real emulator
+and are likewise unchanged and green.
 
 ## Verification
 
