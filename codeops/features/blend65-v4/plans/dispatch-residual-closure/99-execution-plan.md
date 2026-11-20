@@ -2,7 +2,7 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-36 / #170
-> **Progress**: 3/7 tasks (43%) · [findings](05-findings.md)
+> **Progress**: 5/7 tasks (71%) · [findings](05-findings.md)
 > **Status**: Executing — oracle frozen at reproduced RED; preflight returned 3 majors, two
 > fixed here and PA-003 awaiting a ruling before half B is implemented
 > **Last Updated**: 2026-11-20
@@ -172,18 +172,20 @@ discover it.
       then enumerate every consumer the chosen channel touches before writing code ✅ (D-2, D-5,
       D-6; the challenger ran before any code was written, and its frozen-oracle finding was
       verified by direct search rather than accepted on report)
-- [ ] T-36.4 Implement half A: terminate the caller's block `unreachable` on the thunk route when
+- [x] T-36.4 Implement half A: terminate the caller's block `unreachable` on the thunk route when
       no candidate returns, uniformly over the result branch. Acceptance is split, because two
       controls are refused today and so have no digest to preserve: the six controls that build —
       **including `thunk-nonreturning-no-consumer`, which travels the changed path** — stay
       byte-identical along with all seven examples, while the two previously-refused shapes must
       reach a stated expected shape (the `jsr`, an `unreachable` terminator, the retention present,
       a dead tail) proved in T-36.6 rather than merely stopping being refused. The frozen oracle
-      must turn GREEN at 50/50
+      must turn GREEN at 50/50 ✅ (evidence below)
 - [ ] T-36.5 Implement half B behind the settled design: the witness, the span on the refusal, and
       a message that names the construct. Accepted output must stay byte-identical, since a
       diagnostic may not move a single emitted byte
-- [ ] T-36.6 Add implementation tests for both halves: the thunk route's terminator for every
+- [ ] T-36.6 Add implementation tests for both halves — **half A's portion is delivered**
+      (`test/rd04/nonreturning-dispatch-shape.impl.test.ts`, 30 passed, watched failing without
+      the fix); half B's portion waits on the PA-003 ruling: the thunk route's terminator for every
       returning/non-returning candidate combination, the witness for a failing bound program
       including the synthesized-block fallback, and the non-regression controls the public oracle
       cannot express
@@ -377,6 +379,91 @@ for the diagnostic code matched this repository's own plan files, so some baseli
 it cannot have shaped the oracle, which asserts acceptance only and can distinguish no dispatch
 shape from another. And the pre-authoring measurement that a never-returning `byte` function is
 accepted today ran through the public API from stdin rather than by reading implementation sources.
+
+## T-36.4 evidence — half A implemented and measured
+
+The frozen oracle is **GREEN at 50/50** and was never edited: its blob is still
+`22e01e757bb305d770226f1a8280260b1ac31025`, and `git status` reports nothing modified under `test/`
+or `spec/`.
+
+**Byte-neutrality, measured rather than argued.** The capture was re-run after the change and
+compared against the baseline. Exactly one line differs across every control in all four modes and
+all seven examples:
+
+| Control | Before | After |
+| --- | --- | --- |
+| `thunk-nonreturning` | `REFUSED` in all four modes | `64f3c0c7fc99a2f0` / `08cc39084bbd716b` ×3 |
+
+Everything else is identical, **including `thunk-nonreturning-no-consumer`** — the control the
+preflight required, which travels the changed path and built before the change. Its digests are
+unmoved at `044801b51c3f54bc` and `39a2c88bc1e0bbcf`. That is the finding PA-001 raised, answered
+by measurement.
+
+**The emitted shape for the newly accepted program**, which is the acceptance PA-005 asked for
+instead of "no longer refused":
+
+```
+block_3:
+  jsr+2 block_5
+block_4:
+  lda $c002
+  ...
+  clc
+  adc $0af3
+  ...
+  jmp+2 b65_startup_block_1
+block_5:
+  jmp ($0af1)
+```
+
+The call block ends at the `jsr` with no instruction after it — the `unreachable` terminator,
+inventing no executable edge. The dispatch thunk's `jmp ($0af1)` is untouched, so the shape the
+pre-existing expert-call authority demands is preserved. The dead tail sits in the continuation
+block, exactly as the comparison chain already emits it.
+
+**One DRY change beyond the fix.** The non-returning test existed twice inline in the comparison
+chain and would have become three copies. It is now one documented helper used by all three sites,
+which is why the chain controls are byte-identical above — that is the check that the extraction
+changed nothing.
+
+### Half A implementation tests
+
+`test/rd04/nonreturning-dispatch-shape.impl.test.ts`, **30 passed**. These cover what the public
+oracle cannot express, since it judges acceptance only:
+
+| Case | What it pins |
+| --- | --- |
+| The calling block ends at the `jsr` | Nothing follows it before the next label, in all four modes — the `unreachable` terminator invents no edge |
+| The indirect transfer survives, and no candidate comparison appears | Acceptance was not bought by abandoning the cheap pointer jump for an address-comparison chain |
+| The arithmetic after the call is still lowered | Unreachable work is still emitted, so the two routes do not disagree about it |
+| All four candidate profiles, both declaration orders | The block gets an ordinary exit exactly when some candidate can return, and none when none can |
+| The one-argument twin takes the comparison chain | The contrast between the routes is a route difference, never a difference in acceptance |
+
+The thunk is located by its body rather than its name, because emitted labels are hex-encoded and
+a name match silently never fires — the first draft of this file did exactly that and reported a
+false failure.
+
+### Targeted suites
+
+| Suite | Result |
+| --- | --- |
+| The frozen oracle | 50/50 |
+| `test/rd04` dispatch, the frozen prior oracle, and the expert-call authority | 107 passed across 4 files |
+| `packages/compiler` validator plus the three frozen boolean oracles | 70 passed across 4 files, validator 31/31 |
+| `yarn test:changed --host` | 256 files / 5,437 passed |
+| `yarn test` — host tier | 257 files / 5,467 passed |
+| `yarn test` — package tier | compiler 259 files / 4,348 passed with 2 skipped; CLI 70; language server 21; VS Code 18 |
+| `yarn build`, `yarn typecheck`, `prettier --check` | exit 0 |
+
+### The tests were watched failing, not assumed to be meaningful
+
+The fix was reverted, the compiler rebuilt, and both new suites run again: **27 failed / 53 passed
+of 80**. With the fix restored they are **80/80**, and the restored source is byte-identical to what
+was tested (same checksum). So neither suite passes for a reason other than the change.
+
+An earlier run of `yarn test` had its package-tier counts swallowed by a `tail` in the command, so
+those numbers come from a separate `yarn test:package` run served entirely from the task cache
+rather than from the chain's exit status alone.
 
 ## T-36.1 appendix — the control programs the digests were taken from
 These are recorded so the pinned digests above can be re-derived rather than remembered. Each

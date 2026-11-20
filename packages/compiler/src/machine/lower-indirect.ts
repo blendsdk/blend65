@@ -25,6 +25,19 @@ import {
   type FunctionLoweringState,
 } from "./lower-state.js";
 
+/**
+ * Whether a candidate's existing whole-program summary proves it never returns.
+ *
+ * An absent summary answers `false`, so an unknown candidate is treated as one that may
+ * return. That keeps the ordinary executable edge after the call, which is the safe default.
+ */
+function neverReturns(callee: BindingId, state: FunctionLoweringState): boolean {
+  return (
+    state.input.program.interruptOwnership?.returningBodies?.get(bindingIdentityKey(callee)) ===
+    false
+  );
+}
+
 /** Lower one proved candidate with its own certified static parameter homes. */
 function directArm(
   operation: IndirectCallOperation,
@@ -132,6 +145,7 @@ export function lowerIndirectCall(
     // re-reads SP before its next stack-relative load.
     state.stackXValid = false;
     state.stackXBulkDepth = null;
+    let reached: readonly MachineInstruction[] = Object.freeze(instructions);
     if (operation.result !== null) {
       const bytes = typeBytes(operation.type) === 1 ? 1 : 2;
       const retained = retainMachineValue(
@@ -151,16 +165,30 @@ export function lowerIndirectCall(
         state,
       );
       state.values.set(operation.result, retained.value);
+      reached = retained.instructions;
+    }
+    // When no candidate can return, execution never comes back from the dispatch, so this
+    // block owns no exit of its own and anything written after the call is unreachable. The
+    // comparison chain already answers this shape the same way; answering it differently here
+    // would make the argument count decide whether the program is accepted at all. The
+    // retained result stays: whatever follows still reads it, and unreachable code is legal.
+    if (targets.every((candidate) => neverReturns(candidate, state))) {
       return Object.freeze({
-        blocks: Object.freeze([]),
-        continuation: currentLabel,
-        continuationInstructions: retained.instructions,
+        blocks: Object.freeze([
+          Object.freeze({
+            label: currentLabel,
+            instructions: reached,
+            terminator: Object.freeze({ kind: "unreachable" }),
+          }),
+        ]),
+        continuation: `${prefix}.continue`,
+        continuationInstructions: Object.freeze([]),
       });
     }
     return Object.freeze({
       blocks: Object.freeze([]),
       continuation: currentLabel,
-      continuationInstructions: Object.freeze(instructions),
+      continuationInstructions: reached,
     });
   }
   const continuation = `${prefix}.continue`;
@@ -230,17 +258,14 @@ export function lowerIndirectCall(
         // Keep the ordinary call frame, but do not invent an executable edge
         // after a callee whose existing whole-program summary proves no return.
         // Unknown and returning candidates still join the shared continuation.
-        terminator:
-          state.input.program.interruptOwnership?.returningBodies?.get(
-            bindingIdentityKey(callee),
-          ) === false
-            ? Object.freeze({ kind: "unreachable" })
-            : Object.freeze({
-                kind: "jump",
-                opcode: "jmp",
-                target: continuation,
-                cost: machineCost(cpu, "jmp", "absolute"),
-              }),
+        terminator: neverReturns(callee, state)
+          ? Object.freeze({ kind: "unreachable" })
+          : Object.freeze({
+              kind: "jump",
+              opcode: "jmp",
+              target: continuation,
+              cost: machineCost(cpu, "jmp", "absolute"),
+            }),
       }),
     );
     label = next;
@@ -250,12 +275,9 @@ export function lowerIndirectCall(
     Object.freeze({
       label,
       instructions: directArm(operation, targets[targets.length - 1]!, state),
-      terminator:
-        state.input.program.interruptOwnership?.returningBodies?.get(
-          bindingIdentityKey(targets[targets.length - 1]!),
-        ) === false
-          ? Object.freeze({ kind: "unreachable" })
-          : Object.freeze({ kind: "fallthrough", target: continuation }),
+      terminator: neverReturns(targets[targets.length - 1]!, state)
+        ? Object.freeze({ kind: "unreachable" })
+        : Object.freeze({ kind: "fallthrough", target: continuation }),
     }),
   );
   return Object.freeze({

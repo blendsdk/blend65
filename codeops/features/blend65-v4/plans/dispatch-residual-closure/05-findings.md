@@ -43,6 +43,12 @@ The universal sentence is replaced by the accurate one: the shape is refused whe
 follows the call and accepted otherwise, and that accepted shape is now pinned. If its bytes move,
 the delta is stated and justified rather than asserted away.
 
+**Outcome after the change.** The control is **byte-identical** — `044801b51c3f54bc` and
+`39a2c88bc1e0bbcf`, unmoved. Across every control in all four modes and all seven examples, exactly
+one line differs: `thunk-nonreturning` stopped being refused. So the concern was real and the
+answer is clean, but it is now an answer from measurement rather than an assertion that could not
+have been checked.
+
 ### PA-002 — the defect finder could accept a malformed program · **fixed**
 
 Design decision D-5 said to capture the first defect beside the accumulating `valid` dataflow. That
@@ -96,7 +102,7 @@ to the user. Options and the recommendation are in the plan's open-decision sect
 | ID | Finding | Disposition |
 | --- | --- | --- |
 | PA-004 | The design read ambiguously about whether the result's retention instructions sit inside the pushed block | Stated explicitly: the pushed block carries `retained.instructions`, the `state.values` entry is unchanged, and the fresh continuation starts empty |
-| PA-005 | "The dispatch controls stay byte-identical" is unsatisfiable for the two shapes that are refused today and so have no digest | Acceptance split: the controls that build stay byte-identical; the two previously-refused shapes get a stated expected shape proved in the implementation tests, not merely "no longer refused" |
+| PA-005 | "The dispatch controls stay byte-identical" is unsatisfiable for the two shapes that are refused today and so have no digest | Acceptance split: the controls that build stay byte-identical; the two previously-refused shapes get a stated expected shape proved in the implementation tests, not merely "no longer refused". **Discharged for half A**: the newly accepted program emits `jsr` with no instruction after it, the thunk's `jmp ($0af1)` untouched, and the dead tail in the continuation — recorded verbatim in the plan |
 | PA-006 | The plan said two construction sites; there are five occurrences across two files | Corrected to five emission sites across two files, of which the bind-error one is `size-selection.ts:244`. Verified: 3 in `services.ts`, 2 in `size-selection.ts` |
 | PA-007 | The plan repeated the challenger's claim that `machine/` imports `project/diagnostics` as a type only | Corrected: **no production module** under `machine/` imports it at all; the only importer is a test, and it imports the value. Verified. The conclusion — format in `services/` — is unaffected |
 | PA-008 | The header baseline commit and the capture commit disagreed | Both roles are now named explicitly instead of one field standing for both |
