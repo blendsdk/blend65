@@ -332,3 +332,19 @@ against the current attribution. It belongs with **#174**, which owns the remain
 | Validator, defect, contracts and the 3 frozen boolean oracles | 94 passed across 6 files |
 | End-to-end refusal | 5 passed |
 | `yarn build`, `tsc --noEmit`, `prettier --check` | exit 0 |
+
+## Disposition of the semantics lens's conditional verdict
+
+The semantics reviewer returned "soundness preserved, **subject to U-1**" and asked for the commit
+excerpt for the validator and binder. That condition is discharged here rather than left hanging,
+because the evidence it asked for already exists and a second dispatch would only re-read it.
+
+| Open item | How it is closed |
+| --- | --- |
+| U-1(c) — no condition's evaluation moved in the validator | The correctness lens received the excerpt for exactly those hunks and **confirmed** it: every `valid &&=` keeps its operand and its non-short-circuiting form with the operand merely named first, the `plp` assignment keeps its `check` guard, and the final `functions.every(…)` verdict expression is character-identical. It noted the one real difference for the record: the right-hand side is now computed even once the verdict is already false, which is pure and so verdict-neutral, costing a discarded string on an already-failing compile |
+| U-1(b) — the binder's structural predicate set survived the conversion | Closed by doing the work rather than by inspection. The correctness lens observed that three instruction-rejection arms had no case, so a dropped predicate would have been invisible, and that **completing that coverage is what closes this item**. Four cases were added — the branch terminator plus all three arms — and they pass |
+| U-1 — startup coverage | Settled directly: the function list is `[program.startup, ...program.functions]`, unchanged by the commit, so startup was first before and is first now |
+| U-2 — SM-004's two invariants were checked by search, not proved | Accepted as a documentation obligation rather than a proof obligation, and discharged that way: both invariants and the consequence if either stops holding are now written at the skip they justify |
+
+So the verdict reads as unconditional: the proof's soundness is preserved, on the ordering that
+makes the unsafe direction unreachable rather than on test coverage.
