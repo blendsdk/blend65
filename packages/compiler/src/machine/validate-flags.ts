@@ -260,8 +260,15 @@ export function validateMachineFlags(program: MachineProgram): boolean {
     // block adds no effects of its own, calling it is exactly calling one of them, and the
     // facts a caller may rely on are the ones every candidate guarantees. This is the same
     // intersection a control-flow join uses, applied across callees instead of edges.
+    const marked = blocks.get(entry)?.indirectTargets;
     const dispatch = dispatchCandidates(blocks.get(entry));
     let dispatched: FlagSummary | null = null;
+    // A block that names transfer candidates but does not have the shape they can answer for is
+    // not an ordinary block either: reading its own exit would describe a transfer that never
+    // comes back as though it returned. Answer conservatively instead of either of those.
+    if (dispatch === null && marked !== undefined && marked.length > 0) {
+      dispatched = { returns: 0, preserves: 0, valid, returning: true };
+    }
     if (dispatch !== null) {
       let agreed = { returns: ALL_FLAGS, preserves: ALL_FLAGS };
       let anyReturning = false;

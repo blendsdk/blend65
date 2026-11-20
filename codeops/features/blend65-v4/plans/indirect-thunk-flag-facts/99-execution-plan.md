@@ -2,9 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-35 / #170
-> **Progress**: 5/6 tasks (83%)
-> **Status**: Executing — repair verified and mutation-checked; reviews pending
-> **Last Updated**: 2026-11-20 14:47
+> **Progress**: 6/6 tasks (100%)
+> **Status**: Complete — six reviews, every finding dispositioned, split checkpoint green
+> **Last Updated**: 2026-11-20 15:23
 > **Baseline**: `e79c367b`, clean `feature/v4-rebuild`
 > **Phase baseline tree**: `0ab13159e5e72c90e9f89df72a54b4ceb2f73116`
 > **Scope**: strict; the flag summary of a tail-transferring dispatch thunk
@@ -212,8 +212,9 @@ Record in T-35.1 which axes moved and why, so the division is evidence rather th
 - [x] T-35.5 Obtain the independent reviews below; repair or refute every finding and record the
       dispositions for the user's ruling. ✅ (implemented: 2026-11-20 14:30 · completed:
       2026-11-20 14:47)
-- [ ] T-35.6 Run the split checkpoint below rather than the complete corpus, close the unit with
-      its residual owners, and sync the roadmap.
+- [x] T-35.6 Run the split checkpoint below rather than the complete corpus, close the unit with
+      its residual owners, and sync the roadmap. ✅ (implemented: 2026-11-20 15:10 · completed:
+      2026-11-20 15:23)
 
 ## T-35.1 evidence
 
@@ -529,6 +530,42 @@ Expected production edits: `machine/machine-types.ts` (the optional block field)
 `machine/lower-indirect.ts` (the write site) and `machine/validate-flags.ts` (summary assembly).
 Owned tests: the new specification file and new or affected `*.impl.test.ts`.
 
+## T-35.6 checkpoint
+
+The split checkpoint ran as recorded above, not the complete corpus.
+
+| Step | Result |
+| --- | --- |
+| `yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck` | exit 0 |
+| `yarn test` — workspace suites plus the complete host root tier, including real builds through ACME | CLI 10 files / 70; compiler 259 files / 4,347 passed, 2 skipped; root 255 files / 5,387 passed. **Zero failures** |
+| The eight outstanding emulator files that can reach a dispatch block | 8 files / **209 passed** |
+| `yarn test:fast` after the final change | 2,861 passed / 2 skipped, and 1,282 passed |
+| Frozen oracle | 46/46 host, 2/2 emulator; blobs `e399500f…` and `52f0a711…` unchanged, Git reports both files unmodified |
+| `machine/validate-flags.impl.test.ts` | 31/31 |
+| `test/rd04/function-pointer-dispatch.impl.test.ts` | 10/10 across four modes |
+| Byte neutrality | 8 control programs identical in all four modes; all 7 examples identical, measured content-only at the pre-repair source state and again with the repair |
+
+The emulator step took about eight minutes against roughly seventy-seven for the complete tier.
+The single most expensive emulator file was excluded because it declares no function type and so
+cannot reach a dispatch block — containment, not cost. No emulator case that can reach one was
+skipped.
+
+### Re-review
+
+One re-review was dispatched on the fix diff, as the protocol allows exactly once. It **accepted
+all three ruled fixes as correct and complete**, confirmed the signedness fix records everything
+the direct route records, and proved the soundness boundary of the new returning bit against the
+cases where a callable resumes by a route other than an ordinary return. It raised three further
+minor items, all dispositioned below.
+
+## Findings from the re-review
+
+| Finding | Disposition |
+| --- | --- |
+| SR-005 | **Fixed.** The terminator conjunct restricted classification but let a marked block fall through to ordinary analysis, which reads its own exit and can be *more* permissive than before the conjunct. A marked block that fails the shape check now answers conservatively instead. The test that covered this was renamed and extended, because its original form only established the weaker direction |
+| SR-006 | **Residual, measured and not fixed.** When *every* candidate never returns, the dispatch route still refuses a following consumer while the comparison-chain route accepts it, so argument count again decides acceptance. Reproduced: refused with no parameters, builds with one. Both answers are sound, because the consumer is dead code either way. The remedy is a lowering change — terminate the caller's block as unreachable when no candidate returns, matching what the chain route already does per arm — which alters emitted code and would invalidate this unit's byte-neutrality evidence. Recorded here rather than rushed in at the end of the unit |
+| SR-007 | **Filed separately.** Signed comparison against a constant allocates a RAM temporary and builds the bias at run time rather than folding it into an immediate; against a zero constant the comparison is unnecessary altogether. Measured at roughly seventeen bytes and twenty cycles plus two RAM bytes where four to six bytes would do. Pre-existing and independent of how the compared value was produced; it became visible here because this unit and the signedness repair made a signed result reachable through a function pointer |
+
 ## Residual owners
 
 | Residual | Observed behaviour | Owner |
@@ -537,4 +574,7 @@ Owned tests: the new specification file and new or affected `*.impl.test.ts`.
 | Cycle accounting abandons any path through a thunk | Worst-case cycle proofs give up rather than refuse | Same terminator, own unit |
 | NMI wrappers over-save around an indirect `jmp` | Larger wrapper than necessary | Same terminator, own unit |
 | A `jsr` the validator cannot resolve collapses the same way | Would refuse arithmetic after a raw KERNAL call; reachability from user code unverified | Separate unit once reachability is established |
-| #164 remainder | Handler/mainline interference, relocation, dual-domain helpers, machine-created storage, borrowed-address bytes, runtime-address writes | #164, still open |
+| #164 remainder | Handler/mainline interference, relocation, dual-domain helpers, machine-created storage, borrowed-address bytes, runtime-address writes | #164, still open, now also carrying the two raw-write completeness residuals this unit's reviews found |
+| Argument count still decides acceptance when every candidate never returns | Refused with no parameters, builds with one; dead code either way | Recorded above as SR-006; needs a lowering change |
+| Signed comparison against a constant is not folded | A RAM temporary and a run-time bias where an immediate would do | Filed as its own issue |
+| No emulator case observes the dispatch reaching a non-initial candidate | The fixture that would need to vary the selector cannot write it | Recorded; emitted shape is covered by implementation tests instead |

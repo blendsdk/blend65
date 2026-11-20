@@ -420,24 +420,34 @@ describe("machine flag data flow through a pointer dispatch", () => {
     ).toBe(false);
   });
 
-  it("keeps the conservative answer when the dispatch block owns a structured exit", () => {
-    // The candidates describe where control goes, not what the block does on the way, so they
-    // answer for the block only while it owns no exit of its own.
-    const exiting: MachineBlock = {
-      label: "dispatch",
-      instructions: [indirectJump()],
-      terminator: { kind: "return" },
-      indirectTargets: ["left", "right"],
-    };
-    expect(
-      validateMachineProgram(
-        program(consumeThroughDispatch(exiting), [
-          candidate("left", [implied("clv")]),
-          candidate("right", [implied("clv")]),
-        ]),
-      ),
-    ).toBe(false);
-  });
+  it.each([
+    ["no fact of its own", [] as readonly MachineInstruction[], [implied("clv")], true],
+    ["a fact the caller established", [implied("clv")], [implied("pha"), implied("plp")], false],
+  ])(
+    "keeps the conservative answer for a marked block with a structured exit, consuming %s",
+    (_name, leading, rightBody) => {
+      // The candidates describe where control goes, not what the block does on the way, so they
+      // answer for the block only while it owns no exit of its own. A marked block that fails
+      // that shape must not fall back to reading its own exit either: doing so would describe a
+      // transfer that never comes back as though it returned, which is more permissive than
+      // trusting the candidates. The second row is the case that distinguishes the two: the
+      // caller establishes the flag itself, and one reachable function discards it.
+      const exiting: MachineBlock = {
+        label: "dispatch",
+        instructions: [indirectJump()],
+        terminator: { kind: "return" },
+        indirectTargets: ["left", "right"],
+      };
+      expect(
+        validateMachineProgram(
+          program(consumeThroughDispatch(exiting, leading), [
+            candidate("left", [implied("nop")]),
+            candidate("right", rightBody),
+          ]),
+        ),
+      ).toBe(false);
+    },
+  );
 
   it("intersects across more than two reachable functions", () => {
     expect(
