@@ -214,7 +214,36 @@ and must be re-derived, not inherited.
 | Raw-write residuals from the preceding unit's reviews | #164 |
 | Unifying the two span-less refusal constructors across the service layer | Part of the task 3 design decision only if the chosen channel requires it; otherwise untouched |
 
-## Open decision requiring a ruling — PA-003, half B's producer scope
+## Open decisions requiring a ruling
+
+Two decisions are outstanding, and neither is mine to settle: one widens the unit's scope, the
+other is irreversible.
+
+### MC-004 — the defect class is wider than this unit
+
+A review of half A asked whether the single-candidate route, which devirtualizes to a direct call,
+ever had the non-returning test applied. The probe answered that and more:
+
+| Shape | Result |
+| --- | --- |
+| Two candidates through a pointer, no candidate returns, arithmetic after | **Builds** — this unit's fix |
+| One candidate through a pointer, candidate never returns | **Refused** |
+| A plain direct call to a never-returning function | **Refused** |
+
+So this is not a dispatch defect. It is any call to a provably non-returning callee followed by
+work that consumes processor state, and the unit has repaired one of three shapes. By the prime
+directive `spin(); i = i + peek($C003);` is a legal program an expert expects to compile.
+
+| Option | Consequence |
+| --- | --- |
+| **A — extend this unit to the direct-call path** | Repairs the whole class, same facts and same rule. **Cost:** the blast radius is every call site in the language rather than one narrow route, the frozen oracle covers only pointer dispatch so a second oracle is needed, and the unit stops being bounded |
+| **B — close this unit on dispatch and own the rest separately** (recommended) | Keeps the delivered repair verified and bounded, and treats a call-site-wide terminator change as the distinct unit it is. **Cost:** the compiler still refuses two legal shapes when this unit closes, so the remainder must be recorded as owned work — which needs a new issue, and filing one is outward-facing |
+
+Recommendation: **B**, because the measured defect behind #170 was the dispatch route and because a
+terminator rule applied at every call site deserves its own oracle and its own byte-neutrality
+evidence rather than being appended to a unit that has already measured its own.
+
+### PA-003 — half B's producer scope
 
 Implementation of half B is held until this is answered. The preflight found that
 `size-selection.ts:511-512` maps **any** bind error to the same span-less sentence and discards
@@ -454,6 +483,7 @@ false failure.
 | `yarn test` — host tier | 257 files / 5,467 passed |
 | `yarn test` — package tier | compiler 259 files / 4,348 passed with 2 skipped; CLI 70; language server 21; VS Code 18 |
 | `yarn build`, `yarn typecheck`, `prettier --check` | exit 0 |
+| After the three review minors | the capture re-run is identical to the post-fix measurement; the two impl suites and the oracle are 90 passed across 3 files |
 
 ### The tests were watched failing, not assumed to be meaningful
 

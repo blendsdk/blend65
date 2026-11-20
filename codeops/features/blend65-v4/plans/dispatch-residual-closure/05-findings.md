@@ -114,3 +114,84 @@ to the user. Options and the recommendation are in the plan's open-decision sect
 | --- | --- | --- |
 | PA-L1 | The claim "no legal source program is known to trigger this refusal" is weaker than stated: the feature roadmap records a stock chained-NMI program failing `COMPILER_INCOMPLETE` at machine storage binding | That trigger appeared only behind a gate change that was reverted, so it may not reproduce on this baseline. The plan's wording is narrowed to the validator path on the current baseline rather than claiming none exists |
 | PA-L2 | Whether the newly accepted thunk programs could trip a different observer or certificate check on the unreferenced continuation block | Probably benign, because the comparison chain already emits the same unreferenced continuation and that program builds. Not traced; the implementation tests must cover it rather than assume it |
+
+## Half A independent review — correctness lens
+
+**0 critical, 0 major, 3 minor.** Verdict: the fix is soundly conditioned and can stand as
+committed. The reviewer confirmed, against the code rather than the packet, that `every` is the
+exact mirror of the validator's own rule (it yields a non-returning summary only when no candidate
+returns, so `some` would have dropped an edge a returning candidate really takes — a miscompile
+rather than a refusal), that the absent-summary default leans the safe way, that
+`state.values.set` precedes the new early return on every path, that the continuation label cannot
+collide, and that a predecessor-less continuation is valid at every later stage because the flag
+walk only visits blocks reachable from an entry — which is precisely why the post-call `adc` no
+longer needs a producer.
+
+It also refuted three things it could have reported: trusting the returning-body facts is
+identical to what the comparison chain already does; the retained stores in the cut block are
+consistent with the chain's own arms; and a requirement identifier in a *directory* name is
+established convention, since the rule governs code and doc comments.
+
+| ID | Severity | Finding | Disposition |
+| --- | --- | --- | --- |
+| RV-001 | minor | The continuation label was built twice from the same prefix, once per route, so editing one would silently diverge | **Fixed** — built once above both routes and shared |
+| RV-002 | minor | The shape-detection regexes and the build helper were copied from the sibling dispatch suite, so the definition of "the cheap dispatch" lived in two places. The sibling's copy also carried a global flag, which advances `lastIndex` on a shared instance and matches inconsistently depending on call order | **Fixed** — one `test/rd04/dispatch-shape-fixture.ts` owns both patterns and the build helper, both suites import it, and the global form is confined to an explicit counting helper |
+| RV-003 | minor | `Object.freeze(instructions)` froze the array in place while the local stayed mutably typed, so a later `push` would have thrown at run time | **Fixed** — a copy is frozen, leaving the local genuinely mutable |
+
+Two items the reviewer could not close because it has no shell: that the prior inline chain
+expressions were character-identical to the extracted helper, and where the freeze previously sat.
+Both are visible in the committed diff and were confirmed by the parent: the two chain lookups were
+the same expression differing only in formatting, and the freeze previously sat at the result-path
+return. The reviewer independently corroborated the expression by finding the identical form at
+three other sites in the tree.
+
+After these three fixes the capture was re-run: **identical to the post-fix measurement**, so none
+of them moved a byte.
+
+## Half A independent review — machine-code lens
+
+**0 critical, 0 major, 4 minor**, one of which was an Unknown the auditor could not resolve because
+it has no shell. Verdict: acceptable as expert-quality for the shape this unit handles — the
+acceptance fix costs zero emitted bytes, and the page hazard of `jmp (indirect)` on NMOS is
+**triply guarded** (route selection rejects a pointer whose low byte is `$FF`, the allocator never
+places a function-typed pair at `$xxFF`, and binding refuses a bound indirect operand at `$xxFF`
+rather than dropping it silently).
+
+The auditor also closed two questions as non-findings with arithmetic rather than assertion: the
+new block boundary introduces **no padding** (blocks are laid contiguously and the origin directive
+merely restates the address a block already has — `$0977 + $25 = $099C`, exactly the thunk's
+origin), and it explained why byte-identity across the other controls was the expected result
+rather than luck, because splitting a block after the `jsr` emits the same bytes in the same order.
+
+### MC-004 — escalated to major by measurement
+
+The auditor flagged, as Unknown, that the single-candidate route devirtualizes to a direct call and
+never had the non-returning test applied. The parent ran the probe, and the answer is **worse than
+the Unknown suggested**:
+
+| Shape | Result |
+| --- | --- |
+| Two candidates through a pointer, no candidate returns, arithmetic after | **Builds** — this unit's fix |
+| **One** candidate through a pointer, candidate never returns, arithmetic after | **Refused**, same diagnostic |
+| A **plain direct call** to a never-returning function, arithmetic after | **Refused**, same diagnostic |
+
+So the defect class is not dispatch-shaped at all. It is *any* call to a provably non-returning
+callee followed by work that consumes processor state, and this unit has repaired one of its three
+shapes. By the prime directive `spin(); i = i + peek($C003);` is a legal program an expert expects
+to compile, so the remaining two shapes are the same defect rather than adjacent parity debt.
+
+This needs a ruling, because the remedy's blast radius is the question: the dispatch thunk is one
+narrow route, while the direct-call path is every call site in the language.
+
+### Remaining minors, all parity debt this commit did not create
+
+| ID | Severity | Finding | Disposition |
+| --- | --- | --- | --- |
+| MC-001 | minor | For an all-non-returning dispatch an expert writes `jmp (ptr)` at the call site; no return address is needed. The generated `jsr` into a `jmp (ptr)` thunk costs **3 bytes, 6 cycles and 2 never-reclaimed stack bytes per call site** more than the expert idiom — a larger gap than the packet put to the auditor | Follow-up, not this commit. The auditor agrees the commit's purpose was acceptance and that it achieves it at zero byte cost. Two preconditions are recorded: the validator recognises a dispatch only when the block is nothing but the indirect transfer, and the hardware-stack peak model must learn the tail form before it credits the saved stack bytes |
+| MC-002 | minor | The unreachable continuation costs **37 real artifact bytes** in this witness and is ineligible for the existing cleanup, which removes only empty blocks that fall through. No unreachable-block rule exists in the machine layer at all, although the semantic layer already computes the needed fact and uses it for retained interrupt bodies only | Follow-up. Pre-existing for the comparison chain, now reachable from the thunk route too. Flagged as **golden-shifting**, so it needs its own unit with a reachability oracle and an exact artifact delta |
+| MC-003 | minor | The retained result's store in the terminated block is unexecutable, and the existing dead-store rules cannot remove it because the read-set computation is not reachability-aware, so the dead block's read keeps both the store and its RAM home alive | Subordinate to MC-002: fixing that lets the existing rules remove this unaided. The retention **registration** must stay — the still-lowered unreachable suffix resolves the result through it, and dropping it fails lowering on a legal program |
+
+Two further Unknowns are recorded rather than guessed: whether the stack-peak model would credit
+the two saved bytes of an inline tail dispatch, and whether an unaccessed retained-value request
+still reserves RAM once its store disappears. Both need probes that only matter when MC-001 and
+MC-003 are sized, so they are deferred with their owners named.

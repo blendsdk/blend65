@@ -1,7 +1,6 @@
-import { buildProject } from "@blend65/compiler";
 import type { OptimizationGoal } from "@blend65/compiler";
 import { describe, expect, it } from "vitest";
-import { readProfileArtifacts, withProfileProject } from "../rd05/profile-fixture.js";
+import { assembleFor, candidateComparison, indirectTransfer } from "./dispatch-shape-fixture.js";
 
 const target = "c64-pal-prg-kernal-6581";
 
@@ -13,12 +12,6 @@ const modes: readonly OptimizationGoal[] = ["none", "balanced", "speed", "size"]
  * cover what it cannot express: the shape the accepted program is given, and the fact that a
  * dispatch whose candidates never return is lowered the same way whichever route it takes.
  */
-
-/** A dispatch block, found by the indirect transfer that forms its whole body. */
-const indirectTransfer = /^\s*jmp\s+\(\$[0-9a-f]{4}\)\s*$/imu;
-
-/** Comparing the pointer against a candidate address is the alternative, costlier dispatch. */
-const candidateComparison = /^\s*cmp\s+#[<>]\(/imu;
 
 /** Whether a candidate reaches its own end or loops forever instead. */
 type Candidate = "returns" | "loops forever";
@@ -48,17 +41,9 @@ function main(): void {
 `;
 }
 
-/** Build one program and return its assembly, failing with the diagnostics if it is refused. */
+/** Build one program for this suite's profile and return its assembly. */
 async function assemblyOf(source: string, mode: OptimizationGoal): Promise<string> {
-  return await withProfileProject(source, target, async (project) => {
-    const built = await buildProject({ project, optimization: mode });
-    expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
-      "success",
-    );
-    if (built.kind !== "success") throw new Error("The dispatch program reached no publication");
-    const { assembly } = await readProfileArtifacts(built);
-    return assembly;
-  });
+  return await assembleFor(source, target, mode);
 }
 
 /**

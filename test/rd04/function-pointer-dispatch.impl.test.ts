@@ -2,6 +2,7 @@ import { buildProject } from "@blend65/compiler";
 import type { OptimizationGoal } from "@blend65/compiler";
 import { describe, expect, it } from "vitest";
 import { readProfileArtifacts, withProfileProject } from "../rd05/profile-fixture.js";
+import { assembleFor, candidateComparisons, indirectTransfer } from "./dispatch-shape-fixture.js";
 
 const target = "c64-pal-prg-kernal-6581";
 
@@ -25,12 +26,6 @@ function main(): void {
   poke($C101, i);
 }
 `;
-
-/** A dispatch block, found by the indirect transfer that forms its whole body. */
-const indirectTransfer = /^\s*jmp\s+\(\$[0-9a-f]{4}\)\s*$/imu;
-
-/** Comparing the pointer against a candidate address is the alternative, costlier dispatch. */
-const candidateComparison = /^\s*cmp\s+#[<>]\(/gimu;
 
 describe.each(modes)("pointer dispatch for a call followed by arithmetic in mode %s", (mode) => {
   /**
@@ -56,7 +51,7 @@ describe.each(modes)("pointer dispatch for a call followed by arithmetic in mode
         indirectTransfer,
       );
       expect(
-        [...assembly.matchAll(candidateComparison)],
+        candidateComparisons(assembly),
         "a published program must not fall back to comparing candidate addresses",
       ).toHaveLength(0);
       expect(assembly, "the arithmetic after the call must still be emitted").toMatch(
@@ -66,16 +61,9 @@ describe.each(modes)("pointer dispatch for a call followed by arithmetic in mode
   }, 60_000);
 });
 
-/** Build one program and return its published assembly, failing with the refusal if any. */
+/** Build one program for this suite's profile and return its published assembly. */
 async function assemble(text: string, optimization: OptimizationGoal = "none"): Promise<string> {
-  return withProfileProject(text, target, async (project) => {
-    const built = await buildProject({ project, optimization });
-    expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
-      "success",
-    );
-    if (built.kind !== "success") throw new Error("The program reached no publication");
-    return (await readProfileArtifacts(built)).assembly;
-  });
+  return await assembleFor(text, target, optimization);
 }
 
 /**
@@ -102,7 +90,7 @@ function main(): void {
       indirectTransfer,
     );
     expect(
-      [...selected.matchAll(candidateComparison)].length,
+      candidateComparisons(selected).length,
       "the parameterised call must take the comparison route, so the two routes are contrasted",
     ).toBeGreaterThan(0);
 

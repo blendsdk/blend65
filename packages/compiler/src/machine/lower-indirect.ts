@@ -82,6 +82,8 @@ export function lowerIndirectCall(
   }
   const cpu = state.input.profile.cpu;
   const prefix = `${state.currentSemanticBlockId}.indirect.${index}`;
+  // Both dispatch routes rejoin under one name, so it is built once.
+  const continuation = `${prefix}.continue`;
   // A no-argument scalar call can tail-jump from a local thunk. Its JSR return
   // address remains on the stack, and the target's ordinary RTS returns A/AX.
   const home =
@@ -145,7 +147,7 @@ export function lowerIndirectCall(
     // re-reads SP before its next stack-relative load.
     state.stackXValid = false;
     state.stackXBulkDepth = null;
-    let reached: readonly MachineInstruction[] = Object.freeze(instructions);
+    let reached: readonly MachineInstruction[] = Object.freeze([...instructions]);
     if (operation.result !== null) {
       const bytes = typeBytes(operation.type) === 1 ? 1 : 2;
       const retained = retainMachineValue(
@@ -181,7 +183,7 @@ export function lowerIndirectCall(
             terminator: Object.freeze({ kind: "unreachable" }),
           }),
         ]),
-        continuation: `${prefix}.continue`,
+        continuation,
         continuationInstructions: Object.freeze([]),
       });
     }
@@ -191,7 +193,6 @@ export function lowerIndirectCall(
       continuationInstructions: reached,
     });
   }
-  const continuation = `${prefix}.continue`;
   const blocks: MachineBlock[] = [];
   let label = currentLabel;
   let instructions = [...currentInstructions];
