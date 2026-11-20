@@ -46,12 +46,16 @@ No file, no line, no construct.
 **No test anywhere in the repository asserts `COMPILER_INCOMPLETE`.** A search of every TypeScript
 file outside `node_modules` finds the code only in two files, across five emission sites — three in
 `services/services.ts` and two in `services/size-selection.ts` — of which the one reached by a bind
-error is `size-selection.ts:244`. This refusal is an internal invariant
-guard with no demonstrated legal trigger **via the validator path on this baseline**, and that fact
-shapes half B's acceptance below. The claim is deliberately narrowed: the feature roadmap records a
-stock chained-NMI program failing the same diagnostic at machine storage binding, but only behind a
-gate change that was reverted, so it may not reproduce here. It weakens a stronger claim without
-refuting this one.
+error is `size-selection.ts:244`. This refusal is reached by no test in the
+repository, which is why its wording was never pinned.
+
+**An earlier draft of this plan went further and said the refusal has no demonstrated legal
+trigger. That is now false, by this unit's own measurement** — see the MC-004 table below. A plain
+direct call to a never-returning function followed by arithmetic is a legal program, is refused
+with this exact diagnostic, and reaches it through the validator path: the callee's summary
+preserves nothing, the `jsr` clears what is available, and the following `adc` loses its producer.
+That program is the author experience the issue describes, and it changes half B's acceptance for
+the better.
 
 ## Half A — smallest viable design
 
@@ -144,16 +148,22 @@ synthesized-block fear is narrower than it first appears; the genuinely span-les
 startup, where the fallback lands on `main` and the message must name the stage rather than invent
 a construct.
 
-### Why half B is proved at unit level and not end to end
+### How half B is proved — revised after the MC-004 measurement
 
-Half A's fix makes the only known refusing program build. Since no legal source program is known
-to trigger this refusal once that defect is repaired, demanding an end-to-end source demonstration
-would either block the diagnostic indefinitely or invite a contrived program that proves nothing.
-The validator's existing implementation tests already construct `MachineProgram` values directly
-(`machine/validate-flags.impl.test.ts`, 31 cases), so the witness and its span are provable there,
-plus one test at the boundary that a failing bound program yields a diagnostic whose span is not
-null. This is stated as a deliberate scope decision so that a reviewer can reject it rather than
-discover it.
+This section previously argued for unit-level proof only, on the grounds that half A's fix would
+leave no legal program able to reach the refusal. That premise is gone: a plain direct call to a
+never-returning function followed by arithmetic still reaches it, and so does a single-candidate
+pointer call. Half B therefore gets the stronger acceptance it was denied:
+
+| Layer | What it proves |
+| --- | --- |
+| End to end | Build the refused direct-call program and assert the diagnostic carries a **non-null span naming the construct**. This is the author experience the issue describes, not a contrived shape |
+| Unit | The validator's existing tests construct `MachineProgram` values directly, so each defect class and the synthesized-block span fallback are provable without inventing source for each one |
+
+This also argues for landing half B **before** the wider non-returning-call repair: while those two
+shapes are still refused, a located diagnostic is exactly what an author hitting them needs. It
+closes the unconfirmed lead that the earlier wording was too strong, by refuting that wording
+rather than narrowing it.
 
 ## Tasks
 
@@ -261,8 +271,21 @@ span derivation for three failure classes with no measured trigger. The honest c
 the plan's own framing — that a span-less refusal is itself a defect — stays true for four paths
 after this unit closes, so the remainder must be recorded as owned work rather than dropped.
 
-Filing a new issue is outward-facing, so that part is not done unilaterally; the ruling also covers
-whether to file one or to extend #170's residual list.
+### Where the remainders live, and why it is not #170
+
+An earlier draft proposed recording this remainder on #170 because that needs no new issue. That is
+wrong on its own terms: **this unit exists to close #170**, and a remainder parked there keeps it
+open at closeout. The same applies to MC-004's remainder under option B.
+
+So if #170 is to close with this unit, each remainder needs its own issue, and they are distinct
+defects that must not be merged into one:
+
+| Remainder | Why it is its own issue |
+| --- | --- |
+| Any call to a provably non-returning callee is refused when work follows it — the direct-call and single-candidate shapes | A lowering defect reachable from every call site, needing its own oracle and its own byte-neutrality evidence |
+| Four of five bind-error producers still emit the span-less refusal | A diagnostic contract in the service layer, sharing no mechanism or evidence with the above |
+
+Filing an issue is outward-facing, so neither is filed without an explicit go-ahead.
 
 ## Design decisions
 

@@ -183,6 +183,13 @@ to compile, so the remaining two shapes are the same defect rather than adjacent
 This needs a ruling, because the remedy's blast radius is the question: the dispatch thunk is one
 narrow route, while the direct-call path is every call site in the language.
 
+**It also improves half B.** The plan had argued that the diagnostic could only be proved at unit
+level, because half A's fix would leave no legal program able to reach the refusal. This probe
+refutes that: the direct-call program is legal, is refused, and reaches the diagnostic through the
+validator path, so half B gains a genuine end-to-end demonstration — and a reason to land before
+the wider repair, since a located diagnostic is exactly what an author hitting these two shapes
+needs in the meantime.
+
 ### Remaining minors, all parity debt this commit did not create
 
 | ID | Severity | Finding | Disposition |
