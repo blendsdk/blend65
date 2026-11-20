@@ -243,3 +243,117 @@ dispatch defect that does not exist.
 
 No example declares callable-typed storage, so the corpus is expected to be untouched by either
 half. It is captured as an independent guard, not as the primary evidence.
+
+## T-36.1 appendix — the control programs the digests were taken from
+These are recorded so the pinned digests above can be re-derived rather than remembered. Each
+builds against the same manifest: entry `Game`, target `c64-pal-prg-kernal-6581`, source root
+`src`, with the optimization mode supplied per build.
+
+### `thunk-returning`
+
+```
+module Game;
+function one(): void { poke($C100, 1); }
+function two(): void { poke($C100, 2); }
+function main(): void {
+  let hook: fn(): void = &one;
+  if (peek($C000) == 1) { hook = &two; }
+  hook();
+  let i: byte = peek($C002);
+  i = i + peek($C003);
+  poke($C101, i);
+}
+```
+
+### `thunk-mixed`
+
+```
+module Game;
+function one(): void { poke($C100, 1); }
+function spin(): void { while (true) { } }
+function main(): void {
+  let hook: fn(): void = &one;
+  if (peek($C000) == 1) { hook = &spin; }
+  hook();
+  let i: byte = peek($C002);
+  i = i + peek($C003);
+  poke($C101, i);
+}
+```
+
+### `thunk-nonreturning`
+
+```
+module Game;
+function spinA(): void { while (true) { } }
+function spinB(): void { while (true) { } }
+function main(): void {
+  let hook: fn(): void = &spinA;
+  if (peek($C000) == 1) { hook = &spinB; }
+  hook();
+  let i: byte = peek($C002);
+  i = i + peek($C003);
+  poke($C101, i);
+}
+```
+
+### `chain-nonreturning`
+
+```
+module Game;
+function spinA(n: byte): void { while (true) { } }
+function spinB(n: byte): void { while (true) { } }
+function main(): void {
+  let hook: fn(byte): void = &spinA;
+  if (peek($C000) == 1) { hook = &spinB; }
+  hook(7);
+  let i: byte = peek($C002);
+  i = i + peek($C003);
+  poke($C101, i);
+}
+```
+
+### `chain-returning`
+
+```
+module Game;
+function one(n: byte): void { poke($C100, n); }
+function two(n: byte): void { poke($C100, n); }
+function main(): void {
+  let hook: fn(byte): void = &one;
+  if (peek($C000) == 1) { hook = &two; }
+  hook(7);
+  let i: byte = peek($C002);
+  i = i + peek($C003);
+  poke($C101, i);
+}
+```
+
+### `single-target`
+
+```
+module Game;
+function one(): void { poke($C100, 1); }
+function main(): void {
+  let hook: fn(): void = &one;
+  hook();
+  let i: byte = peek($C002);
+  i = i + peek($C003);
+  poke($C101, i);
+}
+```
+
+### `thunk-result`
+
+```
+module Game;
+function one(): byte { return peek($C100); }
+function two(): byte { return peek($C101); }
+function main(): void {
+  let hook: fn(): byte = &one;
+  if (peek($C000) == 1) { hook = &two; }
+  let v: byte = hook();
+  v = v + peek($C003);
+  poke($C102, v);
+}
+```
