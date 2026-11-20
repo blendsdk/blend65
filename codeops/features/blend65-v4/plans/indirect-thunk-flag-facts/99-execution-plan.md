@@ -375,6 +375,18 @@ facts, and the layout is validated again after binding, after cost selection, af
 resolution, after compaction and before assembly, so a published artifact is evidence the facts
 survive every one of those sites. A stage that dropped them would reject the program there.
 
+That inference was then replaced by a direct measurement, because the plan recorded several
+post-lowering passes as unaudited. The last validation site — `artifacts/acme-validate.ts`, which
+runs after binding, cost selection, address resolution and compaction — was temporarily
+instrumented in the built output to print which blocks still carry candidates. In both `none` and
+`speed` the dispatch block still carried **both** candidate labels, and the set of blocks carrying
+candidates was exactly the set of blocks containing an indirect `jmp`: one-to-one, with no dropped
+field and no stale carrier. The instrumented output was then restored and confirmed byte-identical
+to a forced rebuild, so no source or build product retains the probe.
+
+This closes the hazard the plan named as decisive. The unaudited passes do not reconstruct a
+dispatch block with fresh literals.
+
 The same case carries the two assertions the implementation-blind oracle cannot make: the emitted
 assembly contains the indirect transfer, and contains **zero** candidate address comparisons, so
 the program was not made acceptable by replacing the pointer jump with a comparison chain.
