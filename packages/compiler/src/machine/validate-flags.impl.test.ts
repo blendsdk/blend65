@@ -244,3 +244,152 @@ describe("machine flag data flow", () => {
     ).toBe(false);
   });
 });
+
+/** A candidate function that returns after running the instructions it is given. */
+function candidate(id: string, instructions: readonly MachineInstruction[]): MachineFunction {
+  return { id, blocks: [{ label: `${id}.entry`, instructions, terminator: { kind: "return" } }] };
+}
+
+/** The indirect transfer a dispatch block is built around. */
+function indirectJump(): MachineInstruction {
+  return machineInstruction(NMOS_6510, "jmp", "indirect", { kind: "absolute", value: 0x0300 });
+}
+
+/**
+ * A block that leaves through an indirect transfer, optionally naming the functions it can
+ * reach and optionally carrying work of its own before the transfer.
+ */
+function dispatch(
+  options: {
+    readonly targets?: readonly string[];
+    readonly leading?: readonly MachineInstruction[];
+  } = {},
+): MachineBlock {
+  return {
+    label: "dispatch",
+    instructions: [...(options.leading ?? []), indirectJump()],
+    terminator: { kind: "unreachable" },
+    ...(options.targets === undefined ? {} : { indirectTargets: options.targets }),
+  };
+}
+
+/** Call the dispatch block, then consume the overflow flag with no local producer. */
+function consumeThroughDispatch(block: MachineBlock, leading: readonly MachineInstruction[] = []) {
+  return [
+    {
+      label: "entry",
+      instructions: [
+        ...leading,
+        machineInstruction(NMOS_6510, "jsr", "absolute", { kind: "label", label: "dispatch" }),
+      ],
+      terminator: branch("exit", "exit"),
+    },
+    block,
+    exit,
+  ];
+}
+
+describe("machine flag data flow through a pointer dispatch", () => {
+  it("relies on a fact every reachable function establishes", () => {
+    // The caller consumes the overflow flag without producing it, so the program is legal only
+    // because both functions the pointer can name leave that flag established. Discarding the
+    // candidate facts, or substituting a fixed assumption for them, refuses this program.
+    expect(
+      validateMachineProgram(
+        program(consumeThroughDispatch(dispatch({ targets: ["left", "right"] })), [
+          candidate("left", [implied("clv")]),
+          candidate("right", [implied("clv")]),
+        ]),
+      ),
+    ).toBe(true);
+  });
+
+  it.each([true, false])(
+    "requires every reachable function to establish the consumed fact: both produce it %s",
+    (both) => {
+      expect(
+        validateMachineProgram(
+          program(consumeThroughDispatch(dispatch({ targets: ["left", "right"] })), [
+            candidate("left", [implied("clv")]),
+            candidate("right", both ? [implied("clv")] : [implied("nop")]),
+          ]),
+        ),
+      ).toBe(both);
+    },
+  );
+
+  it("stops trusting a fact the caller established when a reachable function discards it", () => {
+    // The caller establishes the flag before the call. One reachable function restores an opaque
+    // status byte, so nothing can be said about the flag afterwards.
+    expect(
+      validateMachineProgram(
+        program(
+          consumeThroughDispatch(dispatch({ targets: ["left", "right"] }), [implied("clv")]),
+          [
+            candidate("left", [implied("nop")]),
+            candidate("right", [implied("pha"), implied("plp")]),
+          ],
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps the conservative answer for an indirect transfer whose targets are unknown", () => {
+    // Keyed on the recorded candidates, never on the absence of a returning path: an indirect
+    // transfer that names nothing is still untrusted, exactly as before.
+    expect(
+      validateMachineProgram(
+        program(consumeThroughDispatch(dispatch()), [
+          candidate("left", [implied("clv")]),
+          candidate("right", [implied("clv")]),
+        ]),
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps the conservative answer when the recorded set is empty", () => {
+    expect(
+      validateMachineProgram(
+        program(consumeThroughDispatch(dispatch({ targets: [] })), [
+          candidate("left", [implied("clv")]),
+        ]),
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps the conservative answer when the dispatch block carries work of its own", () => {
+    // Composing the candidates' facts onto the block is only equal to calling a candidate while
+    // the block is nothing but the transfer. Extra work means its own effects would matter.
+    expect(
+      validateMachineProgram(
+        program(
+          consumeThroughDispatch(
+            dispatch({ targets: ["left", "right"], leading: [implied("sec")] }),
+          ),
+          [candidate("left", [implied("clv")]), candidate("right", [implied("clv")])],
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it.each([false, true])(
+    "terminates on a pointer that can reach its own caller, consumer: %s",
+    (consume) => {
+      // A function whose pointer may hold its own address must not send the proof into a cycle.
+      // The candidate under analysis contributes nothing, which costs a later consumer its
+      // producer without claiming the candidate itself is malformed.
+      const blocks: MachineBlock[] = [
+        {
+          label: "entry",
+          instructions: [
+            machineInstruction(NMOS_6510, "jsr", "absolute", { kind: "label", label: "dispatch" }),
+          ],
+          terminator: consume ? branch("exit", "exit") : { kind: "fallthrough", target: "exit" },
+        },
+        dispatch({ targets: ["startup"] }),
+        exit,
+      ];
+      expect(validateMachineProgram(program(blocks))).toBe(!consume);
+    },
+  );
+});

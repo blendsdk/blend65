@@ -2,9 +2,9 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-35 / #170
-> **Progress**: 2/6 tasks (33%)
-> **Status**: Executing — oracle green, dispatch preserved, output byte-neutral
-> **Last Updated**: 2026-11-20 10:01
+> **Progress**: 3/6 tasks (50%)
+> **Status**: Executing — repair verified and mutation-checked; reviews pending
+> **Last Updated**: 2026-11-20 10:13
 > **Baseline**: `e79c367b`, clean `feature/v4-rebuild`
 > **Phase baseline tree**: `0ab13159e5e72c90e9f89df72a54b4ceb2f73116`
 > **Scope**: strict; the flag summary of a tail-transferring dispatch thunk
@@ -199,10 +199,10 @@ Record in T-35.1 which axes moved and why, so the division is evidence rather th
       assembly, keyed on the recorded set, with the active-candidate rule and the redirect comment.
       Make the oracle green without editing it. ✅ (implemented: 2026-11-20 09:52 · completed:
       2026-11-20 10:01)
-- [ ] T-35.3 Add implementation tests for the meet, the active-candidate fallback, the keying
+- [x] T-35.3 Add implementation tests for the meet, the active-candidate fallback, the keying
       distinction against genuinely non-returning callees, and survival of the recorded set through
       binding, body sharing and post-layout compaction. Confirm accepted programs keep their bytes,
-      costs and storage demands.
+      costs and storage demands. ✅ (implemented: 2026-11-20 10:08 · completed: 2026-11-20 10:13)
 - [ ] T-35.4 Run the related suites only: the new oracle, the flag-validation and expert-call
       suites, the callable suites, the compiler machine and service tests, and the serialized
       emulator case proving the dispatch returns the right value. Record the exact coverage.
@@ -340,6 +340,52 @@ measuring script, which folded `sha256sum` output — including the artifact pat
 and generation directories carry a random identifier per build. Re-measured on artifact content
 alone, pre and post agree exactly. The mistake is recorded because the corrected method is what
 the closeout evidence depends on.
+
+## T-35.3 evidence
+
+Eight cases added to `machine/validate-flags.impl.test.ts` (12 with parameter expansion, file now
+24 passing) and a four-mode case in `test/rd04/function-pointer-dispatch.impl.test.ts`.
+
+### The cases, and which of them actually discriminate
+
+The new cases were mutation-checked: the committed consumer was replaced with its pre-repair
+version while the recorded field and its writer stayed in place, and the suite was re-run.
+
+| Case | Without the consumer | Role |
+| --- | --- | --- |
+| Relies on a fact every reachable function establishes | **fails** | Discriminates the repair. Also the case an ABI-floor design would refuse |
+| Requires every reachable function to establish the consumed fact (agreeing arm) | **fails** | Discriminates the repair |
+| Requires every reachable function to establish the consumed fact (disagreeing arm) | passes | Pins the intersection as a real meet rather than "any candidate" |
+| Stops trusting a fact the caller established when a reachable function discards it | passes | Retained true negative |
+| Keeps the conservative answer when the targets are unknown | passes | Pins the keying: an unrecorded indirect transfer stays untrusted, so the repair is not keyed on a missing returning path |
+| Keeps the conservative answer when the recorded set is empty | passes | Degenerate input |
+| Keeps the conservative answer when the dispatch block carries work of its own | passes | Guards the composition precondition |
+| Terminates on a pointer that can reach its own caller, both arms | passes | Cycle safety and unchanged acceptance |
+
+Exactly two cases fail without the consumer, which is the honest count: the other six pin
+behaviour that must **not** change and therefore guard against a future implementation reaching
+further than this one. They are regression guards, not evidence for the repair.
+
+### Survival across every validation site
+
+`test/rd04/function-pointer-dispatch.impl.test.ts` builds the repaired program through the real
+pipeline in all four modes and passes 4/4. Acceptance of that program depends on the recorded
+facts, and the layout is validated again after binding, after cost selection, after address
+resolution, after compaction and before assembly, so a published artifact is evidence the facts
+survive every one of those sites. A stage that dropped them would reject the program there.
+
+The same case carries the two assertions the implementation-blind oracle cannot make: the emitted
+assembly contains the indirect transfer, and contains **zero** candidate address comparisons, so
+the program was not made acceptable by replacing the pointer jump with a comparison chain.
+
+| Check | Result |
+| --- | --- |
+| `machine/validate-flags.impl.test.ts` | 24/24 |
+| `test/rd04/function-pointer-dispatch.impl.test.ts` | 4/4 across four modes |
+| Mutation check | 2 of 8 new cases fail without the consumer, as predicted |
+| `yarn test:fast` | 180 files / 2,854 passed, 2 skipped; 45 files / 1,282 passed |
+| `prettier`, `typecheck` | clean, exit 0 |
+| Leak checks | no plan, requirement, task or issue identifier in either file |
 
 ## Verification
 
