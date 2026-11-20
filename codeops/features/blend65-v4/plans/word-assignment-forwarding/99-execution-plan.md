@@ -104,6 +104,42 @@ forward only when the destination and every operand are the same binding or are 
 whose homes cannot be made to overlap. Getting that condition right, and proving it does not fire
 anywhere else, is the unit.
 
+### What the existing model already guarantees — investigated 2026-11-21
+
+The hazard above is real as a mechanism and **cannot occur for the shape this slice targets**. That
+is worth establishing before designing a barrier against it, because it decides how much the slice
+has to prove.
+
+| Step | Evidence |
+| --- | --- |
+| Overlapping placement is permitted only between requests that do **not** interfere | `allocate.ts:157-170` — `placementBlocked` blocks an address only when `interfere(...)` holds for the pair |
+| Interference is an intersection of live-position sets, and separately forced for persistent requests | `interference.ts:284-291`, `:459-462` |
+| **Every source local and parameter is live at every position in its function** | `inventory.ts:563` and `:508` request `declaredLifetime`, whose `liveAt` is `functionPositions(fn)` — one entry per operation slot in the whole body (`inventory.ts:38-45`, `:67`) |
+
+So any two source locals of one function always have intersecting live sets, always carry a
+`lifetime` interference edge, and therefore can **never** be placed overlapping. A destination local
+and an operand local cannot alias, at any offset, which is exactly the clobber the forwarded form
+would otherwise risk.
+
+One gap was checked rather than assumed: `lifetimesOverlap` returns `false` when two requests have
+different owners (`interference.ts:286`), which would leave a cross-owner pair free to overlap. It
+is closed — the cross-owner requests in this inventory set `persistent: true`
+(`inventory.ts:646`, `:675`, `:701`), and a persistent request is given an edge against everything
+(`interference.ts:460-462`). There is no `global` storage class in this path at all, so module
+statics are not allocated against function locals here.
+
+**Consequence for the design.** The barrier does not need an address or alias analysis, and must not
+pretend to add one. What it needs is the *shape* conditions, which are the same ones the byte
+sibling already enforces: a whole bare place rather than an indexed or field path
+(`byte-write-forwarding.ts:90`), the arithmetic's result used exactly once, the store adjacent to
+the arithmetic, and the declared width, signedness and wrap flags matching. Those are checkable on
+the semantic operations alone.
+
+**This narrows the unit and is recorded as a plan correction, not as a reason to skip the barriers
+oracle.** The guarantee covers whole scalar locals; it says nothing about an indexed destination, a
+hardware-address destination, a multiply-used result, or a non-adjacent store, and each of those is
+a way the forwarding could fire where it must not. The oracle still has to pin every one.
+
 ## Authority and precedent
 
 The byte analogue is already delivered: `9bbc9ead` "forward adjacent byte assignments without
