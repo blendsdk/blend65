@@ -209,8 +209,8 @@ Record in T-35.1 which axes moved and why, so the division is evidence rather th
       ✅ (implemented: 2026-11-20 11:40 · completed: 2026-11-20 11:55)
 - [ ] T-35.5 Obtain the independent reviews below; repair or refute every finding and record the
       dispositions for the user's ruling.
-- [ ] T-35.6 Run the complete checkpoint once, close the unit with its residual owners, sync the
-      roadmap and commit locally. Never push automatically.
+- [ ] T-35.6 Run the split checkpoint below rather than the complete corpus, close the unit with
+      its residual owners, and sync the roadmap.
 
 ## T-35.1 evidence
 
@@ -435,10 +435,63 @@ and are likewise unchanged and green.
 | --- | --- |
 | Inner loop | `yarn test:fast` |
 | Directed | the new oracle, `machine/validate-flags.impl.test.ts`, `test/rd04/expert-calls.impl.test.ts`, `test/rd04/function-values.spec.test.ts` |
-| Before the commit checkpoint | `yarn test:changed --host`, then `yarn test` |
-| Phase closeout | `yarn install`, `yarn build`, `yarn typecheck`, then `yarn test:full` |
+| Closeout | the split checkpoint below |
 
-Commits use the git-commit skill. Pushing is never automatic.
+### The split checkpoint, and why the complete corpus is not required
+
+The complete corpus takes about one hundred minutes, with the emulator tier alone accounting for
+roughly four fifths of it. The user directed that it run only when necessary. It is not necessary
+here, and the reason is a containment property of the change rather than a judgement about risk
+appetite.
+
+`validateMachineFlags` consults the recorded candidates only through `dispatchCandidates`, which
+returns `null` whenever a block carries no `indirectTargets`. In that case the summary object is
+constructed exactly as before. The field is written at one site only,
+`machine/lower-indirect.ts:111`, on the dispatch block of a multi-target indirect call. A program
+containing no function-typed value therefore executes an identical code path, including the
+body-sharing identity fingerprint, which can only differ when a block actually carries the field.
+
+So the set of tests whose behaviour can change is the set whose programs declare a function-typed
+variable or field. Of the 136 emulator-tier files, 12 do:
+
+| File | Status |
+| --- | --- |
+| `test/rd04/function-pointer-arithmetic-vice.spec.test.ts` | run, green |
+| `test/rd04/expert-calls.impl.test.ts` | run, green |
+| `test/rd04/function-values.spec.test.ts` | run, green |
+| `test/rd04/callable-field-helper-vice.spec.test.ts` | run, green |
+| `test/rd04/shared-storage.impl.test.ts` | to run |
+| `test/rd05/callable-helper-assignment.spec.test.ts` | to run |
+| `test/rd05/handler-irq-vice.spec.test.ts` | to run |
+| `test/rd05/returned-local-safety.spec.test.ts` | to run |
+| `test/rd05/source-library-byte-call-delivery-native.spec.test.ts` | to run |
+| `test/rd05/source-library-observability.spec.test.ts` | to run |
+| `test/rd05/source-library-reachability.spec.test.ts` | to run |
+| `test/rd08/input-object-facts.spec.test.ts` | to run |
+
+Notably `test/rd08/input-size-runtime.spec.test.ts`, which alone accounts for roughly 601 seconds
+of the emulator tier, declares no function type and is therefore excluded on the containment
+argument rather than on cost.
+
+Closeout therefore runs:
+
+| Step | Command | Covers |
+| --- | --- | --- |
+| 1 | `yarn install`, `yarn build`, `yarn typecheck` | toolchain |
+| 2 | `yarn test` | workspace package suites plus the complete host root tier, including the integration tier's real builds through ACME. No emulator |
+| 3 | The eight outstanding emulator files above | every emulator case that can reach a dispatch block |
+| 4 | Example corpus byte-comparison | seven real projects, already measured identical |
+
+### Residual risk, stated rather than implied
+
+This checkpoint does not execute the 124 emulator files that cannot reach a dispatch block. If the
+containment property above is wrong — that is, if some path other than
+`machine/lower-indirect.ts:111` can attach the field, or if a block without the field can reach the
+new branch — then an untested emulator case could regress. Both conditions are checkable by reading
+the two functions involved, and both were checked. The complete corpus was green at the preceding
+unit's closeout, so the prior state is known.
+
+Commits use the git-commit skill.
 
 ## Specialist Agents
 
