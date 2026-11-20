@@ -618,7 +618,12 @@ export function closeCanonicalReference(
   // can be compared with the callable storage it may cover. An optional
   // representation that fails here is withdrawn and the canonical one still
   // decides the build; the canonical representation itself cannot publish.
-  const callableProof = validateFinalCallableProof(checked.program, profile, shared.layout);
+  const callableProof = validateFinalCallableProof(
+    checked.program,
+    profile,
+    shared.layout,
+    shared.certificate,
+  );
   if (callableProof.kind === "invariant")
     return terminal("compiler", [projectDiagnostic("COMPILER_LAYOUT", callableProof.reason, null)]);
   if (callableProof.kind === "invalid") {

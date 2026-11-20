@@ -1,5 +1,5 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
-import type { BindingId } from "../frontend/semantic-types.js";
+import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import { resolveTargetSets } from "./function-targets.js";
 import type { IndirectTargetSets } from "./function-targets.js";
@@ -40,6 +40,32 @@ export type FinalPlacementProof =
       readonly reason: string;
     };
 
+/**
+ * One source-declared storage root this proof can reason about and name.
+ *
+ * Module variables and function-frame storage differ in where their addresses
+ * come from, but the proof needs the same three facts about either one: which
+ * root a write lands on, where callable bytes sit inside it, and the place to
+ * point at when a call loses its target.
+ */
+export interface StorageDescriptor {
+  /** Binding identity of the storage, as the byte analysis keys its roots. */
+  readonly root: string;
+  /** Declared type, which decides where callable bytes sit inside the root. */
+  readonly type: SemanticType;
+  /** Declaration shown to the author as the storage behind a lost proof. */
+  readonly declaration: SourceSpan;
+}
+
+/** Describe every module variable, keeping the program's own order. */
+function globalDescriptors(program: SemanticProgram): readonly StorageDescriptor[] {
+  return program.globals.map((global) => ({
+    root: bindingIdentityKey(global.id),
+    type: global.type,
+    declaration: global.id.span,
+  }));
+}
+
 /** One executable body reached from the program's closed roots, walked once. */
 interface ExecutableBody {
   /** Blocks this body can actually reach. */
@@ -61,21 +87,21 @@ interface CorruptingWrite {
 }
 
 /**
- * Keep the chosen intervals of the globals that can actually hold a callable value.
+ * Keep the chosen intervals of the storage that can actually hold a callable value.
  *
  * Only those bytes can carry a call target, and the analysis that receives this map
  * treats every entry as physically adjacent to its neighbours. Passing storage that
  * cannot hold a callable would therefore cost a great deal and prove nothing.
  */
 function callableRanges(
-  program: SemanticProgram,
+  descriptors: readonly StorageDescriptor[],
   ranges: ReadonlyMap<string, PlacedRange>,
 ): ReadonlyMap<string, PlacedRange> {
   const selected = new Map<string, PlacedRange>();
-  for (const global of program.globals) {
-    if (callablePaths(global.type).length === 0) continue;
-    const range = ranges.get(bindingIdentityKey(global.id));
-    if (range !== undefined) selected.set(bindingIdentityKey(global.id), range);
+  for (const descriptor of descriptors) {
+    if (callablePaths(descriptor.type).length === 0) continue;
+    const range = ranges.get(descriptor.root);
+    if (range !== undefined) selected.set(descriptor.root, range);
   }
   return selected;
 }
@@ -122,17 +148,17 @@ function callTargetRoot(target: ValueId, definitions: Definitions): string | nul
 function corruptingWrites(
   bodies: readonly ExecutableBody[],
   ranges: ReadonlyMap<string, PlacedRange>,
-  program: SemanticProgram,
+  descriptors: readonly StorageDescriptor[],
 ): readonly CorruptingWrite[] {
   const callableBytes = new Map<string, readonly { start: number; end: number }[]>();
-  for (const global of program.globals) {
-    const range = ranges.get(bindingIdentityKey(global.id));
+  for (const descriptor of descriptors) {
+    const range = ranges.get(descriptor.root);
     if (range === undefined) continue;
-    const leaves = callableLeaves(global.type).map((leaf) => ({
+    const leaves = callableLeaves(descriptor.type).map((leaf) => ({
       start: range.start + leaf.start,
       end: range.start + leaf.end,
     }));
-    if (leaves.length > 0) callableBytes.set(bindingIdentityKey(global.id), leaves);
+    if (leaves.length > 0) callableBytes.set(descriptor.root, leaves);
   }
   const writes: CorruptingWrite[] = [];
   for (const body of bodies) {
@@ -258,6 +284,8 @@ function withinClosedTargets(
  * @param handlerSinkCapabilities Platform sinks the shared target resolution recognizes, so it
  * reproduces the earlier closure. Handler arguments keep that earlier proof: a handler value has
  * no storable type, so no placed bytes of one can be written over.
+ * @param frameStorage Function-frame storage whose chosen home is already known, described the
+ * same way as a module variable. Omitting it proves module storage alone.
  * @returns Validity, the source errors that prevent publication, or a producer fault.
  * @example finalPlacementProof(program, ranges, new Set(["c64.system.setIRQ"]))
  */
@@ -265,8 +293,10 @@ export function finalPlacementProof(
   program: WholeProgram,
   ranges: ReadonlyMap<string, PlacedRange>,
   handlerSinkCapabilities: ReadonlySet<string>,
+  frameStorage: readonly StorageDescriptor[] = [],
 ): FinalPlacementProof {
-  const callable = callableRanges(program.semantic, ranges);
+  const descriptors = [...globalDescriptors(program.semantic), ...frameStorage];
+  const callable = callableRanges(descriptors, ranges);
   if (callable.size === 0) return { kind: "valid" };
   const bodies = executableBodies(program);
   // Chosen addresses can only change a proof through a raw write that reaches
@@ -289,9 +319,9 @@ export function finalPlacementProof(
           };
         }
         if (proved.length > 0) continue;
-        writes ??= corruptingWrites(bodies, callable, program.semantic);
+        writes ??= corruptingWrites(bodies, callable, descriptors);
         storageDeclarations ??= new Map(
-          program.semantic.globals.map((global) => [bindingIdentityKey(global.id), global.id.span]),
+          descriptors.map((descriptor) => [descriptor.root, descriptor.declaration]),
         );
         diagnostics.push(
           unresolvedCallDiagnostic(

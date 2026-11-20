@@ -2,9 +2,11 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-34 / #164
-> **Progress**: 0/6 tasks (0%)
-> **Status**: Planned — no implementation or new tests authored
+> **Progress**: 6/6 tasks (100%)
+> **Status**: Complete — gate run once, single unrelated emulator failure disclosed
 > **Baseline**: `1f608f3c`, clean `feature/v4-rebuild`
+> **Phase baseline tree**: `9678b110b7d546869846fb6b3e9b0d2a1ba561b0`
+> **Last Updated**: 2026-11-20 01:30
 > **Scope**: strict; binding-backed function-frame storage in the already-shipped final proof
 > **Reasoning**: high — frame homes are shared between values and summarized across calls
 > **Created**: 2026-11-19
@@ -65,6 +67,13 @@ analysis, no allocation change, no runtime check and no new error code.
       question happens to read the value from a register copy.
 11. Still unqualified afterwards and explicitly not claimed, each with the behaviour an author will
     actually observe:
+    - a raw write whose address is only known at run time. The compiler cannot know what such a
+      write reaches, and a program that computes a poke address is ordinary, correct 6502 work, so
+      it **builds**. The module-variable rule refuses the same program today; measured against the
+      prime directive that rule is the defect, and copying it to frame storage was tried, broke the
+      valid program in `test/rd04/function-values.spec.test.ts`, and was withdrawn. Relaxing the
+      module-variable side, and teaching a definite typed store to restore an unknown-write kill,
+      belong to their own unit;
     - interference between an interrupt handler and the main program over callable bytes;
     - relocating storage instead of rejecting;
     - a callable in a helper shared between the main program and a handler, which receives one home
@@ -87,9 +96,11 @@ home carries the chosen address and width for one request id
 Joining them needs no string parsing: take requests whose `storageClass` is `local` or `parameter`
 and whose `binding` is not null, then look their `id` up among the homes.
 
-Admit a binding only when its home is exactly as wide as its declared type. That single guard
-enforces the first exclusion above without special cases: a borrowed aggregate parameter reserves
-two bytes for an address and an unsized one reserves four
+Exclude a struct or array parameter outright, because a borrowed home holds the caller object's
+address rather than the object. A width comparison alone is not enough: an aggregate that packs
+into the same two bytes an address needs would pass it. The width guard still carries the scalar
+case, where a borrowed aggregate parameter reserves two bytes for an address and an unsized one
+reserves four
 ([`inventory.ts:28–35, :500`](../../../../../packages/compiler/src/storage/inventory.ts)), so
 neither matches its type size, while a scalar callable local or parameter matches at two bytes.
 
@@ -213,14 +224,239 @@ producer disagreements.
 
 Run one numbered chunk per invocation and report its real state.
 
-- [ ] T-34.1 Author the assigned specification tests independently, run meaningful RED, freeze the oracle hash and capture accepted-control baselines. No production code.
-- [ ] T-34.2 Project binding-backed frame homes into the shipped proof, generalize the three descriptor sites, widen the two call-summary filters, and make the oracle green without editing it.
-- [ ] T-34.3 Add implementation tests for the join, the single-home rule, the summary widening, leaf offsets and producer disagreements, plus the excluded dual-domain helper whose unsafe acceptance may not be asserted in the immutable oracle; confirm accepted programs keep their bytes, costs and storage demands.
-- [ ] T-34.4 Run the related suites only: the new oracle, the existing callable and raw-write suites, the compiler semantic and service tests, and the serialized emulator callable case. Record the exact coverage.
-- [ ] T-34.5 Obtain the independent reviews below; repair or refute every finding and record the dispositions for the user's ruling.
-- [ ] T-34.6 Run the complete checkpoint once, close the unit with its residual owners, sync the roadmap and commit locally. Never push automatically.
+- [x] T-34.1 Author the assigned specification tests independently, run meaningful RED, freeze the oracle hash and capture accepted-control baselines. No production code. ✅ (completed: 2026-11-19 21:21)
+- [x] T-34.2 Project binding-backed frame homes into the shipped proof, generalize the three descriptor sites, widen the two call-summary filters, and make the oracle green without editing it. ✅ (completed: 2026-11-19 21:29)
+- [x] T-34.3 Add implementation tests for the join, the single-home rule, the summary widening, leaf offsets and producer disagreements, plus the excluded dual-domain helper whose unsafe acceptance may not be asserted in the immutable oracle; confirm accepted programs keep their bytes, costs and storage demands. ✅ (completed: 2026-11-19 21:33)
+- [x] T-34.4 Run the related suites only: the new oracle, the existing callable and raw-write suites, the compiler semantic and service tests, and the serialized emulator callable case. Record the exact coverage. ✅ (completed: 2026-11-19 21:43)
+- [x] T-34.5 Obtain the independent reviews below; repair or refute every finding and record the dispositions for the user's ruling. ✅ (completed: 2026-11-20 00:28)
+- [x] T-34.6 Run the complete checkpoint once, close the unit with its residual owners, sync the roadmap and commit locally. Never push automatically. ✅ (completed: 2026-11-20 01:30)
 
 Do not commit the intentional RED stage or a partially green implementation.
+
+## T-34.1 evidence
+
+The oracle was authored by an independent agent that did not read compiler source. Its imports are
+the public package entry and the shared profile fixture only, and it carries no reference to any
+planning artifact. `test/rd04/frame-callable-placement.spec.test.ts`, 758 lines, frozen at blob
+`2f3624c556d5d7ba7369b9b4f06b8fff3374b3e3`. It is immutable from here: a later failure means the
+compiler is wrong.
+
+RED, reproduced independently of the author: **19 failed, 22 passed, 41 total**, exit 1. Eighteen
+failures are the same behavioural assertion — `expected 'published' to be 'refused'` — covering the
+scalar local in all four modes, both single-byte boundaries and the crossing word, the
+function-typed parameter, both packed aggregate leaves, the one-armed branch, direct and transitive
+helper writes, an initializer-body write, a loop back edge, and a later call after the argument
+corrupted the home. The nineteenth is a diagnostic-quality failure: an address-taken local written
+through a runtime address is already refused today, but with no related note at all
+(`expected 0 to be greater than 0`). Nothing failed on a missing import, a type error or a project
+that would not build, and the 22 accepted controls pass today, including the module-variable
+control that exercises the complete publication path.
+
+Accepted-control baselines, so a later claim that accepted programs keep their bytes can be
+checked rather than asserted. Identical across all four optimization modes:
+
+| Control | Payload SHA-256 (16) | Bytes | Program bytes | Resident RAM |
+| --- | --- | --- | --- | --- |
+| Callable local, disjoint write | `8e03e1ffb40717e2` | 659 | 657 | 711 |
+| Function-typed parameter, disjoint write | `ba29dbf334e9fa91` | 657 | 655 | 708 |
+| Module variable, disjoint write | `a4364e5135963aeb` | 659 | 657 | 711 |
+
+The module-variable payload matches the reference the completed global unit recorded, so that
+control is demonstrably unchanged at this baseline.
+
+### What the oracle could not express
+
+- **Physically shared homes inside one body.** The allocator never coalesces two locals of the same
+  function; sequential locals, block-scoped siblings, mutually exclusive branch arms and heavy frame
+  pressure all received distinct slots. The case is encoded instead as one home carrying two values
+  in sequence. The cross-function shared-home case is unaffected and is covered in all four modes.
+- **An optional construction failing in isolation**, which has no source-level trigger. It is
+  covered only by the two four-mode sweeps.
+- **The untouched-output assertion for the address-taken case**, whose fixture has no earlier
+  successful generation. Every other refusal case asserts it.
+
+### A separate defect found while authoring, not owned by this unit
+
+An indirect call with more than one possible target **inside a loop body** fails to build:
+
+```text
+multi-target, call inside loop           COMPILER_INCOMPLETE: The machine storage binding stage is not complete for this program
+multi-target, call+write inside loop     COMPILER_INCOMPLETE: The machine storage binding stage is not complete for this program
+single-target, call+write inside loop    built
+```
+
+Verified directly rather than taken from the report, which placed the trigger on the loop alone; a
+multi-target call *outside* a loop in the same function builds normally. The loop rows of the
+oracle therefore use singleton targets. This is unrelated to stale callable targets and needs its
+own issue.
+
+## T-34.2 evidence
+
+The frozen oracle is green at **41 passed, 41 total**, with its blob still
+`2f3624c556d5d7ba7369b9b4f06b8fff3374b3e3`. Nothing in it was edited.
+
+Accepted programs keep exactly what they had, with the scope of that claim stated honestly.
+Rebuilt after the change, all three controls match the T-34.1 baseline byte for byte, in all four
+modes, including costs and storage totals: `8e03e1ffb40717e2`, `ba29dbf334e9fa91` and
+`a4364e5135963aeb`.
+
+The claim that evidence supports is this: **a program with no raw write covering frame-callable
+bytes keeps its bytes.** A program that does have one may be refused, and in size selection it may
+instead publish a different representation, because a candidate that loses the proof withdraws and
+another wins the cost comparison. That was already true for module variables; frame storage widens
+the set of programs it can reach. Every example project in the repository is outside that set —
+none declares callable-typed storage at all, so the proof returns valid before it examines
+anything.
+
+### The two probes, now answered by evidence rather than argument
+
+**U-1 — does a restore performed by a callee reach the caller?** Yes, and no narrowing was needed.
+Both shapes build and publish: a called function returning the complete value, and a called
+function filling the destination by reference. The concern that only globals and borrowed
+parameters are translated back does not reach these shapes, because the caller's own assignment of
+the returned value is the definite typed store that clears the kill.
+
+**U-2 — were address-taken locals already refused before this unit?** Yes. The address-taken
+runtime-address case is refused by `checkProject`, before any layout exists, so it is inherited
+conservative posture and not new exposure. What was missing was the explanation, below.
+
+### A sixth file, outside the expected edit set
+
+The plan expected edits in the projection, the proof and the two call-summary filters. One oracle
+row could not be satisfied there. A call through an aggregate field — `held.callback()` — carried
+no declaration at all, so a refusal named nothing: the frontend resolves the whole callee text as a
+name, and a dotted path is not a name. The leading identifier of the path is now resolved for that
+note, so a lost target proof always points at the storage it was protecting.
+
+This is a related-note improvement on the existing canonical error. It adds no diagnostic code, no
+public export, no specification change and no storage domain, so it stays inside the unit's stated
+stop list, but it is a deviation from the expected file set and is recorded here for the ruling at
+T-34.5.
+
+## T-34.3 evidence
+
+`packages/compiler/src/services/final-callable-proof.impl.test.ts` grew by 287 lines and runs
+**20 passed, 20 total**. The added cases exercise the internals the oracle cannot see:
+
+| Case | What it pins |
+| --- | --- |
+| Request-to-home join | A callable local receives exactly the home its own representation chose, found through the request's binding and type rather than by parsing a name |
+| Borrowed aggregate parameter | Home of 2 bytes against a declared size of 4, so the binding is left out — the exclusion is observed, not assumed |
+| More than one home | A second home for the same binding removes it from the result, while the same certificate without it admits the binding |
+| Wrong home width | A home widened to three bytes is no longer the value's own bytes and is left out |
+| Only declared storage | Every admitted root belongs to a local or parameter request with a source binding, and the descriptor list matches the range map exactly |
+| No home at all | Removing the home neither throws nor reports a disagreement |
+| Frame rejection and withdrawal | A write covering the local's home gives the canonical error with both notes, and an optional representation withdraws as a semantics rejection instead of failing the build |
+| Dual-domain helper | A helper reached from the main program and an interrupt owns more than one home at different addresses and is therefore unprotected — asserted here precisely because asserting an unsafe acceptance in the immutable oracle would freeze it |
+
+Accepted programs keep their bytes, costs and storage demands: the three controls rebuilt after the
+change are identical to the T-34.1 baseline in all four modes, recorded above.
+
+## T-34.4 evidence
+
+Every related suite was run on the final build, after the callee-path guard described below. The
+frozen oracle's blob is still `2f3624c556d5d7ba7369b9b4f06b8fff3374b3e3`.
+
+| Coverage | Result |
+| --- | --- |
+| `test/rd04` integration directory, which contains the new oracle and the existing callable and raw-write suites | 62 files, **749 passed**, 0 failures |
+| `src/frontend src/semantic src/services src/storage` in the compiler package | 110 files, **2137 passed**, 2 skipped, 0 failures |
+| Serialized emulator case `callable-field-helper-vice.spec.test.ts` | **4 passed** |
+
+The unit total rose from 2127 to 2137, which is the ten new implementation cases being collected.
+The whole integration directory was run rather than the four callable files, because widening the
+two call-summary filters reaches every consumer of the raw-write analysis; nothing in it moved.
+
+The callee-path note was tightened after a self-review of the first attempt. Resolving the leading
+identifier of a callee path could, in principle, resolve a name that denotes a function rather than
+storage, which would attach a note pointing at the wrong thing. A resolved source function always
+carries an entry mode, and a profile-supplied one always carries an operation effect, so either of
+those now disqualifies the name from supplying the note.
+
+## T-34.5 review record
+
+Five independent reviews ran against the implemented unit, then one re-review of the repair diff.
+Every disposition is listed in [the findings ledger](05-findings.md); this section records only
+what the reviews changed about the unit itself.
+
+| Severity | Raised | Outcome |
+| --- | --- | --- |
+| Critical | 1 | Repaired and confirmed by probe |
+| Major | 6 reports covering 4 distinct defects | 3 repaired, 1 withdrawn after measurement |
+| Minor and observations | 15 | 9 repaired, 4 accepted, 1 deferred to its own unit, 1 dismissed as pre-existing |
+
+Nothing was waived, and every finding acted on was first reproduced by building a program rather
+than accepted from the report. Two reports were only credible because the probe agreed; the same
+discipline withdrew a repair the probes had wrongly encouraged.
+
+The three defects worth recording beyond the ledger:
+
+1. **A constant write inside a body that also aliases memory opaquely never reached the caller's
+   frame home.** The write's address was known, yet the analysis replaced that exact fact with the
+   weaker unknown one. Both facts are now kept. This was the unit's own stated requirement that a
+   write performed inside a callee must still invalidate the caller's storage, and the first
+   implementation failed it.
+2. **An aggregate parameter that happens to occupy exactly two bytes defeated the width guard.** A
+   borrowed home holds an address, and an address is two bytes, so comparing widths cannot
+   distinguish them. Admission now tests the storage property directly: a struct or array parameter
+   is borrowed whatever its size. Three reviewers found this independently.
+3. **The byte-identity claim exceeded its evidence.** It is now scoped, and the committed
+   `boing-ball.prg` artifact — reproduced byte-for-byte by a current build — is the realistic
+   evidence the three small controls could not supply.
+
+## T-34.6 complete checkpoint
+
+`yarn install --frozen-lockfile`, `yarn build` and `yarn typecheck` all succeeded, then `yarn
+test:full` ran once on the final build. Total wall time was about 100 minutes, dominated by the
+serialized emulator tier.
+
+| Tier | Result |
+| --- | --- |
+| `@blend65/compiler` | 259 files, **4,332 passed**, 2 skipped |
+| `@blend65/cli` | 10 files, **70 passed** |
+| `@blend65/language-server` | 5 files, **21 passed** |
+| Root integration tier | 253 files, **5,331 passed** |
+| Root emulator tier | 135 files, **2,402 passed**, 4 skipped, **1 failed** |
+
+**The gate is not green, and the single failure is disclosed rather than absorbed.** It is
+`test/rd05/vic-collision-vice.spec.test.ts`, which asserts VIC sprite-collision latch behaviour in
+the pinned emulator and has no relationship to callable storage. It was already known as an
+intermittent failure, but this run corrected its characterisation:
+
+| Observation | Result |
+| --- | --- |
+| Under full-gate load | failed, profile `…-8580` |
+| Alone on an idle machine | failed, profile `…-8580` |
+| Filtered to that case alone, four runs | **4/4 passed** |
+| Whole file, idle, first run | failed, profile `…-6581` |
+| Whole file, idle, second run | **16/16 passed** |
+
+So it is not load-dependent as previously recorded. It reproduces on an idle machine in roughly
+half of all whole-file runs, the affected machine profile moves between runs, and it passes
+whenever the earlier cases in the file are skipped. That points at a sampling race inside the test
+against state the preceding cases leave behind, rather than at compiled output: a changed program
+would fail the same case every time.
+
+## Residual owners
+
+What this unit closes: a callable held in a local or a parameter whose bytes a constant-address raw
+write covers — in the same body, inside a callee one or two frames deep, or inside an initializer —
+no longer keeps an unsupported target, in any of the four optimization modes.
+
+What remains open, each with the behaviour an author actually observes:
+
+| Residual | Observed behaviour | Owner |
+| --- | --- | --- |
+| Interference between an interrupt handler and the main program over callable bytes | Accepted, no diagnosis | Issue #164 |
+| Relocating storage instead of refusing the program | Refusal, never relocation | Issue #164 |
+| A helper shared between the main program and a handler, which owns one home per execution domain | Accepted, no diagnosis | Issue #164 |
+| Machine-created staging, spill or temporary bytes holding a copy of a callable word | Accepted, no diagnosis | Issue #164 |
+| The two borrowed-address bytes of an aggregate parameter | Published; the frozen oracle pins this | Issue #164 |
+| A raw write whose address is only known at run time does not invalidate frame storage | Builds, which is what an expert expects | Own unit, below |
+| The same write **does** invalidate a module variable, and no later typed store restores it | Refused with no source workaround. This is the defect, not the standard to copy | **Own unit**: let a definite typed store clear an unresolved-write kill, which repairs the module-variable case instead of making frame storage equally strict |
+| `analyzeDirectCall` encodes the whole source text three times per call site | Host build cost only | Own unit, recorded as PE-004 |
+| A multi-target callable local with the call inside a loop reports `COMPILER_INCOMPLETE` | The build fails with a compiler-stage message | Needs its own issue; found while authoring the oracle and unrelated to this repair |
+| `test/rd05/vic-collision-vice.spec.test.ts` intermittent failure | About half of whole-file runs | Issue #169, characterisation corrected above |
 
 ## Verification
 

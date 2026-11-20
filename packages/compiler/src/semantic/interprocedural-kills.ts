@@ -469,16 +469,27 @@ function definiteRestorations(fn: SemanticFunction): readonly KilledRange[] {
   return normalizeKills(restored);
 }
 
-/** Filter one produced summary to roots a caller can observe. */
+/**
+ * Filter one produced summary to roots a caller can observe.
+ *
+ * Storage with a known absolute interval stays observable whoever declared it: a
+ * constant write inside this body lands on those bytes no matter which frame they
+ * belong to, and dropping it here would hide the corruption from the frame that
+ * actually reads the value.
+ */
 function observables(
   facts: KilledFacts,
   globalRoots: ReadonlySet<string>,
   parameterKeys: ReadonlySet<string>,
+  placed: ReadonlyMap<string, PlacedRange>,
 ): KilledFacts {
   return normalizeKills(
     facts.filter(
       (range) =>
-        range.root === OPAQUE_ROOT || globalRoots.has(range.root) || parameterKeys.has(range.root),
+        range.root === OPAQUE_ROOT ||
+        globalRoots.has(range.root) ||
+        parameterKeys.has(range.root) ||
+        placed.has(range.root),
     ),
   );
 }
@@ -581,7 +592,12 @@ export function analyzeInterproceduralKills(
         (parameter) => bindingIdentityKey(parameter.id) === range.root,
       );
       const parameter = callee.parameters[index];
-      if (index < 0 || parameter === undefined || !isBorrowed(parameter.type)) continue;
+      if (index < 0 || parameter === undefined || !isBorrowed(parameter.type)) {
+        // A root with a known absolute interval names the same bytes in every
+        // frame, so the caller receives it exactly as the callee produced it.
+        if (input.placed.has(range.root)) added = unionKills(added, [range]);
+        continue;
+      }
       const ranges = actualRanges(
         operation.arguments[index],
         entry.definitions,
@@ -759,6 +775,7 @@ export function analyzeInterproceduralKills(
       returningKills(produced.exitKills, entry.context.blocks),
       globalRoots,
       entry.parameterKeys,
+      input.placed,
     );
     let changed = false;
     const previous = summaries.get(entry.context.owner) ?? NO_KILLS;
@@ -819,7 +836,7 @@ export function analyzeInterproceduralKills(
       const returns = context.blocks.some(
         (block) => block.terminator.kind === "return" && result.exitKills.has(block.id),
       );
-      if (returns) startup = observables(exits, globalRoots, new Set());
+      if (returns) startup = observables(exits, globalRoots, new Set(), input.placed);
     }
     const mainKey = bindingIdentityKey(input.program.main);
     if (addEntryKill(entryKills, mainKey, startup)) {

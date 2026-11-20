@@ -106,13 +106,14 @@ function selectPathTargets(source: PathTargets | undefined, path: string): PathT
  * Infer callable and handler provenance through values, typed storage and calls.
  * @param program Checked semantic program whose calls need a finite target proof.
  * @param handlerSinkCapabilities Platform sinks whose handler argument is proved here.
- * @param finalGlobalRanges Absolute intervals of materialized globals, once a real
- * layout has chosen them. Callers without a layout keep explicit placement alone.
+ * @param finalPlacedRanges Absolute intervals of the storage a real layout has
+ * chosen, covering materialized globals and admitted function-frame homes alike.
+ * Callers without a layout keep explicit placement alone.
  */
 export function resolveTargetSets(
   program: SemanticProgram,
   handlerSinkCapabilities: ReadonlySet<string>,
-  finalGlobalRanges?: ReadonlyMap<string, PlacedRange>,
+  finalPlacedRanges?: ReadonlyMap<string, PlacedRange>,
 ): ResolvedTargetSets {
   const functions = new Map(
     program.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
@@ -189,8 +190,10 @@ export function resolveTargetSets(
     });
   }
   // A chosen layout proves the same kind of interval for storage the source left
-  // automatic, so a constant write to one of those addresses is no longer unknown.
-  for (const [root, interval] of finalGlobalRanges ?? [])
+  // automatic — a module variable without an explicit address, and the frame home
+  // of a local or parameter — so a constant write to one of those addresses is no
+  // longer unknown.
+  for (const [root, interval] of finalPlacedRanges ?? [])
     placedRanges.set(root, { start: interval.start, end: interval.end });
   const allGlobalAssignments = new Set(initializedGlobals);
   for (const root of globalRoots) allGlobalAssignments.add(root);

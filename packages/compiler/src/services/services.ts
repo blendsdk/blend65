@@ -607,7 +607,12 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
   const diagnostics = selectedDiagnostics;
   // Selection may have chosen a different representation than the one the
   // reference proved, so the exact published pair is checked once more here.
-  const publishedProof = validateFinalCallableProof(selectedPipeline.program, profile, layout);
+  const publishedProof = validateFinalCallableProof(
+    selectedPipeline.program,
+    profile,
+    layout,
+    certificate,
+  );
   if (publishedProof.kind !== "valid") {
     return {
       kind: "failure",

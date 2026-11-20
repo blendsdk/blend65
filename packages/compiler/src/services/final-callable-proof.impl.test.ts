@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { analyzeProject } from "../frontend/service.js";
+import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { C64LayoutResult } from "../layout/c64-layout.js";
 import { bindingLabel } from "../machine/lower-control.js";
@@ -8,7 +9,16 @@ import type { ProjectSnapshot, SourceRecord } from "../project/types.js";
 import { buildSemanticProgram } from "../semantic/lower.js";
 import { closeWholeProgram } from "../semantic/whole-program.js";
 import { selectTargetProfile } from "../target/profile.js";
-import { projectFinalGlobalRanges, validateFinalCallableProof } from "./final-callable-proof.js";
+import type {
+  StorageClosureResult,
+  StorageHome,
+  StorageRequest,
+} from "../storage/storage-types.js";
+import {
+  projectFinalFrameRanges,
+  projectFinalGlobalRanges,
+  validateFinalCallableProof,
+} from "./final-callable-proof.js";
 import { resourceSourceSpans } from "./resource-diagnostics.js";
 import { closeCanonicalReference, closeCanonicalStorage } from "./size-selection.js";
 import type { CheckedSourceInput } from "./size-selection.js";
@@ -17,6 +27,9 @@ const PROFILE_ID = "c64-pal-prg-kernal-6581";
 
 /** One complete layout, the only form these checks accept. */
 type CompleteLayout = Extract<C64LayoutResult, { readonly kind: "complete" }>;
+
+/** Function storage re-closed against the free RAM of the representation under test. */
+type ClosedStorage = Extract<StorageClosureResult, { readonly kind: "complete" }>;
 
 /** Hash source bytes exactly as the project loader records them. */
 function sha256(text: string): string {
@@ -234,9 +247,14 @@ describe("final callable proof at a real layout", () => {
     const { input, outcome } = reference(DISJOINT);
     if (outcome.kind !== "feasible") throw new Error("Expected a feasible control");
 
-    expect(validateFinalCallableProof(input.program, input.profile, outcome.shared.layout)).toEqual(
-      { kind: "valid" },
-    );
+    expect(
+      validateFinalCallableProof(
+        input.program,
+        input.profile,
+        outcome.shared.layout,
+        outcome.shared.certificate,
+      ),
+    ).toEqual({ kind: "valid" });
   });
 
   // Only the representation's own addresses decide; the write now covers them.
@@ -271,5 +289,270 @@ describe("final callable proof at a real layout", () => {
 
     expect(outcome.facts.lowered).toBeDefined();
     expect(outcome.facts.certificate).toBeDefined();
+  });
+});
+
+/** A callable held in a function frame, with one replaceable write address. */
+const FRAME_LOCAL = `module Game;
+function chosen(): byte { return 37; }
+function main(): void {
+  let hook: fn(): byte = &chosen;
+  pokew($C100, 0);
+  poke($C000, hook());
+}
+`;
+
+/** A callable reached through a borrowed parameter, whose home holds an address. */
+const BORROWED_PARAMETER = `module Game;
+struct Holder { lead: byte; callback: fn(): byte; tail: byte; }
+function chosen(): byte { return 37; }
+function viaHolder(held: Holder): byte { return held.callback(); }
+function main(): void {
+  let box: Holder = { lead: 0, callback: &chosen, tail: 0 };
+  poke($C000, viaHolder(box));
+}
+`;
+
+/** One helper reached from the main program and from an interrupt handler. */
+const DUAL_DOMAIN = `module Game;
+import { setIRQ, restoreIRQ } from c64.system;
+function chosen(): byte { return 37; }
+function helper(value: byte): byte {
+  let hook: fn(): byte = &chosen;
+  return hook() + value;
+}
+interrupt function onIRQ(): void { poke($0400, helper(2)); }
+function main(): void {
+  asm_cli();
+  asm_nop();
+  setIRQ(&onIRQ);
+  poke($0400, helper(1));
+  restoreIRQ();
+}
+`;
+
+/** Resolve the binding identity of one named frame binding. */
+function frameRoot(input: CheckedSourceInput, name: string): string {
+  for (const [root, label] of input.bindingNames) if (label.endsWith(name)) return root;
+  throw new Error(`Fixture has no binding named '${name}'`);
+}
+
+/** Add a second request and home for one binding, as domain specialization does. */
+function withExtraHome(
+  certificate: ClosedStorage,
+  owned: { request: StorageRequest; home: StorageHome },
+  home: { address: number; bytes: number },
+): ClosedStorage {
+  const id = `${owned.request.id}:second-domain`;
+  return {
+    ...certificate,
+    inventory: {
+      ...certificate.inventory,
+      requests: [...certificate.inventory.requests, { ...owned.request, id }],
+    },
+    placement: {
+      ...certificate.placement,
+      homes: [...certificate.placement.homes, { ...owned.home, requestId: id, ...home }],
+    },
+  } as ClosedStorage;
+}
+
+/** Every static home the certificate gave one source binding. */
+function homesOf(certificate: ClosedStorage, root: string) {
+  const homes = new Map(certificate.placement.homes.map((home) => [home.requestId, home] as const));
+  return certificate.inventory.requests
+    .filter((request) => request.binding !== null && bindingIdentityKey(request.binding) === root)
+    .flatMap((request) => {
+      const home = homes.get(request.id);
+      return home === undefined ? [] : [{ request, home }];
+    });
+}
+
+/** Replace only the write address of the frame fixture. */
+function frameWritingTo(address: number): string {
+  const literal = `$${address.toString(16).toUpperCase().padStart(4, "0")}`;
+  if (literal.length !== 5) throw new Error("Fixture addresses stay four hexadecimal digits");
+  return FRAME_LOCAL.replace("$C100", literal);
+}
+
+describe("final frame range projection", () => {
+  // The join needs no name parsing: a request carries its own binding and type.
+  it("should give a callable local exactly the bytes its own representation chose", () => {
+    const { input, outcome } = reference(FRAME_LOCAL);
+    if (outcome.kind !== "feasible") throw new Error("Expected a feasible control");
+    const root = frameRoot(input, "hook");
+    const frame = projectFinalFrameRanges(outcome.shared.certificate);
+    const owned = homesOf(outcome.shared.certificate, root);
+
+    expect(owned).toHaveLength(1);
+    expect(owned[0]?.request.storageClass).toBe("local");
+    expect(frame.ranges.get(root)).toEqual({
+      start: owned[0]!.home.address,
+      end: owned[0]!.home.address + 2,
+    });
+    expect(frame.descriptors.find((descriptor) => descriptor.root === root)?.type.kind).toBe(
+      "function",
+    );
+  });
+
+  // A borrowed struct reserves an address, so its home says nothing about the object.
+  it("should leave out a borrowed aggregate parameter whose home holds an address", () => {
+    const { input, outcome } = reference(BORROWED_PARAMETER);
+    if (outcome.kind !== "feasible") throw new Error("Expected a feasible control");
+    const root = frameRoot(input, "held");
+    const owned = homesOf(outcome.shared.certificate, root);
+    const frame = projectFinalFrameRanges(outcome.shared.certificate);
+
+    expect(owned).toHaveLength(1);
+    expect(owned[0]?.request.storageClass).toBe("parameter");
+    expect(owned[0]?.home.bytes).toBe(2);
+    expect(semanticTypeSize(owned[0]!.request.type!)).toBe(4);
+    expect(frame.ranges.has(root)).toBe(false);
+    expect(frame.descriptors.some((descriptor) => descriptor.root === root)).toBe(false);
+  });
+
+  // One interval cannot describe storage the allocator split across homes.
+  it("should leave out a binding whose requests resolved to more than one home", () => {
+    const { input, outcome } = reference(FRAME_LOCAL);
+    if (outcome.kind !== "feasible") throw new Error("Expected a feasible control");
+    const root = frameRoot(input, "hook");
+    const owned = homesOf(outcome.shared.certificate, root)[0]!;
+    const split = withExtraHome(outcome.shared.certificate, owned, {
+      address: owned.home.address + 16,
+      bytes: owned.home.bytes,
+    });
+
+    expect(projectFinalFrameRanges(outcome.shared.certificate).ranges.has(root)).toBe(true);
+    expect(projectFinalFrameRanges(split).ranges.has(root)).toBe(false);
+  });
+
+  // A home of the wrong width is not the value's own bytes, whatever produced it.
+  it("should leave out a home whose width does not match the declared type", () => {
+    const { input, outcome } = reference(FRAME_LOCAL);
+    if (outcome.kind !== "feasible") throw new Error("Expected a feasible control");
+    const root = frameRoot(input, "hook");
+    const owned = homesOf(outcome.shared.certificate, root)[0]!;
+    const widened = {
+      ...outcome.shared.certificate,
+      placement: {
+        ...outcome.shared.certificate.placement,
+        homes: outcome.shared.certificate.placement.homes.map((home) =>
+          home.requestId === owned.request.id ? { ...home, bytes: 3 } : home,
+        ),
+      },
+    } as ClosedStorage;
+
+    expect(projectFinalFrameRanges(widened).ranges.has(root)).toBe(false);
+  });
+
+  // Machine-created storage has no source binding, so no root can name those bytes.
+  it("should describe only storage a source binding declares", () => {
+    const { outcome } = reference(FRAME_LOCAL);
+    if (outcome.kind !== "feasible") throw new Error("Expected a feasible control");
+    const certificate = outcome.shared.certificate;
+    const declared = new Set(
+      certificate.inventory.requests
+        .filter(
+          (request) =>
+            request.binding !== null &&
+            (request.storageClass === "local" || request.storageClass === "parameter"),
+        )
+        .map((request) => bindingIdentityKey(request.binding!)),
+    );
+    const frame = projectFinalFrameRanges(certificate);
+
+    expect(frame.ranges.size).toBeGreaterThan(0);
+    for (const root of frame.ranges.keys()) expect(declared.has(root)).toBe(true);
+    expect(frame.descriptors.map(({ root }) => root).sort()).toEqual(
+      [...frame.ranges.keys()].sort(),
+    );
+  });
+
+  // Absent storage is an ordinary outcome, never a producer disagreement.
+  it("should keep a binding the allocator gave no home at all out of the result", () => {
+    const { input, outcome } = reference(FRAME_LOCAL);
+    if (outcome.kind !== "feasible") throw new Error("Expected a feasible control");
+    const root = frameRoot(input, "hook");
+    const owned = homesOf(outcome.shared.certificate, root)[0]!;
+    const homeless = {
+      ...outcome.shared.certificate,
+      placement: {
+        ...outcome.shared.certificate.placement,
+        homes: outcome.shared.certificate.placement.homes.filter(
+          (home) => home.requestId !== owned.request.id,
+        ),
+      },
+    } as ClosedStorage;
+
+    expect(() => projectFinalFrameRanges(homeless)).not.toThrow();
+    expect(projectFinalFrameRanges(homeless).ranges.has(root)).toBe(false);
+  });
+});
+
+describe("final callable proof over frame storage", () => {
+  // The disjoint control is the baseline: nothing about it may become an error.
+  it("should accept a write that misses the local's bytes", () => {
+    const { input, outcome } = reference(FRAME_LOCAL);
+    if (outcome.kind !== "feasible") throw new Error("Expected a feasible control");
+
+    expect(
+      validateFinalCallableProof(
+        input.program,
+        input.profile,
+        outcome.shared.layout,
+        outcome.shared.certificate,
+      ),
+    ).toEqual({ kind: "valid" });
+  });
+
+  // Only the representation's own addresses decide; the write now covers them.
+  it("should reject the canonical representation when the write covers the local", () => {
+    const { input, outcome } = reference(FRAME_LOCAL);
+    if (outcome.kind !== "feasible") throw new Error("Expected a feasible control");
+    const root = frameRoot(input, "hook");
+    const address = homesOf(outcome.shared.certificate, root)[0]!.home.address;
+    const judged = reference(frameWritingTo(address));
+
+    expect(judged.outcome.kind).toBe("failure");
+    if (judged.outcome.kind !== "failure") throw new Error("Expected a canonical failure");
+    expect(judged.outcome.failure.diagnostics.map(({ code }) => code)).toEqual(["E10277"]);
+    const related = judged.outcome.failure.diagnostics[0]?.related.map(({ message }) => message);
+    expect(related).toContainEqual(
+      expect.stringMatching(/^A raw memory write replaces the callable bytes placed at \$/u),
+    );
+    expect(related).toContainEqual(expect.stringMatching(/storage is declared here$/iu));
+  });
+
+  // An optional representation withdraws instead of failing the whole build.
+  it("should withdraw an optional representation holding the same corruption", () => {
+    const { input, outcome } = reference(FRAME_LOCAL);
+    if (outcome.kind !== "feasible") throw new Error("Expected a feasible control");
+    const root = frameRoot(input, "hook");
+    const address = homesOf(outcome.shared.certificate, root)[0]!.home.address;
+    const judged = reference(frameWritingTo(address), true);
+
+    expect(judged.outcome.kind).toBe("resource-rejected");
+    if (judged.outcome.kind !== "resource-rejected") throw new Error("Expected a withdrawal");
+    expect(judged.outcome.stage).toBe("semantics");
+    expect(judged.outcome.failure.diagnostics.map(({ code }) => code)).toEqual(["E10277"]);
+  });
+
+  /**
+   * A helper reached from both the main program and an interrupt receives one
+   * home per execution domain. One interval cannot describe that storage, so it
+   * stays unprotected — recorded here, deliberately never in the specification
+   * oracle, because asserting an unsafe acceptance there would freeze it.
+   */
+  it("should leave a helper specialized across execution domains unprotected", () => {
+    const { input, outcome } = reference(DUAL_DOMAIN);
+    if (outcome.kind !== "feasible") throw new Error("Expected a feasible control");
+    const root = frameRoot(input, "hook");
+    const owned = homesOf(outcome.shared.certificate, root);
+    const addresses = new Set(owned.map(({ home }) => home.address));
+    const frame = projectFinalFrameRanges(outcome.shared.certificate);
+
+    expect(owned.length).toBeGreaterThan(1);
+    expect(addresses.size).toBeGreaterThan(1);
+    expect(frame.ranges.has(root)).toBe(false);
   });
 });

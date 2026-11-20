@@ -69,6 +69,18 @@ export function resolveDirectCallTarget(
 }
 
 /** Resolve one ordinary direct call and independently check every supplied argument. */
+/**
+ * Name the storage a callee path reads its target from, if the path has one.
+ *
+ * `table[i].handler` reads from `table`; a call through anything other than
+ * field selection and indexing reads from no single declaration.
+ */
+function storagePathRoot(callee: Expr): string | null {
+  if (callee.kind === "name") return callee.name;
+  if (callee.kind === "member" || callee.kind === "index") return storagePathRoot(callee.object);
+  return null;
+}
+
 export function analyzeDirectCall(
   expression: Extract<Expr, { readonly kind: "call" }>,
   context: ScalarExpressionContext,
@@ -86,7 +98,18 @@ export function analyzeDirectCall(
   const direct = calleeBinding !== null && host.isFunction(calleeBinding);
   const calleeMode = direct && calleeBinding !== null ? host.functionMode?.(calleeBinding) : null;
   const callerMode = context.caller === null ? null : host.functionMode?.(context.caller);
-  const declaration = host.resolveName(host.sourceText(expression.callee.span), context);
+  const calleeText = host.sourceText(expression.callee.span);
+  const declaration = host.resolveName(calleeText, context);
+  // A call through a field or an element names no binding of its own, so the
+  // storage it reads the target from is the root of that path. Without it a lost
+  // target proof would have nothing at all to point at. Only storage qualifies:
+  // a root that is itself a function is the callee rather than the place the
+  // target was read from.
+  const pathRoot = storagePathRoot(expression.callee);
+  const pathStorage = pathRoot === null ? null : host.resolveName(pathRoot, context);
+  const storageDeclaration =
+    declaration ??
+    (pathStorage === null || host.isFunction(pathStorage.binding.id) ? null : pathStorage);
   const related =
     declaration === null ? [] : [{ span: declaration.nameSpan, message: "Declared here" }];
   // Module resolution already reports calls to the entry point. Do not turn
@@ -321,7 +344,7 @@ export function analyzeDirectCall(
   const typed = createScalarTypedExpression(expression, signature.returnType, null, {
     callee: callee.node,
     calleeDisplay: host.sourceText(expression.callee.span),
-    ...(declaration === null ? {} : { calleeDeclaration: declaration.nameSpan }),
+    ...(storageDeclaration === null ? {} : { calleeDeclaration: storageDeclaration.nameSpan }),
     arguments: Object.freeze(arguments_),
     signature,
     ...(signature.returnType.kind === "array"

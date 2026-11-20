@@ -469,6 +469,29 @@ export function addPlacedWrite(
   return added.length === 0 ? kills : normalizeKills([...kills, ...added]);
 }
 
+/** Project one constant-address write onto every placed object its bytes overlap. */
+function placedOverlaps(
+  kills: KilledFacts,
+  address: number,
+  width: number,
+  placed: ReadonlyMap<string, PlacedRange>,
+  aliases: AliasRelations,
+): KilledFacts {
+  let next = kills;
+  for (const [root, interval] of placed) {
+    const start = Math.max(address, interval.start);
+    const end = Math.min(address + width, interval.end);
+    if (start >= end) continue;
+    next = addKilledInterval(
+      next,
+      { root, start: start - interval.start, end: end - interval.start },
+      placed,
+      aliases,
+    );
+  }
+  return next;
+}
+
 /** Add one raw write's byte range to the killed facts. */
 export function addRawWrite(
   kills: KilledFacts,
@@ -479,10 +502,19 @@ export function addRawWrite(
   opaqueAliases = false,
   boundsChecked = true,
 ): KilledFacts {
-  // An unresolved parameter may alias any storage, so every write in that body
-  // stays opaque until a definite typed store replaces the affected bytes.
-  if (opaqueAliases) return unionKills(kills, opaqueKill());
   const address = throughAddressConversions(operation.address, definitions);
+  // An unresolved parameter may alias any storage, so every write in such a body
+  // stays opaque until a definite typed store replaces the affected bytes. A
+  // constant address still names exactly which bytes it covers, whatever else the
+  // body might alias, so those exact facts are kept alongside the opaque one
+  // rather than replaced by it.
+  if (opaqueAliases) {
+    const reached = constantValue(address, definitions);
+    const opaque = unionKills(kills, opaqueKill());
+    return reached === null
+      ? opaque
+      : placedOverlaps(opaque, reached, operation.width, placed, aliases);
+  }
   if (address?.kind === "place-address") {
     const ranges = possibleWriteRanges(address.place, definitions, boundsChecked);
     if (ranges === null) return unionKills(kills, opaqueKill());
@@ -499,22 +531,10 @@ export function addRawWrite(
   const constant = constantValue(address, definitions);
   if (constant === null) return unionKills(kills, opaqueKill());
   // A constant address is resolved through every placed object it may overlap.
-  // Project each overlap through the same alias path as a place-address write,
-  // so a constant write inside a helper also reaches a borrowed parameter of
-  // that object.
-  let next = kills;
-  for (const [root, interval] of placed) {
-    const start = Math.max(constant, interval.start);
-    const end = Math.min(constant + operation.width, interval.end);
-    if (start >= end) continue;
-    next = addKilledInterval(
-      next,
-      { root, start: start - interval.start, end: end - interval.start },
-      placed,
-      aliases,
-    );
-  }
-  return next;
+  // Each overlap goes through the same alias path as a place-address write, so a
+  // constant write inside a helper also reaches a borrowed parameter of that
+  // object.
+  return placedOverlaps(kills, constant, operation.width, placed, aliases);
 }
 
 /**
