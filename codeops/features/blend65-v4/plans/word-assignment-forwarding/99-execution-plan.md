@@ -2,9 +2,8 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-37 / #168
-> **Progress**: 4/7 tasks (57%) · [findings](05-findings.md)
-> **Status**: Executing — preflight majors repaired, oracle frozen at reproduced RED. The gate is
-> red by design until the implementation lands
+> **Progress**: 6/7 tasks (86%) · [findings](05-findings.md)
+> **Status**: Executing — implemented and measured, oracle GREEN, reviews running
 > **Last Updated**: 2026-11-20
 > **Baseline**: plan authored at `825778f2`, clean `feature/v4-rebuild`
 > **Scope**: strict; the result home of a word arithmetic operation whose sole consumer is an
@@ -207,13 +206,13 @@ register and must instead direct the existing stores at the destination home.
 - [x] T-37.4 Preflight the plan and this oracle with the applicable specialist lens; resolve every
       critical and major finding before implementation ✅ (0 critical, 4 major all confirmed and
       repaired, 8 minors applied, 1 refuted on evidence — see the findings)
-- [ ] T-37.5 Implement the smallest sound change: do not request the scratch when the barrier
+- [x] T-37.5 Implement the smallest sound change: do not request the scratch when the barrier
       condition B1–B6 holds, and give the two existing stores the destination's lowered value.
       **The barrier predicate gets its own module**, as the byte sibling's did — `lower-state.ts`
       is already 884 lines and `lower-arithmetic.ts` 479, so neither may absorb a whole-body
       analysis. Reuse the existing request and place seams; add no second analyzer beyond that
       predicate
-- [ ] T-37.6 Add implementation tests for the same witnesses plus the non-regression controls the
+- [x] T-37.6 Add implementation tests for the same witnesses plus the non-regression controls the
       public oracle cannot express, and move the cost pins in the same commit as the fix, with the
       delta stated per mode
 - [ ] T-37.7 Independent reviews for the affected contracts — machine code and base correctness at
@@ -355,6 +354,102 @@ unit's clean full gate at `5f6fe990` and the start of this work is under `codeop
 is still the valid baseline and no redundant full run was needed. From the freeze onward the
 baseline is "green except the ten pinned RED cases", and any *other* failure is this slice's to
 explain.
+
+## T-37.5 and T-37.6 evidence — implemented and measured
+
+The frozen oracle is **GREEN at 20/20** in the shape tier and **9/9** on the emulator, with both
+blobs unchanged (`e95f185c`, `fdf074cd`). The frozen behaviour oracle
+`test/rd05/boing-ball-parity.spec.test.ts` passes, so the fixture still produces identical VIC
+state to the hand-written twin while costing less.
+
+### What shipped
+
+The scratch request is not created when the barrier holds; the destination's own home holds the low
+byte while the accumulator computes the high one, and the following store emits nothing. The store
+drops its work only on a **two-part handshake** — the selection admitted that exact store, and the
+emitter recorded that it really did write the destination — because home resolution can decline at
+lowering time even after the source shape was admitted. Either half alone would drop a move that is
+still needed.
+
+Emitted, for `x = x + 2`, with the four-instruction copy gone:
+
+```
+lda $09bb      clc      adc #$02      sta $09bb
+lda $09bc      adc #$00      sta $09bc
+```
+
+### The measurement
+
+| Mode | Before | After | Delta |
+| --- | ---: | ---: | ---: |
+| `none` (release baseline) | 1,151 | **1,103** | **−48** |
+| `balanced` / `speed` / `size` | 1,067 | **1,019** | **−48** |
+
+The other six examples are **byte-identical by digest**, and no program anywhere grew. The arithmetic
+checks out: four word assignments × two pairs × 6 bytes = 48, and each removed pair was also 8
+cycles.
+
+### The regression this unit caused, found by measurement and fixed
+
+**This is the most useful thing the unit learned.** The first implementation forwarded loop
+induction variables too. That made the saved-input fixture grow from **701 bytes to 2,018** — a
+1,317-byte increase, which is exactly the outcome this plan said stops the unit.
+
+The cause: a variable a loop advances is already represented far more cheaply than its declared
+word, as a single byte or a register (`fixed-loop-selection.ts:262-296` narrows it and keeps the
+word home only as the original identity). Writing the declared word defeated that larger saving.
+
+Three attempts were needed, and the two failures are worth recording because each was a wrong
+fact rather than a wrong idea:
+
+| Attempt | Outcome |
+| --- | --- |
+| Exclude counters named by the selection runtime's `counterFacts` | No effect — that list is gated on a narrowing policy being chosen, so it is empty in the pass where the forwarding fires |
+| Exclude counters from the checked source facts on the lowering input | Also no effect — those facts are absent in that pass too |
+| Recognise the shape structurally: the store ends its block and the block hands control back to a block that already ran | **Restores 701 exactly** |
+
+The third attempt initially left one pick: the inner loop's *initializer*,
+`for (let other: word = column + 1; …)`. A counter must be excluded **wherever it is written**,
+including where the loop sets it up, because the narrowing needs one consistent representation
+across the whole loop. With that, the fixture returns to 701.
+
+Isolating the cause was itself instructive: forwarding only the user module's single pick still
+cost 701 → 960, and only the library's picks cost 701 → 2,030, so both halves had to go.
+
+### Consequence for the claimed value
+
+The exclusion also withdrew two smaller wins that the first implementation had shown — 12 bytes
+each on `stable-byte-classifier-cost` and `return-result-forwarding-cost`. Both were loop counters.
+Those two oracles now pass **unchanged**, which is the correct outcome, and the honest total for
+this slice is the boing-ball 48 bytes rather than 48 + 24.
+
+### The `none` figure, settled
+
+The preflight withdrew this plan's claim that the slice is worth twice as much at `none`, because
+that rested on a 16-pair tally taken from a count rather than an inspection. Measured: the saving is
+**48 bytes in every mode**, so the claim was indeed wrong and the preflight's inference was right.
+
+### Controls
+
+`test/rd05/word-assignment-forwarding.impl.test.ts`, 3 passed, covering what the public oracle
+cannot:
+
+| Case | What it pins |
+| --- | --- |
+| A counted loop's payload at `none` and `size` | The counter is not taken. Pinned as sizes because the narrowing itself is not observable in a program small enough to read |
+| A nested counted loop's payload | An inner index initialised from an outer one — the case least like a loop update and easiest to admit by mistake |
+| An ordinary position updated under a condition | Still computed in place. Counts moves between two ordinary memory homes rather than naming addresses: **five before, one after**. The survivor stages a high byte for a hardware write, a separate concern, so the count is pinned at one rather than at zero |
+
+Non-vacuity was watched rather than assumed: the witness program emits **5** memory-to-memory moves
+with the change reverted and **1** with it applied, measured by checking out the parent commit's
+machine sources and rebuilding.
+
+### Previously-shifted neighbours
+
+All three that moved under the first implementation now pass unchanged, including
+`test/rd08/optimizer-exact-output.impl.test.ts`, which pins **whole-PRG SHA-256 digests** — the
+strongest form of the thing the reopened exposure task was worried about. That oracle is the
+standing regression guard for the loop-counter mistake; it caught it, and it will catch it again.
 
 ## Out of scope
 
