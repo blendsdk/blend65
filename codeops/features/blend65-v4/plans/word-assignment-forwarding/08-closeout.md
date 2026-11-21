@@ -118,4 +118,23 @@ measurements so nothing is lost.
 | `packages/compiler` machine + storage + services | 135 files / 2,306 passed, 2 skipped |
 | After the review fixes | Examples identical to the pre-fix measurement — no byte moved |
 
+## The closing gate
+
+Clean in one shot at `82692ec7`, zero failures:
+
+| Tier | Result |
+| --- | --- |
+| Compiler package | 260 files / **4,364 passed**, 2 skipped |
+| Root host tier | 260 files / **5,495 passed** |
+| CLI · language server · VS Code | 70 · 21 · 18 |
+| Turbo tasks | 7 successful of 7 |
+
+This run also confirms the specification tree is fully restored. An earlier run of the same corpus
+reported 5,489 passed with 6 failures, all of them from an attempted registry amendment made while
+investigating a different issue; 5,489 + 6 is exactly this run's 5,495, and `git diff` reports
+nothing under `spec/`.
+
+No full `test:full` run was needed: the unit's containment argument is measured rather than
+asserted, since every example was digested before and after in all four optimization modes.
+
 #168 stays open by design: this was one slice of a parity continuation and closes nothing.
