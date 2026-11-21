@@ -23,6 +23,7 @@ import { collectSourceLoopNesting } from "../semantic/fixed-loop-facts.js";
 import { selectTargetProfile } from "../target/profile.js";
 import { runAcme } from "../tools/acme.js";
 import { discoverAcme } from "../tools/discovery.js";
+import { artifactEvidenceDiagnostic } from "./artifact-evidence-diagnostic.js";
 import { prepareEvidence, sizeCostVector } from "./evidence.js";
 import { validateFinalCallableProof } from "./final-callable-proof.js";
 import { buildD64Image, encodeD64Name } from "../packaging/d64/index.js";
@@ -768,22 +769,24 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
       }),
       ...(sizeDecision === undefined ? {} : { sizeDecision }),
     });
-  } catch {
+  } catch (error) {
+    // Nothing here knows whether the throw was an ordinary I/O failure or a compiler invariant
+    // breaking, and the two need opposite responses from whoever reads the output. The cause is
+    // therefore carried through on both exits rather than replaced by a fixed sentence; staging
+    // cleanup is attempted first either way, because a retained staging directory is the more
+    // urgent fact and owns the message when it happens.
     if (!(await removeOwnedDirectory(stagingDirectory, stagingIdentity))) {
       return {
         kind: "failure",
         failure: failure("recovery-required", [
-          serviceDiagnostic(
-            "ARTIFACT_EVIDENCE_CLEANUP",
-            "Failed evidence left compiler-owned staging that requires recovery",
-          ),
+          artifactEvidenceDiagnostic({ error, stagingRetained: true }),
         ]),
       };
     }
     return {
       kind: "failure",
       failure: failure("packaging", [
-        serviceDiagnostic("ARTIFACT_EVIDENCE", "Artifact evidence preparation failed"),
+        artifactEvidenceDiagnostic({ error, stagingRetained: false }),
       ]),
     };
   }
