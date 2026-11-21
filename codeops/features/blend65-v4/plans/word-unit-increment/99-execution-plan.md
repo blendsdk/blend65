@@ -1,8 +1,8 @@
 # Word unit increment — the expert form for `x = x + 1`
 
 > **Owner**: T-41 · **CodeOps Artifact Schema**: 1
-> **Status**: Planned
-> **Progress**: 0/6 tasks (0%)
+> **Status**: Executing — implemented and measured, re-baseline and reviews outstanding
+> **Progress**: 4/6 tasks (67%)
 > **Last Updated**: 2026-11-21
 > **Predecessors**: [word-assignment-forwarding](../word-assignment-forwarding/99-execution-plan.md),
 > [counter-exclusion-narrowing](../counter-exclusion-narrowing/99-execution-plan.md)
@@ -95,18 +95,49 @@ than discovered at the gate.
 
 ## Tasks
 
-- [ ] **T-41.1 Gates.** Answer the four questions above with evidence before any code.
-- [ ] **T-41.2 Baselines.** Digest every example in all four modes, plus a unit-step probe and a
+- [x] **T-41.1 Gates.** Answer the four questions above with evidence before any code.
+- [x] **T-41.2 Baselines.** Digest every example in all four modes, plus a unit-step probe and a
       page-crossing probe. Emitted bytes only.
-- [ ] **T-41.3 Controls at RED.** A control pinning the expert form for a local word step, a
+- [x] **T-41.3 Controls at RED.** A control pinning the expert form for a local word step, a
       control proving a site with live flags keeps the chain, and a page-crossing behavioural case.
-- [ ] **T-41.4 Implement.** Flag and accumulator liveness first; then selection at the lowering
+- [x] **T-41.4 Implement.** Flag and accumulator liveness first; then selection at the lowering
       loop's existing split seam. Increment only; decrement as its own case behind the same proof.
 - [ ] **T-41.5 Measure and re-baseline.** Re-digest. Re-derive the two control payloads rather than
       copying them. Re-baseline the cost witness in its own commit, with every behavioural value in
       that expectation shown unchanged.
 - [ ] **T-41.6 Verify and review.** Frozen behavioural and shape oracles green and untouched, both
       corpora, emulator tier isolated including the page-crossing case, then both review lenses.
+
+## Gates answered
+
+| Gate | Answer |
+| --- | --- |
+| Is a module-global word step in the admitted in-place shape? | **No.** Measured in one program holding both: a global step still copies through a scratch pair, while a local step is already written in place. So the one example with a word step is out of scope, and **no example moves a byte** — confirmed by digesting all seven in all four modes |
+| Does any behavioural or shape oracle assert the chain's flags or instruction sequence? | **No.** The frozen shape and behaviour oracles pass untouched, so the only movement is in cost witnesses |
+| Can the carry path be reached in a test, and does the counter still terminate? | **Yes**, and it is now proved on the emulator rather than argued: a counter run to three hundred crosses the low-byte wrap exactly once and publishes `$012C` in all four modes |
+| Does the split block upset the per-operation evidence? | **It did, and the cause was found rather than worked around.** Debug range attribution matches machine blocks to their semantic owner through an explicit allowlist of split-block label prefixes, and a new family has to be registered there. It now is |
+
+## Measured outcome
+
+| Subject | Before | After | Verdict |
+| --- | ---: | ---: | --- |
+| Released-counter control | 416 | **407** | −9 bytes |
+| Qualification render routine | 371 | **365** | −6 bytes |
+| Protected-counter control | 428 | **428** | unmoved, and correctly so |
+| All seven examples, all four modes | — | **byte-identical** | no example is in the admitted shape |
+
+The emitted form is the casebook's increment selection, and branch folding improves on the plan's
+own sketch: the skip branch is retargeted straight at the loop's exit test rather than at a
+separate continuation.
+
+```
+inc <low> · bne <exit test> · inc <high>
+```
+
+The protected counter staying at 428 is worth stating as a result rather than an absence. A counter
+narrowing still claims keeps its scratch copy, so it is never an in-place step, so this selection
+cannot reach it — which is the same one-way implication the release threshold rests on, observed
+from the other side.
 
 ## Stop conditions
 

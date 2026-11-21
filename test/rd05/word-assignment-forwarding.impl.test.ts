@@ -141,8 +141,10 @@ function main(): void {
       memoryToMemoryMoves(built.assembly),
       "a counter outside the narrowing range is still being moved through a scratch",
     ).toEqual([]);
-    // Pinned as well as counted, so an unrelated regression cannot satisfy the count alone.
-    expect(built.prg.length - 2).toBe(416);
+    // Pinned as well as counted, so an unrelated regression cannot satisfy the count alone. The
+    // released counter is also advanced by the increment selection rather than an addition chain,
+    // which is a further nine bytes on top of the scratch copy this control was written for.
+    expect(built.prg.length - 2).toBe(407);
   }, 180_000);
 
   it("should still protect a counter the narrowing range does admit", async () => {
@@ -163,7 +165,11 @@ function main(): void {
       memoryToMemoryMoves(built.assembly).length,
       `the admitted counter lost its scratch: ${memoryToMemoryMoves(built.assembly).join(", ")}`,
     ).toBe(2);
-    // Twelve bytes more than the released shape above, which is the saving this slice captures.
+    // Twenty-one bytes more than the released shape above, and the split is worth stating because
+    // it is two separate savings rather than one: twelve for the scratch copy a released counter
+    // no longer needs, and nine more for advancing it with an increment instead of an addition
+    // chain. This figure is unchanged by the second of those, because a protected counter keeps
+    // its scratch and so is never an in-place step at all.
     expect(built.prg.length - 2).toBe(428);
   }, 180_000);
 

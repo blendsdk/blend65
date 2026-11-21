@@ -134,6 +134,8 @@ export function machineFunctionSegments(
         block.label.startsWith(`${id}.multiply.`) ||
         block.label.startsWith(`${id}.divide.`) ||
         block.label.startsWith(`${id}.boolean.`) ||
+        // A two-byte unit step split so its carry test can be a real branch.
+        block.label.startsWith(`${id}.unit.`) ||
         block.label.startsWith(`${id}.copy.`) ||
         block.label.startsWith(`${id}.move.`) ||
         block.label.startsWith(`${id}.fill.`) ||

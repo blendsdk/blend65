@@ -346,7 +346,7 @@ export function selectForwardedWordAssignments(
 }
 
 /** One resolved declared home together with the private frame that owns it. */
-interface DeclaredHome {
+export interface DeclaredHome {
   /** Exact home the emitter will address. */
   readonly value: Extract<LoweredValue, { readonly kind: "storage" }>;
   /**
@@ -368,7 +368,7 @@ interface DeclaredHome {
  * rewritten onto a caller-owned pointer, and an interrupt local that was kept in
  * registers or on the hardware stack has no home at all.
  */
-function declaredHome(
+export function declaredHome(
   place: SemanticPlace,
   state: FunctionLoweringState,
 ): DeclaredHome | undefined {

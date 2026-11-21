@@ -2,6 +2,8 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { selectAnonymousComparisonValues } from "./sprite-publication-proof.js";
 import { selectAnonymousByteWriteValues } from "./byte-write-forwarding.js";
 import { selectForwardedWordAssignments } from "./word-assignment-forwarding.js";
+import { lowerWordUnitStep, wordUnitStepHome } from "./lower-word-unit-step.js";
+import { valueDefinitions } from "../semantic/aggregate-place-proof.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.js";
@@ -428,6 +430,9 @@ export function lowerFunction(
   if (complements !== undefined && complementFree !== undefined)
     state.byteComplements = prepareByteComplements(complements, state, blocks, complementFree);
   const loweredBlocks: MachineBlock[] = [];
+  // Read once for the whole function: the unit-step selection needs the addend's definition, and
+  // a constant may be produced in a different block from the arithmetic that consumes it.
+  const unitStepDefinitions = valueDefinitions(blocks);
   const semanticExitLabels = new Map<string, string>();
   const aggregateAddressCacheAtExit = new Map<string, AggregateAddressCache | null>();
   const boundsStopLabel = `${blocks[0]?.id ?? id}.bounds.stop`;
@@ -482,6 +487,7 @@ export function lowerFunction(
     let checkedDivisionIndex = 0;
     let checkedBoundsIndex = 0;
     let booleanBranchIndex = 0;
+    let unitStepIndex = 0;
     let aggregateCopyIndex = 0;
     let aggregateFillIndex = 0;
     let aggregateBuildIndex = 0;
@@ -789,6 +795,33 @@ export function lowerFunction(
         // single-use constant local). Withdraw the premature forwarding claim
         // and let the ordinary comparison fold materialize the constant.
         state.forwardedRegisterValues.delete(operation.result);
+      }
+      const unitStepHome =
+        operation.kind === "binary"
+          ? wordUnitStepHome(operation, state, block, operationIndex, unitStepDefinitions)
+          : undefined;
+      if (operation.kind === "binary" && unitStepHome !== undefined) {
+        // The arithmetic result is this very home, so the store that follows finds it already
+        // written and elides itself through the agreement below.
+        state.values.set(operation.result, unitStepHome.value);
+        // The increment form needs a real branch to skip the high byte, which only a terminator
+        // can carry, so this operation closes the block being filled and resumes after it. The
+        // store that follows elides itself once the result is recorded as written in place.
+        const split = lowerWordUnitStep(
+          state,
+          unitStepHome.value.requestId,
+          currentLabel,
+          currentInstructions,
+          unitStepIndex,
+          operation.span,
+        );
+        loweredBlocks.push(...split.blocks);
+        currentLabel = split.continuation;
+        currentInstructions = [];
+        state.forwardedWordResults.add(operation.result);
+        instructionSites?.add(operation);
+        unitStepIndex += 1;
+        continue;
       }
       if (operation.kind !== "platform" || operation.capability !== "c64.video.waitNextFrame") {
         const selected =
