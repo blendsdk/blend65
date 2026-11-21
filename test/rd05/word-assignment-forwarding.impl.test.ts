@@ -36,22 +36,32 @@ function main(): void {
 }
 `;
 
+/** The memory-mapped register window; traffic with either end inside it is ordinary. */
+const HARDWARE_FIRST = 0xd000;
+const HARDWARE_LAST = 0xdfff;
+
 /**
  * Adjacent load-then-store pairs that move one ordinary memory home into another.
  *
- * A hardware register at either end is ordinary traffic. A move between two plain homes is the
- * shape this work removes, so counting those is how the decision becomes observable.
+ * A move between two plain homes is the shape this work removes, so counting those is how the
+ * decision becomes observable. Both the forced zero-page and the forced absolute spellings are
+ * matched, because the serializer emits a width suffix whenever the mode and the address
+ * disagree, and missing one would undercount silently.
  */
 function memoryToMemoryMoves(assembly: string): readonly string[] {
   const lines = assembly.split("\n").map((line) => line.trim());
   const moves: string[] = [];
   for (const [index, line] of lines.entries()) {
-    const load = /^lda(?:\+1)? \$([0-9a-f]{2,4})$/u.exec(line);
-    const store = /^sta(?:\+1)? \$([0-9a-f]{2,4})$/u.exec(lines[index + 1] ?? "");
+    const load = /^lda(?:\+[12])? \$([0-9a-f]{2,4})$/u.exec(line);
+    const store = /^sta(?:\+[12])? \$([0-9a-f]{2,4})$/u.exec(lines[index + 1] ?? "");
     if (load === null || store === null) continue;
     const [from, to] = [load[1]!, store[1]!];
     if (from === to) continue;
-    if ([from, to].some((address) => /^(d0|07)/u.test(address))) continue;
+    const hardware = (address: string): boolean => {
+      const value = Number.parseInt(address, 16);
+      return value >= HARDWARE_FIRST && value <= HARDWARE_LAST;
+    };
+    if ([from, to].some(hardware)) continue;
     moves.push(`lda $${from} / sta $${to}`);
   }
   return moves;

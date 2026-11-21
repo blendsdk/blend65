@@ -146,26 +146,63 @@ export function selectForwardedWordAssignments(
 
   // Position of each block, so an edge that goes back to an earlier block can be recognized.
   const order = new Map(blocks.map((block, index) => [block.id, index] as const));
+  const definitions = valueDefinitions(blocks);
 
-  // Variables a loop advances. The telling assignment is the one that closes an iteration: it
-  // ends its block, and the block hands control back to a block that already ran. Such a
-  // variable is represented far more cheaply elsewhere — as a single byte or a register — so it
-  // is excluded wherever it is written, including where the loop sets it up, because narrowing
-  // has to see one consistent representation across the whole loop.
+  // Variables a loop controls. Such a variable is represented far more cheaply elsewhere — as a
+  // single byte or a register — so it is excluded wherever it is written, including where the
+  // loop sets it up, because that narrowing needs one consistent representation across the
+  // whole loop.
+  //
+  // The recognizer is deliberately conservative, and it is a backstop rather than an
+  // identification: the facts that name loop counters are not populated on every pass that
+  // lowers, so the shape has to be read off the blocks. Two signals are taken, because the two
+  // loop forms place their exit test differently — a counted loop tests in the block that is
+  // jumped back to, and a do-while tests in the block that jumps back. Anything it over-selects
+  // merely keeps its scratch, which costs a saving rather than correctness.
   const inductionRoots = new Set<string>();
+  const addControlRoots = (value: string): void => {
+    const seen = new Set<string>();
+    const pending = [value];
+    for (let cursor = 0; cursor < pending.length; cursor += 1) {
+      const current = pending[cursor]!;
+      if (seen.has(current)) continue;
+      seen.add(current);
+      const definition = definitions.get(current);
+      if (definition === undefined) continue;
+      if (definition.kind === "load") {
+        if (definition.place.path.length === 0)
+          inductionRoots.add(bindingIdentityKey(definition.place.root));
+        continue;
+      }
+      if (definition.kind === "binary") pending.push(definition.left, definition.right);
+      else if (definition.kind === "unary" || definition.kind === "convert")
+        pending.push(definition.operand);
+    }
+  };
   for (const [blockIndex, block] of blocks.entries()) {
-    const last = block.operations[block.operations.length - 1];
-    if (
-      last?.kind !== "store" ||
-      last.place.path.length !== 0 ||
-      block.terminator.kind !== "jump" ||
-      (order.get(block.terminator.target) ?? blocks.length) > blockIndex
-    )
-      continue;
-    inductionRoots.add(bindingIdentityKey(last.place.root));
+    const targets =
+      block.terminator.kind === "jump"
+        ? [block.terminator.target]
+        : block.terminator.kind === "branch"
+          ? [block.terminator.whenTrue, block.terminator.whenFalse]
+          : [];
+    for (const target of targets) {
+      const targetIndex = order.get(target);
+      if (targetIndex === undefined || targetIndex > blockIndex) continue;
+      // This edge closes an iteration. The exit test sits either here or at the block it
+      // returns to, so both are read and whatever either tests is treated as controlled.
+      for (const candidate of [block, blocks[targetIndex]]) {
+        if (candidate?.terminator.kind === "branch")
+          addControlRoots(candidate.terminator.condition);
+      }
+      // A block-final assignment on a closing edge advances the loop even when no test names
+      // it, which covers a latch whose condition the walk above cannot resolve.
+      const last = block.operations[block.operations.length - 1];
+      if (last?.kind === "store" && last.place.path.length === 0)
+        inductionRoots.add(bindingIdentityKey(last.place.root));
+    }
   }
 
-  const definitions = valueDefinitions(blocks);
   for (const block of blocks) {
     for (const [index, operation] of block.operations.entries()) {
       if (

@@ -374,12 +374,7 @@ export function lowerFunction(
       // Loop counters of this body, taken from the checked source facts rather than from the
       // selection runtime: the runtime only exposes them once a narrowing policy is chosen, and
       // the exclusion has to hold in every pass, including the ones that choose nothing.
-      new Set(
-        (sourceFunction === undefined
-          ? []
-          : (input.sourceFacts?.functions.get(sourceFunction)?.loops ?? [])
-        ).map((loop) => bindingIdentityKey(loop.counter)),
-      ),
+      new Set((sourceFacts?.loops ?? []).map((loop) => bindingIdentityKey(loop.counter))),
     ),
     forwardedWordResults: new Set<string>(),
     byteOrdinalAdditions,

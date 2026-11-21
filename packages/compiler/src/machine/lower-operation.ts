@@ -514,9 +514,13 @@ export function lowerOperation(
     // in which case there is nothing left to move. Agreement of two independent facts is
     // required: the selection admitted this exact store, and the emitter recorded that it really
     // did write the destination. Either one alone would drop a move that is still needed.
+    //
+    // The recorded outcome is consumed here rather than merely read. An expanded loop lowers the
+    // same operations once per occurrence, and the emitter's decision belongs to one of them, so
+    // leaving the record in place would let a later occurrence inherit an answer it never gave.
     const alreadyInPlace =
       state.forwardedWordAssignments.get(operation.value)?.store === operation &&
-      state.forwardedWordResults.has(operation.value);
+      state.forwardedWordResults.delete(operation.value);
     if (!alreadyInPlace) {
       const place = loweredPlace(
         operation.place,
