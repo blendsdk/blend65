@@ -112,13 +112,14 @@ function main(): void {
 `;
     const { assembly } = await buildProfileSource(moved, target, "none");
 
-    // Five such moves were emitted before this work and one remains. The four that went are the
-    // two assignments' pairs; the survivor stages the high byte for the hardware write, which is
-    // a separate concern. The count is pinned rather than the addresses, which move freely.
+    // Five such moves were emitted before this work and none remain. Four were the two
+    // assignments' pairs. The fifth staged the extracted high byte on its way to the hardware
+    // write, which the high-byte extraction now delivers straight from the word's own home. The
+    // count is pinned rather than the addresses, which move freely.
     expect(
       memoryToMemoryMoves(assembly).length,
       `arithmetic results are still being moved: ${memoryToMemoryMoves(assembly).join(", ")}`,
-    ).toBe(1);
+    ).toBe(0);
   }, 180_000);
 
   it("should compute a counter in place once no cheaper representation can claim it", async () => {

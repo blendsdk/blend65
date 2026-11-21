@@ -18,6 +18,7 @@ import { proveSpritePublications } from "./sprite-publication-proof.js";
  * @param blocks Original blocks in their original identity order.
  * @param singleUseValues Existing operation-use inventory; independently rechecked here.
  * @param includeNamedArithmeticStores Explicitly admit adjacent whole-byte arithmetic assignments.
+ * @param includeHighByteExtractions Explicitly admit the high half of the same named-word read.
  * @returns IDs whose fresh accumulator value may bypass anonymous retention.
  */
 export function selectAnonymousByteWriteValues(
@@ -26,6 +27,7 @@ export function selectAnonymousByteWriteValues(
   blocks: readonly SemanticBlock[],
   singleUseValues: ReadonlySet<string>,
   includeNamedArithmeticStores = false,
+  includeHighByteExtractions = false,
 ): ReadonlySet<string> {
   const candidates = new Set<string>();
   if (
@@ -110,9 +112,17 @@ export function selectAnonymousByteWriteValues(
       const load = block.operations[index - 1];
       // The original named-word read stays in place. Only its extracted byte's
       // anonymous home disappears; no other operation may intervene or share it.
-      const lowByte =
+      //
+      // Either half of that read qualifies, because the emitter reaches the two halves the same
+      // way: it already loads the byte it needs out of the word's own home, and only the store
+      // and reload wrapped around it are redundant. Which half is taken therefore changes the
+      // address loaded and nothing else. The high half is admitted on request rather than by
+      // default, so a caller asking only for the shape this selection originally served keeps
+      // exactly the answer it had.
+      const extractedByte =
         operation.kind === "unary" &&
-        operation.operator === "lo" &&
+        (operation.operator === "lo" ||
+          (includeHighByteExtractions && operation.operator === "hi")) &&
         load?.kind === "load" &&
         load.result === operation.operand &&
         definitions.get(operation.operand) === load &&
@@ -123,7 +133,7 @@ export function selectAnonymousByteWriteValues(
         load.place.rootType.name === "word" &&
         singleUseValues.has(load.result) &&
         uses.get(load.result) === 1;
-      if (!addition && !lowByte) continue;
+      if (!addition && !extractedByte) continue;
       if (
         write?.kind !== "memory-write" ||
         write.value !== operation.result ||
