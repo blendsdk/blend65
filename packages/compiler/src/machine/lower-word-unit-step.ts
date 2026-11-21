@@ -6,24 +6,6 @@ import type { MachineBlock, MachineInstruction, MachineOperand } from "./machine
 import { declaredHome } from "./word-assignment-forwarding.js";
 import type { DeclaredHome } from "./word-assignment-forwarding.js";
 
-/**
- * Advance a two-byte variable by one in place, using the increment selection.
- *
- * The general word addition seeds a carry and adds an immediate to each half in turn. For a step
- * of exactly one that is written back over its own operand, the processor already has the right
- * instruction: increment the low byte, and touch the high byte only on the iteration where the low
- * one wrapped to zero. That is seventeen bytes replaced by eight, and twenty-two cycles replaced
- * by nine or fourteen.
- *
- * The saving is not free, because the two forms do not leave the same processor state. The
- * addition chain always ends with the flags describing its high byte and the accumulator holding
- * it. The increment form leaves the accumulator untouched, leaves carry and overflow untouched,
- * and leaves the sign and zero flags describing *whichever half it last incremented* — the low one
- * when no carry occurred and the high one when it did. Those flags are therefore data-dependent at
- * the point the two paths rejoin, which is why this selection may only be taken where nothing
- * downstream reads them. {@link wordUnitStepHome} is where that is established.
- */
-
 /** Byte width of the two-byte form this selection serves. */
 const WORD_BYTES = 2;
 
@@ -43,7 +25,13 @@ const WORD_WIDTH = 16;
  *   between two. A step from one variable into another is not an increment of anything.
  * - **The step is exactly one.** Only `INC` and `DEC` exist; a larger constant still needs a real
  *   addition on the low byte.
- * - **Nothing observes the state the chain would have left.** The accumulator and the flags are
+ * - **Nothing observes the state the chain would have left.** The two forms do not leave the same
+ *   processor state, which is why this cannot reuse the surrounding slices' flag arguments. The
+ *   addition chain always ends with the accumulator holding its high byte and the flags describing
+ *   it. The increment form leaves the accumulator, the carry and the overflow untouched, and
+ *   leaves sign and zero describing *whichever half it last incremented* — the low one when no
+ *   carry occurred, the high one when it did — so those two are data-dependent at the point the
+ *   paths rejoin. The accumulator and the flags are
  *   consumed in this compiler only through values the lowering state records as such: a condition
  *   kept as a zero flag, a branch taken directly on a condition, a mask test, or a value carried
  *   onward in a register. A result named by none of those sets, used exactly once by its own
@@ -111,6 +99,9 @@ export function wordUnitStepHome(
 
 /**
  * Emit the increment form as its own blocks, so the carry test can be a real branch.
+ *
+ * This replaces seventeen bytes and twenty-two cycles with eight bytes and either nine or fourteen,
+ * depending on whether the low byte wrapped on that iteration.
  *
  * A relative branch exists in this architecture only as a block terminator, so an operation whose
  * selection needs one cannot express it in a flat instruction list. The function lowering loop
