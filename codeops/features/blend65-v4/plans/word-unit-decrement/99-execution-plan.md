@@ -91,10 +91,11 @@ descending counters.
 
 ## Scope
 
-A step of exactly one, down. `x = x - N` for `N > 1` remains a separate unit and keeps its low-byte
-subtraction, replacing only the high half with a borrow-conditional decrement — a different proof,
-because it clobbers the carry and its branch consumes the borrow the subtraction just produced
-rather than a zero flag. A control pins that a step by two is left alone.
+A step of exactly one, down. `x = x - N` for `N > 1` keeps its low-byte subtraction and replaces
+only the high half with a borrow-conditional decrement — a different proof, because it clobbers the
+carry and its branch consumes the borrow the subtraction just produced rather than a zero flag.
+**Since delivered as its own unit**, see word-constant-step. A control here pins that a step by two
+does not take the dedicated unit form.
 
 ## Tasks
 

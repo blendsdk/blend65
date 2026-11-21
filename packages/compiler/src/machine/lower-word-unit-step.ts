@@ -6,12 +6,17 @@ import type { MachineBlock, MachineInstruction, MachineOperand } from "./machine
 import { declaredHome, WORD_BYTES, WORD_WIDTH } from "./word-assignment-forwarding.js";
 import type { DeclaredHome } from "./word-assignment-forwarding.js";
 
-/** One admitted unit step: the home it acts on, and which way it moves. */
+/** Largest step this selection admits, bounded by what fits one immediate byte. */
+const MAX_STEP = 255;
+
+/** One admitted step: the home it acts on, which way it moves, and by how much. */
 export interface WordUnitStep {
   /** Resolved declared home of the two-byte variable being stepped. */
   readonly home: DeclaredHome;
-  /** True for a step of minus one, which needs the borrow form rather than the carry form. */
+  /** True for a step downward, which needs the borrow form rather than the carry form. */
   readonly descending: boolean;
+  /** Step size, from one up to a single immediate byte. One selects the register-free form. */
+  readonly amount: number;
 }
 
 /**
@@ -110,7 +115,13 @@ export function wordUnitStepHome(
   )
     return undefined;
   const step = definitions.get(operation.right);
-  if (step?.kind !== "constant" || step.value !== 1n) return undefined;
+  if (
+    step?.kind !== "constant" ||
+    typeof step.value !== "bigint" ||
+    step.value < 1n ||
+    step.value > BigInt(MAX_STEP)
+  )
+    return undefined;
   if (
     state.zeroFlagValues.has(operation.result) ||
     state.booleanBranchValues.has(operation.result) ||
@@ -122,7 +133,11 @@ export function wordUnitStepHome(
   const home = declaredHome(assignment.store.place, state);
   return home === undefined
     ? undefined
-    : Object.freeze({ home, descending: operation.operator === "-" });
+    : Object.freeze({
+        home,
+        descending: operation.operator === "-",
+        amount: Number(step.value),
+      });
 }
 
 /**
@@ -197,21 +212,43 @@ export function lowerWordUnitStep(
     Object.freeze({ kind: "storage", requestId, offset });
   const at = (opcode: string, offset: number) =>
     machineInstruction(cpu, opcode, "storage", byte(offset), [], source);
-  // Going up the low byte is stepped before the test; going down it is only read, because the
-  // branch has to see the value the decrement will borrow out of.
-  const opens = step.descending ? at("lda", 0) : at("inc", 0);
+  const implied = (opcode: string) => machineInstruction(cpu, opcode, "implied", null, [], source);
+  const unit = step.amount === 1;
+  // A unit step reads the whole decision off the low byte alone, so it tests the zero flag. A
+  // larger step has to do real arithmetic on that byte first, and then the carry it produced is
+  // what says whether the high byte moves.
+  const opens = unit
+    ? // Going up the low byte is stepped before the test; going down it is only read, because the
+      // branch has to see the value the decrement will borrow out of.
+      [step.descending ? at("lda", 0) : at("inc", 0)]
+    : [
+        at("lda", 0),
+        implied(step.descending ? "sec" : "clc"),
+        machineInstruction(
+          cpu,
+          step.descending ? "sbc" : "adc",
+          "immediate",
+          Object.freeze({ kind: "immediate" as const, value: step.amount }),
+          [],
+          source,
+        ),
+        at("sta", 0),
+      ];
+  // Taken means the high byte stays: nonzero low byte for a unit step, and for a larger one no
+  // carry out of an addition or no borrow out of a subtraction.
+  const opcode = unit ? "bne" : step.descending ? "bcs" : "bcc";
   return {
     blocks: Object.freeze([
       Object.freeze({
         label: entryLabel,
-        instructions: Object.freeze([...prefix, opens]),
+        instructions: Object.freeze([...prefix, ...opens]),
         terminator: Object.freeze({
           kind: "branch" as const,
-          opcode: "bne",
+          opcode,
           target: continuation,
           fallthrough: highLabel,
-          uses: machineState([], ["z"]),
-          cost: machineCost(cpu, "bne", "relative"),
+          uses: machineState([], [unit ? "z" : "c"]),
+          cost: machineCost(cpu, opcode, "relative"),
         }),
       }),
       Object.freeze({
@@ -221,7 +258,8 @@ export function lowerWordUnitStep(
       }),
     ]),
     continuation,
-    // Both paths reach the join, so the descending form's low-byte decrement belongs there.
-    pending: Object.freeze(step.descending ? [at("dec", 0)] : []),
+    // Both paths reach the join, so the unit decrement's own low-byte step belongs there. A larger
+    // step has already written the low byte before the branch, so nothing follows the join.
+    pending: Object.freeze(unit && step.descending ? [at("dec", 0)] : []),
   };
 }

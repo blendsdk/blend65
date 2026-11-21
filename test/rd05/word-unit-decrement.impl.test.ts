@@ -162,8 +162,8 @@ function main(): void {
   }, 180_000);
 
   it("should leave a step by more than one alone", async () => {
-    // Only a unit step is a decrement. A larger constant keeps its low-byte subtraction, and
-    // compacting its high half is a separate change with its own proof.
+    // Only a unit step is a decrement. A larger constant keeps its low-byte subtraction and steps
+    // its high byte under a borrow test instead, which is a different form with its own proof.
     const { assembly } = await buildProfileSource(bidirectional("2"), target, "none");
 
     expect(unitStepForms(assembly).pairs, "a step by two was treated as a decrement").toBe(0);

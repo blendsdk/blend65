@@ -120,8 +120,8 @@ function main(): void {
   }, 180_000);
 
   it("should leave a step by more than one alone", async () => {
-    // Only a unit step is an increment. A larger constant keeps its low-byte addition, and
-    // compacting its high half is a separate change with its own proof.
+    // Only a unit step is an increment. A larger constant keeps its low-byte addition and steps
+    // its high byte under a carry test instead, which is a different form with its own proof.
     const larger = `module Game;
 function main(): void {
   let acc: word = 0;
