@@ -51,6 +51,7 @@ content of the unit:
 | --- | --- |
 | Exactly one constant seed | A second seed means the counter can restart from a value this reasoning never saw, so the first seed bounds nothing |
 | Every other store is a subtraction of a positive literal from the counter itself | Anything else means it can grow again, and the seed stops being an upper bound |
+| The step divides the seed | Word arithmetic wraps, so a step that misses zero is not bounded by the seed at all: counting down from 1000 by three reaches one, passes the test, and lands on 65534 — above the seed, and a loop with no exit. Steps that differ between update sites are excluded for the same reason, since together they can straddle zero without meeting it. Nothing of value is lost: a step of one always divides, and a larger step that does not describes a loop that never ends |
 | The test compares a whole unsigned-word load against literal zero | Matching the ascending recognizer's discipline. `i >= 1` says the same thing and is deliberately not recognized, so no off-by-one argument has to be settled here |
 
 Failing any of these leaves the counter unrecognized, which keeps it protected. The case that makes
@@ -68,7 +69,8 @@ destination is taken; a counter inside that bound keeps its scratch. The asymmet
 | --- | ---: | ---: | --- |
 | `for (i = 1000; i > 0; i -= 1)` | 428 | **407** | −21: twelve for the scratch copy, nine for the decrement form |
 | The same countdown as a `while` loop | — | **410** | released; the two loop forms place their test differently and both are read |
-| `for (i = 999; i > 0; i -= 3)` | — | **410** | released; the seed bounds the counter whatever the step size |
+| `for (i = 999; i > 0; i -= 3)` | — | **410** | released; three divides 999, so the counter lands on zero |
+| `for (i = 1000; i > 0; i -= 3)` | — | **425** | **protected**; the step misses zero and wraps above the seed |
 | `for (i = 5; i > 0; i -= 1)` | — | **425** | **protected**, exactly as a small count up is |
 | A counter also added to on another path | — | **469** | **protected**; the soundness case |
 | `for (i = 0; i < 1000; i += 1)` | 404 | **404** | ascending path untouched |
@@ -85,9 +87,9 @@ reversed test are all unrecognized and leave their counter protected.
       that rejects a countdown, rather than inferring it from the emitted code.
 - [x] **T-44.2 Derive the extent.** Recognize the canonical countdown and credit it the seed plus
       one, with the two conditions that make the seed an upper bound checked rather than assumed.
-- [x] **T-44.3 Controls.** Six cases: both loop forms released, the small countdown still
-      protected, the counter that can grow still protected, a countdown by three, and the ascending
-      counter pinned at its exact byte count.
+- [x] **T-44.3 Controls.** Seven cases: both loop forms released, the small countdown still
+      protected, the counter that can grow still protected, a countdown by three that lands on zero, one that
+      steps over it, and the ascending counter pinned at its exact byte count.
 - [x] **T-44.4 Measure.** Before and after on each shape, plus the examples digest.
 - [x] **T-44.5 Verify.** Full gate on both corpora, and an emulator proof of the trip count.
 
@@ -95,9 +97,9 @@ reversed test are all unrecognized and leave their counter protected.
 
 | Check | Result |
 | --- | --- |
-| New descending-counter controls | **6/6** |
+| New descending-counter controls | **7/7** |
 | Emulator proof, all four modes: a countdown publishes its own trip count as `$03E8` | **4/4** |
-| Full gate, both corpora | **266 files / 5,530 tests** |
+| Full gate, both corpora | **266 files / 5,531 tests** |
 | All seven examples, four modes | **byte-identical** |
 
 The emulator proof is a real proof rather than an invariance net. The loop body counts its own

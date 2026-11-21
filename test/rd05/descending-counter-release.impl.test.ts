@@ -34,6 +34,28 @@ function counterForm(assembly: string): { readonly decrements: number; readonly 
   };
 }
 
+/**
+ * Report whether a subtraction of the given constant writes back the address it read.
+ *
+ * For a step larger than one there is no decrement to look for: both the protected and the released
+ * forms subtract an immediate. What separates them is where the result goes — a protected counter
+ * copies through a scratch pair, so the store names a different address from the load, while a
+ * released one writes the counter itself. Reading the two operands is therefore the only way to tell
+ * these apart, and a size alone would not.
+ */
+function stepsInPlace(assembly: string, immediate: string): boolean {
+  const text = lines(assembly);
+  const address = (line: string | undefined): string | undefined =>
+    /^(lda|sta)(\+[12])? \$([0-9a-f]+)$/i.exec(line ?? "")?.[3];
+  return text.some((line, index) => {
+    if (line !== "sec") return false;
+    if (!new RegExp(`^sbc #\\$${immediate}$`, "i").test(text[index + 1] ?? "")) return false;
+    const read = address(text[index - 1]);
+    const wrote = address(text[index + 2]);
+    return read !== undefined && read === wrote;
+  });
+}
+
 /** The most common countdown idiom, parameterized by where it starts and how far it steps. */
 const countdown = (from: string, step: string): string => `module Game;
 function main(): void {
@@ -101,16 +123,26 @@ function main(): void {
     expect(counterForm(assembly).chains, "a counter that can grow was released").toBeGreaterThan(0);
   }, 180_000);
 
-  it("should release a countdown stepping by more than one", async () => {
+  it("should release a countdown stepping by more than one when the step divides the seed", async () => {
     // A larger step keeps its low-byte subtraction and steps the high byte under a borrow test, so
-    // the chain proper is still gone. Released for the same reason: the seed bounds the counter
-    // whatever the step size, as long as every step reduces it.
+    // the chain proper is still gone. Three divides 999, so the counter lands exactly on zero and
+    // the seed really is an upper bound on its values.
     const { assembly } = await buildProfileSource(countdown("999", "3"), target, "none");
 
-    expect(counterForm(assembly), "a countdown by three was not released").toEqual({
-      decrements: 1,
-      chains: 0,
-    });
+    expect(
+      { inPlace: stepsInPlace(assembly, "03"), unitChains: counterForm(assembly).chains },
+      "a countdown by three that lands on zero was not released",
+    ).toEqual({ inPlace: true, unitChains: 0 });
+  }, 180_000);
+
+  it("should protect a countdown whose step steps over zero", async () => {
+    // Word arithmetic wraps, so a step that does not divide the seed is not bounded by it: counting
+    // down from 1000 by three reaches one, passes the test, and lands on 65534 — above the seed, and
+    // a loop with no exit. Recording the seed as an extent there would be recording a false bound,
+    // so the counter is not recognized and keeps its scratch.
+    const { assembly } = await buildProfileSource(countdown("1000", "3"), target, "none");
+
+    expect(stepsInPlace(assembly, "03"), "a step that misses zero was released").toBe(false);
   }, 180_000);
 
   it("should leave a count up exactly where it was", async () => {

@@ -131,15 +131,21 @@ function comparisonExtent(
  *
  * A descending loop's test bounds its counter from below and says nothing about how large it gets,
  * so unlike an ascending test it cannot supply an extent by itself. `i > 0` is satisfied by one and
- * by sixty thousand alike. What does bound such a counter is where it starts: a variable seeded
- * once with a literal and thereafter only ever reduced can never exceed that literal, so the seed
- * is the extent — plus one, because an extent is an exclusive bound and the seed itself is a value
- * the counter takes.
+ * by sixty thousand alike. What does bound such a counter is where it starts: a variable seeded once
+ * with a literal and thereafter only ever reduced lands exactly on zero and stops, so it never
+ * exceeds that literal and the seed is the extent — plus one, because an extent is an exclusive
+ * bound and the seed itself is a value the counter takes.
  *
- * Both halves of that argument are required rather than assumed. A second seed would mean the
- * counter can be restarted from a value this one does not know, and any update that is not a
- * subtraction of a positive literal from the counter itself would mean it can grow again. Either
- * leaves the counter unrecognized, which keeps it protected.
+ * Every part of that argument is required rather than assumed, and the last part is the one that is
+ * easy to miss. A second seed would mean the counter can restart from a value this reasoning never
+ * saw. An update that is not a subtraction of a positive literal from the counter itself would mean
+ * it can grow again. And the step has to divide the seed, because word arithmetic wraps: counting
+ * down from a thousand by three reaches one, passes the test, and lands on 65534 — which is both
+ * above the seed and a loop with no exit. Steps that differ between update sites are excluded for
+ * the same reason, since together they can straddle zero without ever meeting it.
+ *
+ * Nothing of value is lost to that last requirement. A step of one always divides, and a larger step
+ * that does not describes a loop that never ends.
  *
  * Only the canonical spelling is read, matching the ascending recognizer's discipline: the test
  * must compare a whole unsigned-word load against literal zero. `i >= 1` says the same thing and is
@@ -151,8 +157,8 @@ function comparisonExtent(
  * @returns The counter and its exclusive bound, or `undefined` when the shape is not recognized.
  * @example
  * // `for (let i: word = 1000; i > 0; i -= 1)` names `i` with extent 1001.
- * // `i > 1`, `i >= 1`, a counter seeded twice, and one that is also added to all yield
- * // undefined, which leaves the counter protected.
+ * // `i > 1`, `i >= 1`, a counter seeded twice, one that is also added to, and one stepping by a
+ * // value that does not divide its seed all yield undefined, which leaves the counter protected.
  */
 function descendingExtent(
   comparison: BinaryOperation,
@@ -172,6 +178,7 @@ function descendingExtent(
   const root = bindingIdentityKey(left.place.root);
 
   let seed: bigint | undefined;
+  let step: bigint | undefined;
   let reductions = 0;
   for (const block of blocks)
     for (const operation of block.operations) {
@@ -195,10 +202,15 @@ function descendingExtent(
       const amount = definitions.get(stored.right);
       if (amount?.kind !== "constant" || typeof amount.value !== "bigint" || amount.value <= 0n)
         return undefined;
+      if (step !== undefined && step !== amount.value) return undefined;
+      step = amount.value;
       reductions += 1;
     }
-  if (seed === undefined || reductions === 0) return undefined;
+  if (seed === undefined || step === undefined || reductions === 0) return undefined;
   if (seed < 0n || seed >= BigInt(Number.MAX_SAFE_INTEGER)) return undefined;
+  // Only a step that divides the seed brings the counter to zero. Anything else steps over it and
+  // wraps to a value above the seed, which would make the extent recorded here a false bound.
+  if (seed % step !== 0n) return undefined;
   return Object.freeze({ root, extent: Number(seed) + 1 });
 }
 
