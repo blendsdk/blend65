@@ -123,6 +123,26 @@ the conflict count, the final screen, colour and bitmap bytes, and the four VIC 
 cost witness moved, and downward. The same number had been re-baselined once before, from 385 to
 383, for a post-layout fold.
 
+## The closing gate
+
+Clean in one shot at `a2d57e15`, zero failures, against the final code with the re-baselined pin:
+
+| Tier | Result |
+| --- | --- |
+| Root host tier | 260 files / **5,500 passed** |
+| Compiler package | 260 files / **4,364 passed**, 2 skipped |
+| CLI · language server · VS Code | 70 · 21 · 18 |
+| Turbo tasks | 7 successful of 7 |
+
+The arithmetic reconciles against the run that found the failing pin: that run reported 5,499 passed
+with one failure, and 5,499 plus 1 is exactly this run's 5,500. Two earlier runs are superseded and
+recorded here only so they are not mistaken for evidence — one overlapped the review fixes being
+written, and one predated the re-baseline.
+
+No full-corpus run beyond this gate was needed, because containment is measured rather than
+asserted: every example was digested before and after in all four optimization modes, both before
+and after the review fixes.
+
 ## Process notes worth keeping
 
 - The slice was pushed after only the compiler package reported green. The failing oracle lives in
