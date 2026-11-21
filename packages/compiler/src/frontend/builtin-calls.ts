@@ -1,4 +1,5 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
+import type { ProjectDiagnostic } from "../project/types.js";
 import { scopedBorrowOrigin } from "./address-provenance.js";
 import {
   createScalarTypedExpression,
@@ -20,6 +21,81 @@ import type {
 } from "./semantic-types.js";
 import type { Expr } from "./syntax.js";
 import type { AnalyzeExpression } from "./aggregates.js";
+
+/** One recognized firmware vector a raw word write would overwrite. */
+interface FirmwareVector {
+  /** Exact compile-time destination address. */
+  readonly address: bigint;
+  /** Platform operation that installs a handler here with the entry variant this vector needs. */
+  readonly sink: string;
+}
+
+/**
+ * Name the interrupt function behind an unconverted address-of argument.
+ *
+ * Only the written spelling is read, because this runs before the argument is analyzed — which is
+ * the point: once the conversion rule has had its say the value is gone, and the write would be
+ * reported as a conversion mistake rather than as the installation it was meant to be.
+ *
+ * A name that cannot be resolved to an interrupt function yields null, leaving the ordinary
+ * conversion rule to reject the write. That is a weaker message but never a wrong one.
+ *
+ * @param argument Exact value argument as written.
+ * @param context Enclosing scope the name resolves in.
+ * @param host Frontend services for resolution and source text.
+ * @returns The handler's source spelling, or null when the argument is not one.
+ */
+function bareInterruptHandler(
+  argument: Expr,
+  context: ScalarExpressionContext,
+  host: ScalarExpressionHost,
+): string | null {
+  if (argument.kind !== "unary" || argument.operator !== "&") return null;
+  const operand = argument.operand;
+  if (operand === undefined || (operand.kind !== "name" && operand.kind !== "member")) return null;
+  const name = host.sourceText(operand.span);
+  const resolved = host.resolveName(name, context);
+  if (resolved === null) return null;
+  return resolved.binding.storage === "function" && resolved.binding.functionMode === "interrupt"
+    ? name
+    : null;
+}
+
+/**
+ * Refuse a raw interrupt-entry address written straight into a recognized firmware vector.
+ *
+ * The address itself is real and the write would land. What cannot hold is the convention: each
+ * vector is entered with its own stack and exit contract, and an entry compiled for one of them
+ * does not satisfy another. The remedy is therefore the platform operation for that vector, which
+ * picks the matching entry variant, rather than anything the author can do to the address.
+ *
+ * @param handlerName Source spelling of the interrupt function whose address was written.
+ * @param vector Destination vector and the operation that owns it.
+ * @param expression Exact write being refused.
+ * @param context Enclosing scope, used to point at the handler's declaration.
+ * @param host Frontend services for resolution.
+ * @returns The refusal, with the handler's declaration attached when it can be found.
+ * @example rawVectorHandlerError("onRaster", vector, expression, context, host)
+ */
+function rawVectorHandlerError(
+  handlerName: string,
+  vector: FirmwareVector,
+  expression: Extract<Expr, { readonly kind: "call" }>,
+  context: ScalarExpressionContext,
+  host: ScalarExpressionHost,
+): ProjectDiagnostic {
+  const declaration = host.resolveName(handlerName, context);
+  const name = `$${vector.address.toString(16).padStart(4, "0")}`;
+  return projectDiagnostic(
+    "E10252",
+    `Raw interrupt-entry address for '${handlerName}' cannot be written directly to firmware vector '${name}' — use '${vector.sink}' so the compiler selects the required entry variant`,
+    expression.span,
+    null,
+    declaration === null
+      ? []
+      : [{ span: declaration.nameSpan, message: "Interrupt function is declared here" }],
+  );
+}
 
 /** Keep a visible handler address through an explicit word conversion. */
 function handlerAddress(expression: TypedExpr): TypedExpr | null {
@@ -118,43 +194,49 @@ export function analyzeBuiltinCall(
     );
   }
   const arguments_: TypedExpr[] = [];
+  // Set once the address argument has proved to be a compile-time firmware vector, so the value
+  // argument can be judged against the vector it is about to overwrite.
+  let vector: FirmwareVector | null = null;
   expression.arguments.forEach((argument, index) => {
+    if (index === 1 && vector !== null) {
+      // A bare handler address is the spelling the platform appendix rejects outright, and it has
+      // to be recognized here, before the value is converted. Left to the generic conversion rule
+      // it would send its author to write an explicit 'word(...)' that this same diagnostic then
+      // rejects in turn, while saying nothing about the sink that would have worked.
+      const bare = bareInterruptHandler(argument, context, host);
+      if (bare !== null) {
+        host.diagnose(rawVectorHandlerError(bare, vector, expression, context, host));
+        valid = false;
+        return;
+      }
+    }
     const result = analyze(argument, builtin.parameters[index] ?? null, {
       ...context,
       ordinalContext: false,
     });
-    if (result.node === null) valid = false;
-    else arguments_.push(result.node);
+    if (result.node === null) {
+      valid = false;
+      return;
+    }
+    arguments_.push(result.node);
+    if (index === 0 && name === "pokew" && typeof result.node.constant === "bigint") {
+      const sink = firmwareVectorSink(host.profileId ?? null, result.node.constant);
+      if (sink !== null) vector = { address: result.node.constant, sink };
+    }
   });
   if (!valid) return { node: null, exact: null };
-  const address = arguments_[0]?.constant;
-  const sink =
-    name === "pokew" && typeof address === "bigint"
-      ? firmwareVectorSink(host.profileId ?? null, address)
-      : null;
-  if (
-    sink !== null &&
-    typeof address === "bigint" &&
-    arguments_[1] !== undefined &&
-    handlerAddress(arguments_[1]) !== null
-  ) {
-    const handler = handlerAddress(arguments_[1])!;
-    const operand = handler.operand;
-    const handlerName =
-      operand !== undefined && "type" in operand
-        ? host.sourceText(operand.span)
-        : host.sourceText(handler.span);
-    const declaration = host.resolveName(handlerName, context);
-    const vector = `$${address.toString(16).padStart(4, "0")}`;
+  const converted = arguments_[1] === undefined ? null : handlerAddress(arguments_[1]);
+  if (vector !== null && converted !== null) {
+    const operand = converted.operand;
     host.diagnose(
-      projectDiagnostic(
-        "E10252",
-        `Raw interrupt-entry address for '${handlerName}' cannot be written directly to firmware vector '${vector}' — use '${sink}' so the compiler selects the required entry variant`,
-        expression.span,
-        null,
-        declaration === null
-          ? []
-          : [{ span: declaration.nameSpan, message: "Interrupt function is declared here" }],
+      rawVectorHandlerError(
+        operand !== undefined && "type" in operand
+          ? host.sourceText(operand.span)
+          : host.sourceText(converted.span),
+        vector,
+        expression,
+        context,
+        host,
       ),
     );
     return { node: null, exact: null };

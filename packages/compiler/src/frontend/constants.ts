@@ -410,6 +410,23 @@ export function compoundOperationType(
 }
 
 /** Apply a declaration, assignment, argument, or return scalar conversion. */
+/**
+ * Name the way out of a conversion the language requires to be written down.
+ *
+ * A function or handler address can reach a scalar, but only through an explicit conversion, because
+ * that conversion throws away what makes the value safe to install: its signature and its sink
+ * proof. Saying so is more useful than naming the two types, since the author's next move differs
+ * by kind — an aggregate has no single address to expose and needs a member chosen instead.
+ *
+ * @param from Natural type of the value that cannot arrive implicitly.
+ * @returns The detail clause completing the conversion diagnostic.
+ */
+function implicitScalarRemedy(from: SemanticType): string {
+  return from.kind === "function" || from.kind === "interrupt-handler"
+    ? "write 'word(...)' to expose its address, which erases its callable and sink proof"
+    : "select a scalar member or element instead";
+}
+
 export function applyExpectedScalar(
   result: ScalarExpressionResult,
   expected: SemanticType,
@@ -463,8 +480,20 @@ export function applyExpectedScalar(
       exact: result.exact,
     };
   }
-  if (!isScalarType(node.type) || !isScalarType(expected))
+  if (!isScalarType(node.type) || !isScalarType(expected)) {
+    // Reporting this is the whole point. A value that is not a scalar at all cannot become one
+    // silently, and returning no node without saying so left the caller to abandon the expression
+    // it was in - which, for a statement whose only effect was that expression, discarded the
+    // statement from the program without a word.
+    host.diagnose(
+      conversionError(
+        "E10080",
+        `Cannot implicitly convert '${semanticTypeName(node.type)}' to '${semanticTypeName(expected)}' — ${implicitScalarRemedy(node.type)}`,
+        expression,
+      ),
+    );
     return { node: null, exact: result.exact };
+  }
   if (node.type.name === expected.name) {
     if (
       context.constantContext &&
