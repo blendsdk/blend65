@@ -1,8 +1,8 @@
 # Chained NMI retention — the proof
 
 > **Owner**: T-153 · **Type**: Task (lightweight, investigation) · **CodeOps Artifact Schema**: 1
-> **Status**: Complete — proof delivered; admission itself needs a decision only the user can make
-> **Progress**: 4/4 tasks (100%)
+> **Status**: Complete — proof delivered, decision taken, admission delivered
+> **Progress**: 7/7 tasks (100%)
 > **Last Updated**: 2026-11-21
 > **Related**: [nmi-stock-entry-contract](../nmi-stock-entry-contract/99-execution-plan.md),
 > [rd-05-nmi-cia2](../rd-05-nmi-cia2/99-execution-plan.md)
@@ -69,9 +69,14 @@ the two variants' declared entry stack costs, seven for the chain against six fo
 entry. If the exclusive entry admitted nine but not twelve, a budget argument might have produced a
 chained figure. It admits twelve. There is no envelope to scale.
 
-## Why a single retained local is rejected today
+## Why a single retained local was rejected — *superseded by the delivery*
 
-With the gate as shipped, the chained route rejects a handler holding **one** ordinary local:
+Both causes this section identifies are now fixed: the register-only elision admits the local,
+and the gate no longer singles out an installer. Kept because it is the measurement that made
+the partial win findable.
+
+With the gate as it then shipped, the chained route rejected a handler holding **one** ordinary
+local:
 
 | Handler body | Chained | Exclusive |
 | --- | --- | --- |
@@ -128,7 +133,11 @@ The phrase that settles this unit is **balanced**. The resolution was taken in f
 such a handler's frame balances — which is exactly what the sweep above re-measures — and still
 required rejection. The frame proof was never what stood in the way.
 
-## The conclusion, stated plainly
+## The conclusion, stated plainly — *as it stood before the decision*
+
+Retained because the reasoning still holds on its own terms, and because the decision that
+followed is only legible against it. The section below says admission was not mine to make; the
+user then made it. See *Decision taken* for what that required.
 
 Admitting chained retention is **not deliverable under the current requirements**, and the two
 routes to it are both closed to me:
@@ -141,7 +150,10 @@ routes to it are both closed to me:
 A bound that cannot be derived from a documented constant, and that exists only to stay clear of a
 test, is not a proof. Recording that is the honest outcome of this unit.
 
-## Candidate follow-on, named and not taken
+## Candidate follow-on — *since delivered*
+
+Delivered under the same authorization, and first, because it conflicted with nothing. The
+separate proof this section asks for is discharged in *Decision taken*.
 
 One partial win exists with no oracle conflict. The register-only elision could be widened to
 absorb a local whose whole life is an adjacent read-then-store pair of an ordinary address, as it
@@ -166,21 +178,113 @@ an investigation.
 - [x] **T-153.4 Settle the normative basis.** Trace the rejection to its requirement case and its
       approved ambiguity resolution, and record whether admission is an implementation decision or a
       governance one.
+- [x] **T-153.5 Widen the register-only elision.** Admit a one-byte read of a fixed address, so a
+      local that needs no storage stops refusing its handler's route.
+- [x] **T-153.6 Repair the epilogue limitation.** Make the flag proof follow a generated frame
+      unwind, so the depth the oracle itself names can be emitted.
+- [x] **T-153.7 Admit the route.** Open the retention gate to both cooperative installers, revise
+      the requirements through a successor ambiguity entry, and re-baseline the one oracle that
+      flips along with the two catalogue records that follow it.
 
-## Decision required
+## Decision taken, and what it cost to honour
 
-This unit stops here deliberately, with the proof complete. Admission needs one of:
+The user authorized the requirements revision on 2026-11-21, explicitly including the epilogue
+limitation this document had identified as its prerequisite. Reading the three options against that
+authorization: option **(a)** is the only one that can absorb an instruction to fix the limitation,
+since option **(b)** would have involved no implementation at all. So (a) was taken, (b) is
+superseded, and (c) — which conflicted with nothing — was delivered first as an independent win.
 
-1. **Authorize a requirements revision** — amend the chained route's separate-frame contract,
-   re-baseline the admission oracle, and reverse the approved resolution that retargeted the
-   rejection onto a balanced storage-bearing handler. Also needs the epilogue limitation at seven
-   retained bytes fixed, since the oracle's own depth cannot currently be emitted.
-2. **Close as errata** — record chained retention as not deliverable under the current
-   requirements, as was done for the consumer-aware block-index diagnostic.
-3. **Authorize the register-only widening** as the partial win, which conflicts with nothing.
+### What the decision overturned
+
+This document's own conclusion was that admission was not deliverable. That conclusion rested on two
+findings, and the authorization dissolved only one of them. The second had to be engineered away.
+
+| Finding | Standing after the decision |
+| --- | --- |
+| The frozen oracle requires rejection at nine samples, and a frozen oracle is an immutable contract | Dissolved by authorization. A frozen oracle is immutable against *the implementation*, not against the requirement it derives from; the requirement itself was revised, through a successor ambiguity entry that leaves the superseded one's history intact |
+| The implementation cannot emit that depth at all | **Not** dissolved by authorization, and the reason this unit grew. No amount of permission makes unemittable code emit |
+
+The cap-at-six option this document refused as fixture-dodging stayed refused. It was never on the
+table again, because the limitation it would have stepped around is now simply gone.
+
+### The limitation, and why it was a modelling gap rather than a codegen bug
+
+Beyond six retained bytes the frame unwind stops popping one byte at a time and raises the stack
+pointer in one go. The emitted code was correct throughout. The flag proof treated every write to
+the stack pointer as making the stack unknowable — the right answer in general — and so forgot the
+status snapshot the entry had saved beneath the frame. A route that returns from the interrupt never
+noticed, because its terminal instruction restores the status itself; this route restores it with an
+explicit `plp` first, and that `plp` then had nothing to draw on.
+
+The fix records the unwind's released byte count on the instruction, where it is known, instead of
+leaving a later pass to re-derive it. One subtlety decided the whole thing, and it is the part worth
+remembering: the count is relative to the base the matching capture took, not to the depth at the
+write-back. The emitted sequence reads the topmost slot with a pop in between, and because the new
+pointer is computed from the captured base, that pop is silently restored. Subtracting from the
+current depth released one byte too many and walked the model off the end of the frame — which
+looked exactly like the original failure and was corrected only by instrumenting the model against
+the instructions.
+
+No bound was invented. The figure is the lowering's own computed depth, which is what this
+document demanded of any fix: a bound that cannot be derived from a documented constant is not a
+proof.
+
+### Measured
+
+| Subject | Before | After |
+| --- | --- | --- |
+| Chained route, retained depth it can emit | 1–6, then unemittable | **1–12**, balanced throughout |
+| Chained route, nine samples, charged hardware stack | rejected | **15 bytes** |
+| Exclusive route, nine samples, charged hardware stack | 14 bytes | 14 bytes, unchanged |
+
+The chained figure is exactly one above the exclusive one, which is the difference between the two
+declared entry frames of seven bytes and six. That was predicted before measuring and then
+measured, rather than assumed.
+
+### Oracles that moved, and the three that must not
+
+| Record | Movement | Why |
+| --- | --- | --- |
+| Nine-sample chained fixture | rejection → admission | The revised requirement. Mirrors the exclusive route's assertion set, with its charged figure measured |
+| Deferred expressiveness-ledger row | deferred → retired | That ledger's own rule: a successful compilation expires a deferral. Not a concession, a mechanism working |
+| Canonical reentrancy diagnostic | chained handler → retaining helper | Needed a home, and the helper is the right one rather than a weaker one |
+| Retaining helper, either route | **unmoved**, still rejected | Retention is a property of the generated entry shell, and a helper has none |
+| Five samples behind a callback helper | **unmoved**, still rejected | Same reason |
+| Every exclusive-route fixture | **unmoved** | The gate stopped singling out an installer; it did not loosen what retention requires |
+
+### The partial win, delivered rather than named
+
+The register-only elision now admits a one-byte read of a fixed address alongside a forwardable
+platform read, on the one fact they share: each is selected as a single load that leaves the byte in
+the accumulator. This document named it and declined it pending its own proof. That proof turned out
+to be already in place — the existing adjacency requirements forbid anything but compile-time
+constants between the read and its store, and anything but constants and one permitted peer between
+the load and its consumer, so the read keeps its exact position and its single occurrence. Lowering
+refuses rather than guesses if a value turns out not to be in A.
+
+Its value was never the byte. A handler on a cooperative route is admitted only if it leaves no
+invocation-private home behind, so a local that could have lived in a register and did not was a
+local that refused its handler's route outright.
+
+### Proved on hardware
+
+A chained handler retaining nine bytes — the depth where the bulk unwind is in force — reads nine
+runtime-seeded values in one order and publishes them in the reverse order, so every slot has to be
+addressed individually and correctly. Returning to the cooperative address at all proves the status
+came back and the previous handler received the frame it expects. The test asserts the bulk unwind is
+present in the emitted code, so it cannot quietly stop covering the case that makes it interesting.
 
 ## Stop conditions observed
 
-No frozen oracle was edited. No specification file was touched. The admission gate was opened only
-in the working tree, twice, and reverted both times with the revert confirmed by an empty diff. No
-measurement taken with the gate open is presented as shipped behaviour.
+**During the investigation.** No frozen oracle was edited and no specification file was touched.
+The admission gate was opened only in the working tree, and reverted every time with the revert
+confirmed by an empty diff and by the frozen oracles returning to green on the restored source.
+No measurement taken with the gate open was presented as shipped behaviour.
+
+**During the delivery that followed.** No specification file was touched, and that is a deliberate
+finding rather than an omission: the specification is silent on hardware-stack retention, and the
+exclusive route's already-admitted retention rests on the same silence, so admitting the chained
+route needs no specification change. Three oracle records moved, each under the authorization and
+each with its reason stated in the table above; the requirement they derive from was revised first,
+through a successor ambiguity entry that leaves the superseded entry intact. Nothing was re-pinned
+merely to make a suite green: every record that could have stayed rejected did stay rejected.

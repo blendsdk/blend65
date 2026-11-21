@@ -151,6 +151,14 @@ narrowing still claims keeps its scratch copy, so it is never an in-place step, 
 cannot reach it — which is the same one-way implication the release threshold rests on, observed
 from the other side.
 
+## Cost pin confirmed
+
+The qualification expectation's `renderBytes` figure fell from 371 to 365 when this unit
+released its loop counter. **Confirmed** on 2026-11-21: the user reviewed the downward
+re-baseline and confirmed it rather than reverting. The change is one field; every behavioural
+value in that expectation is unchanged, and its three behavioural cases pass on the current
+tree.
+
 ## Reviews
 
 | Lens | Result |

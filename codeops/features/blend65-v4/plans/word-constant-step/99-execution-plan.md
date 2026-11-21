@@ -127,3 +127,5 @@ once.
 | Protected-counter control | 428 → **425** | Same body. The counter itself is still protected and still never an in-place step, which is why the twenty-one byte gap between the two controls is unchanged — that gap is the thing the pair exists to pin, and it was re-derived rather than re-copied |
 
 All three are implementation pins rather than frozen oracles. No frozen oracle moved.
+
+**Confirmed** on 2026-11-21: the user reviewed the downward re-baseline of the expert-parity record and confirmed it rather than reverting. The pin stands at 1100 and is green on the current tree, and the hand-written twin's own figure is unchanged, so the narrowed gap reflects the compiler improving rather than the comparison moving.
