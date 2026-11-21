@@ -3,14 +3,8 @@ import type { BinaryOperation, SemanticBlock, SemanticOperation } from "../seman
 import { machineCost, machineInstruction, machineState } from "./lower-control.js";
 import type { FunctionLoweringState } from "./lower-state.js";
 import type { MachineBlock, MachineInstruction, MachineOperand } from "./machine-types.js";
-import { declaredHome } from "./word-assignment-forwarding.js";
+import { declaredHome, WORD_BYTES, WORD_WIDTH } from "./word-assignment-forwarding.js";
 import type { DeclaredHome } from "./word-assignment-forwarding.js";
-
-/** Byte width of the two-byte form this selection serves. */
-const WORD_BYTES = 2;
-
-/** Bit width of that same form, as the checked integer facts record it. */
-const WORD_WIDTH = 16;
 
 /**
  * Decide whether one operation is an in-place unit step whose processor state is unobserved.
@@ -30,14 +24,21 @@ const WORD_WIDTH = 16;
  *   addition chain always ends with the accumulator holding its high byte and the flags describing
  *   it. The increment form leaves the accumulator, the carry and the overflow untouched, and
  *   leaves sign and zero describing *whichever half it last incremented* — the low one when no
- *   carry occurred, the high one when it did — so those two are data-dependent at the point the
- *   paths rejoin. The accumulator and the flags are
- *   consumed in this compiler only through values the lowering state records as such: a condition
- *   kept as a zero flag, a branch taken directly on a condition, a mask test, or a value carried
- *   onward in a register. A result named by none of those sets, used exactly once by its own
- *   store, and closing a block that leaves by an unconditional edge has no reader for either. The
- *   positional requirement is what covers the data-dependent sign and zero flags: with the store
- *   last and the exit unconditional, the successor begins by establishing its own.
+ *   carry occurred, the high one when it did — so those two are data-dependent where the paths
+ *   rejoin.
+ *
+ *   What makes that safe is not an invariant about the successor, which is neither required nor
+ *   checked to establish anything. It is that flag and register reuse is *selected between
+ *   operations of one block*: the pass that forwards a value onward searches only the operations
+ *   of the block it is visiting, so a consumer of this result's flags in another block cannot be
+ *   created at all. The sets consulted below are therefore the complete list of readers that can
+ *   exist. Beyond them, the form clobbers strictly less than the chain did — the accumulator, the
+ *   carry and the overflow are preserved rather than overwritten — and both arms define sign and
+ *   zero, so the whole-function flag check still proves every later use has a definer.
+ *
+ *   The positional requirement earns its place against a different reader: the in-block peepholes
+ *   that inspect the instructions pending in the block being filled. Closing the block empties
+ *   that list, so none of them can reach across this selection.
  *
  *   Note that being *materialized* is deliberately not disqualifying. That set records every value
  *   consumed anywhere, so a result written into a variable is always in it; it says nothing about
@@ -100,8 +101,12 @@ export function wordUnitStepHome(
 /**
  * Emit the increment form as its own blocks, so the carry test can be a real branch.
  *
- * This replaces seventeen bytes and twenty-two cycles with eight bytes and either nine or fourteen,
- * depending on whether the low byte wrapped on that iteration.
+ * In the absolute form this replaces seventeen bytes and twenty-two cycles with eight bytes and
+ * either nine or fourteen, depending on whether the low byte wrapped on that iteration. A home
+ * that closes into zero page is thirteen bytes against six, and five or ten cycles. Those are the
+ * figures for the step alone; what the program saves also depends on whether the skip branch can
+ * be folded into the loop's own test and whether the carry arm falls through, which layout
+ * decides.
  *
  * A relative branch exists in this architecture only as a block terminator, so an operation whose
  * selection needs one cannot express it in a flat instruction list. The function lowering loop
@@ -110,7 +115,8 @@ export function wordUnitStepHome(
  * the high increment alone, and both rejoin at a continuation the caller resumes on.
  *
  * The branch is taken when the low byte did **not** wrap, which is the common path and the cheap
- * one — three cycles to skip the high byte rather than six to increment it.
+ * one: three cycles to skip the high byte, or four if the branch crosses a page, against six to
+ * increment it.
  *
  * @param state Current lowering context, for the processor facts and costs.
  * @param requestId Storage request of the two-byte home being advanced.

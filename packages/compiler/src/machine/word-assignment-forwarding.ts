@@ -16,10 +16,10 @@ import { loweredPlace, type FunctionLoweringState } from "./lower-state.js";
 import type { MachineLoweringInput } from "./machine-types.js";
 
 /** Byte width of the two-byte unsigned wrapping form this selection serves. */
-const WORD_BYTES = 2;
+export const WORD_BYTES = 2;
 
 /** Bit width of that same form, as the checked integer facts record it. */
-const WORD_WIDTH = 16;
+export const WORD_WIDTH = 16;
 
 /**
  * One operand of a candidate assignment, in the only two shapes the proof admits.

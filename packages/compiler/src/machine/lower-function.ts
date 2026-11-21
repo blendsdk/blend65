@@ -819,7 +819,6 @@ export function lowerFunction(
         currentLabel = split.continuation;
         currentInstructions = [];
         state.forwardedWordResults.add(operation.result);
-        instructionSites?.add(operation);
         unitStepIndex += 1;
         continue;
       }

@@ -94,6 +94,31 @@ function main(): void {
     ).toEqual({ chains: 1, pairs: 0 });
   }, 180_000);
 
+  it("should keep the addition chain where the step's block does not leave unconditionally", async () => {
+    // The positional proof has two parts, and this covers the second one independently: the step
+    // closes its block, but the block returns rather than jumping onward. A parameter is used
+    // because it has a declared home of its own while still letting the step be the last thing
+    // the function does.
+    const returning = `module Game;
+place(at: $C000) let sink: word;
+function bump(i: word): void {
+  poke($D020, lo(i));
+  i = i + 1;
+}
+function main(): void {
+  bump(1000);
+  sink = 1;
+  while (true) { }
+}
+`;
+    const { assembly } = await buildProfileSource(returning, target, "none");
+
+    expect(
+      unitStepForms(assembly),
+      "a step closing a block that returns was given the increment form anyway",
+    ).toEqual({ chains: 1, pairs: 0 });
+  }, 180_000);
+
   it("should leave a step by more than one alone", async () => {
     // Only a unit step is an increment. A larger constant keeps its low-byte addition, and
     // compacting its high half is a separate change with its own proof.
