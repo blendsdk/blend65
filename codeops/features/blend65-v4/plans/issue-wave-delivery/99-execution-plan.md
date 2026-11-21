@@ -186,3 +186,87 @@ outward-facing and is left for an explicit decision rather than taken here.
 | #171 close-or-audit | Closing an issue is irreversible and the audit scope is a judgement about how much sibling risk to buy |
 | #158 diagnostic contract | Explicitly user-gated, and it gates T-159's remaining task |
 | Any new specialist agent | Reserved authority; the per-wave check above has returned None every time |
+
+## Wave 7 — batch grouping (2026-11-21)
+
+Wave 6 sorted the 43 open rows by *kind* of work and then scheduled only three
+units, deliberately leaving the largest class unscheduled. Two of those three are
+now consumed — #170 is closed and T-153's row is complete — and the third, T-168,
+is in flight. So the question the tracker now poses is no longer which single unit
+runs next, but how the remaining body is grouped so it can be worked in batches
+rather than one row at a time.
+
+One correction to Wave 6's reconciliation: the descriptive-identifier rows are 25
+RD-08 parity sub-rows **plus** the three qualification rows, 28 in total, not 28
+parity rows and three qualification rows besides. The 43-row open count it drew
+conclusions from is unaffected.
+
+Two of the 43 rows are second trackings rather than distinct work: `T-133` and
+`↳ Predicate-proved return` are both issue #133, and `T-135` and
+`↳ Direct raw argument delivery` are both issue #135. 43 rows are therefore 41
+units, and each pair is grouped once.
+
+### Why batching helps here, and where it does not
+
+For the parity rows the edit is rarely the expensive part. Each needs a fact
+proved about the code it rewrites — what is live in a register, which callee
+preserves what, whether an index is still valid — and then a measurement against
+a hand-written expert witness. That proof and that measurement setup are shared by
+every row owned by the same seam, which is what makes a batch cheaper than its
+rows. Rows owned by *different* seams share nothing, so grouping them together
+buys nothing and only widens the blast radius of one commit.
+
+What a batch can honestly claim is bounded. Whole-program reclosure is exactly
+what is not available: DEF-16 is stopped with acquisition at 2442 against the 963
+limit and the saved complement at 1623 against 725. So a batch verifies the way
+the existing rows already do — the measured witness moves, and the frontier guards
+stay green at 701/725 and 935/963 — and the analytical whole-program figure in each
+row's note stays analytical until closure is reopened. Savings within a batch do
+not sum, and several rows say so explicitly.
+
+### Every open row, in exactly one group
+
+| Group | Rows | What makes it one group |
+| --- | --- | --- |
+| **A — Capture and retention** | #115, #116, #123, #132 | All four remove a materialization of a value already live in A. One register-liveness fact and one capture seam serve all of them |
+| **B — Word views and direct indexing** | #120 → #121, #122 → #125 | One aggregate direct-index owner plus a store-alias proof. Ordered inside the batch: #121 is defined as beyond #120, and #125 needs a strictly stronger alias proof than #122 |
+| **C — Call and return linkage** | #118, #124, #126 | One call/layout owner. #126 and #124 overlap on the helper figure and are explicitly not additive, so they are measured together or the batch double-counts |
+| **D — Cross-call register availability** | #104 enabler, then #127, #128 | Each needs the same missing fact: which registers a called function provably leaves alone. #104 owns that proof scope; the other two consume it |
+| **E — Runtime shift** | #129, #130, #131 | One shift continuation/forwarding seam. #131's fold-safe slice has already landed and moved the saved artifact to 701, so this batch starts from a partly proved base |
+| **F — Finite-loop schedule** | #119 | Owned by the finite schedule/availability seam rather than by any batch above. One row, kept separate rather than attached to a seam it does not share |
+| **Decision-gated** | T-38 + T-159, #117, T-07 | Not blocked on engineering. One #158 ruling unblocks both T-38 and T-159's last task. #117 saves 755 bytes and costs 2041 cycles, so it is a question about what size mode may trade, not an implementation. T-07 waits on a bounded maintenance gate because `spec/` is frozen |
+| **Blocked on a named missing unit** | T-152, T-133 with its #133 twin row, T-135 with its #135 twin row, T-155, T-145 | Wave 6's classes, unchanged. Each is prototyped or measured and names what it needs; re-running any of them produces the same number. Promoted only when its missing unit becomes a plan |
+| **Composites — close through the batches** | #95, NMI witness (#70/#83/#96/#97), Input-diagnostic output (#104/#51), Input recipe mixtures | Not work of their own. Each is a measured bundle that closes when the seams underneath it land, and the first three are the natural acceptance witnesses for batches A–E. Input recipe mixtures is a gate condition on full RD-08 admission |
+| **Host cost (report-only)** | T-13, T-17 | The same PE-001 class — host-side algorithmic cost with no emitted behavior or cost defect. One batch, and neither is urgent |
+| **External dependency** | V4-HW-1, V4-HOST-1 (absorbs DEF-3), V4-ASSET-1, T-19 | No compiler change advances these. They need a physical C64, a second host platform, and producer artifacts including the GoatTracker 2.77 archive |
+| **In flight / meta** | T-168, ↳ Bound precedence (#134), T-31, DEF-16 | Already executing, or tracking rather than doing. Not scheduled by this section |
+
+The seam grouping has a side benefit worth one line: batches A–F are defined by
+the fact they prove rather than by the rows that happen to carry a tracker entry,
+so the open parity issues with no row of their own — #85 through #114 — fall into
+the same batches without a separate inventory.
+
+### Dispositions for open issues filed after Wave 6
+
+| Issue | Disposition |
+| --- | --- |
+| #173 | Correctness: a call to a provably non-returning function is refused when work follows it. A legal program is rejected, so it outranks every parity batch and leads the order below |
+| #174 | Correctness-adjacent: four of five machine-binding refusals still report no source location. The remedy is specified and the fifth already carries a span, so it is a bounded continuation of the Wave 6 unit that fixed the first |
+
+### Recommended order
+
+Correctness before parity, as Wave 6 established, and within parity the batch
+whose enabling fact is already proved before the batch that must build one.
+
+| Order | Work | Why here |
+| --- | --- | --- |
+| 1 | #173, then #174 | A refused legal program and an unlocatable refusal both block an author who has no workaround. Neither waits on anything |
+| 2 | T-168 continuation | In flight, and the headline output-quality figure on the board |
+| 3 | The #158 ruling | One user decision releases T-38 and T-159's last task, so it is the cheapest unblocking in the list |
+| 4 | Batch A, then B | The largest measured per-iteration wins, and both consume liveness and alias facts the existing seams already carry |
+| 5 | Batch E, then C, then F | E starts from a partly landed slice; C must first settle the #124/#126 overlap; F is one row and can follow at any point |
+| 6 | Batch D | Ordered last among the parity batches because it is the only one that must build a new fact — callee register preservation — before any row in it can be measured |
+
+The host-cost pair, the external-dependency rows and the blocked rows are not in
+this order on purpose. They are not ready, and placing them in a sequence would
+imply otherwise.
