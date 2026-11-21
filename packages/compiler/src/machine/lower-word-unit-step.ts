@@ -36,6 +36,11 @@ import type { DeclaredHome } from "./word-assignment-forwarding.js";
  *   carry and the overflow are preserved rather than overwritten — and both arms define sign and
  *   zero, so the whole-function flag check still proves every later use has a definer.
  *
+ *   Preserving the carry rather than defining it is the one place that could bite, and it bites
+ *   safely: the chain produced a whole-word carry-out, so if some later block's only producer of
+ *   the carry were this arithmetic, that check reports a program it cannot prove and the build is
+ *   refused. It is never accepted and quietly miscompiled.
+ *
  *   The positional requirement earns its place against a different reader: the in-block peepholes
  *   that inspect the instructions pending in the block being filled. Closing the block empties
  *   that list, so none of them can reach across this selection.
@@ -103,10 +108,14 @@ export function wordUnitStepHome(
  *
  * In the absolute form this replaces seventeen bytes and twenty-two cycles with eight bytes and
  * either nine or fourteen, depending on whether the low byte wrapped on that iteration. A home
- * that closes into zero page is thirteen bytes against six, and five or ten cycles. Those are the
- * figures for the step alone; what the program saves also depends on whether the skip branch can
- * be folded into the loop's own test and whether the carry arm falls through, which layout
- * decides.
+ * that closes into zero page is thirteen bytes against six, and eighteen cycles against eight or
+ * twelve. Every figure counts the branch as well as the increments.
+ *
+ * Those are the figures for the step alone. What a program saves also depends on whether the skip
+ * branch can carry the loop's back edge itself, which is a question of relative branch range: a
+ * displacement outside one signed byte forces the ordinary long-branch repair, which inverts the
+ * condition and adds an absolute jump, so the branch is then paid *in addition to* a jump that has
+ * to stay rather than in place of it. That is worth three bytes between the two cases.
  *
  * A relative branch exists in this architecture only as a block terminator, so an operation whose
  * selection needs one cannot express it in a flat instruction list. The function lowering loop

@@ -1,8 +1,8 @@
 # Word unit increment — the expert form for `x = x + 1`
 
 > **Owner**: T-41 · **CodeOps Artifact Schema**: 1
-> **Status**: Executing — implemented and measured, re-baseline and reviews outstanding
-> **Progress**: 4/6 tasks (67%)
+> **Status**: Complete — two review lenses, 0 critical, 0 major on emitted code, 1 major on the proof comment, 8 minors
+> **Progress**: 6/6 tasks (100%)
 > **Last Updated**: 2026-11-21
 > **Predecessors**: [word-assignment-forwarding](../word-assignment-forwarding/99-execution-plan.md),
 > [counter-exclusion-narrowing](../counter-exclusion-narrowing/99-execution-plan.md)
@@ -102,10 +102,10 @@ than discovered at the gate.
       control proving a site with live flags keeps the chain, and a page-crossing behavioural case.
 - [x] **T-41.4 Implement.** Flag and accumulator liveness first; then selection at the lowering
       loop's existing split seam. Increment only; decrement as its own case behind the same proof.
-- [ ] **T-41.5 Measure and re-baseline.** Re-digest. Re-derive the two control payloads rather than
+- [x] **T-41.5 Measure and re-baseline.** Re-digest. Re-derive the two control payloads rather than
       copying them. Re-baseline the cost witness in its own commit, with every behavioural value in
       that expectation shown unchanged.
-- [ ] **T-41.6 Verify and review.** Frozen behavioural and shape oracles green and untouched, both
+- [x] **T-41.6 Verify and review.** Frozen behavioural and shape oracles green and untouched, both
       corpora, emulator tier isolated including the page-crossing case, then both review lenses.
 
 ## Gates answered
@@ -126,18 +126,94 @@ than discovered at the gate.
 | Protected-counter control | 428 | **428** | unmoved, and correctly so |
 | All seven examples, all four modes | — | **byte-identical** | no example is in the admitted shape |
 
-The emitted form is the casebook's increment selection, and branch folding improves on the plan's
-own sketch: the skip branch is retargeted straight at the loop's exit test rather than at a
-separate continuation.
+The emitted form is the casebook's increment selection, with the skip branch carrying the loop's
+back edge directly where it can:
 
 ```
-inc <low> · bne <exit test> · inc <high>
+inc <low> · bne <exit test> · inc <high> · jmp <exit test>
 ```
+
+The nine-versus-six difference is **relative branch range**, and the first explanation written here
+was wrong. It was not that one layout lets the carry arm fall through — in both counted-loop cases
+the carry arm emits its own jump back. What differs is whether the skip branch can reach the loop
+test in one signed byte of displacement. Where it can, the two-byte branch *replaces* the three-byte
+jump the update block used to end with, so the saving is nine. Where it cannot, the ordinary
+long-branch repair inverts the condition and adds an absolute jump, so the branch is paid *on top
+of* a jump that has to stay, and the saving is six. The qualification site's back edge is a hundred
+and eighty-two bytes away, well outside range, which is exactly why it measures six.
+
+The clean eight-byte form, with the carry arm genuinely falling through, does occur — in a
+straight-line step and in a called function whose step closes the body — but not in either counted
+loop measured here.
 
 The protected counter staying at 428 is worth stating as a result rather than an absence. A counter
 narrowing still claims keeps its scratch copy, so it is never an in-place step, so this selection
 cannot reach it — which is the same one-way implication the release threshold rests on, observed
 from the other side.
+
+## Reviews
+
+| Lens | Result |
+| --- | --- |
+| Correctness and maintainability | 0 critical, **1 major**, 5 minor |
+| 6502 machine code | 0 critical, **0 major**, 3 minor |
+
+### The major: the proof was right, the stated reason was not
+
+The comment claimed the successor block establishes its own sign and zero flags. Nothing requires
+that, nothing checks it, and the safety never depended on it. The real discharge is narrower and
+provable, and is now what the comment says: flag and register reuse is selected between operations
+of a *single* block, so a cross-block reader of this result's flags cannot be constructed at all;
+the form clobbers strictly less than the chain, preserving the accumulator, the carry and the
+overflow; and both arms define sign and zero, so the whole-function flag proof still finds a definer
+for every later use. The positional requirement keeps its place against a different reader — the
+in-block peepholes that inspect the instructions pending in the block being filled.
+
+The machine-code lens then checked the three cross-block machine passes that the correctness lens
+had not, and all three are safe: the whole-program flag proof proves a producer exists and never
+value agreement, which is exactly what is claimed; the boolean-exit abstract interpretation treats
+the increment as a memory update that clears its own byte fact and both flag-from-accumulator facts,
+so no path pruning can be derived from the generated branch; and the dead-store cleanup lists the
+increment as reading storage and not writing it, so no store feeding it can ever be removed.
+
+### Two of my own explanations were wrong, and are corrected above
+
+The nine-versus-six difference is relative branch range, not whether the carry arm falls through.
+Both counted-loop layouts emit a jump in the carry arm. Recorded in the measured outcome.
+
+### Minors applied
+
+| Finding | Disposition |
+| --- | --- |
+| The zero-page cycle figure omitted the branch — five or ten should have been eight or twelve | **Fixed.** A shipped cost claim is exactly the kind of thing a later selection decision would trust |
+| No sentence recorded what happens now that the form preserves the carry instead of defining it | **Fixed** — if a later block's only carry producer were this arithmetic, the flag proof refuses the program rather than accepting it, which is the safe direction and worth stating once |
+| The second positional conjunct had no control, and its reachability was an open question | **Fixed** — the shape is reachable, so it has a real control: a step on a parameter closing a function body leaves by a return and keeps the chain |
+| A redundant instruction-site record duplicated what the surrounding loop already does | **Removed** |
+| The two width constants were duplicated with their doc comments in a second file | **Shared** from the module that owns the shape |
+| A doc block floated above a constant instead of documenting the module | **Fixed before review**, and named as a habit: fourth occurrence in this family |
+
+### Confirmed independently by the machine-code lens
+
+- Carry propagation exact in both directions with no first-iteration special case, verified by
+  executing the real emitted bytes: a counter seeded at 255 wraps on iteration one and reaches the
+  expected value, as do the counter, parameter and interrupt-handler forms.
+- **The increment form's joined zero flag is better than the chain's**, which is worth recording:
+  on the taken path the low byte is non-zero so the word is non-zero, and on the other path the low
+  byte is zero and the flag reflects the high byte — so it is a correct whole-word zero test, which
+  the chain's zero flag never was. Sign is the only genuinely unusable flag.
+- The read-modify-write can never reach device memory, by construction rather than by luck: only a
+  declared local or parameter home resolves, module globals are subtracted earlier, and the profile
+  windows exclude the input/output page and the processor port entirely.
+- Byte and cycle costs recomputed from the opcode tables and agreeing, except the zero-page cycle
+  figure which was wrong and is fixed.
+
+## Residual debt, named rather than folded in
+
+| Item | Why it is separate |
+| --- | --- |
+| Under long-branch repair the back edge is emitted twice — once in the inverted branch's added jump and once in the carry arm — where one shared jump at a continuation placed after the carry arm would do. Eleven bytes instead of fourteen, at the cost of one cycle on the hot path | The mechanism is block ordering and long-branch repair, which every splitting selection shares, so the repair belongs there rather than in this file. Where layout honours the declared fallthrough the carry arm already costs nothing |
+| **Decrement**, and the stated reason for excluding it was overstated | The exclusion said the canonical form loads the old low byte into the accumulator and so needs a different liveness argument. The chain it replaces also clobbers the accumulator, with its high result byte, so the discharge is the same block-closure argument with no new machinery. The honest reason to hold it back is staging, not difficulty — and it is the more valuable half for game code, where countdown loops are the idiom. The form is `lda lo · bne skip · dec hi · skip: dec lo`, eleven bytes against seventeen, and its flag story is *simpler* than the increment's because both arms end on `dec lo`, so sign and zero always describe the new low byte with no path dependence at all |
+| `x = x ± N` for `N > 1` | Genuinely a different proof: it keeps the low-byte addition, so it clobbers the accumulator and the carry, and its branch consumes the carry that addition just produced rather than the zero flag. Fourteen bytes against seventeen |
 
 ## Stop conditions
 
