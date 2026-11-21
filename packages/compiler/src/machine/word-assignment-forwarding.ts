@@ -127,6 +127,82 @@ function comparisonExtent(
 }
 
 /**
+ * Recognize a countdown's exit test and name the counter together with the extent it can reach.
+ *
+ * A descending loop's test bounds its counter from below and says nothing about how large it gets,
+ * so unlike an ascending test it cannot supply an extent by itself. `i > 0` is satisfied by one and
+ * by sixty thousand alike. What does bound such a counter is where it starts: a variable seeded
+ * once with a literal and thereafter only ever reduced can never exceed that literal, so the seed
+ * is the extent — plus one, because an extent is an exclusive bound and the seed itself is a value
+ * the counter takes.
+ *
+ * Both halves of that argument are required rather than assumed. A second seed would mean the
+ * counter can be restarted from a value this one does not know, and any update that is not a
+ * subtraction of a positive literal from the counter itself would mean it can grow again. Either
+ * leaves the counter unrecognized, which keeps it protected.
+ *
+ * Only the canonical spelling is read, matching the ascending recognizer's discipline: the test
+ * must compare a whole unsigned-word load against literal zero. `i >= 1` says the same thing and is
+ * deliberately not recognized, so no off-by-one argument has to be settled here.
+ *
+ * @param comparison Binary operation already known to use the greater-than operator.
+ * @param definitions Value definitions for the enclosing function.
+ * @param blocks Original blocks, since the seed and the update are not local to the test.
+ * @returns The counter and its exclusive bound, or `undefined` when the shape is not recognized.
+ * @example
+ * // `for (let i: word = 1000; i > 0; i -= 1)` names `i` with extent 1001.
+ * // `i > 1`, `i >= 1`, a counter seeded twice, and one that is also added to all yield
+ * // undefined, which leaves the counter protected.
+ */
+function descendingExtent(
+  comparison: BinaryOperation,
+  definitions: ReadonlyMap<string, SemanticOperation>,
+  blocks: readonly SemanticBlock[],
+): ControlledExtent | undefined {
+  const left = definitions.get(comparison.left);
+  if (
+    left?.kind !== "load" ||
+    left.place.path.length !== 0 ||
+    left.type.kind !== "scalar" ||
+    left.type.name !== "word"
+  )
+    return undefined;
+  const right = definitions.get(comparison.right);
+  if (right?.kind !== "constant" || right.value !== 0n) return undefined;
+  const root = bindingIdentityKey(left.place.root);
+
+  let seed: bigint | undefined;
+  let reductions = 0;
+  for (const block of blocks)
+    for (const operation of block.operations) {
+      if (operation.kind !== "store" || operation.place.path.length !== 0) continue;
+      if (operation.place.asset !== undefined) return undefined;
+      if (bindingIdentityKey(operation.place.root) !== root) continue;
+      const stored = definitions.get(operation.value);
+      if (stored?.kind === "constant" && typeof stored.value === "bigint") {
+        if (seed !== undefined) return undefined;
+        seed = stored.value;
+        continue;
+      }
+      if (stored?.kind !== "binary" || stored.operator !== "-") return undefined;
+      const target = definitions.get(stored.left);
+      if (
+        target?.kind !== "load" ||
+        target.place.path.length !== 0 ||
+        bindingIdentityKey(target.place.root) !== root
+      )
+        return undefined;
+      const amount = definitions.get(stored.right);
+      if (amount?.kind !== "constant" || typeof amount.value !== "bigint" || amount.value <= 0n)
+        return undefined;
+      reductions += 1;
+    }
+  if (seed === undefined || reductions === 0) return undefined;
+  if (seed < 0n || seed >= BigInt(Number.MAX_SAFE_INTEGER)) return undefined;
+  return Object.freeze({ root, extent: Number(seed) + 1 });
+}
+
+/**
  * Select whole-word assignments whose arithmetic result needs no private scratch.
  *
  * The word emitter has to park its low result somewhere while the accumulator
@@ -253,8 +329,15 @@ export function selectForwardedWordAssignments(
         // credited with the extent and its load is not walked. Walking it would record it a
         // second time with no extent, and the protective default would outvote the extent the
         // test just supplied.
+        //
+        // A countdown is credited the same way, from where its counter starts rather than from
+        // what the test compares against, because its test bounds the counter from below only.
         const credited =
-          definition.operator === "<" ? comparisonExtent(definition, definitions) : undefined;
+          definition.operator === "<"
+            ? comparisonExtent(definition, definitions)
+            : definition.operator === ">"
+              ? descendingExtent(definition, definitions, blocks)
+              : undefined;
         if (credited !== undefined) {
           noteControlRoot(credited.root, credited.extent);
           named.add(credited.root);
