@@ -251,7 +251,7 @@ the same batches without a separate inventory.
 | Issue | Disposition |
 | --- | --- |
 | #173 | Correctness: a call to a provably non-returning function is refused when work follows it. A legal program is rejected, so it outranks every parity batch and leads the order below |
-| #174 | Correctness-adjacent: four of five machine-binding refusals still report no source location. The remedy is specified and the fifth already carries a span, so it is a bounded continuation of the Wave 6 unit that fixed the first |
+| #174 | Correctness-adjacent: four of five machine-binding refusals still report no source location. The fifth already carries a span, and two of the four discard a `requestId` that maps back to a storage request and from there to source, so those two are a bounded continuation. The remaining two are not yet solved: a certificate failure and a missing-storage failure have no failing instruction to witness, so neither can reuse the instruction span, and the issue records that as a known difficulty rather than a plan |
 
 ### Recommended order
 
