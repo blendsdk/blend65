@@ -253,54 +253,52 @@ the same batches without a separate inventory.
 | #173 | Correctness: a call to a provably non-returning function is refused when work follows it. A legal program is rejected, so it outranks every parity batch and leads the order below |
 | #174 | Correctness-adjacent: four of five machine-binding refusals still report no source location. The fifth already carries a span, and two of the four discard a `requestId` that maps back to a storage request and from there to source, so those two are a bounded continuation. The remaining two are not yet solved: a certificate failure and a missing-storage failure have no failing instruction to witness, so neither can reuse the instruction span, and the issue records that as a known difficulty rather than a plan |
 
-### Session index — order by doability (2026-11-21)
+### Session worklist — run top to bottom (2026-11-21)
 
-This replaces the three-line order recorded above, now that execution is one
-session per group rather than one unit at a time. Doability here is not a guess
-at difficulty: it is whether the fact a group needs already exists in the code
-today, which is checkable and is cited per row below.
+This replaces the earlier three-line order and the grouping tables above it as the
+single live sequence. One row here is one session. Run them in order; when the
+list is finished the board is finished, because every open tracker row appears
+exactly once below and the wave-delivery row itself closes with the list.
 
-Each session starts cold, so every entry carries its own scope, its entry points
-and its gate. A session must not edit `spec/` or any `*.spec.test.ts` oracle; the
-groups below are all consumers of behavior those files already fix.
+Sessions start cold, so each row carries where to begin. No session may edit
+`spec/` or any `*.spec.test.ts` oracle.
 
-| # | Session | Scope | Entry points | Why this slot |
-| --- | --- | --- | --- | --- |
-| 1 | Non-returning call | #173 | `machine/lower-call.ts`, and the same test as applied at `machine/lower-indirect.ts:36` | The most doable item on the board. A legal program is refused, the needed fact `interruptOwnership.returningBodies` already exists and is already consulted on both dispatch routes, the remedy is specified - terminate the calling block unreachable - the two-candidate route has the worked precedent, and the issue carries a repro |
-| 2 | Locatable binding refusals | #174, two of its five sites | `services/machine-binding-diagnostic.ts`, `services/size-selection.ts:511`, `machine/bind.ts:561-569` | A refusal naming neither file nor construct is a defect whichever check produced it. The helper that locates the fifth site already exists, and the two sites carrying a `requestId` can map it back to a storage request and from there to source. Scope to those two: the certificate and missing-storage sites have no failing instruction to witness and are not yet solved |
-| 3 | Block-index diagnostic | T-38, then T-159's last task | `frontend/block-index-alignment.ts:325-333`, `../block-index-consumer-diagnostic/99-execution-plan.md` | Everything an implementation needs is already beside the two deliberate skips, and one ruling releases two rows. Opens only when the user rules on #158; until then it is a decision, not a session |
-| 4 | Batch A — capture and retention | #115, #116, #123, #132 | `machine/byte-value-availability.ts`, `machine/byte-capture-observers.ts`, `machine/lower-register-forwarding.ts` | The highest-doability parity batch and the largest measured per-iteration wins. All four remove a materialization of a value already live in A, so one liveness fact serves the whole batch and the availability model that proves it is already there |
-| 5 | Batch E — runtime shift | #129, #130, #131 | `machine/lower-variable-shift.ts`, `machine/optimization-shift-home.ts` | The only batch that starts from a partly proved base: #131's fold-safe slice has landed and already moved the saved artifact to 701. Three rows, one seam, no internal sequencing |
-| 6 | Batch F — finite-loop schedule | #119 | `machine/fixed-loop-selection.ts` | One row, one seam, nothing to order inside it - the cheapest complete batch. Sits behind A and E only because it shares its seam with no other row, so finishing it buys no setup for anything else |
-| 7 | Batch B — word views and direct indexing | #120 → #121, #122 → #125 | `machine/lower-aggregate-index.ts`, `machine/word-assignment-forwarding.ts`, `machine/lower-word-unit-step.ts` | The seam exists and #122 is the single largest measured win on the board, but the batch carries two internal chains - #121 is defined as beyond #120 - and #125 needs a strictly stronger alias and observation proof than #122. More sequencing than the three above, not less certainty |
-| 8 | Batch C — call and return linkage | #118, #124, #126 | `machine/lower-call.ts`, `machine/lower-terminal-byte.ts`, `machine/lower-aggregate-return.ts` | The seam exists, but the session must first settle how #124 and #126 are measured: they overlap on the helper figure and are explicitly not additive, so measuring them separately would double-count the batch |
-| 9 | Batch D — cross-call register availability | #104 enabler, then #127, #128 | `machine/lower-function.ts:1030`, `machine/lower-call.ts`, `machine/byte-value-availability.ts` | Last of the batches because it is the only one whose fact does not exist. Nothing in the compiler records which registers a callee provably leaves alone, and the current code assumes the opposite - a cached X base is re-read after a call precisely because the call may have clobbered it. The session builds that fact first and then consumes it twice |
-| 10 | Composite closeout | #95, NMI witness (#70/#83/#96/#97), Input-diagnostic output (#104/#51), Input recipe mixtures | The four closeout documents already linked from each row | Not work of its own. Each is a measured bundle that closes when the seams beneath it land, which also makes these the acceptance witnesses for sessions 4 through 9. Taking this session before them would measure an unchanged compiler |
-| 11 | Host cost | T-13, T-17 | `../constant-nested-construction/08-closeout.md`, `../rd-05-keyboard-input/08-phase-1-review.md` | Doable at any point and ordered last on value, not on difficulty. Both are report-only host allocation findings with no measured latency failure and no emitted behavior or cost defect |
+| # | Session | Closes | Where to start |
+| --- | --- | --- | --- |
+| 1 | Non-returning call compiles | #173 | Apply the `interruptOwnership.returningBodies` test used at `machine/lower-indirect.ts:36` where an ordinary call is lowered in `machine/lower-call.ts`. The fact is already computed, the remedy is specified, the sibling route has a worked precedent and the issue carries a repro |
+| 2 | A binding refusal names its construct | #174, two of its five sites | `services/machine-binding-diagnostic.ts` and `services/size-selection.ts:511`. Map the `requestId` the two sites at `machine/bind.ts:561-569` already carry back to a storage request and from there to source. The certificate and missing-storage sites have no instruction to witness and stay open |
+| 3 | Block-index alignment diagnostic | T-38, T-159 | Everything needed sits beside the two deliberate skips at `frontend/block-index-alignment.ts:325-333`. Opens with a ruling on #158, which the session puts to the user first |
+| 4 | Batch A — capture and retention | #115, #116, #123, #132 | `machine/byte-value-availability.ts`, `machine/byte-capture-observers.ts`, `machine/lower-register-forwarding.ts`. All four remove a materialization of a value already live in A, so one liveness fact serves the batch |
+| 5 | Batch E — runtime shift | #129, #130, #131 | `machine/lower-variable-shift.ts`, `machine/optimization-shift-home.ts`. #131's fold-safe slice has already landed and moved the saved artifact to 701 |
+| 6 | Batch F — finite-loop schedule | #119 | `machine/fixed-loop-selection.ts`. One row, one seam, nothing to sequence inside it |
+| 7 | Batch B — word views and direct indexing | #120, #121, #122, #125 | `machine/lower-aggregate-index.ts`, `machine/word-assignment-forwarding.ts`. Order inside the session: #120 before #121, which is defined as beyond it, and #122 before #125, which needs a strictly stronger alias and observation proof |
+| 8 | Batch C — call and return linkage | #118, #124, #126 | `machine/lower-call.ts`, `machine/lower-terminal-byte.ts`, `machine/lower-aggregate-return.ts`. Settle first how #124 and #126 are measured: they overlap on the helper figure and are not additive, so measuring them separately double-counts the batch |
+| 9 | Batch D — cross-call register availability | #104, #127, #128 | `machine/lower-function.ts:1030`, `machine/lower-call.ts`. The only batch whose fact does not exist: nothing records which registers a callee provably leaves alone, and a cached index base is re-read after a call precisely because the call may have clobbered it. Build that fact, then consume it twice |
+| 10 | Boing-ball remaining output | T-168 | `../boing-ball-parity/99-execution-plan.md`. Re-measure first: the 709-byte gap against the hand-written twin is largely the deficits sessions 4 to 9 close, so this session closes what is left and the whole-frame timing |
+| 11 | Acquisition size gap | T-145 | `../acquisition-size-gap/08-closeout.md`. Re-measure the 58/70-byte gap after the batches, then either admit the 149-byte looped form to the size frontier or close the row on the new measurement |
+| 12 | Composite parity closeout | #95, NMI witness (#70/#83/#96/#97), Input-diagnostic output (#104/#51) | The closeout document linked from each row. These are measured bundles rather than work: they close on the output sessions 4 to 9 produce, which is why they come after them |
+| 13 | Reopen whole-input cost closure | DEF-16, Input recipe mixtures | `../whole-input-cost-closure/00-index.md`, stopped at 29/40 with acquisition 2442 against 963. Run it after the seams land, so it measures the accumulated result instead of the deficits, and it turns the analytical whole-program figures in sessions 4 to 9 into actual ones |
+| 14 | Bound precedence qualification | #134 | Already executing within a verified bound; it needs the full phase and frontier that session 13 qualifies |
+| 15 | Partial-initializer inlining | T-155 | `../partial-initializer-inlining/08-closeout.md`. Build the missing unit first - dropping the initializer routine breaks artifact evidence because the initializer source spans no longer map to an emitted machine function - then land the inline selection that was already reached and reverted |
+| 16 | Cross-join NMI consumption | T-152 | `../cross-join-nmi-consumption/99-execution-plan.md`. Needs a per-predecessor consume and an A merge: pop in both arms, insert the else-arm pop, forward the join load from A, drop the wrapper X save |
+| 17 | Early raw-argument delivery | T-135 and its #135 twin row | `../early-raw-argument-delivery/99-execution-plan.md`. Needs a first-class early-delivery fact: the contiguous four-item delivery window and positional `unchanged` model cannot represent the retarget. Cheaper after sessions 8 and 9 |
+| 18 | Predicate-proved terminal return | T-133 and its #133 twin row | `../predicate-proved-return/99-execution-plan.md`. Needs a layout-level `jmp`-only replacement with a zero-growth check; the current bridge is a fallthrough, so the 3-byte return grows 261 to 264 |
+| 19 | Global constant fill | #117 | Decide first, then implement or close: the compact form saves 755 bytes and costs 2041 cycles, so it asks what size mode may trade. Not a code question until that is answered |
+| 20 | Host allocation costs | T-13, T-17 | The finding sections linked from both rows. Report-only host costs with no measured latency failure and no emitted behavior or cost defect, which is why they are this late |
+| 21 | Retained specification copies | T-07 | `../nmi-proof-scope-correction/99-execution-plan.md`. `spec/` is frozen, so this opens with the user authorizing a bounded maintenance gate and the separate stability-description ruling |
+| 22 | Producer and adapter evidence | T-19, V4-ASSET-1 | Blocked on artifacts only the user can supply: the GoatTracker 2.77 archive with member hashes, its music-only and SFX exports, ABI and writable ranges, and the CharPad 3.88 CTM producer |
+| 23 | Windows and macOS qualification | V4-HOST-1, DEF-3 | Blocked on hardware only the user can supply: a Windows x64 host and a macOS arm64 or x64 host for the install, package, VSIX, tool-discovery and process-tree cancellation journeys |
+| 24 | Physical C64 qualification | V4-HW-1 | Blocked on hardware only the user can supply: a C64, a real drive and both SID revisions. Every physical row stays `Unknown` until then, and emulator claims remain `VICE-verified / hardware-unverified` |
+| 25 | Close the wave-delivery row | T-31 | This plan. It closes when sessions 1 to 24 are done |
 
-### What every parity session verifies
-
-Sessions 4 through 9 share one gate, and it is narrower than it looks. Whole-program
-reclosure is not available - the cost-closure prerequisite is stopped with
-acquisition at 2442 against 963 - so a batch proves exactly two things: the
-measured witness in each row's note moves toward its expert target, and the
+Sessions 4 to 9 share one gate and it is narrower than it looks. Whole-program
+reclosure is not available until session 13, so each batch proves exactly two
+things: the measured witness in each row moves toward its expert target, and the
 frontier guards stay green at `test/rd05/input-acquisition-output.spec.test.ts:24`
 and `test/rd05/input-saved-query-output.spec.test.ts:23`, with the optimizer-mode
 pair at `test/rd08/optimizer-acquisition-output.spec.test.ts:315` and
-`test/rd08/optimizer-saved-output.spec.test.ts:221`. The whole-program figure in
-each row stays analytical until closure reopens, and rows that overlap are
-measured together because their savings do not sum.
-
-### Not sessions, and why
-
-| Item | Why it is not in the order |
-| --- | --- |
-| T-168 | Reclassified: it is the measuring stick, not a session. Its remaining 709-byte gap against the hand-written twin *is* the seam deficits that sessions 4 through 9 close, so a T-168 session would re-measure rather than close anything. Re-run it after each batch instead. This supersedes the earlier slot that scheduled it second - that was the right answer to which single unit runs next, and the wrong answer to which session completes |
-| ↳ Bound precedence (#134) | Already executing within its own verified bound |
-| T-152, T-133 with its #133 twin row, T-135 with its #135 twin row, T-155, T-145 | Each is prototyped or measured and blocked on a named missing unit, so a session would reproduce a number already recorded. Promoted only when that unit becomes a plan. Two get cheaper first: T-135 needs a first-class early-delivery fact and T-133 a layout-level return replacement, which sessions 8 and 9 move toward |
-| #117, T-07 | Decisions rather than work. #117 saves 755 bytes and costs 2041 cycles, so it asks what size mode may trade; T-07 waits on a bounded maintenance gate because `spec/` is frozen |
-| V4-HW-1, V4-HOST-1 with the DEF-3 row it absorbs, V4-ASSET-1, T-19 | No compiler change advances them. They need a physical C64, a second host platform, and producer artifacts |
-| T-31, DEF-16 | This index and the stopped closure gate. Tracking, not doing |
+`test/rd08/optimizer-saved-output.spec.test.ts:221`. Rows that overlap are
+measured together, because their savings do not sum.
 
 Sessions 1 and 2 reference issues that carry no tracker row, so neither is visible
 from the roadmap alone. Adding rows for them is a tracker decision and is left
