@@ -101,7 +101,7 @@ a reviewer had flagged as collision-prone.
 
 | Item | Correction |
 | --- | --- |
-| The predecessor's closeout sized `x = x ± const` at about three bytes with no oracle change | Wrong. The saving is real, but a relative branch exists in this architecture only as a block terminator and value lowerings return a flat instruction list, so it needs a value-lowering contract change or a post-lowering splitting pass. The review adds that it cannot ride on this slice's flag argument either, since `INC` cannot reproduce the released form's flags |
+| The predecessor's closeout sized `x = x ± const` at about three bytes with no oracle change | The size estimate was wrong — the `±1` form is worth about nine bytes, not three. The structural claim recorded here was also wrong in its conclusion and is corrected where it was written: a relative branch is indeed only ever a block terminator and value lowerings do return a flat instruction list, but the function lowering loop already splits the block it is filling to give one operation its own branches, which a platform frame wait relies on today. No new contract or pass is needed. What does still stand is that this cannot ride on this slice's flag argument, since `INC` cannot reproduce the released form's flags — and the flag obligation is larger than it looked, because the branch makes `N` and `Z` path-dependent at the join rather than always carrying the high byte's |
 | The zero-page citation in that closeout | The file is `storage/inventory.ts`, not `machine/inventory.ts` |
 
 ## Verification

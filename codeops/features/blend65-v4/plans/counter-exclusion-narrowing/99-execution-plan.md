@@ -65,12 +65,14 @@ Two properties keep this honest:
 
 ## Non-goals
 
-- The `hi` arm of the unary byte-write forwarding. Same class, different owner.
-- `x = x ± constant` as `inc lo; bne +; inc hi`. Now known to be **structurally blocked**, not
-  merely unimplemented: relative branches exist only as block terminators (`bind.ts` resolves
-  relative mode for `terminator.opcode` alone) and value lowerings return a flat instruction list,
-  so this needs either a change to the value-lowering contract or a post-lowering block-splitting
-  pass. The predecessor's closeout understated it as a three-byte slice and is corrected.
+- The `hi` arm of the unary byte-write forwarding. Same class, different owner. **Since delivered.**
+- `x = x ± constant` as `inc lo; bne +; inc hi`. Recorded here as **structurally blocked**, which
+  was wrong and is corrected in this unit's closeout. The two observations behind it are both true —
+  relative branches exist only as block terminators (`bind.ts` resolves relative mode for
+  `terminator.opcode` alone) and value lowerings return a flat instruction list — but the
+  conclusion drawn from them was not, because the function lowering loop already splits the block
+  it is filling to give one operation its own branch-terminated blocks, which a platform frame wait
+  uses today. The predecessor's three-byte estimate was also low: the `±1` form is worth about nine.
 - Releasing the exclusion wholesale when no narrowing policy is active. Tempting at `none`, but it
   would key on fact visibility in a pass where facts have twice proved empty — the exact failure
   mode that caused the cliff.
