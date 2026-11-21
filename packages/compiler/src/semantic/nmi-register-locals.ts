@@ -196,6 +196,33 @@ function foldedConstant(
   return null;
 }
 
+/**
+ * Return whether one operation is a single byte read whose result lowering leaves in A.
+ *
+ * Two shapes qualify, and they qualify for the same reason rather than by analogy. A platform
+ * capability from the forwardable set is selected as one `lda` of a fixed hardware address. A
+ * one-byte raw read of a compile-time-known address is selected as one `lda` of that address.
+ * Neither computes an operand, so in both cases the byte is in the accumulator when the read
+ * finishes, which is the whole requirement for omitting the home that would otherwise hold it.
+ *
+ * A read whose address is computed is deliberately absent: its selection builds a pointer and may
+ * route the byte through an index register, so the value would not reliably be in A.
+ *
+ * @param operation Candidate initializing operation.
+ * @param constants Values proved to be compile-time constants in this function.
+ * @returns True when the single read leaves its byte in the accumulator.
+ */
+function readsOneByteIntoA(operation: SemanticOperation, constants: ReadonlySet<string>): boolean {
+  if (operation.kind === "platform")
+    return byteType(operation.type) && forwardableVolatileByteRead(operation.capability);
+  return (
+    operation.kind === "memory-read" &&
+    operation.width === 1 &&
+    byteType(operation.type) &&
+    constants.has(operation.address)
+  );
+}
+
 /** Return whether one value is an empty-path byte load the ALU can address directly. */
 function directByteLoad(fn: SemanticFunction, value: string): boolean {
   const definition = definitionOf(fn, value);
@@ -222,10 +249,8 @@ function producesByteInA(
   const definition = definitionOf(fn, value)?.operation;
   if (definition === undefined) return false;
   if (foldedConstant(fn, value) !== null) return false;
-  if (definition.kind === "platform")
-    return byteType(definition.type) && forwardableVolatileByteRead(definition.capability);
-  if (definition.kind === "memory-read")
-    return definition.width === 1 && constants.has(definition.address);
+  if (definition.kind === "platform" || definition.kind === "memory-read")
+    return readsOneByteIntoA(definition, constants);
   if (definition.kind === "binary") {
     if (!["&", "|", "^"].includes(definition.operator) || !byteType(definition.type)) return false;
     // A zero mask folds to a constant at lowering; nothing would be in A to push.
@@ -248,6 +273,17 @@ function producesByteInA(
  * request before allocation; machine lowering consumes the recorded set. A local
  * with an address, a second access, a cross-block life, an indexed path or a
  * non-direct initializer is deliberately absent.
+ *
+ * The initializer may be a forwardable platform byte read or a one-byte read of a fixed address,
+ * because each is selected as a single load that leaves the byte in the accumulator. The two are
+ * admitted on that one shared fact rather than as separate cases. Nothing may sit between the read
+ * and the store, or between the load and its single consumer, beyond compile-time constants and one
+ * permitted peer load, so the read keeps its exact position and its single occurrence; the only
+ * thing that disappears is the memory the byte was being parked in.
+ *
+ * Which locals this reaches matters beyond saving a byte. A handler on a cooperative interrupt
+ * route must leave no invocation-private home behind to be admitted at all, so a local proved here
+ * is a local that no longer blocks its handler's route.
  * @param fn Exact checked source function.
  * @param excluded Global and returned-local binding keys that must never be elided.
  * @returns Binding keys mapped to their exact store/load evidence.
@@ -405,9 +441,7 @@ export function nmiRegisterOnlyLocals(
     if (
       valueDefinition === null ||
       valueDefinition.block.id !== store.block.id ||
-      valueDefinition.operation.kind !== "platform" ||
-      !byteType(valueDefinition.operation.type) ||
-      !forwardableVolatileByteRead(valueDefinition.operation.capability) ||
+      !readsOneByteIntoA(valueDefinition.operation, constants) ||
       valueUseCount(fn, store.operation.value) !== 1 ||
       !constantOnlyBetween(store.block, valueDefinition.index, store.index, constants)
     )
