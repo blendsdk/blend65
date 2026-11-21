@@ -25,8 +25,9 @@ const reentrancyMessage =
 const externalEffect =
   "external-nmi-aggregate-stack+retained-nmi-firmware-completion+external-nmi-finite-deadline";
 /**
- * Nine simultaneously retained bytes fit the generated exclusive entry's proved
- * hardware-stack capacity; the stock chained route keeps its separate frame proof.
+ * Nine simultaneously retained bytes fit the proved hardware-stack capacity of either generated
+ * cooperative entry. Both installers emit an entry shell and both retain on it; they differ only
+ * in how the entry state comes back and in the one byte that costs.
  */
 const retainedReads = `let a: byte = peek($0400); let b: byte = peek($0401);
 let c: byte = peek($0402); let d: byte = peek($0403); let e: byte = peek($0404);
@@ -138,14 +139,23 @@ function main(): void { setNMIExclusive(&handler); restoreNMI(); }`;
     });
   });
 
-  // The stock chained route keeps its separate frame contract and stays rejected.
-  it("should reject the chained route when it retains nine samples", async () => {
+  // The stock chained entry admits the same nine retained bytes on its own stack, at the cost of
+  // the one extra byte its declared entry frame carries.
+  it("should admit the chained route when it retains nine samples", async () => {
     const source = chainedSource(retainedReads);
-    await withProfileProject(source, profile, async (project, root) => {
-      const checked = await checkProject({ project });
+    await withProfileProject(source, profile, async (project) => {
       const built = await buildProject({ project, optimization: "none" });
-      expectRejected([checked, built], source, "E10245", "setNMI(&handler)");
-      await expect(access(join(root, "out"))).rejects.toMatchObject({ code: "ENOENT" });
+      expect(built.kind, JSON.stringify(built.diagnostics)).toBe("success");
+      if (built.kind !== "success") return;
+      const artifacts = await readProfileArtifacts(built);
+      const totals = profileRecord(artifacts.costs.totals);
+      const standard = (id: string) =>
+        profileRecords(totals.resources).find((row) => row.kind === "standard" && row.id === id);
+      expect(standard("zeroPage")?.value).toBe(0);
+      expect(standard("scratch")?.value).toBe(0);
+      // One more than the exclusive route's fourteen. The retention is identical; the difference
+      // is the entry frame each route declares, seven bytes against six.
+      expect(standard("hardwareStack")?.value).toBe(15);
     });
   });
 

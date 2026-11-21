@@ -162,10 +162,14 @@ describe("canonical diagnostics from alternate placement producers", () => {
     expect(result).not.toHaveProperty("generation");
   });
 
+  // The retained bytes sit behind an ordinary helper rather than in the handler itself. Bounded
+  // retention is a property of the generated interrupt entry shell, which both cooperative
+  // installers emit and a helper does not have, so a helper holding more bytes than the registers
+  // can carry still needs invocation-private homes the route cannot provide.
   it("reports the unbounded cooperative NMI entry through its canonical execution-path record", async () => {
     const source = `module Game;
 import { setNMI, restoreNMI } from c64.system;
-interrupt function handler(): void {
+function retainSamples(): void {
   let a: byte = peek($0400);
   let b: byte = peek($0401);
   let c: byte = peek($0402);
@@ -177,6 +181,7 @@ interrupt function handler(): void {
   poke($0413, d);
   poke($0414, e);
 }
+interrupt function handler(): void { retainSamples(); }
 function main(): void { setNMI(&handler); restoreNMI(); }`;
     const result = await build(source);
     const errors = result.diagnostics.filter(({ severity }) => severity === "error");

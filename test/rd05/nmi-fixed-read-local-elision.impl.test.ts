@@ -69,6 +69,17 @@ async function refusal(body: string): Promise<readonly string[]> {
   });
 }
 
+/** Charged hardware-stack bytes for one handler body, which is what a retained slot costs. */
+async function charged(body: string): Promise<number> {
+  const artifacts = await evidence(body);
+  const totals = profileRecord(artifacts.costs.totals);
+  const row = profileRecords(totals.resources).find(
+    (entry) => entry.kind === "standard" && entry.id === "hardwareStack",
+  );
+  if (typeof row?.value !== "number") throw new TypeError("Missing charged hardware-stack figure");
+  return row.value;
+}
+
 describe("an NMI local initialized by a fixed-address byte read", () => {
   it("should need no invocation-private home when its whole life is an adjacent pair", async () => {
     // The point of the rule, asserted on the memory map rather than on a size: the byte is read
@@ -102,19 +113,23 @@ describe("an NMI local initialized by a fixed-address byte read", () => {
     expect([handlerPrivateHomes(masked), handlerPrivateHomes(tested)]).toEqual([[], []]);
   }, 180_000);
 
-  it("should still refuse a local that genuinely needs memory", async () => {
+  it("should charge a slot for a local that genuinely needs memory, and none for an elided one", async () => {
     // The rule is about locals that need no storage, not about being permissive. A second use
-    // means the byte must survive past the first consumer, and crossed lifetimes mean two bytes
-    // must be live at once — neither fits in the accumulator, so each keeps its home and the
-    // chained route keeps refusing the handler.
-    const [twoUses, crossed] = await Promise.all([
-      refusal("let a: byte = peek($0400); poke($0411, a); poke($0412, a);"),
-      refusal(
+    // means the byte must survive past its first consumer, and crossed lifetimes mean two bytes
+    // must be live at once; neither fits in the accumulator. Such a local is not refused — the
+    // route's bounded retention takes it — but it is paid for, and the figures say so: the elided
+    // local costs nothing beyond the entry shell, while each byte that must genuinely stay alive
+    // costs its retained slot. Asserted as the whole decomposition rather than as three separate
+    // sizes, so a change that quietly moved the cost between them could not pass.
+    const [elided, twoUses, crossed] = await Promise.all([
+      charged("let a: byte = peek($0400); poke($0411, a);"),
+      charged("let a: byte = peek($0400); poke($0411, a); poke($0412, a);"),
+      charged(
         "let a: byte = peek($0400); let b: byte = peek($0401); poke($0411, b); poke($0412, a);",
       ),
     ]);
 
-    expect([twoUses, crossed]).toEqual([["E10245"], ["E10245"]]);
+    expect({ elided, twoUses, crossed }).toEqual({ elided: 5, twoUses: 7, crossed: 7 });
   }, 180_000);
 
   it("should refuse a read whose address is not known at compile time", async () => {

@@ -422,17 +422,20 @@ export function inventoryStorage(
         const fn = Object.freeze({ ...source, blocks });
         const elidedLocals =
           domain === "nmi" ? nmiRegisterOnlyLocals(fn, elisionExcluded) : new Map();
-        // The straight-line hardware-stack retention is proved on the generated
-        // exclusive NMI entry. The stock chained route keeps its separate frame
-        // contract and does not reuse this proof.
-        const exclusiveNmi =
+        // Straight-line hardware-stack retention is proved on the generated NMI entry shell, and
+        // both cooperative installers emit one. They differ in how the entry state comes back —
+        // one returns from the interrupt, the other restores the status and hands over to the
+        // previous handler — and in the one byte that costs, which the charged figures carry.
+        // Neither difference touches the retention itself, so neither route is singled out here.
+        const cooperativeNmi =
           program.interruptRoutes?.some(
             (route) =>
               bindingIdentityKey(route.handler) === bindingIdentityKey(fn.id) &&
-              route.sink.capability === "c64.system.setNMIExclusive",
+              (route.sink.capability === "c64.system.setNMIExclusive" ||
+                route.sink.capability === "c64.system.setNMI"),
           ) === true;
         const stackLocals =
-          domain === "nmi" && exclusiveNmi
+          domain === "nmi" && cooperativeNmi
             ? nmiStackRetainedLocals(fn, elisionExcluded)
             : new Map();
         const lifetimes = proof === undefined ? program.lifetimes : valueLifetimes(fn);

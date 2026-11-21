@@ -66,12 +66,12 @@
     },
     {
       "id": "v4-nmi-chained-retention",
-      "status": "deferred",
+      "status": "retired",
       "sourceForm": "a retained local in an interrupt function installed through the stock chained setNMI route",
       "diagnostic": "E10245",
-      "reason": "The generated exclusive NMI entry is the delivered bounded-retention boundary. The stock chained route keeps its separate stock frame and ownership contract; the compiler fails closed rather than binding the exclusive stack plan onto it. A retained local in a chained handler therefore still needs a private home the cooperative route cannot provide.",
-      "owner": "issue #153",
-      "decision": "Issue #150 delivered the exclusive-route retention forms. The chained-route retention proof is a separate route extension tracked by issue #153."
+      "reason": "Hardware-stack retention is proved on the generated NMI entry shell, and both cooperative installers emit one. The chained route was never blocked by its frame: its entry shell balances, its indexed slot reads address it correctly, and its handover leaves the previous handler the frame it expects. What blocked it was a compiler limitation one level away - a frame unwind beyond six retained bytes raises the stack pointer in one go, and the flag proof treated that as making the stack unknowable, losing the status snapshot this route must restore before handing over. With the unwind followed by its recorded released-byte count, the route retains like the exclusive one and charges one byte more, which is the difference between the two declared entry frames.",
+      "owner": "RD-05 AR-P32 reversal",
+      "decision": "AR-P32 reverses AR-P11's chained-retention line under explicit authorization. The nine-sample chained fixture is converted from rejection to admission, mirroring the exclusive route's assertion set with a measured hardware-stack figure; a retaining helper stays rejected on either route, because retention is a property of the generated entry shell and a helper has none, and that helper case carries the canonical reentrancy witness."
     }
   ]
 }
