@@ -18,7 +18,8 @@ import { proveSpritePublications } from "./sprite-publication-proof.js";
  * @param blocks Original blocks in their original identity order.
  * @param singleUseValues Existing operation-use inventory; independently rechecked here.
  * @param includeNamedArithmeticStores Explicitly admit adjacent whole-byte arithmetic assignments.
- * @param includeHighByteExtractions Explicitly admit the high half of the same named-word read.
+ * @param includeHighByteExtractions Explicitly admit a high-byte extraction of the adjacent
+ * named-word read.
  * @returns IDs whose fresh accumulator value may bypass anonymous retention.
  */
 export function selectAnonymousByteWriteValues(
@@ -113,10 +114,12 @@ export function selectAnonymousByteWriteValues(
       // The original named-word read stays in place. Only its extracted byte's
       // anonymous home disappears; no other operation may intervene or share it.
       //
-      // Either half of that read qualifies, because the emitter reaches the two halves the same
-      // way: it already loads the byte it needs out of the word's own home, and only the store
-      // and reload wrapped around it are redundant. Which half is taken therefore changes the
-      // address loaded and nothing else. The high half is admitted on request rather than by
+      // Either half of that read may qualify, because the emitter reaches both the same way: one
+      // load of the operand at the half's own byte offset, after which only the store and reload
+      // wrapped around it are redundant. The operand supplies whichever byte it holds, which is
+      // a byte of the word's home for an ordinary word and a synthesized zero for one already
+      // narrowed to a single live byte, so taking the high half changes what is loaded and
+      // nothing else about the sequence. The high half is admitted on request rather than by
       // default, so a caller asking only for the shape this selection originally served keeps
       // exactly the answer it had.
       const extractedByte =

@@ -342,7 +342,16 @@ export function lowerFunction(
         singleUseValues,
         materializedValues,
       ),
-      ...selectAnonymousByteWriteValues(input, sourceFunction, blocks, singleUseValues, true, true),
+      // Named rather than passed bare: two adjacent positional booleans would let a transposition
+      // read as correct while silently admitting the wrong shape.
+      ...selectAnonymousByteWriteValues(
+        input,
+        sourceFunction,
+        blocks,
+        singleUseValues,
+        /* includeNamedArithmeticStores */ true,
+        /* includeHighByteExtractions */ true,
+      ),
     ]),
     zeroFlagValues: new Set(zeroFlagValues),
     booleanValues: new Set(booleanValues),
