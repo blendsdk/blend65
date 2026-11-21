@@ -1,4 +1,3 @@
-import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import { interruptDepthAt, interruptExecutionContexts } from "../semantic/interrupt-contexts.js";
 import { interruptCodeContexts } from "../semantic/interrupt-context-facts.js";
@@ -6,6 +5,7 @@ import type { IndirectCallOperation } from "../semantic/operations.js";
 import type { PlatformOperation } from "../semantic/operations.js";
 import type { InterruptRoute } from "../semantic/whole-program.js";
 import { hasHandlerSideIrqInstall } from "../storage/inventory.js";
+import { calleeNeverReturns } from "./call-returning-facts.js";
 import { contextFunctionLabel } from "./interrupt-specialize.js";
 import { lowerOperation } from "./lower-operation.js";
 import {
@@ -24,19 +24,6 @@ import {
   typeBytes,
   type FunctionLoweringState,
 } from "./lower-state.js";
-
-/**
- * Whether a candidate's existing whole-program summary proves it never returns.
- *
- * An absent summary answers `false`, so an unknown candidate is treated as one that may
- * return. That keeps the ordinary executable edge after the call, which is the safe default.
- */
-function neverReturns(callee: BindingId, state: FunctionLoweringState): boolean {
-  return (
-    state.input.program.interruptOwnership?.returningBodies?.get(bindingIdentityKey(callee)) ===
-    false
-  );
-}
 
 /** Lower one proved candidate with its own certified static parameter homes. */
 function directArm(
@@ -63,14 +50,36 @@ export function lowerIndirectCall(
   if (targets.length === 0) {
     throw loweringFailure("Indirect call has no finite source target", operation.span);
   }
+  const prefix = `${state.currentSemanticBlockId}.indirect.${index}`;
+  // Every route out of this dispatch rejoins under one name, so it is built once.
+  const continuation = `${prefix}.continue`;
   if (targets.length === 1) {
+    const only = targets[0]!;
+    const instructions = Object.freeze([
+      ...currentInstructions,
+      ...directArm(operation, only, state),
+    ]);
+    // One proved candidate is called by name, so this is the ordinary call it became and must
+    // answer the non-returning shape exactly as that call does. The comparison chain and the
+    // thunk already give a candidate that cannot return no executable edge; answering it
+    // differently here would let the number of candidates decide whether a program compiles.
+    if (calleeNeverReturns(only, state)) {
+      return Object.freeze({
+        blocks: Object.freeze([
+          Object.freeze({
+            label: currentLabel,
+            instructions,
+            terminator: Object.freeze({ kind: "unreachable" as const }),
+          }),
+        ]),
+        continuation,
+        continuationInstructions: Object.freeze([]),
+      });
+    }
     return Object.freeze({
       blocks: Object.freeze([]),
       continuation: currentLabel,
-      continuationInstructions: Object.freeze([
-        ...currentInstructions,
-        ...directArm(operation, targets[0]!, state),
-      ]),
+      continuationInstructions: instructions,
     });
   }
   const target = state.values.get(operation.target);
@@ -81,9 +90,6 @@ export function lowerIndirectCall(
     throw loweringFailure("Indirect target was not staged before its arguments", operation.span);
   }
   const cpu = state.input.profile.cpu;
-  const prefix = `${state.currentSemanticBlockId}.indirect.${index}`;
-  // Both dispatch routes rejoin under one name, so it is built once.
-  const continuation = `${prefix}.continue`;
   // A no-argument scalar call can tail-jump from a local thunk. Its JSR return
   // address remains on the stack, and the target's ordinary RTS returns A/AX.
   const home =
@@ -174,7 +180,7 @@ export function lowerIndirectCall(
     // comparison chain already answers this shape the same way; answering it differently here
     // would make the argument count decide whether the program is accepted at all. The
     // retained result stays: whatever follows still reads it, and unreachable code is legal.
-    if (targets.every((candidate) => neverReturns(candidate, state))) {
+    if (targets.every((candidate) => calleeNeverReturns(candidate, state))) {
       return Object.freeze({
         blocks: Object.freeze([
           Object.freeze({
@@ -259,7 +265,7 @@ export function lowerIndirectCall(
         // Keep the ordinary call frame, but do not invent an executable edge
         // after a callee whose existing whole-program summary proves no return.
         // Unknown and returning candidates still join the shared continuation.
-        terminator: neverReturns(callee, state)
+        terminator: calleeNeverReturns(callee, state)
           ? Object.freeze({ kind: "unreachable" })
           : Object.freeze({
               kind: "jump",
@@ -276,7 +282,7 @@ export function lowerIndirectCall(
     Object.freeze({
       label,
       instructions: directArm(operation, targets[targets.length - 1]!, state),
-      terminator: neverReturns(targets[targets.length - 1]!, state)
+      terminator: calleeNeverReturns(targets[targets.length - 1]!, state)
         ? Object.freeze({ kind: "unreachable" })
         : Object.freeze({ kind: "fallthrough", target: continuation }),
     }),

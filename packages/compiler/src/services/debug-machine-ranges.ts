@@ -142,6 +142,9 @@ export function machineFunctionSegments(
         // A switch dispatch test split into its low/high byte comparisons.
         block.label.startsWith(`${id}.switch.`) ||
         block.label.startsWith(`${id}.indirect.`) ||
+        // Code after a call that cannot return, which the call closed off from the block it
+        // was filling. It is still this source block's own unreachable remainder.
+        block.label.startsWith(`${id}.call.`) ||
         // A layout bridge belongs to the same source edge, not a new source operation.
         block.label.startsWith(`${id}.fallthrough.`) ||
         block.label.startsWith(`${id}.bounds.`),

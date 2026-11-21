@@ -46,6 +46,7 @@ import {
   selectZeroReturn,
   selectByteWindows,
 } from "./lower-register-forwarding.js";
+import { calleeNeverReturns } from "./call-returning-facts.js";
 import { lowerIndirectCall, lowerInterruptSink } from "./lower-indirect.js";
 import { potentialValueInputs } from "../semantic/value-lifetimes.js";
 import { constantValue } from "../semantic/raw-write-kills.js";
@@ -513,6 +514,7 @@ export function lowerFunction(
     let aggregateFillIndex = 0;
     let aggregateBuildIndex = 0;
     let aggregateCaptureIndex = 0;
+    let terminalCallIndex = 0;
     let precedingSite: SemanticOperation | SemanticTerminator | null = null;
     let precedingInstructions = 0;
     let precedingBlocks = 0;
@@ -881,6 +883,25 @@ export function lowerFunction(
             instructionSites?.add(operation);
             constructionLiteral = null;
           }
+        }
+        // A callee that cannot return never resumes this function, so the block being filled
+        // owns no exit of its own and everything after the call is unreachable. Closing it here
+        // is what keeps the generated control flow honest: an exit execution can never take
+        // would otherwise claim a producer for the processor state the next instruction reads.
+        // The unreachable code itself stays where the author wrote it, because unreachable code
+        // is legal source and removing it belongs to optimization rather than to this proof.
+        if (operation.kind === "call" && calleeNeverReturns(operation.callee, state)) {
+          loweredBlocks.push(
+            Object.freeze({
+              label: currentLabel,
+              instructions: Object.freeze([...currentInstructions]),
+              terminator: Object.freeze({ kind: "unreachable" as const }),
+            }),
+          );
+          currentLabel = `${block.id}.call.${terminalCallIndex}.continue`;
+          currentInstructions = [];
+          terminalCallIndex += 1;
+          constructionLiteral = null;
         }
         continue;
       }
