@@ -2,8 +2,10 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-38 / #158
-> **Progress**: 1/5 tasks (20%) — the analysis is complete; implementation is gated
-> **Status**: **Blocked on one user decision.** Everything that does not depend on it is done
+> **Progress**: 2/5 tasks (40%) — the approval path is fully resolved; implementation is not
+> available under the current freeze
+> **Status**: **Not deliverable under the current freeze**, proved by attempt. The requirement is
+> recorded as errata E-10; relabelling the issue as deferred is proposed
 > **Last Updated**: 2026-11-21
 > **Baseline**: analysis performed at `717af1d2`, clean `feature/v4-rebuild`
 > **Scope**: strict; a diagnostic for an unsatisfiable block-index alignment reaching a proved
@@ -106,7 +108,7 @@ neighbour, `W10151`, is about several declarations sharing one embedded address,
 alignment. This confirms the issue's own statement that the registry has no warning code for a
 hardware alignment advisory.
 
-### And the registry may not be edited
+### And the registry cannot be edited — two independent locks, one of them absolute
 
 `codeops/00-spec-errata.md` records the governing decision verbatim:
 
@@ -114,9 +116,37 @@ hardware alignment advisory.
 > decision **D3**. Nothing here is applied; this is the queue for a future errata pass.
 > … Never edit `spec/` to fix one. D3 holds for the duration of compiler implementation.
 
-So the three facts close a ring: the fix must be a warning, no warning code exists, and a new one
-cannot be registered without overriding D3. That is why the issue reserved its own approval path,
-and it is the single thing implementation waits on.
+**The second lock was found by trying it, after option A was authorized, and it is the one that
+settles the matter.** `test/foundation.spec.test.ts:385-401` is itself a frozen oracle. It builds an
+approved baseline from the `spec/` tree at a **hardcoded commit** (`:353`) and asserts that both the
+**on-disk** tree (`:373`) and the **HEAD** tree (`:376`) are byte-identical to it, file by file.
+
+Measured rather than reasoned: adding the one authorized line to `spec/14-diagnostics.md` fails that
+oracle with `14-diagnostics.md: expected false to be true`, and separately fails six cases in
+`test/rd04/normative-coverage.impl.test.ts`. Reverting restores all 19 to green.
+
+An earlier reading of this plan concluded the opposite — that the oracle only hashed history,
+because `committedBytes` defaults to a pinned release commit. That was wrong: the same test also
+reads disk and HEAD and compares them to the approved baseline. The error was mine, and it is
+recorded here because it is the reason option A looked available when it was not.
+
+So registering a warning code requires **editing a frozen specification oracle** to re-point the
+approved baseline at a new commit. That is categorically larger than adding a registry line: that
+oracle is the repository's integrity anchor, binding release lineage, specification identity and the
+qualified expert baseline together. It is precisely what a frozen oracle exists to prevent, and it
+is not what was authorized.
+
+### Therefore
+
+| Fact | Consequence |
+| --- | --- |
+| A frozen oracle pins the witness as accepted | An error-severity diagnostic is impossible |
+| No warning code covers hardware alignment | A warning has nothing to emit |
+| A frozen oracle pins the `spec/` tree byte-for-byte on disk and at HEAD | Registering one cannot be done without re-pointing that anchor |
+
+**#158 as written is not deliverable under the current freeze.** That is the finding, and it is the
+issue's own question answered: the approval path it reserved runs through a specification-baseline
+amendment, which is a v3.1 activity rather than a compiler change.
 
 ## Options
 
@@ -127,29 +157,37 @@ and it is the single thing implementation waits on.
 | C — defer to the v3.1 spec pass | Record the requirement as an errata row and close nothing | Honest and cheap, and the errata log is explicitly the agenda for that pass. The defect stays silent in the meantime: a program that cannot work still compiles without a word |
 | D — detect without reporting | Compute satisfiability and expose it in build evidence only | No author ever sees it. Fails the issue's own acceptance, which requires the diagnostic to name the alignment, the address and the consumer |
 
-**Recommendation: A**, with the exception bounded in writing — one additive warning code, no change
-to any existing rule or code, recorded as an errata row so the amendment is visible at the v3.1
-pass. The reason is the prime directive: the program in the witness cannot do what its author asked,
-the compiler can prove it, and staying silent to protect a documentation freeze is the wrong trade.
-Option C is the honest fallback if the freeze is to hold absolutely, and in that case this issue
-should be relabelled as deferred rather than left looking actionable.
+**Recommendation after the attempt: C.** Option A was authorized and attempted; it is blocked by a
+frozen oracle that pins the `spec/` tree on disk and at HEAD, so taking it would mean editing the
+repository's integrity anchor. That is a different and much larger decision than the one authorized,
+and it is not one to make quietly.
 
-## What I need from you
+So the requirement is recorded as errata row **E-10**, which is what that log is for — it is
+explicitly the agenda for the v3.1 pass — and this issue is proposed for relabelling as deferred so
+it stops reading as actionable compiler work. Option B stays rejected: knowingly putting a second
+meaning on a published number repeats a problem the errata log already records as live.
 
-One sentence: **may a single additive warning code be added to `spec/14-diagnostics.md`?**
+If the integrity anchor *is* to be re-pointed, that belongs in its own unit with its own review, not
+inside a diagnostic slice.
 
-If yes, the remaining work is small and fully specified above — the demand, the effective address
-and the consumer test are all in hand, and the frozen oracle stays green because a warning does not
-change the build kind.
+## What is delivered, and what is left
 
-If no, say which of B, C or D you want and I will deliver that instead.
+Delivered: the contract, the seam, the severity proof, the code survey, and the approval path —
+everything the issue says it owns — plus errata row **E-10** so the requirement survives into the
+v3.1 agenda rather than living only in an issue.
+
+Left, and needing a decision that is **not** the one already given: whether to re-point the frozen
+specification baseline. Until then the remaining tasks stay blocked, and they are fully specified so
+the work is short once that decision exists.
 
 ## Tasks
 
 - [x] T-38.1 Establish the contract and the approval path, which is what the issue owns: reproduce
       both shapes, locate the seam and the available facts, prove which severity is admissible, and
       settle whether a code already exists ✅ (all four done; evidence above)
-- [ ] T-38.2 **Blocked** — obtain the registry decision, then register the approved code
+- [x] T-38.2 Obtain the registry decision and attempt it ✅ (authorized, attempted, and **blocked by
+      a second frozen oracle** that pins the `spec/` tree on disk and at HEAD; measured, then
+      reverted, and recorded as errata row E-10)
 - [ ] T-38.3 Author the specification oracle from the issue's acceptance: the proved consumer with
       an unsatisfiable effective address reports the code; the ordinary `poke` stays silent; a field
       aligned by its explicit root address stays silent; an automatic field offset is considered
