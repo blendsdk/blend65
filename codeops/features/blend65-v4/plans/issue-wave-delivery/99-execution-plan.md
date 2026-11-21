@@ -265,8 +265,8 @@ Sessions start cold, so each row carries where to begin. No session may edit
 
 | # | Session | Closes | Where to start |
 | --- | --- | --- | --- |
-| 1 | Non-returning call compiles | #173 | Apply the `interruptOwnership.returningBodies` test used at `machine/lower-indirect.ts:36` where an ordinary call is lowered in `machine/lower-call.ts`. The fact is already computed, the remedy is specified, the sibling route has a worked precedent and the issue carries a repro |
-| 2 | A binding refusal names its construct | #174, two of its five sites | `services/machine-binding-diagnostic.ts` and `services/size-selection.ts:511`. Map the `requestId` the two sites at `machine/bind.ts:561-569` already carry back to a storage request and from there to source. The certificate and missing-storage sites have no instruction to witness and stay open |
+| 1 | Non-returning call compiles | T-173 (#173) | Apply the `interruptOwnership.returningBodies` test used at `machine/lower-indirect.ts:36` where an ordinary call is lowered in `machine/lower-call.ts`. The fact is already computed, the remedy is specified, the sibling route has a worked precedent and the issue carries a repro |
+| 2 | A binding refusal names its construct | T-174 (#174), two of its five sites | `services/machine-binding-diagnostic.ts` and `services/size-selection.ts:511`. Map the `requestId` the two sites at `machine/bind.ts:561-569` already carry back to a storage request and from there to source. The certificate and missing-storage sites have no instruction to witness and stay open |
 | 3 | Block-index alignment diagnostic | T-38, T-159 | Everything needed sits beside the two deliberate skips at `frontend/block-index-alignment.ts:325-333`. Opens with a ruling on #158, which the session puts to the user first |
 | 4 | Batch A — capture and retention | #115, #116, #123, #132 | `machine/byte-value-availability.ts`, `machine/byte-capture-observers.ts`, `machine/lower-register-forwarding.ts`. All four remove a materialization of a value already live in A, so one liveness fact serves the batch |
 | 5 | Batch E — runtime shift | #129, #130, #131 | `machine/lower-variable-shift.ts`, `machine/optimization-shift-home.ts`. #131's fold-safe slice has already landed and moved the saved artifact to 701 |
@@ -300,6 +300,8 @@ pair at `test/rd08/optimizer-acquisition-output.spec.test.ts:315` and
 `test/rd08/optimizer-saved-output.spec.test.ts:221`. Rows that overlap are
 measured together, because their savings do not sum.
 
-Sessions 1 and 2 reference issues that carry no tracker row, so neither is visible
-from the roadmap alone. Adding rows for them is a tracker decision and is left
-open rather than taken here.
+This list holds the order and nothing else. Each session's state lives in its
+roadmap row and its method lives in its own plan folder, most of which already
+exist. Nothing is duplicated across the three, so none of them can disagree with
+another: a session updates its row when it finishes, and this list is edited only
+when the order itself changes.
