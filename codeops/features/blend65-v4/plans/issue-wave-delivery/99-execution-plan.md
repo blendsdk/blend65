@@ -253,20 +253,55 @@ the same batches without a separate inventory.
 | #173 | Correctness: a call to a provably non-returning function is refused when work follows it. A legal program is rejected, so it outranks every parity batch and leads the order below |
 | #174 | Correctness-adjacent: four of five machine-binding refusals still report no source location. The fifth already carries a span, and two of the four discard a `requestId` that maps back to a storage request and from there to source, so those two are a bounded continuation. The remaining two are not yet solved: a certificate failure and a missing-storage failure have no failing instruction to witness, so neither can reuse the instruction span, and the issue records that as a known difficulty rather than a plan |
 
-### Recommended order
+### Session index — order by doability (2026-11-21)
 
-Correctness before parity, as Wave 6 established, and within parity the batch
-whose enabling fact is already proved before the batch that must build one.
+This replaces the three-line order recorded above, now that execution is one
+session per group rather than one unit at a time. Doability here is not a guess
+at difficulty: it is whether the fact a group needs already exists in the code
+today, which is checkable and is cited per row below.
 
-| Order | Work | Why here |
-| --- | --- | --- |
-| 1 | #173, then #174 | A refused legal program and an unlocatable refusal both block an author who has no workaround. Neither waits on anything |
-| 2 | T-168 continuation | In flight, and the headline output-quality figure on the board |
-| 3 | The #158 ruling | One user decision releases T-38 and T-159's last task, so it is the cheapest unblocking in the list |
-| 4 | Batch A, then B | The largest measured per-iteration wins, and both consume liveness and alias facts the existing seams already carry |
-| 5 | Batch E, then C, then F | E starts from a partly landed slice; C must first settle the #124/#126 overlap; F is one row and can follow at any point |
-| 6 | Batch D | Ordered last among the parity batches because it is the only one that must build a new fact — callee register preservation — before any row in it can be measured |
+Each session starts cold, so every entry carries its own scope, its entry points
+and its gate. A session must not edit `spec/` or any `*.spec.test.ts` oracle; the
+groups below are all consumers of behavior those files already fix.
 
-The host-cost pair, the external-dependency rows and the blocked rows are not in
-this order on purpose. They are not ready, and placing them in a sequence would
-imply otherwise.
+| # | Session | Scope | Entry points | Why this slot |
+| --- | --- | --- | --- | --- |
+| 1 | Non-returning call | #173 | `machine/lower-call.ts`, and the same test as applied at `machine/lower-indirect.ts:36` | The most doable item on the board. A legal program is refused, the needed fact `interruptOwnership.returningBodies` already exists and is already consulted on both dispatch routes, the remedy is specified - terminate the calling block unreachable - the two-candidate route has the worked precedent, and the issue carries a repro |
+| 2 | Locatable binding refusals | #174, two of its five sites | `services/machine-binding-diagnostic.ts`, `services/size-selection.ts:511`, `machine/bind.ts:561-569` | A refusal naming neither file nor construct is a defect whichever check produced it. The helper that locates the fifth site already exists, and the two sites carrying a `requestId` can map it back to a storage request and from there to source. Scope to those two: the certificate and missing-storage sites have no failing instruction to witness and are not yet solved |
+| 3 | Block-index diagnostic | T-38, then T-159's last task | `frontend/block-index-alignment.ts:325-333`, `../block-index-consumer-diagnostic/99-execution-plan.md` | Everything an implementation needs is already beside the two deliberate skips, and one ruling releases two rows. Opens only when the user rules on #158; until then it is a decision, not a session |
+| 4 | Batch A — capture and retention | #115, #116, #123, #132 | `machine/byte-value-availability.ts`, `machine/byte-capture-observers.ts`, `machine/lower-register-forwarding.ts` | The highest-doability parity batch and the largest measured per-iteration wins. All four remove a materialization of a value already live in A, so one liveness fact serves the whole batch and the availability model that proves it is already there |
+| 5 | Batch E — runtime shift | #129, #130, #131 | `machine/lower-variable-shift.ts`, `machine/optimization-shift-home.ts` | The only batch that starts from a partly proved base: #131's fold-safe slice has landed and already moved the saved artifact to 701. Three rows, one seam, no internal sequencing |
+| 6 | Batch F — finite-loop schedule | #119 | `machine/fixed-loop-selection.ts` | One row, one seam, nothing to order inside it - the cheapest complete batch. Sits behind A and E only because it shares its seam with no other row, so finishing it buys no setup for anything else |
+| 7 | Batch B — word views and direct indexing | #120 → #121, #122 → #125 | `machine/lower-aggregate-index.ts`, `machine/word-assignment-forwarding.ts`, `machine/lower-word-unit-step.ts` | The seam exists and #122 is the single largest measured win on the board, but the batch carries two internal chains - #121 is defined as beyond #120 - and #125 needs a strictly stronger alias and observation proof than #122. More sequencing than the three above, not less certainty |
+| 8 | Batch C — call and return linkage | #118, #124, #126 | `machine/lower-call.ts`, `machine/lower-terminal-byte.ts`, `machine/lower-aggregate-return.ts` | The seam exists, but the session must first settle how #124 and #126 are measured: they overlap on the helper figure and are explicitly not additive, so measuring them separately would double-count the batch |
+| 9 | Batch D — cross-call register availability | #104 enabler, then #127, #128 | `machine/lower-function.ts:1030`, `machine/lower-call.ts`, `machine/byte-value-availability.ts` | Last of the batches because it is the only one whose fact does not exist. Nothing in the compiler records which registers a callee provably leaves alone, and the current code assumes the opposite - a cached X base is re-read after a call precisely because the call may have clobbered it. The session builds that fact first and then consumes it twice |
+| 10 | Composite closeout | #95, NMI witness (#70/#83/#96/#97), Input-diagnostic output (#104/#51), Input recipe mixtures | The four closeout documents already linked from each row | Not work of its own. Each is a measured bundle that closes when the seams beneath it land, which also makes these the acceptance witnesses for sessions 4 through 9. Taking this session before them would measure an unchanged compiler |
+| 11 | Host cost | T-13, T-17 | `../constant-nested-construction/08-closeout.md`, `../rd-05-keyboard-input/08-phase-1-review.md` | Doable at any point and ordered last on value, not on difficulty. Both are report-only host allocation findings with no measured latency failure and no emitted behavior or cost defect |
+
+### What every parity session verifies
+
+Sessions 4 through 9 share one gate, and it is narrower than it looks. Whole-program
+reclosure is not available - the cost-closure prerequisite is stopped with
+acquisition at 2442 against 963 - so a batch proves exactly two things: the
+measured witness in each row's note moves toward its expert target, and the
+frontier guards stay green at `test/rd05/input-acquisition-output.spec.test.ts:24`
+and `test/rd05/input-saved-query-output.spec.test.ts:23`, with the optimizer-mode
+pair at `test/rd08/optimizer-acquisition-output.spec.test.ts:315` and
+`test/rd08/optimizer-saved-output.spec.test.ts:221`. The whole-program figure in
+each row stays analytical until closure reopens, and rows that overlap are
+measured together because their savings do not sum.
+
+### Not sessions, and why
+
+| Item | Why it is not in the order |
+| --- | --- |
+| T-168 | Reclassified: it is the measuring stick, not a session. Its remaining 709-byte gap against the hand-written twin *is* the seam deficits that sessions 4 through 9 close, so a T-168 session would re-measure rather than close anything. Re-run it after each batch instead. This supersedes the earlier slot that scheduled it second - that was the right answer to which single unit runs next, and the wrong answer to which session completes |
+| ↳ Bound precedence (#134) | Already executing within its own verified bound |
+| T-152, T-133 with its #133 twin row, T-135 with its #135 twin row, T-155, T-145 | Each is prototyped or measured and blocked on a named missing unit, so a session would reproduce a number already recorded. Promoted only when that unit becomes a plan. Two get cheaper first: T-135 needs a first-class early-delivery fact and T-133 a layout-level return replacement, which sessions 8 and 9 move toward |
+| #117, T-07 | Decisions rather than work. #117 saves 755 bytes and costs 2041 cycles, so it asks what size mode may trade; T-07 waits on a bounded maintenance gate because `spec/` is frozen |
+| V4-HW-1, V4-HOST-1 with the DEF-3 row it absorbs, V4-ASSET-1, T-19 | No compiler change advances them. They need a physical C64, a second host platform, and producer artifacts |
+| T-31, DEF-16 | This index and the stopped closure gate. Tracking, not doing |
+
+Sessions 1 and 2 reference issues that carry no tracker row, so neither is visible
+from the roadmap alone. Adding rows for them is a tracker decision and is left
+open rather than taken here.
