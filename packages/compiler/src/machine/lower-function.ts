@@ -796,20 +796,21 @@ export function lowerFunction(
         // and let the ordinary comparison fold materialize the constant.
         state.forwardedRegisterValues.delete(operation.result);
       }
-      const unitStepHome =
+      const unitStep =
         operation.kind === "binary"
           ? wordUnitStepHome(operation, state, block, operationIndex, unitStepDefinitions)
           : undefined;
-      if (operation.kind === "binary" && unitStepHome !== undefined) {
+      if (operation.kind === "binary" && unitStep !== undefined) {
         // The arithmetic result is this very home, so the store that follows finds it already
         // written and elides itself through the agreement below.
-        state.values.set(operation.result, unitStepHome.value);
-        // The increment form needs a real branch to skip the high byte, which only a terminator
-        // can carry, so this operation closes the block being filled and resumes after it. The
-        // store that follows elides itself once the result is recorded as written in place.
+        state.values.set(operation.result, unitStep.home.value);
+        // Either form needs a real branch to skip the high byte, which only a terminator can
+        // carry, so this operation closes the block being filled and resumes after it. The
+        // descending form also hands back the low-byte step both paths must run, which seeds the
+        // continuation rather than becoming a block of its own.
         const split = lowerWordUnitStep(
           state,
-          unitStepHome.value.requestId,
+          unitStep,
           currentLabel,
           currentInstructions,
           unitStepIndex,
@@ -817,7 +818,7 @@ export function lowerFunction(
         );
         loweredBlocks.push(...split.blocks);
         currentLabel = split.continuation;
-        currentInstructions = [];
+        currentInstructions = [...split.pending];
         state.forwardedWordResults.add(operation.result);
         unitStepIndex += 1;
         continue;

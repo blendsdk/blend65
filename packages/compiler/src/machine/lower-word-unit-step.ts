@@ -6,6 +6,14 @@ import type { MachineBlock, MachineInstruction, MachineOperand } from "./machine
 import { declaredHome, WORD_BYTES, WORD_WIDTH } from "./word-assignment-forwarding.js";
 import type { DeclaredHome } from "./word-assignment-forwarding.js";
 
+/** One admitted unit step: the home it acts on, and which way it moves. */
+export interface WordUnitStep {
+  /** Resolved declared home of the two-byte variable being stepped. */
+  readonly home: DeclaredHome;
+  /** True for a step of minus one, which needs the borrow form rather than the carry form. */
+  readonly descending: boolean;
+}
+
 /**
  * Decide whether one operation is an in-place unit step whose processor state is unobserved.
  *
@@ -15,31 +23,40 @@ import type { DeclaredHome } from "./word-assignment-forwarding.js";
  * could differ from the chain it replaces:
  *
  * - **The step is written back over its own operand.** The left operand must read the very
- *   variable the store writes, so the increment acts on one home rather than moving a value
- *   between two. A step from one variable into another is not an increment of anything.
- * - **The step is exactly one.** Only `INC` and `DEC` exist; a larger constant still needs a real
- *   addition on the low byte.
- * - **Nothing observes the state the chain would have left.** The two forms do not leave the same
- *   processor state, which is why this cannot reuse the surrounding slices' flag arguments. The
- *   addition chain always ends with the accumulator holding its high byte and the flags describing
- *   it. The increment form leaves the accumulator, the carry and the overflow untouched, and
- *   leaves sign and zero describing *whichever half it last incremented* — the low one when no
- *   carry occurred, the high one when it did — so those two are data-dependent where the paths
- *   rejoin.
+ *   variable the store writes, so the step acts on one home rather than moving a value between
+ *   two. A step from one variable into another is not an increment or a decrement of anything.
+ * - **The step is exactly one, up or down.** Only `INC` and `DEC` exist; a larger constant still
+ *   needs a real addition or subtraction on the low byte.
+ * - **Nothing observes the state the chain would have left.** The forms do not leave the same
+ *   processor state as the chain, which is why this cannot reuse the surrounding slices' flag
+ *   arguments. The chain always ends with the accumulator holding its high byte and the flags
+ *   describing it. The two selected forms differ from each other here, so each is stated:
  *
- *   What makes that safe is not an invariant about the successor, which is neither required nor
- *   checked to establish anything. It is that flag and register reuse is *selected between
+ *   The **increment** leaves the accumulator, the carry and the overflow untouched, and leaves
+ *   sign and zero describing *whichever half it last incremented* — the low one when no carry
+ *   occurred, the high one when it did — so those two are data-dependent where the paths rejoin.
+ *
+ *   The **decrement** is the better-behaved of the two on flags and the worse on registers. Both
+ *   of its arms end on the same low-byte decrement, so sign and zero uniformly describe the new
+ *   low byte with no path dependence at all. In exchange it must load the low byte to test it
+ *   before decrementing, so it clobbers the accumulator with the byte's *old* value. That is not a
+ *   new hazard: the chain being replaced also ends with the accumulator overwritten, by its own
+ *   high result, so the accumulator is already dead across this operation wherever the chain would
+ *   have been emitted. Replacing one accumulator-clobbering form with another cannot break a
+ *   reader that the chain did not already break.
+ *
+ *   What makes all of this safe is not an invariant about the successor, which is neither required
+ *   nor checked to establish anything. It is that flag and register reuse is *selected between
  *   operations of one block*: the pass that forwards a value onward searches only the operations
  *   of the block it is visiting, so a consumer of this result's flags in another block cannot be
  *   created at all. The sets consulted below are therefore the complete list of readers that can
- *   exist. Beyond them, the form clobbers strictly less than the chain did — the accumulator, the
- *   carry and the overflow are preserved rather than overwritten — and both arms define sign and
- *   zero, so the whole-function flag check still proves every later use has a definer.
+ *   exist. Both forms also define sign and zero on both arms, so the whole-function flag check
+ *   still proves every later use has a definer.
  *
  *   Preserving the carry rather than defining it is the one place that could bite, and it bites
- *   safely: the chain produced a whole-word carry-out, so if some later block's only producer of
- *   the carry were this arithmetic, that check reports a program it cannot prove and the build is
- *   refused. It is never accepted and quietly miscompiled.
+ *   safely in both directions: the chain produced a whole-word carry or borrow out, so if some
+ *   later block's only producer of the carry were this arithmetic, that check reports a program it
+ *   cannot prove and the build is refused. It is never accepted and quietly miscompiled.
  *
  *   The positional requirement earns its place against a different reader: the in-block peepholes
  *   that inspect the instructions pending in the block being filled. Closing the block empties
@@ -55,11 +72,13 @@ import type { DeclaredHome } from "./word-assignment-forwarding.js";
  * @param state Current lowering context, which owns home resolution and the consumption sets.
  * @param block Block the operation belongs to, in its original identity.
  * @param index Position of the operation within that block.
- * @param definitions Value definitions for the enclosing function, to read the addend.
- * @returns The resolved destination home, or undefined to keep the ordinary chain.
+ * @param definitions Value definitions for the enclosing function, to read the step constant.
+ * @returns The destination home and the step's direction, or undefined to keep the ordinary chain.
  * @example
  * // `for (let i: word = 0; i < 1000; i += 1)` qualifies: the update closes its block and the
  * // block jumps back to the exit test, which establishes its own flags with a comparison.
+ * // `if (rising) { x = x + 1; } else { x = x - 1; }` qualifies in both arms, since each arm ends
+ * // by jumping to the join.
  * // `value = value + 1; sink = value;` does not: ordinary work follows the step in its block.
  */
 export function wordUnitStepHome(
@@ -68,9 +87,9 @@ export function wordUnitStepHome(
   block: SemanticBlock,
   index: number,
   definitions: ReadonlyMap<string, SemanticOperation>,
-): DeclaredHome | undefined {
+): WordUnitStep | undefined {
   if (
-    operation.operator !== "+" ||
+    (operation.operator !== "+" && operation.operator !== "-") ||
     operation.integer?.width !== WORD_WIDTH ||
     operation.integer.signed ||
     !operation.integer.wrap
@@ -90,8 +109,8 @@ export function wordUnitStepHome(
     assignment.right.kind !== "constant"
   )
     return undefined;
-  const addend = definitions.get(operation.right);
-  if (addend?.kind !== "constant" || addend.value !== 1n) return undefined;
+  const step = definitions.get(operation.right);
+  if (step?.kind !== "constant" || step.value !== 1n) return undefined;
   if (
     state.zeroFlagValues.has(operation.result) ||
     state.booleanBranchValues.has(operation.result) ||
@@ -100,16 +119,27 @@ export function wordUnitStepHome(
     !state.singleUseValues.has(operation.result)
   )
     return undefined;
-  return declaredHome(assignment.store.place, state);
+  const home = declaredHome(assignment.store.place, state);
+  return home === undefined
+    ? undefined
+    : Object.freeze({ home, descending: operation.operator === "-" });
 }
 
 /**
- * Emit the increment form as its own blocks, so the carry test can be a real branch.
+ * Emit the selected step as its own blocks, so the carry or borrow test can be a real branch.
  *
- * In the absolute form this replaces seventeen bytes and twenty-two cycles with eight bytes and
- * either nine or fourteen, depending on whether the low byte wrapped on that iteration. A home
- * that closes into zero page is thirteen bytes against six, and eighteen cycles against eight or
- * twelve. Every figure counts the branch as well as the increments.
+ * In the absolute form the increment replaces seventeen bytes and twenty-two cycles with eight
+ * bytes and either nine or fourteen, depending on whether the low byte wrapped on that iteration.
+ * A home that closes into zero page is thirteen bytes against six, and eighteen cycles against
+ * eight or twelve. Every figure counts the branch as well as the increments.
+ *
+ * The decrement is dearer than the increment but still well under the chain, because it must load
+ * the low byte in order to test it before decrementing: eleven bytes against seventeen, and
+ * thirteen or eighteen cycles against twenty-two in the absolute form; eight bytes against
+ * thirteen, and eleven or fifteen cycles against eighteen, in zero page. There is no accumulator-
+ * free variant, since the zero test has to happen *before* the low byte changes. Where an index
+ * register is provably free a load into it would preserve the accumulator at identical cost, which
+ * is a register-pressure refinement rather than a correctness one and is not attempted here.
  *
  * Those are the figures for the step alone. What a program saves also depends on whether the skip
  * branch can carry the loop's back edge itself, which is a question of relative branch range: a
@@ -120,44 +150,61 @@ export function wordUnitStepHome(
  * A relative branch exists in this architecture only as a block terminator, so an operation whose
  * selection needs one cannot express it in a flat instruction list. The function lowering loop
  * already splits the block it is filling for exactly this reason, and this follows that shape: the
- * pending instructions and the low increment close one block on a branch, a second block carries
- * the high increment alone, and both rejoin at a continuation the caller resumes on.
+ * pending instructions and the step's first half close one block on a branch, a second block
+ * carries the high half alone, and both rejoin at a continuation the caller resumes on.
  *
- * The branch is taken when the low byte did **not** wrap, which is the common path and the cheap
- * one: three cycles to skip the high byte, or four if the branch crosses a page, against six to
- * increment it.
+ * The two directions place their work either side of that branch, which is why the continuation is
+ * not always empty. Going up, the low byte is incremented before the test, so the branch skips the
+ * high byte and nothing needs to follow the join. Going down, the low byte must be *tested* before
+ * it changes, so the branch skips the high byte and the low decrement belongs after the join,
+ * where both paths reach it. That trailing instruction is handed back as pending work rather than
+ * emitted into a block of its own, so no extra edge is introduced.
+ *
+ * In both directions the branch is taken on the common path — the low byte did not wrap or borrow —
+ * costing three cycles to skip the high byte, or four if the branch crosses a page, against six to
+ * step it.
  *
  * @param state Current lowering context, for the processor facts and costs.
- * @param requestId Storage request of the two-byte home being advanced.
+ * @param step Resolved home and direction from the selection.
  * @param entryLabel Label of the block currently being filled.
  * @param prefix Instructions already pending in that block.
  * @param ordinal Occurrence number, to keep generated labels distinct within one block.
  * @param source Span of the originating operation, for debug attribution.
- * @returns The finished blocks and the label the caller continues on.
+ * @returns The finished blocks, the label the caller continues on, and any instructions the
+ * caller must begin that continuation with.
  * @example
- * // inc <low> · bne continue · inc <high> · continue:
+ * // up:   inc <low> · bne continue · inc <high> · continue:
+ * // down: lda <low> · bne continue · dec <high> · continue: dec <low>
  */
 export function lowerWordUnitStep(
   state: FunctionLoweringState,
-  requestId: string,
+  step: WordUnitStep,
   entryLabel: string,
   prefix: readonly MachineInstruction[],
   ordinal: number,
   source: SemanticOperation["span"],
-): { readonly blocks: readonly MachineBlock[]; readonly continuation: string } {
+): {
+  readonly blocks: readonly MachineBlock[];
+  readonly continuation: string;
+  readonly pending: readonly MachineInstruction[];
+} {
   const cpu = state.input.profile.cpu;
+  const requestId = step.home.value.requestId;
   const base = `${entryLabel}.unit.${ordinal}`;
   const highLabel = `${base}.high`;
   const continuation = `${base}.continue`;
   const byte = (offset: number): MachineOperand =>
     Object.freeze({ kind: "storage", requestId, offset });
-  const increment = (offset: number) =>
-    machineInstruction(cpu, "inc", "storage", byte(offset), [], source);
+  const at = (opcode: string, offset: number) =>
+    machineInstruction(cpu, opcode, "storage", byte(offset), [], source);
+  // Going up the low byte is stepped before the test; going down it is only read, because the
+  // branch has to see the value the decrement will borrow out of.
+  const opens = step.descending ? at("lda", 0) : at("inc", 0);
   return {
     blocks: Object.freeze([
       Object.freeze({
         label: entryLabel,
-        instructions: Object.freeze([...prefix, increment(0)]),
+        instructions: Object.freeze([...prefix, opens]),
         terminator: Object.freeze({
           kind: "branch" as const,
           opcode: "bne",
@@ -169,10 +216,12 @@ export function lowerWordUnitStep(
       }),
       Object.freeze({
         label: highLabel,
-        instructions: Object.freeze([increment(WORD_BYTES - 1)]),
+        instructions: Object.freeze([at(step.descending ? "dec" : "inc", WORD_BYTES - 1)]),
         terminator: Object.freeze({ kind: "fallthrough" as const, target: continuation }),
       }),
     ]),
     continuation,
+    // Both paths reach the join, so the descending form's low-byte decrement belongs there.
+    pending: Object.freeze(step.descending ? [at("dec", 0)] : []),
   };
 }
