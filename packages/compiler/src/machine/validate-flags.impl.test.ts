@@ -491,3 +491,91 @@ describe("machine flag data flow through a pointer dispatch", () => {
     },
   );
 });
+
+/**
+ * Raise the stack pointer the way a generated frame unwind does, releasing a known run of bytes.
+ *
+ * @param bytes Released byte count, measured from the base the preceding `tsx` captured.
+ * @returns The `txs` carrying that count.
+ */
+function unwind(bytes: number): MachineInstruction {
+  return Object.freeze({ ...implied("txs"), releasesStackBytes: bytes });
+}
+
+describe("machine flag data flow through a generated frame unwind", () => {
+  it.each([3, 7, 12])("keeps a status snapshot saved beneath %i released bytes", (retained) => {
+    // The shape an interrupt entry emits when it hands over to a previous handler rather than
+    // returning from the interrupt: snapshot the caller's status, push a frame, read the topmost
+    // slot, release the frame in one go, then restore the snapshot. The release is measured from
+    // the captured base, so the read's own pop is restored by the write-back exactly as it is on
+    // the processor — which is why the snapshot is still there to restore.
+    expect(
+      validateMachineProgram(
+        program([
+          {
+            label: "entry",
+            instructions: [
+              implied("clv"),
+              implied("php"),
+              ...Array.from({ length: retained }, () => implied("pha")),
+              implied("tsx"),
+              implied("pla"),
+              unwind(retained),
+              implied("plp"),
+            ],
+            terminator: branch("exit", "exit"),
+          },
+          exit,
+        ]),
+      ),
+    ).toBe(true);
+  });
+
+  it("still forgets the stack when the pointer is set without a recorded release", () => {
+    // An unwind is the only stack-pointer write whose result is known. Any other one leaves the
+    // contents unknowable, and a status restore afterwards must not be accepted.
+    expect(
+      validateMachineProgram(
+        program([
+          {
+            label: "entry",
+            instructions: [
+              implied("clv"),
+              implied("php"),
+              implied("pha"),
+              implied("txs"),
+              implied("plp"),
+            ],
+            terminator: branch("exit", "exit"),
+          },
+          exit,
+        ]),
+      ),
+    ).toBe(false);
+  });
+
+  it("refuses a release that would reach past its own frame", () => {
+    // Releasing more than was captured cannot leave a snapshot behind, so the restore has nothing
+    // to draw on and the program is refused rather than accepted on a negative depth.
+    expect(
+      validateMachineProgram(
+        program([
+          {
+            label: "entry",
+            instructions: [
+              implied("clv"),
+              implied("php"),
+              implied("pha"),
+              implied("pha"),
+              implied("tsx"),
+              unwind(9),
+              implied("plp"),
+            ],
+            terminator: branch("exit", "exit"),
+          },
+          exit,
+        ]),
+      ),
+    ).toBe(false);
+  });
+});

@@ -440,6 +440,21 @@ export interface MachineInstruction {
   /** Loader or call-site attribution for one instruction in a KERNAL load sequence. */
   readonly loadUnitRole?: "loader" | "callSite";
   /**
+   * Stack bytes this `txs` releases, counted from the base the preceding `tsx` captured.
+   *
+   * Setting the stack pointer directly usually leaves the stack's contents unknowable, and anything
+   * reasoning about them has to give up at that point. A generated frame unwind is the exception:
+   * it raises the pointer by a figure the lowering itself computed, so the bytes it releases and the
+   * bytes still beneath them are both known. Recording the figure keeps that knowledge with the
+   * instruction rather than inviting a later pass to re-derive it from the surrounding arithmetic.
+   *
+   * The count is measured from the captured base and not from the depth at this instruction,
+   * because the two can differ: reading the topmost slot with a pop between the capture and the
+   * write-back consumes a byte that the write-back then restores. Anything following this field has
+   * to apply it the same way.
+   */
+  readonly releasesStackBytes?: number;
+  /**
    * The instruction's N/Z are consumed at its current position and must not be
    * folded into an earlier TAX/TYA. A variable-shift count keeps its zero gate
    * here; moving the transfer earlier would let an intervening value load own Z.

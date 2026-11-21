@@ -233,6 +233,11 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
       let available = incoming.flags;
       let preserved = incoming.preserved;
       const stack = [...incoming.stack];
+      // Depth captured by the most recent transfer out of the stack pointer, which a generated
+      // frame unwind measures its release from. Null until one is seen in this block; a base taken
+      // in an earlier block is deliberately not carried, since an unwind is always emitted with
+      // its own capture.
+      let cached: number | null = null;
       for (const instruction of block.instructions) {
         // PHP snapshots opaque entry state; it does not branch or calculate with those bits.
         if (check && instruction.opcode !== "php") {
@@ -282,7 +287,24 @@ export function findMachineFlagsDefect(program: MachineProgram): MachineProgramD
         } else {
           if (instruction.opcode === "pha") stack.push(null);
           else if (instruction.opcode === "pla") stack.pop();
-          else if (instruction.opcode === "txs") stack.length = 0;
+          else if (instruction.opcode === "tsx") cached = stack.length;
+          else if (instruction.opcode === "txs") {
+            // Setting the pointer from a register normally makes the whole stack unknowable, and
+            // the only honest response is to forget it. A generated frame unwind is the exception,
+            // and following it needs the same two steps the instructions themselves take: the
+            // earlier transfer out of the pointer captured a base, and this one writes that base
+            // back raised by a recorded count. Measuring the release from the captured base rather
+            // than from the current depth is what makes the two agree, because a read of the top
+            // slot in between pops a byte that this write then silently restores.
+            //
+            // Everything still beneath the released run keeps the facts it had, so an interrupt
+            // entry that saved its caller's status before pushing a frame still has that snapshot
+            // to restore afterwards — which is exactly what a route that hands over to a previous
+            // handler, rather than returning from the interrupt, depends on.
+            const released = instruction.releasesStackBytes;
+            stack.length =
+              released === undefined || cached === null ? 0 : Math.max(0, cached - released);
+          }
           const defined = flagMask(instruction.defines.flags);
           available |= defined;
           preserved &= ~defined;

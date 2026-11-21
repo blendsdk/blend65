@@ -87,6 +87,27 @@ interface BlockIndexLabel {
   readonly offset: number;
 }
 
+/**
+ * Record on one `txs` how many stack bytes the frame unwind it performs releases.
+ *
+ * Raising the stack pointer by a computed amount is the cheap way to drop a run of dead bytes, but
+ * it tells a reader of the instruction stream alone nothing about what the stack now holds. The
+ * count is known here and nowhere else afterwards, so it travels with the instruction instead of
+ * being inferred later from the arithmetic that produced the new pointer.
+ *
+ * The figure is the depth this unwind was selected for, measured from the base the matching `tsx`
+ * captured — which is the same base the emitted arithmetic adds to, so a pop taken in between is
+ * accounted for by both in the same way.
+ *
+ * @param instruction The emitted `txs`.
+ * @param bytes Exact number of released bytes, relative to the captured base.
+ * @returns The same instruction carrying its released-byte count.
+ * @example releasingStack(instruction("txs"), 9)
+ */
+function releasingStack(instruction: MachineInstruction, bytes: number): MachineInstruction {
+  return Object.freeze({ ...instruction, releasesStackBytes: bytes });
+}
+
 /** Static field/constant-index offset of one addressed place. */
 function staticPlaceOffset(
   place: SemanticPlace,
@@ -1002,7 +1023,7 @@ export function lowerFunction(
             source,
           ),
           instruction("tax"),
-          instruction("txs"),
+          releasingStack(instruction("txs"), bulk),
         );
         state.stackDepth = 0;
       } else if (state.stackDepth >= 7) {
@@ -1024,7 +1045,7 @@ export function lowerFunction(
             source,
           ),
           instruction("tax"),
-          instruction("txs"),
+          releasingStack(instruction("txs"), remaining),
         );
         state.stackDepth = 0;
       } else {
