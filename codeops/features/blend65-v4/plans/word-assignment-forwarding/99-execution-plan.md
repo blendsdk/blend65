@@ -2,8 +2,8 @@
 
 > **Type**: Task (lightweight) · **Feature**: blend65-v4 · **CodeOps Artifact Schema**: 1
 > **Owner**: T-37 / #168
-> **Progress**: 6/7 tasks (86%) · [findings](05-findings.md)
-> **Status**: Executing — implemented and measured, oracle GREEN, reviews running
+> **Progress**: 7/7 tasks (100%) · [closeout](08-closeout.md) · [findings](05-findings.md)
+> **Status**: Complete — four review lenses, 0 critical, the one major fixed, 10 minors applied
 > **Last Updated**: 2026-11-20
 > **Baseline**: plan authored at `825778f2`, clean `feature/v4-rebuild`
 > **Scope**: strict; the result home of a word arithmetic operation whose sole consumer is an
@@ -215,7 +215,7 @@ register and must instead direct the existing stores at the destination home.
 - [x] T-37.6 Add implementation tests for the same witnesses plus the non-regression controls the
       public oracle cannot express, and move the cost pins in the same commit as the fix, with the
       delta stated per mode
-- [ ] T-37.7 Independent reviews for the affected contracts — machine code and base correctness at
+- [x] T-37.7 Independent reviews for the affected contracts — machine code and base correctness at
       minimum — then the closeout. A critical or major finding stops for a ruling
 
 ## Verify
