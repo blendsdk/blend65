@@ -12,6 +12,7 @@ import type {
 import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.js";
 import { validLocalStorageLifetime } from "../semantic/local-storage-lifetimes.js";
 import type { StorageRequest } from "../storage/storage-types.js";
+import type { ForwardedWordAssignment } from "./word-assignment-forwarding.js";
 import {
   selectedStoragePlace,
   validObjectStorageSelection,
@@ -174,6 +175,16 @@ export interface FunctionLoweringState {
   stackXDepth: number;
   /** Bulk-pop adjustment when the final consume left X as a valid stack base. */
   stackXBulkDepth: number | null;
+  /** Whole-word assignments whose arithmetic may compute straight into its destination. */
+  readonly forwardedWordAssignments: ReadonlyMap<string, ForwardedWordAssignment>;
+  /**
+   * Results that actually reached their destination home.
+   *
+   * The selection above admits a source shape, but resolution against the real homes can still
+   * decline it. Only the emitter knows which way that went, so it records the outcome here and
+   * the store reads it back: the store drops its move exactly when the arithmetic performed it.
+   */
+  readonly forwardedWordResults: Set<string>;
   /** Exact sole adjacent indexed additions selected from that access's unsigned proof. */
   readonly byteOrdinalAdditions?: ReadonlySet<string>;
   /** Proved `constant + byte index` raw-read addresses; absent without size observers. */

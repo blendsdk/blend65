@@ -8,6 +8,7 @@ import {
 } from "./lower-control.js";
 import type { MachineInstruction } from "./machine-types.js";
 import { absoluteEffect } from "./lower-memory.js";
+import { forwardedWordDestination } from "./word-assignment-forwarding.js";
 import {
   appendLoadA,
   requestStorage,
@@ -99,22 +100,30 @@ export function lowerArithmetic(
       }),
     });
   }
-  const scratch = requestStorage(
-    state,
-    `arithmetic:${operation.result}`,
-    "temporary",
-    2,
-    "ram",
-    operation.span,
-    "Low byte must survive high-byte arithmetic",
-    operation.type,
-  );
-  const result: LoweredValue = Object.freeze({
-    kind: "storage",
-    requestId: scratch.id,
-    bytes: 2,
-    signed: operation.integer?.signed ?? false,
-  });
+  // The low result has to wait somewhere while the accumulator computes the high byte. When the
+  // only consumer is the very next whole-word store, the destination variable can be that place,
+  // which costs nothing extra and saves moving the pair out of a private home afterwards.
+  const assignment = state.forwardedWordAssignments.get(operation.result);
+  const destination =
+    assignment === undefined ? undefined : forwardedWordDestination(assignment, left, right, state);
+  if (destination !== undefined) state.forwardedWordResults.add(operation.result);
+  const result: LoweredValue =
+    destination ??
+    Object.freeze({
+      kind: "storage",
+      requestId: requestStorage(
+        state,
+        `arithmetic:${operation.result}`,
+        "temporary",
+        2,
+        "ram",
+        operation.span,
+        "Low byte must survive high-byte arithmetic",
+        operation.type,
+      ).id,
+      bytes: 2,
+      signed: operation.integer?.signed ?? false,
+    });
   instructions.push(storeA(result, 0, state, operation.span));
   appendLoadA(instructions, left, 1, state, operation.span);
   instructions.push(

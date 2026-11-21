@@ -1,6 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { selectAnonymousComparisonValues } from "./sprite-publication-proof.js";
 import { selectAnonymousByteWriteValues } from "./byte-write-forwarding.js";
+import { selectForwardedWordAssignments } from "./word-assignment-forwarding.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { InterruptExecutionContext } from "../semantic/interrupt-contexts.js";
@@ -365,6 +366,22 @@ export function lowerFunction(
     stackXValid: false,
     stackXDepth: 0,
     stackXBulkDepth: null,
+    forwardedWordAssignments: selectForwardedWordAssignments(
+      input,
+      sourceFunction,
+      blocks,
+      singleUseValues,
+      // Loop counters of this body, taken from the checked source facts rather than from the
+      // selection runtime: the runtime only exposes them once a narrowing policy is chosen, and
+      // the exclusion has to hold in every pass, including the ones that choose nothing.
+      new Set(
+        (sourceFunction === undefined
+          ? []
+          : (input.sourceFacts?.functions.get(sourceFunction)?.loops ?? [])
+        ).map((loop) => bindingIdentityKey(loop.counter)),
+      ),
+    ),
+    forwardedWordResults: new Set<string>(),
     byteOrdinalAdditions,
     ...(input.observerEvidence === true && input.optimizationFacts !== undefined
       ? { ordinalRawReads, ordinalRawWrites }

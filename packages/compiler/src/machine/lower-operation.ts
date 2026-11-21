@@ -509,17 +509,28 @@ export function lowerOperation(
     if (operation.place.path.length > 0) {
       return lowerAggregateStore(operation, value, state);
     }
-    const place = loweredPlace(
-      operation.place,
-      typeBytes(operation.type),
-      isSignedType(operation.type),
-      state,
-    );
     const instructions: MachineInstruction[] = [];
-    for (let offset = 0; offset < typeBytes(operation.type); offset += 1) {
-      appendLoadA(instructions, value, offset, state, operation.span);
-      instructions.push(storeA(place, offset, state, operation.span));
+    // The arithmetic that produced this value may already have written it into this very home,
+    // in which case there is nothing left to move. Agreement of two independent facts is
+    // required: the selection admitted this exact store, and the emitter recorded that it really
+    // did write the destination. Either one alone would drop a move that is still needed.
+    const alreadyInPlace =
+      state.forwardedWordAssignments.get(operation.value)?.store === operation &&
+      state.forwardedWordResults.has(operation.value);
+    if (!alreadyInPlace) {
+      const place = loweredPlace(
+        operation.place,
+        typeBytes(operation.type),
+        isSignedType(operation.type),
+        state,
+      );
+      for (let offset = 0; offset < typeBytes(operation.type); offset += 1) {
+        appendLoadA(instructions, value, offset, state, operation.span);
+        instructions.push(storeA(place, offset, state, operation.span));
+      }
     }
+    // An induction-advancing assignment still has to advance the address it drives, whether or
+    // not the value itself needed moving.
     if (advancesAggregateInduction && state.aggregateInduction !== null) {
       instructions.push(
         ...advanceAggregateInductionAddress(state.aggregateInduction, state, operation.span),
