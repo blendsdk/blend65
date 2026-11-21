@@ -120,4 +120,45 @@ function main(): void {
       `arithmetic results are still being moved: ${memoryToMemoryMoves(assembly).join(", ")}`,
     ).toBe(1);
   }, 180_000);
+
+  it("should compute a counter in place once no cheaper representation can claim it", async () => {
+    // The exclusion protects counter narrowing, and narrowing only admits a loop whose exit test
+    // compares against a literal of at most eight. Above that there is nothing left to protect,
+    // so the counter keeps its declared word home either way and the copy through a scratch is
+    // pure loss. Asserted as a move count rather than a size, because the addresses move freely.
+    const released = `module Game;
+function main(): void {
+  let acc: word = 0;
+  for (let i: word = 0; i < 100; i += 1) { acc = acc + 3; }
+  poke($D000, lo(acc));
+  while (true) { }
+}
+`;
+    const { assembly } = await buildProfileSource(released, target, "none");
+
+    expect(
+      memoryToMemoryMoves(assembly),
+      "a counter outside the narrowing range is still being moved through a scratch",
+    ).toEqual([]);
+  }, 180_000);
+
+  it("should still protect a counter the narrowing range does admit", async () => {
+    // The same shape at the threshold rather than above it. This is the direction that caused a
+    // fixture to grow from 701 bytes to 2,018, so the two cases are kept side by side: releasing
+    // the one above the range must not disturb the one inside it.
+    const protected_ = `module Game;
+function main(): void {
+  let acc: word = 0;
+  for (let i: word = 0; i < 8; i += 1) { acc = acc + 3; }
+  poke($D000, lo(acc));
+  while (true) { }
+}
+`;
+    const { assembly } = await buildProfileSource(protected_, target, "none");
+
+    expect(
+      memoryToMemoryMoves(assembly).length,
+      `the admitted counter lost its scratch: ${memoryToMemoryMoves(assembly).join(", ")}`,
+    ).toBeGreaterThan(0);
+  }, 180_000);
 });

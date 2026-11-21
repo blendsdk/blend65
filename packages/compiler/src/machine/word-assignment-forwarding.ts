@@ -2,6 +2,7 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SemanticType } from "../frontend/semantic-types.js";
 import { valueDefinitions } from "../semantic/aggregate-place-proof.js";
 import type {
+  BinaryOperation,
   SemanticBlock,
   SemanticFunction,
   SemanticOperation,
@@ -12,6 +13,14 @@ import { potentialValueInputs } from "../semantic/value-lifetimes.js";
 import type { LoweredValue } from "./lower-control.js";
 import { loweredPlace, type FunctionLoweringState } from "./lower-state.js";
 import type { MachineLoweringInput } from "./machine-types.js";
+
+/**
+ * Largest exit-test literal counter narrowing can still admit.
+ *
+ * Narrowing reads the right operand of a less-than comparison and rejects anything above eight, so
+ * a loop testing against a larger literal cannot be narrowed and needs no protection here.
+ */
+const NARROWING_EXTENT = 8;
 
 /** Byte width of the two-byte unsigned wrapping form this selection serves. */
 const WORD_BYTES = 2;
@@ -102,6 +111,30 @@ function operandShape(
  * // emitter adds straight into `x` and the store emits nothing.
  * const forwarded = selectForwardedWordAssignments(input, main, main.blocks, singleUse);
  */
+/**
+ * The literal extent of one exit test, when it is readable in the shape narrowing recognizes.
+ *
+ * Deliberately narrower than "any comparison against a constant": narrowing recognizes the
+ * less-than form with the counter on the left and reads the right operand as an exclusive bound, so
+ * only that spelling is read here. Any other arrangement yields nothing, which keeps its root
+ * protected rather than inviting an off-by-one argument about inclusive tests or reversed operands.
+ *
+ * @param comparison Binary operation already known to use the less-than operator.
+ * @param definitions Value definitions for the enclosing function.
+ * @returns The exclusive literal bound, or `undefined` when the test is not in that shape.
+ * @example
+ * // `i < 100` yields 100, while `i <= 99`, `100 > i` and `i < limit` all yield undefined.
+ */
+function comparisonExtent(
+  comparison: BinaryOperation,
+  definitions: ReadonlyMap<string, SemanticOperation>,
+): number | undefined {
+  const right = definitions.get(comparison.right);
+  if (right?.kind !== "constant" || typeof right.value !== "bigint") return undefined;
+  if (right.value < 0n || right.value > BigInt(Number.MAX_SAFE_INTEGER)) return undefined;
+  return Number(right.value);
+}
+
 export function selectForwardedWordAssignments(
   input: MachineLoweringInput,
   source: SemanticFunction | undefined,
@@ -159,25 +192,51 @@ export function selectForwardedWordAssignments(
   // loop forms place their exit test differently — a counted loop tests in the block that is
   // jumped back to, and a do-while tests in the block that jumps back. Anything it over-selects
   // merely keeps its scratch, which costs a saving rather than correctness.
-  const inductionRoots = new Set<string>();
-  const addControlRoots = (value: string): void => {
+  //
+  // The exclusion is then narrowed again by what it is protecting. Counter narrowing only admits a
+  // loop whose exit test compares against a literal of at most eight, so a loop that tests against
+  // a larger literal has no cheaper representation to lose and keeps its declared word home either
+  // way. For those the copy through a scratch is pure loss, and the destination is taken.
+  //
+  // That implication runs one way only. Evidence is collected per root and the extent has to be
+  // readable on *every* signal that nominated it: one small literal, one test this walk cannot
+  // read, or one nomination from the block-final fallback below — which has no condition to read
+  // at all — keeps the root excluded. Protection wins ties.
+  const controlEvidence = new Map<string, (number | undefined)[]>();
+  const noteControlRoot = (key: string, extent: number | undefined): void => {
+    const recorded = controlEvidence.get(key);
+    if (recorded === undefined) controlEvidence.set(key, [extent]);
+    else recorded.push(extent);
+  };
+  const addControlRoots = (value: string): Set<string> => {
+    const named = new Set<string>();
+    // The literal travels down the walk, so a compound test attributes each comparison's own
+    // extent to the roots below it rather than smearing one across all of them.
     const seen = new Set<string>();
-    const pending = [value];
+    const pending: (readonly [string, number | undefined])[] = [[value, undefined]];
     for (let cursor = 0; cursor < pending.length; cursor += 1) {
-      const current = pending[cursor]!;
-      if (seen.has(current)) continue;
-      seen.add(current);
+      const [current, extent] = pending[cursor]!;
+      const visited = `${current}|${extent ?? ""}`;
+      if (seen.has(visited)) continue;
+      seen.add(visited);
       const definition = definitions.get(current);
       if (definition === undefined) continue;
       if (definition.kind === "load") {
-        if (definition.place.path.length === 0)
-          inductionRoots.add(bindingIdentityKey(definition.place.root));
+        if (definition.place.path.length === 0) {
+          const key = bindingIdentityKey(definition.place.root);
+          noteControlRoot(key, extent);
+          named.add(key);
+        }
         continue;
       }
-      if (definition.kind === "binary") pending.push(definition.left, definition.right);
-      else if (definition.kind === "unary" || definition.kind === "convert")
-        pending.push(definition.operand);
+      if (definition.kind === "binary") {
+        const literal =
+          definition.operator === "<" ? comparisonExtent(definition, definitions) : extent;
+        pending.push([definition.left, literal], [definition.right, literal]);
+      } else if (definition.kind === "unary" || definition.kind === "convert")
+        pending.push([definition.operand, extent]);
     }
+    return named;
   };
   for (const [blockIndex, block] of blocks.entries()) {
     const targets =
@@ -191,17 +250,29 @@ export function selectForwardedWordAssignments(
       if (targetIndex === undefined || targetIndex > blockIndex) continue;
       // This edge closes an iteration. The exit test sits either here or at the block it
       // returns to, so both are read and whatever either tests is treated as controlled.
+      const tested = new Set<string>();
       for (const candidate of [block, blocks[targetIndex]]) {
         if (candidate?.terminator.kind === "branch")
-          addControlRoots(candidate.terminator.condition);
+          for (const key of addControlRoots(candidate.terminator.condition)) tested.add(key);
       }
-      // A block-final assignment on a closing edge advances the loop even when no test names
-      // it, which covers a latch whose condition the walk above cannot resolve.
+      // A block-final assignment on a closing edge advances the loop even when no test names it,
+      // which covers a latch whose condition the walk above cannot resolve. It is a backstop, so
+      // it stands down for a root the exit test already named: repeating that root without an
+      // extent would permanently outvote the extent the test does supply.
       const last = block.operations[block.operations.length - 1];
-      if (last?.kind === "store" && last.place.path.length === 0)
-        inductionRoots.add(bindingIdentityKey(last.place.root));
+      if (last?.kind === "store" && last.place.path.length === 0) {
+        const key = bindingIdentityKey(last.place.root);
+        if (!tested.has(key)) noteControlRoot(key, undefined);
+      }
     }
   }
+  const inductionRoots = new Set(
+    [...controlEvidence]
+      .filter(([, extents]) =>
+        extents.some((extent) => extent === undefined || extent <= NARROWING_EXTENT),
+      )
+      .map(([key]) => key),
+  );
 
   for (const block of blocks) {
     for (const [index, operation] of block.operations.entries()) {
