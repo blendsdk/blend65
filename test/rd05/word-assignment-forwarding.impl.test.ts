@@ -134,12 +134,14 @@ function main(): void {
   while (true) { }
 }
 `;
-    const { assembly } = await buildProfileSource(released, target, "none");
+    const built = await buildProfileSource(released, target, "none");
 
     expect(
-      memoryToMemoryMoves(assembly),
+      memoryToMemoryMoves(built.assembly),
       "a counter outside the narrowing range is still being moved through a scratch",
     ).toEqual([]);
+    // Pinned as well as counted, so an unrelated regression cannot satisfy the count alone.
+    expect(built.prg.length - 2).toBe(416);
   }, 180_000);
 
   it("should still protect a counter the narrowing range does admit", async () => {
@@ -154,11 +156,75 @@ function main(): void {
   while (true) { }
 }
 `;
-    const { assembly } = await buildProfileSource(protected_, target, "none");
+    const built = await buildProfileSource(protected_, target, "none");
 
     expect(
-      memoryToMemoryMoves(assembly).length,
-      `the admitted counter lost its scratch: ${memoryToMemoryMoves(assembly).join(", ")}`,
+      memoryToMemoryMoves(built.assembly).length,
+      `the admitted counter lost its scratch: ${memoryToMemoryMoves(built.assembly).join(", ")}`,
+    ).toBe(2);
+    // Twelve bytes more than the released shape above, which is the saving this slice captures.
+    expect(built.prg.length - 2).toBe(428);
+  }, 180_000);
+
+  it("should protect a counter shared by an admitted loop and a released one", async () => {
+    // The combining rule is why evidence is collected per root rather than per loop: one
+    // variable driving two loops has to obey the stricter of the two, because its
+    // representation must hold for both. The small loop is what decides it.
+    const shared = `module Game;
+function main(): void {
+  let acc: word = 0;
+  let i: word = 0;
+  for (i = 0; i < 100; i += 1) { acc = acc + 3; }
+  for (i = 0; i < 4; i += 1) { acc = acc + 5; }
+  poke($D000, lo(acc));
+  while (true) { }
+}
+`;
+    const built = await buildProfileSource(shared, target, "none");
+
+    expect(
+      memoryToMemoryMoves(built.assembly).length,
+      "a counter an admitted loop still claims was released by its larger loop",
+    ).toBeGreaterThan(0);
+  }, 180_000);
+
+  it("should release a do-while counter once it is outside the narrowing range", async () => {
+    // The other loop form, which places its exit test in the block carrying the backward branch
+    // rather than the block jumped back to. Both have to reach the same decision.
+    const latch = `module Game;
+function main(): void {
+  let acc: word = 0;
+  let i: word = 0;
+  do { acc = acc + 3; i = i + 1; } while (i < 100);
+  poke($D000, lo(acc));
+  while (true) { }
+}
+`;
+    const built = await buildProfileSource(latch, target, "none");
+
+    expect(
+      memoryToMemoryMoves(built.assembly),
+      "a do-while counter outside the narrowing range is still being moved",
+    ).toEqual([]);
+  }, 180_000);
+
+  it("should protect a counter whose bound it cannot read", async () => {
+    // Narrowing reads a literal bound. A bound this walk cannot resolve to a literal proves
+    // nothing about whether narrowing applies, so the root keeps its protection.
+    const opaque = `module Game;
+function main(): void {
+  let acc: word = 0;
+  let limit: word = peek($C100);
+  for (let i: word = 0; i < limit; i += 1) { acc = acc + 3; }
+  poke($D000, lo(acc));
+  while (true) { }
+}
+`;
+    const built = await buildProfileSource(opaque, target, "none");
+
+    expect(
+      memoryToMemoryMoves(built.assembly).length,
+      "a counter with an unreadable bound was released",
     ).toBeGreaterThan(0);
   }, 180_000);
 });

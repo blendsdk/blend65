@@ -216,9 +216,21 @@ function wordLoad(operation: SemanticOperation | undefined) {
     : undefined;
 }
 
+/**
+ * Largest exclusive literal bound a fixed loop may compare its counter against.
+ *
+ * Exported because anything deciding whether narrowing could apply to a loop has to agree with
+ * this recognizer exactly. A second copy of the number would let the two drift, and a consumer
+ * that believed narrowing was impossible while it still applied would fight it over the counter's
+ * representation.
+ */
+export const FIXED_LOOP_MAX_BOUND = 8;
+
 /** Recognize only source integer/conversion constants in the admitted small domain. */
 function smallLiteral(value: bigint | undefined): number | undefined {
-  return value !== undefined && value >= 0n && value <= 8n ? Number(value) : undefined;
+  return value !== undefined && value >= 0n && value <= BigInt(FIXED_LOOP_MAX_BOUND)
+    ? Number(value)
+    : undefined;
 }
 
 /** Recover one canonical unit update without admitting any extra side effect in its block. */
