@@ -1,8 +1,8 @@
 # Counter exclusion — release what narrowing cannot claim
 
 > **Owner**: T-39 · **CodeOps Artifact Schema**: 1
-> **Status**: Executing — implemented and measured, reviews running
-> **Progress**: 4/5 tasks (80%)
+> **Status**: Complete — two review lenses, 0 critical, both majors fixed, 7 minors applied
+> **Progress**: 5/5 tasks (100%) · [closeout](08-closeout.md)
 > **Last Updated**: 2026-11-21
 > **Predecessor**: [word-assignment-forwarding](../word-assignment-forwarding/99-execution-plan.md)
 
@@ -86,7 +86,7 @@ Two properties keep this honest:
       signals. Read the comparison constant from the walk already in place.
 - [x] **T-39.4 Measure.** Re-digest. The bound-100 probe must shrink by 12 bytes per site; the cliff
       fixture must stay exactly 701; no example may grow in any mode.
-- [ ] **T-39.5 Verify and review.** Frozen oracles 20/20 and 9/9 with blobs unchanged, behaviour
+- [x] **T-39.5 Verify and review.** Frozen oracles 20/20 and 9/9 with blobs unchanged, behaviour
       oracle green, emulator tier isolated, then correctness and machine-code review lenses.
 
 ## Measured outcome
