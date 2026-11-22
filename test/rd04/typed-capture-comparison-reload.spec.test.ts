@@ -68,13 +68,17 @@ async function build(
   source: string,
   profile: string,
   optimization: "none" | "balanced",
-  name = "main",
+  boundsCheck?: boolean,
 ): Promise<readonly string[]> {
   return withProfileProject(source, profile, async (project) => {
-    const built = await buildProject({ project, optimization });
+    const built = await buildProject({
+      project,
+      optimization,
+      ...(boundsCheck === undefined ? {} : { boundsCheck }),
+    });
     if (built.kind !== "success")
       throw new Error(`Build failed: ${JSON.stringify(built.diagnostics)}`);
-    return routine(built.generation.directory, name);
+    return routine(built.generation.directory, "main");
   });
 }
 
@@ -113,6 +117,14 @@ describe("typed capture comparison reload", () => {
     const optimized = await build(GUARDED_SHIFT, profile, "balanced");
 
     expect(beforeGuardComparison(optimized), optimized.join(" ")).toBe("sta");
+  });
+
+  // Bounds checking inserts guard blocks around indexed accesses. The guard
+  // window here contains none, so the decision must not depend on it.
+  forEachProfile("should omit the reload with bounds checking enabled", async (profile) => {
+    const checked = await build(GUARDED_SHIFT, profile, "balanced", true);
+
+    expect(beforeGuardComparison(checked), checked.join(" ")).toBe("sta");
   });
 
   // The home is still live: the shift after the branch reads it. Removing the

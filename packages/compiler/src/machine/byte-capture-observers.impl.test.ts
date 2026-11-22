@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { MemoryReadOperation, SemanticOperation } from "../semantic/operations.js";
+import type { MachineInstruction } from "./machine-types.js";
 import { analyzeInterruptContexts } from "../semantic/interrupt-contexts.js";
 import { analyzeInterruptDomains } from "../semantic/interrupt-domains.js";
 import { valueLifetimes } from "../semantic/value-lifetimes.js";
 import { allocateStorage } from "../storage/allocate.js";
 import { buildInterference } from "../storage/interference.js";
 import { inventoryStorage } from "../storage/inventory.js";
-import { hasUnobservedByteCapture } from "./byte-capture-observers.js";
+import {
+  canOmitComparisonCaptureReload,
+  hasNoAsynchronousInterleaving,
+  hasUnobservedByteCapture,
+} from "./byte-capture-observers.js";
 import {
   BYTE,
   VOID,
@@ -16,6 +21,7 @@ import {
   semanticFunction,
   selectedProfile,
   sourceBinding,
+  nop,
   sourceSpan,
   wholeProgramFor,
 } from "./lowering-test-support.js";
@@ -312,5 +318,127 @@ describe("captured private byte observer eligibility", () => {
       );
       expect(hasUnobservedByteCapture(bounded.input, bounded.source, bounded.capture)).toBe(true);
     }
+  });
+});
+
+/** One already-selected prefix: the producer that fills A, then the private save. */
+function prefix(producer: Partial<MachineInstruction> = {}): readonly MachineInstruction[] {
+  return Object.freeze([
+    Object.freeze({
+      ...nop(),
+      opcode: "lda" as const,
+      mode: "absolute" as const,
+      operand: Object.freeze({ kind: "label" as const, label: "global.seed", offset: 0 }),
+      ...producer,
+    }),
+    Object.freeze({
+      ...nop(),
+      opcode: "sta" as const,
+      mode: "storage" as const,
+      operand: Object.freeze({ kind: "storage" as const, requestId: "ordinal", offset: 0 }),
+    }),
+  ]);
+}
+
+describe("adjacent private store interleaving", () => {
+  // Nothing generated runs between the store and the next instruction, so with
+  // every body in the main domain there is no interleaving to exclude.
+  it("admits a program whose every reachable body is main-domain only", () => {
+    const { input, source } = fixture();
+    expect(hasNoAsynchronousInterleaving(input, source)).toBe(true);
+  });
+
+  // An initializer runs once from startup, so it carries no domain entry of its
+  // own unless something else also reaches it. That absence is not a refusal.
+  it("admits an executable initializer with no domain entry of its own", () => {
+    const { input, source } = fixture([], false, true);
+    expect(hasNoAsynchronousInterleaving(input, source)).toBe(true);
+  });
+
+  // An installed handler can run between the two instructions and write the home.
+  it("refuses a program that installs an interrupt handler", () => {
+    const { input, source } = fixture([], true);
+    expect(hasNoAsynchronousInterleaving(input, source)).toBe(false);
+  });
+
+  // An equal-looking replacement is not the closed program's own function, so no
+  // domain or reachability fact describes it.
+  it("refuses a source the closed program does not contain", () => {
+    const { input, source } = fixture();
+    expect(hasNoAsynchronousInterleaving(input, { ...source })).toBe(false);
+  });
+
+  // A handler body may be re-entered, so its own stores prove nothing about what
+  // runs between them.
+  it("refuses an interrupt entry as the owner", () => {
+    const { input, source } = fixture();
+    // The replacement must be the program's own function, or the refusal would
+    // only prove that an unknown source is rejected, which is tested above.
+    const owner = { ...source, entryKind: "interrupt" as const };
+    const replaced = {
+      ...input,
+      program: {
+        ...input.program,
+        semantic: {
+          ...input.program.semantic,
+          functions: input.program.semantic.functions.map((fn) => (fn === source ? owner : fn)),
+        },
+      },
+    };
+    expect(replaced.program.semantic.functions).toContain(owner);
+    expect(hasNoAsynchronousInterleaving(replaced, owner)).toBe(false);
+  });
+
+  // Missing domain or context analysis is not evidence of a main-only program.
+  it("refuses incomplete domain and interrupt-context facts", () => {
+    const { input, source } = fixture();
+    for (const program of [
+      { ...input.program, executionDomains: undefined },
+      { ...input.program, interruptContextAnalysis: undefined },
+      {
+        ...input.program,
+        interruptContextAnalysis: {
+          ...input.program.interruptContextAnalysis,
+          diagnostics: [projectDiagnostic("E10239", "synthetic", sourceSpan(10030), null, [])],
+        },
+      },
+      { ...input.program, executionDomains: [] },
+    ]) {
+      expect(hasNoAsynchronousInterleaving({ ...input, program }, source)).toBe(false);
+    }
+  });
+});
+
+describe("ordinary typed comparison producer eligibility", () => {
+  // Canonical direct lowering is the reference a build is measured against, so the
+  // omission is offered only to the optimized candidate.
+  it("refuses the canonical construction, which carries no optimization facts", () => {
+    const { input, source } = fixture();
+    expect(canOmitComparisonCaptureReload(input, source, prefix())).toBe(false);
+  });
+
+  // Shapes that are not one whole named byte load feeding the adjacent save keep
+  // their reload, whatever else is true.
+  it("refuses a producer that is not a bare whole-byte named load", () => {
+    const { input, source } = fixture();
+    for (const producer of [
+      { operand: Object.freeze({ kind: "immediate" as const, value: 7 }) },
+      { mode: "implied" as const, operand: null },
+      { opcode: "ldx" as const },
+      {
+        memory: Object.freeze([
+          Object.freeze({
+            kind: "read" as const,
+            address: 0x3300,
+            width: 2 as const,
+            volatile: false,
+          }),
+        ]),
+      },
+    ]) {
+      expect(canOmitComparisonCaptureReload(input, source, prefix(producer))).toBe(false);
+    }
+    expect(canOmitComparisonCaptureReload(input, source, [])).toBe(false);
+    expect(canOmitComparisonCaptureReload(input, undefined, prefix())).toBe(false);
   });
 });
