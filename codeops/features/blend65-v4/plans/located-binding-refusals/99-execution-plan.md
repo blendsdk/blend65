@@ -1,7 +1,7 @@
 # A binding refusal that names the demand it failed on
 
 > **Owner**: T-174 · **Type**: Task (lightweight) · **CodeOps Artifact Schema**: 1
-> **Status**: Two of four producers delivered; two remain open by scope
+> **Status**: Complete for its two in-scope producers; the other two are T-177
 > **Progress**: 4/4 tasks in scope (100%)
 > **Last Updated**: 2026-11-22
 
@@ -17,15 +17,16 @@ produced it.
 
 ## The five producers, and which two this unit repairs
 
-The reported line numbers had moved since the issue was filed; these are the current ones.
+The line numbers in the issue had already moved before this work began, and the helper added
+here moved them again. These are the numbers **after** this delivery, at `ac8dd21b`.
 
 | Site | Reason | Carries | Status |
 | --- | --- | --- | --- |
-| `bind.ts:609` | `certificate` | — | Open |
-| `bind.ts:615` | `invalid-storage` | a `requestId` | **Located here** |
-| `bind.ts:634` | `missing-storage` | a `requestId` | **Located here** |
-| `bind.ts:647` | `invalid-storage` | — (a function failed binding) | Open |
-| `bind.ts:662` | `invalid-storage` | the validator's own defect | Already located |
+| `bind.ts:656` | `certificate` | — | Open, now T-177 |
+| `bind.ts:659` | `invalid-storage` | a `requestId` | **Located here** |
+| `bind.ts:680` | `missing-storage` | a `requestId` | **Located here** |
+| `bind.ts:696` | `invalid-storage` | — (a function failed binding) | Open, now T-177 |
+| `bind.ts:711` | `invalid-storage` | the validator's own defect | Already located |
 
 ### A scope note the previous record had wrong
 
@@ -105,7 +106,8 @@ span.
 
 ## What remains open, and one correction to an earlier note
 
-Two producers still report nothing:
+Two producers still report nothing, and they are tracked as T-177 (#177) rather than
+holding this unit open:
 
 - **`certificate`** — the certificate as a whole is not closed, so there is no single demand to
   name. It needs its own span derivation, which is the second design question the issue records.
