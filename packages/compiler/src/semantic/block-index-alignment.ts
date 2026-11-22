@@ -16,7 +16,21 @@ interface AlignmentDemand {
   readonly align: number;
   /** Static byte offset from the module object's first byte. */
   readonly offset: number;
+  /** Whether the computed block number is handed to the video chip. */
+  readonly vicVisible: boolean;
 }
+
+/**
+ * Region that keeps an object both inside the VIC bank and clear of the
+ * character-ROM window the chip reads instead of RAM.
+ */
+const VIC_VISIBLE_REGION = "c64.vic.bank0-ram";
+
+/** Regions that already satisfy the VIC, so a stated one is strengthened rather than refused. */
+const VIC_REGIONS: ReadonlySet<string> = new Set(["c64.vic.bank0", VIC_VISIBLE_REGION]);
+
+/** Capability namespace whose operations hand a value to the video chip. */
+const VIC_CAPABILITY_PREFIX = "c64.vic.";
 
 /** One value definition retained for static address and index resolution. */
 type Definitions = ReadonlyMap<string, SemanticOperation>;
@@ -147,6 +161,38 @@ function usedByBinary(
   return false;
 }
 
+/**
+ * Whether one value reaches a VIC capability as an argument, following the
+ * conversions a block index normally passes through on the way.
+ *
+ * `lo(address / 64)` narrows the block number to the byte the register takes, so
+ * a narrowing step is followed here even though it discards information: the
+ * value the chip receives is still derived from this address and no other.
+ */
+function reachesVicConsumer(
+  value: ValueId,
+  blocks: readonly SemanticBlock[],
+  definitions: Definitions,
+): boolean {
+  for (const block of blocks) {
+    for (const operation of block.operations) {
+      if (
+        operation.kind === "platform" &&
+        operation.capability.startsWith(VIC_CAPABILITY_PREFIX) &&
+        operation.arguments.includes(value)
+      )
+        return true;
+      if (
+        (operation.kind === "convert" || operation.kind === "unary") &&
+        operation.operand === value &&
+        reachesVicConsumer(operation.result, blocks, definitions)
+      )
+        return true;
+    }
+  }
+  return false;
+}
+
 /** One half of a complete `hi * 4 + lo >> 6` block selector. */
 type SelectorSide = { readonly high: boolean; readonly address: ValueId };
 
@@ -266,12 +312,24 @@ function placeAlignment(
  * Record the alignment a module object needs when its address is used as a
  * block index.
  *
- * The pass only strengthens placement; it never invents a diagnostic and never
- * rejects a program. A runtime index, an explicit address and a structural
- * field offset that cannot be expressed by root alignment are left exactly as
- * written. This preserves ordinary address arithmetic and every explicit
- * placement; a consumer-aware diagnostic for an unsatisfiable hardware use
- * needs a new approved warning contract and is tracked separately.
+ * The pass strengthens placement only; it states demands and never emits a
+ * diagnostic itself. A runtime index and a structural field offset that root
+ * alignment cannot express are left exactly as written, so ordinary address
+ * arithmetic keeps compiling untouched.
+ *
+ * Two separate demands come out of one block index, and both are stated on the
+ * object rather than checked here. Alignment decides where the block begins.
+ * Visibility decides whether the chip can read those bytes at all: the VIC
+ * fetches only inside its own bank, and inside one window of that bank it reads
+ * character ROM instead of the RAM underneath. An object the compiler places
+ * itself must satisfy both, because nothing else in the program asked for that
+ * address — choosing a home the hardware cannot reach is this pass's own fault.
+ *
+ * An explicit address is the author's contract and is left exactly as written,
+ * including one that is misaligned or outside the bank. Reporting those would
+ * have to be a warning, since the program is accepted today and the acceptance
+ * is pinned; no warning contract for a hardware advisory exists yet, so the
+ * silence is tracked rather than fixed here.
  *
  * @param functions Ordinary and initializer bodies to scan.
  * @param globals Module objects whose placement may be strengthened.
@@ -290,7 +348,7 @@ export function alignBlockIndexStorage(
         const result = "result" in operation ? operation.result : null;
         if (result !== null && result !== undefined) definitions.set(result, operation);
       }
-    const record = (addressValue: ValueId, align: number): void => {
+    const record = (addressValue: ValueId, align: number, vicVisible: boolean): void => {
       const address = addressOperation(addressValue, definitions);
       if (address === undefined || address.place.asset !== undefined) return;
       const key = bindingIdentityKey(address.place.root);
@@ -298,18 +356,25 @@ export function alignBlockIndexStorage(
       const offset = placeAlignment(address.place, align, definitions);
       if (offset === null) return;
       const known = demands.get(key) ?? [];
-      known.push({ align, offset });
+      known.push({ align, offset, vicVisible });
       demands.set(key, known);
     };
     for (const block of blocks) {
       for (const operation of block.operations) {
+        // The block number this operation computes is what a consumer receives,
+        // so the proof that the video chip is the consumer starts from it.
+        const produced = "result" in operation ? operation.result : null;
+        const vicVisible =
+          produced !== null &&
+          produced !== undefined &&
+          reachesVicConsumer(produced, blocks, definitions);
         const complete = completeSelector(operation, definitions);
         if (complete !== null) {
-          record(complete, 64);
+          record(complete, 64, vicVisible);
           continue;
         }
         const demand = blockDemand(operation, definitions, blocks);
-        if (demand !== null) record(demand.address, demand.align);
+        if (demand !== null) record(demand.address, demand.align, vicVisible);
       }
     }
   };
@@ -321,25 +386,40 @@ export function alignBlockIndexStorage(
       const required = demands.get(bindingIdentityKey(global.id));
       if (required === undefined) return global;
       const placement = global.placement;
-      // An explicit or zero-page placement is the user's chosen contract; only
-      // strengthen an automatically placed object.
-      if (placement?.at !== null && placement?.at !== undefined) return global;
+      // A zero-page object is addressed below $0100, which the VIC always sees,
+      // and its home is chosen by a different allocator.
       if (global.zeropage === true) return global;
+      // An explicit address is the author's contract. Both demands are stated by
+      // refusing a home that cannot satisfy them, and a refusal is not available
+      // here: an explicitly placed block is accepted as written today even when
+      // it is misaligned or outside the bank, so reporting it would have to be a
+      // warning, and no contract for one exists yet.
+      if (placement?.at !== null && placement?.at !== undefined) return global;
+      const stated = placement?.region ?? null;
       let align = placement?.align ?? 1;
+      let vicVisible = false;
       for (const demand of required) {
+        // Visibility is a property of the whole object rather than of one byte
+        // inside it, so it holds even where root alignment cannot express the
+        // offset: the chip cannot reach any part of a block outside its bank.
+        vicVisible ||= demand.vicVisible;
         // Root alignment can only express a demand whose static offset is a
         // multiple of it. Leave other shapes exactly as written.
         if (demand.offset % demand.align !== 0) continue;
         align = Math.max(align, demand.align);
       }
-      if (align === (placement?.align ?? 1)) return global;
+      // A region naming some other home is the author's deliberate choice, which
+      // this pass states a demand against rather than overrules.
+      const region =
+        vicVisible && (stated === null || VIC_REGIONS.has(stated)) ? VIC_VISIBLE_REGION : stated;
+      if (align === (placement?.align ?? 1) && region === stated) return global;
       return Object.freeze({
         ...global,
         placement: Object.freeze({
           at: null,
           align,
           noCross: placement?.noCross ?? null,
-          region: placement?.region ?? null,
+          region,
         }),
       });
     }),

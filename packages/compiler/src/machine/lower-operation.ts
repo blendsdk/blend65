@@ -782,15 +782,6 @@ export function lowerOperation(
       }
     } else if (operation.operator === "/" || operation.operator === "%") {
       const divisor = right.kind === "constant" ? right.value : null;
-      if (process.env.BLEND65_DEBUG_FOLD === "1")
-        console.error(
-          "div",
-          operation.result,
-          right.kind,
-          divisor,
-          left.kind,
-          state.blockIndexFolds?.has(operation.result),
-        );
       const block =
         operation.operator === "/" && divisor === 64
           ? state.blockIndexFolds?.get(operation.result)
