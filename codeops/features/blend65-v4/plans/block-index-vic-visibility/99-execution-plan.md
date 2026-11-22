@@ -52,8 +52,29 @@ must reach a `c64.vic.*` capability as an argument, followed through the narrowi
 a block index normally passes through on the way. Alignment keeps its existing shape-driven
 behavior; only the new demand is consumer-gated.
 
-The third oracle case pins this as a statement about the consumer rather than about `/ 64`: the
+The counter-case oracle pins this as a statement about the consumer rather than about `/ 64`: the
 same program with `poke` instead of `setSpritePointer` keeps a different, unmoved address.
+
+## How far the proof reaches, measured rather than assumed
+
+The first gate followed only direct dataflow, and a probe showed what that misses:
+
+| How the block number is published | Before | After |
+| --- | --- | --- |
+| Straight into the call | visible | visible |
+| `let block: byte = lo(&buffer / 64);` then the call | **invisible** | visible |
+| Through a module variable, then the call | **invisible** | visible |
+| Returned by a helper function, then the call | **invisible** | **still invisible** |
+
+Holding a block number in a variable before publishing it is ordinary style, not a corner case, so
+the gate now follows a value through a write and back out of any read of the same object. Matching
+the object rather than the exact field is deliberate: being wrong that way states a demand against
+an object that did not need one, and being wrong the other way puts a sprite where the chip cannot
+see it. Only placement is affected either way, never acceptance.
+
+The helper form is not reached, because this pass scans one function at a time and a returned block
+number crosses that boundary. That is a different piece of work rather than more of this one, and
+it is tracked separately rather than left implied.
 
 ## What is deliberately still silent
 
@@ -84,18 +105,19 @@ where the author chooses it, the compiler still says nothing, and that silence h
       placement machinery that already serves load destinations.
 - [x] **T-159.6c Gate it on a proved consumer.** Correcting the first attempt, which moved ordinary
       arithmetic.
-- [x] **T-159.6d Oracle.** Four profiles, including the counter-case that keeps the claim honest.
+- [x] **T-159.6d Oracle.** Four profiles, every publishing form the gate proves, and the
+      counter-case that keeps the claim honest.
 - [x] **T-159.6e Verify, and record what stays silent.**
 
 ## Verification
 
 | Check | Result |
 | --- | --- |
-| New four-profile oracle | **16/16** |
+| New four-profile oracle | **24/24**, covering all three publishing forms and the counter-case |
 | Block-index oracles (alignment, runtime, immediate fold) | **96/96**, including both frozen explicit-placement witnesses |
 | Compiler package: semantic and layout | **44 files / 644 tests** |
 | Compiler package: machine, services and frontend | **158 files / 2,770 tests** |
-| Root tier: all of rd04, both size frontier guards, the optimizer pair | **70 files / 951 tests** |
+| Root tier: all of rd04, both size frontier guards, the optimizer pair | **70 files / 959 tests** |
 | `spec/` | untouched; no diagnostic code added or changed |
 
 No emitted-byte claim is made and none is possible: moving an object changes addresses by

@@ -67,6 +67,7 @@ function bufferAddress(artifacts: BuildArtifacts): number {
 const pushedIntoTheWindow = (use: string) => `module Game;
 let pad: byte[2400];
 let buffer: byte[64];
+let slot: byte;
 function main(): void { pad[0] = 1; ${use} }`;
 
 const forEachProfile = (
@@ -99,23 +100,34 @@ describe("block-index VIC visibility", () => {
 
   // In this window the chip reads character ROM and never the RAM beneath it, so
   // a block placed here is fetched as character shapes whatever the RAM holds.
-  forEachProfile(
-    "should keep an automatic block-index buffer out of the character-ROM window",
-    async (profile) => {
-      const built = await build(
-        pushedIntoTheWindow("c64.vic.setSpritePointer(0, lo(&buffer / 64));"),
-        profile,
-      );
+  // Holding the block number in a variable first is ordinary style and must not
+  // decide whether the sprite can be seen.
+  for (const [shape, body] of [
+    ["published directly", "c64.vic.setSpritePointer(0, lo(&buffer / 64));"],
+    [
+      "held in a local first",
+      "let block: byte = lo(&buffer / 64);\n  c64.vic.setSpritePointer(0, block);",
+    ],
+    [
+      "held in a module variable first",
+      "slot = lo(&buffer / 64);\n  c64.vic.setSpritePointer(0, slot);",
+    ],
+  ] as const) {
+    forEachProfile(
+      `should keep an automatic block-index buffer out of the character-ROM window, ${shape}`,
+      async (profile) => {
+        const built = await build(pushedIntoTheWindow(body), profile);
 
-      expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
-        "success",
-      );
-      if (built.kind !== "success") return;
-      const start = bufferAddress(built.artifacts);
-      const overlaps = start <= CHARACTER_ROM.end && start + 63 >= CHARACTER_ROM.start;
-      expect(overlaps, `buffer at $${start.toString(16)} is invisible to the VIC`).toBe(false);
-    },
-  );
+        expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+          "success",
+        );
+        if (built.kind !== "success") return;
+        const start = bufferAddress(built.artifacts);
+        const overlaps = start <= CHARACTER_ROM.end && start + 63 >= CHARACTER_ROM.start;
+        expect(overlaps, `buffer at $${start.toString(16)} is invisible to the VIC`).toBe(false);
+      },
+    );
+  }
 
   // The same arithmetic with no hardware consumer is ordinary address maths. It
   // must keep compiling and must not have its home narrowed, which is what makes

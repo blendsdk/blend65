@@ -173,7 +173,13 @@ function reachesVicConsumer(
   value: ValueId,
   blocks: readonly SemanticBlock[],
   definitions: Definitions,
+  visited: Set<ValueId> = new Set(),
 ): boolean {
+  // Holding a block number in a variable before publishing it is ordinary, and
+  // a place can be written and read repeatedly, so the walk remembers where it
+  // has been rather than assuming the derivation chain is acyclic.
+  if (visited.has(value)) return false;
+  visited.add(value);
   for (const block of blocks) {
     for (const operation of block.operations) {
       if (
@@ -185,11 +191,41 @@ function reachesVicConsumer(
       if (
         (operation.kind === "convert" || operation.kind === "unary") &&
         operation.operand === value &&
-        reachesVicConsumer(operation.result, blocks, definitions)
+        reachesVicConsumer(operation.result, blocks, definitions, visited)
+      )
+        return true;
+      // `let block = lo(&sprites / 64);` publishes through a variable. The read
+      // is matched on the written object rather than the exact field, because
+      // being wrong in that direction only states a demand against an object
+      // that did not need one, while being wrong the other way puts a sprite
+      // where the chip cannot see it.
+      if (
+        operation.kind === "store" &&
+        operation.value === value &&
+        loadsReachVicConsumer(operation.place, blocks, definitions, visited)
       )
         return true;
     }
   }
+  return false;
+}
+
+/** Whether any read of one written object hands its value to the video chip. */
+function loadsReachVicConsumer(
+  place: SemanticPlace,
+  blocks: readonly SemanticBlock[],
+  definitions: Definitions,
+  visited: Set<ValueId>,
+): boolean {
+  const written = bindingIdentityKey(place.root);
+  for (const block of blocks)
+    for (const operation of block.operations)
+      if (
+        operation.kind === "load" &&
+        bindingIdentityKey(operation.place.root) === written &&
+        reachesVicConsumer(operation.result, blocks, definitions, visited)
+      )
+        return true;
   return false;
 }
 
