@@ -1,9 +1,14 @@
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { StorageClosureCertificate, StorageHome } from "../storage/storage-types.js";
 import { NMOS_6510, nmosInstructionState } from "../target/nmos6510.js";
 import { machineCost } from "./lower-control.js";
 import { validateMachineInstruction } from "./validate.js";
 import { findMachineFlagsDefect } from "./validate-flags.js";
-import { machineProgramDefect, type MachineProgramDefect } from "./machine-defect.js";
+import {
+  machineProgramDefect,
+  UNKNOWN_MACHINE_SITE,
+  type MachineProgramDefect,
+} from "./machine-defect.js";
 import type {
   MachineBindingResult,
   MachineFunction,
@@ -592,6 +597,52 @@ function shareBoundRootBodies(
 }
 
 /**
+ * Describe a binding refusal in terms of the storage demand it failed on.
+ *
+ * These checks fail before any instruction is implicated — the value asked for a home and the
+ * certificate does not supply a usable one — so there is no failing instruction to point at. The
+ * request itself knows which source asked for the storage and why, and that is what an author can
+ * act on: without it the refusal names a stage and nothing else, which on a target with no
+ * debugger leaves nothing to report or work around.
+ *
+ * The owning function is matched through its source identity rather than its link name, because a
+ * body may be specialized or shared under a generated name that means nothing to whoever wrote it.
+ * An unmatched owner degrades to the established unknown site rather than guessing.
+ *
+ * @param program Program being bound, holding the storage requests and their owners.
+ * @param requestId Identity of the demand the failed check named.
+ * @param reason Failed check, phrased to read after the request it names.
+ * @returns Located evidence, or undefined when the program holds no such request.
+ * @example storageRequestDefect(program, missing.id, "no storage home was selected for")
+ */
+function storageRequestDefect(
+  program: MachineProgram,
+  requestId: string,
+  reason: (described: string) => string,
+): MachineProgramDefect | undefined {
+  // A demand that was certified and one the certificate never reached are both the program's
+  // own requirements, so both sets are searched rather than only the one a given check consults.
+  const request =
+    program.requiredStorage.find(({ id }) => id === requestId) ??
+    program.certifiedStorage?.find(({ id }) => id === requestId);
+  if (request === undefined) return undefined;
+  const owner = program.functions.find(
+    (fn) =>
+      fn.sourceFunction !== undefined &&
+      bindingIdentityKey(fn.sourceFunction) === bindingIdentityKey(request.owner),
+  );
+  return machineProgramDefect({
+    stage: "machine storage binding",
+    // The demand's own stable wording is quoted rather than folded into the sentence, so a
+    // reason phrased as a clause cannot break the grammar of the message that carries it.
+    reason: reason(`'${request.reason}'`),
+    functionId: owner?.id ?? UNKNOWN_MACHINE_SITE,
+    label: UNKNOWN_MACHINE_SITE,
+    source: request.source,
+  });
+}
+
+/**
  * Replace every symbolic storage operand using one final closure certificate.
  * @param program Structured machine program with finite storage operands.
  * @param certificate Final no-addition storage proof.
@@ -606,16 +657,38 @@ export function bindMachineProgram(
   }
   const invalidHome = validateHomes(program, certificate);
   if (invalidHome !== null) {
+    // An empty identity means the certificate disagrees with the program as a whole rather than
+    // on one demand, so there is no single request to name and the refusal stays unlocated.
+    const requestId = invalidHome.length === 0 ? null : invalidHome;
+    const defect =
+      requestId === null
+        ? undefined
+        : storageRequestDefect(
+            program,
+            requestId,
+            (described) => `the storage home selected for ${described} does not satisfy it`,
+          );
     return Object.freeze({
       kind: "error",
       reason: "invalid-storage",
-      requestId: invalidHome.length === 0 ? null : invalidHome,
+      requestId,
+      ...(defect === undefined ? {} : { defect }),
     });
   }
   const homes = new Map(certificate.homes.map((home) => [home.requestId, home] as const));
   const missing = program.requiredStorage.find(({ id }) => !homes.has(id));
   if (missing !== undefined) {
-    return Object.freeze({ kind: "error", reason: "missing-storage", requestId: missing.id });
+    const defect = storageRequestDefect(
+      program,
+      missing.id,
+      (described) => `no storage home was selected for ${described}`,
+    );
+    return Object.freeze({
+      kind: "error",
+      reason: "missing-storage",
+      requestId: missing.id,
+      ...(defect === undefined ? {} : { defect }),
+    });
   }
   const functions = program.functions.map((fn) => bindFunction(fn, homes));
   const startup = bindFunction(program.startup, homes);

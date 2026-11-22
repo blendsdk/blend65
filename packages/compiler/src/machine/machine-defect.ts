@@ -47,6 +47,14 @@ export interface MachineDefectSite {
   readonly block?: MachineDefectBlock;
   /** The failing instruction, absent when a terminator or the block structure is at fault. */
   readonly instruction?: MachineDefectInstruction;
+  /**
+   * Location the failing check supplies itself, for an obligation no instruction witnesses.
+   *
+   * Binding a value to storage can fail before any instruction is implicated: the demand exists
+   * and the home for it does not. The check knows which source asked for that storage, so it
+   * hands the span over directly rather than leaving the refusal with nothing to point at.
+   */
+  readonly source?: SourceSpan | null;
 }
 
 /**
@@ -84,8 +92,9 @@ export interface MachineProgramDefect {
  * Build defect evidence for one failing check, resolving the closest honest span.
  *
  * Span order is the failing instruction's own source, then the first instruction in its block
- * that carries one. Generated code need not carry a span at all, and a null span is reported as
- * such: naming the stage is better than pointing at an unrelated line.
+ * that carries one, then a span the check supplies for an obligation no instruction witnesses.
+ * Generated code need not carry a span at all, and a null span is reported as such: naming the
+ * stage is better than pointing at an unrelated line.
  *
  * The inputs are described structurally rather than by the machine program types, so this stays
  * a leaf module that every layer carrying a defect can depend on.
@@ -100,7 +109,7 @@ export function machineProgramDefect(site: MachineDefectSite): MachineProgramDef
   return Object.freeze({
     reason: site.reason,
     stage: site.stage,
-    source: site.instruction?.source ?? blockSpan,
+    source: site.instruction?.source ?? blockSpan ?? site.source ?? null,
     functionId: site.functionId,
     blockLabel: site.label,
     opcode: site.instruction?.opcode ?? null,

@@ -447,13 +447,17 @@ describe("machine contract corrections", () => {
           requestId: firstRequest.id,
         }),
       );
-      // The refusal keeps the older stage wording precisely when it carries no failed check,
-      // so a defect appearing on a storage-only refusal would silently change what an author
-      // reads. Matching loosely on the fields above cannot notice that on its own.
+      // What an author reads is decided by the defect, so a refusal that named one demand must
+      // carry evidence for that demand and no other. Matching loosely on the fields above cannot
+      // notice a defect arriving from somewhere else, or describing the wrong obligation.
+      const defect = refusedStorage.kind === "error" ? refusedStorage.defect : undefined;
+      expect(defect, "a refusal that names a demand must say where it came from").toBeDefined();
       expect(
-        refusedStorage.kind === "error" ? refusedStorage.defect : null,
-        "a storage refusal has no failed validator check to report",
-      ).toBeUndefined();
+        defect?.stage,
+        "binding a value to storage is not the obligation the flag proof carries",
+      ).toBe("machine storage binding");
+      expect(defect?.reason).toContain(firstRequest.reason);
+      expect(defect?.source).toEqual(firstRequest.source);
     }
 
     const invalidFunction = Object.freeze({
