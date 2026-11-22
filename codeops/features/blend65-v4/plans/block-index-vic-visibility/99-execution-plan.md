@@ -130,6 +130,16 @@ still passes, so nothing grew.
 debug scaffolding from the fold work, printing to stderr in a production code path. It is deleted.
 It was in the seam and was not going to be noticed from anywhere else.
 
+## A claim checked rather than asserted
+
+The session nearly reported that the capability form, `c64.vic.vicSpriteBlock(&buffer)`, was
+already safe and so needed no attention. Probing it instead showed it does not compile at all for
+an ordinary module array: lowering accepts only a label-shaped address, which a placed asset
+produces and a plain global does not. Not a silent fault, so not this unit's defect class — but it
+is the form layout checks for bank residency, the character-ROM window and alignment together, so
+refusing ordinary arrays is part of why the hand-rolled idiom this unit had to fix is the common
+one. Recorded as its own row.
+
 ## Stop conditions observed
 
 No specification file and no frozen oracle was edited; the one new oracle is additive. The pass
