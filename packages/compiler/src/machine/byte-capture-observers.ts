@@ -143,9 +143,76 @@ export function hasUnobservedByteCapture(
 }
 
 /**
+ * Prove that nothing can run between a private store and the instruction after it.
+ *
+ * Omitting a reload of the byte just stored replaces a memory read with the
+ * register the store left untouched. The two instructions are adjacent, so no
+ * other generated code intervenes; the only way the home could change in between
+ * is an interrupt whose handler writes it. When every reachable body and every
+ * executable initializer belongs to the main domain alone, no author code runs
+ * asynchronously at all and the question cannot arise.
+ *
+ * This is deliberately narrower than the raw-capture proof beside it rather than
+ * a reuse of it. That proof must also exclude a fixed raw address aliasing the
+ * home it is about to fill, which a typed load cannot do because it names its
+ * source through the type system and performs no raw access. A program that does
+ * install a handler keeps its reload; proving a handler cannot reach one
+ * particular compiler-chosen home is a separate question from this one.
+ * @param input Existing closed program and execution-domain facts.
+ * @param source The actual source owner of the adjacent store.
+ * @returns Whether no author code can execute between the store and the next instruction.
+ */
+export function hasNoAsynchronousInterleaving(
+  input: MachineLoweringInput,
+  source: SemanticFunction,
+): boolean {
+  const program = input.program;
+  if (
+    !program.semantic.functions.includes(source) ||
+    program.executionDomains === undefined ||
+    program.interruptContextAnalysis === undefined ||
+    program.interruptContextAnalysis.diagnostics.length !== 0
+  )
+    return false;
+  const reached = new Set(program.reachableFunctions.map(bindingIdentityKey));
+  if (!reached.has(bindingIdentityKey(source.id)) || source.entryKind === "interrupt") return false;
+  const domains = new Map(
+    program.executionDomains.map((entry) => [bindingIdentityKey(entry.function), entry.domains]),
+  );
+  // Every reachable function must be classified. An unclassified one is not
+  // evidence of a main-only program; it means the analysis never described it.
+  const functions = program.semantic.functions.filter(({ id }) =>
+    reached.has(bindingIdentityKey(id)),
+  );
+  if (functions.length !== reached.size) return false;
+  for (const body of functions) {
+    const own = domains.get(bindingIdentityKey(body.id));
+    if (own === undefined || own.length === 0) return false;
+    if (own.some((domain) => domain !== "main")) return false;
+    if (body.entryKind === "interrupt") return false;
+  }
+  // An initializer runs once from startup, which is the main domain by
+  // construction, so it is classified only when something else also reaches it.
+  return program.semantic.globals.every(
+    ({ id, entry }) =>
+      entry === null ||
+      (domains.get(bindingIdentityKey(id)) ?? ["main"]).every((domain) => domain === "main"),
+  );
+}
+
+/**
  * Tie an adjacent comparison reload to its actual fresh source read and private save.
  * Missing or ambiguous instruction/source ownership keeps the original reload.
  * This grants no general accumulator availability across instructions or calls.
+ *
+ * Two producers qualify, proved separately rather than by one relaxed test. A
+ * volatile raw read keeps the existing observer proof unchanged. An ordinary
+ * typed byte load performs no raw access, so it is held to the adjacency proof
+ * above instead; neither case weakens the other's barriers.
+ *
+ * Only the optimized-candidate construction omits the reload. Canonical direct
+ * lowering is the reference a build is measured against, so improving it would
+ * move the baseline rather than meet it.
  * @param input Existing closed source/domain/profile facts.
  * @param source The actual function body, absent for a generated initializer.
  * @param instructions The already-selected prefix ending with the private save.
@@ -162,31 +229,62 @@ export function canOmitComparisonCaptureReload(
     source === undefined ||
     producer?.opcode !== "lda" ||
     !["absolute", "zero-page"].includes(producer.mode) ||
-    producer.memory.length !== 1 ||
-    producer.memory[0]!.kind !== "read" ||
-    producer.memory[0]!.width !== 1 ||
-    !producer.memory[0]!.volatile ||
     store?.opcode !== "sta"
   )
     return false;
+  const effect = producer.memory[0];
+  const volatileRead =
+    producer.memory.length === 1 &&
+    effect?.kind === "read" &&
+    effect.width === 1 &&
+    effect.volatile === true;
+  // A typed load reads its named source directly. Carrying no memory effect at
+  // all is what distinguishes it from the raw window above.
+  const ordinaryLoad =
+    producer.memory.length === 0 &&
+    producer.operand?.kind === "label" &&
+    input.optimizationFacts !== undefined;
+  if (!volatileRead && !ordinaryLoad) return false;
   const operations = source.blocks.flatMap(({ operations }) => operations);
-  const captures = operations.filter(
-    (operation) => operation.kind === "memory-read" && operation.span === producer.source,
-  );
   const stores = operations.filter(
     (operation) => operation.kind === "store" && operation.span === store.source,
   );
-  const capture = captures[0];
   const save = stores[0];
+  if (
+    stores.length !== 1 ||
+    save?.kind !== "store" ||
+    save.place.path.length !== 0 ||
+    save.type.kind !== "scalar" ||
+    save.type.name !== "byte"
+  )
+    return false;
+  if (volatileRead) {
+    const captures = operations.filter(
+      (operation) => operation.kind === "memory-read" && operation.span === producer.source,
+    );
+    const capture = captures[0];
+    return (
+      captures.length === 1 &&
+      capture?.kind === "memory-read" &&
+      save.value === capture.result &&
+      hasUnobservedByteCapture(input, source, capture)
+    );
+  }
+  // The instruction carries the whole declaration's span while the load carries
+  // only the read's, so the two are tied through the stored value instead. That
+  // is the stronger link in any case: it names the exact value this store wrote.
+  const definitions = operations.filter(
+    (operation) => "result" in operation && operation.result === save.value,
+  );
+  const load = definitions[0];
   return (
-    captures.length === 1 &&
-    capture?.kind === "memory-read" &&
-    stores.length === 1 &&
-    save?.kind === "store" &&
-    save.value === capture.result &&
-    save.place.path.length === 0 &&
-    save.type.kind === "scalar" &&
-    save.type.name === "byte" &&
-    hasUnobservedByteCapture(input, source, capture)
+    definitions.length === 1 &&
+    load?.kind === "load" &&
+    // One whole named byte. A component read or a wider type would not be the
+    // value this single instruction leaves in the accumulator.
+    load.place.path.length === 0 &&
+    load.type.kind === "scalar" &&
+    load.type.name === "byte" &&
+    hasNoAsynchronousInterleaving(input, source)
   );
 }
