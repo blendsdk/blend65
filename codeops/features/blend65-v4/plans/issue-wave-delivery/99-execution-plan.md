@@ -251,7 +251,8 @@ the same batches without a separate inventory.
 | Issue | Disposition |
 | --- | --- |
 | #173 | Correctness: a call to a provably non-returning function is refused when work follows it. A legal program is rejected, so it outranks every parity batch and leads the order below |
-| #174 | Correctness-adjacent: four of five machine-binding refusals still report no source location. The fifth already carries a span, and two of the four discard a `requestId` that maps back to a storage request and from there to source, so those two are a bounded continuation. The remaining two are not yet solved: a certificate failure and a missing-storage failure have no failing instruction to witness, so neither can reuse the instruction span, and the issue records that as a known difficulty rather than a plan |
+| #174 | Correctness-adjacent: four of five machine-binding refusals reported no source location. Closed scoped to the two that name a storage demand - an unusable home and a missing one - which carried a request identity and therefore the declaration that asked for the storage. The disposition written here first said missing-storage had no instruction to witness and so stayed open; running it refuted that, because the span comes from the demand rather than from an instruction. The two genuinely remaining are #177 |
+| #177 | Correctness-adjacent: the certificate and failed-function refusals still report no source location. Filed rather than left on #174, so no open work is parked behind a closed issue. The two differ in kind: the failed-function site is locatable from the failing entry's index and the function's source identity and was left out by scope, while the certificate site has no single demand or function to name. Session 2b |
 
 ### Session worklist — run top to bottom (2026-11-21)
 
