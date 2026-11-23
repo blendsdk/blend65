@@ -239,3 +239,65 @@ describe("called body flag rewriting", () => {
     expect(calleeRewritesFlags(bodies(load), call(APPLY, { operand }))).toBe(false);
   });
 });
+
+describe("a called body that opens with a call of its own", () => {
+  /** A load writes N and Z from the byte it fetched and reads neither. */
+  const load = instruction({
+    opcode: "lda",
+    mode: "absolute",
+    defines: state(["a"], ["n", "z"]),
+  });
+
+  /** One body whose single block holds exactly the given instructions. */
+  function at(label: string, ...instructions: readonly MachineInstruction[]) {
+    return [label, body(label, [block(`${label}.0`, instructions)])] as const;
+  }
+
+  it("follows a wrapper to the body that actually settles the pair", () => {
+    const bodies = new Map([at(APPLY, call("fn.inner")), at("fn.inner", load)]);
+    expect(calleeRewritesFlags(bodies, call())).toBe(true);
+  });
+
+  it("follows a chain of wrappers", () => {
+    const bodies = new Map([
+      at(APPLY, call("fn.middle")),
+      at("fn.middle", call("fn.inner")),
+      at("fn.inner", load),
+    ]);
+    expect(calleeRewritesFlags(bodies, call())).toBe(true);
+  });
+
+  it("refuses when the body at the end of the chain settles nothing", () => {
+    const push = instruction({ opcode: "php", uses: state([], ["n", "z"]) });
+    const bodies = new Map([at(APPLY, call("fn.inner")), at("fn.inner", push)]);
+    expect(calleeRewritesFlags(bodies, call())).toBe(false);
+  });
+
+  it("refuses a wrapper whose own call names no single body", () => {
+    const bodies = new Map([
+      at(
+        APPLY,
+        call("fn.inner", { operand: Object.freeze({ kind: "absolute" as const, value: 0xffd2 }) }),
+      ),
+      at("fn.inner", load),
+    ]);
+    expect(calleeRewritesFlags(bodies, call())).toBe(false);
+  });
+
+  it("refuses a wrapper calling a body the program does not contain", () => {
+    expect(calleeRewritesFlags(new Map([at(APPLY, call("fn.missing"))]), call())).toBe(false);
+  });
+
+  // Recursion is rejected by the language, so neither cycle is reachable from
+  // accepted source. They are kept because a chain arriving back where it
+  // started proves nothing, and termination must not rest on a diagnostic
+  // raised in another subsystem.
+  it("refuses a body that opens by calling itself", () => {
+    expect(calleeRewritesFlags(new Map([at(APPLY, call(APPLY))]), call())).toBe(false);
+  });
+
+  it("refuses a cycle of two bodies", () => {
+    const bodies = new Map([at(APPLY, call("fn.other")), at("fn.other", call(APPLY))]);
+    expect(calleeRewritesFlags(bodies, call())).toBe(false);
+  });
+});

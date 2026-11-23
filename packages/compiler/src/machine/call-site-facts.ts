@@ -17,7 +17,7 @@ export interface DirectCallSite {
  * The entry label a plain direct call names, or nothing for anything else.
  *
  * Anything other than the whole address of one label leaves the target in doubt:
- * an offset, a single address byte, and a layout-resolved relation each name
+ * an offset, a single address byte, and a layout-resolved relation all name
  * something the call's own operand does not settle.
  * @param instruction The instruction to read.
  * @returns The named entry label, or `undefined`.
@@ -122,8 +122,20 @@ export function directCallSites(
  * dead. One instruction that writes both and reads neither settles it, because
  * whatever follows can no longer see the pair. Anything less refuses, including a
  * call whose target cannot be resolved to a body at all.
+ *
+ * An opening that is itself a plain call asks the same question one level down. A
+ * call encodes no flag of its own, so nothing has been read or written by the
+ * time the inner body starts, and that body's own opening settles the pair for
+ * both. Following the chain is what lets a one-line wrapper be stepped over
+ * rather than refused for having delegated its first instruction.
+ *
+ * A cycle of bodies refuses. The language rejects recursion, so no accepted
+ * program reaches that barrier; it stays because a chain arriving back where it
+ * started proves nothing, and because termination should not depend on a
+ * diagnostic raised in another subsystem.
  * @param bodies Every body in the program, indexed by the entry label a call names.
  * @param call The call instruction the walk is about to step over.
+ * @param walked Entry labels already on the chain, which the cycle refusal uses.
  * @returns Whether N and Z are certainly dead once the call has run.
  * @example
  * // `apply` opens with `lda seed`, which writes N and Z and reads neither.
@@ -132,18 +144,14 @@ export function directCallSites(
 export function calleeRewritesFlags(
   bodies: ReadonlyMap<string, MachineFunction>,
   call: MachineInstruction,
+  walked: ReadonlySet<string> = new Set(),
 ): boolean {
-  const operand = call.operand;
-  if (
-    operand?.kind !== "label" ||
-    operand.addressByte !== undefined ||
-    operand.transform !== undefined ||
-    operand.addressTransform !== undefined ||
-    (operand.offset ?? 0) !== 0
-  )
-    return false;
-  const opening = bodies.get(operand.label)?.blocks[0]?.instructions[0];
+  const label = plainEntryLabel(call);
+  if (label === undefined || walked.has(label)) return false;
+  const opening = bodies.get(label)?.blocks[0]?.instructions[0];
   if (opening === undefined) return false;
+  if (opening.opcode === "jsr")
+    return calleeRewritesFlags(bodies, opening, new Set(walked).add(label));
   return (
     opening.defines.flags.includes("n") &&
     opening.defines.flags.includes("z") &&

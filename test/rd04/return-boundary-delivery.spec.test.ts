@@ -81,7 +81,12 @@ function main(): void {
   target();
 }`;
 
-/** The caller's next instruction is a call whose own first instruction is a call. */
+/**
+ * The caller's next instruction is a call whose own first instruction is a call.
+ * Asking only about that one instruction settles nothing, since a call encodes no
+ * flag; asking the same question one level down reaches the load `inner` opens
+ * with.
+ */
 const nextCalleeOpensWithCall = `module Game;
 let seed: byte = 7;
 let answer: byte = 0;
@@ -234,10 +239,10 @@ describe.each(sourceLibraryProfiles)("delivery across a callee's return on %s", 
     expect(stagedPairs(body)).toHaveLength(1);
   }, 120_000);
 
-  it("should keep the staging home where the next call settles no flag", async () => {
+  it("should deliver directly where the next call delegates its own opening", async () => {
     const body = await build(nextCalleeOpensWithCall, profile, "balanced");
-    expect(delivery(body)).toMatch(/^sta \$[0-9a-f]+$/u);
-    expect(stagedPairs(body)).toHaveLength(1);
+    expect(delivery(body)).toBe("sta b65_Game_answer_");
+    expect(stagedPairs(body)).toEqual([]);
   }, 120_000);
 
   it("should keep the staging home where the body's address is taken", async () => {
