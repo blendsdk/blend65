@@ -204,7 +204,7 @@ does not rest on a diagnostic raised in another subsystem.
 
 ## Residuals
 
-**A result handed back through the accumulator is staged in the caller.** A
+**#185 — a result handed back through the accumulator is staged in the caller.** A
 byte-returning callee's result arrives in A, and the caller stages it before
 testing it:
 
@@ -222,7 +222,19 @@ route does not apply either. Closing it needs a stated fact about what a callee
 leaves in A and its flags at every return, which is a different certificate from
 the caller census built here.
 
-**A call to an unresolvable target refuses conservatively.** A call reaching a
+**#186 — a call to an unresolvable target refuses conservatively.** A call reaching a
 shared helper block rather than a body entry settles no flag as far as this census
-is concerned, even when the helper plainly rewrites the pair. Admitting those
-needs the helper blocks indexed the way bodies are.
+is concerned, even when the helper plainly rewrites the pair — the division
+helper opens with `lda #$00`, so the fact is there and simply out of reach.
+
+The cost of this one is **unmeasured rather than measured at zero**. It only bites
+when an unresolvable call is the first thing the walk meets with the flags still
+live, and in the witness built for it the caller's `lda divisor` killed the pair
+before the helper call was reached, so that witness delivered. No witness placing
+such a call immediately after the return point was constructed, so whether one
+exists is the first question rather than an assumption either way.
+
+The reachable neighbour is a next call whose own opening is a call, which the
+oracle pins. Both want the same generalisation: the question made transitive
+instead of asked of one instruction, terminating on a cycle rather than leaning
+on the language's recursion diagnostic.
