@@ -120,7 +120,13 @@ private-home source, and a volatile hardware source.
 | Compiler machine tier | 90 files / 1,252 |
 | Compiler services + frontend | 68 files / 1,553 |
 | Compiler storage, semantic, layout, project, artifacts, assets, target, tools | 103 files / 1,623 |
-| Root host tier | recorded below |
+| Root host tier | 272 files / 5,721 |
+
+The first root run lost one file to a 120-second per-test timeout while an
+unrelated project's suite held the machine at a load average near ten. It was a
+timeout rather than a failed assertion, it passed on its own in under a second,
+and the clean re-run above is the gate. The byte-for-byte optimizer artifact
+pins passed in both runs.
 
 Each guard was removed in turn and failed exactly its own cases and nothing else:
 
