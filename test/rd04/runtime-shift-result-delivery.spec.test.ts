@@ -49,8 +49,9 @@ function main(): void {
 
 /**
  * A live handler is installed around the shift, so the restore sequence runs
- * next and pushes the whole status register. That read observes the flags the
- * delivered store would otherwise leave behind.
+ * next and saves the whole status register. It pulls the same byte straight
+ * back, so the flags the delivered store leaves behind reach the same place
+ * they would have without the pair.
  */
 const installedHandler = `module Game;
 import { setIRQ, restoreIRQ } from c64.system;
@@ -188,10 +189,10 @@ describe.each(sourceLibraryProfiles)("runtime-count shift result delivery on %s"
     expect(stagedPairs(body)).toHaveLength(1);
   }, 120_000);
 
-  it("should keep the staging home under an installed handler", async () => {
+  it("should deliver directly under an installed handler", async () => {
     const body = await build(installedHandler, profile, "balanced");
-    expect(delivery(body)).toMatch(/^sta \$[0-9a-f]+$/u);
-    expect(stagedPairs(body)).toHaveLength(1);
+    expect(delivery(body)).toBe("sta b65_Game_answer_");
+    expect(stagedPairs(body)).toEqual([]);
   }, 120_000);
 
   it("should deliver directly where the path ends at a return", async () => {

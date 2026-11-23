@@ -8,6 +8,7 @@ import type { OptimizationFacts } from "./optimization-facts.js";
 import { argumentDelivery } from "./optimization-argument-delivery.js";
 import { copyParameterLocals } from "./optimization-copy-propagation.js";
 import type { AppliedRule, RuleObligation, RuleSite } from "./optimization-rules.js";
+import { matchedStatusRestore } from "./status-save-window.js";
 
 /** One direct byte store or load operand. */
 function storageOperand(
@@ -239,8 +240,11 @@ interface AcrossBodies {
  * pair dead. Other flags are not part of a byte load. A block that ends while
  * one of them is still live only proves the pair dead when every successor path
  * does: an ordinary body reaches the platform restore sequence, which rewrites
- * the flags before reading them, while a handler prologue pushes the whole
- * status register and therefore reads them.
+ * the flags before reading them.
+ *
+ * A push of the whole status register reads N and Z, but a push matched by its
+ * own pull neither spends them nor replaces them, so the walk steps over that
+ * window rather than through it.
  *
  * A return refuses unless the caller fact is supplied, because the flags a caller
  * sees are not this body's to spend; so does a path back into a block already
@@ -261,6 +265,17 @@ function flagsDead(
   const remaining = new Set(live);
   for (let at = start; at < block.instructions.length; at += 1) {
     const instruction = block.instructions[at]!;
+    if (instruction.opcode === "php") {
+      // A save matched by its own restore preserves the flags instead of
+      // spending them, so the walk steps over the whole window and carries the
+      // same pair onward. Stepping into it would be wrong twice over: the reads
+      // inside would look like observations, and the writes inside would look
+      // like replacements for a pair the restore puts straight back.
+      const restore = matchedStatusRestore(block.instructions, at, remaining);
+      if (restore === null) return false;
+      at = restore;
+      continue;
+    }
     if (instruction.uses.flags.some((flag) => remaining.has(flag))) return false;
     if (across !== undefined && instruction.opcode === "jsr")
       return calleeRewritesFlags(across.bodies, instruction);

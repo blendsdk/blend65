@@ -50,7 +50,7 @@ ${DELIVERY}
 function outer(): void { apply(); }
 function main(): void { outer(); }`;
 
-/** The caller pushes the whole status register two instructions after the call. */
+/** The caller saves and restores the whole status register after the call. */
 const callerPushesStatus = `module Game;
 import { setIRQ, restoreIRQ } from c64.system;
 let seed: byte = 7;
@@ -222,10 +222,10 @@ describe.each(sourceLibraryProfiles)("delivery across a callee's return on %s", 
     expect(stagedPairs(body)).toEqual([delivered.slice(4)]);
   }, 120_000);
 
-  it("should keep the staging home where the caller pushes the status register", async () => {
+  it("should deliver directly where the caller saves and restores the status register", async () => {
     const body = await build(callerPushesStatus, profile, "balanced");
-    expect(delivery(body)).toMatch(/^sta \$[0-9a-f]+$/u);
-    expect(stagedPairs(body)).toHaveLength(1);
+    expect(delivery(body)).toBe("sta b65_Game_answer_");
+    expect(stagedPairs(body)).toEqual([]);
   }, 120_000);
 
   it("should keep the staging home where a run-time dispatch may reach the body", async () => {
