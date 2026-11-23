@@ -104,6 +104,7 @@ Four witnesses, four profiles, bounds off / on:
 | Two call sites | 131 | 121 | **115** |
 | Caller carries on with its own work | 143 | 133 | **127** |
 | Two returns deep | 132 | 122 | **116** |
+| Caller's own work precedes an unresolvable helper call | 212 | 202 | **196** |
 
 Six bytes and eight cycles on every delivered result, identical at `balanced`,
 `speed` and `size` and unaffected by bounds checking. Canonical `none` is
@@ -121,8 +122,17 @@ rts
 
 Every refusal witness is byte-identical before and after: a caller that pushes
 the status register, a two-candidate dispatch, an address taken beside a direct
-call, a next call that settles no flag, and an interrupt body, which is not a
-candidate at all.
+call, a next call that settles no flag, a boolean caller that branches on the
+flag handed back, and an interrupt body, which is not a candidate at all.
+
+That claim is checked rather than argued. Most refusal witnesses were only ever
+built with the fix in place, so the pre-change compiler was rebuilt from the
+commit before it and every witness regenerated and diffed as text. The one
+difference the diff found was the last row of the table above — a witness built
+expecting a refusal that turns out to deliver, because the caller's own `lda`
+kills the flags before the unresolvable helper call is ever reached. Its saving is
+the same six bytes, which is why it is counted as a delivery here rather than
+explained away.
 
 ## The one pinned answer that moved
 
@@ -221,6 +231,15 @@ flag, so the adjacent-producer proof cannot admit the pair and the entry-forward
 route does not apply either. Closing it needs a stated fact about what a callee
 leaves in A and its flags at every return, which is a different certificate from
 the caller census built here.
+
+**Not an issue, but worth stating: the host file is oversized.**
+`machine/optimization-cleanup.ts` stands at 1,096 lines against the roughly
+700-line guidance, and it was already over before this session added 92. The new
+fact went into its own module rather than into it, which is the right instinct but
+does not fix the host. Splitting it means moving the flag-death walk out together
+with the store/load helpers it shares with four other rules, which is a wider
+edit than a correctness delivery should carry — it would blur the red-first proof
+this session rests on. Recorded here deliberately rather than done quietly.
 
 **#186 — a call to an unresolvable target refuses conservatively.** A call reaching a
 shared helper block rather than a body entry settles no flag as far as this census
