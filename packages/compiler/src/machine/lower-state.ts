@@ -147,6 +147,14 @@ export interface FunctionLoweringState {
   readonly forwardedStoreLoads: ReadonlyMap<string, string>;
   /** Element loads whose byte is the last constant left in A by an aggregate. */
   readonly forwardedAggregateLoads: ReadonlyMap<string, string>;
+  /**
+   * A fixed element load repeating the one before it, mapped to that earlier read.
+   *
+   * Empty unless this body is an optimized candidate in which nothing
+   * asynchronous can run between the two reads, so consuming it needs no further
+   * admission test of its own.
+   */
+  readonly repeatedFixedPlaceLoads: ReadonlyMap<string, string>;
   /** Values whose fresh Z may be consumed by an adjacent closed zero test. */
   readonly zeroFlagValues: Set<string>;
   /** Values proved to hold exactly `0` or `1` from a `mask == 1` bit test. */

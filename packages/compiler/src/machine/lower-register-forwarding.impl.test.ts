@@ -289,3 +289,197 @@ describe("adjacent register ownership", () => {
     ).toBe(false);
   });
 });
+
+/** The array whose element every case below reads. */
+const DATA = sourceBinding(910);
+/** Two unrelated destinations, so a store between the reads writes another object. */
+const FIRST = sourceBinding(911);
+const SECOND = sourceBinding(912);
+
+/** A constant ordinal, which emits nothing and so does not break adjacency. */
+function ordinal(result: string, value: bigint): SemanticOperation {
+  return { kind: "constant", result, value, type: BYTE, integer: null, span };
+}
+
+/** One fixed element read of `DATA`. */
+function elementLoad(result: string, index = "two"): SemanticOperation {
+  return {
+    kind: "load",
+    result,
+    place: { root: DATA, path: [{ kind: "index", value: index }] },
+    type: BYTE,
+    integer: null,
+    span,
+  };
+}
+
+/** One whole-binding store of an already-loaded byte. */
+function byteStore(root: typeof FIRST, value: string): SemanticOperation {
+  return { kind: "store", place: { root, path: [] }, value, type: BYTE, span };
+}
+
+/**
+ * Whether the repeat of a fixed element read is selected to emit nothing.
+ * The window is `load data[2]`, `store first`, `load data[2]` unless a case
+ * replaces one of the three.
+ */
+function repeatOmitted(
+  operations: readonly SemanticOperation[],
+  singleUse: readonly string[] = ["again"],
+): boolean {
+  return selectRegisterForwarding(
+    [semanticBlock("entry", operations, { kind: "return", value: null, span })],
+    new Set(singleUse),
+  ).repeatedFixedPlaceLoads.has("again");
+}
+
+const WINDOW: readonly SemanticOperation[] = [
+  ordinal("two", 2n),
+  elementLoad("value"),
+  byteStore(FIRST, "value"),
+  elementLoad("again"),
+  byteStore(SECOND, "again"),
+];
+
+describe("a fixed element read twice across a store", () => {
+  it("selects the repeat to emit nothing and consume the accumulator", () => {
+    expect(repeatOmitted(WINDOW)).toBe(true);
+  });
+
+  it("selects a field read repeated the same way", () => {
+    const field = (result: string): SemanticOperation => ({
+      kind: "load",
+      result,
+      place: { root: DATA, path: [{ kind: "field", name: "y" }] },
+      type: BYTE,
+      integer: null,
+      span,
+    });
+    expect(repeatOmitted([field("value"), byteStore(FIRST, "value"), field("again")])).toBe(true);
+  });
+
+  // A whole binding contributes no load of its own: its byte arrives at the head
+  // of the consuming operation, and the repeat is removed there instead.
+  it("refuses a whole-binding read, which is removed on the other path", () => {
+    const whole = (result: string): SemanticOperation => ({
+      kind: "load",
+      result,
+      place: { root: DATA, path: [] },
+      type: BYTE,
+      integer: null,
+      span,
+    });
+    expect(repeatOmitted([whole("value"), byteStore(FIRST, "value"), whole("again")])).toBe(false);
+  });
+
+  // Without a constant ordinal the two reads may address different elements.
+  it("refuses an element reached through a run-time ordinal", () => {
+    expect(
+      repeatOmitted([
+        {
+          kind: "load",
+          result: "i",
+          place: { root: SECOND, path: [] },
+          type: BYTE,
+          integer: null,
+          span,
+        },
+        elementLoad("value", "i"),
+        byteStore(FIRST, "value"),
+        elementLoad("again", "i"),
+      ]),
+    ).toBe(false);
+  });
+
+  // The store has to write the very byte the earlier read produced; that is what
+  // leaves the byte still in the accumulator.
+  it("refuses a store of some other value", () => {
+    expect(
+      repeatOmitted([
+        ordinal("two", 2n),
+        elementLoad("value"),
+        byteStore(FIRST, "elsewhere"),
+        elementLoad("again"),
+      ]),
+    ).toBe(false);
+  });
+
+  // Writing the object being read ends the window.
+  it("refuses a store into the array itself", () => {
+    expect(
+      repeatOmitted([
+        ordinal("two", 2n),
+        elementLoad("value"),
+        {
+          kind: "store",
+          place: { root: DATA, path: [{ kind: "index", value: "two" }] },
+          value: "value",
+          type: BYTE,
+          span,
+        },
+        elementLoad("again"),
+      ]),
+    ).toBe(false);
+  });
+
+  it("refuses a repeat that reads a different element", () => {
+    expect(
+      repeatOmitted([
+        ordinal("two", 2n),
+        ordinal("three", 3n),
+        elementLoad("value"),
+        byteStore(FIRST, "value"),
+        elementLoad("again", "three"),
+      ]),
+    ).toBe(false);
+  });
+
+  it("refuses a repeat with more than one consumer", () => {
+    expect(repeatOmitted(WINDOW, [])).toBe(false);
+  });
+
+  it("refuses a window with another instruction between the store and the repeat", () => {
+    expect(
+      repeatOmitted([
+        ordinal("two", 2n),
+        elementLoad("value"),
+        byteStore(FIRST, "value"),
+        {
+          kind: "load",
+          result: "other",
+          place: { root: SECOND, path: [] },
+          type: BYTE,
+          integer: null,
+          span,
+        },
+        elementLoad("again"),
+      ]),
+    ).toBe(false);
+  });
+
+  // No lowering produces a two-byte read whose store and repeat are single bytes,
+  // so this window is built by hand. The barrier is kept because the width that
+  // decides whether the byte lives in the accumulator alone is this read's own,
+  // not the width of whatever is done with it afterwards.
+  it("refuses a two-byte read even where everything around it is one byte", () => {
+    expect(
+      repeatOmitted([
+        ordinal("two", 2n),
+        { ...elementLoad("value"), type: WORD },
+        byteStore(FIRST, "value"),
+        elementLoad("again"),
+      ]),
+    ).toBe(false);
+  });
+
+  it("refuses a two-byte read, which does not live in the accumulator alone", () => {
+    expect(
+      repeatOmitted([
+        ordinal("two", 2n),
+        { ...elementLoad("value"), type: WORD },
+        { ...byteStore(FIRST, "value"), type: WORD },
+        { ...elementLoad("again"), type: WORD },
+      ]),
+    ).toBe(false);
+  });
+});

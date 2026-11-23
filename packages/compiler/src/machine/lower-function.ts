@@ -43,6 +43,7 @@ import { appendImmediateByteBitwise, appendScalarPrefix } from "./lower-scalar.j
 import {
   canOmitComparisonCaptureReload,
   canOmitRepeatedSourceLoad,
+  hasNoAsynchronousInterleaving,
 } from "./byte-capture-observers.js";
 import {
   selectRegisterForwarding,
@@ -297,6 +298,7 @@ export function lowerFunction(
     forwardedPlaceLoads,
     forwardedStoreLoads,
     forwardedAggregateLoads,
+    repeatedFixedPlaceLoads,
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,
@@ -422,6 +424,16 @@ export function lowerFunction(
     forwardedPlaceLoads,
     forwardedStoreLoads,
     forwardedAggregateLoads,
+    // The shape fact is settled from the operations; the two admissions it still
+    // needs are settled once here rather than at every element load: the
+    // omission belongs to the optimized candidate, and nothing asynchronous may
+    // run between the two reads.
+    repeatedFixedPlaceLoads:
+      sourceFunction !== undefined &&
+      input.optimizationFacts !== undefined &&
+      hasNoAsynchronousInterleaving(input, sourceFunction)
+        ? repeatedFixedPlaceLoads
+        : new Map<string, string>(),
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,

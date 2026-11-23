@@ -136,6 +136,12 @@ export function selectRegisterForwarding(
   readonly staticRawAddresses: ReadonlySet<string>;
   /** Ordinary loads whose byte is already in A from an adjacent raw read of the same home. */
   readonly forwardedPlaceLoads: ReadonlyMap<string, string>;
+  /**
+   * A fixed element load which repeats the one before it, mapped to that earlier
+   * read, where only a store of that same byte to a different object stands
+   * between them. The repeat emits nothing and consumes the accumulator.
+   */
+  readonly repeatedFixedPlaceLoads: ReadonlyMap<string, string>;
   /** Aggregate element loads whose byte is already in A from an adjacent store. */
   readonly forwardedStoreLoads: ReadonlyMap<string, string>;
   /** Element loads whose byte is the last constant left in A by an aggregate. */
@@ -331,6 +337,7 @@ export function selectRegisterForwarding(
   const forwardedPlaceLoads = new Map<string, string>();
   const forwardedStoreLoads = new Map<string, string>();
   const forwardedAggregateLoads = new Map<string, string>();
+  const repeatedFixedPlaceLoads = new Map<string, string>();
   const subtractRightInX = new Set<string>();
   const wordAddLeftHighInY = new Set<string>();
   const wordSubtractLeftHighInY = new Set<string>();
@@ -395,6 +402,41 @@ export function selectRegisterForwarding(
           placeSignature(load.place) === placeSignature(producer.place)
         )
           forwardedStoreLoads.set(load.result, producer.value);
+      }
+      if (
+        producer.kind === "load" &&
+        typeBytes(producer.type) === 1 &&
+        // A whole binding contributes no load of its own; its byte arrives at the
+        // head of the consuming operation, and the repeat is removed there. Only
+        // a fixed element emits its own load and so needs this route.
+        producer.place.path.length > 0 &&
+        producer.place.path.every(
+          (step) =>
+            step.kind === "field" || (step.kind === "index" && constantValue(step.value) !== null),
+        )
+      ) {
+        const storeIndex = nextMachineOperationIndex(block, index);
+        const store = block.operations[storeIndex];
+        if (
+          store?.kind === "store" &&
+          typeBytes(store.type) === 1 &&
+          // The store must write the very byte the earlier load produced, which
+          // is what leaves that byte still in the accumulator; and it must write
+          // a different object, since two different names are two different
+          // objects while the same one would end the window.
+          store.value === producer.result &&
+          bindingIdentityKey(store.place.root) !== bindingIdentityKey(producer.place.root)
+        ) {
+          const repeatIndex = nextMachineOperationIndex(block, storeIndex);
+          const repeat = block.operations[repeatIndex];
+          if (
+            repeat?.kind === "load" &&
+            typeBytes(repeat.type) === 1 &&
+            singleUseValues.has(repeat.result) &&
+            placeSignature(repeat.place) === placeSignature(producer.place)
+          )
+            repeatedFixedPlaceLoads.set(repeat.result, producer.result);
+        }
       }
       if (
         producer.kind === "aggregate" &&
@@ -1440,6 +1482,7 @@ export function selectRegisterForwarding(
     forwardedPlaceLoads,
     forwardedStoreLoads,
     forwardedAggregateLoads,
+    repeatedFixedPlaceLoads,
     subtractRightInX,
     wordAddLeftHighInY,
     wordSubtractLeftHighInY,

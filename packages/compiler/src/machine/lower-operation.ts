@@ -373,6 +373,26 @@ export function lowerOperation(
         return Object.freeze([]);
       }
     }
+    if (state.repeatedFixedPlaceLoads.has(operation.result)) {
+      // The identical read just before this one left the byte in A, and the only
+      // instruction since was a store, which writes neither a register nor a
+      // flag. So the byte and the flags describing it are both still in place and
+      // this load would be a complete no-op. A fixed element emits its load as
+      // its own only instruction, so contributing nothing is what omitting it
+      // means here; the sibling routes above already reach that same state by
+      // other arguments.
+      state.loadOrigins.set(operation.result, bindingIdentityKey(operation.place.root));
+      state.values.set(
+        operation.result,
+        Object.freeze({
+          kind: "register" as const,
+          registers: "a" as const,
+          bytes: 1,
+          signed: isSignedType(operation.type),
+        }),
+      );
+      return Object.freeze([]);
+    }
     const forwardedRead = state.forwardedPlaceLoads.get(operation.result);
     if (
       forwardedRead !== undefined &&
