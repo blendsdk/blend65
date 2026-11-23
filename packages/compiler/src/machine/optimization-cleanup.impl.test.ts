@@ -134,6 +134,78 @@ function reloadPairs(program: MachineProgram): readonly [string, number][] {
   return pairs;
 }
 
+/** The private temporary home the real lowering already staged a byte through. */
+function stagedHome(program: MachineProgram): string {
+  const pair = reloadPairs(program)[0];
+  if (pair === undefined) throw new Error("Expected one store/reload pair");
+  const block = program.functions[0]!.blocks.find(({ label }) => label === pair[0])!;
+  const operand = block.instructions[pair[1]]!.operand;
+  if (operand?.kind !== "storage") throw new Error("Expected a direct storage store");
+  return operand.requestId;
+}
+
+/**
+ * Rebuild `main` around one block-entry store/reload pair over a private home,
+ * which is the shape a value delivered across control flow arrives in. The pair
+ * opens a block other than the entry, so only the flags it leaves decide it.
+ */
+function withEntryPair(
+  program: MachineProgram,
+  staged: { readonly terminator: MachineFunction["blocks"][number]["terminator"] },
+  successors: readonly MachineFunction["blocks"][number][] = [],
+): MachineProgram {
+  const cpu = selectedProfile().cpu;
+  const home = stagedHome(program);
+  const operand = Object.freeze({ kind: "storage" as const, requestId: home, offset: 0 });
+  const span = sourceSpan(20);
+  return Object.freeze({
+    ...program,
+    functions: Object.freeze([
+      Object.freeze({
+        ...program.functions[0]!,
+        blocks: Object.freeze([
+          Object.freeze({
+            label: "entry",
+            instructions: Object.freeze([]),
+            terminator: Object.freeze({ kind: "fallthrough" as const, target: "staged" }),
+          }),
+          Object.freeze({
+            label: "staged",
+            instructions: Object.freeze([
+              machineInstruction(cpu, "sta", "storage", operand, [], span),
+              machineInstruction(cpu, "lda", "storage", operand, [], span),
+            ]),
+            terminator: staged.terminator,
+          }),
+          ...successors,
+        ]),
+      }),
+    ]),
+  });
+}
+
+/** How many times one private home is still read back into the accumulator. */
+function reloads(program: MachineProgram, requestId: string): number {
+  return program.functions
+    .flatMap((fn) => fn.blocks)
+    .flatMap((block) => block.instructions)
+    .filter(
+      (instruction) =>
+        instruction.opcode === "lda" &&
+        instruction.operand?.kind === "storage" &&
+        instruction.operand.requestId === requestId,
+    ).length;
+}
+
+/** One ordinary block of crafted instructions. */
+function block(
+  label: string,
+  instructions: readonly MachineInstruction[],
+  terminator: MachineFunction["blocks"][number]["terminator"],
+): MachineFunction["blocks"][number] {
+  return Object.freeze({ label, instructions: Object.freeze(instructions), terminator });
+}
+
 /** Copy one function with a different execution context for a discriminating negative. */
 function withContext(
   fn: MachineFunction,
@@ -357,6 +429,102 @@ describe("foundation cleanup", () => {
     expect(referenced.program.functions[0]!.blocks.some(({ label }) => label === "dead")).toBe(
       true,
     );
+  });
+
+  describe("flag death across a control edge", () => {
+    const cpu = selectedProfile().cpu;
+    const span = sourceSpan(21);
+    const immediate = (opcode: string) =>
+      machineInstruction(cpu, opcode, "immediate", { kind: "immediate", value: 0 }, [], span);
+    const implied = (opcode: string) => machineInstruction(cpu, opcode, "implied", null, [], span);
+    const ret = Object.freeze({ kind: "return" as const });
+    const jump = (target: string) =>
+      Object.freeze({
+        kind: "jump" as const,
+        opcode: "jmp" as const,
+        target,
+        cost: Object.freeze({ bytes: 3, cycles: 3 }),
+      });
+
+    /** Apply the rules to one crafted shape and report the surviving reloads. */
+    function run(
+      staged: MachineFunction["blocks"][number]["terminator"],
+      successors: readonly MachineFunction["blocks"][number][] = [],
+    ): number {
+      const checked = checkedSource(SOURCE);
+      const facts = deriveOptimizationFacts({ checked, mode: "size" });
+      const before = lower(checked);
+      const home = stagedHome(before);
+      const result = applyOptimizationRules(
+        facts,
+        withEntryPair(before, { terminator: staged }, successors),
+      );
+      if (result.kind !== "complete") throw new Error(result.reason);
+      return reloads(result.program, home);
+    }
+
+    it("should remove the reload when a successor rewrites both flags", () => {
+      expect(run(jump("after"), [block("after", [immediate("lda")], ret)])).toBe(0);
+    });
+
+    it("should remove the reload only when every successor path rewrites them", () => {
+      const branch = Object.freeze({
+        kind: "branch" as const,
+        opcode: "bne" as const,
+        target: "taken",
+        fallthrough: "untaken",
+        uses: Object.freeze({ registers: Object.freeze([]), flags: Object.freeze(["z" as const]) }),
+        cost: Object.freeze({ bytes: 2, cycles: 2 }),
+      });
+      // The branch itself reads Z, so the pair cannot be spent on either arm.
+      expect(
+        run(branch, [
+          block("taken", [immediate("lda")], ret),
+          block("untaken", [immediate("lda")], ret),
+        ]),
+      ).toBe(1);
+    });
+
+    it("should keep the reload when a successor pushes the status register", () => {
+      expect(run(jump("after"), [block("after", [implied("php"), immediate("lda")], ret)])).toBe(1);
+    });
+
+    it("should keep the reload when the delivery ends at a return", () => {
+      expect(run(ret)).toBe(1);
+    });
+
+    it("should keep the reload when a successor label resolves to nothing", () => {
+      expect(run(jump("absent"))).toBe(1);
+    });
+
+    it("should keep the reload on a path back into the block being proved", () => {
+      expect(run(jump("staged"))).toBe(1);
+    });
+
+    it("should not count a reload this pass may itself remove as a producer", () => {
+      const checked = checkedSource(SOURCE);
+      const facts = deriveOptimizationFacts({ checked, mode: "size" });
+      const before = lower(checked);
+      const home = stagedHome(before);
+      const operand = Object.freeze({ kind: "storage" as const, requestId: home, offset: 0 });
+      const result = applyOptimizationRules(
+        facts,
+        withEntryPair(before, { terminator: jump("after") }, [
+          block(
+            "after",
+            [
+              machineInstruction(cpu, "sta", "storage", operand, [], span),
+              machineInstruction(cpu, "lda", "storage", operand, [], span),
+            ],
+            ret,
+          ),
+        ]),
+      );
+      if (result.kind !== "complete") throw new Error(result.reason);
+      // The only instruction that would rewrite N/Z is another redundant
+      // reload, so neither pair may be spent on the other's survival.
+      expect(reloads(result.program, home)).toBe(2);
+    });
   });
 
   // Conditional representation proofs no longer suppress cleanup: the composed

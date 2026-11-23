@@ -167,25 +167,103 @@ export function provedProducer(
   );
 }
 
+/** One block of generated instructions, addressed by its own label. */
+type LabelledBlock = MachineFunction["blocks"][number];
+
 /**
- * Whether N and Z are both overwritten before any instruction observes them.
- * A branch or return observes them; a later producer of both makes the current
- * pair dead. Other flags are not part of a byte load.
+ * Index every block a control edge out of one body can reach, by label.
+ *
+ * The platform startup routine belongs in the index because an ordinary body
+ * does not end at its own terminator: it jumps into the shared restore
+ * sequence, which is where its last flags actually die. An ambiguous label maps
+ * to `null` so a walk refuses it rather than picking one of two blocks.
  */
-function flagsDead(block: MachineFunction["blocks"][number], start: number): boolean {
-  const dead = new Set<string>();
-  for (const instruction of block.instructions.slice(start)) {
-    const uses = instruction.uses.flags.filter((flag) => flag === "n" || flag === "z");
-    if (uses.some((flag) => !dead.has(flag))) return false;
-    for (const flag of instruction.defines.flags) if (flag === "n" || flag === "z") dead.add(flag);
+function labelledBlocks(
+  fn: MachineFunction,
+  startup: MachineFunction,
+): ReadonlyMap<string, LabelledBlock | null> {
+  const index = new Map<string, LabelledBlock | null>();
+  for (const block of [...fn.blocks, ...startup.blocks])
+    index.set(block.label, index.has(block.label) ? null : block);
+  return index;
+}
+
+/**
+ * Whether one reload is the exact redundant pair this pass itself may remove.
+ *
+ * Such a load must not count as a flag producer: whether it survives depends on
+ * the order two candidate pairs happen to be visited in, and a proof may not
+ * depend on that.
+ */
+function redundantReload(block: LabelledBlock, at: number): boolean {
+  const load = block.instructions[at]!;
+  const store = block.instructions[at - 1];
+  if (store === undefined) return false;
+  const register = (Object.keys(LOAD_FOR) as StoredRegister[]).find(
+    (candidate) => LOAD_FOR[candidate] === load.opcode,
+  );
+  if (register === undefined || store.opcode !== STORE_FOR[register]) return false;
+  const read = storageAccess(load, "read");
+  const written = storageAccess(store, "write");
+  return (
+    read !== null &&
+    written !== null &&
+    read.requestId === written.requestId &&
+    read.offset === written.offset
+  );
+}
+
+/**
+ * Whether N and Z are both dead from one position, following control flow out of
+ * the block when the block itself does not rewrite them.
+ *
+ * A branch observes the flags and a later producer of both makes the current
+ * pair dead. Other flags are not part of a byte load. A block that ends while
+ * one of them is still live only proves the pair dead when every successor path
+ * does: an ordinary body reaches the platform restore sequence, which rewrites
+ * the flags before reading them, while a handler prologue pushes the whole
+ * status register and therefore reads them.
+ *
+ * A return refuses, because the flags a caller sees are not this body's to
+ * spend, and so does a path back into a block already being walked.
+ */
+function flagsDead(
+  blocks: ReadonlyMap<string, LabelledBlock | null>,
+  block: LabelledBlock,
+  start: number,
+  live: ReadonlySet<string> = new Set(["n", "z"]),
+  visited: ReadonlySet<string> = new Set(),
+): boolean {
+  if (visited.has(block.label)) return false;
+  const remaining = new Set(live);
+  for (let at = start; at < block.instructions.length; at += 1) {
+    const instruction = block.instructions[at]!;
+    if (instruction.uses.flags.some((flag) => remaining.has(flag))) return false;
+    if (!redundantReload(block, at))
+      for (const flag of instruction.defines.flags) remaining.delete(flag);
+    if (remaining.size === 0) return true;
   }
   const edge = block.terminator;
-  if (edge.kind === "unreachable") return false;
+  if (edge.kind === "unreachable" || edge.kind === "return") return false;
   if (edge.kind === "branch" || edge.kind === "long-branch") {
-    const uses = edge.uses.flags.filter((flag) => flag === "n" || flag === "z");
-    if (uses.some((flag) => !dead.has(flag))) return false;
+    if (edge.uses.flags.some((flag) => remaining.has(flag))) return false;
   }
-  return dead.size === 2;
+  const successors =
+    edge.kind === "branch"
+      ? [edge.target, edge.fallthrough]
+      : edge.kind === "long-branch"
+        ? [edge.jump.target, edge.fallthrough]
+        : [edge.target];
+  const walked = new Set(visited);
+  walked.add(block.label);
+  return successors.every((label) => {
+    const successor = blocks.get(label);
+    return (
+      successor !== undefined &&
+      successor !== null &&
+      flagsDead(blocks, successor, 0, remaining, walked)
+    );
+  });
 }
 
 /** Remove `sta home; lda home` when the stored value and flags are still in place. */
@@ -234,6 +312,7 @@ function copyForward(
     );
   const localForwarding = policy === "mixed";
   const functions = items.map((fn) => {
+    const reachable = labelledBlocks(fn, program.startup);
     const sites: RuleSite[] = [];
     const spans: SourceSpan[] = [];
     let savedBytes = 0;
@@ -269,7 +348,7 @@ function copyForward(
         // its N/Z result is dead before any observer; an interior pair still
         // needs the adjacent producer proof.
         const entryForwarding =
-          index === 0 && block !== fn.blocks[0] && flagsDead(block, index + 2);
+          index === 0 && block !== fn.blocks[0] && flagsDead(reachable, block, index + 2);
         if (
           load === null ||
           load.requestId !== store.requestId ||
