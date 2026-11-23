@@ -106,8 +106,8 @@ and #$07
 ```
 
 That is the same class as the reload repaired for #123 — a value still in A being
-fetched again — with a different shape, and it is tracked on its own rather than
-inside #129's dissolved arithmetic.
+fetched again — with a different shape, and it is tracked as **#180** rather than
+left inside #129's dissolved arithmetic.
 
 ## Tasks
 
@@ -147,10 +147,14 @@ inside #129's dissolved arithmetic.
 
 Two precise boundaries this unit refuses and does not hide:
 
-- A delivery whose path ends at a **return** keeps its temporary. The flags are
-  dead there too in the ordinary case, but proving it needs the caller, which this
-  proof does not have.
-- A delivery under an **installed handler** keeps its temporary, because the
-  restore prologue pushes the status register. A `php`/`plp` pair preserves and
-  restores the flags rather than branching on them, so a sharper proof could
-  distinguish observation from preservation.
+- **#181** — a delivery whose path ends at a **return** keeps its temporary. The
+  flags are dead there too in the ordinary case, but proving it needs every
+  caller, which a walk inside one body does not have.
+- **#182** — a delivery under an **installed handler** keeps its temporary,
+  because the ownership prologue pushes the status register. A `php`/`plp` pair
+  preserves and restores the flags rather than branching on them, so a sharper
+  proof could distinguish observation from preservation. Asynchrony is not what
+  retains it: a handler that runs leaves the flags restored by its own wrapper.
+
+Each costs the same six bytes, eight cycles and one home this unit removes
+elsewhere, and each has an oracle case pinning today's answer.
