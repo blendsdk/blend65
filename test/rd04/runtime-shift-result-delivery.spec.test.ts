@@ -65,7 +65,7 @@ function main(): void {
   restoreIRQ();
 }`;
 
-/** An ordinary callee's delivery ends at a return, whose caller owns the flags. */
+/** An ordinary callee's delivery ends at a return, and every caller ignores the flags. */
 const calledFunction = `module Game;
 let seed: byte = 7;
 let answer: byte = 0;
@@ -194,9 +194,9 @@ describe.each(sourceLibraryProfiles)("runtime-count shift result delivery on %s"
     expect(stagedPairs(body)).toHaveLength(1);
   }, 120_000);
 
-  it("should keep the staging home where the delivery ends at a return", async () => {
+  it("should deliver directly where the path ends at a return", async () => {
     const body = await build(calledFunction, profile, "balanced", { routine: "apply" });
-    expect(delivery(body)).toMatch(/^sta \$[0-9a-f]+$/u);
-    expect(stagedPairs(body)).toHaveLength(1);
+    expect(delivery(body)).toBe("sta b65_Game_answer_");
+    expect(stagedPairs(body)).toEqual([]);
   }, 120_000);
 });

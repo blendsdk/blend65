@@ -1,6 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import type { SemanticFunction } from "../semantic/operations.js";
+import { calleeRewritesFlags, directCallSites } from "./call-site-facts.js";
 import { machineInstruction } from "./lower-control.js";
 import type { MachineFunction, MachineInstruction, MachineProgram } from "./machine-types.js";
 import type { OptimizationFacts } from "./optimization-facts.js";
@@ -177,13 +178,16 @@ type LabelledBlock = MachineFunction["blocks"][number];
  * does not end at its own terminator: it jumps into the shared restore
  * sequence, which is where its last flags actually die. An ambiguous label maps
  * to `null` so a walk refuses it rather than picking one of two blocks.
+ *
+ * Indexing startup itself takes its blocks once rather than twice, so that every
+ * label stays resolvable instead of looking ambiguous against its own copy.
  */
 function labelledBlocks(
   fn: MachineFunction,
   startup: MachineFunction,
 ): ReadonlyMap<string, LabelledBlock | null> {
   const index = new Map<string, LabelledBlock | null>();
-  for (const block of [...fn.blocks, ...startup.blocks])
+  for (const block of fn.id === startup.id ? fn.blocks : [...fn.blocks, ...startup.blocks])
     index.set(block.label, index.has(block.label) ? null : block);
   return index;
 }
@@ -214,6 +218,20 @@ function redundantReload(block: LabelledBlock, at: number): boolean {
 }
 
 /**
+ * Facts a flag-death walk needs to carry on past the end of one body.
+ *
+ * Supplying these is what distinguishes a walk that may cross a call boundary
+ * from the ordinary one, which stops at the body it was given. Their absence is
+ * the conservative answer and leaves every other proof exactly as it was.
+ */
+interface AcrossBodies {
+  /** Every body in the program, indexed by the entry label a call names. */
+  readonly bodies: ReadonlyMap<string, MachineFunction>;
+  /** Whether every caller leaves the still-live flags unobserved after the return. */
+  readonly onReturn: (live: ReadonlySet<string>) => boolean;
+}
+
+/**
  * Whether N and Z are both dead from one position, following control flow out of
  * the block when the block itself does not rewrite them.
  *
@@ -224,8 +242,12 @@ function redundantReload(block: LabelledBlock, at: number): boolean {
  * the flags before reading them, while a handler prologue pushes the whole
  * status register and therefore reads them.
  *
- * A return refuses, because the flags a caller sees are not this body's to
- * spend, and so does a path back into a block already being walked.
+ * A return refuses unless the caller fact is supplied, because the flags a caller
+ * sees are not this body's to spend; so does a path back into a block already
+ * being walked. A call is only stepped over once the caller fact is in play, and
+ * then only when the called body certainly rewrites the pair: a call encodes no
+ * flag of its own, so without that the body behind it could read exactly what is
+ * being proved dead.
  */
 function flagsDead(
   blocks: ReadonlyMap<string, LabelledBlock | null>,
@@ -233,18 +255,22 @@ function flagsDead(
   start: number,
   live: ReadonlySet<string> = new Set(["n", "z"]),
   visited: ReadonlySet<string> = new Set(),
+  across?: AcrossBodies,
 ): boolean {
   if (visited.has(block.label)) return false;
   const remaining = new Set(live);
   for (let at = start; at < block.instructions.length; at += 1) {
     const instruction = block.instructions[at]!;
     if (instruction.uses.flags.some((flag) => remaining.has(flag))) return false;
+    if (across !== undefined && instruction.opcode === "jsr")
+      return calleeRewritesFlags(across.bodies, instruction);
     if (!redundantReload(block, at))
       for (const flag of instruction.defines.flags) remaining.delete(flag);
     if (remaining.size === 0) return true;
   }
   const edge = block.terminator;
-  if (edge.kind === "unreachable" || edge.kind === "return") return false;
+  if (edge.kind === "return") return across !== undefined && across.onReturn(remaining);
+  if (edge.kind === "unreachable") return false;
   if (edge.kind === "branch" || edge.kind === "long-branch") {
     if (edge.uses.flags.some((flag) => remaining.has(flag))) return false;
   }
@@ -261,7 +287,7 @@ function flagsDead(
     return (
       successor !== undefined &&
       successor !== null &&
-      flagsDead(blocks, successor, 0, remaining, walked)
+      flagsDead(blocks, successor, 0, remaining, walked, across)
     );
   });
 }
@@ -311,8 +337,57 @@ function copyForward(
         ),
     );
   const localForwarding = policy === "mixed";
+  // Every body at the state this pass sees, which is what the program will emit:
+  // the passes that still run after it only drop a write the next instruction
+  // already overwrites, so a flag-death conclusion drawn here keeps holding.
+  const current = new Map(items.map((fn) => [fn.id, fn] as const));
+  const bodies = [program.startup, ...program.functions.map((fn) => current.get(fn.id) ?? fn)];
+  const byEntry = new Map(bodies.map((body) => [body.id, body] as const));
+  const indexes = new Map<string, ReadonlyMap<string, LabelledBlock | null>>();
+  const blocksOf = (body: MachineFunction) => {
+    const cached = indexes.get(body.id);
+    if (cached !== undefined) return cached;
+    const built = labelledBlocks(body, program.startup);
+    indexes.set(body.id, built);
+    return built;
+  };
+  /**
+   * Whether every caller of one body leaves N and Z unobserved once it returns.
+   *
+   * This is the fact a body cannot establish from its own instructions. The call
+   * convention hands back no flags, but that is a statement about what a caller
+   * may rely on, not about what the generated caller actually does, so the answer
+   * has to be read off every call site: the walk simply continues in the caller
+   * from the instruction after the call. A body whose callers cannot be
+   * enumerated refuses.
+   *
+   * So does a cycle of bodies, whose callers would otherwise prove each other.
+   * The language already rejects recursion outright, so no accepted program
+   * reaches that barrier; it stays because the soundness of a proof should not
+   * rest on a diagnostic raised somewhere else.
+   */
+  const callersIgnoreFlags = (
+    body: MachineFunction,
+    live: ReadonlySet<string>,
+    walked: ReadonlySet<string>,
+  ): boolean => {
+    if (walked.has(body.id)) return false;
+    const sites = directCallSites(bodies, body.id);
+    if (sites === null) return false;
+    const nested = new Set(walked).add(body.id);
+    return sites.every((site) =>
+      flagsDead(blocksOf(site.caller), site.block, site.index + 1, live, new Set(), {
+        bodies: byEntry,
+        onReturn: (remaining) => callersIgnoreFlags(site.caller, remaining, nested),
+      }),
+    );
+  };
   const functions = items.map((fn) => {
     const reachable = labelledBlocks(fn, program.startup);
+    const across: AcrossBodies = {
+      bodies: byEntry,
+      onReturn: (live) => callersIgnoreFlags(fn, live, new Set()),
+    };
     const sites: RuleSite[] = [];
     const spans: SourceSpan[] = [];
     let savedBytes = 0;
@@ -346,9 +421,12 @@ function copyForward(
         // At block entry A still holds whatever the predecessors left, and the
         // store wrote exactly that byte. A reload there needs no producer when
         // its N/Z result is dead before any observer; an interior pair still
-        // needs the adjacent producer proof.
+        // needs the adjacent producer proof. A delivery that ends at a return
+        // reaches its own callers for that answer.
         const entryForwarding =
-          index === 0 && block !== fn.blocks[0] && flagsDead(reachable, block, index + 2);
+          index === 0 &&
+          block !== fn.blocks[0] &&
+          flagsDead(reachable, block, index + 2, undefined, undefined, across);
         if (
           load === null ||
           load.requestId !== store.requestId ||
