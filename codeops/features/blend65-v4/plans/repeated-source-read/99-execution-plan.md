@@ -139,7 +139,7 @@ Each guard was removed in turn and failed exactly its own cases and nothing else
 Two shapes are the same waste and are refused for two different reasons. Both
 were measured, and neither is hidden behind the delivered case.
 
-**A private or parameter home read twice.** A local and a parameter both live in
+**#183 — a private or parameter home read twice.** A local and a parameter both live in
 a compiler-chosen home rather than named data:
 
 ```asm
@@ -154,7 +154,7 @@ is what lets this unit compare two operands and stop. Two private homes need a
 different argument — that distinct requests cannot share one final address while
 both are live — so it is not folded in on an assumption.
 
-**An aggregate element read twice.** The byte is named module data and the
+**#184 — an aggregate element read twice.** The byte is named module data and the
 operand comparison would admit it:
 
 ```asm
