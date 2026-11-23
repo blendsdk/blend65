@@ -9,6 +9,7 @@ import { argumentDelivery } from "./optimization-argument-delivery.js";
 import { copyParameterLocals } from "./optimization-copy-propagation.js";
 import type { AppliedRule, RuleObligation, RuleSite } from "./optimization-rules.js";
 import { matchedStatusRestore } from "./status-save-window.js";
+import { returnSettlesFlags } from "./return-flag-facts.js";
 
 /** One direct byte store or load operand. */
 function storageOperand(
@@ -442,11 +443,19 @@ function copyForward(
           index === 0 &&
           block !== fn.blocks[0] &&
           flagsDead(reachable, block, index + 2, undefined, undefined, across);
+        // A call writes A and no flag of its own, so it can never be an adjacent
+        // producer on its own terms. What it can carry is its callee's promise:
+        // if every reachable return of that body leaves N and Z describing the
+        // byte it hands back, the caller's reload would only restate them.
+        const returnedProducer =
+          register === "a" &&
+          producer?.opcode === "jsr" &&
+          returnSettlesFlags(byEntry, producer, fn);
         if (
           load === null ||
           load.requestId !== store.requestId ||
           load.offset !== store.offset ||
-          (!entryForwarding && !provedProducer(producer, register)) ||
+          (!entryForwarding && !returnedProducer && !provedProducer(producer, register)) ||
           !(
             privateMainTemporary(program, store.requestId) ||
             (localForwarding &&

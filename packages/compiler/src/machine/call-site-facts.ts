@@ -13,19 +13,33 @@ export interface DirectCallSite {
   readonly index: number;
 }
 
-/** Whether one instruction is a plain direct call naming exactly one entry label. */
-function plainEntryCall(instruction: MachineInstruction, entry: string): boolean {
+/**
+ * The entry label a plain direct call names, or nothing for anything else.
+ *
+ * Anything other than the whole address of one label leaves the target in doubt:
+ * an offset, a single address byte, and a layout-resolved relation each name
+ * something the call's own operand does not settle.
+ * @param instruction The instruction to read.
+ * @returns The named entry label, or `undefined`.
+ * @example
+ * plainEntryLabel(jsrApply); // "fn.apply"
+ */
+export function plainEntryLabel(instruction: MachineInstruction): string | undefined {
   const operand = instruction.operand;
-  return (
-    instruction.opcode === "jsr" &&
+  return instruction.opcode === "jsr" &&
     instruction.mode === "absolute" &&
     operand?.kind === "label" &&
-    operand.label === entry &&
     operand.addressByte === undefined &&
     operand.transform === undefined &&
     operand.addressTransform === undefined &&
     (operand.offset ?? 0) === 0
-  );
+    ? operand.label
+    : undefined;
+}
+
+/** Whether one instruction is a plain direct call naming exactly one entry label. */
+function plainEntryCall(instruction: MachineInstruction, entry: string): boolean {
+  return plainEntryLabel(instruction) === entry;
 }
 
 /**
