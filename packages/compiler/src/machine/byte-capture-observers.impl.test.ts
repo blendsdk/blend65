@@ -10,6 +10,7 @@ import { buildInterference } from "../storage/interference.js";
 import { inventoryStorage } from "../storage/inventory.js";
 import {
   canOmitComparisonCaptureReload,
+  canOmitRepeatedSourceLoad,
   hasNoAsynchronousInterleaving,
   hasUnobservedByteCapture,
 } from "./byte-capture-observers.js";
@@ -440,5 +441,181 @@ describe("ordinary typed comparison producer eligibility", () => {
     }
     expect(canOmitComparisonCaptureReload(input, source, [])).toBe(false);
     expect(canOmitComparisonCaptureReload(input, undefined, prefix())).toBe(false);
+  });
+});
+
+/** One plainly addressed named data byte. */
+function named(label: string, offset = 0) {
+  return Object.freeze({ kind: "label" as const, label, offset });
+}
+
+/**
+ * The window the omission is offered: a source load, a store elsewhere, then the
+ * repeat at the head of the next operation's own instructions.
+ */
+function repeatWindow(
+  overrides: {
+    readonly producer?: Partial<MachineInstruction>;
+    readonly store?: Partial<MachineInstruction>;
+    readonly repeated?: Partial<MachineInstruction>;
+    readonly consumer?: readonly MachineInstruction[];
+  } = {},
+) {
+  const producer = Object.freeze({
+    ...nop(),
+    opcode: "lda" as const,
+    mode: "absolute" as const,
+    operand: named("global.seed"),
+    ...overrides.producer,
+  });
+  const store = Object.freeze({
+    ...nop(),
+    opcode: "sta" as const,
+    mode: "storage" as const,
+    operand: Object.freeze({ kind: "storage" as const, requestId: "value", offset: 0 }),
+    ...overrides.store,
+  });
+  const repeated = Object.freeze({
+    ...nop(),
+    opcode: "lda" as const,
+    mode: "absolute" as const,
+    operand: named("global.seed"),
+    ...overrides.repeated,
+  });
+  const consumer = Object.freeze({
+    ...nop(),
+    opcode: "and" as const,
+    mode: "immediate" as const,
+    operand: Object.freeze({ kind: "immediate" as const, value: 7 }),
+  });
+  return Object.freeze({
+    instructions: Object.freeze([producer, store]),
+    selected: Object.freeze(
+      overrides.consumer ? [repeated, ...overrides.consumer] : [repeated, consumer],
+    ),
+  });
+}
+
+/** One raw byte access, which is what distinguishes a volatile read from a typed one. */
+const RAW_READ = Object.freeze([
+  Object.freeze({ kind: "read" as const, address: 0xd012, width: 1 as const, volatile: true }),
+]);
+
+describe("repeated named source load eligibility", () => {
+  /**
+   * The bundle's presence is the whole question the gate asks of it: the omission
+   * belongs to the optimized candidate and never to the canonical reference. Its
+   * per-function facts are not consulted, and the end-to-end admission is proved
+   * against real builds on every profile by the specification oracle.
+   */
+  function candidate(input: ReturnType<typeof fixture>["input"]) {
+    return {
+      ...input,
+      optimizationFacts: {
+        program: input.program,
+        profile: input.profile,
+        functions: new Map(),
+        mode: "size" as const,
+      },
+    };
+  }
+
+  it("admits one repeat of a named byte across a store to a private home", () => {
+    const { input, source } = fixture();
+    const { instructions, selected } = repeatWindow();
+    expect(canOmitRepeatedSourceLoad(candidate(input), source, instructions, selected)).toBe(true);
+  });
+
+  // Canonical direct lowering is the reference a build is measured against, so
+  // improving it would move the baseline rather than meet it.
+  it("refuses the canonical construction, which carries no optimization facts", () => {
+    const { input, source } = fixture();
+    const { instructions, selected } = repeatWindow();
+    expect(canOmitRepeatedSourceLoad(input, source, instructions, selected)).toBe(false);
+  });
+
+  // A generated initializer body has no source function to prove anything about.
+  it("refuses an absent source owner", () => {
+    const { input } = fixture();
+    const { instructions, selected } = repeatWindow();
+    expect(canOmitRepeatedSourceLoad(candidate(input), undefined, instructions, selected)).toBe(
+      false,
+    );
+  });
+
+  // Dropping the head of a lone instruction would leave the operation with no
+  // generated code at all, which is a different claim from this one.
+  it("refuses a lone instruction whose head is the repeat", () => {
+    const { input, source } = fixture();
+    const { instructions, selected } = repeatWindow();
+    expect(canOmitRepeatedSourceLoad(candidate(input), source, instructions, [selected[0]!])).toBe(
+      false,
+    );
+    expect(canOmitRepeatedSourceLoad(candidate(input), source, instructions, [])).toBe(false);
+  });
+
+  // An installed handler can run between the two instructions and write the source.
+  it("refuses a program that installs an interrupt handler", () => {
+    const { input, source } = fixture([], true);
+    const { instructions, selected } = repeatWindow();
+    expect(canOmitRepeatedSourceLoad(candidate(input), source, instructions, selected)).toBe(false);
+  });
+
+  // Each of these is the admitted window with exactly one fact changed, so the
+  // refusal names that fact rather than some other barrier reached first.
+  it.each([
+    ["the earlier instruction is not a load", { producer: { opcode: "ldx" as const } }],
+    ["the intervening instruction is not a store", { store: { opcode: "and" as const } }],
+    ["the repeat is not a load", { repeated: { opcode: "ldx" as const } }],
+    ["the repeat names a different byte", { repeated: { operand: named("global.other") } }],
+    [
+      "the repeat names another byte of the same object",
+      { repeated: { operand: named("global.seed", 1) } },
+    ],
+    [
+      "the store writes the source itself",
+      { store: { mode: "absolute" as const, operand: named("global.seed") } },
+    ],
+    ["the earlier read is a raw access", { producer: { memory: RAW_READ } }],
+    ["the repeat is a raw access", { repeated: { memory: RAW_READ } }],
+    ["the store is a raw access", { store: { memory: RAW_READ } }],
+    [
+      "the repeat is reached through an index register",
+      { repeated: { mode: "absolute-x" as const } },
+    ],
+    ["the two reads use different addressing", { producer: { mode: "zero-page" as const } }],
+    [
+      "the store is reached through an index register",
+      { store: { mode: "absolute-x" as const, operand: named("global.other") } },
+    ],
+    [
+      "the source names one byte of an address",
+      { producer: { operand: { ...named("global.seed"), addressByte: "low" as const } } },
+    ],
+    [
+      "the source address is resolved by layout",
+      {
+        producer: {
+          operand: { ...named("global.seed"), addressTransform: "block-index" as const },
+        },
+      },
+    ],
+    [
+      "the source is a private home rather than named data",
+      {
+        producer: {
+          mode: "storage" as const,
+          operand: Object.freeze({ kind: "storage" as const, requestId: "base", offset: 0 }),
+        },
+        repeated: {
+          mode: "storage" as const,
+          operand: Object.freeze({ kind: "storage" as const, requestId: "base", offset: 0 }),
+        },
+      },
+    ],
+  ])("refuses a window where %s", (_reason, overrides) => {
+    const { input, source } = fixture();
+    const { instructions, selected } = repeatWindow(overrides);
+    expect(canOmitRepeatedSourceLoad(candidate(input), source, instructions, selected)).toBe(false);
   });
 });

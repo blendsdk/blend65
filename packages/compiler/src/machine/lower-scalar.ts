@@ -170,12 +170,17 @@ export function canForwardByteArithmetic(
  * Raw addresses, labels, memory effects, byte
  * address transforms and other producers remain unchanged, including decimal
  * arithmetic whose NMOS N/Z need not describe its result.
+ *
+ * A repeated read of one named source is omitted on the caller's separate proof
+ * instead. That one is about the earlier load rather than the store between them,
+ * so it is passed in already decided rather than re-derived from these shapes.
  */
 export function appendScalarPrefix(
   instructions: MachineInstruction[],
   selected: readonly MachineInstruction[],
   operation: SemanticOperation,
   comparisonCaptureUnobserved = false,
+  repeatedSourceLoadOmitted = false,
 ): void {
   const load = selected[0];
   const store = instructions.at(-1);
@@ -210,7 +215,9 @@ export function appendScalarPrefix(
     producer.defines.registers.includes("a") &&
     producer.defines.flags.includes("n") &&
     producer.defines.flags.includes("z");
-  instructions.push(...(samePrivateByte ? selected.slice(1) : selected));
+  instructions.push(
+    ...(samePrivateByte || repeatedSourceLoadOmitted ? selected.slice(1) : selected),
+  );
 }
 
 /** Lower byte/word bit operations directly over their little-endian bytes. */

@@ -40,7 +40,10 @@ import { lowerBooleanBranch } from "./lower-boolean-branch.js";
 import { lowerMaskedComparison } from "./lower-mask-branch.js";
 import { appendMergeCopies } from "./lower-merge-copies.js";
 import { appendImmediateByteBitwise, appendScalarPrefix } from "./lower-scalar.js";
-import { canOmitComparisonCaptureReload } from "./byte-capture-observers.js";
+import {
+  canOmitComparisonCaptureReload,
+  canOmitRepeatedSourceLoad,
+} from "./byte-capture-observers.js";
 import {
   selectRegisterForwarding,
   selectZeroReturn,
@@ -873,9 +876,17 @@ export function lowerFunction(
               currentInstructions,
               selected,
               operation,
-              operation.kind === "binary" &&
+              // Named rather than passed bare: two adjacent decisions that both
+              // end in dropping the leading load would read as correct transposed.
+              /* comparisonCaptureUnobserved */ operation.kind === "binary" &&
                 ["==", "!=", "<", "<=", ">", ">="].includes(operation.operator) &&
                 canOmitComparisonCaptureReload(input, sourceFunction, currentInstructions),
+              /* repeatedSourceLoadOmitted */ canOmitRepeatedSourceLoad(
+                input,
+                sourceFunction,
+                currentInstructions,
+                selected,
+              ),
             );
           if (selected.length > 0) {
             // A local composition can append real code without growing the list.

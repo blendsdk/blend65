@@ -200,6 +200,93 @@ export function hasNoAsynchronousInterleaving(
   );
 }
 
+/** Direct addressing modes that name one fixed byte without an index register. */
+const DIRECT_MODES = new Set(["absolute", "zero-page", "storage"]);
+
+/** One named data byte addressed plainly, with no layout relation of its own. */
+function plainNamedByte(
+  operand: MachineInstruction["operand"],
+): { readonly label: string; readonly offset: number } | undefined {
+  return operand?.kind === "label" &&
+    operand.addressByte === undefined &&
+    operand.transform === undefined &&
+    operand.addressTransform === undefined
+    ? Object.freeze({ label: operand.label, offset: operand.offset ?? 0 })
+    : undefined;
+}
+
+/** Whether one store writes somewhere the named source byte provably is not. */
+function writesElsewhere(
+  store: MachineInstruction,
+  read: { readonly label: string; readonly offset: number },
+): boolean {
+  const written = store.operand;
+  // A compiler-chosen private home is allocated away from named data, so it
+  // cannot be the byte this source names. A different name is a different
+  // object; the same name is the source itself and ends the window.
+  if (written?.kind === "storage") return written.addressByte === undefined;
+  const named = plainNamedByte(written);
+  return named !== undefined && named.label !== read.label;
+}
+
+/**
+ * Prove that a source byte already in A is the same byte a second load would fetch.
+ *
+ * `LDA source; STA elsewhere; LDA source` reads memory twice for one value. The
+ * store writes neither the accumulator nor any flag, so by the time the second
+ * load would run, A already holds the byte and N and Z already describe it: the
+ * load is architecturally a complete no-op, not merely a value the consumer could
+ * have taken from a register. That is why no separate flag proof is needed here,
+ * unlike an omission whose producer sets different flags from the load it replaces.
+ *
+ * What remains is the one thing generated code cannot settle on its own — whether
+ * anything can write the source between the two instructions. Only an interrupt
+ * can run there, so the adjacency proof beside this one carries the whole weight.
+ *
+ * Deliberately narrow. The two loads must name one plain data byte directly, which
+ * excludes an indexed form whose byte depends on a register, a layout-resolved
+ * address relation, and any raw or volatile access, because a volatile read is two
+ * bus accesses by contract. This is not a widening of the capture window above: that
+ * one removes a reload of the home a store just filled, and is proved from the store,
+ * while this one removes a repeat of a read and is proved from the earlier load.
+ *
+ * Only the optimized-candidate construction omits the load. Canonical direct
+ * lowering is the reference a build is measured against, so improving it would
+ * move the baseline rather than meet it.
+ * @param input Existing closed source/domain/profile facts.
+ * @param source The actual function body, absent for a generated initializer.
+ * @param instructions The already-selected prefix, ending with the intervening store.
+ * @param selected The operation's own instructions, which may open with the repeat.
+ * @returns Whether this one repeated source load can be dropped outright.
+ */
+export function canOmitRepeatedSourceLoad(
+  input: MachineLoweringInput,
+  source: SemanticFunction | undefined,
+  instructions: readonly MachineInstruction[],
+  selected: readonly MachineInstruction[],
+): boolean {
+  if (source === undefined || input.optimizationFacts === undefined) return false;
+  // Dropping the head of a lone instruction would leave the operation with no
+  // generated code at all, which is a different claim from the one made here.
+  if (selected.length < 2) return false;
+  const repeated = selected[0];
+  const store = instructions.at(-1);
+  const producer = instructions.at(-2);
+  if (repeated?.opcode !== "lda" || producer?.opcode !== "lda" || store?.opcode !== "sta")
+    return false;
+  // A typed access carries no memory effect at all; a raw or volatile one does.
+  if (repeated.memory.length !== 0 || producer.memory.length !== 0 || store.memory.length !== 0)
+    return false;
+  if (!DIRECT_MODES.has(repeated.mode) || repeated.mode !== producer.mode) return false;
+  if (!DIRECT_MODES.has(store.mode)) return false;
+  const read = plainNamedByte(producer.operand);
+  const again = plainNamedByte(repeated.operand);
+  if (read === undefined || again === undefined) return false;
+  if (read.label !== again.label || read.offset !== again.offset) return false;
+  if (!writesElsewhere(store, read)) return false;
+  return hasNoAsynchronousInterleaving(input, source);
+}
+
 /**
  * Tie an adjacent comparison reload to its actual fresh source read and private save.
  * Missing or ambiguous instruction/source ownership keeps the original reload.
