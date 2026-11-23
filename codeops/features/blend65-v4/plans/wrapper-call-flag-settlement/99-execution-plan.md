@@ -98,23 +98,35 @@ return-contract work, which was its first consumer.
 
 A wrapper whose inner body opens by saving the whole status register refuses,
 because that opening reads exactly the pair being proved dead. It is a correct
-refusal of the question as asked — but the matching restore is two instructions
-later, so the pair is preserved rather than spent, which is precisely what the
-flag-death walk itself was taught earlier in this run of sessions.
+refusal of the question as asked, and the shape appears in the table below
+retaining the same staged pair the delivering witnesses drop — so its cost is the
+pair's own six bytes, inferred from the two absolute instructions rather than
+measured by delivering it.
 
-Teaching this census the same thing is a further generalisation, not a gap in
-this one: the census asks about one opening instruction, while stepping over a
-save window is a walk. The shape is reachable from source and appears in the
-table below as a refusal, retaining the same staged pair the delivering witnesses
-drop — so its cost is the pair's own six bytes, inferred from the two absolute
-instructions rather than measured by delivering it.
+What this record first claimed about closing it was inferred rather than read,
+and the generated code corrects it. Reading `inner` from a real `balanced` build
+shows the body is not one that merely begins with a save: it is the platform's
+install sequence twice over, two `php`/`plp` windows each with a balanced
+`pha`/`pla` inside and twelve instructions apart, and then a return. Nothing
+between a save and its restore reads the pair, and every load inside a window is
+written back over by the restore — so the body reaches its `rts` having neither
+spent the pair nor settled it. Stepping over the first window does not reach an
+answer; it reaches a second save, and past that a return.
 
-It is filed as #187 with the path to the win named, because the walk it needs
-already exists: `matchedStatusRestore` in `machine/status-save-window.ts` answers
-which restore matches a save given the flags that must survive it, and the
-census can continue its question from the instruction after that restore. What
-order the board works it in is a separate question from whether the debt is
-tracked.
+So the window walk alone is not the path. `matchedStatusRestore` is the right
+instrument for crossing one window, but its contract is that the flags are still
+live afterwards, which is the opposite of what this census must prove. The honest
+answer for this body is a third one — preserved, neither rewritten nor observed —
+and with it the caller's walk has to resume after its own `jsr` rather than
+conclude at it. In the measured witness that resumption lands on the shared
+startup restore, whose first instruction writes both flags, which is the producer
+the cross-block continuation already follows.
+
+That is a wider change than the one-instruction generalisation delivered here,
+and it subsumes the status-save shape rather than special-casing it: any
+flag-transparent callee answers the same way. It is filed as #187 with the
+measured listing and that three-answer shape recorded. What order the board works
+it in is a separate question from whether the debt is tracked.
 
 ## Measured before anything was changed
 
