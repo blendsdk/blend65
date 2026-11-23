@@ -148,6 +148,15 @@ It is now `should deliver directly where the path ends at a return`, asserting
 the same witness against the correct answer. Four lines changed in that file and
 nothing else; the other thirty-two cases are untouched and pass.
 
+Moving a pinned answer is the user's call, and the user delegated this one back
+with the instruction to take the best available option. The ruling is **confirm**:
+reverting would restore a sequence that costs six bytes and eight cycles on every
+delivered result, and would re-pin a limitation that had already been filed as a
+defect as though it were the required behaviour. The refusals that genuinely
+belong to the convention were checked at byte level against the pre-change
+compiler and all survive, so nothing else in the pinned set depends on the old
+answer. The move stands as written.
+
 ## Tasks
 
 - [x] T-181.1 Measure the filed witness and eight controls at all four goals, bounds off and on.
