@@ -17,6 +17,7 @@ import type {
 } from "../semantic/operations.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
 import { reachableBlocks } from "../semantic/value-lifetimes.js";
+import type { InterferenceEdge } from "../storage/storage-types.js";
 import type { MachineInstruction, MachineLoweringInput } from "./machine-types.js";
 
 /** Exact source publications whose complete hardware fetches stay in immutable asset storage. */
@@ -215,18 +216,72 @@ function plainNamedByte(
     : undefined;
 }
 
-/** Whether one store writes somewhere the named source byte provably is not. */
+/** One plainly addressed byte: declared module data, or a compiler-chosen home. */
+type SourceByte =
+  | { readonly kind: "named"; readonly label: string; readonly offset: number }
+  | { readonly kind: "home"; readonly requestId: string; readonly offset: number };
+
+/** The byte one operand addresses plainly, or nothing when it addresses no single byte. */
+function plainSourceByte(operand: MachineInstruction["operand"]): SourceByte | undefined {
+  const named = plainNamedByte(operand);
+  if (named !== undefined) return Object.freeze({ kind: "named" as const, ...named });
+  return operand?.kind === "storage" && operand.addressByte === undefined
+    ? Object.freeze({
+        kind: "home" as const,
+        requestId: operand.requestId,
+        offset: operand.offset ?? 0,
+      })
+    : undefined;
+}
+
+/** Whether two plain operands address the very same byte. */
+function sameSourceByte(read: SourceByte, again: SourceByte): boolean {
+  if (read.kind === "named")
+    return again.kind === "named" && read.label === again.label && read.offset === again.offset;
+  return (
+    again.kind === "home" && read.requestId === again.requestId && read.offset === again.offset
+  );
+}
+
+/** Whether allocation was told these two requests can never share one address. */
+function cannotShareAddress(
+  edges: readonly InterferenceEdge[],
+  one: string,
+  other: string,
+): boolean {
+  return edges.some(
+    ({ left, right }) => (left === one && right === other) || (left === other && right === one),
+  );
+}
+
+/**
+ * Whether one store writes somewhere the source byte provably is not.
+ *
+ * Three of the four pairings are settled by allocation's own partitioning: a
+ * compiler-chosen home is placed away from declared data, so neither can ever be
+ * the byte the other names, and two different declared names are two different
+ * objects. The same name is the source itself, and ends the window.
+ *
+ * Two homes are the case that needs a fact from outside these instructions,
+ * because nothing stops the allocator from giving one address to two homes whose
+ * lifetimes do not overlap. The statement that these two cannot is exactly an
+ * interference edge, so it is read off the graph the allocator was handed rather
+ * than inferred from no conflict having been reported.
+ */
 function writesElsewhere(
   store: MachineInstruction,
-  read: { readonly label: string; readonly offset: number },
+  read: SourceByte,
+  interference: readonly InterferenceEdge[],
 ): boolean {
-  const written = store.operand;
-  // A compiler-chosen private home is allocated away from named data, so it
-  // cannot be the byte this source names. A different name is a different
-  // object; the same name is the source itself and ends the window.
-  if (written?.kind === "storage") return written.addressByte === undefined;
-  const named = plainNamedByte(written);
-  return named !== undefined && named.label !== read.label;
+  const written = plainSourceByte(store.operand);
+  if (written === undefined) return false;
+  if (read.kind !== written.kind) return true;
+  if (read.kind === "named") return written.kind === "named" && written.label !== read.label;
+  return (
+    written.kind === "home" &&
+    read.requestId !== written.requestId &&
+    cannotShareAddress(interference, read.requestId, written.requestId)
+  );
 }
 
 /**
@@ -243,10 +298,12 @@ function writesElsewhere(
  * anything can write the source between the two instructions. Only an interrupt
  * can run there, so the adjacency proof beside this one carries the whole weight.
  *
- * Deliberately narrow. The two loads must name one plain data byte directly, which
+ * Deliberately narrow. The two loads must address one plain byte directly, which
  * excludes an indexed form whose byte depends on a register, a layout-resolved
  * address relation, and any raw or volatile access, because a volatile read is two
- * bus accesses by contract. This is not a widening of the capture window above: that
+ * bus accesses by contract. The source may be declared data or a compiler-chosen
+ * home; what differs between the two is only how the store is proved to write
+ * somewhere else. This is not a widening of the capture window above: that
  * one removes a reload of the home a store just filled, and is proved from the store,
  * while this one removes a repeat of a read and is proved from the earlier load.
  *
@@ -279,11 +336,11 @@ export function canOmitRepeatedSourceLoad(
     return false;
   if (!DIRECT_MODES.has(repeated.mode) || repeated.mode !== producer.mode) return false;
   if (!DIRECT_MODES.has(store.mode)) return false;
-  const read = plainNamedByte(producer.operand);
-  const again = plainNamedByte(repeated.operand);
+  const read = plainSourceByte(producer.operand);
+  const again = plainSourceByte(repeated.operand);
   if (read === undefined || again === undefined) return false;
-  if (read.label !== again.label || read.offset !== again.offset) return false;
-  if (!writesElsewhere(store, read)) return false;
+  if (!sameSourceByte(read, again)) return false;
+  if (!writesElsewhere(store, read, input.storageInterference ?? [])) return false;
   return hasNoAsynchronousInterleaving(input, source);
 }
 

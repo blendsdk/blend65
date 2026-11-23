@@ -2,6 +2,7 @@ import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { MachineProgramDefect } from "./machine-defect.js";
 import type { VicFieldTransform } from "./vic-fields.js";
 import type {
+  InterferenceEdge,
   StorageBinder,
   StorageProfile,
   StorageRequest,
@@ -724,6 +725,16 @@ export interface MachineLoweringInput {
   readonly optimizationFacts?: OptimizationFacts;
   /** Actual provisional physical facts, absent during allocation-independent construction. */
   readonly placement?: StoragePlacement;
+  /**
+   * Lifetime and call-overlap conflicts between storage requests.
+   *
+   * An edge is the statement that two requests can never share one address,
+   * which is what allocation then enforces. It is carried here rather than
+   * re-derived because a conclusion drawn from the absence of a reported
+   * conflict would be a guess; and because later allocation rounds only ever
+   * add edges, an edge present here is present in the final placement too.
+   */
+  readonly storageInterference?: readonly InterferenceEdge[];
   /** Complete original logical declarations; selected demand is closed after lowering. */
   readonly logicalStorage?: StorageInventory;
   /** NMI local bindings omitted before allocation; lowering only realises this exact set. */

@@ -601,7 +601,7 @@ describe("repeated named source load eligibility", () => {
       },
     ],
     [
-      "the source is a private home rather than named data",
+      "two private homes carry no stated conflict between them",
       {
         producer: {
           mode: "storage" as const,
@@ -617,5 +617,173 @@ describe("repeated named source load eligibility", () => {
     const { input, source } = fixture();
     const { instructions, selected } = repeatWindow(overrides);
     expect(canOmitRepeatedSourceLoad(candidate(input), source, instructions, selected)).toBe(false);
+  });
+});
+
+/** One private home operand addressed plainly. */
+function home(requestId: string, offset = 0) {
+  return Object.freeze({ kind: "storage" as const, requestId, offset });
+}
+
+/** The repeat window with a compiler-chosen home as its source. */
+function homeWindow(overrides: Parameters<typeof repeatWindow>[0] = {}, source = home("base")) {
+  return repeatWindow({
+    producer: { mode: "storage", operand: source, ...overrides.producer },
+    repeated: { mode: "storage", operand: source, ...overrides.repeated },
+    ...(overrides.store === undefined ? {} : { store: overrides.store }),
+    ...(overrides.consumer === undefined ? {} : { consumer: overrides.consumer }),
+  });
+}
+
+describe("repeated private home load eligibility", () => {
+  /**
+   * The same optimized-candidate gate as above, plus the conflicts allocation was
+   * given. Two homes are kept apart by allocation rather than by their operands,
+   * so this is the one window whose admission depends on a fact from outside the
+   * instructions themselves.
+   */
+  function candidate(
+    input: ReturnType<typeof fixture>["input"],
+    interference: readonly { readonly left: string; readonly right: string }[] = [],
+  ) {
+    return {
+      ...input,
+      optimizationFacts: {
+        program: input.program,
+        profile: input.profile,
+        functions: new Map(),
+        mode: "size" as const,
+      },
+      storageInterference: interference.map(({ left, right }) =>
+        Object.freeze({ left, right, reason: "lifetime" as const }),
+      ),
+    };
+  }
+
+  it("admits one repeat of a home byte across a store to a conflicting home", () => {
+    const { input, source } = fixture();
+    const { instructions, selected } = homeWindow();
+    expect(
+      canOmitRepeatedSourceLoad(
+        candidate(input, [{ left: "base", right: "value" }]),
+        source,
+        instructions,
+        selected,
+      ),
+    ).toBe(true);
+  });
+
+  // The edge list orders its two ends lexically, which is not the order a caller
+  // happens to ask in; the answer must not depend on which end is named first.
+  it("admits the same window with the conflict stated the other way round", () => {
+    const { input, source } = fixture();
+    const { instructions, selected } = homeWindow();
+    expect(
+      canOmitRepeatedSourceLoad(
+        candidate(input, [{ left: "value", right: "base" }]),
+        source,
+        instructions,
+        selected,
+      ),
+    ).toBe(true);
+  });
+
+  // A home read twice while the store writes declared data needs no conflict at
+  // all: allocation places a compiler-chosen home away from declared objects.
+  it("admits a home read twice across a store to declared data", () => {
+    const { input, source } = fixture();
+    const { instructions, selected } = homeWindow({
+      store: { mode: "absolute", operand: named("global.other") },
+    });
+    expect(canOmitRepeatedSourceLoad(candidate(input), source, instructions, selected)).toBe(true);
+  });
+
+  // Each of these is the admitted window with exactly one fact changed.
+  it.each([
+    ["no conflict is stated between the two homes", {}, []],
+    ["the conflict names an unrelated pair", {}, [{ left: "base", right: "elsewhere" }]],
+    [
+      "the store writes the source home itself",
+      { store: { operand: home("base") } },
+      [{ left: "base", right: "value" }],
+    ],
+    // No conflict graph names a home against itself, so this one is built rather
+    // than taken from a real allocation. The barrier is kept for whatever a later
+    // pass might hand in: a store to the very home being read ends the window,
+    // and that must not become admissible through a conflict list.
+    [
+      "the stated conflict is the source home against itself",
+      { store: { operand: home("base") } },
+      [{ left: "base", right: "base" }],
+    ],
+    [
+      "the repeat reads another byte of the same home",
+      { repeated: { operand: home("base", 1) } },
+      [{ left: "base", right: "value" }],
+    ],
+    [
+      "the repeat reads a different home",
+      { repeated: { operand: home("other") } },
+      [{ left: "base", right: "value" }],
+    ],
+    [
+      "the repeat reads declared data instead",
+      { repeated: { mode: "absolute" as const, operand: named("global.seed") } },
+      [{ left: "base", right: "value" }],
+    ],
+    [
+      "the source names one byte of a home address",
+      { producer: { operand: { ...home("base"), addressByte: "low" as const } } },
+      [{ left: "base", right: "value" }],
+    ],
+    [
+      "the store names one byte of a home address",
+      { store: { operand: { ...home("value"), addressByte: "low" as const } } },
+      [{ left: "base", right: "value" }],
+    ],
+    [
+      "the store reaches its home through an index register",
+      { store: { mode: "absolute-x" as const } },
+      [{ left: "base", right: "value" }],
+    ],
+  ])("refuses a home window where %s", (_reason, overrides, interference) => {
+    const { input, source } = fixture();
+    const { instructions, selected } = homeWindow(overrides);
+    expect(
+      canOmitRepeatedSourceLoad(candidate(input, interference), source, instructions, selected),
+    ).toBe(false);
+  });
+
+  // An installed handler can run between the two instructions and write the home.
+  it("refuses a home window in a program that installs an interrupt handler", () => {
+    const { input, source } = fixture([], true);
+    const { instructions, selected } = homeWindow();
+    expect(
+      canOmitRepeatedSourceLoad(
+        candidate(input, [{ left: "base", right: "value" }]),
+        source,
+        instructions,
+        selected,
+      ),
+    ).toBe(false);
+  });
+
+  // Canonical direct lowering is the reference a build is measured against.
+  it("refuses a home window carrying no optimization facts", () => {
+    const { input, source } = fixture();
+    const { instructions, selected } = homeWindow();
+    expect(
+      canOmitRepeatedSourceLoad(
+        {
+          ...input,
+          storageInterference: [
+            Object.freeze({ left: "base", right: "value", reason: "lifetime" as const }),
+          ],
+        },
+        source,
+        instructions,
+        selected,
+      ),
+    ).toBe(false);
   });
 });

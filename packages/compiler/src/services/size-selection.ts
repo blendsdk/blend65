@@ -363,7 +363,8 @@ export function closeCanonicalStorage(
   const preferZeroPage = input.snapshot.manifest.optimization !== "none";
   const inventory = inventoryStorage(reserved.program, { preferZeroPage });
   if (!validStorageDemands(inventory.requests)) return incomplete("static storage allocation");
-  const provisional = allocateStorage(inventory, buildInterference(inventory), reserved.storage);
+  const interference = buildInterference(inventory);
+  const provisional = allocateStorage(inventory, interference, reserved.storage);
   if (provisional.kind === "error")
     return rejected("allocation", incomplete("static storage allocation").failure, {
       inventory,
@@ -384,6 +385,7 @@ export function closeCanonicalStorage(
       program: reserved.program,
       c64ActiveScreen: activeScreen,
       placement,
+      storageInterference: interference,
       profile: allocationProfile,
       boundsCheck: snapshot.manifest.boundsCheck,
       divisionZeroCheck: snapshot.manifest.divisionZeroCheck,
@@ -939,6 +941,7 @@ export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResu
     c64ActiveScreen: deriveC64ActiveScreen(reserved.program),
     profile: allocationProfile,
     logicalStorage: inventory,
+    storageInterference: buildInterference(inventory),
     sourceFacts: plan.sourceFacts,
     optimizationFacts:
       input.optimizationFacts ??
