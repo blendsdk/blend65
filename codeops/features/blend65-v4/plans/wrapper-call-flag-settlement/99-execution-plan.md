@@ -107,9 +107,14 @@ this one: the census asks about one opening instruction, while stepping over a
 save window is a walk. The shape is reachable from source and appears in the
 table below as a refusal, retaining the same staged pair the delivering witnesses
 drop — so its cost is the pair's own six bytes, inferred from the two absolute
-instructions rather than measured by delivering it. It is recorded here rather
-than filed, because the remaining order on this board belongs to whoever extends
-it.
+instructions rather than measured by delivering it.
+
+It is filed as #187 with the path to the win named, because the walk it needs
+already exists: `matchedStatusRestore` in `machine/status-save-window.ts` answers
+which restore matches a save given the flags that must survive it, and the
+census can continue its question from the instruction after that restore. What
+order the board works it in is a separate question from whether the debt is
+tracked.
 
 ## Measured before anything was changed
 
