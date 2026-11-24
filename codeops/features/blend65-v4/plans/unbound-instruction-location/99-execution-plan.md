@@ -32,8 +32,11 @@ Line numbers as of `185c9d24`.
 The middle row is new to this record. `validateHomes` returns `""` when the certificate
 disagrees with the program as a whole — a wrong inventory hash, a wrong profile identity, a home
 count that does not match the request count — and that empty identity produces a refusal with no
-demand and no defect, exactly like the certificate marker. It is reachable through the real binder,
-which is what makes the service-level half of this unit testable at all.
+demand and no defect, exactly like the certificate marker. Unlike the marker it is reachable
+through the real binder without forging a certificate, which is what makes the defect-free service
+branch testable at all. That is a narrower claim than an earlier version of this record made: the
+failed-function site is reachable through the binder too, as its own cases show. What this one is
+alone in being is reachable *and* construct-less.
 
 ## What the failing function already knows
 
@@ -42,15 +45,18 @@ which is what makes the service-level half of this unit testable at all.
 | Check | What it means |
 | --- | --- |
 | `resolveHome` finds no home | the instruction names storage the certificate gave no home |
-| `resolveHome` rejects the offset | the byte reached is outside the home selected for that storage |
-| the indirect guard in `bindInstruction` | the pointer home ends at `$xxFF`, where this processor reads the high byte from the start of the same page |
+| `resolveHome` rejects the offset | the byte named is not part of the storage that was allocated — past its end, negative, or not a whole number of bytes |
+| the indirect guard in `bindInstruction` | the pointer begins at `$xxFF`, where this processor takes its high byte from the start of that same page |
 
 All three are collapsed into one `null` today, and the `missing` check one line earlier has
 already proved every *required* demand has a home — so "no storage home was selected" would be the
 wrong sentence for most of them. The reason reported must be the check that actually fired.
 
 The third is not a missing home at all. It is the 6502 indirect page-wrap, and naming it is worth
-more than the other two: it is the one an author could act on, by moving the object.
+more than the other two, because it is the only one that identifies a specific hardware rule the
+generated code broke rather than a bookkeeping disagreement. Two reviewers rejected an earlier
+version of this sentence that called it the fault an author could resolve by moving the object:
+the compiler chose that address, so that is not the author's placement to change.
 
 So the repair threads the failed check outward instead of guessing it, and the site it reports is
 the instruction itself — block label, opcode and the span that selected it — which is the evidence
@@ -179,12 +185,17 @@ rebuilding again with the change restored.
 Three reviewers, each on a different contract: correctness and standards, semantic preservation and
 developer experience, and storage/ABI closure from producer to consumer.
 
+**No critical finding, and no major implementation defect. One major remains formally open** — the
+semantics reviewer's objection to reporting a construct-less refusal at the program entry, which
+the frozen diagnostics chapter appears to decide the other way. It is contested rather than
+dispositioned, and this record does not claim otherwise.
+
 | Finding | Disposition |
 | --- | --- |
 | The page-wrap sentence names the home's end, not the pointer's start (found three times over) | **Fixed**, with the valid `$xxFE` contrast pinned |
 | "Reaches a byte outside" misdescribes a negative, fractional or permitted-endpoint offset | **Fixed**, with the endpoint and both invalid shapes pinned |
 | The sentences use vocabulary the author never supplied — certificates, homes | **Fixed**: every message now names the compiler or its generated code as the subject |
-| A caret at `main` for a whole-program refusal is a misleading location | **Refuted** by the frozen specification quoted above; the help-line half was adopted |
+| A caret at `main` for a whole-program refusal is a misleading location | **Refuted** from the frozen specification quoted above, and the refutation is back with the reviewer rather than applied over it — it has not withdrawn the finding yet. The help-line half of its objection was adopted. If it holds after reading the chapter, the disagreement is the user's to settle, not mine to close |
 | Omitting allocation budgets and source remedies breaches the SFA diagnostic model | **Refuted** by the auditor itself: that model governs impossible allocations, and these guards detect disagreement after closure rather than exhausted capacity |
 | The opcode was asserted present in help but not absent from the message | **Fixed** |
 | New fixtures carried empty memory-effect arrays, so the rewritten effect loop was untested | **Fixed**: an effect-only fault, a two-effect ordering case, and a nonzero `indirect-y` displacement that must keep binding |
