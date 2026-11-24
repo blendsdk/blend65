@@ -149,7 +149,8 @@ unexplained.
 
 | Check | Result |
 | --- | --- |
-| New cases, bind through to the author-facing sentence | **9 red → 27/27** in the services file after review added four more; 7 of the first 9 failed on the unlocated sentence, 2 were passing controls and are labelled as such |
+| New cases, bind through to the author-facing sentence | **27/27** in the services file: 11 pre-existing, 9 authored first (7 failing on the unlocated sentence, 2 passing controls labelled as such), and 7 more added by review |
+| The three accepted-shape controls are not vacuous | **Proved by mutation**: widening the address-byte bound to `>=`, widening the page guard to `$xxFE`, and dropping the indirect displacement each fail exactly the one control that guards it, and nothing else |
 | Compiler package, machine and services | **267 files / 4,544 passed**, 2 skipped |
 | Root host tier, complete and clean | **278 files / 5,941 passed**, zero errors |
 | The four frontier guards, re-run directly | **37/37**, including the emulator-driving saved-output file at 17/17 |
@@ -189,6 +190,11 @@ developer experience, and storage/ABI closure from producer to consumer.
 | New fixtures carried empty memory-effect arrays, so the rewritten effect loop was untested | **Fixed**: an effect-only fault, a two-effect ordering case, and a nonzero `indirect-y` displacement that must keep binding |
 | The host checkpoint was not unconditionally green | **Fixed by re-running it**; 278/278 clean |
 | The two skips were unidentified | **Identified**: the Windows-only emulator cases |
+| Three accepted-shape controls asserted only that one phrase was absent, so an unrelated refusal would pass them | **Fixed**, and the fix is the better lesson: built from the CPU facts rather than by hand, all three programs now bind completely and assert what was produced — the absolute pointer at `$30FE`, the immediate low byte of `$3002`, the bound effect keeping displacement 64. Each is then proved non-vacuous by mutation |
+
+The last round also retired the one gate finding: the board's protocol places `yarn test:full` at
+the wave close, which the reviewer accepted once it was quoted, and the earlier incomplete host run
+was answered by re-running the tier clean rather than by defending its disposition.
 
 The storage audit decided all six of its obligations preserved — closure, short-circuit safety, the
 shared-body boundary, zero-page/region/cost selection, the `$xxFF` predicate itself, and

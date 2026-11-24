@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { bindMachineProgram } from "../machine/bind.js";
 import { machineProgramDefect } from "../machine/machine-defect.js";
+import { machineInstruction } from "../machine/lower-control.js";
+import { NMOS_6510 } from "../target/nmos6510.js";
 import type {
   MachineFunction,
   MachineInstruction,
+  MachineMemoryEffect,
   MachineOperand,
   MachineProgram,
 } from "../machine/machine-types.js";
@@ -271,14 +274,19 @@ describe("a storage-binding refusal names the demand it failed on", () => {
 /**
  * Binding can also fail on an instruction, and three unrelated checks produce that failure.
  *
- * The demand may have no home at all, the byte reached may lie outside the home that was
- * selected, or the home chosen for an indirect pointer may end at the last byte of a page, where
- * this processor reads the high byte from the start of the same page rather than the next one.
+ * The storage may have no home at all, the byte named may not be part of the storage that was
+ * allocated, or an indirect pointer may begin at the last byte of a page, where this processor
+ * takes its high byte from the start of that same page rather than from the next address.
  * Collapsing all three into one sentence would state a cause that did not fire, so each refusal
  * names the check that did and points at the instruction that provoked it.
  *
  * The demand check one step earlier has already proved every required demand has a home, so
  * "no storage home was selected" is the wrong sentence for most of these.
+ *
+ * Where a case asserts that something still binds, the instruction is built from the CPU facts
+ * rather than by hand, so the whole program reaches completion instead of stopping at a later
+ * legality check — an accepted shape proved by a refusal arriving from somewhere else would
+ * prove nothing.
  */
 
 /** The instruction an author's source selected, which is what these refusals must point at. */
@@ -296,6 +304,45 @@ function loadThrough(operand: MachineOperand, mode = "storage"): MachineInstruct
     cost: { bytes: 3, minCycles: 4, maxCycles: 4 },
     source: selected,
   };
+}
+
+/** A real documented instruction, for the cases that must bind rather than refuse. */
+function documented(
+  opcode: string,
+  mode: string,
+  operand: MachineOperand | null,
+  memory: readonly MachineMemoryEffect[] = [],
+): MachineInstruction {
+  return machineInstruction(NMOS_6510, opcode, mode, operand, memory, selected);
+}
+
+/** Bind one body holding that instruction, and hand back whatever the binder decided. */
+function bindOne(instruction: MachineInstruction, request: StorageRequest, address: number) {
+  return bindMachineProgram(
+    {
+      functions: [bodyWith("fn.main", instruction)],
+      data: [],
+      startup: { id: "startup", blocks: [] },
+      requiredStorage: [request],
+    },
+    certificateWith([{ requestId: request.id, address, bytes: request.bytes, region: "ram" }]),
+  );
+}
+
+/** The instruction a completed bind produced, so a case can assert what it actually became. */
+function boundInstruction(result: ReturnType<typeof bindMachineProgram>): MachineInstruction {
+  if (result.kind !== "complete") throw new Error(`Expected a bound program: ${result.reason}`);
+  return result.program.functions[0]!.blocks[0]!.instructions[0]!;
+}
+
+/** The failed check a refusal carries, so a case can name the one it expects. */
+function refusalReason(result: ReturnType<typeof bindMachineProgram>): string {
+  return result.kind === "error" ? (result.defect?.reason ?? "") : "";
+}
+
+/** The location a refusal carries, which for an instruction fault is the source that selected it. */
+function refusalSpan(result: ReturnType<typeof bindMachineProgram>): SourceSpan | null {
+  return result.kind === "error" ? (result.defect?.source ?? null) : null;
 }
 
 /** A body holding that one instruction, under the label a bug report would quote. */
@@ -369,74 +416,69 @@ describe("a refusal whose function failed binding names the instruction", () => 
 
   it("should report an indirect pointer that begins at the last byte of a page", () => {
     // This processor takes the high byte of an indirect pointer from the start of the pointer's
-    // own page, so a pointer beginning at $xxFF reads an address the program never formed. What
-    // decides it is where the pointer begins, not where its home ends — the home below ends at
-    // $3100. An author can act on this one by moving the object, which is why the refusal says
-    // what the hardware does.
+    // own page, so `jmp ($30FF)` reads an address the program never formed. What decides it is
+    // where the pointer begins, not where its home ends — the home below ends at $3100.
     const request = pointerRequest(2);
-    const { diagnostic } = unboundRefusal(
-      loadThrough({ kind: "storage", requestId: request.id }, "indirect"),
-      [request],
-      [{ requestId: request.id, address: 0x30ff, bytes: 2, region: "ram" }],
+    const bound = bindOne(
+      documented("jmp", "indirect", { kind: "storage", requestId: request.id }),
+      request,
+      0x30ff,
     );
 
-    expect(diagnostic.primarySpan).toEqual(selected);
-    expect(diagnostic.message).toContain("at the last byte of a page");
+    expect(bound.kind).toBe("error");
+    expect(refusalReason(bound)).toContain("placed an indirect pointer at the last byte of a page");
+    expect(refusalSpan(bound)).toEqual(selected);
   });
 
   it("should still bind an indirect pointer one byte earlier", () => {
     // The contrast that proves the refusal is about where the pointer starts and not about its
-    // home: the same two bytes one address lower span $30FE and $30FF, so the high byte is read
-    // from the next address rather than from the start of the page, and nothing is wrong.
+    // home: the same two bytes one address lower span $30FE and $30FF, so the high byte comes
+    // from the next address rather than from the start of the page, and nothing is wrong. The
+    // whole program binds, and the pointer it binds is the one the home supplies.
     const request = pointerRequest(2);
-    const bound = bindMachineProgram(
-      {
-        functions: [
-          bodyWith("fn.main", loadThrough({ kind: "storage", requestId: request.id }, "indirect")),
-        ],
-        data: [],
-        startup: { id: "startup", blocks: [] },
-        requiredStorage: [request],
-      },
-      certificateWith([{ requestId: request.id, address: 0x30fe, bytes: 2, region: "ram" }]),
+    const bound = bindOne(
+      documented("jmp", "indirect", { kind: "storage", requestId: request.id }),
+      request,
+      0x30fe,
     );
 
     expect(
-      bound.kind === "error" ? (bound.defect?.reason ?? "") : "",
-      "a pointer that ends a page is fine; only one that starts at its last byte is not",
-    ).not.toContain("last byte of a page");
+      bound.kind,
+      "a pointer that ends a page is fine; one that starts at a page's last byte is not",
+    ).toBe("complete");
+    expect(boundInstruction(bound).operand).toEqual({ kind: "absolute", value: 0x30fe });
+    expect(boundInstruction(bound).mode).toBe("indirect");
   });
 
   it("should bind an indirect effect whose displacement reaches past the pointer", () => {
     // A displacement is added by the processor at run time and is not a byte of the pointer, so
     // bounds-checking it against the pointer's own two bytes would refuse ordinary indexed code.
+    // The bound effect keeps that displacement and resolves only the pointer itself.
     const request = pointerRequest(2);
-    const bound = bindMachineProgram(
-      {
-        functions: [
-          bodyWith("fn.main", {
-            ...loadThrough({ kind: "immediate", value: 7 }, "immediate"),
-            memory: [
-              {
-                kind: "read",
-                address: { kind: "indirect-y", requestId: request.id, offset: 64 },
-                width: 1,
-                volatile: false,
-                order: 0,
-              },
-            ],
-          }),
-        ],
-        data: [],
-        startup: { id: "startup", blocks: [] },
-        requiredStorage: [request],
-      },
-      certificateWith([{ requestId: request.id, address: 0x3000, bytes: 2, region: "ram" }]),
+    const bound = bindOne(
+      documented("lda", "immediate", { kind: "immediate", value: 7 }, [
+        {
+          kind: "read",
+          address: { kind: "indirect-y", requestId: request.id, offset: 64 },
+          width: 1,
+          volatile: false,
+          order: 0,
+        },
+      ]),
+      request,
+      0x3000,
     );
 
-    expect(bound.kind === "error" ? (bound.defect?.reason ?? "") : "").not.toContain(
-      "not part of the storage",
-    );
+    expect(bound.kind).toBe("complete");
+    expect(boundInstruction(bound).memory).toEqual([
+      {
+        kind: "read",
+        address: { kind: "indirect-y-bound", pointer: 0x3000, displacement: 64 },
+        width: 1,
+        volatile: false,
+        order: 0,
+      },
+    ]);
   });
 
   it("should report an offset that is no byte of the home at all", () => {
@@ -539,32 +581,28 @@ describe("a refusal whose function failed binding names the instruction", () => 
   it("should accept an address byte naming the byte one past the last, and no further", () => {
     // Forming the address of the end of an object is legal: the operand becomes an immediate
     // rather than an access, so the byte it names is never read. One further names nothing the
-    // object owns. These assert the binding decision rather than the whole program, because a
-    // hand-built body carries no real processor-state facts for later validation to agree with.
+    // object owns. The accepted half asserts the value that was formed, because a refusal
+    // arriving from some later check would otherwise look like acceptance.
     const request = pointerRequest(2);
-    const homes = [{ requestId: request.id, address: 0x3000, bytes: 2, region: "ram" as const }];
-    const refusalAt = (offset: number) => {
-      const bound = bindMachineProgram(
-        {
-          functions: [
-            bodyWith(
-              "fn.main",
-              loadThrough({ kind: "storage", requestId: request.id, offset, addressByte: "low" }),
-            ),
-          ],
-          data: [],
-          startup: { id: "startup", blocks: [] },
-          requiredStorage: [request],
-        },
-        certificateWith(homes),
+    const bindAt = (offset: number) =>
+      bindOne(
+        documented("lda", "immediate", {
+          kind: "storage",
+          requestId: request.id,
+          offset,
+          addressByte: "low",
+        }),
+        request,
+        0x3000,
       );
-      return bound.kind === "error" ? (bound.defect?.reason ?? "") : "";
-    };
 
-    expect(refusalAt(2), "the end of the object is an address a program may form").not.toContain(
-      "not part of the storage",
-    );
-    expect(refusalAt(3)).toContain("not part of the storage");
+    const end = bindAt(2);
+    expect(end.kind, "the end of an object is an address a program may form").toBe("complete");
+    expect(boundInstruction(end).operand, "the low byte of $3002").toEqual({
+      kind: "immediate",
+      value: 0x02,
+    });
+    expect(refusalReason(bindAt(3))).toContain("not part of the storage");
   });
 
   it("should say plainly that it reports a compiler limitation, not a bad line", () => {
