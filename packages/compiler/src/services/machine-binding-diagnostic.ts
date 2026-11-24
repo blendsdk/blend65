@@ -47,12 +47,19 @@ function definingFunctionName(program: MachineProgram, functionId: string): stri
  */
 export function machineBindingDiagnostic(failure: MachineBindingFailure): ProjectDiagnostic {
   const { defect } = failure;
-  // A storage refusal carries its own witness elsewhere; keep the established wording for it.
+  // A refusal with no failed check disagrees with the program as a whole rather than with one of
+  // its constructs, so the established program-scoped wording stays. What it can still do is
+  // point at the program it was asked about, which is what the caller's span is for.
   if (defect === undefined)
     return projectDiagnostic(
       "COMPILER_INCOMPLETE",
       `The ${STAGE} stage is not complete for this program`,
+      failure.fallbackSpan,
       null,
+      [],
+      failure.fallbackSpan === null
+        ? `Compiler limitation in the ${STAGE} stage; please report it`
+        : `Compiler limitation in the ${STAGE} stage, not an error on this line; please report it with the source shown`,
     );
   const name = definingFunctionName(failure.program, defect.functionId);
   const subject =

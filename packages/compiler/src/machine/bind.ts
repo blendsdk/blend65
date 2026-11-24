@@ -14,6 +14,7 @@ import type {
   MachineFunction,
   MachineInstruction,
   MachineMemoryAddress,
+  MachineMemoryEffect,
   MachineOperand,
   MachineProgram,
   MachineBlock,
@@ -31,16 +32,33 @@ const INSTRUCTION_DEFECTS: Readonly<
   flag: "carries recorded processor-state effects that do not match the instruction",
 };
 
+/**
+ * The checks that can refuse to bind one instruction's storage, kept apart from each other.
+ *
+ * They fail for unrelated reasons, and the refusal an author receives names the one that fired.
+ * By the time an instruction is bound every demand the program declared already has a home, so
+ * describing any of these as a missing home would report a check that passed.
+ */
+type StorageBindingFault = "unhomed" | "offset" | "indirect-page";
+
+/** Wording for each failed check, phrased for whoever wrote the source. */
+const STORAGE_BINDING_FAULTS: Readonly<Record<StorageBindingFault, string>> = {
+  unhomed: "the certificate selected no home for the storage this instruction uses",
+  offset: "this instruction reaches a byte outside the home selected for the storage it uses",
+  "indirect-page":
+    "the home selected for this instruction's indirect pointer ends at the last byte of a page, " +
+    "where this processor reads the high byte from the start of that same page",
+};
+
 /** Resolve and bounds-check one certified storage home plus byte offset. */
 function resolveHome(
   homes: ReadonlyMap<string, StorageHome>,
   requestId: string,
   offset: number,
-): { readonly home: StorageHome; readonly address: number } | null {
+): { readonly home: StorageHome; readonly address: number } | StorageBindingFault {
   const home = homes.get(requestId);
-  if (home === undefined || !Number.isInteger(offset) || offset < 0 || offset >= home.bytes) {
-    return null;
-  }
+  if (home === undefined) return "unhomed";
+  if (!Number.isInteger(offset) || offset < 0 || offset >= home.bytes) return "offset";
   return Object.freeze({ home, address: home.address + offset });
 }
 
@@ -48,20 +66,21 @@ function resolveHome(
 function bindOperand(
   operand: MachineOperand | null,
   homes: ReadonlyMap<string, StorageHome>,
-): {
-  readonly operand: MachineOperand | null;
-  readonly mode: "immediate" | "zero-page" | "absolute" | null;
-} | null {
+):
+  | {
+      readonly operand: MachineOperand | null;
+      readonly mode: "immediate" | "zero-page" | "absolute" | null;
+    }
+  | StorageBindingFault {
   if (operand === null || (operand.kind !== "storage" && operand.kind !== "indirect-y")) {
     return Object.freeze({ operand, mode: null });
   }
-  // An address byte may point one past the object's last byte (the expected load end).
   if (operand.kind === "storage" && operand.addressByte !== undefined) {
     const home = homes.get(operand.requestId);
+    if (home === undefined) return "unhomed";
     const offset = operand.offset ?? 0;
-    if (home === undefined || !Number.isInteger(offset) || offset < 0 || offset > home.bytes) {
-      return null;
-    }
+    // An address byte may point one past the object's last byte (the expected load end).
+    if (!Number.isInteger(offset) || offset < 0 || offset > home.bytes) return "offset";
     return Object.freeze({
       operand: Object.freeze({
         kind: "immediate",
@@ -74,7 +93,7 @@ function bindOperand(
     });
   }
   const resolved = resolveHome(homes, operand.requestId, operand.offset ?? 0);
-  if (resolved === null) return null;
+  if (typeof resolved === "string") return resolved;
   return Object.freeze({
     operand: Object.freeze({ kind: "absolute", value: resolved.address }),
     mode: resolved.home.region === "zero-page" ? "zero-page" : "absolute",
@@ -85,7 +104,7 @@ function bindOperand(
 function bindAddress(
   address: MachineMemoryAddress,
   homes: ReadonlyMap<string, StorageHome>,
-): MachineMemoryAddress | null {
+): MachineMemoryAddress | StorageBindingFault {
   if (address.kind !== "storage" && address.kind !== "indirect-y") return address;
   const offset = address.offset ?? 0;
   const resolved = resolveHome(
@@ -93,7 +112,7 @@ function bindAddress(
     address.requestId,
     address.kind === "indirect-y" ? 0 : offset,
   );
-  if (resolved === null) return null;
+  if (typeof resolved === "string") return resolved;
   if (address.kind === "indirect-y") {
     return Object.freeze({
       kind: "indirect-y-bound",
@@ -293,14 +312,15 @@ export function validateMachineProgram(program: MachineProgram): boolean {
 function bindInstruction(
   instruction: MachineInstruction,
   homes: ReadonlyMap<string, StorageHome>,
-): MachineInstruction | null {
+): MachineInstruction | StorageBindingFault {
   const bound = bindOperand(instruction.operand, homes);
-  if (bound === null) return null;
-  const memory = instruction.memory.map((effect) => {
+  if (typeof bound === "string") return bound;
+  const memory: MachineMemoryEffect[] = [];
+  for (const effect of instruction.memory) {
     const address = bindAddress(effect.address, homes);
-    return address === null ? null : Object.freeze({ ...effect, address });
-  });
-  if (memory.some((effect) => effect === null)) return null;
+    if (typeof address === "string") return address;
+    memory.push(Object.freeze({ ...effect, address }));
+  }
 
   let mode = instruction.mode;
   if (instruction.operand?.kind === "storage") {
@@ -315,7 +335,7 @@ function bindInstruction(
       bound.operand?.kind === "absolute" &&
       (bound.operand.value & 0xff) === 0xff
     ) {
-      return null;
+      return "indirect-page";
     }
   } else if (instruction.operand?.kind === "indirect-y") mode = "indirect-indexed-y";
   const cost =
@@ -324,31 +344,89 @@ function bindInstruction(
     ...instruction,
     mode,
     operand: bound.operand,
-    memory: Object.freeze(memory.filter((effect) => effect !== null)),
+    memory: Object.freeze(memory),
     cost,
   });
 }
 
-/** Bind every instruction in one machine function. */
+/**
+ * The instruction a body could not bind, with the block it sits in.
+ *
+ * A body that fails to bind is refused whichever instruction caused it, so what the refusal needs
+ * is the first one that could not be bound rather than the fact that one exists. Reporting the
+ * body alone would leave an author with a function name and no line inside it.
+ */
+interface UnboundSite {
+  /** Which check refused the instruction. */
+  readonly fault: StorageBindingFault;
+  /** Label of the block holding it, which is bug-report evidence rather than a message. */
+  readonly label: string;
+  /** The instruction itself, carrying the opcode and the source that selected it. */
+  readonly instruction: MachineInstruction;
+}
+
+/** Distinguish a bound body from the site that refused to bind, without inspecting a body. */
+function isUnboundSite(result: MachineFunction | UnboundSite): result is UnboundSite {
+  return "fault" in result;
+}
+
+/** The same distinction from the other side, so a checked list narrows to bound bodies. */
+function isBoundBody(result: MachineFunction | UnboundSite): result is MachineFunction {
+  return !isUnboundSite(result);
+}
+
+/** Bind every instruction in one machine function, or report the first that refuses. */
 function bindFunction(
   fn: MachineFunction,
   homes: ReadonlyMap<string, StorageHome>,
-): MachineFunction | null {
-  const blocks = fn.blocks.map((block) => {
-    const instructions = block.instructions.map((instruction) =>
-      bindInstruction(instruction, homes),
-    );
-    if (instructions.some((instruction) => instruction === null)) return null;
-    return Object.freeze({
-      ...block,
-      instructions: Object.freeze(instructions.filter((instruction) => instruction !== null)),
-    });
+): MachineFunction | UnboundSite {
+  const blocks: MachineBlock[] = [];
+  for (const block of fn.blocks) {
+    const instructions: MachineInstruction[] = [];
+    for (const instruction of block.instructions) {
+      const bound = bindInstruction(instruction, homes);
+      if (typeof bound === "string")
+        return Object.freeze({ fault: bound, label: block.label, instruction });
+      instructions.push(bound);
+    }
+    blocks.push(Object.freeze({ ...block, instructions: Object.freeze(instructions) }));
+  }
+  return Object.freeze({ ...fn, blocks: Object.freeze(blocks) });
+}
+
+/**
+ * Describe a binding refusal in terms of the instruction whose storage could not be bound.
+ *
+ * Every demand the program declared has a home by the time this can fail, so the refusal names
+ * the check that actually gave up — an operand naming storage the certificate never covered, a
+ * byte reached outside the home that was selected, or a pointer home ending where this processor
+ * wraps an indirect read back to the start of the same page. The instruction carries the source
+ * that selected it, which is what an author can act on.
+ *
+ * @param owner Body the failing instruction belongs to, named as the source spells it.
+ * @param site The first instruction that refused to bind, and which check refused it.
+ * @returns Located evidence for the service that formats the refusal.
+ * @example unboundInstructionDefect(program.startup, site).reason
+ */
+function unboundInstructionDefect(owner: MachineFunction, site: UnboundSite): MachineProgramDefect {
+  return machineProgramDefect({
+    stage: "machine storage binding",
+    reason: STORAGE_BINDING_FAULTS[site.fault],
+    functionId: owner.id,
+    label: site.label,
+    instruction: { opcode: site.instruction.opcode, source: site.instruction.source },
   });
-  if (blocks.some((block) => block === null)) return null;
-  return Object.freeze({
-    ...fn,
-    blocks: Object.freeze(blocks.filter((block) => block !== null)),
-  });
+}
+
+/** Pair the first body that could not bind with the body it belongs to. */
+function firstUnboundBody(
+  bodies: readonly MachineFunction[],
+  results: readonly (MachineFunction | UnboundSite)[],
+): { readonly owner: MachineFunction; readonly site: UnboundSite } | null {
+  for (const [index, result] of results.entries()) {
+    if (isUnboundSite(result)) return Object.freeze({ owner: bodies[index]!, site: result });
+  }
+  return null;
 }
 
 /** Preserve every source association when an existing physical comparison proves code equal. */
@@ -690,13 +768,29 @@ export function bindMachineProgram(
       ...(defect === undefined ? {} : { defect }),
     });
   }
-  const functions = program.functions.map((fn) => bindFunction(fn, homes));
+  const bodies = program.functions.map((fn) => bindFunction(fn, homes));
   const startup = bindFunction(program.startup, homes);
-  if (functions.some((fn) => fn === null) || startup === null) {
-    return Object.freeze({ kind: "error", reason: "invalid-storage", requestId: null });
+  // No demand is implicated here — every one the program declared already has a home — so the
+  // refusal carries the instruction instead, which is the only construct this failure has.
+  const unbound = firstUnboundBody(program.functions, bodies);
+  if (unbound !== null) {
+    return Object.freeze({
+      kind: "error",
+      reason: "invalid-storage",
+      requestId: null,
+      defect: unboundInstructionDefect(unbound.owner, unbound.site),
+    });
+  }
+  if (isUnboundSite(startup)) {
+    return Object.freeze({
+      kind: "error",
+      reason: "invalid-storage",
+      requestId: null,
+      defect: unboundInstructionDefect(program.startup, startup),
+    });
   }
   const shared = shareBoundRootBodies(
-    shareBoundByteMultiplyHelpers(functions.filter((fn) => fn !== null)),
+    shareBoundByteMultiplyHelpers(bodies.filter(isBoundBody)),
     startup,
   );
   const boundProgram = Object.freeze({
