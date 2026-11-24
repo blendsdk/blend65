@@ -350,10 +350,10 @@ describe("a refusal whose function failed binding names the instruction", () => 
       selected,
     );
     expect(diagnostic.message).toContain("main");
-    expect(diagnostic.message).toContain("no home for the storage");
+    expect(diagnostic.message).toContain("memory the compiler never allocated");
   });
 
-  it("should report a byte reached outside the home that was selected", () => {
+  it("should report a byte reached past the end of the home that was selected", () => {
     // The demand has a home and the instruction asks for a byte past its end, so naming a
     // missing home would describe a check that passed one step earlier.
     const request = pointerRequest(1);
@@ -364,13 +364,15 @@ describe("a refusal whose function failed binding names the instruction", () => 
     );
 
     expect(diagnostic.primarySpan).toEqual(selected);
-    expect(diagnostic.message).toContain("outside the home selected");
+    expect(diagnostic.message).toContain("not part of the storage");
   });
 
-  it("should report an indirect pointer whose home ends a page", () => {
-    // The 6502 reads the high byte of an indirect pointer from the start of the same page, so a
-    // pointer at $xxFF reads an address the program never formed. An author can act on this one
-    // by moving the object, which is why the refusal says what the hardware does.
+  it("should report an indirect pointer that begins at the last byte of a page", () => {
+    // This processor takes the high byte of an indirect pointer from the start of the pointer's
+    // own page, so a pointer beginning at $xxFF reads an address the program never formed. What
+    // decides it is where the pointer begins, not where its home ends — the home below ends at
+    // $3100. An author can act on this one by moving the object, which is why the refusal says
+    // what the hardware does.
     const request = pointerRequest(2);
     const { diagnostic } = unboundRefusal(
       loadThrough({ kind: "storage", requestId: request.id }, "indirect"),
@@ -379,7 +381,134 @@ describe("a refusal whose function failed binding names the instruction", () => 
     );
 
     expect(diagnostic.primarySpan).toEqual(selected);
-    expect(diagnostic.message).toContain("last byte of a page");
+    expect(diagnostic.message).toContain("at the last byte of a page");
+  });
+
+  it("should still bind an indirect pointer one byte earlier", () => {
+    // The contrast that proves the refusal is about where the pointer starts and not about its
+    // home: the same two bytes one address lower span $30FE and $30FF, so the high byte is read
+    // from the next address rather than from the start of the page, and nothing is wrong.
+    const request = pointerRequest(2);
+    const bound = bindMachineProgram(
+      {
+        functions: [
+          bodyWith("fn.main", loadThrough({ kind: "storage", requestId: request.id }, "indirect")),
+        ],
+        data: [],
+        startup: { id: "startup", blocks: [] },
+        requiredStorage: [request],
+      },
+      certificateWith([{ requestId: request.id, address: 0x30fe, bytes: 2, region: "ram" }]),
+    );
+
+    expect(
+      bound.kind === "error" ? (bound.defect?.reason ?? "") : "",
+      "a pointer that ends a page is fine; only one that starts at its last byte is not",
+    ).not.toContain("last byte of a page");
+  });
+
+  it("should bind an indirect effect whose displacement reaches past the pointer", () => {
+    // A displacement is added by the processor at run time and is not a byte of the pointer, so
+    // bounds-checking it against the pointer's own two bytes would refuse ordinary indexed code.
+    const request = pointerRequest(2);
+    const bound = bindMachineProgram(
+      {
+        functions: [
+          bodyWith("fn.main", {
+            ...loadThrough({ kind: "immediate", value: 7 }, "immediate"),
+            memory: [
+              {
+                kind: "read",
+                address: { kind: "indirect-y", requestId: request.id, offset: 64 },
+                width: 1,
+                volatile: false,
+                order: 0,
+              },
+            ],
+          }),
+        ],
+        data: [],
+        startup: { id: "startup", blocks: [] },
+        requiredStorage: [request],
+      },
+      certificateWith([{ requestId: request.id, address: 0x3000, bytes: 2, region: "ram" }]),
+    );
+
+    expect(bound.kind === "error" ? (bound.defect?.reason ?? "") : "").not.toContain(
+      "not part of the storage",
+    );
+  });
+
+  it("should report an offset that is no byte of the home at all", () => {
+    // Past the end is only one way to be invalid. A negative or fractional offset names no byte
+    // of the home, so a refusal phrased as reaching past it would describe the wrong condition.
+    const request = pointerRequest(2);
+    const homes = [{ requestId: request.id, address: 0x3000, bytes: 2, region: "ram" as const }];
+    for (const offset of [-1, 0.5]) {
+      const { diagnostic } = unboundRefusal(
+        loadThrough({ kind: "storage", requestId: request.id, offset }),
+        [request],
+        homes,
+      );
+
+      expect(diagnostic.message).toContain("not part of the storage");
+    }
+  });
+
+  it("should report a memory effect whose address has no home", () => {
+    // The operand binds and the effect does not, so this is the only route that reaches the
+    // address binding at all. Without it the instruction's effects are never exercised here.
+    const { diagnostic } = unboundRefusal(
+      {
+        ...loadThrough({ kind: "immediate", value: 7 }, "immediate"),
+        memory: [
+          {
+            kind: "read",
+            address: { kind: "storage", requestId: "scratch.0" },
+            width: 1,
+            volatile: false,
+            order: 0,
+          },
+        ],
+      },
+      [],
+      [],
+    );
+
+    expect(diagnostic.primarySpan).toEqual(selected);
+    expect(diagnostic.message).toContain("memory the compiler never allocated");
+  });
+
+  it("should report the first failing effect rather than a later one", () => {
+    // Effects are bound in order and the refusal stops at the first that fails, so the fault
+    // reported belongs to the earlier effect even though a different one follows it.
+    const request = pointerRequest(1);
+    const { diagnostic } = unboundRefusal(
+      {
+        ...loadThrough({ kind: "immediate", value: 7 }, "immediate"),
+        memory: [
+          {
+            kind: "read",
+            address: { kind: "storage", requestId: request.id, offset: 1 },
+            width: 1,
+            volatile: false,
+            order: 0,
+          },
+          {
+            kind: "write",
+            address: { kind: "storage", requestId: "scratch.0" },
+            width: 1,
+            volatile: false,
+            order: 1,
+          },
+        ],
+      },
+      [request],
+      [{ requestId: request.id, address: 0x3000, bytes: 1, region: "ram" }],
+    );
+
+    expect(diagnostic.message).toContain("not part of the storage");
+    expect(diagnostic.message).not.toContain("memory the compiler never allocated");
   });
 
   it("should name generated startup code rather than inventing a function", () => {
@@ -391,7 +520,7 @@ describe("a refusal whose function failed binding names the instruction", () => 
     );
 
     expect(diagnostic.message).toContain("generated startup code");
-    expect(diagnostic.message).toContain("no home for the storage");
+    expect(diagnostic.message).toContain("memory the compiler never allocated");
   });
 
   it("should keep the generated block identity and the opcode out of the primary sentence", () => {
@@ -402,8 +531,40 @@ describe("a refusal whose function failed binding names the instruction", () => 
     );
 
     expect(diagnostic.message).not.toContain("fn.main.entry");
+    expect(diagnostic.message).not.toContain("lda");
     expect(diagnostic.help ?? "").toContain("fn.main.entry");
     expect(diagnostic.help ?? "").toContain("lda");
+  });
+
+  it("should accept an address byte naming the byte one past the last, and no further", () => {
+    // Forming the address of the end of an object is legal: the operand becomes an immediate
+    // rather than an access, so the byte it names is never read. One further names nothing the
+    // object owns. These assert the binding decision rather than the whole program, because a
+    // hand-built body carries no real processor-state facts for later validation to agree with.
+    const request = pointerRequest(2);
+    const homes = [{ requestId: request.id, address: 0x3000, bytes: 2, region: "ram" as const }];
+    const refusalAt = (offset: number) => {
+      const bound = bindMachineProgram(
+        {
+          functions: [
+            bodyWith(
+              "fn.main",
+              loadThrough({ kind: "storage", requestId: request.id, offset, addressByte: "low" }),
+            ),
+          ],
+          data: [],
+          startup: { id: "startup", blocks: [] },
+          requiredStorage: [request],
+        },
+        certificateWith(homes),
+      );
+      return bound.kind === "error" ? (bound.defect?.reason ?? "") : "";
+    };
+
+    expect(refusalAt(2), "the end of the object is an address a program may form").not.toContain(
+      "not part of the storage",
+    );
+    expect(refusalAt(3)).toContain("not part of the storage");
   });
 
   it("should say plainly that it reports a compiler limitation, not a bad line", () => {
@@ -458,7 +619,7 @@ function wholeProgramRefusal(fallbackSpan: SourceSpan | null) {
 }
 
 describe("a refusal that can name no construct still points where it is told", () => {
-  it("should carry the location its caller supplies", () => {
+  it("should report at the responsible declaration its caller supplies", () => {
     const diagnostic = wholeProgramRefusal(declaration);
 
     expect(diagnostic.code).toBe("COMPILER_INCOMPLETE");
@@ -466,16 +627,26 @@ describe("a refusal that can name no construct still points where it is told", (
       declaration,
     );
     expect((diagnostic.help ?? "").toLowerCase()).toContain("compiler limitation");
-    expect(diagnostic.help ?? "").toContain("not an error on this line");
   });
 
-  it("should claim no location when its caller supplies none", () => {
-    // Pointing at a default location is worse than pointing nowhere: it sends an author off to
-    // edit a line that is not involved in the refusal at all.
+  it("should say the location is the entry and not the cause", () => {
+    // A caret with no explanation invites the author to read it as blame. Saying which location
+    // this is — the program entry, not a construct that caused the failure — is what keeps a
+    // span honest for a failure that has no construct of its own to point at.
+    const { help } = wholeProgramRefusal(declaration);
+
+    expect(help ?? "").toContain("program entry");
+    expect(help ?? "").toContain("rather than at a construct that caused it");
+  });
+
+  it("should claim no location when its caller supplies none, and say why", () => {
+    // Pointing at a default location is worse than pointing nowhere. With nothing supplied the
+    // refusal states that it has no construct to name rather than leaving the absence unexplained.
     const diagnostic = wholeProgramRefusal(null);
 
     expect(diagnostic.primarySpan).toBeNull();
     expect(diagnostic.message).toContain("machine storage binding");
-    expect(diagnostic.help ?? "").not.toContain("not an error on this line");
+    expect(diagnostic.help ?? "").toContain("no source construct to name");
+    expect(diagnostic.help ?? "").not.toContain("program entry");
   });
 });

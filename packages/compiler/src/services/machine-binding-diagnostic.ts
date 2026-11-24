@@ -48,8 +48,10 @@ function definingFunctionName(program: MachineProgram, functionId: string): stri
 export function machineBindingDiagnostic(failure: MachineBindingFailure): ProjectDiagnostic {
   const { defect } = failure;
   // A refusal with no failed check disagrees with the program as a whole rather than with one of
-  // its constructs, so the established program-scoped wording stays. What it can still do is
-  // point at the program it was asked about, which is what the caller's span is for.
+  // its constructs, so the established program-scoped wording stays. A generated failure with no
+  // source expression is still reported at the responsible declaration when one exists, which is
+  // the program entry its caller supplies; the help line says that the location is the entry
+  // rather than a construct that caused the failure, so the caret cannot be read as blame.
   if (defect === undefined)
     return projectDiagnostic(
       "COMPILER_INCOMPLETE",
@@ -58,8 +60,8 @@ export function machineBindingDiagnostic(failure: MachineBindingFailure): Projec
       null,
       [],
       failure.fallbackSpan === null
-        ? `Compiler limitation in the ${STAGE} stage; please report it`
-        : `Compiler limitation in the ${STAGE} stage, not an error on this line; please report it with the source shown`,
+        ? `Compiler limitation in the ${STAGE} stage, with no source construct to name; please report it`
+        : `Compiler limitation in the ${STAGE} stage, shown at the program entry rather than at a construct that caused it; please report it with the source shown`,
     );
   const name = definingFunctionName(failure.program, defect.functionId);
   const subject =

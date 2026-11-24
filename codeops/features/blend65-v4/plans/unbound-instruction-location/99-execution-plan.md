@@ -1,7 +1,7 @@
 # A refusal that names the instruction storage binding could not bind
 
 > **Owner**: T-177 · **Type**: Task (lightweight) · **CodeOps Artifact Schema**: 1
-> **Status**: Complete for its three producers; independent review pending
+> **Status**: Complete for its three producers; three independent reviews dispositioned
 > **Progress**: 6/6 tasks (100%)
 > **Last Updated**: 2026-11-24
 
@@ -90,36 +90,118 @@ caret and the "not an error on this line" clause the located refusals already ca
 
 ## What an author now reads
 
-Read from the real binder, through the service, for each producer.
+Read from the real binder, through the service, for each producer, after review.
 
 | Producer | Message |
 | --- | --- |
-| no home for the named storage | `Machine storage binding did not complete for 'main' — the certificate selected no home for the storage this instruction uses` |
-| a byte outside the selected home | `… — this instruction reaches a byte outside the home selected for the storage it uses` |
-| an indirect pointer at `$xxFF` | `… — the home selected for this instruction's indirect pointer ends at the last byte of a page, where this processor reads the high byte from the start of that same page` |
+| memory never allocated | `Machine storage binding did not complete for 'main' — generated code refers to memory the compiler never allocated` |
+| a byte the allocation does not contain | `… — generated code refers to a byte that is not part of the storage the compiler allocated for that value` |
+| an indirect pointer starting at `$xxFF` | `… — the compiler placed an indirect pointer at the last byte of a page, where this processor takes its high byte from the start of that same page` |
 | the same, inside startup | `Machine storage binding did not complete for generated startup code — …` |
-| a whole-program disagreement | `The machine storage binding stage is not complete for this program`, now with the caller's caret |
+| a whole-program disagreement | `The machine storage binding stage is not complete for this program`, at the program entry |
 
 Each located one carries the instruction's own span and
 `Compiler limitation in generated block 'fn.main.entry' at 'lda', not an error on this line`. The
 block label and opcode stay in the help line, where a bug report wants them and an author does not.
 
+Every sentence names the compiler or its generated code as the subject. That is not politeness:
+an author supplies no storage homes and chooses no addresses, so a sentence about certificates and
+selected homes would describe machinery they neither provided nor control. The first wording did
+exactly that, and review was right to call it.
+
+## Two boundaries the first wording got wrong
+
+Both were caught independently by three reviewers, which is the useful part — the same sentence
+read wrong to a correctness lens, a semantics lens and a storage lens.
+
+**The page-wrap guard is about where the pointer starts, not where its home ends.** The check reads
+the resolved operand address, so a two-byte pointer at `$30FF` is refused because the processor
+takes its high byte from `$3000` — and that pointer's home *ends* at `$3100`, which the first
+sentence named as the problem. The same two bytes one address lower, at `$30FE`, are fine. An
+offset into a larger home reaches the same bad address, so the home's own extent decides nothing.
+The contrast is now pinned as its own case.
+
+**Not every rejected offset lies past the end of an allocation.** The check also refuses a negative
+offset and one that is not a whole number of bytes, and the address-byte form legally permits the
+byte one past the last — the address of an object's end is a value a program may form. Saying
+"reaches a byte outside" described one of those conditions and misdescribed the rest. The endpoint
+and the two invalid shapes are now pinned.
+
+## What the certificate refusal does with a span, and why
+
+Review challenged carrying the caller's span here, on the ground that a caret at `main` for a
+whole-program disagreement points at a construct that did not cause it. The frozen specification
+decides it the other way, in `spec/14-diagnostics.md`:
+
+> For generated or command-line-only failures with no source expression, the primary location is
+> the responsible source declaration when one exists; otherwise it is the input path or command
+> option.
+
+A binding refusal is a generated failure with no source expression, and the program entry is the
+responsible declaration the caller already supplies. Reporting there is what the specification
+requires, so the span stays. The reviewer's underlying point was still right about the help line:
+a caret with no explanation invites the author to read it as blame. The help now says which
+location this is — the program entry rather than a construct that caused the failure — and when no
+span is supplied it says there is no source construct to name instead of leaving the absence
+unexplained.
+
 ## Verification
 
 | Check | Result |
 | --- | --- |
-| New cases, bind through to the author-facing sentence | **9 red → 20/20** in the services file; 7 of 9 failed on the unlocated sentence, 2 were passing controls |
-| Compiler package, machine and services | **267 files / 4,537 passed**, 2 skipped |
-| Root host tier | **277 files / 5,932 passed**, one reporter RPC timeout on `rd08/optimizer-acquisition-output`, re-run green alone |
+| New cases, bind through to the author-facing sentence | **9 red → 27/27** in the services file after review added four more; 7 of the first 9 failed on the unlocated sentence, 2 were passing controls and are labelled as such |
+| Compiler package, machine and services | **267 files / 4,544 passed**, 2 skipped |
+| Root host tier, complete and clean | **278 files / 5,941 passed**, zero errors |
 | The four frontier guards, re-run directly | **37/37**, including the emulator-driving saved-output file at 17/17 |
-| No emitted byte changes | **Measured**: three examples × three goals, SHA-256 of each PRG before and after, **9/9 identical** at `2cba40b8…`, `9b346814…`, `d78aba55…`, `99d16c37…`, `e21c2e34…` |
+| No emitted byte changes | **Measured twice**: three examples × three goals, SHA-256 of each PRG against a `185c9d24` rebuild, **9/9 identical** both before and after the review fixes — `2cba40b8…`, `9b346814…`, `d78aba55…`, `99d16c37…`, `e21c2e34…` |
 | Existing tests that flipped | **none** — including the exact-shape guards in `machine-contracts.impl.test.ts` |
+
+The two skips are the Windows-only cases in `services/vice-profiles.impl.test.ts`, which
+`skipIf(process.platform !== "win32")` excludes on this host. They are not disabled tests and
+nothing in this unit touches them.
+
+An earlier host run reported 277 of 278 files with ten `Timeout calling "onTaskUpdate"` reporter
+errors and zero assertion failures; the affected file passed alone. Rather than argue that
+disposition, the complete tier was re-run after the review fixes and came back clean, so the gate
+rests on a green run rather than on a re-run of one file. `yarn test:full` belongs to the wave
+close under this board's protocol, as it did for the twelve rows before this one; the serialized
+VICE tier is not claimed here.
 
 Byte identity is measured rather than argued because this refactor runs on every successful bind,
 not only on the refusal path: the three private helpers now return which check failed instead of a
 bare `null`, and `bindFunction` returns the first site that refused rather than discarding the
 whole body. The baseline was taken by reverting both source files to `185c9d24`, rebuilding, and
 rebuilding again with the change restored.
+
+## Independent review
+
+Three reviewers, each on a different contract: correctness and standards, semantic preservation and
+developer experience, and storage/ABI closure from producer to consumer.
+
+| Finding | Disposition |
+| --- | --- |
+| The page-wrap sentence names the home's end, not the pointer's start (found three times over) | **Fixed**, with the valid `$xxFE` contrast pinned |
+| "Reaches a byte outside" misdescribes a negative, fractional or permitted-endpoint offset | **Fixed**, with the endpoint and both invalid shapes pinned |
+| The sentences use vocabulary the author never supplied — certificates, homes | **Fixed**: every message now names the compiler or its generated code as the subject |
+| A caret at `main` for a whole-program refusal is a misleading location | **Refuted** by the frozen specification quoted above; the help-line half was adopted |
+| Omitting allocation budgets and source remedies breaches the SFA diagnostic model | **Refuted** by the auditor itself: that model governs impossible allocations, and these guards detect disagreement after closure rather than exhausted capacity |
+| The opcode was asserted present in help but not absent from the message | **Fixed** |
+| New fixtures carried empty memory-effect arrays, so the rewritten effect loop was untested | **Fixed**: an effect-only fault, a two-effect ordering case, and a nonzero `indirect-y` displacement that must keep binding |
+| The host checkpoint was not unconditionally green | **Fixed by re-running it**; 278/278 clean |
+| The two skips were unidentified | **Identified**: the Windows-only emulator cases |
+
+The storage audit decided all six of its obligations preserved — closure, short-circuit safety, the
+shared-body boundary, zero-page/region/cost selection, the `$xxFF` predicate itself, and
+startup/interrupt ordering — and recorded that successful binding adds zero RAM, zero zero-page,
+zero stack bytes, zero code bytes and zero cycles against the baseline.
+
+**One inherited claim corrected.** The previous unit's record says no source program reaches any of
+these five producers, and this record repeated it. Two reviewers pushed back and they are right:
+what is defensible is that a correct producer and closure pipeline should not reach them. Valid
+source can still arrive here by exposing a compiler defect upstream — which is exactly why these
+refusals needed to say where they gave up. The fifth producer reinforces it, since
+`findMachineProgramDefect` checks instruction legality, transfers and flag proofs rather than
+certificate agreement alone.
 
 ## Stop conditions
 

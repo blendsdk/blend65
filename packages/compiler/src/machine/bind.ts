@@ -41,13 +41,25 @@ const INSTRUCTION_DEFECTS: Readonly<
  */
 type StorageBindingFault = "unhomed" | "offset" | "indirect-page";
 
-/** Wording for each failed check, phrased for whoever wrote the source. */
+/**
+ * Wording for each failed check, phrased for whoever wrote the source.
+ *
+ * Each one names the compiler or its generated code as the subject, because that is who is
+ * responsible: an author supplies no storage homes and chooses no addresses, so a sentence about
+ * certificates and homes would describe machinery they neither provided nor control.
+ */
 const STORAGE_BINDING_FAULTS: Readonly<Record<StorageBindingFault, string>> = {
-  unhomed: "the certificate selected no home for the storage this instruction uses",
-  offset: "this instruction reaches a byte outside the home selected for the storage it uses",
+  unhomed: "generated code refers to memory the compiler never allocated",
+  // Not every rejected offset lies past the end of its home: one may be negative or not a whole
+  // number of bytes, and an address-byte operand may legally name the byte one past the last.
+  offset:
+    "generated code refers to a byte that is not part of the storage " +
+    "the compiler allocated for that value",
+  // The pointer begins at the last byte of a page, which is what this processor mishandles. It
+  // need not be the end of its home: an offset into a larger home reaches the same address.
   "indirect-page":
-    "the home selected for this instruction's indirect pointer ends at the last byte of a page, " +
-    "where this processor reads the high byte from the start of that same page",
+    "the compiler placed an indirect pointer at the last byte of a page, " +
+    "where this processor takes its high byte from the start of that same page",
 };
 
 /** Resolve and bounds-check one certified storage home plus byte offset. */
@@ -398,10 +410,10 @@ function bindFunction(
  * Describe a binding refusal in terms of the instruction whose storage could not be bound.
  *
  * Every demand the program declared has a home by the time this can fail, so the refusal names
- * the check that actually gave up — an operand naming storage the certificate never covered, a
- * byte reached outside the home that was selected, or a pointer home ending where this processor
- * wraps an indirect read back to the start of the same page. The instruction carries the source
- * that selected it, which is what an author can act on.
+ * the check that actually gave up — an operand naming memory that was never allocated, a byte
+ * the allocated storage does not contain, or a pointer placed where this processor wraps an
+ * indirect read back to the start of the same page. The instruction carries the source that
+ * selected it, which is the one thing here an author recognizes.
  *
  * @param owner Body the failing instruction belongs to, named as the source spells it.
  * @param site The first instruction that refused to bind, and which check refused it.
