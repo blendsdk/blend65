@@ -1,7 +1,7 @@
 import { UNKNOWN_MACHINE_SITE, type MachineProgramDefect } from "../machine/machine-defect.js";
 import type { MachineProgram } from "../machine/machine-types.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
-import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
+import type { ProjectDiagnostic, ProjectSnapshot, SourceSpan } from "../project/types.js";
 import { sourceObjectName } from "./resource-diagnostics.js";
 
 /** Stage name, spelled once so the message and the established fallback cannot drift apart. */
@@ -15,6 +15,31 @@ export interface MachineBindingFailure {
   readonly defect: MachineProgramDefect | undefined;
   /** Location to point at when the failing construct carries no source of its own. */
   readonly fallbackSpan: SourceSpan | null;
+  /**
+   * The project input, for a refusal that implicates no construct at all.
+   *
+   * A refusal naming one demand belongs to the declaration that asked for the storage. One that
+   * disagrees with the program as a whole belongs to neither a declaration nor the entry, which
+   * merely happens to have a span: pointing there would attribute a whole-program disagreement
+   * to a function that did nothing to cause it. The input the compiler was given is what such a
+   * failure is actually about.
+   */
+  readonly inputSpan: SourceSpan | null;
+}
+
+/**
+ * Locate the project the compiler was given, for a failure no construct in it accounts for.
+ *
+ * The manifest is the input a build was asked to produce, so it is where a refusal belongs when
+ * the program as a whole disagrees with its own storage proof. No offset is claimed: nothing in
+ * the manifest text is at fault either, and the file is the whole of what can honestly be named.
+ *
+ * @param snapshot Project snapshot holding the manifest the build was given.
+ * @returns A span identifying the project input.
+ * @example projectInputSpan(input.snapshot)
+ */
+export function projectInputSpan(snapshot: ProjectSnapshot): SourceSpan {
+  return Object.freeze({ sourceId: snapshot.manifestSource.sourceId, start: 0, end: 0 });
 }
 
 /**
@@ -49,19 +74,19 @@ export function machineBindingDiagnostic(failure: MachineBindingFailure): Projec
   const { defect } = failure;
   // A refusal with no failed check disagrees with the program as a whole rather than with one of
   // its constructs, so the established program-scoped wording stays. A generated failure with no
-  // source expression is still reported at the responsible declaration when one exists, which is
-  // the program entry its caller supplies; the help line says that the location is the entry
-  // rather than a construct that caused the failure, so the caret cannot be read as blame.
+  // source expression is reported at the responsible declaration when one exists and otherwise at
+  // the input the compiler was given — and no declaration is responsible here, so it is the input.
+  // The entry point has a span but caused nothing, and a caret there would read as blame.
   if (defect === undefined)
     return projectDiagnostic(
       "COMPILER_INCOMPLETE",
       `The ${STAGE} stage is not complete for this program`,
-      failure.fallbackSpan,
+      failure.inputSpan,
       null,
       [],
-      failure.fallbackSpan === null
+      failure.inputSpan === null
         ? `Compiler limitation in the ${STAGE} stage, with no source construct to name; please report it`
-        : `Compiler limitation in the ${STAGE} stage, shown at the program entry rather than at a construct that caused it; please report it with the source shown`,
+        : `Compiler limitation in the ${STAGE} stage, reported against this project because no source construct is implicated; please report it`,
     );
   const name = definingFunctionName(failure.program, defect.functionId);
   const subject =

@@ -42,7 +42,7 @@ import {
   storageResourceWarnings,
 } from "./resource-diagnostics.js";
 import { sizeCostVector, type SizeCostVector } from "./evidence.js";
-import { machineBindingDiagnostic } from "./machine-binding-diagnostic.js";
+import { machineBindingDiagnostic, projectInputSpan } from "./machine-binding-diagnostic.js";
 import { validateFinalCallableProof } from "./final-callable-proof.js";
 import { startupVisibilityFailure, validateSizeObservers } from "./size-observers.js";
 import type { ObserverValidation } from "./size-observers.js";
@@ -520,6 +520,7 @@ export function closeCanonicalStorage(
         fallbackSpan:
           resourceSpans.get(bindingIdentityKey(program.semantic.main)) ??
           program.semantic.main.span,
+        inputSpan: projectInputSpan(snapshot),
       }),
     ]);
   return Object.freeze({
@@ -749,6 +750,7 @@ export function closeCanonicalObjectStorage(
           fallbackSpan:
             input.resourceSpans.get(bindingIdentityKey(input.program.semantic.main)) ??
             input.program.semantic.main.span,
+          inputSpan: projectInputSpan(input.snapshot),
         }),
       ]).failure,
     });
@@ -1003,6 +1005,7 @@ export function closeSizeCandidate(input: SizeCandidateInput): SizeCandidateResu
           fallbackSpan:
             checked.resourceSpans.get(bindingIdentityKey(checked.program.semantic.main)) ??
             checked.program.semantic.main.span,
+          inputSpan: projectInputSpan(checked.snapshot),
         }),
       ]).failure,
     });

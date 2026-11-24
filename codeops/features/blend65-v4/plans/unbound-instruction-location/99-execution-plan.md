@@ -25,8 +25,8 @@ Line numbers as of `185c9d24`.
 
 | Site | Reason | Carries | Answer here |
 | --- | --- | --- | --- |
-| `bind.ts:655` | `certificate` | — | Recorded: nothing to name; gains the fallback location |
-| `bind.ts:659` with an empty identity | `invalid-storage` | — | Same channel; gains the fallback location |
+| `bind.ts:655` | `certificate` | — | Recorded: nothing to name; reported against the project |
+| `bind.ts:659` with an empty identity | `invalid-storage` | — | Same channel; reported against the project |
 | `bind.ts:695` | `invalid-storage` | — (a function failed binding) | **Located** |
 
 The middle row is new to this record. `validateHomes` returns `""` when the certificate
@@ -104,7 +104,7 @@ Read from the real binder, through the service, for each producer, after review.
 | a byte the allocation does not contain | `… — generated code refers to a byte that is not part of the storage the compiler allocated for that value` |
 | an indirect pointer starting at `$xxFF` | `… — the compiler placed an indirect pointer at the last byte of a page, where this processor takes its high byte from the start of that same page` |
 | the same, inside startup | `Machine storage binding did not complete for generated startup code — …` |
-| a whole-program disagreement | `The machine storage binding stage is not complete for this program`, at the program entry |
+| a whole-program disagreement | `The machine storage binding stage is not complete for this program`, at the project input |
 
 Each located one carries the instruction's own span and
 `Compiler limitation in generated block 'fn.main.entry' at 'lda', not an error on this line`. The
@@ -133,23 +133,38 @@ byte one past the last — the address of an object's end is a value a program m
 "reaches a byte outside" described one of those conditions and misdescribed the rest. The endpoint
 and the two invalid shapes are now pinned.
 
-## What the certificate refusal does with a span, and why
+## Where a construct-less refusal is reported, and how that was settled
 
-Review challenged carrying the caller's span here, on the ground that a caret at `main` for a
-whole-program disagreement points at a construct that did not cause it. The frozen specification
-decides it the other way, in `spec/14-diagnostics.md`:
+This went three rounds and the reviewer was right in the end.
+
+The first answer carried the caller's span, which is `main`'s. Review objected that a caret at
+`main` for a whole-program disagreement points at a construct that did not cause it. The relevant
+paragraph in `spec/14-diagnostics.md` is:
 
 > For generated or command-line-only failures with no source expression, the primary location is
 > the responsible source declaration when one exists; otherwise it is the input path or command
 > option.
 
-A binding refusal is a generated failure with no source expression, and the program entry is the
-responsible declaration the caller already supplies. Reporting there is what the specification
-requires, so the span stays. The reviewer's underlying point was still right about the help line:
-a caret with no explanation invites the author to read it as blame. The help now says which
-location this is — the program entry rather than a construct that caused the failure — and when no
-span is supplied it says there is no source construct to name instead of leaving the absence
-unexplained.
+The second answer read that as settling it: a binding refusal is a generated failure with no
+source expression, and the program entry is a declaration the caller already supplies. That
+overstated the chapter, which never defines "responsible" and never designates the entry as a
+default. "Responsible" need not mean erroneous — a correct function can own generated code that
+exposes a compiler defect — but it does require some attributable relation to the failed
+operation, and an available span is not one.
+
+The third answer uses both branches as written, which is what they are for. A refusal that names
+one demand has a responsible declaration: the one that asked for the storage, which is where
+those already report. A refusal that disagrees with the program as a whole has none, so the
+"otherwise" branch governs and the location is the input the compiler was given — the project
+manifest. That is already this compiler's convention for an input-level failure, as
+`project/inventory.ts` and the manifest diagnostics show, so nothing new was invented to express
+it. The help line says the refusal is reported against the project because no source construct is
+implicated, and a case asserts the refusal does **not** take the declaration span even when one is
+handed over.
+
+A null span was considered and rejected by the reviewer itself on re-reading: under that paragraph
+an absent location is incomplete, not safe. It remains what a caller with no input to name gets,
+and says so.
 
 ## Verification
 
@@ -158,9 +173,9 @@ unexplained.
 | New cases, bind through to the author-facing sentence | **27/27** in the services file: 11 pre-existing, 9 authored first (7 failing on the unlocated sentence, 2 passing controls labelled as such), and 7 more added by review |
 | The three accepted-shape controls are not vacuous | **Proved by mutation**: widening the address-byte bound to `>=`, widening the page guard to `$xxFE`, and dropping the indirect displacement each fail exactly the one control that guards it, and nothing else |
 | Compiler package, machine and services | **267 files / 4,544 passed**, 2 skipped |
-| Root host tier, complete and clean | **278 files / 5,941 passed**, zero errors |
+| Root host tier, complete and clean | **278 files / 5,941 passed**, zero errors — re-run again after the refusal was relocated to the project input |
 | The four frontier guards, re-run directly | **37/37**, including the emulator-driving saved-output file at 17/17 |
-| No emitted byte changes | **Measured twice**: three examples × three goals, SHA-256 of each PRG against a `185c9d24` rebuild, **9/9 identical** both before and after the review fixes — `2cba40b8…`, `9b346814…`, `d78aba55…`, `99d16c37…`, `e21c2e34…` |
+| No emitted byte changes | **Measured three times**: three examples × three goals, SHA-256 of each PRG against a `185c9d24` rebuild, **9/9 identical** at the first delivery, after the review fixes, and after the relocation touched `size-selection.ts` — `2cba40b8…`, `9b346814…`, `d78aba55…`, `99d16c37…`, `e21c2e34…` throughout |
 | Existing tests that flipped | **none** — including the exact-shape guards in `machine-contracts.impl.test.ts` |
 
 The two skips are the Windows-only cases in `services/vice-profiles.impl.test.ts`, which
@@ -185,17 +200,17 @@ rebuilding again with the change restored.
 Three reviewers, each on a different contract: correctness and standards, semantic preservation and
 developer experience, and storage/ABI closure from producer to consumer.
 
-**No critical finding, and no major implementation defect. One major remains formally open** — the
-semantics reviewer's objection to reporting a construct-less refusal at the program entry, which
-the frozen diagnostics chapter appears to decide the other way. It is contested rather than
-dispositioned, and this record does not claim otherwise.
+**No critical finding and no major implementation defect; every finding is dispositioned.** The one
+that stayed open longest — where a construct-less refusal is reported — was settled by adopting the
+reviewer's reading rather than by ruling over it, after it withdrew its original remedy and its
+categorical verdict in turn. The section above records how.
 
 | Finding | Disposition |
 | --- | --- |
 | The page-wrap sentence names the home's end, not the pointer's start (found three times over) | **Fixed**, with the valid `$xxFE` contrast pinned |
 | "Reaches a byte outside" misdescribes a negative, fractional or permitted-endpoint offset | **Fixed**, with the endpoint and both invalid shapes pinned |
 | The sentences use vocabulary the author never supplied — certificates, homes | **Fixed**: every message now names the compiler or its generated code as the subject |
-| A caret at `main` for a whole-program refusal is a misleading location | **Refuted** from the frozen specification quoted above, and the refutation is back with the reviewer rather than applied over it — it has not withdrawn the finding yet. The help-line half of its objection was adopted. If it holds after reading the chapter, the disagreement is the user's to settle, not mine to close |
+| A caret at `main` for a whole-program refusal is a misleading location | **Adopted**, after my own counter-argument from the chapter turned out to overstate it. Such a refusal now reports against the project manifest through the paragraph's "otherwise" branch, and the reviewer's original null-span remedy was withdrawn by the reviewer itself as incomplete under the same paragraph |
 | Omitting allocation budgets and source remedies breaches the SFA diagnostic model | **Refuted** by the auditor itself: that model governs impossible allocations, and these guards detect disagreement after closure rather than exhausted capacity |
 | The opcode was asserted present in help but not absent from the message | **Fixed** |
 | New fixtures carried empty memory-effect arrays, so the rewritten effect loop was untested | **Fixed**: an effect-only fault, a two-effect ordering case, and a nonzero `indirect-y` displacement that must keep binding |

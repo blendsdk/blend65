@@ -58,6 +58,7 @@ function flagProofRefusal() {
       instruction: { opcode: "adc", source: span },
     }),
     fallbackSpan: null,
+    inputSpan: null,
   });
 }
 
@@ -112,7 +113,12 @@ describe("a machine-stage refusal reports where it gave up", () => {
   it("should still report the stage when a refusal carries no failed check", () => {
     // A storage refusal records its witness elsewhere, so this one has no construct to name.
     // What it may not do is change which code an author sees for a compiler that gave up.
-    const diagnostic = machineBindingDiagnostic({ program, defect: undefined, fallbackSpan: null });
+    const diagnostic = machineBindingDiagnostic({
+      program,
+      defect: undefined,
+      fallbackSpan: null,
+      inputSpan: null,
+    });
 
     expect(diagnostic.code).toBe("COMPILER_INCOMPLETE");
     expect(diagnostic.message).toContain("machine storage binding");
@@ -201,6 +207,7 @@ function refusalFor(program: MachineProgram, certificate: StorageClosureCertific
       program,
       defect: bound.defect,
       fallbackSpan: null,
+      inputSpan: null,
     }),
   };
 }
@@ -634,13 +641,17 @@ describe("a refusal whose function failed binding names the instruction", () => 
  * A refusal that disagrees with the program as a whole has no construct to name.
  *
  * The certificate's own closed marker and a certificate whose identity does not match the program
- * implicate no demand, no function and no instruction, so naming one would be an invention. What
- * such a refusal can do is point at the program it was asked about: every caller already hands the
- * main function's span over, and discarding it left the refusal pointing nowhere.
+ * implicate no demand, no function and no instruction, so naming one would be an invention. The
+ * entry point has a span and caused nothing, so a caret there would read as blame; the project
+ * the compiler was given is what such a failure is actually about, and the service discarded
+ * every location it was handed rather than choosing between them.
  */
 
+/** The project input a construct-less refusal is reported against. */
+const manifest: SourceSpan = { sourceId: "blend65.json", start: 0, end: 0 };
+
 /** Refuse a program whose certificate identity does not match it, which names no demand. */
-function wholeProgramRefusal(fallbackSpan: SourceSpan | null) {
+function wholeProgramRefusal(inputSpan: SourceSpan | null) {
   const program: MachineProgram = {
     functions: [{ id: "fn.main", sourceName: "Game.main", sourceFunction: ownerId, blocks: [] }],
     data: [],
@@ -653,31 +664,34 @@ function wholeProgramRefusal(fallbackSpan: SourceSpan | null) {
   if (bound.kind !== "error") throw new Error("The program bound");
   expect(bound.requestId, "a whole-program disagreement names no single demand").toBeNull();
   expect(bound.defect, "there is no construct for this refusal to carry").toBeUndefined();
-  return machineBindingDiagnostic({ program, defect: bound.defect, fallbackSpan });
+  return machineBindingDiagnostic({
+    program,
+    defect: bound.defect,
+    fallbackSpan: declaration,
+    inputSpan,
+  });
 }
 
-describe("a refusal that can name no construct still points where it is told", () => {
-  it("should report at the responsible declaration its caller supplies", () => {
-    const diagnostic = wholeProgramRefusal(declaration);
+describe("a refusal that can name no construct is reported against the project", () => {
+  it("should report at the project input rather than at a declaration", () => {
+    const diagnostic = wholeProgramRefusal(manifest);
 
     expect(diagnostic.code).toBe("COMPILER_INCOMPLETE");
-    expect(diagnostic.primarySpan, "the caller already knows which program failed").toEqual(
-      declaration,
-    );
+    expect(diagnostic.primarySpan, "the input is what such a failure is about").toEqual(manifest);
     expect((diagnostic.help ?? "").toLowerCase()).toContain("compiler limitation");
   });
 
-  it("should say the location is the entry and not the cause", () => {
-    // A caret with no explanation invites the author to read it as blame. Saying which location
-    // this is — the program entry, not a construct that caused the failure — is what keeps a
-    // span honest for a failure that has no construct of its own to point at.
-    const { help } = wholeProgramRefusal(declaration);
+  it("should not borrow a declaration's location merely because one was supplied", () => {
+    // A declaration span is handed over for a demand that carries no source of its own, which is
+    // a different question. Reaching for it here would attribute a whole-program disagreement to
+    // a function that did nothing to cause it, which is what a caret is read as.
+    const diagnostic = wholeProgramRefusal(manifest);
 
-    expect(help ?? "").toContain("program entry");
-    expect(help ?? "").toContain("rather than at a construct that caused it");
+    expect(diagnostic.primarySpan).not.toEqual(declaration);
+    expect(diagnostic.help ?? "").toContain("no source construct is implicated");
   });
 
-  it("should claim no location when its caller supplies none, and say why", () => {
+  it("should claim no location when there is no input to name, and say why", () => {
     // Pointing at a default location is worse than pointing nowhere. With nothing supplied the
     // refusal states that it has no construct to name rather than leaving the absence unexplained.
     const diagnostic = wholeProgramRefusal(null);
@@ -685,6 +699,5 @@ describe("a refusal that can name no construct still points where it is told", (
     expect(diagnostic.primarySpan).toBeNull();
     expect(diagnostic.message).toContain("machine storage binding");
     expect(diagnostic.help ?? "").toContain("no source construct to name");
-    expect(diagnostic.help ?? "").not.toContain("program entry");
   });
 });
