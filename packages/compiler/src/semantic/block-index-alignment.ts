@@ -12,8 +12,9 @@ import type {
   SemanticPlace,
   ValueId,
 } from "./operations.js";
-import { collectSelectorReach, scanProgram } from "./block-index-consumers.js";
-import type { ScannedBody } from "./block-index-consumers.js";
+import { collectSelectorReach } from "./block-index-consumers.js";
+import { scanProgram } from "./block-index-program.js";
+import type { ScannedBody } from "./block-index-program.js";
 import { ENUMERATED_ELEMENT_LIMIT, FETCHED_BYTES } from "./block-index-selector.js";
 import type { ProvedPlace, SelectorReach } from "./block-index-selector.js";
 import { constantValue, staticPlaceOffset } from "./block-index-values.js";
