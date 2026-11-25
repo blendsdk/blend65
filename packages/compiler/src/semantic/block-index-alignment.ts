@@ -29,8 +29,24 @@ const VIC_VISIBLE_REGION = "c64.vic.bank0-ram";
 /** Regions that already satisfy the VIC, so a stated one is strengthened rather than refused. */
 const VIC_REGIONS: ReadonlySet<string> = new Set(["c64.vic.bank0", VIC_VISIBLE_REGION]);
 
-/** Capability namespace whose operations hand a value to the video chip. */
-const VIC_CAPABILITY_PREFIX = "c64.vic.";
+/**
+ * The arguments that make the video chip fetch the object a value was computed
+ * from, by capability and exact argument position.
+ *
+ * Belonging to the `c64.vic.*` namespace is not the question. A border colour, a
+ * sprite's colour, its position and its index are ordinary numbers, and nothing
+ * about writing one makes the chip read the object whose address happened to be
+ * divided to produce it. Demanding chip-visible storage for that object narrows
+ * storage the chip never looks at, which for a large object can leave no legal
+ * home at all. A sprite block number is the one argument this pass recognizes
+ * whose value decides where the chip looks.
+ *
+ * The capabilities that take an address rather than a block number — the sprite,
+ * charset, bitmap and screen selectors — prove their own bank, window and
+ * alignment constraints when they are lowered, and never receive the quotient
+ * this pass recognizes. They are deliberately absent.
+ */
+const VIC_FETCH_ARGUMENTS: ReadonlyMap<string, number> = new Map([["c64.vic.setSpritePointer", 1]]);
 
 /** One value definition retained for static address and index resolution. */
 type Definitions = ReadonlyMap<string, SemanticOperation>;
@@ -54,6 +70,29 @@ interface ScannedBody {
   readonly blocks: readonly SemanticBlock[];
   /** Values this body defines, for static address and index resolution. */
   readonly definitions: Definitions;
+}
+
+/** One call whose result a caller receives, kept with the body that receives it. */
+interface CallSite {
+  /** Body containing the call. */
+  readonly body: ScannedBody;
+  /** Value the caller receives. */
+  readonly result: ValueId;
+}
+
+/**
+ * Every body the walk may enter, with call sites indexed by callee.
+ *
+ * Leaving a body means resuming at the callers of its function. Rediscovering
+ * those callers by scanning the program each time is the same answer computed
+ * repeatedly, so they are indexed once — during the traversal that already
+ * indexes each body's definitions, which costs no extra pass over the program.
+ */
+interface ProgramWalk {
+  /** Function and initializer bodies in declaration order. */
+  readonly bodies: readonly ScannedBody[];
+  /** Call sites that keep a result, by callee identity. */
+  readonly callSites: ReadonlyMap<string, readonly CallSite[]>;
 }
 
 /**
@@ -212,7 +251,7 @@ function usedByBinary(
 function reachesVicConsumer(
   value: ValueId,
   body: ScannedBody,
-  bodies: readonly ScannedBody[],
+  walk: ProgramWalk,
   walked: WalkedValues = new Map(),
 ): boolean {
   // Holding a block number in a variable before publishing it is ordinary, and
@@ -223,27 +262,42 @@ function reachesVicConsumer(
   seen.add(value);
   for (const block of body.blocks) {
     for (const operation of block.operations) {
-      if (
-        operation.kind === "platform" &&
-        operation.capability.startsWith(VIC_CAPABILITY_PREFIX) &&
-        operation.arguments.includes(value)
-      )
-        return true;
+      if (operation.kind === "platform") {
+        // The position matters as much as the capability: the same call takes a
+        // sprite's index beside its block number, and only one of the two says
+        // anything about where the chip reads.
+        const fetched = VIC_FETCH_ARGUMENTS.get(operation.capability);
+        if (fetched !== undefined && operation.arguments[fetched] === value) return true;
+      }
       if (
         (operation.kind === "convert" || operation.kind === "unary") &&
         operation.operand === value &&
-        reachesVicConsumer(operation.result, body, bodies, walked)
+        reachesVicConsumer(operation.result, body, walk, walked)
+      )
+        return true;
+      // `cond ? lo(&sprites / 64) : 0` publishes the block number on one path.
+      // A value that arrives at a join is the join's value on the path it came
+      // from, so one incoming edge is enough: the chip receives this address
+      // whenever that path runs, and a sprite the chip cannot see on some frames
+      // is still a sprite the chip cannot see.
+      if (
+        operation.kind === "merge" &&
+        operation.incoming.some((edge) => edge.value === value) &&
+        reachesVicConsumer(operation.result, body, walk, walked)
       )
         return true;
       // `let block = lo(&sprites / 64);` publishes through a variable. The read
-      // is matched on the written object rather than the exact field, because
-      // being wrong in that direction only states a demand against an object
-      // that did not need one, while being wrong the other way puts a sprite
-      // where the chip cannot see it.
+      // is matched on the written object rather than the exact field, and an
+      // overwrite between the two is not noticed: a demand against an object
+      // that did not need one is the cheaper way to be wrong than a sprite the
+      // chip cannot see. It is not free, though. An object too large for the
+      // visible interval has no home that satisfies the demand, so an
+      // unnecessary one can cost a build — which is why the consumer side of
+      // this proof names an exact argument instead of a namespace.
       if (
         operation.kind === "store" &&
         operation.value === value &&
-        loadsReachVicConsumer(operation.place, body, bodies, walked)
+        loadsReachVicConsumer(operation.place, body, walk, walked)
       )
         return true;
     }
@@ -254,7 +308,7 @@ function reachesVicConsumer(
   // hands another helper's answer on, and an initializer has no caller to resume
   // in, which is what distinguishes a body with an owner from one without.
   return body.owner !== null && leavesByReturn(value, body.blocks)
-    ? callResultsReachVicConsumer(body.owner, bodies, walked)
+    ? callResultsReachVicConsumer(body.owner, walk, walked)
     : false;
 }
 
@@ -262,7 +316,7 @@ function reachesVicConsumer(
 function loadsReachVicConsumer(
   place: SemanticPlace,
   body: ScannedBody,
-  bodies: readonly ScannedBody[],
+  walk: ProgramWalk,
   walked: WalkedValues,
 ): boolean {
   const written = bindingIdentityKey(place.root);
@@ -271,7 +325,7 @@ function loadsReachVicConsumer(
       if (
         operation.kind === "load" &&
         bindingIdentityKey(operation.place.root) === written &&
-        reachesVicConsumer(operation.result, body, bodies, walked)
+        reachesVicConsumer(operation.result, body, walk, walked)
       )
         return true;
   return false;
@@ -293,19 +347,11 @@ function leavesByReturn(value: ValueId, blocks: readonly SemanticBlock[]): boole
  */
 function callResultsReachVicConsumer(
   owner: string,
-  bodies: readonly ScannedBody[],
+  walk: ProgramWalk,
   walked: WalkedValues,
 ): boolean {
-  for (const body of bodies)
-    for (const block of body.blocks)
-      for (const operation of block.operations)
-        if (
-          operation.kind === "call" &&
-          bindingIdentityKey(operation.callee) === owner &&
-          operation.result !== null &&
-          reachesVicConsumer(operation.result, body, bodies, walked)
-        )
-          return true;
+  for (const site of walk.callSites.get(owner) ?? [])
+    if (reachesVicConsumer(site.result, site.body, walk, walked)) return true;
   return false;
 }
 
@@ -436,6 +482,34 @@ function scannedBody(owner: string | null, blocks: readonly SemanticBlock[]): Sc
 }
 
 /**
+ * Index every body of one program, and the call sites that keep a result.
+ *
+ * Both indexes are built in the one traversal of the operations, because the
+ * walk needs each body's definitions anyway and a caller search that rescans the
+ * program is the same answer computed again for every value that leaves a body.
+ */
+function scanProgram(
+  functions: readonly SemanticFunction[],
+  globals: readonly SemanticGlobal[],
+): ProgramWalk {
+  const bodies: readonly ScannedBody[] = Object.freeze([
+    ...functions.map((fn) => scannedBody(bindingIdentityKey(fn.id), fn.blocks)),
+    ...globals.map((global) => scannedBody(null, global.blocks)),
+  ]);
+  const callSites = new Map<string, CallSite[]>();
+  for (const body of bodies)
+    for (const block of body.blocks)
+      for (const operation of block.operations) {
+        if (operation.kind !== "call" || operation.result === null) continue;
+        const callee = bindingIdentityKey(operation.callee);
+        const sites = callSites.get(callee) ?? [];
+        sites.push(Object.freeze({ body, result: operation.result }));
+        callSites.set(callee, sites);
+      }
+  return Object.freeze({ bodies, callSites });
+}
+
+/**
  * Record the alignment a module object needs when its address is used as a
  * block index.
  *
@@ -474,10 +548,7 @@ export function alignBlockIndexStorage(
 ): readonly SemanticGlobal[] {
   const byKey = new Map(globals.map((global) => [bindingIdentityKey(global.id), global] as const));
   const demands = new Map<string, AlignmentDemand[]>();
-  const bodies: readonly ScannedBody[] = Object.freeze([
-    ...functions.map((fn) => scannedBody(bindingIdentityKey(fn.id), fn.blocks)),
-    ...globals.map((global) => scannedBody(null, global.blocks)),
-  ]);
+  const walk = scanProgram(functions, globals);
   const scan = (body: ScannedBody): void => {
     const { blocks, definitions } = body;
     const record = (addressValue: ValueId, align: number, vicVisible: boolean): void => {
@@ -505,12 +576,12 @@ export function alignBlockIndexStorage(
         // expression never pays for the search.
         const produced = "result" in operation ? operation.result : null;
         const vicVisible =
-          produced !== null && produced !== undefined && reachesVicConsumer(produced, body, bodies);
+          produced !== null && produced !== undefined && reachesVicConsumer(produced, body, walk);
         record(demand.address, demand.align, vicVisible);
       }
     }
   };
-  for (const body of bodies) scan(body);
+  for (const body of walk.bodies) scan(body);
   if (demands.size === 0) return globals;
   return Object.freeze(
     globals.map((global) => {

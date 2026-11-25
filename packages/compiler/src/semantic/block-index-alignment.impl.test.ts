@@ -394,9 +394,11 @@ function main(): void { let block: byte = blockOf(); c64.vic.setSpritePointer(0,
     ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
   });
 
-  // One hardware call site is enough. Demanding visible storage because of the
-  // other caller is the harmless direction to be wrong in: it decides where the
-  // object lives and never whether the program is accepted.
+  // One hardware call site is enough, and the other caller is not a reason to
+  // decide otherwise: a sprite the chip cannot see is wrong on the frames the
+  // hardware path runs. The reverse is the cheaper direction to be wrong in,
+  // though it is not free — an object larger than the visible interval has no
+  // home that satisfies the demand, so an unnecessary one can cost a build.
   it("demands visible storage when any call site publishes to the chip", () => {
     expect(
       placementOf(
@@ -407,6 +409,66 @@ function main(): void { poke($C000, blockOf()); c64.vic.setSpritePointer(0, bloc
         "buffer",
       ),
     ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
+  });
+
+  // Choosing the block number on one path of a conditional is ordinary modern
+  // code. The chip receives this address whenever that path runs, and a sprite
+  // the chip cannot see on some frames is still a sprite it cannot see.
+  it("follows a block number chosen on one path of a conditional", () => {
+    expect(
+      placementOf(
+        `module Game;
+let buffer: byte[64];
+function main(): void {
+  c64.vic.setSpritePointer(0, peek($0400) == 0 ? lo(&buffer / 64) : 0);
+}`,
+        "buffer",
+      ),
+    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
+  });
+
+  // The same join, reached through a helper on both paths.
+  it("follows a conditional between two helper results", () => {
+    expect(
+      placementOf(
+        `module Game;
+let buffer: byte[64];
+function blockOf(): byte { return lo(&buffer / 64); }
+function relay(): byte { return peek($0400) == 0 ? blockOf() : 0; }
+function main(): void { c64.vic.setSpritePointer(0, relay()); }`,
+        "buffer",
+      ),
+    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
+  });
+
+  // Writing a colour does not make the chip read the object whose address was
+  // divided to produce the number. Demanding chip-visible storage for it narrows
+  // storage the chip never looks at — and for an object larger than the visible
+  // interval there is then no legal home at all, so a demand stated here can
+  // decide whether the program builds.
+  it("leaves an object alone when the chip only receives a number from it", () => {
+    expect(
+      placementOf(
+        `module Game;
+let buffer: byte[64];
+function blockOf(): byte { return lo(&buffer / 64); }
+function main(): void { c64.vic.setBorderColor(blockOf()); }`,
+        "buffer",
+      ),
+    ).toMatchObject({ align: 64, region: null });
+  });
+
+  // The same call takes a sprite's index beside its block number, and only one
+  // of the two says anything about where the chip reads.
+  it("distinguishes the block argument from the sprite index beside it", () => {
+    expect(
+      placementOf(
+        `module Game;
+let buffer: byte[64];
+function main(): void { c64.vic.setSpritePointer(lo(&buffer / 64), 128); }`,
+        "buffer",
+      ),
+    ).toMatchObject({ align: 64, region: null });
   });
 
   // Ordinary address arithmetic keeps its home. Narrowing it because of how the
