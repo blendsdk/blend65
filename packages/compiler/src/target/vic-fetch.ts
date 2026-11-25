@@ -85,6 +85,12 @@ export interface VicFetchDemand {
    * other says "any of these bytes may be read".
    */
   readonly runtimeSelected?: true;
+  /**
+   * Set when the block number left along a route the proof does not follow, so
+   * the runs cover the object because no narrower answer is available — not
+   * because the hardware reads that much.
+   */
+  readonly unfollowed?: true;
 }
 
 /**

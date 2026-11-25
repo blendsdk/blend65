@@ -83,6 +83,9 @@ function describeInferredFetch(demand: VicFetchDemand): string {
   if (demand.runtimeSelected === true) {
     return `chooses its block at run time, so any of its ${total} bytes may be fetched and all of them must stay`;
   }
+  if (demand.unfollowed === true) {
+    return `hands its block number somewhere the compiler cannot yet follow, so all ${total} bytes of it must stay`;
+  }
   const only = demand.ranges.length === 1 ? demand.ranges[0] : undefined;
   const where =
     only === undefined

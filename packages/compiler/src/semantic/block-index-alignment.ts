@@ -38,6 +38,8 @@ interface AlignmentDemand {
   readonly fetched: readonly VicFetchRange[];
   /** Whether the block this use selects is decided at run time. */
   readonly runtimeSelected: boolean;
+  /** Whether this use left along a route the consumer proof does not follow. */
+  readonly unfollowed: boolean;
   /** The block-index expression this use was recognized from. */
   readonly span: SourceSpan;
 }
@@ -282,7 +284,7 @@ export function alignBlockIndexStorage(
       // demanded; shrinking to the one a static prefix happens to name would
       // leave the rest where the chip cannot see them.
       const addressable = addressableOffsets(proved, size);
-      const runtimeSelected = reach.runtimeSelected || reach.escaped || proved.selected.length > 0;
+      const runtimeSelected = reach.runtimeSelected || proved.selected.length > 0;
       const fetched: VicFetchRange[] = [];
       if (!published) {
         // Nothing proves the chip receives this number, so nothing is demanded.
@@ -303,7 +305,14 @@ export function alignBlockIndexStorage(
           }
       }
       const known = demands.get(key) ?? [];
-      known.push({ align, offset: proved.offset, fetched, runtimeSelected, span });
+      known.push({
+        align,
+        offset: proved.offset,
+        fetched,
+        runtimeSelected,
+        unfollowed: reach.escaped,
+        span,
+      });
       demands.set(key, known);
     };
     for (const block of blocks) {
@@ -351,6 +360,7 @@ export function alignBlockIndexStorage(
       const fetched: VicFetchRange[] = [];
       let origin: SourceSpan | null = null;
       let runtimeSelected = false;
+      let unfollowed = false;
       for (const demand of required) {
         // Every published use contributes its own runs. Satisfying one says
         // nothing about another, so they accumulate rather than replace: a
@@ -360,6 +370,7 @@ export function alignBlockIndexStorage(
           fetched.push(...demand.fetched);
           origin ??= demand.span;
           runtimeSelected ||= demand.runtimeSelected;
+          unfollowed ||= demand.unfollowed;
         }
         // Root alignment can only express a demand whose static offset is a
         // multiple of it. Leave other shapes exactly as written.
@@ -376,6 +387,7 @@ export function alignBlockIndexStorage(
               ranges: mergeVicFetchRanges(fetched),
               span: origin,
               ...(runtimeSelected ? { runtimeSelected: true as const } : {}),
+              ...(unfollowed ? { unfollowed: true as const } : {}),
             });
       if (align === (placement?.align ?? 1) && inferred === null) return global;
       return Object.freeze({
