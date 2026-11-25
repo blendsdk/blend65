@@ -84,6 +84,13 @@ function main(): void { poke($D020, TABLE[0]); }
     expect(result.kind).toBe("success");
   }, 60_000);
 
+  // This field is computed once, before the artifact is written, so an address
+  // the program only reads while it runs has no value to compute from. The
+  // refusal is right; what it says has to be actionable. Naming a symbolic
+  // address names nothing the author can change, because taking the address of
+  // ordinary module storage is itself symbolic and is accepted. The message must
+  // instead name a form resolved before layout: a constant, an asset, or
+  // module-level stored data.
   it("should reject a dynamic non-asset field argument as E10273", async () => {
     const selected = await diagnostic(
       `module Game;
@@ -92,6 +99,7 @@ function main(): void { poke($D018, c64.vic.vicScreenSelect(peek($C000))); }
       "E10273",
     );
     expect(selected.primarySpan).not.toBeNull();
-    expect(selected.message).toMatch(/constant or symbolic/iu);
+    expect(selected.message).not.toMatch(/constant\s+or\s+symbolic/iu);
+    expect(selected.message).toMatch(/constant|asset|module|stored|placed|place\(|layout|link/iu);
   }, 60_000);
 });

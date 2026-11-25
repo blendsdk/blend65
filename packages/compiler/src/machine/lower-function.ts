@@ -54,6 +54,7 @@ import { calleeNeverReturns } from "./call-returning-facts.js";
 import { lowerIndirectCall, lowerInterruptSink } from "./lower-indirect.js";
 import { potentialValueInputs } from "../semantic/value-lifetimes.js";
 import { constantValue } from "../semantic/raw-write-kills.js";
+import { vicFieldTransformOf } from "../target/vic-fetch.js";
 import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import { lowerVariableShift } from "./lower-variable-shift.js";
 import { selectGuardedShiftCount } from "./lower-guarded-shift.js";
@@ -139,9 +140,13 @@ function staticPlaceOffset(
 }
 
 /**
- * Find binary block-index results whose only consumer is a `lo`. Their
- * symbolic address and the `/64` or `>>6` result both lower to link-time
- * labels instead of runtime pointer staging and shifts.
+ * Find the addresses and block numbers layout can resolve into immediates.
+ *
+ * Two shapes qualify. A binary block index whose only consumer is a `lo` folds
+ * its symbolic address and its `/64` or `>>6` result, so neither stages a
+ * pointer nor shifts at run time. A VIC field capability folds the address it
+ * was handed, because the field it computes is one immediate byte and the only
+ * thing missing is the final address.
  */
 function blockIndexFoldValues(
   blocks: readonly SemanticBlock[],
@@ -204,6 +209,37 @@ function blockIndexFoldValues(
       const label = bindingLabel("global", address.place.root);
       binaries.set(binary.result, { label, offset });
       addresses.set(address.result, { label, offset });
+    }
+  }
+  // A VIC field capability asks the compiler for the field value, so its address
+  // stays symbolic for the same reason the arithmetic above does — but on the
+  // opposite contract. The arithmetic form preserves exactly what the author
+  // wrote, which is why an explicit address or a zero-page home is excluded from
+  // it; the capability form promises the field is checked at whatever address the
+  // object ends up with, so every module object folds and layout answers for it.
+  for (const block of blocks) {
+    for (const operation of block.operations) {
+      if (operation.kind !== "platform") continue;
+      if (vicFieldTransformOf(operation.capability) === null) continue;
+      const argument = operation.arguments[0];
+      if (argument === undefined) continue;
+      let address = definitions.get(argument);
+      while (address?.kind === "convert") address = definitions.get(address.operand);
+      if (address?.kind !== "place-address" || address.place.asset !== undefined) continue;
+      const rootKey = bindingIdentityKey(address.place.root);
+      if (
+        !program.semantic.globals.some((candidate) => bindingIdentityKey(candidate.id) === rootKey)
+      )
+        continue;
+      // The same address serving another purpose must keep its runtime form;
+      // only an address this capability alone consumes can become an immediate.
+      if ((uses.get(address.result) ?? 0) !== 1) continue;
+      const offset = staticPlaceOffset(address.place, definitions);
+      // A misaligned offset still folds. Layout then names the alignment the
+      // field needs, which is what the author can act on; refusing here could
+      // only repeat that the address is unusable without saying why.
+      if (offset === null) continue;
+      addresses.set(address.result, { label: bindingLabel("global", address.place.root), offset });
     }
   }
   return { binaries, addresses };

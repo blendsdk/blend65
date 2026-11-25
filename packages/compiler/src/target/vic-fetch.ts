@@ -10,6 +10,31 @@ export type VicFieldTransform =
 /** Bytes of one video-chip bank, which is the span a block number can address. */
 export const VIC_BANK_BYTES = 16384;
 
+/** Platform capabilities that derive one VIC field from an address. */
+const VIC_FIELD_CAPABILITIES: ReadonlyMap<string, VicFieldTransform> = new Map([
+  ["c64.vic.vicSpriteBlock", "vic-sprite-block"],
+  ["c64.vic.vicCharsetSelect", "vic-charset-select"],
+  ["c64.vic.vicBitmapSelect", "vic-bitmap-select"],
+  ["c64.vic.vicScreenSelect", "vic-screen-select"],
+] as const);
+
+/**
+ * The VIC field one capability computes, or null for every other capability.
+ *
+ * Three stages need the same answer and must not disagree about it: the demand
+ * stated on the addressed object, the decision to keep its address symbolic
+ * until layout, and the field arithmetic itself. A capability named in only two
+ * of the three would place an object for a field nobody resolves, or resolve a
+ * field against a home nothing constrained.
+ *
+ * @param capability Fully qualified platform capability name.
+ * @returns The field this capability derives, or null when it derives none.
+ * @example vicFieldTransformOf("c64.vic.vicSpriteBlock") // "vic-sprite-block"
+ */
+export function vicFieldTransformOf(capability: string): VicFieldTransform | null {
+  return VIC_FIELD_CAPABILITIES.get(capability) ?? null;
+}
+
 /**
  * Whether a constant address could be one of a screen matrix's sprite pointers.
  *

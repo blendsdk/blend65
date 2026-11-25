@@ -2,9 +2,15 @@ import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SemanticType } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
-import { mergeVicFetchRanges } from "../target/vic-fetch.js";
-import type { VicFetchRange } from "../target/vic-fetch.js";
+import {
+  mergeVicFetchRanges,
+  vicConsumerAlignment,
+  vicConsumerBytes,
+  vicFieldTransformOf,
+} from "../target/vic-fetch.js";
+import type { VicFetchRange, VicFieldTransform } from "../target/vic-fetch.js";
 import type {
+  PlatformOperation,
   SemanticBlock,
   SemanticFunction,
   SemanticGlobal,
@@ -14,7 +20,7 @@ import type {
 } from "./operations.js";
 import { collectSelectorReach } from "./block-index-consumers.js";
 import { scanProgram } from "./block-index-program.js";
-import type { ScannedBody } from "./block-index-program.js";
+import type { ProgramWalk, ScannedBody } from "./block-index-program.js";
 import { ENUMERATED_ELEMENT_LIMIT, FETCHED_BYTES } from "./block-index-selector.js";
 import { VIC_BANK_BYTES } from "../target/vic-fetch.js";
 import type { ProvedPlace, SelectorReach } from "./block-index-selector.js";
@@ -224,6 +230,44 @@ function addressableOffsets(proved: ProvedPlace, size: number): readonly number[
 }
 
 /**
+ * State what one VIC field capability requires of the object it was handed.
+ *
+ * The arithmetic form has to prove the video chip receives its number, because
+ * `lo(&x / 64)` is also an ordinary expression and charging every one of them
+ * would constrain code the hardware never reads. A capability carries no such
+ * ambiguity: naming it is the author asking for a field the chip reads, so the
+ * demand is its contract and is stated unconditionally.
+ *
+ * Only a sprite block is followed further. The other three fields select a
+ * region through the chip's own register bits, so adding to one of them names a
+ * different register value rather than a different run of bytes.
+ */
+function recordFieldDemand(
+  operation: PlatformOperation,
+  field: VicFieldTransform,
+  body: ScannedBody,
+  walk: ProgramWalk,
+  record: (
+    addressValue: ValueId,
+    align: number,
+    reach: SelectorReach,
+    span: SourceSpan,
+    footprint: number,
+  ) => void,
+): void {
+  const argument = operation.arguments[0];
+  if (argument === undefined) return;
+  const reach: SelectorReach = {
+    displacements: new Set([0]),
+    runtimeSelected: false,
+    escaped: false,
+  };
+  if (field === "vic-sprite-block" && operation.result !== null)
+    collectSelectorReach(operation.result, body, walk, reach);
+  record(argument, vicConsumerAlignment(field), reach, operation.span, vicConsumerBytes(field));
+}
+
+/**
  * Record the alignment a module object needs when its address is used as a
  * block index.
  *
@@ -270,6 +314,7 @@ export function alignBlockIndexStorage(
       align: number,
       reach: SelectorReach,
       span: SourceSpan,
+      footprint: number = FETCHED_BYTES,
     ): void => {
       const address = addressOperation(addressValue, definitions);
       if (address === undefined || address.place.asset !== undefined) return;
@@ -307,7 +352,7 @@ export function alignBlockIndexStorage(
           for (const blocks of reach.displacements) {
             const offset = (base + blocks * FETCHED_BYTES) % VIC_BANK_BYTES;
             if (offset >= size) continue;
-            fetched.push({ offset, bytes: Math.min(FETCHED_BYTES, size - offset) });
+            fetched.push({ offset, bytes: Math.min(footprint, size - offset) });
           }
       }
       const known = demands.get(key) ?? [];
@@ -323,6 +368,12 @@ export function alignBlockIndexStorage(
     };
     for (const block of blocks) {
       for (const operation of block.operations) {
+        const field =
+          operation.kind === "platform" ? vicFieldTransformOf(operation.capability) : null;
+        if (field !== null && operation.kind === "platform") {
+          recordFieldDemand(operation, field, body, walk, record);
+          continue;
+        }
         const complete = completeSelector(operation, definitions);
         const demand =
           complete === null

@@ -18,6 +18,7 @@ import type {
 import type { C64ActiveScreenFact } from "./active-screen.js";
 import { loweringFailure } from "./lower-state.js";
 import { vicFieldFailure, vicFieldValue, type VicFieldTransform } from "./vic-fields.js";
+import { vicFieldTransformOf } from "../target/vic-fetch.js";
 export {
   c64InterruptEntryLabel,
   createC64InterruptEntry,
@@ -451,16 +452,7 @@ export function lowerC64Operation(
     });
   }
 
-  const vicTransform: VicFieldTransform | null =
-    operation.capability === "c64.vic.vicSpriteBlock"
-      ? "vic-sprite-block"
-      : operation.capability === "c64.vic.vicCharsetSelect"
-        ? "vic-charset-select"
-        : operation.capability === "c64.vic.vicBitmapSelect"
-          ? "vic-bitmap-select"
-          : operation.capability === "c64.vic.vicScreenSelect"
-            ? "vic-screen-select"
-            : null;
+  const vicTransform: VicFieldTransform | null = vicFieldTransformOf(operation.capability);
   if (vicTransform !== null) {
     const addressValue = argument(operation, values, 0);
     const address = constant(addressValue);
@@ -484,12 +476,19 @@ export function lowerC64Operation(
       });
     }
     if (address === null) {
+      // The field is one immediate byte written into the chip's registers, so
+      // its address has to be known by the time the artifact is written. Saying
+      // the field "requires a symbolic address" named nothing the author could
+      // change, because `&buffer` already is one; what it cannot be is an
+      // address this program only computes or carries while it runs.
       throw loweringFailure(
-        `VIC field '${vicTransform}' requires a constant or symbolic address`,
+        `VIC field '${vicTransform}' needs an address resolved before layout — a constant, an ` +
+          `asset, or module-level stored data addressed with '&'; this address is only known ` +
+          `while the program runs, so compute the field from it with ordinary arithmetic instead`,
         source,
         {
           code: "E10273",
-          contributors: [`field=${vicTransform}`],
+          contributors: [`field=${vicTransform}`, `value=${addressValue.kind}`],
         },
       );
     }

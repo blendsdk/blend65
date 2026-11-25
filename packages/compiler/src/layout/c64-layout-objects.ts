@@ -2,7 +2,7 @@ import type { SourceSpan } from "../project/types.js";
 import type { StorageClosureCertificate } from "../storage/storage-types.js";
 import type { TargetProfile } from "../target/profile.js";
 import { repairMachineBranches } from "../machine/block-layout.js";
-import { vicFieldFailure, vicFieldValue } from "../machine/vic-fields.js";
+import { vicConsumerAlignment, vicFieldFailure, vicFieldValue } from "../machine/vic-fields.js";
 import type { MachineInstruction } from "../machine/machine-types.js";
 import type {
   MachineBlock,
@@ -171,6 +171,20 @@ function foldConstantImmediateOps(
   return Object.freeze(folded);
 }
 
+/**
+ * Placement classes that hold data at an address the video chip can fetch from.
+ *
+ * Code, function-execution storage, the startup stub and alignment fill are
+ * excluded: their bytes are not data this program addresses, so naming one in a
+ * VIC field is a mistake worth reporting rather than an address worth resolving.
+ */
+const VIC_FIELD_INTERVALS: ReadonlySet<C64LayoutInterval["kind"]> = new Set([
+  "asset",
+  "immutable",
+  "global",
+  "bss",
+]);
+
 /** Detailed placement-transform outcome with the exact failing source and contributors. */
 export type PlacementTransformResult =
   | { readonly kind: "complete"; readonly program: MachineProgram }
@@ -321,14 +335,37 @@ export function resolvePlacementTransforms(
         }
         const interval = placed.get(operand.label);
         const address = interval === undefined ? -1 : interval.start + (operand.offset ?? 0);
-        if (interval?.kind !== "asset") {
+        // The chip fetches bytes, and it cannot tell which stage of the compiler
+        // decided where they live. An asset, an initialised module object and one
+        // the program fills at run time are all data at a resolved address, so
+        // all three answer this field; only storage that holds no addressable
+        // data of the program's own cannot.
+        if (interval === undefined || !VIC_FIELD_INTERVALS.has(interval.kind)) {
           return fail(
             instruction,
-            `VIC field '${operand.transform}' requires a VIC-visible asset; '${operand.label}' is not a placed asset`,
+            `VIC field '${operand.transform}' requires data the video chip can address; '${operand.label}' is ${interval === undefined ? "not placed" : `placed as ${interval.kind}`}`,
             [
               `field=${operand.transform}`,
               `label=${operand.label}`,
               `interval=${interval?.kind ?? "missing"}`,
+            ],
+          );
+        }
+        // An offset inside the addressed object is reported before the final
+        // address is judged, because it is the one failure no placement can
+        // correct: wherever the object goes, that many bytes into it is the same
+        // distance off the boundary the field needs.
+        const fieldAlignment = vicConsumerAlignment(operand.transform);
+        const fieldOffset = operand.offset ?? 0;
+        if (fieldOffset % fieldAlignment !== 0) {
+          return fail(
+            instruction,
+            `VIC field '${operand.transform}' requires ${fieldAlignment}-byte alignment; the offset ${fieldOffset} inside the object it addresses is not a multiple of ${fieldAlignment}, which no placement can correct`,
+            [
+              `field=${operand.transform}`,
+              `label=${operand.label}`,
+              `offset=${fieldOffset}`,
+              `alignment=${fieldAlignment}`,
             ],
           );
         }
