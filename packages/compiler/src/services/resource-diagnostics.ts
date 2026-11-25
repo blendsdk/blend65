@@ -98,6 +98,19 @@ function describeInferredFetch(demand: VicFetchDemand): string {
 
 /** Attribute a failed final constraint to the source object rather than an internal layout ID. */
 /**
+ * Say where the requirement came from, since the author wrote no constraint.
+ *
+ * An inferred requirement has to admit that it was inferred, or the author is
+ * left hunting for a constraint they never wrote. A declared one needs no such
+ * admission: naming the capability already names what they did write.
+ */
+function describeFetchAuthority(demand: VicFetchDemand): string {
+  return demand.field === undefined
+    ? "this requirement was inferred from that expression, and "
+    : "";
+}
+
+/**
  * Name the construct that asked for one object's bytes to stay chip-readable.
  *
  * A capability states its own requirement, so naming it is naming what the
@@ -106,7 +119,7 @@ function describeInferredFetch(demand: VicFetchDemand): string {
  * be wrong for the three sibling fields and for a charset.
  */
 function describeFetchOrigin(demand: VicFetchDemand): string {
-  if (demand.field === undefined) return "a block-index expression";
+  if (demand.field === undefined) return "a sprite-block expression";
   const capability =
     demand.field === "vic-sprite-block"
       ? "vicSpriteBlock"
@@ -137,10 +150,10 @@ export function sourcePlacementFailure(
   const message = vicVisible
     ? `Cannot place '${name}' — the handler requires a VIC-visible address in bank 0 with ${data?.alignment ?? 1}-byte alignment, clear of the character-ROM window and the active screen; the selected address cannot satisfy that requirement`
     : inferredFetch !== undefined
-      ? `Cannot place '${name}' — ${describeFetchOrigin(inferredFetch)} ${describeInferredFetch(inferredFetch)} inside the VIC bank and clear of the character-ROM window; ${
+      ? `Cannot place '${name}' — ${describeFetchOrigin(inferredFetch)} ${describeInferredFetch(inferredFetch)} inside the VIC bank and clear of the character-ROM window; ${describeFetchAuthority(inferredFetch)}${
           data?.placement?.at === null || data?.placement?.at === undefined
-            ? "no home in the bank satisfies that beside the storage already placed there"
-            : `the address $${data.placement.at.toString(16)} this object was placed at does not satisfy that`
+            ? "no home in the bank satisfies it beside the storage already placed there"
+            : `the address $${data.placement.at.toString(16)} this object was placed at does not satisfy it`
         }`
       : handlerFixed && data?.placement?.at !== null && data?.placement?.at !== undefined
         ? `Cannot place '${name}' — the handler requires the fixed load address $${data.placement.at.toString(16)}, which conflicts with occupied storage or the selected profile resident window; the payload cannot be moved`

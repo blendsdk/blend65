@@ -556,6 +556,29 @@ let s: Sheet;`,
     },
   );
 
+  // An object larger than the field's footprint is what separates the two ways
+  // this can go wrong, because only the first 2,048 bytes are ever fetched.
+  // Under-state the footprint and the later characters come from outside the
+  // chip's reach, so text on screen is partly garbage with nothing reported.
+  // Over-state it and a legal 4 KiB object is refused over bytes the chip never
+  // reads, which costs the author their build. The bytes past the footprint
+  // carry no requirement, so nothing here asserts anything about them.
+  onReferenceProfile(
+    "should read only the character-memory footprint from an object larger than it",
+    async () => {
+      const artifacts = await build(
+        `module Game;
+let filler: byte[11000];
+let charset: byte[4096];
+function main(): void { filler[0] = 1; poke($D018, c64.vic.vicCharsetSelect(&charset)); }`,
+        REFERENCE_PROFILE,
+      );
+      const start = globalAddress(artifacts, "charset", 4096);
+      expect(start % 2048, "a charset must satisfy its hardware alignment").toBe(0);
+      expectVisibleRun(start, 2048, "the charset bytes the chip fetches");
+    },
+  );
+
   // These two fields refuse ordinary storage on purpose. The machinery each one
   // needs is carried only for an embedded asset: a screen matrix ends in the
   // eight sprite-pointer bytes the chip fetches, and a bitmap reads 8,000 bytes
