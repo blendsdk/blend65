@@ -161,6 +161,24 @@ already expresses that only part of an object lies in the chip's view.
 | 5 | The inferred-constraint diagnostic | ☐ |
 | 6 | Verification, reviews, record and roadmap | ☐ |
 
+## Two existing oracle cases lose their teeth, and that has to be said out loud
+
+`test/rd04/block-index-conditional-visibility.spec.test.ts:175-199` holds two negative cases — a
+block number used only as a border colour, and one used only as the sprite index — whose arrays are
+`byte[8193]`, deliberately one byte larger than the largest contiguous visible interval. Their
+stated discriminator is that an accidental visibility demand would **refuse** the program.
+
+Once the demand covers 64 bytes instead of the whole object, an accidental demand on an 8,193-byte
+array no longer refuses anything: the block fits, and the 64-byte alignment those programs already
+get is not consumer-gated, so nothing observable changes. Both cases keep passing and stop proving
+what they were written to prove.
+
+They are oracles and stay exactly as written. The discrimination moves to the implementation tier,
+where the pass's output is read directly rather than inferred from a refusal — which is the honest
+place for it, because "this program still builds" was only ever a proxy for "no demand was
+recorded". The sibling oracle at `:160-168`, which compares the consumed and unconsumed addresses,
+keeps its teeth either way.
+
 ## What this unit is not
 
 The sibling defect in `semantic/load-destination-constraints.ts` — it collects destination
@@ -168,6 +186,15 @@ The sibling defect in `semantic/load-destination-constraints.ts` — it collects
 filed rather than folded in.
 
 ## Deliberate departures worth stating
+
+Setting both the inferred ranges **and** the region, with layout preferring the ranges where they
+exist, was considered and rejected. It would leave about fifteen implementation cases and the
+evidence flag untouched, but it states a whole-object constraint the enforcement then selectively
+ignores — a contradiction the next reader has to discover, in a field a second pass writes for its
+own reasons. The implementation tier is mine to update; a field that means two things is not.
+
+### Two bounds ruled out before planning
+
 
 Two cheap bounds were ruled out before planning. Skipping a demand the object cannot satisfy
 misses this case entirely, because each 5,000-byte object satisfies the demand alone and only the
