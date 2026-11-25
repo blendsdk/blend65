@@ -873,9 +873,19 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
       !satisfiesSourcePlacement(start, bytes.length, data.placement, input.profile) ||
       !satisfiesVicFetch(start, data.vicFetch, input.profile)
     ) {
+      // Storage reserved without bytes takes this search, and the cause has to be
+      // chosen the same way as above: an address the author fixed that the chip
+      // can read completely has failed the resident window or the storage around
+      // it, not the chip's requirement.
+      const fixedAt = data.placement?.at;
+      const fixedSatisfies =
+        fixedAt !== null &&
+        fixedAt !== undefined &&
+        satisfiesVicFetch(fixedAt, data.vicFetch, input.profile);
       return Object.freeze({
         kind: "error",
-        reason: data.vicFetch === undefined ? "source-placement" : "vic-visibility",
+        reason:
+          data.vicFetch === undefined || fixedSatisfies ? "source-placement" : "vic-visibility",
         objectId: data.id,
       });
     }
