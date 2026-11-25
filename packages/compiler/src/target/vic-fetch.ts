@@ -19,6 +19,33 @@ const VIC_FIELD_CAPABILITIES: ReadonlyMap<string, VicFieldTransform> = new Map([
 ] as const);
 
 /**
+ * Fields whose module-storage support is complete.
+ *
+ * A sprite block and a charset need nothing of placement beyond alignment and a
+ * reachable run, which an inferred demand already expresses. A screen matrix and
+ * a bitmap need more: a screen owns a complete 1 KiB interval whose last eight
+ * bytes are the sprite pointer table, both have a minimum extent the chip reads
+ * past a short declaration, and the proof that exactly one screen is active
+ * recognises only an asset. Until those are carried, both fields keep the
+ * spellings that have them — an asset or a constant address.
+ */
+const MODULE_STORAGE_FIELDS: ReadonlySet<VicFieldTransform> = new Set([
+  "vic-sprite-block",
+  "vic-charset-select",
+]);
+
+/**
+ * Whether one VIC field can derive its value from ordinary module storage.
+ *
+ * @param transform Field being derived.
+ * @returns Whether module-level stored data is an accepted address for it.
+ * @example vicFieldAcceptsModuleStorage("vic-screen-select") // false
+ */
+export function vicFieldAcceptsModuleStorage(transform: VicFieldTransform): boolean {
+  return MODULE_STORAGE_FIELDS.has(transform);
+}
+
+/**
  * The VIC field one capability computes, or null for every other capability.
  *
  * Three stages need the same answer and must not disagree about it: the demand
@@ -112,13 +139,25 @@ export interface VicFetchRange {
  * Everything placement needs in order to keep one object's fetched bytes
  * reachable by the video chip, together with the expression that asked for it.
  *
- * The compiler infers this; the author wrote no constraint. That origin is part
- * of the demand rather than a detail, because a refusal has to name the
- * expression that caused it instead of blaming a constraint nobody wrote, and
- * because an author-written region means the whole object and must not be
- * confused with this.
+ * The author wrote no constraint either way, but the demand arrives by two
+ * different routes and they are not interchangeable. Address arithmetic produces
+ * an **inferred** demand: the compiler had to prove the chip receives the number,
+ * and an explicit address stays the author's contract. Naming a VIC field
+ * capability produces a **declared** one: the author asked for a field the chip
+ * reads, so the requirement holds wherever the object lives, including at an
+ * address they chose.
+ *
+ * The origin is part of the demand rather than a detail, because a refusal has
+ * to name the expression that caused it instead of blaming a constraint nobody
+ * wrote, and because an author-written region means the whole object and must
+ * not be confused with this.
  */
 export interface VicFetchDemand {
+  /**
+   * The field this demand serves, set only for a declared one. A refusal names
+   * the construct the author wrote rather than guessing at a sprite.
+   */
+  readonly field?: VicFieldTransform;
   /**
    * Runs that must each stay inside the chip's bank and clear of the window
    * where it reads character ROM. Every run is required; satisfying one does

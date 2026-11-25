@@ -30,6 +30,7 @@ import {
 } from "./lower-control.js";
 import { type AggregateInductionRuntime } from "./lower-induction.js";
 import type { MultiplyHelper } from "./lower-multiply.js";
+import type { VicFieldAddressRefusal } from "./vic-fields.js";
 import type { DivideHelper } from "./lower-division.js";
 import type { BooleanMaskTest } from "./machine-types.js";
 import type {
@@ -52,19 +53,30 @@ export interface LoweringFailure extends Error {
   readonly code?: "E10143" | "E10273";
   /** Named objects, addresses or intervals which contributed to the failure. */
   readonly contributors?: readonly string[];
+  /**
+   * One concrete action the author can take. It is kept out of the message so
+   * the message stays an instantiation of its registry template, and so a
+   * remedy never has to argue with the template's own closing clause.
+   */
+  readonly help?: string;
 }
 
 /** Construct one proving failure without adding an exception-class hierarchy. */
 export function loweringFailure(
   message: string,
   source: SourceSpan | null,
-  details?: { readonly code?: "E10143" | "E10273"; readonly contributors?: readonly string[] },
+  details?: {
+    readonly code?: "E10143" | "E10273";
+    readonly contributors?: readonly string[];
+    readonly help?: string;
+  },
 ): LoweringFailure {
   return Object.assign(new Error(message), {
     name: "LoweringFailure",
     source,
     ...(details?.code === undefined ? {} : { code: details.code }),
     ...(details?.contributors === undefined ? {} : { contributors: details.contributors }),
+    ...(details?.help === undefined ? {} : { help: details.help }),
   });
 }
 
@@ -139,6 +151,8 @@ export interface FunctionLoweringState {
     string,
     { readonly label: string; readonly offset: number }
   >;
+  /** Why one VIC field's address stayed a run-time value, keyed by the argument. */
+  readonly vicFieldRefusals?: ReadonlyMap<string, VicFieldAddressRefusal>;
   /** One-use A/AX results consumed by the next instruction-producing operation. */
   readonly forwardedRegisterValues: Set<string>;
   /** Ordinary loads whose byte is already in A from an adjacent raw read of the same home. */

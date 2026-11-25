@@ -145,3 +145,21 @@ export function sortDiagnostics(
     ),
   );
 }
+
+/**
+ * Join a concrete action with the named contributors on one help line.
+ *
+ * The action comes first because it is the only part the author can act on; the
+ * contributors stay with it so no evidence is lost when one is present.
+ */
+export function helpWithContributors(
+  help: string | undefined,
+  contributors: readonly string[] | undefined,
+): string | null {
+  const named =
+    contributors === undefined || contributors.length === 0
+      ? null
+      : `Contributors: ${contributors.join("; ")}`;
+  if (help === undefined) return named;
+  return named === null ? help : `${help} ${named}`;
+}

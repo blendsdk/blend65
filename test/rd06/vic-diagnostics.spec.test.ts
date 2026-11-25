@@ -2,6 +2,21 @@ import { describe, expect, it } from "vitest";
 import { buildProject } from "@blend65/compiler";
 import { patternedBytes, withProject } from "./project-fixture.js";
 
+/** Narrow an untrusted value before reading a field the static type may not declare. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object";
+}
+
+/**
+ * Read everything the author actually sees for one diagnostic. The requirement
+ * clause and the concrete action are separate fields, so judging the wording
+ * from the message alone would miss the half that tells them what to do.
+ */
+function authorText(diagnostic: { readonly message: string }): string {
+  const help = isRecord(diagnostic) ? diagnostic.help : undefined;
+  return typeof help === "string" ? `${diagnostic.message}\n${help}` : diagnostic.message;
+}
+
 /** Return the first diagnostic with the requested code from one public build. */
 async function diagnostic(source: string, code: string) {
   return withProject(
@@ -99,7 +114,8 @@ function main(): void { poke($D018, c64.vic.vicScreenSelect(peek($C000))); }
       "E10273",
     );
     expect(selected.primarySpan).not.toBeNull();
-    expect(selected.message).not.toMatch(/constant\s+or\s+symbolic/iu);
-    expect(selected.message).toMatch(/constant|asset|module|stored|placed|place\(|layout|link/iu);
+    const told = authorText(selected);
+    expect(told).not.toMatch(/constant\s+or\s+symbolic/iu);
+    expect(told).toMatch(/&[A-Za-z_]|embed\(/u);
   }, 60_000);
 });

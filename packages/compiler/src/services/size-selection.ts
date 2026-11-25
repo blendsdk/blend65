@@ -8,7 +8,7 @@ import { deadTemporaryHomes } from "../machine/optimization-cleanup.js";
 import type { FixedLoopPolicy, MachineSourceFacts } from "../machine/machine-types.js";
 import { deriveOptimizationFacts, type OptimizationFacts } from "../machine/optimization-facts.js";
 import { hasDisplayIndependentStartup } from "../machine/lower-startup.js";
-import { projectDiagnostic } from "../project/diagnostics.js";
+import { helpWithContributors, projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, ProjectSnapshot, SourceSpan } from "../project/types.js";
 import { deriveClosedObjectFacts } from "../semantic/closed-object-facts.js";
 import { deriveLocalStorageLifetimes } from "../semantic/local-storage-lifetimes.js";
@@ -210,6 +210,7 @@ function loweringDiagnostic(failure: {
   readonly source: SourceSpan | null;
   readonly code?: "E10143" | "E10273";
   readonly contributors?: readonly string[];
+  readonly help?: string;
 }): ProjectDiagnostic {
   const message =
     failure.code === "E10273" && !failure.reason.startsWith("Cannot place")
@@ -221,9 +222,7 @@ function loweringDiagnostic(failure: {
     failure.source,
     null,
     [],
-    failure.contributors === undefined || failure.contributors.length === 0
-      ? null
-      : `Contributors: ${failure.contributors.join("; ")}`,
+    helpWithContributors(failure.help, failure.contributors),
   );
 }
 

@@ -95,6 +95,7 @@ export function lowerPlatformOperation(
       ...(state.input.c64ActiveScreen === undefined
         ? {}
         : { activeScreen: state.input.c64ActiveScreen }),
+      ...(state.vicFieldRefusals === undefined ? {} : { vicFieldRefusals: state.vicFieldRefusals }),
       requestScratch: (suffix, bytes, source, reason) =>
         requestStorage(state, suffix, "temporary", bytes, "ram", source, reason),
       interruptBinding: (sourceOperation) => {

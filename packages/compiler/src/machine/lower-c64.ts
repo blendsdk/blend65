@@ -17,7 +17,13 @@ import type {
 } from "./machine-types.js";
 import type { C64ActiveScreenFact } from "./active-screen.js";
 import { loweringFailure } from "./lower-state.js";
-import { vicFieldFailure, vicFieldValue, type VicFieldTransform } from "./vic-fields.js";
+import {
+  vicFieldAddressRefusal,
+  vicFieldFailure,
+  vicFieldValue,
+  type VicFieldAddressRefusal,
+  type VicFieldTransform,
+} from "./vic-fields.js";
 import { vicFieldTransformOf } from "../target/vic-fetch.js";
 export {
   c64InterruptEntryLabel,
@@ -29,6 +35,12 @@ export {
 export interface C64LoweringSupport {
   /** Unique active VIC screen relation, when the program proves one. */
   readonly activeScreen?: C64ActiveScreenFact;
+  /**
+   * Why one VIC field's address could not be kept symbolic, keyed by the
+   * argument that carried it. The cause is only known where the fold declined,
+   * and a refusal that cannot name its cause names nothing the author can act on.
+   */
+  readonly vicFieldRefusals?: ReadonlyMap<string, VicFieldAddressRefusal>;
   /** Request one finite function-owned temporary. */
   readonly requestScratch: (
     suffix: string,
@@ -477,20 +489,20 @@ export function lowerC64Operation(
     }
     if (address === null) {
       // The field is one immediate byte written into the chip's registers, so
-      // its address has to be known by the time the artifact is written. Saying
-      // the field "requires a symbolic address" named nothing the author could
-      // change, because `&buffer` already is one; what it cannot be is an
-      // address this program only computes or carries while it runs.
-      throw loweringFailure(
-        `VIC field '${vicTransform}' needs an address resolved before layout — a constant, an ` +
-          `asset, or module-level stored data addressed with '&'; this address is only known ` +
-          `while the program runs, so compute the field from it with ordinary arithmetic instead`,
-        source,
-        {
-          code: "E10273",
-          contributors: [`field=${vicTransform}`, `value=${addressValue.kind}`],
-        },
+      // its address has to be settled by the time the artifact is written.
+      // Saying the field "requires a constant or symbolic address" named nothing
+      // the author could change, because `&buffer` already is one. Four distinct
+      // things land here and each has its own answer, so the cause recorded
+      // where the address stopped being resolvable is what selects the sentence.
+      const refused = vicFieldAddressRefusal(
+        vicTransform,
+        support.vicFieldRefusals?.get(operation.arguments[0] ?? ""),
       );
+      throw loweringFailure(refused.requirement, source, {
+        code: "E10273",
+        contributors: [`field=${vicTransform}`, `value=${addressValue.kind}`],
+        help: refused.help,
+      });
     }
     const failure = vicFieldFailure(
       vicTransform,

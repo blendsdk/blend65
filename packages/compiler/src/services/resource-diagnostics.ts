@@ -97,6 +97,27 @@ function describeInferredFetch(demand: VicFetchDemand): string {
 }
 
 /** Attribute a failed final constraint to the source object rather than an internal layout ID. */
+/**
+ * Name the construct that asked for one object's bytes to stay chip-readable.
+ *
+ * A capability states its own requirement, so naming it is naming what the
+ * author wrote. Address arithmetic does not, so that requirement is reported as
+ * the inference it is — and calling either one a sprite-block expression would
+ * be wrong for the three sibling fields and for a charset.
+ */
+function describeFetchOrigin(demand: VicFetchDemand): string {
+  if (demand.field === undefined) return "a block-index expression";
+  const capability =
+    demand.field === "vic-sprite-block"
+      ? "vicSpriteBlock"
+      : demand.field === "vic-charset-select"
+        ? "vicCharsetSelect"
+        : demand.field === "vic-bitmap-select"
+          ? "vicBitmapSelect"
+          : "vicScreenSelect";
+  return `the '${capability}' field`;
+}
+
 export function sourcePlacementFailure(
   machine: MachineProgram,
   spans: ReadonlyMap<string, SourceSpan>,
@@ -116,7 +137,11 @@ export function sourcePlacementFailure(
   const message = vicVisible
     ? `Cannot place '${name}' — the handler requires a VIC-visible address in bank 0 with ${data?.alignment ?? 1}-byte alignment, clear of the character-ROM window and the active screen; the selected address cannot satisfy that requirement`
     : inferredFetch !== undefined
-      ? `Cannot place '${name}' — a sprite-block expression ${describeInferredFetch(inferredFetch)} inside the VIC bank and clear of the character-ROM window; this requirement was inferred from that expression, and no home in the bank satisfies it beside the storage already placed there`
+      ? `Cannot place '${name}' — ${describeFetchOrigin(inferredFetch)} ${describeInferredFetch(inferredFetch)} inside the VIC bank and clear of the character-ROM window; ${
+          data?.placement?.at === null || data?.placement?.at === undefined
+            ? "no home in the bank satisfies that beside the storage already placed there"
+            : `the address $${data.placement.at.toString(16)} this object was placed at does not satisfy that`
+        }`
       : handlerFixed && data?.placement?.at !== null && data?.placement?.at !== undefined
         ? `Cannot place '${name}' — the handler requires the fixed load address $${data.placement.at.toString(16)}, which conflicts with occupied storage or the selected profile resident window; the payload cannot be moved`
         : `Cannot place '${name}' — explicit placement constraints conflict with occupied storage or the selected profile window; change or remove the explicit constraint`;

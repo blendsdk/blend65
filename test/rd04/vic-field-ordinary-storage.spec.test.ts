@@ -24,11 +24,12 @@ const REFERENCE_PROFILE = "c64-pal-prg-kernal-6581";
 const UNACTIONABLE = /constant\s+or\s+symbolic/iu;
 
 /**
- * An actionable refusal names a form whose address is settled before layout
- * writes the artifact: a constant, an asset, or module-level stored data. The
- * pattern stays deliberately broad so any honest rewording passes.
+ * An actionable refusal shows a spelling the author can type — an address-of
+ * form such as `&object`, or an `embed()` asset. Naming a category instead,
+ * however it is worded, leaves them guessing at the syntax, and no reordering
+ * of the superseded phrase can satisfy this.
  */
-const ACTIONABLE = /constant|asset|module|stored|placed|place\(|layout|link/iu;
+const NAMES_A_WRITABLE_FORM = /&[A-Za-z_]|embed\(/u;
 
 /** Give an embedded asset file deterministic, recognisable contents. */
 function assetBytes(count: number): Buffer {
@@ -70,20 +71,40 @@ async function build(
 }
 
 /**
- * Require a refused build and return every placement message, so a case can
- * assert what the author is told without depending on diagnostic ordering.
+ * Read everything the author actually sees for one diagnostic. The requirement
+ * clause and the concrete action are separate fields, so judging the wording
+ * from the message alone would miss the half that tells them what to do.
  */
-async function refusalMessages(source: string, profile: string): Promise<string[]> {
+function authorText(diagnostic: { readonly message: string }): string {
+  const help = record(diagnostic)?.help;
+  return typeof help === "string" ? `${diagnostic.message}\n${help}` : diagnostic.message;
+}
+
+/**
+ * Require a refused build and return the author-visible text of every placement
+ * diagnostic, so a case can assert what they are told without depending on
+ * diagnostic ordering.
+ */
+async function refusalTexts(source: string, profile: string): Promise<string[]> {
   return withProfileProject(source, profile, async (project) => {
     const built = await buildProject({ project, optimization: "none" });
     expect(built.kind).toBe("failure");
     if (built.kind !== "failure") throw new Error("Expected a refused placement");
-    const messages = built.diagnostics
+    const texts = built.diagnostics
       .filter((diagnostic) => diagnostic.code === "E10273")
-      .map((diagnostic) => diagnostic.message);
-    expect(messages.length, JSON.stringify(built.diagnostics)).toBeGreaterThan(0);
-    return messages;
+      .map(authorText);
+    expect(texts.length, JSON.stringify(built.diagnostics)).toBeGreaterThan(0);
+    return texts;
   });
+}
+
+/**
+ * Require a refusal the author can act on: no restatement of what they already
+ * wrote, and a spelling they can type instead.
+ */
+function expectActionable(texts: readonly string[]): void {
+  for (const text of texts) expect(text).not.toMatch(UNACTIONABLE);
+  expect(texts.join("\n")).toMatch(NAMES_A_WRITABLE_FORM);
 }
 
 /** Narrow untrusted debug JSON before resolving a public symbol. */
@@ -304,15 +325,14 @@ let s: Sheet;`,
   onReferenceProfile(
     "should refuse a run-time-indexed element and name what the author can change",
     async () => {
-      const messages = await refusalMessages(
+      const texts = await refusalTexts(
         windowProgram(
           "let sheets: byte[4][64];",
           "c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&sheets[pad[0]]));",
         ),
         REFERENCE_PROFILE,
       );
-      for (const message of messages) expect(message).not.toMatch(UNACTIONABLE);
-      expect(messages.join("\n")).toMatch(ACTIONABLE);
+      expectActionable(texts);
     },
   );
 
@@ -332,6 +352,26 @@ let s: Sheet;`,
       const start = globalAddress(artifacts, "sheets", 256);
       expect(start % 64, "every selectable element must start a complete block").toBe(0);
       expectVisibleRun(start, 256, "every run-time-selectable sprite block");
+    },
+  );
+
+  // This is the spelling the refusal points the author at, so it has to work:
+  // the capability resolves one address and the run-time choice is added to the
+  // block number afterwards. Any element may be selected, so every one of them
+  // must stay readable.
+  onReferenceProfile(
+    "should keep every element visible when the run-time choice is added to the block number",
+    async () => {
+      const artifacts = await build(
+        windowProgram(
+          "let sheets: byte[4][64];",
+          "c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&sheets[0]) + pad[0]);",
+        ),
+        REFERENCE_PROFILE,
+      );
+      const start = globalAddress(artifacts, "sheets", 256);
+      expect(start % 64, "every selectable element must start a complete block").toBe(0);
+      expectVisibleRun(start, 256, "every block the added choice can select");
     },
   );
 
@@ -362,14 +402,14 @@ let s: Sheet;`,
   ];
   for (const { address, named } of refusedPlacements) {
     onReferenceProfile(`should refuse an explicit sprite address at ${address}`, async () => {
-      const messages = await refusalMessages(
+      const texts = await refusalTexts(
         windowProgram(
           `place(at: ${address}) let buffer: byte[64];`,
           "c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&buffer));",
         ),
         REFERENCE_PROFILE,
       );
-      expect(messages.join("\n")).toMatch(named);
+      expect(texts.join("\n")).toMatch(named);
     });
   }
 
@@ -379,29 +419,58 @@ let s: Sheet;`,
   onReferenceProfile(
     "should refuse an unresolvable address with an actionable message",
     async () => {
-      const messages = await refusalMessages(
+      const texts = await refusalTexts(
         windowProgram(
           "let buffer: byte[64];",
           "let a: word = &buffer; c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(a));",
         ),
         REFERENCE_PROFILE,
       );
-      for (const message of messages) expect(message).not.toMatch(UNACTIONABLE);
-      expect(messages.join("\n")).toMatch(ACTIONABLE);
+      expectActionable(texts);
     },
   );
 
   // A one-byte offset cannot start a sprite block at any placement, and the
   // author's fix is an aligned offset, so the message must say which rule broke.
   onReferenceProfile("should refuse a one-byte offset and name the alignment", async () => {
-    const messages = await refusalMessages(
+    const texts = await refusalTexts(
       windowProgram(
         "let sheet: byte[256];",
         "c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&sheet[1]));",
       ),
       REFERENCE_PROFILE,
     );
-    expect(messages.join("\n")).toMatch(/64[-\s]?byte align/iu);
+    expect(texts.join("\n")).toMatch(/64[-\s]?byte align/iu);
+  });
+
+  // A zero-page home is chosen by an allocator that knows nothing of video
+  // alignment, and the author never wrote that address, so neither of them can
+  // be held to the chip's requirement. The refusal has to say which storage is
+  // the problem, or the author cannot see what to move.
+  onReferenceProfile("should refuse a zero-page home and name the storage", async () => {
+    const texts = await refusalTexts(
+      windowProgram(
+        "zeropage { b: byte[64]; }",
+        "c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&b));",
+      ),
+      REFERENCE_PROFILE,
+    );
+    expect(texts.join("\n")).toMatch(/zero[-\s]?page/iu);
+  });
+
+  // Checking only the base address is what let this build in silence: $0FC0 is
+  // a legal sprite block, and the block after it starts at $1000, the first byte
+  // the chip reads from character ROM. The displaced block is fetched too, so it
+  // has to be checked too.
+  onReferenceProfile("should refuse a displaced block that leaves the readable area", async () => {
+    const texts = await refusalTexts(
+      windowProgram(
+        "place(at: $0FC0) let b: byte[128];",
+        "c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&b) + 1);",
+      ),
+      REFERENCE_PROFILE,
+    );
+    expect(texts.join("\n")).toMatch(/character[-\s]?ROM/iu);
   });
 
   // A constant address compiles today and must keep compiling: widening the
@@ -467,31 +536,51 @@ let s: Sheet;`,
     expectVisibleRun(start, 64, "the shared sprite block");
   });
 
-  // The sibling video fields have the same reason to exist and the same loss if
-  // they refuse ordinary storage: every character cell on screen drawn from
-  // character ROM, or a bitmap showing it, with nothing reported.
-  const siblingFields: readonly {
-    readonly field: string;
-    readonly name: string;
-    readonly bytes: number;
-    readonly alignment: number;
-    readonly fetched: number;
-  }[] = [
-    { field: "vicCharsetSelect", name: "charset", bytes: 2048, alignment: 2048, fetched: 2048 },
-    { field: "vicScreenSelect", name: "screen", bytes: 1024, alignment: 1024, fetched: 1000 },
-    { field: "vicBitmapSelect", name: "bitmap", bytes: 8192, alignment: 8192, fetched: 8000 },
+  // A charset needs nothing from the compiler beyond alignment and a reachable
+  // run, and a partial charset is legal, so ordinary storage is enough. Refusing
+  // it would leave every character cell on screen drawn from character ROM
+  // instead of the author's own shapes, with nothing reported.
+  onReferenceProfile(
+    "should place an ordinary module array vicCharsetSelect publishes where the chip can read it",
+    async () => {
+      const artifacts = await build(
+        windowProgram(
+          "let charset: byte[2048];",
+          "poke($D018, c64.vic.vicCharsetSelect(&charset));",
+        ),
+        REFERENCE_PROFILE,
+      );
+      const start = globalAddress(artifacts, "charset", 2048);
+      expect(start % 2048, "a charset must satisfy its hardware alignment").toBe(0);
+      expectVisibleRun(start, 2048, "the charset bytes the chip fetches");
+    },
+  );
+
+  // These two fields refuse ordinary storage on purpose. The machinery each one
+  // needs is carried only for an embedded asset: a screen matrix ends in the
+  // eight sprite-pointer bytes the chip fetches, and a bitmap reads 8,000 bytes
+  // regardless of how short the declaration is. Accepting module storage would
+  // leave those eight bytes owned by nobody and thousands of fetched bytes
+  // reserved by nobody — losses no message would ever report, which is why
+  // refusing beats accepting here. What the author loses is a legal intent
+  // refused, so the refusal must name the spellings that do work.
+  const withdrawnFields: readonly { readonly field: string; readonly declaration: string }[] = [
+    { field: "vicScreenSelect", declaration: "let screen: byte[1024];" },
+    { field: "vicBitmapSelect", declaration: "let bitmap: byte[8192];" },
   ];
-  for (const { field, name, bytes, alignment, fetched } of siblingFields) {
+  for (const { field, declaration } of withdrawnFields) {
+    const name = declaration.slice("let ".length, declaration.indexOf(":"));
     onReferenceProfile(
-      `should place an ordinary module array ${field} publishes where the chip can read it`,
+      `should refuse ${field} on ordinary module storage and name the spellings that work`,
       async () => {
-        const artifacts = await build(
-          windowProgram(`let ${name}: byte[${bytes}];`, `poke($D018, c64.vic.${field}(&${name}));`),
+        const texts = await refusalTexts(
+          windowProgram(declaration, `poke($D018, c64.vic.${field}(&${name}));`),
           REFERENCE_PROFILE,
         );
-        const start = globalAddress(artifacts, name, bytes);
-        expect(start % alignment, `${name} must satisfy its hardware alignment`).toBe(0);
-        expectVisibleRun(start, fetched, `the ${name} bytes the chip fetches`);
+        expectActionable(texts);
+        const told = texts.join("\n");
+        expect(told, "an embedded asset is one working spelling").toMatch(/embed|asset/iu);
+        expect(told, "a constant address is the other").toMatch(/constant|address itself/iu);
       },
     );
   }

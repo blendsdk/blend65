@@ -716,6 +716,7 @@ function lowerMachineProgramBody(input: MachineLoweringInput): MachineLoweringRe
         source: error.source,
         ...(error.code === undefined ? {} : { code: error.code }),
         ...(error.contributors === undefined ? {} : { contributors: error.contributors }),
+        ...(error.help === undefined ? {} : { help: error.help }),
       });
     }
     throw error;

@@ -193,6 +193,8 @@ export type PlacementTransformResult =
       readonly message: string;
       readonly source: SourceSpan | null;
       readonly contributors: readonly string[];
+      /** One concrete action, kept out of the message so the template holds. */
+      readonly help?: string;
     };
 
 /** Resolve one layout-owned immediate transform after every asset has a final address. */
@@ -207,12 +209,14 @@ export function resolvePlacementTransforms(
     instruction: MachineInstruction,
     message: string,
     contributors: readonly string[],
+    help?: string,
   ): null => {
     failure ??= Object.freeze({
       kind: "error" as const,
       message,
       source: instruction.source,
       contributors: Object.freeze([...contributors]),
+      ...(help === undefined ? {} : { help }),
     });
     return null;
   };
@@ -367,6 +371,7 @@ export function resolvePlacementTransforms(
               `offset=${fieldOffset}`,
               `alignment=${fieldAlignment}`,
             ],
+            `Address an element whose offset is a multiple of ${fieldAlignment} — the nearest below this one is ${fieldOffset - (fieldOffset % fieldAlignment)}.`,
           );
         }
         const fieldFailure = vicFieldFailure(

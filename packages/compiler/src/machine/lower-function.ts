@@ -54,7 +54,8 @@ import { calleeNeverReturns } from "./call-returning-facts.js";
 import { lowerIndirectCall, lowerInterruptSink } from "./lower-indirect.js";
 import { potentialValueInputs } from "../semantic/value-lifetimes.js";
 import { constantValue } from "../semantic/raw-write-kills.js";
-import { vicFieldTransformOf } from "../target/vic-fetch.js";
+import { vicFieldAcceptsModuleStorage, vicFieldTransformOf } from "../target/vic-fetch.js";
+import type { VicFieldAddressRefusal } from "./vic-fields.js";
 import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import { lowerVariableShift } from "./lower-variable-shift.js";
 import { selectGuardedShiftCount } from "./lower-guarded-shift.js";
@@ -162,6 +163,7 @@ function blockIndexFoldValues(
 ): {
   readonly binaries: ReadonlyMap<string, BlockIndexLabel>;
   readonly addresses: ReadonlyMap<string, BlockIndexLabel>;
+  readonly fieldRefusals: ReadonlyMap<string, VicFieldAddressRefusal>;
 } {
   const definitions = new Map<string, SemanticOperation>();
   for (const block of blocks)
@@ -182,6 +184,7 @@ function blockIndexFoldValues(
   }
   const binaries = new Map<string, BlockIndexLabel>();
   const addresses = new Map<string, BlockIndexLabel>();
+  const fieldRefusals = new Map<string, VicFieldAddressRefusal>();
   for (const block of blocks) {
     for (const operation of block.operations) {
       if (operation.kind !== "unary" || operation.operator !== "lo") continue;
@@ -220,29 +223,54 @@ function blockIndexFoldValues(
   for (const block of blocks) {
     for (const operation of block.operations) {
       if (operation.kind !== "platform") continue;
-      if (vicFieldTransformOf(operation.capability) === null) continue;
+      const field = vicFieldTransformOf(operation.capability);
+      if (field === null) continue;
       const argument = operation.arguments[0];
       if (argument === undefined) continue;
       let address = definitions.get(argument);
       while (address?.kind === "convert") address = definitions.get(address.operand);
       if (address?.kind !== "place-address" || address.place.asset !== undefined) continue;
       const rootKey = bindingIdentityKey(address.place.root);
-      if (
-        !program.semantic.globals.some((candidate) => bindingIdentityKey(candidate.id) === rootKey)
-      )
+      const global = program.semantic.globals.find(
+        (candidate) => bindingIdentityKey(candidate.id) === rootKey,
+      );
+      if (global === undefined) continue;
+      // Each way of declining to fold is recorded against the argument, because
+      // only here is the cause still known. Lowering sees a staged pointer and
+      // cannot tell a run-time index from a field this storage cannot serve, and
+      // a refusal that cannot name its cause names nothing the author can change.
+      const decline = (refusal: VicFieldAddressRefusal): void => {
+        fieldRefusals.set(argument, refusal);
+      };
+      if (!vicFieldAcceptsModuleStorage(field)) {
+        decline("module-storage");
         continue;
+      }
+      // A zero-page home is chosen by an allocator that knows nothing of video
+      // alignment, so folding would resolve the field against an address the
+      // author never wrote and refuse it for a reason they cannot act on.
+      if (global.zeropage === true) {
+        decline("zero-page");
+        continue;
+      }
       // The same address serving another purpose must keep its runtime form;
       // only an address this capability alone consumes can become an immediate.
-      if ((uses.get(address.result) ?? 0) !== 1) continue;
+      if ((uses.get(address.result) ?? 0) !== 1) {
+        decline("shared-address");
+        continue;
+      }
       const offset = staticPlaceOffset(address.place, definitions);
       // A misaligned offset still folds. Layout then names the alignment the
       // field needs, which is what the author can act on; refusing here could
       // only repeat that the address is unusable without saying why.
-      if (offset === null) continue;
+      if (offset === null) {
+        decline("runtime-index");
+        continue;
+      }
       addresses.set(address.result, { label: bindingLabel("global", address.place.root), offset });
     }
   }
-  return { binaries, addresses };
+  return { binaries, addresses, fieldRefusals };
 }
 
 /** Lower one ordered block list into one machine function. */
@@ -398,6 +426,7 @@ export function lowerFunction(
     heldByteValues,
     blockIndexFolds: blockIndexFolds.binaries,
     blockIndexAddresses: blockIndexFolds.addresses,
+    vicFieldRefusals: blockIndexFolds.fieldRefusals,
     forwardedRegisterValues: new Set([
       ...forwardedRegisterValues,
       ...selectAnonymousComparisonValues(

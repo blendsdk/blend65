@@ -788,6 +788,8 @@ export type MachineLoweringResult =
       readonly code?: "E10143" | "E10273";
       /** Named objects, addresses or intervals which contributed to the failure. */
       readonly contributors?: readonly string[];
+      /** One concrete action the author can take, reported apart from the message. */
+      readonly help?: string;
     };
 
 /** Bound machine program or a terminal post-closure-storage failure. */

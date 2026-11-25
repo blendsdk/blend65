@@ -6,6 +6,7 @@ import {
   mergeVicFetchRanges,
   vicConsumerAlignment,
   vicConsumerBytes,
+  vicFieldAcceptsModuleStorage,
   vicFieldTransformOf,
 } from "../target/vic-fetch.js";
 import type { VicFetchRange, VicFieldTransform } from "../target/vic-fetch.js";
@@ -48,6 +49,12 @@ interface AlignmentDemand {
   readonly runtimeSelected: boolean;
   /** Whether this use left along a route the consumer proof does not follow. */
   readonly unfollowed: boolean;
+  /**
+   * The VIC field a capability declared, or undefined when the demand was
+   * inferred from address arithmetic. A declared demand holds at an address the
+   * author chose; an inferred one leaves that address exactly as written.
+   */
+  readonly field?: VicFieldTransform;
   /** The block-index expression this use was recognized from. */
   readonly span: SourceSpan;
 }
@@ -253,8 +260,10 @@ function recordFieldDemand(
     reach: SelectorReach,
     span: SourceSpan,
     footprint: number,
+    field: VicFieldTransform,
   ) => void,
 ): void {
+  if (!vicFieldAcceptsModuleStorage(field)) return;
   const argument = operation.arguments[0];
   if (argument === undefined) return;
   const reach: SelectorReach = {
@@ -264,7 +273,14 @@ function recordFieldDemand(
   };
   if (field === "vic-sprite-block" && operation.result !== null)
     collectSelectorReach(operation.result, body, walk, reach);
-  record(argument, vicConsumerAlignment(field), reach, operation.span, vicConsumerBytes(field));
+  record(
+    argument,
+    vicConsumerAlignment(field),
+    reach,
+    operation.span,
+    vicConsumerBytes(field),
+    field,
+  );
 }
 
 /**
@@ -284,16 +300,23 @@ function recordFieldDemand(
  * itself must satisfy both, because nothing else in the program asked for that
  * address — choosing a home the hardware cannot reach is this pass's own fault.
  *
- * Visibility is proved only where the video chip provably receives the value, and
- * that proof crosses function boundaries: computing a block number in a helper
- * and publishing the result is ordinary style, so a value handed back by a return
- * is followed into every call site that receives it.
+ * Two routes reach this pass and they carry different authority. Address
+ * arithmetic produces an **inferred** demand, and visibility is proved only
+ * where the video chip provably receives the value — the proof crossing function
+ * boundaries, because computing a block number in a helper and publishing the
+ * result is ordinary style, so a value handed back by a return is followed into
+ * every call site that receives it. Naming a VIC field capability produces a
+ * **declared** demand: the author asked for a field the chip reads, so nothing
+ * has to be proved about the consumer and the requirement holds at an address
+ * they chose as well as at one the compiler picked.
  *
- * An explicit address is the author's contract and is left exactly as written,
- * including one that is misaligned or outside the bank. Reporting those would
- * have to be a warning, since the program is accepted today and the acceptance
- * is pinned; no warning contract for a hardware advisory exists yet, so the
- * silence is tracked rather than fixed here.
+ * An explicit address is the author's contract where the demand was inferred,
+ * and is left exactly as written including one that is misaligned or outside the
+ * bank. Reporting those would have to be a warning, since the program is
+ * accepted today and the acceptance is pinned; no warning contract for a
+ * hardware advisory exists yet, so the silence is tracked rather than fixed
+ * here. A declared demand is reported, because refusing is already what the
+ * capability does for a constant address.
  *
  * @param functions Function bodies to scan, which also supply every call site.
  * @param globals Module objects whose placement may be strengthened, and whose
@@ -315,6 +338,7 @@ export function alignBlockIndexStorage(
       reach: SelectorReach,
       span: SourceSpan,
       footprint: number = FETCHED_BYTES,
+      field?: VicFieldTransform,
     ): void => {
       const address = addressOperation(addressValue, definitions);
       if (address === undefined || address.place.asset !== undefined) return;
@@ -362,6 +386,7 @@ export function alignBlockIndexStorage(
         fetched,
         runtimeSelected,
         unfollowed: reach.escaped,
+        ...(field === undefined ? {} : { field }),
         span,
       });
       demands.set(key, known);
@@ -406,19 +431,28 @@ export function alignBlockIndexStorage(
       // A zero-page object is addressed below $0100, which the VIC always sees,
       // and its home is chosen by a different allocator.
       if (global.zeropage === true) return global;
-      // An explicit address is the author's contract. Both demands are stated by
-      // refusing a home that cannot satisfy them, and a refusal is not available
-      // here: an explicitly placed block is accepted as written today even when
-      // it is misaligned or outside the bank, so reporting it would have to be a
-      // warning, and no contract for one exists yet.
-      if (placement?.at !== null && placement?.at !== undefined) return global;
+      const fixedAddress = placement?.at !== null && placement?.at !== undefined;
+      // An explicit address is the author's contract where the demand was only
+      // inferred: an explicitly placed block is accepted as written today even
+      // when it is misaligned or outside the bank, so reporting it would have to
+      // be a warning and no contract for one exists yet.
+      //
+      // A demand a capability declared is the opposite. The author asked for a
+      // field the chip reads, so the requirement holds at the address they chose
+      // as much as at one the compiler picked — and refusing is available here,
+      // because that is already what the capability does for a constant address.
+      // Stating the runs is how the base address stops being the only thing
+      // checked: a block one past a base that only just clears the window is
+      // otherwise fetched from character ROM in silence.
+      const declared = required.filter((demand) => demand.field !== undefined);
+      if (fixedAddress && declared.length === 0) return global;
       const stated = placement?.region ?? null;
       let align = placement?.align ?? 1;
       const fetched: VicFetchRange[] = [];
       let origin: SourceSpan | null = null;
       let runtimeSelected = false;
       let unfollowed = false;
-      for (const demand of required) {
+      for (const demand of fixedAddress ? declared : required) {
         // Every published use contributes its own runs. Satisfying one says
         // nothing about another, so they accumulate rather than replace: a
         // second sprite published from the same sheet is a second run the chip
@@ -430,10 +464,14 @@ export function alignBlockIndexStorage(
           unfollowed ||= demand.unfollowed;
         }
         // Root alignment can only express a demand whose static offset is a
-        // multiple of it. Leave other shapes exactly as written.
-        if (demand.offset % demand.align !== 0) continue;
+        // multiple of it, and it cannot express anything at all about an address
+        // the author fixed. Leave both shapes exactly as written.
+        if (fixedAddress || demand.offset % demand.align !== 0) continue;
         align = Math.max(align, demand.align);
       }
+      const field = (fixedAddress ? declared : required).find(
+        (demand) => demand.field !== undefined,
+      )?.field;
       // A region naming some other home is the author's deliberate choice, and
       // a stated one already constrains the whole object, so the inferred runs
       // are attached only where they do not argue with what was written.
@@ -445,13 +483,14 @@ export function alignBlockIndexStorage(
               span: origin,
               ...(runtimeSelected ? { runtimeSelected: true as const } : {}),
               ...(unfollowed ? { unfollowed: true as const } : {}),
+              ...(field === undefined ? {} : { field }),
             });
       if (align === (placement?.align ?? 1) && inferred === null) return global;
       return Object.freeze({
         ...global,
         ...(inferred === null ? {} : { vicFetch: inferred }),
         placement: Object.freeze({
-          at: null,
+          at: placement?.at ?? null,
           align,
           noCross: placement?.noCross ?? null,
           region: stated,

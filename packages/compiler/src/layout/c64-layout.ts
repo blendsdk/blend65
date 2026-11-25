@@ -5,7 +5,7 @@ import { repairMachineBranches } from "../machine/block-layout.js";
 import { validateMachineProgram } from "../machine/bind.js";
 import { machineInstruction, machineSuccessors } from "../machine/lower-control.js";
 import type { MachineBlock, MachineFunction, MachineProgram } from "../machine/machine-types.js";
-import { projectDiagnostic } from "../project/diagnostics.js";
+import { helpWithContributors, projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic } from "../project/types.js";
 import {
   freeSourceStart,
@@ -921,9 +921,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
         resolved.source,
         null,
         [],
-        resolved.contributors.length === 0
-          ? null
-          : `Contributors: ${resolved.contributors.join("; ")}`,
+        helpWithContributors(resolved.help, resolved.contributors),
       ),
     });
   }

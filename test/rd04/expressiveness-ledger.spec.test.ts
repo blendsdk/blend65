@@ -273,6 +273,35 @@ function main(): void {
 }`,
     ],
   },
+  // The field resolves one value before the artifact is written; a run-time
+  // index has none to resolve. The accepted form adds the choice to the block
+  // number instead, so this row's refusal costs the author no program.
+  {
+    id: "v4-vic-field-runtime-indexed-element",
+    sources: [
+      `module Game;
+let pad: byte[2400];
+let sheets: byte[4][64];
+function main(): void {
+  pad[0] = 1;
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&sheets[pad[0]]));
+}`,
+    ],
+  },
+  // A screen matrix ends in the eight sprite-pointer bytes the chip fetches and
+  // a bitmap reads 8,000 bytes however short the declaration is. Both
+  // reservations exist only for an embedded asset, so module storage is refused.
+  {
+    id: "v4-vic-screen-bitmap-field-module-storage",
+    sources: [
+      `module Game;
+let screen: byte[1024];
+function main(): void { poke($D018, c64.vic.vicScreenSelect(&screen)); }`,
+      `module Game;
+let bitmap: byte[8192];
+function main(): void { poke($D018, c64.vic.vicBitmapSelect(&bitmap)); }`,
+    ],
+  },
 ];
 
 /**
