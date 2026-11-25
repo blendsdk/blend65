@@ -1,7 +1,8 @@
 # A block number the helper computed and the caller published
 
 > **Owner**: T-178 (#178) · **Type**: Task (lightweight) · **CodeOps Artifact Schema**: 1
-> **Status**: Complete; three independent reviews dispositioned, two further issues filed
+> **Status**: Delivered and verified; two reviewer majors stay open as #189, whose repair is the
+> user's release call
 > **Progress**: 8/8 tasks (100%)
 > **Last Updated**: 2026-11-25
 
@@ -74,13 +75,78 @@ final the moment it is found, so the walk succeeded before the cycle closed. Rem
 left it passing. The case that earns its place is a cycle that publishes nothing, where the walk
 has to exhaust the loop instead — without the guard that one overflows the stack.
 
-## What review found, and why reproducing it mattered
+## What review found, and the attribution I got wrong
 
-Three reviews landed two defects in this seam that the delivered unit did not cause but did
-extend. Reproducing each one **inline** — no helper, no return — is what settled attribution, and
-it changed the response: a defect this unit merely gave more routes to is still a defect in the
-code this unit touches, which the prime directive says not to propagate for the sake of
-consistency.
+Four reviews ran — correctness, semantics, platform and host cost — and two of them landed defects
+in this seam. I first recorded both as predating the unit and merely extended by it, having
+reproduced each one **inline**, with no helper and no return. For the walk itself that holds. For
+the *acceptance* consequence it does not, and the measurement I had not taken is the one that
+decides it: the inline counterpart being refused before says nothing about whether the helper
+route built. It did.
+
+### The acceptance regression this unit caused
+
+Measured on `c64-pal-prg-kernal-6581`, `0596547a` being the commit immediately before this unit:
+
+| Program | Before | After |
+| --- | --- | --- |
+| 9,000-byte array published as a sprite block through a helper | **built** at `$0A80` | **E10273** |
+| 9,000-byte array, overwritten variable, through a helper | **built** at `$0AC0` | **E10273** |
+| 9,000-byte array published through a conditional, no helper | **built** at `$0AC0` | **E10273** |
+| 9,000-byte array published inline | E10273 | E10273 |
+| 9,000-byte array, overwrite shape inline | E10273 | E10273 |
+| 8,193-byte array used only as a border colour, through a helper | built | built |
+| 8,193-byte array, the same inline | **E10273** | **built** |
+
+Three legal programs are refused that compiled before this unit, and one is accepted that did not.
+Widening a proof whose demand cannot always be satisfied is what did it, and filing the defect
+does not undo it. #189 owns the repair and leads the remaining order; the correctness review's
+wording for this is the one to keep — pre-existing imprecision caused newly introduced refusals
+when the traversal widened.
+
+### How wide the regression actually is, measured
+
+The semantics review argued the class is larger than the witnesses suggest, because an object
+smaller than the visible intervals can also fail once earlier allocations crowd them. That is the
+right question and the measurement does not support it. Three 4,000-byte arrays against roughly
+11.7 KiB of visible interval, with a 64-byte sprite block published four different ways:
+
+| Program | `0596547a` | HEAD |
+| --- | --- | --- |
+| Small block, published inline | built at `$3980` | built at `$3980` |
+| Small block, published through a helper | built at `$3980` | built at `$3980` |
+| Small block, published through a conditional | built at `$3980` | built at `$3980` |
+| Small block, never published | built at `$3980` | built at `$3980` |
+| The overwrite shape with a 64-byte buffer, through a helper | built at `$0AC0` | built at `$0AC0` |
+
+Layout's recovery places the block in the crowded region without complaint, and an unsatisfiable
+demand needs an object too large for a single visible interval. So the regression class is bounded:
+an object past 8,192 bytes, reached through a route this unit newly widened. The review's second
+objection stands though, and is not about size — its overwrite witness has no visibility
+requirement at all, since that buffer never reaches the chip.
+
+A fourth witness came from the platform audit and is the same class with a different cause:
+
+```blend65
+let buffer: byte[8193];
+function blockOf(): byte { return hi(&buffer / 64); }
+function main(): void { c64.vic.setSpritePointer(0, blockOf()); }
+```
+
+`hi(address / 64)` is in `0..3`. It selects a block in `$0000-$00FF`, not this buffer at all — the
+walk follows any unary operation and claims provenance it has not got. Built at `0596547a` through
+the helper, refused now. The inline form was already refused, so the false provenance predates
+this unit and the refusal through a helper does not.
+
+That decision is recorded as mine rather than implied: shipping was chosen over reverting because
+the alternative gives up six ordinary proved shapes — returning a block number from a helper is
+common style — to avoid three refusals of a shape that is not. Dividing the base address of a
+9,000-byte array by 64 to publish block zero is unusual, and the honest answer for it is #189's
+block-scoped demand, not a revert. I considered bounding the regression immediately by dropping an
+unsatisfiable inferred demand instead of refusing the program, which would make the original
+premise true by construction; it needs either profile-specific region capacity, which the semantic
+pass does not have, or placement provenance so layout can treat an inferred region as advisory.
+Both are #189's work, not a cheap bound.
 
 ### The walk did not follow a join
 
@@ -111,8 +177,9 @@ satisfying it is 8,192 bytes, so an object past that size had no legal home at a
 | 8,193 bytes, quotient passed as the sprite *index* | **E10273** | builds |
 
 The error they were refused with reads *change or remove the explicit constraint*. There was no
-explicit constraint; the compiler inferred one. The oracle quotes that message, so it cannot be
-lost again.
+explicit constraint; the compiler inferred one. The oracle guards the acceptance — those programs
+must build — and nothing more: it reads a diagnostic only when a build fails, so the wording is not
+pinned. Repairing the message belongs to #189.
 
 ### Two comments that were false, not merely awkward
 
@@ -132,13 +199,19 @@ Both reproduce inline. The misattributing diagnostic is part of the same issue.
 ranked the argument form the worst developer-facing gap of the four, which is recorded on the issue
 so the row is not prioritized on shape count.
 
-### The one finding refuted
+### The evidence finding, adopted
 
 The correctness review called the "each of nine cases proved non-vacuous" claim an overstatement,
-since two controls had no mutation cited. It was right about the evidence and the answer was to
-produce the evidence rather than to weaken the sentence: forcing every block index visible fails
-exactly the two counter-cases, and forcing none visible fails exactly the nine positive ones. The
-matrix below now covers all thirteen new cases.
+since two controls had no mutation cited. It was right, and the answer was to produce the evidence
+rather than to weaken the sentence: forcing every block index visible fails exactly the
+counter-cases, and forcing none visible fails exactly the positive ones. It was right a second
+time in the same place — the matrix I first quoted had been measured before the two
+argument-position cases and the caller index existed, so it was stale. The matrix below is the
+complete re-run against the delivered code.
+
+A claim about that caller index was also wrong and is corrected in the code rather than in prose:
+it said the index cost no extra pass, while definitions and call sites were in fact scanned
+separately. They now come out of one traversal, which is what the comment always claimed.
 
 ## A host-cost improvement that came with it
 
@@ -192,7 +265,8 @@ row is not prioritized on shape count alone.
 | --- | --- |
 | Returned-value oracle, RED against the baseline pass | **8 of 12 failed** — four profiles at `$1400`, and the counter-case because neither build moved. The four explicit-placement cases pass before and after, which the author flagged as an existing contract rather than a vacuous case |
 | Conditional oracle, RED against the state the reviews audited | **24 of 24 failed**, for three distinct reasons: twelve invisible placements, eight `E10273` refusals and four counter-cases that had not moved |
-| Both oracles, after | **12/12** and **24/24**, four profiles each |
+| Both oracles, after | **12/12** and **24/24**, four profiles each — 24 being twelve conditional-placement cases, eight acceptance cases and four counter-cases |
+| Affected VICE tier, targeted and sequential | **166 tests**: the relocated-screen sprite-pointer emulator case, the VIC observer suite (132), VIC collisions (16) and the optimizer saved-output frontier guard (17) |
 | Impl cases | **34**, 13 of them new: eight source shapes, two counter-cases and three the compiler alone can build |
 | New cases non-vacuous | **Complete mutation matrix**, below |
 | rd04 complete | **128 files / 1,826 tests** |
@@ -210,16 +284,58 @@ pixels.
 
 ### Mutation matrix
 
-Each mutation was applied to the implementation alone, with the tests untouched.
+Re-run against the delivered code, with the tests untouched and one mutation applied at a time.
+Thirty-four cases in the file, thirteen of them new.
 
 | Mutation | Cases it fails |
 | --- | --- |
-| Pool the walked values into one set | the per-body identity case, and nothing else |
-| Remove the re-entry guard | the publishing-nothing cycle, and nothing else — with a stack overflow |
-| Stop the walk at the return | the six boundary-crossing cases |
-| Do not follow a join | the two conditional cases |
-| Treat every block index as visible | the two counter-cases |
-| Treat no block index as visible | all nine positive cases |
+| Pool the walked values into one set | 1 — the per-body identity case, and nothing else |
+| Remove the re-entry guard | 1 — the publishing-nothing cycle, and nothing else, with a stack overflow |
+| Stop the walk at the return | 7 |
+| Do not follow a join | 2 — the conditional cases |
+| Restore the namespace-prefix consumer test | 2 — the two argument-position cases |
+| Treat every block index as visible | 4 — the counter-cases |
+| Treat no block index as visible | 9 — the positive cases |
+| Index call sites in functions only, skipping initializer bodies | **0** |
 
-Every one of the thirteen new cases is failed by at least one mutation, and the first four
+Every one of the thirteen new cases is failed by at least one mutation, and the five structural
 mutations each fail only the cases that exist to guard them.
+
+The last row is reported because it found nothing. Initializer bodies are indexed for call sites
+because they are bodies, and excluding them would be the special case needing an argument — but no
+case distinguishes the choice, because no source program can reach it. Publishing requires a
+statement, an initializer binds an expression, and the route that would make it observable — a
+module variable written in one body and read in another — is exactly the hole #188 owns. The
+generality is one shared loop rather than extra code, and it becomes live the moment #188 lands.
+
+## What the reviews left open, and who owns it
+
+| Finding | Status |
+| --- | --- |
+| SM-001 / TP-003 — an inferred demand refuses legal programs, and the whole object is constrained when the chip fetches one block of it | **Open, #189.** The platform audit refutes any hardware necessity for the refusals: a 9,000-byte object at `$2000-$4327` has its first block at `$2000-$203F`, visible, with the CPU-only remainder outside the bank. So the correct demand carries the effective address and the fetched extent rather than collapsing to the object root |
+| TP-004 — a value-changing unary operation is followed as if it preserved the block selector | **Open, added to #189.** Distinct from the extent question: fixing the footprint would leave the provenance wrong |
+| SM-002 — an argument crossing into the publishing function | **Open, #188**, ranked the worst of its four by both the semantics reviewer and the platform auditor |
+| PE-001 — caller discovery rescanned the program per query | **Closed** by the callee index |
+| RV-001 — a join was not followed | **Closed** |
+| RV-002 — the mutation claim outran its evidence, twice | **Closed** by producing the matrix below against the delivered code |
+| RV-003 / SM-003 — the index was described as sharing one traversal when it did not | **Closed** in the code rather than the prose: definitions and calls now come out of one pass |
+| RV-004 — the oracle was described as pinning a diagnostic's wording | **Closed**; it guards acceptance, and the wording belongs to #189 |
+| TP's capability inventory | **Corrected**: eleven `c64.vic.*` capabilities, not twelve. `c64.vic.bank0` and `c64.vic.bank0-ram` are placement regions, not callable capabilities. The four address selectors are excluded because their argument is an address rather than this quotient, which is a statement about what they are given, not a claim that such arithmetic can never appear inside it |
+
+The semantics review recommends not declaring this complete until #189's necessary part lands. The
+measurement above bounds the exposure it is reasoning about, and the two majors it holds open are
+real, so the release call is not settled by this record alone — it is the user's, with the measured
+ledger above as the evidence either way.
+
+## Deliberate departures worth stating
+
+Two things in this unit were done knowingly and are better said than found.
+
+**The conditional oracle grew before it was first run.** Its author wrote four cases; the platform
+audit then produced the acceptance counterexample, and two more cases were added to the same file
+in the same authoring session, before any run and before the file was committed. An oracle freezes
+when it lands, so extending one still being authored is not an edit to a frozen answer — but the
+sequence is worth recording rather than leaving for a later reader to reconstruct.
+
+**Both oracles were authored implementation-blind and verified by me.** The author never ran them;
+I own every execution figure here, as the dispatch contract requires.
