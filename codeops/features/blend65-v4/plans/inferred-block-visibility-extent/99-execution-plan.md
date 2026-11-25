@@ -1,8 +1,8 @@
 # The chip fetches 64 bytes and the compiler constrained nine thousand
 
 > **Owner**: T-189 (#189) · **Type**: Task (lightweight) · **CodeOps Artifact Schema**: 1
-> **Status**: Implemented and locally verified; package and host tiers running, reviews pending
-> **Progress**: 5/6 tasks (83%)
+> **Status**: Delivered and verified; four reviews dispositioned, two reviewer-found regressions fixed here
+> **Progress**: 6/6 tasks (100%)
 > **Last Updated**: 2026-11-25
 
 ## Why
@@ -159,7 +159,7 @@ already expresses that only part of an object lies in the chip's view.
 | 3 | The extent-carrying demand: semantic channel, machine object, one shared layout predicate, dynamic-index widening | ☑ |
 | 4 | Provenance and the definite-overwrite kill | ☑ |
 | 5 | The inferred-constraint diagnostic | ☑ |
-| 6 | Verification, reviews, record and roadmap | ☐ |
+| 6 | Verification, reviews, record and roadmap | ☑ |
 
 ## What landed
 
@@ -176,7 +176,7 @@ Measured after the change, same profile and same programs as the baseline above:
 
 | Shape | Before | After |
 | --- | --- | --- |
-| 9,000-byte array, helper and inline | E10273 | `$0A80`, block visible |
+| 9,000-byte array, helper and inline | E10273 | `$0A80`, block visible, object ending `$2DA7` |
 | Two 5,000-byte arrays through their own helpers | E10273 | `$0AC0` and `$2000`, **both** blocks visible |
 | Published after a definite overwrite | E10273 | `$0AC0` |
 | `hi(&buffer / 64)`, helper and inline | E10273 | `$0AC0` |
@@ -207,35 +207,40 @@ Whether the frozen table should also be amended is a separate decision, and the 
 | Check | Result |
 | --- | --- |
 | New oracle, authored implementation-blind | 52 cases over four profiles; **36 RED** before implementation, all green after |
-| Impl tier | **44 cases** in the pass (9 new) and **149** in layout (3 new) |
-| Compiler package | **267 files / 4,570 tests**, 2 skipped (the Windows-only emulator cases) |
+| Impl tier | **64 cases** in the pass and **22** in layout placement, 686 across both suites |
+| Compiler package | **267 files / 4,586 tests**, 2 skipped (the Windows-only emulator cases) |
 | Host tier | **281 files / 6,029 tests** |
 | Affected VICE tier, targeted and serialized | **166 tests**, four files: the relocated-screen sprite-pointer emulator case, the VIC observer suite (132), VIC collisions (16) and the optimizer saved-output frontier guard (17) |
-| Byte identity | **9/9** across three examples × three optimization goals, prefixes unchanged |
+| Byte identity | **9/9** across three examples × three optimization goals, prefixes unchanged throughout |
 | Install · build · typecheck | clean; `spec/` untouched throughout |
 
 ### Mutation matrix
 
-Eleven mutations, applied one at a time against the delivered code with the tests untouched.
+Fourteen mutations, applied one at a time against the delivered code with the tests untouched.
 
 | Mutation | Cases it fails |
 | --- | --- |
-| A runtime index keeps the static offset instead of widening | 1 — the widening case |
-| Follow every unary operator again | 1 — the provenance case |
+| Follow every unary with no arithmetic tracked | 4 |
+| Treat a complement as a dead end | 2 — both restoration cases |
+| Ignore the displacement a constant adds | 4 |
+| Do not follow binary arithmetic at all | 3 |
+| Accept a negated selector at the consumer | 1 — the large-object complement case |
+| Remove the enumeration bound | 1 — the beyond-bound case |
+| Reduce a runtime index to its static offset | 4 |
 | Never prove a replacement | 1 — the overwrite case |
-| Trust a replacement in module storage too | 1 — the module-storage case |
-| Accept a replacement from any block, not just this one | 2 — the conditional case and the held-local case |
-| Do not merge touching runs | 1 — the merge case |
-| Let the last published use win instead of accumulating | 2 — the accumulation and merge cases |
+| Trust a replacement in module storage | 1 — the module-storage case |
+| Do not merge touching runs | 3 |
 | Judge the whole object instead of the fetched runs | 1 — the layout predicate case |
 | Advance past the window without the run's own offset | 1 — the deep-offset case |
 | Ignore the inferred runs inside the search loop | 1 — the search case |
-| Fall back to the explicit-constraint message and span | 1 — the diagnostic oracle case |
+| Revert the diagnostic to the explicit-constraint tail and span | 1 — the diagnostic oracle case |
 
-Every new case is failed by at least one mutation, and each structural mutation fails only the cases
-that exist to guard it. The two that fail two cases are telling rather than noisy: dropping the
-same-block requirement also breaks an ordinary held-local publication, and last-use-wins breaks the
-merge because merging is what makes two adjacent runs one.
+Every new case is failed by at least one mutation. The matrix also earned its keep: accepting a
+negated selector at the consumer originally failed **nothing**, because the complement's own
+constant of 255 blocks lands outside the objects the existing cases use, so the out-of-object
+filter removed the bogus run and the answer came out right for the wrong reason. An 18,000-byte
+object, where 255 blocks is 16,320 bytes and therefore inside it, separates the two and now pins
+the rule by the property it exists for.
 
 ### One VICE case failed intermittently, and it is not this change
 
@@ -246,7 +251,14 @@ affected-tier run was 166/166. Filed as [#191](https://github.com/blendsdk/blend
 rather than absorbed here, because a case that fails half the time trains the next reader to re-run
 until green.
 
-## A second hole in the same proof, measured and filed
+### Two further failures observed, with their attribution
+
+One CLI oracle, `packages/cli/src/bin.spec.test.ts`'s relative-path build, failed once inside a
+parallel workspace run and then passed on three consecutive runs including the same gate shape. It
+is not reproducible and is recorded rather than filed; if it recurs it needs characterising like
+the collision case below.
+
+## A second hole in the same proof, measured and closed
 
 The walk follows a block number through conversions, a selector-preserving unary operator, a join,
 a store and load, and a return into every call site. It does not follow a **binary** operation, so
@@ -263,8 +275,10 @@ object's unfetched first 64 bytes left under the window, which is this unit work
 Selecting frame *n* by adding to a base block number is ordinary style, and this is the dangerous
 direction: over-demanding costs a build and shows a diagnostic, under-demanding costs nothing until
 the sprite displays character shapes. It predates this unit — the walk has never followed a binary
-operation — and is filed as [#190](https://github.com/blendsdk/blend65/issues/190) with its
-measurements and a fix shape, not repaired here.
+operation. Filed as [#190](https://github.com/blendsdk/blend65/issues/190) when it was found, and
+**closed by this unit**: the arithmetic tracking the reviews forced covers it, so the sheet now
+places at `$1FC0` where the run the chip reads — the second block — lands at `$2000`. The object
+sitting inside the character-ROM window is correct there, because nothing fetches those bytes.
 
 ## Two existing oracle cases lose their teeth, and that has to be said out loud
 
@@ -293,6 +307,19 @@ out of this unit. The two defects found while delivering it are filed:
 and [#191](https://github.com/blendsdk/blend65/issues/191), the intermittent collision case.
 
 ## Deliberate departures worth stating
+
+**Uncommitted work was lost to a baseline probe, for the second time in two sessions.** While
+measuring the mixed-publication case I ran `git checkout 62b0b4d5~1 -- packages/compiler/src` and
+then restored with `git checkout HEAD -- packages/compiler/src`, which silently discarded three
+uncommitted fixes — the complement repair, the diagnostic rewording and the footprint comment. They
+were rewritten, and the rewrite is better than what was lost, because the arithmetic model replaced
+a two-state flag. The rule that would have prevented it is simple and was already written down
+after the first occurrence: commit before probing another revision. It is recorded here because the
+history shows the rewrite and not the loss.
+
+### On scope
+
+
 
 Setting both the inferred ranges **and** the region, with layout preferring the ranges where they
 exist, was considered and rejected. It would leave about fifteen implementation cases and the
