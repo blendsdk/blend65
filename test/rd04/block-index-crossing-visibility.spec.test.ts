@@ -152,6 +152,24 @@ const visibilityCases: readonly VisibilityCase[] = [
     helpers: "function publish(i: byte, b: byte): void { c64.vic.setSpritePointer(i, b); }",
     use: "publish(0, lo(&buffer / 64));",
   },
+  // A value read through an address is not a read of the parameter's name, so it
+  // needs its own case. If this breaks, the object at $1440 leaves the sprite
+  // displaying character shapes with nothing reported.
+  {
+    name: "should keep a sprite block visible when read through a parameter's address",
+    helpers:
+      "function publish(b: byte): void { let a: word = &b; c64.vic.setSpritePointer(0, peek(a)); }",
+    use: "publish(lo(&buffer / 64));",
+  },
+  // Passing the address onward still reads the value through an address, not the
+  // parameter's name, so this needs its own case. If it breaks, the object at
+  // $1440 leaves the sprite displaying character shapes with nothing reported.
+  {
+    name: "should keep a sprite block visible when a parameter's address is passed onward",
+    helpers: `function reader(a: word): void { c64.vic.setSpritePointer(0, peek(a)); }
+function publish(b: byte): void { reader(&b); }`,
+    use: "publish(lo(&buffer / 64));",
+  },
   // Selecting the second frame in the caller must not leave that frame reading character shapes.
   {
     name: "should expose the second block when the caller adds the displacement",
