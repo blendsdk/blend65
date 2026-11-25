@@ -707,6 +707,21 @@ function main(): void {
     ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
   });
 
+  // A complemented selector rises as the block number falls, so it names no
+  // fixed part of this object however large the object is. Worth stating on one
+  // big enough that the complement's own constant would land inside it: the
+  // reason to refuse is the direction of the arithmetic, not the distance.
+  it("drops provenance through a complement that lands inside the object", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[18000];
+function main(): void { c64.vic.setSpritePointer(0, ~lo(&sheet / 64)); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: null });
+  });
+
   // Complement, displace, complement again: the displacement survives the pair
   // but its sign does not, so this names the block one *before* the base, which
   // falls outside the object and demands nothing of it.
