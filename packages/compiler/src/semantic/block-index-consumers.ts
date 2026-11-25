@@ -1,7 +1,8 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import type { SemanticBlock, SemanticOperation, SemanticPlace, ValueId } from "./operations.js";
-import { constantValue, staticPlaceOffset } from "./block-index-values.js";
+import { addressOperation, constantValue, staticPlaceOffset } from "./block-index-values.js";
+import { operationValueUses } from "./lower-control.js";
 import type { ProgramWalk, ScannedBody } from "./block-index-program.js";
 import {
   SELECTOR_PRESERVING_UNARY,
@@ -42,6 +43,35 @@ const VIC_FETCH_ARGUMENTS: ReadonlyMap<string, number> = new Map([["c64.vic.setS
  */
 type WalkedValues = Map<ScannedBody, Set<string>>;
 
+/**
+ * How a value handed back by this body continues, when the walk entered the
+ * body through one of its parameters.
+ *
+ * A value passed in as this invocation's argument is handed back to this
+ * invocation and to no other. Resuming at every call site instead lets one
+ * invocation's argument arrive as another's result, and for nested calls of one
+ * helper that invents a chain of displacements no program ever delivers:
+ * `publish(forward(forward(block) + 1))` would accumulate every displacement
+ * from 0 to 255 and demand the whole object.
+ */
+interface ReturnPath {
+  /**
+   * Identity of this path, which the memo needs so that two call sites of one
+   * helper are explored separately rather than collapsing into the first.
+   */
+  readonly key: string;
+  /** Continue at the call site that supplied the argument. */
+  readonly resume: (state: SelectorState) => void;
+}
+
+/** Where one write sits, which is what a replacement proof is measured against. */
+interface StorePosition {
+  /** Basic block holding the write. */
+  readonly block: SemanticBlock;
+  /** Index of the write among that block's operations. */
+  readonly index: number;
+}
+
 /** Values already followed in one body, created on first use. */
 function walkedIn(walked: WalkedValues, body: ScannedBody): Set<string> {
   const seen = walked.get(body);
@@ -59,8 +89,8 @@ function walkedIn(walked: WalkedValues, body: ScannedBody): Set<string> {
  * with different arithmetic, and those steps answer the question differently —
  * one may designate this object's second block and another nothing at all.
  */
-function walkStep(value: ValueId, state: SelectorState): string {
-  return `${value}:${state.sign}:${state.offset}`;
+function walkStep(value: ValueId, state: SelectorState, returnPath: ReturnPath | null): string {
+  return `${value}:${state.sign}:${state.offset}:${returnPath?.key ?? ""}`;
 }
 
 /**
@@ -86,6 +116,8 @@ function walkStep(value: ValueId, state: SelectorState): string {
  * @param reach Accumulator the caller reads the answer from.
  * @param state Arithmetic applied to the selector so far.
  * @param walked Steps already taken, which is what terminates a cycle.
+ * @param returnPath Where a returned value continues, when this body was
+ *   entered through one of its parameters.
  */
 export function collectSelectorReach(
   value: ValueId,
@@ -94,16 +126,17 @@ export function collectSelectorReach(
   reach: SelectorReach,
   state: SelectorState = UNSHIFTED,
   walked: WalkedValues = new Map(),
+  returnPath: ReturnPath | null = null,
 ): void {
   // Holding a block number in a variable before publishing it is ordinary, and
   // a place can be written and read repeatedly, so the walk remembers where it
   // has been rather than assuming the derivation chain is acyclic.
   const seen = walkedIn(walked, body);
-  const step = walkStep(value, state);
+  const step = walkStep(value, state, returnPath);
   if (seen.has(step)) return;
   seen.add(step);
   const follow = (next: ValueId, nextState: SelectorState): void =>
-    collectSelectorReach(next, body, walk, reach, nextState, walked);
+    collectSelectorReach(next, body, walk, reach, nextState, walked, returnPath);
   for (const block of body.blocks) {
     for (const [index, operation] of block.operations.entries()) {
       if (operation.kind === "platform") {
@@ -157,10 +190,12 @@ export function collectSelectorReach(
             enterParameter(
               bindingIdentityKey(operation.callee),
               position,
+              { body, result: operation.result },
               walk,
               reach,
               state,
               walked,
+              returnPath,
             );
       if (
         operation.kind === "store" &&
@@ -186,14 +221,20 @@ export function collectSelectorReach(
         collectLoadedSelectorReach(
           operation.place,
           semanticTypeSize(operation.type),
-          block,
-          index,
+          { block, index },
           body,
           walk,
           reach,
           state,
           walked,
+          returnPath,
         );
+      // Every remaining operation that receives this number is classified
+      // rather than ignored. A route this pass does not model is not evidence
+      // that the chip never receives the value, and silently dropping one is
+      // exactly how a sprite ends up reading character ROM.
+      if (operationValueUses(operation).includes(value))
+        classifyRemainingUse(operation, value, block, index, body, walk, reach, state, walked);
     }
   }
   // Computing the block number in a helper and publishing the result is ordinary
@@ -201,7 +242,10 @@ export function collectSelectorReach(
   // every call site. Resuming with the same walk also covers a helper that only
   // hands another helper's answer on, and an initializer has no caller to resume
   // in, which is what distinguishes a body with an owner from one without.
-  if (body.owner !== null && leavesByReturn(value, body.blocks)) {
+  if (returnPath !== null && leavesByReturn(value, body.blocks)) {
+    // This invocation's own caller, and no other.
+    returnPath.resume(state);
+  } else if (returnPath === null && body.owner !== null && leavesByReturn(value, body.blocks)) {
     // Where this function's address exists, it can be called through that
     // address — from a pointer variable or a dispatch table — and such a call
     // names no callee here. Every call of that kind is an indirect call, so the
@@ -215,6 +259,170 @@ export function collectSelectorReach(
     for (const site of walk.callSites.get(body.owner) ?? [])
       collectSelectorReach(site.result, site.body, walk, reach, state, walked);
   }
+}
+
+/**
+ * Account for every other operation that receives a block selector.
+ *
+ * The routes above are the ones this pass models. This decides the rest by
+ * kind, and the exhaustive switch is the point: a kind added later stops
+ * compiling instead of quietly dropping the number on the floor.
+ *
+ * Three answers are possible. An operation already inspected above needs
+ * nothing. An operation that turns the number into an address, an index, or the
+ * operand of arithmetic naming no block of this object ends the search
+ * honestly — whatever the chip fetches afterwards, this value no longer
+ * identifies it. Anything else is a route this pass does not follow, which
+ * falls back to demanding the whole object.
+ */
+function classifyRemainingUse(
+  operation: SemanticOperation,
+  value: ValueId,
+  block: SemanticBlock,
+  index: number,
+  body: ScannedBody,
+  walk: ProgramWalk,
+  reach: SelectorReach,
+  state: SelectorState,
+  walked: WalkedValues,
+): void {
+  switch (operation.kind) {
+    // Inspected above, each with its own reasoning about what it preserves.
+    case "convert":
+    case "unary":
+    case "binary":
+    case "merge":
+    case "store":
+    case "call":
+    case "indirect-call":
+    case "platform":
+      return;
+    // The number is used as an address, as an element index, or in arithmetic
+    // whose result designates no block of this object.
+    case "constant":
+    case "place-address":
+    case "load":
+    case "memory-read":
+    case "bcd":
+    case "cpu-control":
+    case "function-address":
+    case "embedded-address":
+    case "array-count":
+    case "load-unit":
+      return;
+    case "memory-write":
+      writeThroughAddress(operation, value, block, index, body, walk, reach, state, walked);
+      return;
+    case "aggregate":
+      composedIntoAnObject(operation, body, walk, reach, state, walked);
+      return;
+    default: {
+      // A kind added later must be classified deliberately. Until it is, this
+      // walk does not know where the number went.
+      const unclassified: never = operation;
+      void unclassified;
+      reach.escaped = true;
+      return;
+    }
+  }
+}
+
+/**
+ * Account for a block selector that became one element of a composite.
+ *
+ * The number is no longer a value this walk can follow on its own; it is a byte
+ * inside an object. Where that object is one the program names — a local or
+ * module aggregate the composite is constructed into or stored into — the reads
+ * of that object answer the question, exactly as they do for an ordinary
+ * assignment, which is what keeps an animation table of block numbers from
+ * being demanded in its entirety. Where the composite is delivered somewhere
+ * this pass does not model, a caller's own return destination most of all, the
+ * honest answer is the whole object.
+ */
+function composedIntoAnObject(
+  operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
+  body: ScannedBody,
+  walk: ProgramWalk,
+  reach: SelectorReach,
+  state: SelectorState,
+  walked: WalkedValues,
+): void {
+  const destination = operation.destination;
+  if (destination?.kind === "place") {
+    collectLoadedSelectorReach(
+      destination.place,
+      semanticTypeSize(operation.type),
+      null,
+      body,
+      walk,
+      reach,
+      state,
+      walked,
+      null,
+    );
+    return;
+  }
+  let delivered = false;
+  for (const block of body.blocks)
+    for (const [index, candidate] of block.operations.entries())
+      if (candidate.kind === "store" && candidate.value === operation.result) {
+        delivered = true;
+        collectLoadedSelectorReach(
+          candidate.place,
+          semanticTypeSize(candidate.type),
+          { block, index },
+          body,
+          walk,
+          reach,
+          state,
+          walked,
+          null,
+        );
+      }
+  if (!delivered) reach.escaped = true;
+}
+
+/**
+ * Account for a block selector written to a computed address.
+ *
+ * Writing to a constant address is an ordinary processor-side write: the
+ * program puts a byte somewhere of its own choosing, and nothing about that
+ * makes the video chip fetch this object. Writing through the address of a
+ * place is a write to that object, and is treated as one — which is how a
+ * number poked into a lent array reaches a caller that publishes it. An address
+ * this pass cannot attribute is a route it does not follow.
+ */
+function writeThroughAddress(
+  operation: Extract<SemanticOperation, { readonly kind: "memory-write" }>,
+  value: ValueId,
+  block: SemanticBlock,
+  index: number,
+  body: ScannedBody,
+  walk: ProgramWalk,
+  reach: SelectorReach,
+  state: SelectorState,
+  walked: WalkedValues,
+): void {
+  // Using the number as the destination address writes somewhere unrelated;
+  // only a written value travels into storage.
+  if (operation.value !== value) return;
+  const target = addressOperation(operation.address, body.definitions);
+  if (target !== undefined) {
+    collectLoadedSelectorReach(
+      target.place,
+      operation.width,
+      { block, index },
+      body,
+      walk,
+      reach,
+      state,
+      walked,
+      null,
+    );
+    return;
+  }
+  if (constantValue(body.definitions.get(operation.address), body.definitions) !== null) return;
+  reach.escaped = true;
 }
 
 /**
@@ -235,10 +443,12 @@ export function collectSelectorReach(
 function enterParameter(
   callee: string,
   position: number,
+  site: { readonly body: ScannedBody; readonly result: ValueId | null },
   walk: ProgramWalk,
   reach: SelectorReach,
   state: SelectorState,
   walked: WalkedValues,
+  returnPath: ReturnPath | null,
 ): void {
   const body = walk.bodiesByOwner.get(callee);
   const parameter = body?.parameters[position];
@@ -247,6 +457,18 @@ function enterParameter(
     return;
   }
   if (walk.addressTaken.has(parameter.key)) reach.escaped = true;
+  const result = site.result;
+  // The chain is part of the identity because this invocation's caller has a
+  // caller of its own. A call graph cannot contain a cycle, so the chain is
+  // finite.
+  const path: ReturnPath = {
+    key: `${callee}:${position}:${result ?? "void"}:${returnPath?.key ?? ""}`,
+    resume:
+      result === null
+        ? (): void => {}
+        : (returned): void =>
+            collectSelectorReach(result, site.body, walk, reach, returned, walked, returnPath),
+  };
   followReads(
     body.blocks.flatMap((block) => block.operations),
     parameter.key,
@@ -255,6 +477,7 @@ function enterParameter(
     reach,
     state,
     walked,
+    path,
   );
 }
 
@@ -267,10 +490,11 @@ function followReads(
   reach: SelectorReach,
   state: SelectorState,
   walked: WalkedValues,
+  returnPath: ReturnPath | null,
 ): void {
   for (const operation of operations)
     if (operation.kind === "load" && bindingIdentityKey(operation.place.root) === read)
-      collectSelectorReach(operation.result, body, walk, reach, state, walked);
+      collectSelectorReach(operation.result, body, walk, reach, state, walked, returnPath);
 }
 
 /**
@@ -289,8 +513,7 @@ function followReads(
 function definiteReplacement(
   place: SemanticPlace,
   width: number,
-  block: SemanticBlock,
-  storeIndex: number,
+  at: StorePosition,
   body: ScannedBody,
   walk: ProgramWalk,
 ): number | null {
@@ -298,8 +521,8 @@ function definiteReplacement(
   if (walk.moduleObjects.has(written)) return null;
   const offset = staticPlaceOffset(place, body.definitions);
   if (offset === null) return null;
-  for (const [index, operation] of block.operations.entries()) {
-    if (index <= storeIndex || operation.kind !== "store") continue;
+  for (const [index, operation] of at.block.operations.entries()) {
+    if (index <= at.index || operation.kind !== "store") continue;
     if (bindingIdentityKey(operation.place.root) !== written) continue;
     if (staticPlaceOffset(operation.place, body.definitions) !== offset) continue;
     // A narrower store leaves part of the original value in place, so only one
@@ -322,13 +545,13 @@ function definiteReplacement(
 function collectLoadedSelectorReach(
   place: SemanticPlace,
   width: number,
-  storeBlock: SemanticBlock,
-  storeIndex: number,
+  at: StorePosition | null,
   body: ScannedBody,
   walk: ProgramWalk,
   reach: SelectorReach,
   state: SelectorState,
   walked: WalkedValues,
+  returnPath: ReturnPath | null,
 ): void {
   const written = bindingIdentityKey(place.root);
   // Two writes land somewhere this walk cannot account for. Once the written
@@ -341,12 +564,14 @@ function collectLoadedSelectorReach(
   if (walk.addressTaken.has(written)) reach.escaped = true;
   if (body.parameters.some((parameter) => parameter.key === written && parameter.borrowed))
     reach.escaped = true;
-  const replaced = definiteReplacement(place, width, storeBlock, storeIndex, body, walk);
+  // Without the position of the write, nothing can be proved about what
+  // replaces it, so every read of the object stays in scope.
+  const replaced = at === null ? null : definiteReplacement(place, width, at, body, walk);
   const reads =
-    replaced === null
+    replaced === null || at === null
       ? body.blocks.flatMap((block) => block.operations)
-      : storeBlock.operations.slice(storeIndex + 1, replaced);
-  followReads(reads, written, body, walk, reach, state, walked);
+      : at.block.operations.slice(at.index + 1, replaced);
+  followReads(reads, written, body, walk, reach, state, walked, returnPath);
 }
 
 /** Whether one value is handed to this body's callers as its result. */

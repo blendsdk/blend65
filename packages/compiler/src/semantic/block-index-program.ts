@@ -133,13 +133,19 @@ interface ShapedParameter {
 }
 
 /**
- * Render the shape a call made through an address accepts.
+ * Render an over-approximation of the shape a call made through an address
+ * accepts.
  *
- * Qualifiers are left out deliberately. `const` restricts what a callee may do
- * with a borrow and never changes which function an address can denote, so
- * including it could make a declaration and a call spell the same shape
- * differently — and a disagreement there would silently drop a route instead of
- * widening it, which is the one direction that leaves a sprite unreadable.
+ * The language requires a function value's parameter qualifiers to match its
+ * target exactly, so two functions differing only in a `const` borrow really
+ * are different types and one address can never denote both. This key erases
+ * qualifiers anyway, which merges those genuinely distinct signatures into one
+ * group. That direction is deliberate: a group too large adds receivers that
+ * cannot actually be called, which widens a demand, while a key that disagreed
+ * with the call's own spelling would drop a receiver that can — and a dropped
+ * receiver is what leaves a sprite reading character ROM. The precision cost is
+ * recorded rather than hidden: a selector returned by one of several
+ * same-shape-after-erasure functions is demanded for every call in the group.
  */
 function callableShape(parameters: readonly ShapedParameter[], result: SemanticType): string {
   const shapes = parameters.map(({ type, outerUnsized }) =>

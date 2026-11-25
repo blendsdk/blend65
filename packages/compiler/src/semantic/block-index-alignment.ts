@@ -15,7 +15,11 @@ import type {
 import { collectSelectorReach } from "./block-index-consumers.js";
 import { scanProgram } from "./block-index-program.js";
 import type { ScannedBody } from "./block-index-program.js";
-import { ENUMERATED_ELEMENT_LIMIT, FETCHED_BYTES } from "./block-index-selector.js";
+import {
+  ENUMERATED_ELEMENT_LIMIT,
+  FETCHED_BYTES,
+  SELECTOR_MODULUS,
+} from "./block-index-selector.js";
 import type { ProvedPlace, SelectorReach } from "./block-index-selector.js";
 import { constantValue, staticPlaceOffset } from "./block-index-values.js";
 import type { Definitions } from "./block-index-values.js";
@@ -295,15 +299,20 @@ export function alignBlockIndexStorage(
         // proof does not follow, the whole object is the honest demand.
         fetched.push({ offset: 0, bytes: size });
       } else {
-        // A displacement names a later block of the same object. Runs are
-        // clamped to the object, because bytes past its end belong to whatever
-        // is placed there and are not this object's to demand.
+        // A displacement names another block of the same object. It is carried
+        // modulo the 256 blocks of the bank, so one delivered number is both
+        // `blocks` forward and `blocks - 256` back: those name the same position
+        // in the bank, and `block - 1` arrives here as 255. At most one of the
+        // two can land inside an object that fits in the bank, and that one is
+        // the only run this object owes. Runs are clamped to the object, because
+        // bytes past its end belong to whatever is placed there.
         for (const base of addressable)
-          for (const blocks of reach.displacements) {
-            const offset = base + blocks * FETCHED_BYTES;
-            if (offset < 0 || offset >= size) continue;
-            fetched.push({ offset, bytes: Math.min(FETCHED_BYTES, size - offset) });
-          }
+          for (const blocks of reach.displacements)
+            for (const displacement of [blocks, blocks - SELECTOR_MODULUS]) {
+              const offset = base + displacement * FETCHED_BYTES;
+              if (offset < 0 || offset >= size) continue;
+              fetched.push({ offset, bytes: Math.min(FETCHED_BYTES, size - offset) });
+            }
       }
       const known = demands.get(key) ?? [];
       known.push({

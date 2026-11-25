@@ -107,9 +107,10 @@ export interface SelectorReach {
    *
    * Storing the number where another body can read it, holding it in an object
    * whose address exists, writing it through a borrowed parameter into the
-   * caller's object, returning it from a function reachable through an address,
-   * and handing it to a call with no resolved callee all put it beyond what
-   * this walk inspects. Concluding "the chip never
+   * caller's object, writing it to an address this pass cannot attribute,
+   * composing it into an aggregate delivered somewhere unmodelled, and handing
+   * it to a call with no resolved callee all put it beyond what this walk
+   * inspects. Concluding "the chip never
    * receives it" would then be a guess in the one direction that leaves a
    * sprite unreadable, so an escape falls back to demanding the whole object —
    * which is exactly what the proof demanded before it learned to measure
