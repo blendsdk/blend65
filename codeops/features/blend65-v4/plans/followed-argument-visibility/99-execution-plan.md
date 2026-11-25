@@ -295,6 +295,13 @@ the walk it would be split from, so extracting it needs either a circular import
 continuation. Neither is worth improvising at the end of a long unit, and it is recorded here for
 whoever next changes this pass rather than filed as its own row.
 
+**The maintainer ruled on the three over-demands.** #193, #194 and #199 are accepted as tracked
+debt rather than blocking this unit, on the reasoning that all three refuse a legal build loudly
+instead of leaving a sprite unreadable in silence, and that each needs a capability this unit should
+not have grown to include. #194's capability is the one #188's two remaining crossings also need, so
+those three belong in one later unit. The deferral has a stated reason, so it is due the moment a
+measured ordinary game shape turns out to hit one of those refusals.
+
 **Seven issues carry what was not fixed here.** #193 and #194 are over-demands needing capabilities
 beyond this unit; #195 and #198 are silent holes that predate it and need no call boundary; #199 is
 a new over-demand; #196 is the emulator gap; #197 is the implementation-test split, which has
