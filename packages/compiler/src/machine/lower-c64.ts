@@ -41,6 +41,8 @@ export interface C64LoweringSupport {
    * and a refusal that cannot name its cause names nothing the author can act on.
    */
   readonly vicFieldRefusals?: ReadonlyMap<string, VicFieldAddressRefusal>;
+  /** Blocks one run-time-selected element spans, so advice can be scaled by it. */
+  readonly vicFieldElementBlocks?: ReadonlyMap<string, number>;
   /** Request one finite function-owned temporary. */
   readonly requestScratch: (
     suffix: string,
@@ -497,6 +499,7 @@ export function lowerC64Operation(
       const refused = vicFieldAddressRefusal(
         vicTransform,
         support.vicFieldRefusals?.get(operation.arguments[0] ?? ""),
+        support.vicFieldElementBlocks?.get(operation.arguments[0] ?? ""),
       );
       throw loweringFailure(refused.requirement, source, {
         code: "E10273",

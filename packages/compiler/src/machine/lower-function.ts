@@ -141,6 +141,42 @@ function staticPlaceOffset(
 }
 
 /**
+ * How many 64-byte blocks one run-time-selected element spans.
+ *
+ * The refusal for a run-time index advises selecting with the block number
+ * instead of the address, and that advice is only correct scaled by the
+ * element's own width: a 128-byte element advances two blocks per index step.
+ * Returns null where the step is not a whole number of blocks, so the advice
+ * stays general rather than naming a wrong expression.
+ */
+function selectedElementBlocks(
+  place: SemanticPlace,
+  definitions: ReadonlyMap<string, SemanticOperation>,
+): number | null {
+  let type = place.rootType;
+  let found: number | null = null;
+  for (const step of place.path) {
+    if (step.kind === "field") {
+      if (type?.kind !== "struct") return null;
+      const field = type.fields.find(({ name }) => name === step.name);
+      if (field === undefined) return null;
+      type = field.type;
+      continue;
+    }
+    if (type?.kind !== "array") return null;
+    const stride = semanticTypeSize(type.element);
+    if (constantValue(definitions.get(step.value!), definitions) === null) {
+      // Two run-time steps have no single stride to advise with.
+      if (found !== null) return null;
+      if (stride % 64 !== 0) return null;
+      found = stride / 64;
+    }
+    type = type.element;
+  }
+  return found;
+}
+
+/**
  * Find the addresses and block numbers layout can resolve into immediates.
  *
  * Two shapes qualify. A binary block index whose only consumer is a `lo` folds
@@ -164,6 +200,7 @@ function blockIndexFoldValues(
   readonly binaries: ReadonlyMap<string, BlockIndexLabel>;
   readonly addresses: ReadonlyMap<string, BlockIndexLabel>;
   readonly fieldRefusals: ReadonlyMap<string, VicFieldAddressRefusal>;
+  readonly fieldElementBlocks: ReadonlyMap<string, number>;
 } {
   const definitions = new Map<string, SemanticOperation>();
   for (const block of blocks)
@@ -185,6 +222,7 @@ function blockIndexFoldValues(
   const binaries = new Map<string, BlockIndexLabel>();
   const addresses = new Map<string, BlockIndexLabel>();
   const fieldRefusals = new Map<string, VicFieldAddressRefusal>();
+  const fieldElementBlocks = new Map<string, number>();
   for (const block of blocks) {
     for (const operation of block.operations) {
       if (operation.kind !== "unary" || operation.operator !== "lo") continue;
@@ -271,6 +309,8 @@ function blockIndexFoldValues(
       // only repeat that the address is unusable without saying why.
       if (offset === null) {
         decline("runtime-index");
+        const blocks = selectedElementBlocks(address.place, definitions);
+        if (blocks !== null) fieldElementBlocks.set(argument, blocks);
         continue;
       }
       // The same address serving another purpose must keep its runtime form;
@@ -284,7 +324,7 @@ function blockIndexFoldValues(
       addresses.set(address.result, { label: bindingLabel("global", address.place.root), offset });
     }
   }
-  return { binaries, addresses, fieldRefusals };
+  return { binaries, addresses, fieldRefusals, fieldElementBlocks };
 }
 
 /** Lower one ordered block list into one machine function. */
@@ -441,6 +481,7 @@ export function lowerFunction(
     blockIndexFolds: blockIndexFolds.binaries,
     blockIndexAddresses: blockIndexFolds.addresses,
     vicFieldRefusals: blockIndexFolds.fieldRefusals,
+    vicFieldElementBlocks: blockIndexFolds.fieldElementBlocks,
     forwardedRegisterValues: new Set([
       ...forwardedRegisterValues,
       ...selectAnonymousComparisonValues(

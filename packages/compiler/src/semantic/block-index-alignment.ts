@@ -1,5 +1,6 @@
 import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import type { BindingId } from "../frontend/semantic-types.js";
 import type { SemanticType } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import {
@@ -237,6 +238,38 @@ function addressableOffsets(proved: ProvedPlace, size: number): readonly number[
 }
 
 /**
+ * Functions nothing in the program can enter.
+ *
+ * This over-approximates liveness on purpose: a function is treated as live
+ * unless it is provably unreachable — never called, never address-taken, and not
+ * the entry. Being wrong that way keeps a demand that was already being kept,
+ * while the opposite error would drop one and leave a sprite reading character
+ * ROM. The complete reachability closure is computed after this pass runs, which
+ * is why this answers the narrower question it can answer here.
+ *
+ * It is used only for a declared demand. An inferred one keeps its existing
+ * behaviour, so no object moves because of this.
+ */
+function definitelyUnreachable(
+  functions: readonly SemanticFunction[],
+  entry: BindingId | undefined,
+): ReadonlySet<string> {
+  const entered = new Set<string>(entry === undefined ? [] : [bindingIdentityKey(entry)]);
+  for (const fn of functions) {
+    for (const block of fn.blocks) {
+      for (const operation of block.operations) {
+        if (operation.kind === "call") entered.add(bindingIdentityKey(operation.callee));
+        if (operation.kind === "function-address")
+          entered.add(bindingIdentityKey(operation.function));
+      }
+    }
+  }
+  return new Set(
+    functions.map((fn) => bindingIdentityKey(fn.id)).filter((key) => !entered.has(key)),
+  );
+}
+
+/**
  * State what one VIC field capability requires of the object it was handed.
  *
  * The arithmetic form has to prove the video chip receives its number, because
@@ -326,8 +359,10 @@ function recordFieldDemand(
 export function alignBlockIndexStorage(
   functions: readonly SemanticFunction[],
   globals: readonly SemanticGlobal[],
+  entry?: BindingId,
 ): readonly SemanticGlobal[] {
   const byKey = new Map(globals.map((global) => [bindingIdentityKey(global.id), global] as const));
+  const unreachable = definitelyUnreachable(functions, entry);
   const demands = new Map<string, AlignmentDemand[]>();
   const walk = scanProgram(functions, globals);
   const scan = (body: ScannedBody): void => {
@@ -396,7 +431,11 @@ export function alignBlockIndexStorage(
         const field =
           operation.kind === "platform" ? vicFieldTransformOf(operation.capability) : null;
         if (field !== null && operation.kind === "platform") {
-          recordFieldDemand(operation, field, body, walk, record);
+          // A body nothing can enter hands nothing to the chip, so it declares
+          // nothing either. Stating a declared demand from one would refuse an
+          // explicitly placed object over a field the program never computes.
+          if (body.owner === null || !unreachable.has(body.owner))
+            recordFieldDemand(operation, field, body, walk, record);
           continue;
         }
         const complete = completeSelector(operation, definitions);

@@ -382,14 +382,21 @@ export function resolvePlacementTransforms(
           profile.machine.characterRomEnd,
         );
         if (fieldFailure !== null) {
-          return fail(instruction, fieldFailure.message, [
-            `field=${operand.transform}`,
-            `label=${operand.label}`,
-            `address=$${address.toString(16).padStart(4, "0")}`,
-            `reason=${fieldFailure.reason}`,
-            `vic-bank=$${profile.machine.vicBankStart.toString(16)}-$${(profile.machine.vicBankStart + 0x3fff).toString(16)}`,
-            `character-rom=$${profile.machine.characterRomStart.toString(16)}-$${profile.machine.characterRomEnd.toString(16)}`,
-          ]);
+          return fail(
+            instruction,
+            fieldFailure.message,
+            [
+              `field=${operand.transform}`,
+              `label=${operand.label}`,
+              `address=$${address.toString(16).padStart(4, "0")}`,
+              `reason=${fieldFailure.reason}`,
+              `vic-bank=$${profile.machine.vicBankStart.toString(16)}-$${(profile.machine.vicBankStart + 0x3fff).toString(16)}`,
+              `character-rom=$${profile.machine.characterRomStart.toString(16)}-$${profile.machine.characterRomEnd.toString(16)}`,
+            ],
+            // The object reached a final address, so the only thing left for the
+            // author to change is the constraint that chose it.
+            `Move 'place(at:)' on this object to an address that satisfies the requirement above, or remove it and let the compiler choose a home that does.`,
+          );
         }
         const value = vicFieldValue(
           operand.transform,

@@ -43,12 +43,18 @@ export type VicFieldAddressRefusal =
 export function vicFieldAddressRefusal(
   transform: VicFieldTransform,
   refusal: VicFieldAddressRefusal | undefined,
+  /**
+   * Blocks one selected element spans, where that is known. The advised
+   * expression steps by block, so an element wider than one block advances by
+   * more than one and an unscaled suggestion would name the wrong data.
+   */
+  blocksPerElement?: number,
 ): { readonly requirement: string; readonly help: string } {
   const sprite = transform === "vic-sprite-block";
   if (refusal === "module-storage") {
     return {
       requirement: `VIC field '${transform}' requires an embedded asset or a constant address`,
-      help: `Address an 'embed()' asset or write the address itself; this field cannot yet derive its value from module-level stored data.`,
+      help: `Address an 'embed()' asset, which is the spelling that also reserves the bytes this field makes the chip fetch; a constant address works too, but then the region is yours to keep clear. This field cannot yet derive its value from module-level stored data.`,
     };
   }
   if (refusal === "zero-page") {
@@ -66,10 +72,20 @@ export function vicFieldAddressRefusal(
     };
   }
   if (refusal === "runtime-index") {
+    const step =
+      blocksPerElement === undefined
+        ? `index`
+        : blocksPerElement === 1
+          ? `index`
+          : `index * ${blocksPerElement}`;
+    const because =
+      blocksPerElement === undefined || blocksPerElement === 1
+        ? ``
+        : ` Each element spans ${blocksPerElement} blocks, which is why the index is scaled.`;
     return {
       requirement: `VIC field '${transform}' requires an index known before layout`,
       help: sprite
-        ? `Select the element with the block number instead of with the address: 'vicSpriteBlock(&object[0]) + index' names the same block and keeps every selectable block reachable.`
+        ? `Select the element with the block number instead of with the address: 'vicSpriteBlock(&object[0]) + ${step}' names the same bytes and keeps every selectable block reachable.${because}`
         : `Address one element whose index is a literal; this field selects a fixed region and cannot follow an index chosen while the program runs.`,
     };
   }

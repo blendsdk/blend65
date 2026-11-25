@@ -302,6 +302,38 @@ let bitmap: byte[8192];
 function main(): void { poke($D018, c64.vic.vicBitmapSelect(&bitmap)); }`,
     ],
   },
+  // An address settled at link time but carried through a binding or a
+  // parameter: the compiler does not propagate it, so the field has no single
+  // object to attribute. Passing the address straight to the field works.
+  {
+    id: "v4-vic-field-link-time-address-through-value",
+    sources: [
+      `module Game;
+let pad: byte[2400];
+let buffer: byte[64];
+function main(): void {
+  pad[0] = 1;
+  let a: word = &buffer;
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(a));
+}`,
+      `module Game;
+let pad: byte[2400];
+let buffer: byte[64];
+function publish(a: word): void { c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(a)); }
+function main(): void { pad[0] = 1; publish(&buffer); }`,
+    ],
+  },
+  // Zero page is readable by the chip; what it cannot offer is the alignment,
+  // because its allocator chooses homes for fast access instead.
+  {
+    id: "v4-vic-field-zeropage-home",
+    sources: [
+      `module Game;
+let pad: byte[2400];
+zeropage { b: byte[64]; }
+function main(): void { pad[0] = 1; c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&b)); }`,
+    ],
+  },
 ];
 
 /**

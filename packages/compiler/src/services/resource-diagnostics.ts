@@ -207,7 +207,29 @@ export function sourcePlacementFailure(
     // author has no placement to look at, so the declaration would leave them
     // searching for a constraint they never wrote.
     inferredFetch?.span ?? spans.get(`placement:${key}`) ?? spans.get(key) ?? null,
+    null,
+    [],
+    placementAction(name, inferredFetch, data?.placement?.at ?? null),
   );
+}
+
+/**
+ * Name what the author can change about an object with no satisfiable home.
+ *
+ * An explicit address is something they wrote and can move or drop. An address
+ * the compiler chose is not, so the action there is about the data competing for
+ * the chip's bank rather than about the object itself.
+ */
+function placementAction(
+  name: string,
+  demand: VicFetchDemand | undefined,
+  at: number | null,
+): string | null {
+  if (demand === undefined) return null;
+  if (at !== null) {
+    return `Move 'place(at:)' on '${name}' to an address that satisfies the requirement above, or remove it and let the compiler choose a home that does.`;
+  }
+  return `Reduce what competes for the chip's bank — declare data the chip never reads outside it, or publish fewer runs from '${name}' — since the compiler has no home left that keeps these bytes readable.`;
 }
 
 /** Explain an impossible source-owned zero-page demand before SFA reserves the remaining window. */

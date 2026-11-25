@@ -264,7 +264,11 @@ export function buildSemanticProgram(
   // A block-index expression proves the hardware alignment its storage needs.
   // Apply that demand before layout; explicit, zero-page and runtime-index
   // placements are preserved exactly as written.
-  const alignedGlobals = alignBlockIndexStorage(functions, constrained.globals);
+  const alignedGlobals = alignBlockIndexStorage(
+    functions,
+    constrained.globals,
+    mainCandidates[0]!.id,
+  );
   const program: SemanticProgram = Object.freeze({
     main: mainCandidates[0]!.id,
     globals: alignedGlobals,

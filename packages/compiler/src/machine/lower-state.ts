@@ -153,6 +153,8 @@ export interface FunctionLoweringState {
   >;
   /** Why one VIC field's address stayed a run-time value, keyed by the argument. */
   readonly vicFieldRefusals?: ReadonlyMap<string, VicFieldAddressRefusal>;
+  /** Blocks one run-time-selected element spans, keyed by the same argument. */
+  readonly vicFieldElementBlocks?: ReadonlyMap<string, number>;
   /** One-use A/AX results consumed by the next instruction-producing operation. */
   readonly forwardedRegisterValues: Set<string>;
   /** Ordinary loads whose byte is already in A from an adjacent raw read of the same home. */

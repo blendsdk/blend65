@@ -90,6 +90,24 @@
       "reason": "The pointer-tail reservation, the minimum fetched extent and the single-active-screen proof are carried only for an embedded asset. Accepting ordinary module storage would leave the eight sprite-pointer bytes at the end of a screen matrix owned by nobody, so an unrelated object could occupy them and move sprites, and would leave thousands of fetched bitmap bytes reserved by nobody regardless of how short the declaration is. Neither loss would be reported at run time. The sibling character-memory field is unaffected and accepts ordinary module storage, because it needs only alignment and a reachable run and a partial charset is legal.",
       "owner": "C64 screen and bitmap field storage; future module-storage reservation and active-screen proof",
       "decision": "Deferred; an embedded asset or a constant address works today, and the refusal names both spellings."
+    },
+    {
+      "id": "v4-vic-field-link-time-address-through-value",
+      "status": "deferred",
+      "sourceForm": "let a: word = &buffer; c64.vic.vicSpriteBlock(a), or a helper parameter reached only as publish(&buffer)",
+      "diagnostic": "E10273",
+      "reason": "Naming an address before using it and factoring a publishing helper are both ordinary modern code, and in both cases the address is settled at link time. The compiler does not propagate it through the binding or the parameter, so the field cannot attribute the value to one object and fails closed rather than computing a block from an address it cannot name. The refusal is honest about that cause and shows the direct spelling; what remains undelivered is the propagation, not the diagnosis.",
+      "owner": "C64 video-field address resolution; future propagation through a single-assignment binding and a single-address parameter",
+      "decision": "Deferred; passing the address straight to the field works today. The fix is address propagation through a single-assignment binding and through a parameter reached with one address, which would retire both source forms together."
+    },
+    {
+      "id": "v4-vic-field-zeropage-home",
+      "status": "deferred",
+      "sourceForm": "zeropage { b: byte[64]; } with c64.vic.vicSpriteBlock(&b)",
+      "diagnostic": "E10273",
+      "reason": "The zero-page allocator chooses homes for fast access and does not yet honour a video alignment requirement, so the field would resolve against an address the author never wrote and cannot predict. Reachability is not the problem: zero page is inside the chip's bank and outside the character-ROM window, so the data is readable there. It is the alignment that is unavailable, which is why the refusal names the storage rather than the address.",
+      "owner": "C64 zero-page allocation and video alignment; future alignment-aware zero-page homes",
+      "decision": "Deferred; declaring the data at module level works today and the refusal names that declaration site. Retiring this row needs the zero-page allocator to accept and honour an alignment requirement, not a change to the field."
     }
   ]
 }

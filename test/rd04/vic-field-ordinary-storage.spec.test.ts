@@ -24,12 +24,23 @@ const REFERENCE_PROFILE = "c64-pal-prg-kernal-6581";
 const UNACTIONABLE = /constant\s+or\s+symbolic/iu;
 
 /**
- * An actionable refusal shows a spelling the author can type — an address-of
- * form such as `&object`, or an `embed()` asset. Naming a category instead,
- * however it is worded, leaves them guessing at the syntax, and no reordering
- * of the superseded phrase can satisfy this.
+ * An actionable refusal points at something in the author's own source: a
+ * spelling they can type (`&object`, `embed()`), the declaration site to move
+ * the data to (module level, a `zeropage` block, a `place(` clause), or the
+ * explicit constraint they wrote. Naming a category instead leaves them
+ * guessing, and no rewording of the superseded phrase can satisfy this, because
+ * it points at neither a spelling nor a construct.
  */
-const NAMES_A_WRITABLE_FORM = /&[A-Za-z_]|embed\(/u;
+const NAMES_SOMETHING_THE_AUTHOR_CAN_CHANGE =
+  /&[A-Za-z_]|embed\(|module[\s-]level|zeropage|place\(|explicit constraint/iu;
+
+/**
+ * Advice for addressing one frame of a sheet has to show the arithmetic moving
+ * to the block number: an address-of form with an addition after it. Generic
+ * advice to pass an address straight to the field has no addition, so it cannot
+ * satisfy this.
+ */
+const RECOMMENDS_ADDING_A_BLOCK_NUMBER = /&[A-Za-z_][^;\n]*\+/u;
 
 /** Give an embedded asset file deterministic, recognisable contents. */
 function assetBytes(count: number): Buffer {
@@ -85,8 +96,14 @@ function authorText(diagnostic: { readonly message: string }): string {
  * diagnostic, so a case can assert what they are told without depending on
  * diagnostic ordering.
  */
-async function refusalTexts(source: string, profile: string): Promise<string[]> {
-  return withProfileProject(source, profile, async (project) => {
+async function refusalTexts(
+  source: string,
+  profile: string,
+  assets: Readonly<Record<string, Buffer>> = {},
+): Promise<string[]> {
+  return withProfileProject(source, profile, async (project, root) => {
+    for (const [name, bytes] of Object.entries(assets))
+      await writeFile(join(root, "src", name), bytes);
     const built = await buildProject({ project, optimization: "none" });
     expect(built.kind).toBe("failure");
     if (built.kind !== "failure") throw new Error("Expected a refused placement");
@@ -100,11 +117,12 @@ async function refusalTexts(source: string, profile: string): Promise<string[]> 
 
 /**
  * Require a refusal the author can act on: no restatement of what they already
- * wrote, and a spelling they can type instead.
+ * wrote, and something in their own source to change instead. Every refusal is
+ * held to this, because a predicate with exemptions stops meaning anything.
  */
 function expectActionable(texts: readonly string[]): void {
   for (const text of texts) expect(text).not.toMatch(UNACTIONABLE);
-  expect(texts.join("\n")).toMatch(NAMES_A_WRITABLE_FORM);
+  expect(texts.join("\n")).toMatch(NAMES_SOMETHING_THE_AUTHOR_CAN_CHANGE);
 }
 
 /** Narrow untrusted debug JSON before resolving a public symbol. */
@@ -394,13 +412,31 @@ let s: Sheet;`,
 
   // These three refusals are the point of the capability: an author who uses it
   // cannot end up with a sprite the chip will not display. Each message has to
-  // name the requirement that failed, or the author cannot act on it.
-  const refusedPlacements: readonly { readonly address: string; readonly named: RegExp }[] = [
-    { address: "$1000", named: /character[-\s]?ROM/iu },
-    { address: "$4000", named: /bank/iu },
-    { address: "$2010", named: /64[-\s]?byte align/iu },
+  // name the bound that actually failed, and only that one. Both of the first
+  // two addresses break a video rule, so a message listing every rule would
+  // read as correct for either of them while telling the author nothing about
+  // which one they hit. The patterns therefore tie the offending address to its
+  // own cause, and reject the other cause attached to that same address; `;`
+  // and `.` bound each clause so a general restatement elsewhere in the text
+  // cannot satisfy them.
+  const refusedPlacements: readonly {
+    readonly address: string;
+    readonly names: RegExp;
+    readonly rejects?: RegExp;
+  }[] = [
+    {
+      address: "$1000",
+      names: /\$0*1000\b[^.;]*character[-\s]?ROM/iu,
+      rejects: /\$0*1000\b[^.;]*outside/iu,
+    },
+    {
+      address: "$4000",
+      names: /\$0*4000\b[^.;]*\bbank\b/iu,
+      rejects: /\$0*4000\b[^.;]*character[-\s]?ROM/iu,
+    },
+    { address: "$2010", names: /64[-\s]?byte align/iu },
   ];
-  for (const { address, named } of refusedPlacements) {
+  for (const { address, names, rejects } of refusedPlacements) {
     onReferenceProfile(`should refuse an explicit sprite address at ${address}`, async () => {
       const texts = await refusalTexts(
         windowProgram(
@@ -409,9 +445,36 @@ let s: Sheet;`,
         ),
         REFERENCE_PROFILE,
       );
-      expect(texts.join("\n")).toMatch(named);
+      const told = texts.join("\n");
+      expect(told, `${address} must be blamed on the bound it actually breaks`).toMatch(names);
+      if (rejects !== undefined)
+        expect(told, `${address} must not be blamed on the other bound`).not.toMatch(rejects);
+      expectActionable(texts);
     });
   }
+
+  // $2000 satisfies every rule the chip has: in the bank, clear of the window,
+  // 64-byte aligned. What is wrong is that another object is already there, so
+  // the explicit constraint is the thing to change. Blaming the address instead
+  // costs the author an afternoon moving a sprite that was already in exactly
+  // the right place.
+  onReferenceProfile("should refuse an occupied address without blaming it", async () => {
+    const texts = await refusalTexts(
+      `module Game;
+place(at: $2000) let other: byte[64];
+place(at: $2000) let buffer: byte[64];
+function main(): void { other[0] = 1; c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&buffer)); }`,
+      REFERENCE_PROFILE,
+    );
+    const told = texts.join("\n");
+    expect(told, "the explicit constraint is what the author can change").toMatch(
+      /explicit[^.;]*constraint|change or remove/iu,
+    );
+    expect(told, "a qualifying address must not be blamed for the conflict").not.toMatch(
+      /\$0*2000\b[^.;]*(?:does not|doesn't|fails|cannot|character[-\s]?ROM|outside|align)/iu,
+    );
+    expectActionable(texts);
+  });
 
   // An address held in a word is only known while the program runs, so the
   // refusal is right. Telling the author it needs a constant or symbolic address
@@ -456,6 +519,7 @@ let s: Sheet;`,
       REFERENCE_PROFILE,
     );
     expect(texts.join("\n")).toMatch(/zero[-\s]?page/iu);
+    expectActionable(texts);
   });
 
   // Checking only the base address is what let this build in silence: $0FC0 is
@@ -498,6 +562,45 @@ let s: Sheet;`,
       );
     });
   }
+
+  // An animated sheet addressed at one of its own frames is the commonest shape
+  // there is, and both index forms are refused. The refusal may not tell this
+  // author that the compiler cannot attribute the address to one object, nor to
+  // pass `&` straight to the field: they did exactly that, on an asset, which is
+  // the form the advice itself recommends. It has to name the spelling that
+  // works — address the asset and add the frame's block number — or an author
+  // holding a working program is sent in a circle.
+  for (const index of ["peek($0400)", "64"] as const) {
+    const described = index === "64" ? "a literal" : "a run-time";
+    onReferenceProfile(
+      `should refuse ${described} index into an asset with usable advice`,
+      async () => {
+        const texts = await refusalTexts(
+          `module Game;
+const SPRITES: byte[128] = embed("sprites.bin");
+function main(): void { c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES[${index}])); }`,
+          REFERENCE_PROFILE,
+          { "sprites.bin": assetBytes(128) },
+        );
+        expectActionable(texts);
+        expect(texts.join("\n"), "the working spelling adds a block number").toMatch(
+          RECOMMENDS_ADDING_A_BLOCK_NUMBER,
+        );
+      },
+    );
+  }
+
+  // The spelling those two refusals recommend has to work, or the advice is a
+  // guess that costs the author another attempt.
+  onReferenceProfile("should accept an asset's block number with a frame added", async () => {
+    await build(
+      `module Game;
+const SPRITES: byte[128] = embed("sprites.bin");
+function main(): void { c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES) + 1); }`,
+      REFERENCE_PROFILE,
+      { "sprites.bin": assetBytes(128) },
+    );
+  });
 
   // Taking an address for ordinary processor work claims nothing about the video
   // chip. Pulling such data into the bank would spend the scarcest 16 KiB in the
