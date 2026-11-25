@@ -1,37 +1,12 @@
-/** Layout-resolved VIC field transforms available to source operations. */
-export type VicFieldTransform =
-  | "vic-sprite-block"
-  | "vic-charset-select"
-  | "vic-bitmap-select"
-  | "vic-screen-select";
+import { vicConsumerAlignment, vicConsumerBytes } from "../target/vic-fetch.js";
+import type { VicFieldTransform } from "../target/vic-fetch.js";
 
-/** Exact byte count consumed by one VIC-visible object. */
-export function vicConsumerBytes(transform: VicFieldTransform): number {
-  switch (transform) {
-    case "vic-sprite-block":
-      return 64;
-    case "vic-charset-select":
-      return 2_048;
-    case "vic-bitmap-select":
-      return 8_000;
-    case "vic-screen-select":
-      return 1_000;
-  }
-}
-
-/** Required address alignment for one VIC field operation. */
-export function vicConsumerAlignment(transform: VicFieldTransform): number {
-  switch (transform) {
-    case "vic-sprite-block":
-      return 64;
-    case "vic-charset-select":
-      return 2_048;
-    case "vic-bitmap-select":
-      return 8_192;
-    case "vic-screen-select":
-      return 1_024;
-  }
-}
+// What the chip fetches through each field, and the alignment each field can
+// express, are properties of the selected machine rather than of lowering, so
+// they are stated once there and re-exported here for the callers that reach
+// for them beside the field arithmetic below.
+export { vicConsumerAlignment, vicConsumerBytes };
+export type { VicFieldTransform };
 
 /** Exact reason a VIC field cannot be derived from a final address. */
 export type VicFieldFailureReason = "out-of-bank" | "character-rom" | "misaligned";

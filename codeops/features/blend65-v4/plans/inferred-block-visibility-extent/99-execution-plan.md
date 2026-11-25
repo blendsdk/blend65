@@ -1,8 +1,8 @@
 # The chip fetches 64 bytes and the compiler constrained nine thousand
 
 > **Owner**: T-189 (#189) · **Type**: Task (lightweight) · **CodeOps Artifact Schema**: 1
-> **Status**: Planned; oracles not yet authored
-> **Progress**: 0/6 tasks (0%)
+> **Status**: Implemented and locally verified; package and host tiers running, reviews pending
+> **Progress**: 5/6 tasks (83%)
 > **Last Updated**: 2026-11-25
 
 ## Why
@@ -154,12 +154,53 @@ already expresses that only part of an object lies in the chip's view.
 
 | # | Task | State |
 | --- | --- | --- |
-| 1 | Inventory the pinned cases this row moves: every oracle quoting E10273, the block-index oracles, the runtime-index oracle | ☐ |
-| 2 | Oracles, authored implementation-blind, asserting the **fetched block's final address is visible** rather than that the program builds | ☐ |
-| 3 | The extent-carrying demand: semantic channel, machine object, one shared layout predicate, dynamic-index widening | ☐ |
-| 4 | Provenance and the definite-overwrite kill | ☐ |
-| 5 | The inferred-constraint diagnostic | ☐ |
+| 1 | Inventory the pinned cases this row moves: every oracle quoting E10273, the block-index oracles, the runtime-index oracle | ☑ |
+| 2 | Oracles, authored implementation-blind, asserting the **fetched block's final address is visible** rather than that the program builds | ☑ |
+| 3 | The extent-carrying demand: semantic channel, machine object, one shared layout predicate, dynamic-index widening | ☑ |
+| 4 | Provenance and the definite-overwrite kill | ☑ |
+| 5 | The inferred-constraint diagnostic | ☑ |
 | 6 | Verification, reviews, record and roadmap | ☐ |
+
+## What landed
+
+| File | Change |
+| --- | --- |
+| `target/vic-fetch.ts` | New. Owns the fetched-extent facts and the demand type, plus run merging. The extent table moved here from `machine/vic-fields.ts`, which re-exports it, so one owner states what the chip fetches through each field |
+| `semantic/block-index-alignment.ts` | Records a fetched run per published use instead of one visibility flag; a runtime index widens to the object; only `lo` and unary plus are followed downstream; a value this body provably replaces stops the walk |
+| `semantic/operations.ts`, `machine/machine-types.ts`, `machine/lower-data.ts` | The demand rides beside `placement` from the global onto the machine object |
+| `layout/c64-layout-placement.ts` | `satisfiesVicFetch` and `nextVicFetchStart`, consulted inside `freeSourceStart` |
+| `layout/c64-layout.ts` | Both searches consult them — the loaded-data loop through `freeSourceStart`, the zero-initialized loop in its own hand-rolled search — and an unsatisfiable inferred demand fails as `vic-visibility` |
+| `services/resource-diagnostics.ts` | An inferred demand gets its own message, naming the fetched bytes and pointing at the expression |
+
+Measured after the change, same profile and same programs as the baseline above:
+
+| Shape | Before | After |
+| --- | --- | --- |
+| 9,000-byte array, helper and inline | E10273 | `$0A80`, block visible |
+| Two 5,000-byte arrays through their own helpers | E10273 | `$0AC0` and `$2000`, **both** blocks visible |
+| Published after a definite overwrite | E10273 | `$0AC0` |
+| `hi(&buffer / 64)`, helper and inline | E10273 | `$0AC0` |
+| `poke`-only · runtime index · 64-byte control | `$0A80` · `$0B00` · `$2000` | unchanged |
+
+The two 5,000-byte objects are the case worth reading twice: the second moves from `$1E40`, where
+the previous unit silently left an invisible sprite, to `$2000` — and the program builds. That is
+the pair of outcomes neither the whole-object demand nor dropping the demand could produce.
+
+## The diagnostic, and whose call the wording is
+
+The frozen diagnostics chapter states E10273 as `Cannot place '<object>' — <requirements> conflict
+with <occupied_or_profile_fact>; change or remove the explicit constraint`
+(`spec/14-diagnostics.md:244`). The oracle requires an inferred refusal **not** to end that way,
+since the author wrote no constraint to remove.
+
+Nothing under `spec/` was touched, and the deviation is not new: the handler-visibility branch at
+`services/resource-diagnostics.ts:85` already emits an E10273 whose tail differs, for the same
+reason — the cause was not an explicit constraint. The pinned canonical framing in
+`test/rd04/diagnostics-alternate-placement.spec.test.ts:118-142` covers explicitly placed objects
+only, and it still passes. So the existing in-tree reading is that the frozen sentence is the
+explicit-constraint framing rather than the only legal E10273 message, and this follows it.
+
+Whether the frozen table should also be amended is a separate decision, and the user's.
 
 ## Two existing oracle cases lose their teeth, and that has to be said out loud
 

@@ -9,6 +9,7 @@ import type {
   SemanticType,
 } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
+import type { VicFetchDemand } from "../target/vic-fetch.js";
 
 /** Stable identity of one semantic basic block. */
 export type BlockId = string;
@@ -482,6 +483,12 @@ export interface SemanticGlobal {
   readonly source: SourceSpan;
   /** Optional source constraint on this resident object. */
   readonly placement?: PlacementConstraints | null;
+  /**
+   * Bytes the video chip fetches from this object, inferred from the program
+   * rather than written by the author. Separate from `placement` because an
+   * author-written region constrains the whole object and this does not.
+   */
+  readonly vicFetch?: VicFetchDemand | null;
   /** Mutable storage must occupy the selected zero-page window. */
   readonly zeropage?: boolean;
 }

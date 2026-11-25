@@ -9,8 +9,10 @@ import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic } from "../project/types.js";
 import {
   freeSourceStart,
+  nextVicFetchStart,
   overlaps,
   satisfiesSourcePlacement,
+  satisfiesVicFetch,
   sourceDataStart,
 } from "./c64-layout-placement.js";
 import { C64_STARTUP_STATE_ID, createC64StartupStateData, bindC64StartupState } from "./startup.js";
@@ -682,16 +684,19 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
       data.placement,
       occupied,
       input.profile,
+      false,
+      data.vicFetch,
     );
     if (
       start === null ||
       (visible &&
         (start < input.profile.machine.vicBankStart ||
-          start + placementBytes - 1 > input.profile.machine.vicBankEnd))
+          start + placementBytes - 1 > input.profile.machine.vicBankEnd)) ||
+      !satisfiesVicFetch(start, data.vicFetch, input.profile)
     ) {
       return Object.freeze({
         kind: "error",
-        reason: visible ? "vic-visibility" : "source-placement",
+        reason: visible || data.vicFetch !== undefined ? "vic-visibility" : "source-placement",
         objectId: data.id,
       });
     }
@@ -833,6 +838,15 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
         );
         continue;
       }
+      // Zero-initialized objects take this search rather than the one above, so
+      // the inferred fetch rule is consulted here too. Only the fetched runs
+      // move the candidate; the object's own bytes may stay under the window.
+      if (!satisfiesVicFetch(start, data.vicFetch, input.profile)) {
+        const cleared = nextVicFetchStart(start, data.vicFetch, input.profile);
+        if (cleared === null) break;
+        start = sourceDataStart(cleared, bytes.length, data.alignment, data.placement);
+        continue;
+      }
       const occupied = intervals.find((interval) =>
         overlaps(start!, end, interval.start, interval.end),
       );
@@ -841,9 +855,14 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     }
     if (
       start === null ||
-      !satisfiesSourcePlacement(start, bytes.length, data.placement, input.profile)
+      !satisfiesSourcePlacement(start, bytes.length, data.placement, input.profile) ||
+      !satisfiesVicFetch(start, data.vicFetch, input.profile)
     ) {
-      return Object.freeze({ kind: "error", reason: "source-placement", objectId: data.id });
+      return Object.freeze({
+        kind: "error",
+        reason: data.vicFetch === undefined ? "source-placement" : "vic-visibility",
+        objectId: data.id,
+      });
     }
     if (
       !addInterval(intervals, {

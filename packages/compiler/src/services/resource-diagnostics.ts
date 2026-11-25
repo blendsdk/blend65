@@ -10,6 +10,7 @@ import type { WholeProgram } from "../semantic/whole-program.js";
 import type { StorageClosureCertificate } from "../storage/storage-types.js";
 import { C64_RESOURCE_BUDGETS } from "../target/c64-kernal.js";
 import type { TargetProfile } from "../target/profile.js";
+import type { VicFetchRange } from "../target/vic-fetch.js";
 
 /** Keep declaration-name and explicit-placement locations available to later resource diagnostics. */
 export function resourceSourceSpans(program: TypedProgram): ReadonlyMap<string, SourceSpan> {
@@ -66,6 +67,23 @@ export function sourceObjectName(
     : (object?.sourceName?.split(".").at(-1) ?? objectId ?? "object");
 }
 
+/**
+ * Describe the bytes the video chip fetches from one object, in the terms the
+ * author's own source used.
+ *
+ * An offset is worth naming because it tells the author which part of the object
+ * the chip reads, and several runs are summarized rather than listed: the count
+ * is what explains why the requirement is larger than one sprite image.
+ */
+function describeFetch(ranges: readonly VicFetchRange[]): string {
+  const total = ranges.reduce((bytes, range) => bytes + range.bytes, 0);
+  const only = ranges.length === 1 ? ranges[0] : undefined;
+  if (only === undefined) return `${ranges.length} runs totalling ${total} bytes of it`;
+  return only.offset === 0
+    ? `${only.bytes} bytes from its first byte`
+    : `${only.bytes} bytes at offset ${only.offset}`;
+}
+
 /** Attribute a failed final constraint to the source object rather than an internal layout ID. */
 export function sourcePlacementFailure(
   machine: MachineProgram,
@@ -82,15 +100,21 @@ export function sourcePlacementFailure(
     data.kind === "asset" &&
     data.placement?.at !== undefined &&
     data.placement.at !== null;
+  const inferredFetch = data?.vicFetch;
   const message = vicVisible
     ? `Cannot place '${name}' — the handler requires a VIC-visible address in bank 0 with ${data?.alignment ?? 1}-byte alignment, clear of the character-ROM window and the active screen; the selected address cannot satisfy that requirement`
-    : handlerFixed && data?.placement?.at !== null && data?.placement?.at !== undefined
-      ? `Cannot place '${name}' — the handler requires the fixed load address $${data.placement.at.toString(16)}, which conflicts with occupied storage or the selected profile resident window; the payload cannot be moved`
-      : `Cannot place '${name}' — explicit placement constraints conflict with occupied storage or the selected profile window; change or remove the explicit constraint`;
+    : inferredFetch !== undefined
+      ? `Cannot place '${name}' — a sprite-block expression makes the video chip fetch ${describeFetch(inferredFetch.ranges)}, which must stay inside the VIC bank and clear of the character-ROM window; this requirement was inferred from that expression, so publish a smaller part of the object or place it at an explicit address`
+      : handlerFixed && data?.placement?.at !== null && data?.placement?.at !== undefined
+        ? `Cannot place '${name}' — the handler requires the fixed load address $${data.placement.at.toString(16)}, which conflicts with occupied storage or the selected profile resident window; the payload cannot be moved`
+        : `Cannot place '${name}' — explicit placement constraints conflict with occupied storage or the selected profile window; change or remove the explicit constraint`;
   return projectDiagnostic(
     "E10273",
     message,
-    spans.get(`placement:${key}`) ?? spans.get(key) ?? null,
+    // An inferred requirement points at the expression that caused it. The
+    // author has no placement to look at, so the declaration would leave them
+    // searching for a constraint they never wrote.
+    inferredFetch?.span ?? spans.get(`placement:${key}`) ?? spans.get(key) ?? null,
   );
 }
 

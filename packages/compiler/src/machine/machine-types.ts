@@ -1,6 +1,7 @@
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { MachineProgramDefect } from "./machine-defect.js";
 import type { VicFieldTransform } from "./vic-fields.js";
+import type { VicFetchDemand } from "../target/vic-fetch.js";
 import type {
   InterferenceEdge,
   StorageBinder,
@@ -668,6 +669,13 @@ export interface MachineDataObject {
   readonly bytes: readonly number[];
   /** Optional source placement retained until final layout. */
   readonly placement?: PlacementConstraints;
+  /**
+   * Bytes the video chip fetches from this object, inferred from the program.
+   * Placement must keep each of these runs reachable by the chip; the rest of
+   * the object is ordinary storage, which is what separates this from a region
+   * the author wrote against the whole object.
+   */
+  readonly vicFetch?: VicFetchDemand;
   /** Mutable global storage is allocated from the selected zero-page window. */
   readonly zeropage?: boolean;
 }

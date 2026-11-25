@@ -1,6 +1,9 @@
 import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SemanticType } from "../frontend/semantic-types.js";
+import type { SourceSpan } from "../project/types.js";
+import { mergeVicFetchRanges, vicConsumerBytes } from "../target/vic-fetch.js";
+import type { VicFetchRange } from "../target/vic-fetch.js";
 import type {
   SemanticBlock,
   SemanticFunction,
@@ -16,8 +19,13 @@ interface AlignmentDemand {
   readonly align: number;
   /** Static byte offset from the module object's first byte. */
   readonly offset: number;
-  /** Whether the computed block number is handed to the video chip. */
-  readonly vicVisible: boolean;
+  /**
+   * Bytes the video chip fetches because of this use, or null when nothing
+   * proves the chip receives the block number at all.
+   */
+  readonly fetched: VicFetchRange | null;
+  /** The block-index expression this use was recognized from. */
+  readonly span: SourceSpan;
 }
 
 /**
@@ -48,6 +56,29 @@ const VIC_REGIONS: ReadonlySet<string> = new Set(["c64.vic.bank0", VIC_VISIBLE_R
  * it denotes some other address rather than this object's block.
  */
 const VIC_FETCH_ARGUMENTS: ReadonlyMap<string, number> = new Map([["c64.vic.setSpritePointer", 1]]);
+
+/**
+ * Bytes the chip fetches once it receives a block number from this pass.
+ *
+ * Every argument recognized above selects a sprite image, so one extent answers
+ * for all of them. The capabilities that select a character set, a bitmap or the
+ * screen matrix fetch more, and they take an address rather than a block number,
+ * which is why they prove their own constraints when they are lowered.
+ */
+const FETCHED_BYTES = vicConsumerBytes("vic-sprite-block");
+
+/**
+ * Unary operators that leave a block selector naming the same block.
+ *
+ * `lo` narrows a selector to the byte the register takes, and a unary plus is
+ * the value itself, so a chip receiving either still fetches from the address
+ * this block number was computed from. Every other operator names a different
+ * block: `hi(address / 64)` is a value in `0..3`, which selects a block in the
+ * first 256 bytes of the bank rather than anywhere inside the object whose
+ * address produced it. Following one of those would claim a provenance the
+ * value does not have and narrow storage the chip never reads.
+ */
+const SELECTOR_PRESERVING_UNARY: ReadonlySet<string> = new Set(["lo", "+"]);
 
 /** One value definition retained for static address and index resolution. */
 type Definitions = ReadonlyMap<string, SemanticOperation>;
@@ -94,6 +125,8 @@ interface ProgramWalk {
   readonly bodies: readonly ScannedBody[];
   /** Call sites that keep a result, by callee identity. */
   readonly callSites: ReadonlyMap<string, readonly CallSite[]>;
+  /** Module objects, whose storage any other body or an interrupt may read. */
+  readonly moduleObjects: ReadonlySet<string>;
 }
 
 /**
@@ -262,7 +295,7 @@ function reachesVicConsumer(
   if (seen.has(value)) return false;
   seen.add(value);
   for (const block of body.blocks) {
-    for (const operation of block.operations) {
+    for (const [index, operation] of block.operations.entries()) {
       if (operation.kind === "platform") {
         // The position matters as much as the capability: the same call takes a
         // sprite's index beside its block number, and only one of the two says
@@ -271,7 +304,16 @@ function reachesVicConsumer(
         if (fetched !== undefined && operation.arguments[fetched] === value) return true;
       }
       if (
-        (operation.kind === "convert" || operation.kind === "unary") &&
+        operation.kind === "convert" &&
+        operation.operand === value &&
+        reachesVicConsumer(operation.result, body, walk, walked)
+      )
+        return true;
+      // Only an operator that leaves the selector naming the same block carries
+      // this object's provenance forward; the rest compute some other number.
+      if (
+        operation.kind === "unary" &&
+        SELECTOR_PRESERVING_UNARY.has(operation.operator) &&
         operation.operand === value &&
         reachesVicConsumer(operation.result, body, walk, walked)
       )
@@ -288,17 +330,24 @@ function reachesVicConsumer(
       )
         return true;
       // `let block = lo(&sprites / 64);` publishes through a variable. The read
-      // is matched on the written object rather than the exact field, and an
-      // overwrite between the two is not noticed: a demand against an object
-      // that did not need one is the cheaper way to be wrong than a sprite the
-      // chip cannot see. It is not free, though. An object too large for the
-      // visible interval has no home that satisfies the demand, so an
-      // unnecessary one can cost a build — which is why the consumer side of
-      // this proof names an exact argument instead of a namespace.
+      // is matched on the written object rather than the exact field, because a
+      // demand against an object that did not need one is the cheaper way to be
+      // wrong than a sprite the chip cannot see. It is not free, though: an
+      // object too large for a visible home pays for an unnecessary demand with
+      // a failed build, which is why a value this store provably replaces stops
+      // the search here.
       if (
         operation.kind === "store" &&
         operation.value === value &&
-        loadsReachVicConsumer(operation.place, body, walk, walked)
+        loadsReachVicConsumer(
+          operation.place,
+          semanticTypeSize(operation.type),
+          block,
+          index,
+          body,
+          walk,
+          walked,
+        )
       )
         return true;
     }
@@ -313,22 +362,74 @@ function reachesVicConsumer(
     : false;
 }
 
-/** Whether any read of one written object hands its value to the video chip. */
+/**
+ * Position of the operation that provably replaces one stored value, or null
+ * when nothing in this body proves the value is gone.
+ *
+ * Proof needs three things, and all of them are deliberately narrow. The
+ * replacing store has to be in the same basic block and later, so no control
+ * flow can reach the chip between the two. Both places have to resolve to the
+ * same statically known bytes of the same object, since `frames[i] = 0` says
+ * nothing about which element `frames[j]` named. And the written object has to
+ * be private to this body: a module object can be read by another function or
+ * by an interrupt that runs between the two stores, and the demand this would
+ * remove is the only thing keeping such a sprite visible.
+ */
+function definiteReplacement(
+  place: SemanticPlace,
+  width: number,
+  block: SemanticBlock,
+  storeIndex: number,
+  body: ScannedBody,
+  walk: ProgramWalk,
+): number | null {
+  const written = bindingIdentityKey(place.root);
+  if (walk.moduleObjects.has(written)) return null;
+  const offset = staticPlaceOffset(place, body.definitions);
+  if (offset === null) return null;
+  for (const [index, operation] of block.operations.entries()) {
+    if (index <= storeIndex || operation.kind !== "store") continue;
+    if (bindingIdentityKey(operation.place.root) !== written) continue;
+    if (staticPlaceOffset(operation.place, body.definitions) !== offset) continue;
+    // A narrower store leaves part of the original value in place, so only one
+    // covering the same bytes replaces what the chip would otherwise receive.
+    if (semanticTypeSize(operation.type) < width) continue;
+    return index;
+  }
+  return null;
+}
+
+/**
+ * Whether any read of one written object hands its value to the video chip.
+ *
+ * Reads are matched on the object rather than the exact field, so an unrelated
+ * field of the same struct still raises the demand. When this body provably
+ * replaces the stored value further down the same block, only the reads between
+ * the two can see it: a read anywhere else gets either an older value or the
+ * replacement, and neither is this block number.
+ */
 function loadsReachVicConsumer(
   place: SemanticPlace,
+  width: number,
+  storeBlock: SemanticBlock,
+  storeIndex: number,
   body: ScannedBody,
   walk: ProgramWalk,
   walked: WalkedValues,
 ): boolean {
   const written = bindingIdentityKey(place.root);
-  for (const block of body.blocks)
-    for (const operation of block.operations)
-      if (
-        operation.kind === "load" &&
-        bindingIdentityKey(operation.place.root) === written &&
-        reachesVicConsumer(operation.result, body, walk, walked)
-      )
-        return true;
+  const replaced = definiteReplacement(place, width, storeBlock, storeIndex, body, walk);
+  const reads =
+    replaced === null
+      ? body.blocks.flatMap((block) => block.operations)
+      : storeBlock.operations.slice(storeIndex + 1, replaced);
+  for (const operation of reads)
+    if (
+      operation.kind === "load" &&
+      bindingIdentityKey(operation.place.root) === written &&
+      reachesVicConsumer(operation.result, body, walk, walked)
+    )
+      return true;
   return false;
 }
 
@@ -435,12 +536,17 @@ function blockDemand(
  * alignment. A runtime index is admitted only when its element stride is a
  * multiple of the alignment and the static prefix/suffix remains aligned, so
  * every selected element preserves the demand.
+ *
+ * The returned offset describes one address, and a runtime step means the
+ * program may address any element rather than that one, which is why the caller
+ * is told the difference: an offset proved for alignment is not a statement
+ * about which bytes are fetched.
  */
 function placeAlignment(
   place: SemanticPlace,
   align: number,
   definitions: Definitions,
-): number | null {
+): { readonly offset: number; readonly dynamic: boolean } | null {
   let type: SemanticType | undefined = place.rootType;
   let offset = 0;
   let dynamic = false;
@@ -468,7 +574,7 @@ function placeAlignment(
   // A runtime contribution is `index * stride`; the remaining static offset must
   // already be a multiple of the demand. The stride check above proves the rest.
   if (dynamic && offset % align !== 0) return null;
-  return offset % align === 0 ? offset : null;
+  return offset % align === 0 ? { offset, dynamic } : null;
 }
 
 /** One call this body makes, kept until the body it belongs to exists. */
@@ -524,7 +630,11 @@ function scanProgram(
       sites.push(Object.freeze({ body, result: call.result }));
       callSites.set(call.callee, sites);
     }
-  return Object.freeze({ bodies: Object.freeze(scanned.map(({ body }) => body)), callSites });
+  return Object.freeze({
+    bodies: Object.freeze(scanned.map(({ body }) => body)),
+    callSites,
+    moduleObjects: new Set(globals.map((global) => bindingIdentityKey(global.id))),
+  });
 }
 
 /**
@@ -569,15 +679,30 @@ export function alignBlockIndexStorage(
   const walk = scanProgram(functions, globals);
   const scan = (body: ScannedBody): void => {
     const { blocks, definitions } = body;
-    const record = (addressValue: ValueId, align: number, vicVisible: boolean): void => {
+    const record = (
+      addressValue: ValueId,
+      align: number,
+      publishedToVic: boolean,
+      span: SourceSpan,
+    ): void => {
       const address = addressOperation(addressValue, definitions);
       if (address === undefined || address.place.asset !== undefined) return;
       const key = bindingIdentityKey(address.place.root);
-      if (!byKey.has(key)) return;
-      const offset = placeAlignment(address.place, align, definitions);
-      if (offset === null) return;
+      const object = byKey.get(key);
+      if (object === undefined) return;
+      const proved = placeAlignment(address.place, align, definitions);
+      if (proved === null) return;
+      // A runtime index proves alignment for every element but names none of
+      // them, so the fetched run covers the object: the chip may read any
+      // element, and shrinking the demand to the element the static prefix
+      // happens to name would leave the others where it cannot see them.
+      const fetched = !publishedToVic
+        ? null
+        : proved.dynamic
+          ? { offset: 0, bytes: semanticTypeSize(object.type) }
+          : { offset: proved.offset, bytes: FETCHED_BYTES };
       const known = demands.get(key) ?? [];
-      known.push({ align, offset, vicVisible });
+      known.push({ align, offset: proved.offset, fetched, span });
       demands.set(key, known);
     };
     for (const block of blocks) {
@@ -593,9 +718,9 @@ export function alignBlockIndexStorage(
         // only once a block index has actually been recognized, so an ordinary
         // expression never pays for the search.
         const produced = "result" in operation ? operation.result : null;
-        const vicVisible =
+        const publishedToVic =
           produced !== null && produced !== undefined && reachesVicConsumer(produced, body, walk);
-        record(demand.address, demand.align, vicVisible);
+        record(demand.address, demand.align, publishedToVic, operation.span);
       }
     }
   };
@@ -617,29 +742,38 @@ export function alignBlockIndexStorage(
       if (placement?.at !== null && placement?.at !== undefined) return global;
       const stated = placement?.region ?? null;
       let align = placement?.align ?? 1;
-      let vicVisible = false;
+      const fetched: VicFetchRange[] = [];
+      let origin: SourceSpan | null = null;
       for (const demand of required) {
-        // Visibility is a property of the whole object rather than of one byte
-        // inside it, so it holds even where root alignment cannot express the
-        // offset: the chip cannot reach any part of a block outside its bank.
-        vicVisible ||= demand.vicVisible;
+        // Every published use contributes its own run. Satisfying one says
+        // nothing about another, so they accumulate rather than replace: a
+        // second sprite published from the same sheet is a second run the chip
+        // reads, at a different offset.
+        if (demand.fetched !== null) {
+          fetched.push(demand.fetched);
+          origin ??= demand.span;
+        }
         // Root alignment can only express a demand whose static offset is a
         // multiple of it. Leave other shapes exactly as written.
         if (demand.offset % demand.align !== 0) continue;
         align = Math.max(align, demand.align);
       }
-      // A region naming some other home is the author's deliberate choice, which
-      // this pass states a demand against rather than overrules.
-      const region =
-        vicVisible && (stated === null || VIC_REGIONS.has(stated)) ? VIC_VISIBLE_REGION : stated;
-      if (align === (placement?.align ?? 1) && region === stated) return global;
+      // A region naming some other home is the author's deliberate choice, and
+      // a stated one already constrains the whole object, so the inferred runs
+      // are attached only where they do not argue with what was written.
+      const inferred =
+        fetched.length === 0 || origin === null || !(stated === null || VIC_REGIONS.has(stated))
+          ? null
+          : Object.freeze({ ranges: mergeVicFetchRanges(fetched), span: origin });
+      if (align === (placement?.align ?? 1) && inferred === null) return global;
       return Object.freeze({
         ...global,
+        ...(inferred === null ? {} : { vicFetch: inferred }),
         placement: Object.freeze({
           at: null,
           align,
           noCross: placement?.noCross ?? null,
-          region,
+          region: stated,
         }),
       });
     }),

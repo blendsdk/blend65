@@ -324,10 +324,10 @@ function main(): void { poke($D018, lo(&buffer / 64)); poke($D019, hi(&buffer) *
 });
 
 /**
- * The region that keeps an object inside the chip's bank and clear of the window
- * where it reads character ROM instead of the RAM underneath.
+ * The one 64-byte run a sprite image occupies, which is what the chip fetches
+ * when it receives a block number computed from an object's first byte.
  */
-const VISIBLE_TO_THE_CHIP = "c64.vic.bank0-ram";
+const FIRST_SPRITE_BLOCK = [{ offset: 0, bytes: 64 }] as const;
 
 /** Resolve the placement a lowered program proved for one module object. */
 function placementOf(source: string, name: string) {
@@ -337,39 +337,68 @@ function placementOf(source: string, name: string) {
   return globalNamed(lowered.program.globals, name).placement;
 }
 
+/**
+ * Resolve both demands one lowered program proved for a module object: the
+ * alignment its address arithmetic needs, and the runs the video chip fetches.
+ *
+ * The two are read together because they are separate claims about the same
+ * object. Alignment follows from the shape of the expression and holds whoever
+ * receives the number; the fetched runs exist only where the chip provably
+ * receives it, and they say which bytes must be reachable rather than
+ * constraining the object as a whole.
+ */
+function provedFor(source: string, name: string) {
+  const lowered = lowerSource(source);
+  expect(lowered.kind).toBe("complete");
+  if (lowered.kind !== "complete") throw new Error("Expected a complete lowering");
+  const global = globalNamed(lowered.program.globals, name);
+  return {
+    align: global.placement?.align ?? 1,
+    fetched: global.vicFetch?.ranges ?? null,
+  };
+}
+
+/** Read the same two demands off a global the pass has already returned. */
+function provedDemands(global: SemanticGlobal | undefined) {
+  return {
+    align: global?.placement?.align ?? 1,
+    fetched: global?.vicFetch?.ranges ?? null,
+  };
+}
+
 describe("block-index VIC visibility across a call", () => {
   // The baseline the cases below are measured against: the chip provably receives
   // the block number, so the compiler owes it a home the chip can actually fetch.
   it("demands visible storage for a block number published directly", () => {
     expect(
-      placementOf(
+      provedFor(
         `module Game;
 let buffer: byte[64];
 function main(): void { c64.vic.setSpritePointer(0, lo(&buffer / 64)); }`,
         "buffer",
       ),
-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
   });
 
   // Computing the block number in a helper and publishing the result is ordinary
   // style. A function boundary is not a reason for the sprite to vanish.
   it("follows a block number a helper hands back", () => {
     expect(
-      placementOf(
+      provedFor(
         `module Game;
 let buffer: byte[64];
 function blockOf(): byte { return lo(&buffer / 64); }
 function main(): void { c64.vic.setSpritePointer(0, blockOf()); }`,
         "buffer",
       ),
-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
   });
 
   // One helper passing another helper's answer on is the same question asked
   // twice, so the proof resumes at each call site rather than at the first.
   it("follows a block number through a second helper", () => {
     expect(
-      placementOf(
+      provedFor(
         `module Game;
 let buffer: byte[64];
 function inner(): byte { return lo(&buffer / 64); }
@@ -377,21 +406,21 @@ function outer(): byte { return inner(); }
 function main(): void { c64.vic.setSpritePointer(0, outer()); }`,
         "buffer",
       ),
-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
   });
 
   // The caller may name the returned value before publishing it, which puts a
   // store and a load between the return and the chip.
   it("follows a returned block number held in a local first", () => {
     expect(
-      placementOf(
+      provedFor(
         `module Game;
 let buffer: byte[64];
 function blockOf(): byte { return lo(&buffer / 64); }
 function main(): void { let block: byte = blockOf(); c64.vic.setSpritePointer(0, block); }`,
         "buffer",
       ),
-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
   });
 
   // One hardware call site is enough, and the other caller is not a reason to
@@ -401,14 +430,169 @@ function main(): void { let block: byte = blockOf(); c64.vic.setSpritePointer(0,
   // home that satisfies the demand, so an unnecessary one can cost a build.
   it("demands visible storage when any call site publishes to the chip", () => {
     expect(
-      placementOf(
+      provedFor(
         `module Game;
 let buffer: byte[64];
 function blockOf(): byte { return lo(&buffer / 64); }
 function main(): void { poke($C000, blockOf()); c64.vic.setSpritePointer(0, blockOf()); }`,
         "buffer",
       ),
-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+  });
+
+  // The chip fetches one sprite image. Nothing else in a 9,000-byte sheet is
+  // read by the hardware, so the demand names those bytes rather than the
+  // object: a sheet larger than the window the chip can reach still has a home.
+  it("demands only the fetched bytes of a large object", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function main(): void { c64.vic.setSpritePointer(0, lo(&sheet / 64)); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+  });
+
+  // The addressed element decides which bytes are fetched, so the run sits where
+  // the author pointed rather than at the object's first byte.
+  it("demands the addressed element rather than the object's first block", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function main(): void { c64.vic.setSpritePointer(0, lo(&sheet[4096] / 64)); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 4096, bytes: 64 }] });
+  });
+
+  // Two sprites published from one sheet are two runs the chip reads. Satisfying
+  // one says nothing about the other, and the bytes between them are still
+  // ordinary storage, so the gap is kept rather than filled in.
+  it("accumulates a run for every published sprite", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function main(): void {
+  c64.vic.setSpritePointer(0, lo(&sheet / 64));
+  c64.vic.setSpritePointer(1, lo(&sheet[4096] / 64));
+}`,
+        "sheet",
+      ),
+    ).toEqual({
+      align: 64,
+      fetched: [
+        { offset: 0, bytes: 64 },
+        { offset: 4096, bytes: 64 },
+      ],
+    });
+  });
+
+  // Runs that meet describe one longer run, which is worth saying once rather
+  // than twice. Nothing about the requirement changes.
+  it("merges two fetched runs that meet", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function main(): void {
+  c64.vic.setSpritePointer(0, lo(&sheet / 64));
+  c64.vic.setSpritePointer(1, lo(&sheet[64] / 64));
+}`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 128 }] });
+  });
+
+  // An index read at run time proves alignment for every element and names
+  // none of them, so the chip may fetch any one. Shrinking the run to the
+  // element the static prefix happens to name would leave the rest where the
+  // chip cannot see them, which is the one way this proof must not be wrong.
+  it("widens the fetched run to the object when a runtime index selects the block", () => {
+    expect(
+      provedFor(
+        `module Game;
+let blocks: byte[2][64];
+function main(): void {
+  let index: byte = peek($0400);
+  c64.vic.setSpritePointer(0, lo(&blocks[index] / 64));
+}`,
+        "blocks",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 128 }] });
+  });
+
+  // `hi(address / 64)` is a value in `0..3`. It selects a block in the first
+  // 256 bytes of the bank, not one inside the object whose address produced it,
+  // so following it would claim a provenance the number does not carry.
+  it("drops provenance through an operator that changes the selector", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function blockOf(): byte { return hi(&sheet / 64); }
+function main(): void { c64.vic.setSpritePointer(0, blockOf()); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: null });
+  });
+
+  // The chip receives the constant, so nothing about this object is fetched.
+  // Only the reads between the two stores could have seen the block number.
+  it("stops at a value this body provably replaces", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function main(): void {
+  let block: byte = lo(&sheet / 64);
+  poke($C000, block);
+  block = 0;
+  c64.vic.setSpritePointer(0, block);
+}`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: null });
+  });
+
+  // A replacement reached on one path only replaces nothing: the other path
+  // still hands the block number to the chip.
+  it("keeps the demand when a replacement is conditional", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function main(): void {
+  let block: byte = lo(&sheet / 64);
+  if (peek($0400) == 0) { block = 0; }
+  c64.vic.setSpritePointer(0, block);
+}`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+  });
+
+  // A module variable is storage any other function and any interrupt can read,
+  // and this proof follows neither. Treating the second store as a replacement
+  // would drop the demand that keeps such a sprite visible, so a module home
+  // keeps it even in the shape a local would lose it in.
+  it("keeps the demand when the replaced home is module storage", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+let slot: byte;
+function main(): void {
+  slot = lo(&sheet / 64);
+  poke($C000, slot);
+  slot = 0;
+  c64.vic.setSpritePointer(0, slot);
+}`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
   });
 
   // A module initializer is a body too, and the arithmetic in one proves the
@@ -416,7 +600,7 @@ function main(): void { poke($C000, blockOf()); c64.vic.setSpritePointer(0, bloc
   // another body, which this proof does not yet follow.
   it("proves alignment from arithmetic in a module initializer", () => {
     expect(
-      placementOf(
+      provedFor(
         `module Game;
 let buffer: byte[64];
 let slot: byte = lo(&buffer / 64);
@@ -431,7 +615,7 @@ function main(): void { c64.vic.setSpritePointer(0, slot); }`,
   // the chip cannot see on some frames is still a sprite it cannot see.
   it("follows a block number chosen on one path of a conditional", () => {
     expect(
-      placementOf(
+      provedFor(
         `module Game;
 let buffer: byte[64];
 function main(): void {
@@ -439,13 +623,13 @@ function main(): void {
 }`,
         "buffer",
       ),
-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
   });
 
   // The same join, reached through a helper on both paths.
   it("follows a conditional between two helper results", () => {
     expect(
-      placementOf(
+      provedFor(
         `module Game;
 let buffer: byte[64];
 function blockOf(): byte { return lo(&buffer / 64); }
@@ -453,7 +637,7 @@ function relay(): byte { return peek($0400) == 0 ? blockOf() : 0; }
 function main(): void { c64.vic.setSpritePointer(0, relay()); }`,
         "buffer",
       ),
-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
   });
 
   // Writing a colour does not make the chip read the object whose address was
@@ -463,27 +647,27 @@ function main(): void { c64.vic.setSpritePointer(0, relay()); }`,
   // decide whether the program builds.
   it("leaves an object alone when the chip only receives a number from it", () => {
     expect(
-      placementOf(
+      provedFor(
         `module Game;
 let buffer: byte[64];
 function blockOf(): byte { return lo(&buffer / 64); }
 function main(): void { c64.vic.setBorderColor(blockOf()); }`,
         "buffer",
       ),
-    ).toMatchObject({ align: 64, region: null });
+    ).toEqual({ align: 64, fetched: null });
   });
 
   // The same call takes a sprite's index beside its block number, and only one
   // of the two says anything about where the chip reads.
   it("distinguishes the block argument from the sprite index beside it", () => {
     expect(
-      placementOf(
+      provedFor(
         `module Game;
 let buffer: byte[64];
 function main(): void { c64.vic.setSpritePointer(lo(&buffer / 64), 128); }`,
         "buffer",
       ),
-    ).toMatchObject({ align: 64, region: null });
+    ).toEqual({ align: 64, fetched: null });
   });
 
   // Ordinary address arithmetic keeps its home. Narrowing it because of how the
@@ -491,14 +675,14 @@ function main(): void { c64.vic.setSpritePointer(lo(&buffer / 64), 128); }`,
   // helper in the middle does not change that.
   it("leaves a returned block number alone when no hardware consumer receives it", () => {
     expect(
-      placementOf(
+      provedFor(
         `module Game;
 let buffer: byte[64];
 function blockOf(): byte { return lo(&buffer / 64); }
 function main(): void { poke($C000, blockOf()); }`,
         "buffer",
       ),
-    ).toMatchObject({ align: 64, region: null });
+    ).toEqual({ align: 64, fetched: null });
   });
 });
 
@@ -659,7 +843,7 @@ describe("block-index VIC visibility on shapes only the compiler can build", () 
       [syntheticBuffer],
     );
 
-    expect(aligned[0]?.placement).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
+    expect(provedDemands(aligned[0])).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
   });
 
   it("answers a call cycle instead of following it forever", () => {
@@ -679,7 +863,7 @@ describe("block-index VIC visibility on shapes only the compiler can build", () 
       [syntheticBuffer],
     );
 
-    expect(aligned[0]?.placement).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
+    expect(provedDemands(aligned[0])).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
   });
 
   it("stops walking a call cycle that publishes nothing", () => {
@@ -705,6 +889,6 @@ describe("block-index VIC visibility on shapes only the compiler can build", () 
 
     // The alignment the shape itself proves still applies; only visibility needs
     // a consumer, and no consumer is reachable here.
-    expect(aligned[0]?.placement).toMatchObject({ align: 64, region: null });
+    expect(provedDemands(aligned[0])).toEqual({ align: 64, fetched: null });
   });
 });

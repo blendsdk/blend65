@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { TargetProfile } from "../target/profile.js";
 import {
   freeSourceStart,
+  nextVicFetchStart,
   satisfiesSourcePlacement,
+  satisfiesVicFetch,
   sourceDataStart,
 } from "./c64-layout-placement.js";
 import { freeIntervalsInWindow } from "./c64-layout-objects.js";
@@ -46,6 +48,72 @@ describe("layout asset placement internals", () => {
     const occupied = [{ start: 0x0840, end: 0x087f }];
     expect(freeSourceStart(0x0801, 4, 64, undefined, occupied, profile())).toBe(0x0880);
     expect(freeSourceStart(0x3fc0, 0x80, 64, undefined, [], profile())).toBe(0x3fc0);
+  });
+
+  // Only the runs the chip fetches have to be reachable. The object itself may
+  // end past the bank or sit under the window where the chip reads character
+  // ROM, because nothing fetches those bytes.
+  it("should judge an inferred fetch by its own runs, not by the object", () => {
+    const anywhere = { sourceId: "src/game.blend", start: 0, end: 1 };
+    const firstBlock = Object.freeze({
+      ranges: Object.freeze([{ offset: 0, bytes: 64 }]),
+      span: anywhere,
+    });
+    const deepBlock = Object.freeze({
+      ranges: Object.freeze([{ offset: 4096, bytes: 64 }]),
+      span: anywhere,
+    });
+
+    expect(satisfiesVicFetch(0x0a80, firstBlock, profile())).toBe(true);
+    expect(satisfiesVicFetch(0x1400, firstBlock, profile())).toBe(false);
+    expect(satisfiesVicFetch(0x3fc0, firstBlock, profile())).toBe(true);
+    expect(satisfiesVicFetch(0x3fff, firstBlock, profile())).toBe(false);
+    // The addressed run is what matters: this object starts inside the hidden
+    // window and is still correct, because the bytes the chip reads are not.
+    expect(satisfiesVicFetch(0x1000, deepBlock, profile())).toBe(true);
+    expect(satisfiesVicFetch(0x0a80, deepBlock, profile())).toBe(false);
+    expect(satisfiesVicFetch(0x0a80, undefined, profile())).toBe(true);
+  });
+
+  // A hidden run moves the object by what that run needs. An object addressed
+  // 4 KiB in has to start 4 KiB before the window ends in order to fetch past
+  // it, and a run already past the bank cannot be rescued by moving upward.
+  it("should advance a hidden fetch by its own offset", () => {
+    const anywhere = { sourceId: "src/game.blend", start: 0, end: 1 };
+    const firstBlock = Object.freeze({
+      ranges: Object.freeze([{ offset: 0, bytes: 64 }]),
+      span: anywhere,
+    });
+    const deepBlock = Object.freeze({
+      ranges: Object.freeze([{ offset: 4096, bytes: 64 }]),
+      span: anywhere,
+    });
+
+    expect(nextVicFetchStart(0x1400, firstBlock, profile())).toBe(0x2000);
+    expect(nextVicFetchStart(0x0a80, deepBlock, profile())).toBe(0x1000);
+    expect(nextVicFetchStart(0x3fff, firstBlock, profile())).toBeNull();
+    expect(nextVicFetchStart(0x0a80, firstBlock, profile())).toBeNull();
+    expect(nextVicFetchStart(0x1400, undefined, profile())).toBeNull();
+  });
+
+  // The search itself has to honour the rule, not merely report on it: a first
+  // fit that hides the fetched bytes keeps looking. An object crossing into the
+  // hidden window is not itself a reason to move — only a run inside it is,
+  // which is why the first case starts where the run lands in the window and
+  // the second, whose run ends just before it, stays exactly where it fits.
+  it("should search past a home that hides the fetched bytes", () => {
+    const anywhere = { sourceId: "src/game.blend", start: 0, end: 1 };
+    const firstBlock = Object.freeze({
+      ranges: Object.freeze([{ offset: 0, bytes: 64 }]),
+      span: anywhere,
+    });
+
+    expect(freeSourceStart(0x0fc1, 0x2000, 64, undefined, [], profile(), false, firstBlock)).toBe(
+      0x2000,
+    );
+    expect(freeSourceStart(0x0f80, 0x2000, 64, undefined, [], profile(), false, firstBlock)).toBe(
+      0x0f80,
+    );
   });
 
   // Free intervals are the exact complement of occupied ranges in one window.

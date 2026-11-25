@@ -1,0 +1,101 @@
+import type { SourceSpan } from "../project/types.js";
+
+/** Layout-resolved VIC field transforms available to source operations. */
+export type VicFieldTransform =
+  | "vic-sprite-block"
+  | "vic-charset-select"
+  | "vic-bitmap-select"
+  | "vic-screen-select";
+
+/** Exact byte count the video chip fetches through one VIC field. */
+export function vicConsumerBytes(transform: VicFieldTransform): number {
+  switch (transform) {
+    case "vic-sprite-block":
+      return 64;
+    case "vic-charset-select":
+      return 2_048;
+    case "vic-bitmap-select":
+      return 8_000;
+    case "vic-screen-select":
+      return 1_000;
+  }
+}
+
+/** Required address alignment for one VIC field operation. */
+export function vicConsumerAlignment(transform: VicFieldTransform): number {
+  switch (transform) {
+    case "vic-sprite-block":
+      return 64;
+    case "vic-charset-select":
+      return 2_048;
+    case "vic-bitmap-select":
+      return 8_192;
+    case "vic-screen-select":
+      return 1_024;
+  }
+}
+
+/**
+ * One run of bytes the video chip fetches, measured from an object's first byte.
+ *
+ * The chip reads a bounded run, not whole objects: a sprite image is 64 bytes at
+ * the addressed offset, and the thousands of bytes a sprite sheet holds around it
+ * are never fetched. Keeping the demand this narrow is what lets a large object
+ * live in ordinary storage while the bytes the hardware reads stay reachable.
+ */
+export interface VicFetchRange {
+  /** Byte offset of the fetched run from the object's first byte. */
+  readonly offset: number;
+  /** Length of the fetched run. */
+  readonly bytes: number;
+}
+
+/**
+ * Everything placement needs in order to keep one object's fetched bytes
+ * reachable by the video chip, together with the expression that asked for it.
+ *
+ * The compiler infers this; the author wrote no constraint. That origin is part
+ * of the demand rather than a detail, because a refusal has to name the
+ * expression that caused it instead of blaming a constraint nobody wrote, and
+ * because an author-written region means the whole object and must not be
+ * confused with this.
+ */
+export interface VicFetchDemand {
+  /**
+   * Runs that must each stay inside the chip's bank and clear of the window
+   * where it reads character ROM. Every run is required; satisfying one does
+   * not excuse another.
+   */
+  readonly ranges: readonly VicFetchRange[];
+  /** The block-index expression this demand was inferred from. */
+  readonly span: SourceSpan;
+}
+
+/**
+ * Merge fetched runs that touch or overlap, leaving genuine gaps alone.
+ *
+ * Two runs that meet describe one longer run, and saying so keeps the placement
+ * check and any later evidence shorter. A gap between two runs is kept, because
+ * the bytes between them carry no requirement and closing the gap would demand
+ * storage the chip never reads.
+ *
+ * @param ranges Fetched runs in any order, possibly overlapping.
+ * @returns The same requirement expressed as disjoint runs in address order.
+ * @example mergeVicFetchRanges([{ offset: 64, bytes: 64 }, { offset: 0, bytes: 64 }])
+ */
+export function mergeVicFetchRanges(ranges: readonly VicFetchRange[]): readonly VicFetchRange[] {
+  const ordered = [...ranges]
+    .filter(({ bytes }) => bytes > 0)
+    .sort((left, right) => left.offset - right.offset);
+  const merged: VicFetchRange[] = [];
+  for (const range of ordered) {
+    const last = merged.at(-1);
+    if (last !== undefined && range.offset <= last.offset + last.bytes) {
+      const end = Math.max(last.offset + last.bytes, range.offset + range.bytes);
+      merged[merged.length - 1] = Object.freeze({ offset: last.offset, bytes: end - last.offset });
+      continue;
+    }
+    merged.push(Object.freeze({ ...range }));
+  }
+  return Object.freeze(merged);
+}

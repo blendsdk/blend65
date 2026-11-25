@@ -144,6 +144,7 @@ export function lowerData(
         alignment: 1,
         bytes: encoded ?? Object.freeze(new Array<number>(bytes).fill(0)),
         ...(global.placement ? { placement: global.placement } : {}),
+        ...(global.vicFetch ? { vicFetch: global.vicFetch } : {}),
         ...(global.zeropage ? { zeropage: true } : {}),
       });
     });
