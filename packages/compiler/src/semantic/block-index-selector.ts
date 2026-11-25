@@ -101,4 +101,16 @@ export interface SelectorReach {
   readonly displacements: Set<number>;
   /** Whether some publication's displacement is only known at run time. */
   runtimeSelected: boolean;
+  /**
+   * Whether the selector left along a route this proof does not follow, so no
+   * answer about it is complete.
+   *
+   * Passing the number to a function, or storing it where another body can read
+   * it, puts it beyond what this walk inspects. Concluding "the chip never
+   * receives it" would then be a guess in the one direction that leaves a
+   * sprite unreadable, so an escape falls back to demanding the whole object —
+   * which is exactly what the proof demanded before it learned to measure
+   * extents, and is the honest answer until the missing routes are followed.
+   */
+  escaped: boolean;
 }

@@ -799,10 +799,11 @@ function main(): void {
   });
 
   // A module variable is storage any other function and any interrupt can read,
-  // and this proof follows neither. Treating the second store as a replacement
-  // would drop the demand that keeps such a sprite visible, so a module home
-  // keeps it even in the shape a local would lose it in.
-  it("keeps the demand when the replaced home is module storage", () => {
+  // and this proof follows neither. So the replacement is not trusted here, and
+  // the demand covers the whole object rather than one block: a reader this
+  // walk never visits could publish any block of it, and guessing otherwise is
+  // what leaves a sprite unreadable.
+  it("demands the whole object when the block number reaches module storage", () => {
     expect(
       provedFor(
         `module Game;
@@ -816,7 +817,42 @@ function main(): void {
 }`,
         "sheet",
       ),
-    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 9000 }] });
+  });
+
+  // Handing the number to a function is ordinary composition, and this walk
+  // does not cross into the callee's parameters yet. Until it does, the honest
+  // answer is the one the proof gave before it measured extents at all — the
+  // whole object — rather than a conclusion that the chip receives nothing.
+  it("demands the whole object when the block number is passed to a function", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function publish(block: byte): void { c64.vic.setSpritePointer(0, block); }
+function main(): void { publish(lo(&sheet / 64)); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 9000 }] });
+  });
+
+  // The shape that made this matter: one publication the walk follows exactly,
+  // and a second it cannot. Measuring only the first would move the object to
+  // where the first block is visible and leave the second in character ROM, so
+  // the unfollowed route widens the demand back over the whole object.
+  it("widens a measured demand when a second publication escapes the walk", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[8192];
+function publish(block: byte): void { c64.vic.setSpritePointer(1, block); }
+function main(): void {
+  c64.vic.setSpritePointer(0, lo(&sheet / 64));
+  publish(lo(&sheet[4096] / 64));
+}`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 8192 }] });
   });
 
   // A module initializer is a body too, and the arithmetic in one proves the

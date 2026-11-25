@@ -275,20 +275,21 @@ export function alignBlockIndexStorage(
       const proved = placeAlignment(address.place, align, definitions);
       if (proved === null) return;
       const size = semanticTypeSize(object.type);
-      const published = reach.displacements.size > 0 || reach.runtimeSelected;
+      const published = reach.displacements.size > 0 || reach.runtimeSelected || reach.escaped;
       // An index chooses between the declared elements of its dimension, and a
       // displacement read at run time chooses between every block of the
       // object. Either way the chip may read any of them, so all of them are
       // demanded; shrinking to the one a static prefix happens to name would
       // leave the rest where the chip cannot see them.
       const addressable = addressableOffsets(proved, size);
-      const runtimeSelected = reach.runtimeSelected || proved.selected.length > 0;
+      const runtimeSelected = reach.runtimeSelected || reach.escaped || proved.selected.length > 0;
       const fetched: VicFetchRange[] = [];
       if (!published) {
         // Nothing proves the chip receives this number, so nothing is demanded.
-      } else if (reach.runtimeSelected || addressable.length === 0) {
-        // Past the enumeration bound, or with the block chosen by arithmetic
-        // nothing here can evaluate, the whole object is the honest demand.
+      } else if (reach.runtimeSelected || reach.escaped || addressable.length === 0) {
+        // Past the enumeration bound, with the block chosen by arithmetic
+        // nothing here can evaluate, or with the number gone somewhere this
+        // proof does not follow, the whole object is the honest demand.
         fetched.push({ offset: 0, bytes: size });
       } else {
         // A displacement names a later block of the same object. Runs are
@@ -318,7 +319,11 @@ export function alignBlockIndexStorage(
         // only once a block index has actually been recognized, so an ordinary
         // expression never pays for the search.
         const produced = "result" in operation ? operation.result : null;
-        const reach: SelectorReach = { displacements: new Set(), runtimeSelected: false };
+        const reach: SelectorReach = {
+          displacements: new Set(),
+          runtimeSelected: false,
+          escaped: false,
+        };
         if (produced !== null && produced !== undefined)
           collectSelectorReach(produced, body, walk, reach);
         record(demand.address, demand.align, reach, operation.span);

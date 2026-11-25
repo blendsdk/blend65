@@ -196,6 +196,21 @@ export function collectSelectorReach(
           else follow(operation.result, displaced(negated(state), other));
         }
       }
+      // Handing the number to a function, or to a call whose target this pass
+      // has not proved, takes it out of reach of this walk. The same is true of
+      // storing it in module storage, which any other body can read. None of
+      // those is evidence that the chip never receives it.
+      if (
+        (operation.kind === "call" || operation.kind === "indirect-call") &&
+        operation.arguments.includes(value)
+      )
+        reach.escaped = true;
+      if (
+        operation.kind === "store" &&
+        operation.value === value &&
+        walk.moduleObjects.has(bindingIdentityKey(operation.place.root))
+      )
+        reach.escaped = true;
       // `cond ? lo(&sprites / 64) : 0` publishes the block number on one path.
       // A value that arrives at a join is the join's value on the path it came
       // from, so one incoming edge is enough: the chip receives this address
