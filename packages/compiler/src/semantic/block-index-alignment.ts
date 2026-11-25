@@ -36,6 +36,46 @@ const VIC_CAPABILITY_PREFIX = "c64.vic.";
 type Definitions = ReadonlyMap<string, SemanticOperation>;
 
 /**
+ * One scanned body together with the values it defines.
+ *
+ * A block number can be computed in one function and published in another, so the
+ * proof that the video chip receives it walks bodies rather than stopping at the
+ * edge of the one that did the arithmetic. Value identities are qualified by the
+ * body that defines them, which is why a definition map belongs to a body rather
+ * than to the program.
+ */
+interface ScannedBody {
+  /**
+   * Identity of the function this body belongs to, or null for a module
+   * initializer, whose result no call site can receive.
+   */
+  readonly owner: string | null;
+  /** Basic blocks of this body in construction order. */
+  readonly blocks: readonly SemanticBlock[];
+  /** Values this body defines, for static address and index resolution. */
+  readonly definitions: Definitions;
+}
+
+/**
+ * Values the walk has already followed, kept per body.
+ *
+ * A value identity is unique only within the body that defines it, so two bodies
+ * may name different values the same. One shared set would treat the second as
+ * already walked and answer that it reaches nothing — and answering that way
+ * wrongly is what leaves a sprite where the chip cannot see it.
+ */
+type WalkedValues = Map<ScannedBody, Set<ValueId>>;
+
+/** Values already followed in one body, created on first use. */
+function walkedIn(walked: WalkedValues, body: ScannedBody): Set<ValueId> {
+  const seen = walked.get(body);
+  if (seen !== undefined) return seen;
+  const created = new Set<ValueId>();
+  walked.set(body, created);
+  return created;
+}
+
+/**
  * Resolve the integer value of one constant expression, or null when it is
  * not compile-time known. Conversions preserve the mathematical value except
  * for truncation, which masks to the converted scalar width.
@@ -171,16 +211,17 @@ function usedByBinary(
  */
 function reachesVicConsumer(
   value: ValueId,
-  blocks: readonly SemanticBlock[],
-  definitions: Definitions,
-  visited: Set<ValueId> = new Set(),
+  body: ScannedBody,
+  bodies: readonly ScannedBody[],
+  walked: WalkedValues = new Map(),
 ): boolean {
   // Holding a block number in a variable before publishing it is ordinary, and
   // a place can be written and read repeatedly, so the walk remembers where it
   // has been rather than assuming the derivation chain is acyclic.
-  if (visited.has(value)) return false;
-  visited.add(value);
-  for (const block of blocks) {
+  const seen = walkedIn(walked, body);
+  if (seen.has(value)) return false;
+  seen.add(value);
+  for (const block of body.blocks) {
     for (const operation of block.operations) {
       if (
         operation.kind === "platform" &&
@@ -191,7 +232,7 @@ function reachesVicConsumer(
       if (
         (operation.kind === "convert" || operation.kind === "unary") &&
         operation.operand === value &&
-        reachesVicConsumer(operation.result, blocks, definitions, visited)
+        reachesVicConsumer(operation.result, body, bodies, walked)
       )
         return true;
       // `let block = lo(&sprites / 64);` publishes through a variable. The read
@@ -202,30 +243,69 @@ function reachesVicConsumer(
       if (
         operation.kind === "store" &&
         operation.value === value &&
-        loadsReachVicConsumer(operation.place, blocks, definitions, visited)
+        loadsReachVicConsumer(operation.place, body, bodies, walked)
       )
         return true;
     }
   }
-  return false;
+  // Computing the block number in a helper and publishing the result is ordinary
+  // style, so the walk follows the value out through the return and resumes at
+  // every call site. Resuming with the same walk also covers a helper that only
+  // hands another helper's answer on, and an initializer has no caller to resume
+  // in, which is what distinguishes a body with an owner from one without.
+  return body.owner !== null && leavesByReturn(value, body.blocks)
+    ? callResultsReachVicConsumer(body.owner, bodies, walked)
+    : false;
 }
 
 /** Whether any read of one written object hands its value to the video chip. */
 function loadsReachVicConsumer(
   place: SemanticPlace,
-  blocks: readonly SemanticBlock[],
-  definitions: Definitions,
-  visited: Set<ValueId>,
+  body: ScannedBody,
+  bodies: readonly ScannedBody[],
+  walked: WalkedValues,
 ): boolean {
   const written = bindingIdentityKey(place.root);
-  for (const block of blocks)
+  for (const block of body.blocks)
     for (const operation of block.operations)
       if (
         operation.kind === "load" &&
         bindingIdentityKey(operation.place.root) === written &&
-        reachesVicConsumer(operation.result, blocks, definitions, visited)
+        reachesVicConsumer(operation.result, body, bodies, walked)
       )
         return true;
+  return false;
+}
+
+/** Whether one value is handed to this body's callers as its result. */
+function leavesByReturn(value: ValueId, blocks: readonly SemanticBlock[]): boolean {
+  return blocks.some(
+    (block) => block.terminator.kind === "return" && block.terminator.value === value,
+  );
+}
+
+/**
+ * Whether any call to one function hands that call's result to the video chip.
+ *
+ * Every body is searched, including module initializers, because a block number
+ * can be published from an initializer as readily as from a function. A call
+ * whose result is discarded publishes nothing and is skipped.
+ */
+function callResultsReachVicConsumer(
+  owner: string,
+  bodies: readonly ScannedBody[],
+  walked: WalkedValues,
+): boolean {
+  for (const body of bodies)
+    for (const block of body.blocks)
+      for (const operation of block.operations)
+        if (
+          operation.kind === "call" &&
+          bindingIdentityKey(operation.callee) === owner &&
+          operation.result !== null &&
+          reachesVicConsumer(operation.result, body, bodies, walked)
+        )
+          return true;
   return false;
 }
 
@@ -344,6 +424,17 @@ function placeAlignment(
   return offset % align === 0 ? offset : null;
 }
 
+/** Index one body's value definitions for static address and index resolution. */
+function scannedBody(owner: string | null, blocks: readonly SemanticBlock[]): ScannedBody {
+  const definitions = new Map<string, SemanticOperation>();
+  for (const block of blocks)
+    for (const operation of block.operations) {
+      const result = "result" in operation ? operation.result : null;
+      if (result !== null && result !== undefined) definitions.set(result, operation);
+    }
+  return Object.freeze({ owner, blocks, definitions });
+}
+
 /**
  * Record the alignment a module object needs when its address is used as a
  * block index.
@@ -361,14 +452,20 @@ function placeAlignment(
  * itself must satisfy both, because nothing else in the program asked for that
  * address — choosing a home the hardware cannot reach is this pass's own fault.
  *
+ * Visibility is proved only where the video chip provably receives the value, and
+ * that proof crosses function boundaries: computing a block number in a helper
+ * and publishing the result is ordinary style, so a value handed back by a return
+ * is followed into every call site that receives it.
+ *
  * An explicit address is the author's contract and is left exactly as written,
  * including one that is misaligned or outside the bank. Reporting those would
  * have to be a warning, since the program is accepted today and the acceptance
  * is pinned; no warning contract for a hardware advisory exists yet, so the
  * silence is tracked rather than fixed here.
  *
- * @param functions Ordinary and initializer bodies to scan.
- * @param globals Module objects whose placement may be strengthened.
+ * @param functions Function bodies to scan, which also supply every call site.
+ * @param globals Module objects whose placement may be strengthened, and whose
+ *   initializer bodies are scanned alongside the functions.
  * @returns The globals with any proved alignment demand applied.
  */
 export function alignBlockIndexStorage(
@@ -377,13 +474,12 @@ export function alignBlockIndexStorage(
 ): readonly SemanticGlobal[] {
   const byKey = new Map(globals.map((global) => [bindingIdentityKey(global.id), global] as const));
   const demands = new Map<string, AlignmentDemand[]>();
-  const scan = (blocks: readonly SemanticBlock[]): void => {
-    const definitions = new Map<string, SemanticOperation>();
-    for (const block of blocks)
-      for (const operation of block.operations) {
-        const result = "result" in operation ? operation.result : null;
-        if (result !== null && result !== undefined) definitions.set(result, operation);
-      }
+  const bodies: readonly ScannedBody[] = Object.freeze([
+    ...functions.map((fn) => scannedBody(bindingIdentityKey(fn.id), fn.blocks)),
+    ...globals.map((global) => scannedBody(null, global.blocks)),
+  ]);
+  const scan = (body: ScannedBody): void => {
+    const { blocks, definitions } = body;
     const record = (addressValue: ValueId, align: number, vicVisible: boolean): void => {
       const address = addressOperation(addressValue, definitions);
       if (address === undefined || address.place.asset !== undefined) return;
@@ -397,25 +493,24 @@ export function alignBlockIndexStorage(
     };
     for (const block of blocks) {
       for (const operation of block.operations) {
+        const complete = completeSelector(operation, definitions);
+        const demand =
+          complete === null
+            ? blockDemand(operation, definitions, blocks)
+            : { align: 64, address: complete };
+        if (demand === null) continue;
         // The block number this operation computes is what a consumer receives,
-        // so the proof that the video chip is the consumer starts from it.
+        // so the proof that the video chip is the consumer starts from it — and
+        // only once a block index has actually been recognized, so an ordinary
+        // expression never pays for the search.
         const produced = "result" in operation ? operation.result : null;
         const vicVisible =
-          produced !== null &&
-          produced !== undefined &&
-          reachesVicConsumer(produced, blocks, definitions);
-        const complete = completeSelector(operation, definitions);
-        if (complete !== null) {
-          record(complete, 64, vicVisible);
-          continue;
-        }
-        const demand = blockDemand(operation, definitions, blocks);
-        if (demand !== null) record(demand.address, demand.align, vicVisible);
+          produced !== null && produced !== undefined && reachesVicConsumer(produced, body, bodies);
+        record(demand.address, demand.align, vicVisible);
       }
     }
   };
-  for (const fn of functions) scan(fn.blocks);
-  for (const global of globals) scan(global.blocks);
+  for (const body of bodies) scan(body);
   if (demands.size === 0) return globals;
   return Object.freeze(
     globals.map((global) => {
