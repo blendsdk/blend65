@@ -1,8 +1,8 @@
 # Follow a block number across a call argument, and close what the fallback never covered
 
 > **Owner**: T-188 (#188) · **Type**: Task (lightweight) · **CodeOps Artifact Schema**: 1
-> **Status**: Delivered and verified; four reviews dispositioned, five reviewer-found regressions fixed here, two re-reviews running
-> **Progress**: 5/6 tasks (83%)
+> **Status**: Delivered and verified; six reviews dispositioned over two rounds, eleven reviewer-found regressions fixed here
+> **Progress**: 6/6 tasks (100%)
 > **Last Updated**: 2026-11-25
 
 ## Why this unit exists
@@ -94,7 +94,7 @@ and lends it on is safe today only because the argument escapes.
 | 3 | Escape a selector held in an address-taken object, or written through a borrowed parameter | ☑ |
 | 4 | Follow a result an indirect call can receive, rather than escaping | ☑ |
 | 5 | Follow a direct call's argument into the callee's parameter reads | ☑ |
-| 6 | Verification, reviews, record and roadmap | ☐ |
+| 6 | Verification, reviews, record and roadmap | ☑ |
 
 ## What the oracle caught that I had not planned for
 
@@ -166,43 +166,89 @@ One branch was then **removed** because a mutation proved it could not answer di
 a written address back to a named place could never beat the escape, since writing through an
 object's address requires taking that address, which escapes on its own.
 
+## The second review round, and why it changed the approach
+
+The four repairs went back to two of the reviewers. They found six more holes in the same class —
+one of them a **compiler crash** — which is the point at which enumerating programs stopped being
+the right method.
+
+| Finding | Measured | Disposition |
+| --- | --- | --- |
+| SM-009 / SF-005 — the aggregate route dropped the invocation it was entered with | `RangeError: Maximum call stack size exceeded` | **Fixed.** Now `64+64` |
+| SM-006 / SF-001 — an aggregate assigned into module storage | `$1400`, no demand at all | **Fixed.** The module check moved to where every write route arrives |
+| SM-007 / SF-002 — a constant write to the address of a placed object | `$1400`, no demand at all | **Fixed** |
+| SF-002b — a block number poked into a sprite-pointer byte, through a helper | no demand | **Fixed.** `(address & $03FF) >= $03F8` |
+| SF-004 — two exclusive-ors restoring the number, across calls | no demand | **Fixed** by the crossing invariant; the direct form is [#198](https://github.com/blendsdk/blend65/issues/198) |
+| SF-006 — an 18,000-byte object owed two runs 16 KiB apart | unsatisfiable, refused | **Fixed.** One residue, one position |
+| SM-005 / SF-003 — two callers of one helper collapsing in the memo | `0+64` in both caller orders | **Refuted**, by construction |
+| SM-008 — a computed address outside the bank refuses the whole object | refused | Filed as [#199](https://github.com/blendsdk/blend65/issues/199) |
+
+### Enumerating endings instead of programs
+
+Two rounds had found holes as fast as they were fixed, because both attacked programs. The walk ends
+a search in exactly three ways: it follows a route, it reaches something it has **proved** no longer
+names a block of this object, or it reaches something it merely **assumes** does. Listing those
+endings showed the assumed ones were inherited and two were false — an exclusive-or by a mask twice
+restores the number exactly, and so does decimal subtraction of zero.
+
+Before arguments were followed, every number passed as one demanded the whole object, so none of
+those assumptions were reachable that way. The walk now carries whether the number has crossed into
+a function through a parameter, and **an assumed ending escapes once it has**. That makes every
+crossed program at least as safe as it was before the route was followed, by construction rather
+than by enumeration, and leaves direct code exactly as it behaved. Adding and subtracting stay
+followed; a boolean result stays proved, so a helper that compares its block number pays nothing.
+
+### One refutation, by construction rather than by probe
+
+Both reviewers in the second round held that two callers of one helper could share a function-local
+result identity, collapse in the memo, and lose the chip-facing caller. `ControlFlowBuilder`
+allocates every identity as `${prefix}:v${n}` with the prefix `function:<binding>` or
+`initializer:<binding>`, so identities are unique program-wide and initializers are distinguished
+too. Measured in both caller orders: `0+64` each time. Recorded as refuted rather than as a risk
+accepted.
+
 ## Verification
 
 | Check | Result |
 | --- | --- |
-| Oracle, authored implementation-blind throughout | **119 cases** over four profiles; **28 of the first 73 failed** before implementation |
+| Oracle, authored implementation-blind throughout | **141 cases** over four profiles; **28 of the first 73 failed** before implementation |
 | Implementation tier | **1,727** across pass, layout and services |
-| Block-index oracles | **265** across seven root files |
+| rd04 in full | **130 files / 1,997 tests** |
 | Host checkpoint | **282 files / 6,148 tests**, exit 0 |
 | Affected emulator tier, targeted and serialized | **166/166** across four files |
 | Byte identity | **9/9** across three examples × three optimization goals, every hash unchanged |
 | Install · build · typecheck | clean; `spec/` untouched throughout |
-| Module sizes | 406 · 564 · 272 · 119 · 110, the walk alone above the 500 aim |
+| Module sizes | 411 · 673 · 302 · 120 · 110; the walk is above the 500 aim and inside the 700 ceiling |
 
 ### Mutation matrix
 
-Fourteen mutations, each applied alone against the delivered code with the tests untouched, all
-measured against the final 119-case oracle.
+Twenty mutations, each applied alone against the delivered code with the tests untouched, all
+measured against the final 141-case oracle.
 
 | Mutation | Cases it fails |
 | --- | --- |
 | Unknown consumers no longer escape | 21 |
 | A write to an unattributable address no longer escapes | 18 |
 | The indirect-result route removed | 10 |
+| The displacement residue replaced by the raw offset | 9 |
 | The address-taken holder no longer escapes | 8 |
 | A borrowed-parameter write no longer escapes | 8 |
 | The parameter address-taken check removed | 8 |
-| The second displacement candidate removed | 8 |
 | The escape left set on a followed call | 7 |
 | The argument position reversed | 4 |
 | The callee entered with an unshifted selector | 4 |
 | An undelivered aggregate no longer escapes | 4 |
+| A crossed assumption no longer escapes | 4 |
+| The sprite-pointer test removed | 4 |
+| The placed-object test removed | 4 |
+| Module ownership no longer checked where writes arrive | 4 |
 | An address-taken result escapes instead of being followed | 1 |
 | A returned value resumes at every call site | 1 |
 | An aggregate escapes instead of being followed | 1 |
+| The aggregate route forgets the invocation, in either delivery branch | 1 |
+| The second displacement candidate removed (superseded by the residue) | 8 |
 
-A fifteenth, removing the escape for a callee or position that cannot be resolved, fails nothing.
-See the disclosures.
+Two mutations fail nothing, and both are disclosed below rather than counted.
 
 ### Shapes measured beyond the oracle
 
@@ -221,25 +267,38 @@ See the disclosures.
 
 ## Disclosures
 
-**One branch no test can observe.** `enterParameter` escapes when the callee body or the parameter
-position cannot be resolved. No program reaches it: every direct call's callee is indexed, including
-across modules, and arguments align one-to-one with parameters. It is the required handling of an
-optional lookup with the safe branch chosen. The correctness review agreed it should stay and noted
-that no supplied invariant proves it unreachable.
+**Two branches no test can observe.** `enterParameter` escapes when the callee body or parameter
+position cannot be resolved, and refuses to revisit a call site already on its path. No program
+reaches either: every direct call's callee is indexed, including across modules, arguments align
+one-to-one with parameters, and the language rejects both direct and indirect recursion (E10180,
+E10181). The second guard exists because a forgotten hand-off reintroduced exactly such a cycle and
+the compiler crashed rather than answering conservatively — the walk's termination should not rest
+on a property of the source language holding.
 
 **The host checkpoint reported unhandled rejections once.** The first run showed six unhandled
-rejections and 281 of 282 files; the rerun was 282 of 282 with exit 0 and no rejections. Not
-reproduced, recorded rather than filed.
+rejections and 281 of 282 files; three subsequent runs were 282 of 282 with exit 0. Not reproduced,
+recorded rather than filed.
 
 **Everything here is artifact-placement-verified.** Every test resolves a final address from public
 debug metadata and checks the fetched bytes against the bank and the character-ROM window. No test
 observes the chip fetching them, and a processor-side read cannot tell RAM from the character ROM the
 chip sees. That is weaker than the `VICE-verified / hardware-unverified` status the rest of the VIC
-surface carries, and it is filed as #196.
+surface carries, and it is filed as [#196](https://github.com/blendsdk/blend65/issues/196).
 
 **Three routes keep the fallback.** An indirect call's arguments, module storage written in one body
 and read in another, and a module initializer. The first needs a call-target proof; the other two
 need the object-following capability #194 describes. #188 stays open for all three.
+
+**The walk is 673 lines, above the 200–500 aim.** The obvious seam is the classification of
+operations that receive a selector — around 200 lines and a coherent concern — but it calls back into
+the walk it would be split from, so extracting it needs either a circular import or an injected
+continuation. Neither is worth improvising at the end of a long unit, and it is recorded here for
+whoever next changes this pass rather than filed as its own row.
+
+**Seven issues carry what was not fixed here.** #193 and #194 are over-demands needing capabilities
+beyond this unit; #195 and #198 are silent holes that predate it and need no call boundary; #199 is
+a new over-demand; #196 is the emulator gap; #197 is the implementation-test split, which has
+nowhere in the package to put a shared fixture.
 
 ## Verification shape
 
@@ -247,14 +306,3 @@ Impact: semantic inference, layout placement and one diagnostic cause. Directed 
 new oracle during implementation; install, build, typecheck and the complete owned tests at the
 checkpoint; the affected VICE files, which are the sprite-pointer and VIC observer journeys; byte
 identity across the three examples and three optimization goals.
-
-Mutations that must each fail a case: the escape left set on a followed call, the callee entered with
-an unshifted selector, the argument position ignored, the address-taken guard removed, the borrowed
-parameter rule removed, the indirect-return escape removed, and an unresolvable callee no longer
-escaping.
-
-Every case must land inside the character-ROM window when its own rule is mutated away. Several of
-these shapes are green before and after this unit, so the mutation is their only proof, and a layout
-that happens to be visible would leave them proving nothing. The padding the existing oracles use —
-2,400 uninitialized bytes ahead of the object — is what exposes it; an initialized pad moves the
-object past the window and hides the defect.
