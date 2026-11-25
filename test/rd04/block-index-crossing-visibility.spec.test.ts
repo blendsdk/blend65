@@ -326,6 +326,37 @@ c64.vic.setSpritePointer(0, frames[0]);`,
     helpers: "",
     use: "let i: byte = peek($0400); poke($0400 + word(i), lo(&buffer / 64));",
   },
+  // Saving a whole array in module storage must not leave a sprite displaying
+  // character shapes with nothing reported.
+  {
+    name: "should keep a sprite block visible after aggregate assignment into module storage",
+    globals: "let frames: byte[1];",
+    helpers: "function save(b: byte): void { frames = [b]; }",
+    use: "save(lo(&buffer / 64)); c64.vic.setSpritePointer(0, frames[0]);",
+  },
+  // Writing a placed slot by its constant address must not leave a sprite
+  // displaying character shapes when the slot is read by name, with nothing reported.
+  {
+    name: "should keep a sprite block visible after a constant-address write to a placed slot",
+    globals: "place(at: $C000) let slot: byte;",
+    helpers: "function save(b: byte): void { poke($C000, b); }",
+    use: "save(lo(&buffer / 64)); c64.vic.setSpritePointer(0, slot);",
+  },
+  // Publishing directly to the startup screen's sprite-pointer byte must not
+  // leave a sprite displaying character shapes with nothing reported.
+  {
+    name: "should keep a sprite block visible when written directly to a sprite-pointer byte",
+    helpers: "function publish(b: byte): void { poke($07F8, b); }",
+    use: "publish(lo(&buffer / 64));",
+  },
+  // Restoring a block number with two exclusive-ors must not leave a sprite
+  // displaying character shapes with nothing reported.
+  {
+    name: "should keep a sprite block visible after two exclusive-ors across helper calls",
+    helpers: `function flip(b: byte): byte { return b ^ byte(1); }
+function publish(b: byte): void { c64.vic.setSpritePointer(0, flip(flip(b))); }`,
+    use: "publish(lo(&buffer / 64));",
+  },
 ];
 
 describe("block-index visibility across calls and borrowed storage", () => {
@@ -465,6 +496,53 @@ c64.vic.setSpritePointer(1, frames[1]);`,
     expectVisibleBlock(artifacts, LARGE_BUFFER_BYTES, 0);
     expectVisibleBlock(artifacts, LARGE_BUFFER_BYTES, 64);
   }, 120_000);
+
+  // Selecting one earlier block from an object larger than the bank must not
+  // cause a legal program to be refused with no home in the bank.
+  it(`${REFERENCE_PROFILE}: should build an object larger than the bank with its backward-selected first block visible`, async () => {
+    const artifacts = await build(
+      pushedIntoTheWindow(
+        "c64.vic.setSpritePointer(0, lo(&buffer[64] / 64) - 1);",
+        "",
+        "",
+        "let buffer: byte[18000];",
+      ),
+      REFERENCE_PROFILE,
+    );
+    expectVisibleBlock(artifacts, 18000, 0);
+  }, 120_000);
+
+  // Staging each nested helper's byte in an array must not refuse a legal
+  // large-sheet program with no home in the bank or leave its sprite invisible.
+  it(`${REFERENCE_PROFILE}: should build a large object with its second block visible through nested aggregate-staging helpers`, async () => {
+    const artifacts = await build(
+      pushedIntoTheWindow(
+        "c64.vic.setSpritePointer(0, forward(forward(lo(&buffer / 64)) + 1));",
+        "function forward(b: byte): byte { let t: byte[1] = [b]; return t[0]; }",
+        "",
+        `let buffer: byte[${LARGE_BUFFER_BYTES}];`,
+      ),
+      REFERENCE_PROFILE,
+    );
+    expectVisibleBlock(artifacts, LARGE_BUFFER_BYTES, 64);
+  }, 120_000);
+
+  // Merely comparing a block number must not move unrelated data or refuse a
+  // legal program with no home in the bank.
+  forEachProfile(
+    "should leave an object's home untouched when a helper only compares its block number",
+    async (profile) => {
+      const compared = await build(
+        pushedIntoTheWindow(
+          "if (check(lo(&buffer / 64))) { poke($C000, 1); }",
+          "function check(b: byte): boolean { return b > byte(10); }",
+        ),
+        profile,
+      );
+      const ordinary = await build(pushedIntoTheWindow("poke($C000, lo(&buffer / 64));"), profile);
+      expect(bufferAddress(compared)).toBe(bufferAddress(ordinary));
+    },
+  );
 
   // Without a chip consumer, returning a block number is just arithmetic. A helper
   // must not silently relocate data merely because its result resembles a sprite pointer.
