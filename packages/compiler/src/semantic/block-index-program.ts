@@ -1,5 +1,6 @@
 import { bindingIdentityKey, semanticTypeKey } from "../frontend/semantic-types.js";
 import type { SemanticType } from "../frontend/semantic-types.js";
+import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import type {
   SemanticBlock,
   SemanticFunction,
@@ -55,6 +56,14 @@ interface ScannedParameter {
   readonly borrowed: boolean;
 }
 
+/** One object pinned to an explicit address, and the bytes it covers. */
+export interface PlacedObject {
+  /** First address the object occupies. */
+  readonly start: number;
+  /** Byte length of the object. */
+  readonly size: number;
+}
+
 /** One call whose result a caller receives, kept with the body that receives it. */
 interface CallSite {
   /** Body containing the call. */
@@ -80,6 +89,14 @@ export interface ProgramWalk {
   readonly bodiesByOwner: ReadonlyMap<string, ScannedBody>;
   /** Module objects, whose storage any other body or an interrupt may read. */
   readonly moduleObjects: ReadonlySet<string>;
+  /**
+   * Objects the author pinned to an address, with the bytes each one covers.
+   *
+   * A write to a constant address is ordinary processor work until that address
+   * is one an object was placed at, and then it is a write to that object —
+   * which another body can read by name without any address appearing anywhere.
+   */
+  readonly placedObjects: readonly PlacedObject[];
   /**
    * Objects whose address is taken somewhere in the program.
    *
@@ -271,6 +288,13 @@ export function scanProgram(
     callSites,
     bodiesByOwner,
     moduleObjects: new Set(globals.map((global) => bindingIdentityKey(global.id))),
+    placedObjects: Object.freeze(
+      globals.flatMap((global) =>
+        typeof global.placement?.at === "number"
+          ? [Object.freeze({ start: global.placement.at, size: semanticTypeSize(global.type) })]
+          : [],
+      ),
+    ),
     addressTaken,
     functionAddressTaken,
     indirectResults,

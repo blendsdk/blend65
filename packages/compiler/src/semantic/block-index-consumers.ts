@@ -60,6 +60,17 @@ interface ReturnPath {
    * helper are explored separately rather than collapsing into the first.
    */
   readonly key: string;
+  /**
+   * Call sites already on this path.
+   *
+   * The identity grows with the chain, so a path that revisited a site would
+   * never match the memo and the walk would recurse until the stack gave out.
+   * A source call graph cannot contain a cycle, but the walk's own termination
+   * should not depend on that holding — a missing hand-off of this path once
+   * reintroduced exactly such a cycle, and the compiler crashed rather than
+   * answering conservatively.
+   */
+  readonly sites: ReadonlySet<string>;
   /** Continue at the call site that supplied the argument. */
   readonly resume: (state: SelectorState) => void;
 }
@@ -197,12 +208,6 @@ export function collectSelectorReach(
               walked,
               returnPath,
             );
-      if (
-        operation.kind === "store" &&
-        operation.value === value &&
-        walk.moduleObjects.has(bindingIdentityKey(operation.place.root))
-      )
-        reach.escaped = true;
       // `cond ? lo(&sprites / 64) : 0` publishes the block number on one path.
       // A value that arrives at a join is the join's value on the path it came
       // from, so one incoming edge is enough: the chip receives this address
@@ -234,7 +239,7 @@ export function collectSelectorReach(
       // that the chip never receives the value, and silently dropping one is
       // exactly how a sprite ends up reading character ROM.
       if (operationValueUses(operation).includes(value))
-        classifyRemainingUse(operation, value, body, walk, reach, state, walked);
+        classifyRemainingUse(operation, value, body, walk, reach, state, walked, returnPath);
     }
   }
   // Computing the block number in a helper and publishing the result is ordinary
@@ -283,6 +288,7 @@ function classifyRemainingUse(
   reach: SelectorReach,
   state: SelectorState,
   walked: WalkedValues,
+  returnPath: ReturnPath | null,
 ): void {
   switch (operation.kind) {
     // Inspected above, each with its own reasoning about what it preserves.
@@ -309,10 +315,10 @@ function classifyRemainingUse(
     case "load-unit":
       return;
     case "memory-write":
-      writeThroughAddress(operation, value, body, reach);
+      writeThroughAddress(operation, value, body, walk, reach);
       return;
     case "aggregate":
-      composedIntoAnObject(operation, body, walk, reach, state, walked);
+      composedIntoAnObject(operation, body, walk, reach, state, walked, returnPath);
       return;
     default: {
       // A kind added later must be classified deliberately. Until it is, this
@@ -344,6 +350,7 @@ function composedIntoAnObject(
   reach: SelectorReach,
   state: SelectorState,
   walked: WalkedValues,
+  returnPath: ReturnPath | null,
 ): void {
   const destination = operation.destination;
   if (destination?.kind === "place") {
@@ -356,7 +363,7 @@ function composedIntoAnObject(
       reach,
       state,
       walked,
-      null,
+      returnPath,
     );
     return;
   }
@@ -374,7 +381,7 @@ function composedIntoAnObject(
           reach,
           state,
           walked,
-          null,
+          returnPath,
         );
       }
   if (!delivered) reach.escaped = true;
@@ -398,13 +405,27 @@ function writeThroughAddress(
   operation: Extract<SemanticOperation, { readonly kind: "memory-write" }>,
   value: ValueId,
   body: ScannedBody,
+  walk: ProgramWalk,
   reach: SelectorReach,
 ): void {
   // Using the number as the destination address writes somewhere unrelated;
   // only a written value travels into storage.
   if (operation.value !== value) return;
-  if (constantValue(body.definitions.get(operation.address), body.definitions) !== null) return;
-  reach.escaped = true;
+  const address = constantValue(body.definitions.get(operation.address), body.definitions);
+  if (address === null) {
+    reach.escaped = true;
+    return;
+  }
+  // A constant address is ordinary processor work unless it names bytes an
+  // object was pinned to. Then the write is a write to that object, and another
+  // body can read it by name with no address appearing anywhere — which is a
+  // publication this walk would otherwise never see.
+  if (
+    walk.placedObjects.some(
+      (object) => address >= object.start && address < object.start + object.size,
+    )
+  )
+    reach.escaped = true;
 }
 
 /**
@@ -440,11 +461,21 @@ function enterParameter(
   }
   if (walk.addressTaken.has(parameter.key)) reach.escaped = true;
   const result = site.result;
+  const siteKey = `${callee}:${position}:${result ?? "void"}`;
+  // Revisiting a site means the chain would grow without ever matching the
+  // memo. A source call graph cannot contain one, so reaching this is a defect
+  // in the walk rather than in the program — and answering conservatively is
+  // the only acceptable way to find that out.
+  if (returnPath?.sites.has(siteKey) === true) {
+    reach.escaped = true;
+    return;
+  }
   // The chain is part of the identity because this invocation's caller has a
   // caller of its own. A call graph cannot contain a cycle, so the chain is
   // finite.
   const path: ReturnPath = {
-    key: `${callee}:${position}:${result ?? "void"}:${returnPath?.key ?? ""}`,
+    key: `${siteKey}:${returnPath?.key ?? ""}`,
+    sites: new Set([...(returnPath?.sites ?? []), siteKey]),
     resume:
       result === null
         ? (): void => {}
@@ -536,7 +567,14 @@ function collectLoadedSelectorReach(
   returnPath: ReturnPath | null,
 ): void {
   const written = bindingIdentityKey(place.root);
-  // Two writes land somewhere this walk cannot account for. Once the written
+  // Module storage can be read by any other body and by an interrupt, so a
+  // number written there is beyond the reads this body can enumerate. The check
+  // belongs here, where every write route arrives, rather than beside one of
+  // them: an aggregate assigned to a module array is the same publication as a
+  // scalar stored in a module byte, and checking only the scalar left the
+  // aggregate silent.
+  if (walk.moduleObjects.has(written)) reach.escaped = true;
+  // Two further writes land somewhere this walk cannot account for. Once the written
   // object's address exists, a read can be made through it by an operation this
   // walk does not match, in any body. And a write through a borrowed parameter
   // lands in the caller's object, whose reads are not in this body at all.
