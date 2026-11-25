@@ -2,6 +2,7 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import type { SemanticBlock, SemanticOperation, SemanticPlace, ValueId } from "./operations.js";
 import { constantValue, staticPlaceOffset } from "./block-index-values.js";
+import { couldBeSpritePointer } from "../target/vic-fetch.js";
 import { operationValueUses } from "./lower-control.js";
 import type { ProgramWalk, ScannedBody } from "./block-index-program.js";
 import {
@@ -83,6 +84,37 @@ interface StorePosition {
   readonly index: number;
 }
 
+/**
+ * What the walk carries about how it reached the value it is following.
+ *
+ * Both parts exist because the answer at the end of the walk depends on where
+ * the number came from, not only on what is being done to it.
+ */
+interface Crossing {
+  /**
+   * Where a value handed back by this body continues, or null when the body
+   * owns the value and every caller receives it.
+   */
+  readonly returnPath: ReturnPath | null;
+  /**
+   * Whether the number has crossed into a function through one of its
+   * parameters.
+   *
+   * Before this walk followed arguments, every number passed as one demanded
+   * the whole object. Some of the places the walk stops are only *assumed* to
+   * leave a value that no longer designates this object, and following the
+   * argument route made those assumptions reachable where the old fallback had
+   * covered them. So once a number has crossed, an assumed end escapes rather
+   * than ending the search — which keeps every crossed program at least as
+   * safe as it was before the route was followed, and leaves the direct forms
+   * exactly as they were.
+   */
+  readonly crossed: boolean;
+}
+
+/** The walk starting where the arithmetic was recognized, having crossed nothing. */
+const OWN_BODY: Crossing = Object.freeze({ returnPath: null, crossed: false });
+
 /** Values already followed in one body, created on first use. */
 function walkedIn(walked: WalkedValues, body: ScannedBody): Set<string> {
   const seen = walked.get(body);
@@ -100,8 +132,8 @@ function walkedIn(walked: WalkedValues, body: ScannedBody): Set<string> {
  * with different arithmetic, and those steps answer the question differently —
  * one may designate this object's second block and another nothing at all.
  */
-function walkStep(value: ValueId, state: SelectorState, returnPath: ReturnPath | null): string {
-  return `${value}:${state.sign}:${state.offset}:${returnPath?.key ?? ""}`;
+function walkStep(value: ValueId, state: SelectorState, crossing: Crossing): string {
+  return `${value}:${state.sign}:${state.offset}:${crossing.returnPath?.key ?? ""}`;
 }
 
 /**
@@ -137,17 +169,17 @@ export function collectSelectorReach(
   reach: SelectorReach,
   state: SelectorState = UNSHIFTED,
   walked: WalkedValues = new Map(),
-  returnPath: ReturnPath | null = null,
+  crossing: Crossing = OWN_BODY,
 ): void {
   // Holding a block number in a variable before publishing it is ordinary, and
   // a place can be written and read repeatedly, so the walk remembers where it
   // has been rather than assuming the derivation chain is acyclic.
   const seen = walkedIn(walked, body);
-  const step = walkStep(value, state, returnPath);
+  const step = walkStep(value, state, crossing);
   if (seen.has(step)) return;
   seen.add(step);
   const follow = (next: ValueId, nextState: SelectorState): void =>
-    collectSelectorReach(next, body, walk, reach, nextState, walked, returnPath);
+    collectSelectorReach(next, body, walk, reach, nextState, walked, crossing);
   for (const block of body.blocks) {
     for (const [index, operation] of block.operations.entries()) {
       if (operation.kind === "platform") {
@@ -206,7 +238,7 @@ export function collectSelectorReach(
               reach,
               state,
               walked,
-              returnPath,
+              crossing,
             );
       // `cond ? lo(&sprites / 64) : 0` publishes the block number on one path.
       // A value that arrives at a join is the join's value on the path it came
@@ -232,14 +264,14 @@ export function collectSelectorReach(
           reach,
           state,
           walked,
-          returnPath,
+          crossing,
         );
       // Every remaining operation that receives this number is classified
       // rather than ignored. A route this pass does not model is not evidence
       // that the chip never receives the value, and silently dropping one is
       // exactly how a sprite ends up reading character ROM.
       if (operationValueUses(operation).includes(value))
-        classifyRemainingUse(operation, value, body, walk, reach, state, walked, returnPath);
+        classifyRemainingUse(operation, value, body, walk, reach, state, walked, crossing);
     }
   }
   // Computing the block number in a helper and publishing the result is ordinary
@@ -247,10 +279,14 @@ export function collectSelectorReach(
   // every call site. Resuming with the same walk also covers a helper that only
   // hands another helper's answer on, and an initializer has no caller to resume
   // in, which is what distinguishes a body with an owner from one without.
-  if (returnPath !== null && leavesByReturn(value, body.blocks)) {
+  if (crossing.returnPath !== null && leavesByReturn(value, body.blocks)) {
     // This invocation's own caller, and no other.
-    returnPath.resume(state);
-  } else if (returnPath === null && body.owner !== null && leavesByReturn(value, body.blocks)) {
+    crossing.returnPath.resume(state);
+  } else if (
+    crossing.returnPath === null &&
+    body.owner !== null &&
+    leavesByReturn(value, body.blocks)
+  ) {
     // Where this function's address exists, it can be called through that
     // address — from a pointer variable or a dispatch table — and such a call
     // names no callee here. Every call of that kind is an indirect call, so the
@@ -288,18 +324,31 @@ function classifyRemainingUse(
   reach: SelectorReach,
   state: SelectorState,
   walked: WalkedValues,
-  returnPath: ReturnPath | null,
+  crossing: Crossing,
 ): void {
   switch (operation.kind) {
     // Inspected above, each with its own reasoning about what it preserves.
     case "convert":
     case "unary":
-    case "binary":
     case "merge":
     case "store":
     case "call":
     case "indirect-call":
     case "platform":
+      return;
+    // Adding and subtracting are followed above, displacement and all. Every
+    // other operator is an end this walk only *assumes* leaves a value that no
+    // longer names a block of this object, and an involution disproves the
+    // assumption outright: two exclusive-ors by the same mask restore the
+    // number exactly. A result the type system calls a boolean is a different
+    // matter and is proved - nothing can publish a boolean as a block.
+    case "binary":
+      if (operation.operator === "+" || operation.operator === "-") return;
+      if (operation.type.kind === "scalar" && operation.type.name === "boolean") return;
+      assumedEnd(crossing, reach);
+      return;
+    case "bcd":
+      assumedEnd(crossing, reach);
       return;
     // The number is used as an address, as an element index, or in arithmetic
     // whose result designates no block of this object.
@@ -318,7 +367,7 @@ function classifyRemainingUse(
       writeThroughAddress(operation, value, body, walk, reach);
       return;
     case "aggregate":
-      composedIntoAnObject(operation, body, walk, reach, state, walked, returnPath);
+      composedIntoAnObject(operation, body, walk, reach, state, walked, crossing);
       return;
     default: {
       // A kind added later must be classified deliberately. Until it is, this
@@ -350,7 +399,7 @@ function composedIntoAnObject(
   reach: SelectorReach,
   state: SelectorState,
   walked: WalkedValues,
-  returnPath: ReturnPath | null,
+  crossing: Crossing,
 ): void {
   const destination = operation.destination;
   if (destination?.kind === "place") {
@@ -363,7 +412,7 @@ function composedIntoAnObject(
       reach,
       state,
       walked,
-      returnPath,
+      crossing,
     );
     return;
   }
@@ -381,7 +430,7 @@ function composedIntoAnObject(
           reach,
           state,
           walked,
-          returnPath,
+          crossing,
         );
       }
   if (!delivered) reach.escaped = true;
@@ -416,16 +465,31 @@ function writeThroughAddress(
     reach.escaped = true;
     return;
   }
-  // A constant address is ordinary processor work unless it names bytes an
-  // object was pinned to. Then the write is a write to that object, and another
-  // body can read it by name with no address appearing anywhere — which is a
-  // publication this walk would otherwise never see.
+  // Two constant addresses are not ordinary processor work. One is a byte the
+  // chip reads as a sprite pointer, which publishes the number to the hardware
+  // without any capability being called at all. The other names bytes an object
+  // was pinned to, so the write is a write to that object and another body can
+  // read it by name with no address appearing anywhere.
   if (
+    couldBeSpritePointer(address) ||
     walk.placedObjects.some(
       (object) => address >= object.start && address < object.start + object.size,
     )
   )
     reach.escaped = true;
+}
+
+/**
+ * Answer an end the walk only assumes is harmless.
+ *
+ * Where the number never left the body that computed it, this is the answer
+ * that body always gave and nothing changes. Where it crossed into a function
+ * through a parameter, the assumption is not good enough: before the walk
+ * followed arguments every crossed number demanded the whole object, so an
+ * assumption reached only by crossing must not quietly weaken that.
+ */
+function assumedEnd(crossing: Crossing, reach: SelectorReach): void {
+  if (crossing.crossed) reach.escaped = true;
 }
 
 /**
@@ -451,7 +515,7 @@ function enterParameter(
   reach: SelectorReach,
   state: SelectorState,
   walked: WalkedValues,
-  returnPath: ReturnPath | null,
+  crossing: Crossing,
 ): void {
   const body = walk.bodiesByOwner.get(callee);
   const parameter = body?.parameters[position];
@@ -466,21 +530,28 @@ function enterParameter(
   // memo. A source call graph cannot contain one, so reaching this is a defect
   // in the walk rather than in the program — and answering conservatively is
   // the only acceptable way to find that out.
-  if (returnPath?.sites.has(siteKey) === true) {
+  if (crossing.returnPath?.sites.has(siteKey) === true) {
     reach.escaped = true;
     return;
   }
   // The chain is part of the identity because this invocation's caller has a
   // caller of its own. A call graph cannot contain a cycle, so the chain is
   // finite.
+  // Returning hands the value back to this invocation's caller, where the walk
+  // continues with that caller's own crossing - and still marked as crossed,
+  // because the number did cross and an assumed end beyond here must not be
+  // trusted on the way back out.
   const path: ReturnPath = {
-    key: `${siteKey}:${returnPath?.key ?? ""}`,
-    sites: new Set([...(returnPath?.sites ?? []), siteKey]),
+    key: `${siteKey}:${crossing.returnPath?.key ?? ""}`,
+    sites: new Set([...(crossing.returnPath?.sites ?? []), siteKey]),
     resume:
       result === null
         ? (): void => {}
         : (returned): void =>
-            collectSelectorReach(result, site.body, walk, reach, returned, walked, returnPath),
+            collectSelectorReach(result, site.body, walk, reach, returned, walked, {
+              returnPath: crossing.returnPath,
+              crossed: true,
+            }),
   };
   followReads(
     body.blocks.flatMap((block) => block.operations),
@@ -490,7 +561,7 @@ function enterParameter(
     reach,
     state,
     walked,
-    path,
+    { returnPath: path, crossed: true },
   );
 }
 
@@ -503,11 +574,11 @@ function followReads(
   reach: SelectorReach,
   state: SelectorState,
   walked: WalkedValues,
-  returnPath: ReturnPath | null,
+  crossing: Crossing,
 ): void {
   for (const operation of operations)
     if (operation.kind === "load" && bindingIdentityKey(operation.place.root) === read)
-      collectSelectorReach(operation.result, body, walk, reach, state, walked, returnPath);
+      collectSelectorReach(operation.result, body, walk, reach, state, walked, crossing);
 }
 
 /**
@@ -564,7 +635,7 @@ function collectLoadedSelectorReach(
   reach: SelectorReach,
   state: SelectorState,
   walked: WalkedValues,
-  returnPath: ReturnPath | null,
+  crossing: Crossing,
 ): void {
   const written = bindingIdentityKey(place.root);
   // Module storage can be read by any other body and by an interrupt, so a
@@ -591,7 +662,7 @@ function collectLoadedSelectorReach(
     replaced === null || at === null
       ? body.blocks.flatMap((block) => block.operations)
       : at.block.operations.slice(at.index + 1, replaced);
-  followReads(reads, written, body, walk, reach, state, walked, returnPath);
+  followReads(reads, written, body, walk, reach, state, walked, crossing);
 }
 
 /** Whether one value is handed to this body's callers as its result. */

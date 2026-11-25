@@ -7,6 +7,30 @@ export type VicFieldTransform =
   | "vic-bitmap-select"
   | "vic-screen-select";
 
+/** Bytes of one video-chip bank, which is the span a block number can address. */
+export const VIC_BANK_BYTES = 16384;
+
+/**
+ * Whether a constant address could be one of a screen matrix's sprite pointers.
+ *
+ * A sprite's block number only acts as a pointer in eight specific bytes: the
+ * last eight of the active screen matrix. That matrix occupies an aligned
+ * 1 KiB interval wherever it is placed, so those bytes are always the top eight
+ * of a 1 KiB boundary regardless of which matrix or bank is selected — which
+ * makes this answerable without knowing either.
+ *
+ * Writing a block number anywhere else puts a byte where the chip either never
+ * looks or looks for something that is not a pointer, and changes nothing about
+ * where it fetches sprite data from.
+ *
+ * @param address Constant destination address of a raw write.
+ * @returns Whether the address falls in a screen matrix's pointer tail.
+ * @example couldBeSpritePointer(0x07f8) // true: sprite 0 for a matrix at $0400
+ */
+export function couldBeSpritePointer(address: number): boolean {
+  return (address & 0x03ff) >= 0x03f8;
+}
+
 /**
  * Byte footprint one VIC field occupies, which is what placement must keep
  * reachable.
