@@ -82,6 +82,24 @@ const SELECTOR_PRESERVING_UNARY: ReadonlySet<string> = new Set(["lo", "+"]);
 const SELECTOR_MODULUS = 256;
 
 /**
+ * Past this many addressable elements, listing them is no longer cheaper than
+ * the span that covers them, so the span is demanded instead. A dimension whose
+ * stride equals the fetched footprint merges into that span anyway.
+ */
+const ENUMERATED_ELEMENT_LIMIT = 64;
+
+/**
+ * One addressed place proved to satisfy a required alignment, with the runtime
+ * dimensions that decide which element it names.
+ */
+interface ProvedPlace {
+  /** Static byte offset from the object's first byte. */
+  readonly offset: number;
+  /** Dimensions an index chooses at run time, outermost first. */
+  readonly selected: readonly { readonly stride: number; readonly length: number }[];
+}
+
+/**
  * What the chip would receive, written as `sign * block + offset` over the block
  * number this pass recognized.
  *
@@ -631,10 +649,10 @@ function placeAlignment(
   place: SemanticPlace,
   align: number,
   definitions: Definitions,
-): { readonly offset: number; readonly dynamic: boolean } | null {
+): ProvedPlace | null {
   let type: SemanticType | undefined = place.rootType;
   let offset = 0;
-  let dynamic = false;
+  const selected: { stride: number; length: number }[] = [];
   for (const step of place.path) {
     if (step.kind === "field") {
       if (type?.kind !== "struct") return null;
@@ -649,7 +667,7 @@ function placeAlignment(
     const index = constantValue(definitions.get(step.value), definitions);
     if (index === null) {
       if (stride % align !== 0) return null;
-      dynamic = true;
+      selected.push({ stride, length: type.length });
     } else {
       if (index < 0 || index >= type.length) return null;
       offset += stride * index;
@@ -658,8 +676,31 @@ function placeAlignment(
   }
   // A runtime contribution is `index * stride`; the remaining static offset must
   // already be a multiple of the demand. The stride check above proves the rest.
-  if (dynamic && offset % align !== 0) return null;
-  return offset % align === 0 ? { offset, dynamic } : null;
+  if (selected.length > 0 && offset % align !== 0) return null;
+  return offset % align === 0
+    ? { offset, selected: Object.freeze(selected.map((step) => Object.freeze(step))) }
+    : null;
+}
+
+/**
+ * Every byte offset of one object a proved place can address.
+ *
+ * A runtime index addresses any declared element of its dimension, so the
+ * offsets are enumerated rather than collapsed: two sheets selected by an index
+ * need their own two blocks reachable, not the sixteen kilobytes between and
+ * around them. Enumeration stops at a bound beyond which the list stops being
+ * cheaper than the span it covers, and the span is used instead.
+ */
+function addressableOffsets(proved: ProvedPlace, size: number): readonly number[] {
+  let offsets = [proved.offset];
+  for (const step of proved.selected) {
+    const widened: number[] = [];
+    for (const base of offsets)
+      for (let index = 0; index < step.length; index += 1) widened.push(base + index * step.stride);
+    if (widened.length > ENUMERATED_ELEMENT_LIMIT) return [];
+    offsets = widened;
+  }
+  return offsets.filter((offset) => offset >= 0 && offset < size);
 }
 
 /** One call this body makes, kept until the body it belongs to exists. */
@@ -778,24 +819,31 @@ export function alignBlockIndexStorage(
       const proved = placeAlignment(address.place, align, definitions);
       if (proved === null) return;
       const size = semanticTypeSize(object.type);
-      // An index or a displacement decided at run time proves the arithmetic for
-      // every block of the object and names none of them, so the demand covers
-      // the object: the chip may read any of them, and shrinking it to the one
-      // the static part happens to name would leave the others where the chip
-      // cannot see them.
-      const runtimeSelected = proved.dynamic || reach.runtimeSelected;
+      const published = reach.displacements.size > 0 || reach.runtimeSelected;
+      // An index chooses between the declared elements of its dimension, and a
+      // displacement read at run time chooses between every block of the
+      // object. Either way the chip may read any of them, so all of them are
+      // demanded; shrinking to the one a static prefix happens to name would
+      // leave the rest where the chip cannot see them.
+      const addressable = addressableOffsets(proved, size);
+      const runtimeSelected = reach.runtimeSelected || proved.selected.length > 0;
       const fetched: VicFetchRange[] = [];
-      if (runtimeSelected && reach.displacements.size + (reach.runtimeSelected ? 1 : 0) > 0) {
+      if (!published) {
+        // Nothing proves the chip receives this number, so nothing is demanded.
+      } else if (reach.runtimeSelected || addressable.length === 0) {
+        // Past the enumeration bound, or with the block chosen by arithmetic
+        // nothing here can evaluate, the whole object is the honest demand.
         fetched.push({ offset: 0, bytes: size });
       } else {
-        // A displacement names a later block of the same object. Clamped to the
-        // object, because bytes past its end belong to whatever is placed there
-        // and are not this object's to demand.
-        for (const blocks of reach.displacements) {
-          const offset = proved.offset + blocks * FETCHED_BYTES;
-          if (offset < 0 || offset >= size) continue;
-          fetched.push({ offset, bytes: Math.min(FETCHED_BYTES, size - offset) });
-        }
+        // A displacement names a later block of the same object. Runs are
+        // clamped to the object, because bytes past its end belong to whatever
+        // is placed there and are not this object's to demand.
+        for (const base of addressable)
+          for (const blocks of reach.displacements) {
+            const offset = base + blocks * FETCHED_BYTES;
+            if (offset < 0 || offset >= size) continue;
+            fetched.push({ offset, bytes: Math.min(FETCHED_BYTES, size - offset) });
+          }
       }
       const known = demands.get(key) ?? [];
       known.push({ align, offset: proved.offset, fetched, runtimeSelected, span });

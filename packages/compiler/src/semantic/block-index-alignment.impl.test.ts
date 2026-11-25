@@ -524,6 +524,62 @@ function main(): void {
     ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 128 }] });
   });
 
+  // An index choosing between two sheets names two blocks, not the sixteen
+  // kilobytes between and around them. Demanding the whole root object here
+  // would refuse a program whose two fetched runs fit the visible area easily.
+  it("demands one run per element a runtime index can choose", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheets: byte[2][8192];
+function main(): void {
+  let which: byte = peek($0400);
+  c64.vic.setSpritePointer(0, lo(&sheets[which] / 64));
+}`,
+        "sheets",
+      ),
+    ).toEqual({
+      align: 64,
+      fetched: [
+        { offset: 0, bytes: 64 },
+        { offset: 8192, bytes: 64 },
+      ],
+    });
+  });
+
+  // When the elements are adjacent blocks the runs meet, so the same rule that
+  // keeps two sheets apart collapses a block array into one span.
+  it("collapses adjacent elements into one run", () => {
+    expect(
+      provedFor(
+        `module Game;
+let blocks: byte[3][64];
+function main(): void {
+  let which: byte = peek($0400);
+  c64.vic.setSpritePointer(0, lo(&blocks[which] / 64));
+}`,
+        "blocks",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 192 }] });
+  });
+
+  // Past the point where listing elements stops being cheaper than the span
+  // they cover, the span is demanded instead. The answer is the same shape the
+  // hardware needs; only the way of saying it changes.
+  it("demands the whole object once the elements outnumber the bound", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheets: byte[128][128];
+function main(): void {
+  let which: byte = peek($0400);
+  c64.vic.setSpritePointer(0, lo(&sheets[which] / 64));
+}`,
+        "sheets",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 16384 }] });
+  });
+
   // `hi(address / 64)` is a value in `0..3`. It selects a block in the first
   // 256 bytes of the bank, not one inside the object whose address produced it,
   // so following it would claim a provenance the number does not carry.
