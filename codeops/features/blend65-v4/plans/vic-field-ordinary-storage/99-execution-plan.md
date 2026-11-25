@@ -1,8 +1,8 @@
 # Let the safe VIC field form take the address of ordinary module storage
 
 > **Owner**: T-179 (#179) · **Type**: Task (lightweight) · **CodeOps Artifact Schema**: 1
-> **Status**: In progress
-> **Progress**: 0/5 tasks (0%)
+> **Status**: Delivered and verified; five reviews dispositioned over two rounds, two fields withdrawn on their evidence
+> **Progress**: 5/5 tasks (100%)
 > **Last Updated**: 2026-11-25
 
 ## Why this unit exists
@@ -109,29 +109,159 @@ first line was written.
 | with a run-time displacement | refused | **builds, every block visible** |
 | at a static aligned element offset | refused | **builds, that block visible** |
 | an aligned struct field | refused | **builds, that field visible** |
-| the three sibling fields on ordinary storage | refused | **builds, footprint visible** |
+| `vicCharsetSelect` on ordinary storage | refused | **builds, 2 KiB footprint visible** |
+| `vicScreenSelect` and `vicBitmapSelect` on ordinary storage | refused, wrong reason | **refused, naming the asset and constant spellings** |
 | `place(at:)` on a usable address | refused | **builds** |
 | `place(at:)` inside the character-ROM window, outside the bank, or misaligned | refused, wrong reason | **refused, naming the reason** |
 | a static **unaligned** element offset | refused, wrong reason | **refused, naming the offset** |
-| an index chosen at run time | refused, wrong reason | **refused, naming the real requirement** |
+| an index chosen at run time | refused, wrong reason | **refused, naming the spelling that works** |
 | an address held in a `word` | refused, wrong reason | **refused, naming the real requirement** |
+| a zero-page home | refused, wrong reason | **refused, naming zero-page storage** |
+| `place(at:)` whose **displaced** block leaves the readable area | **accepted, silently unreadable** | **refused, naming the window** |
 | a local array, or a borrowed array parameter | refused earlier, E10260 | unchanged |
 | `&object` with no VIC capability anywhere | builds, unconstrained | unchanged |
 
-Two of those refusals are kept deliberately rather than implemented. An index chosen at run time
-names a different block on every execution, so there is no single value for a capability returning
-one byte to compute; the hand-rolled arithmetic covers that intent and keeps working. An address held
-in a `word` is not resolvable before layout at all. Both now say so.
+Three of those refusals are kept deliberately rather than implemented, and each names the spelling
+that works. An index chosen at run time has no single value for a capability returning one byte to
+compute — and the answer is not the hand-rolled arithmetic, which is the hazard this capability
+exists to remove, but `vicSpriteBlock(&object[0]) + index`, which is accepted and keeps every
+selectable block reachable. An address held in a `word` cannot be attributed to one object. A
+zero-page home is chosen by an allocator that knows nothing of video alignment, so the author never
+wrote the address that would be refused.
 
 ## Tasks
 
 | # | Task | Status |
 | --- | --- | --- |
-| 1 | Split the oversize block-index implementation tests, and the shared fixture they needed | ☐ |
-| 2 | Share the capability-to-field map; keep the capability's address symbolic | ☐ |
-| 3 | State the field's demand on the addressed object; accept addressable data at layout | ☐ |
-| 4 | Make both remaining refusals name the real requirement | ☐ |
-| 5 | Verification, reviews, record and roadmap | ☐ |
+| 1 | Split the oversize block-index implementation tests, and the shared fixture they needed | ☑ |
+| 2 | Share the capability-to-field map; keep the capability's address symbolic | ☑ |
+| 3 | State the field's demand on the addressed object; accept addressable data at layout | ☑ |
+| 4 | Make every remaining refusal name the real requirement | ☑ |
+| 5 | Verification, reviews, record and roadmap | ☑ |
+
+## The reviews, and the one place all three landed
+
+Three independent audits ran against the first delivery: emitted code, target platform, and
+semantics with developer experience. They reported fifteen findings between them and **converged on
+one place without sharing notes** — the screen field. The platform and machine-code audits arrived at
+the same root cause separately, which is the strongest signal either of them produced.
+
+| Finding | Measured | Disposition |
+| --- | --- | --- |
+| the screen-role machinery is asset-only | `let screen: byte[1000]` at `$2000`, `other` at `$23E8-$2427` — owning `$23F8-$23FF`, the eight sprite-pointer bytes | **withdrawn**, filed as [#200](https://github.com/blendsdk/blend65/issues/200) |
+| the fetched extent is not enforced for a global | `let bitmap: byte[64]` built, chip fetching 7,936 bytes from its neighbours | **withdrawn** with it |
+| the single-active-screen proof cannot see a module object | `vicScreenSelect(&screen)` plus any `setSpritePointer` refused *"select one screen with vicScreenSelect"* | **withdrawn** with it |
+| a declared demand did not hold at a fixed address | `place(at: $0FC0)` + `+ 1` accepted; block one is `$1000` | **fixed** |
+| the refusal stated a false cause for two of four inputs | one sentence claimed the address was run-time for a link-time binding | **fixed** |
+| the run-time-index refusal sent the author to the hazardous form | *"compute the field from it with ordinary arithmetic instead"* | **fixed**; it names `vicSpriteBlock(&object[0]) + index` |
+| the remedy inside the message argued with its own template tail | *"…which no placement can correct; change the field address or placement constraint"* | **fixed**; a `help` channel |
+| the demand could not name the field it came from | a charset refusal called itself a sprite-block expression | **fixed** |
+| the pass documentation contradicted the pass | "proved only where the chip provably receives the value" | **fixed** |
+| a zero-page home folded and refused an address the author never wrote | *"`$f2` is not aligned"* | **fixed** |
+| `vicCharsetSelect(&x) + 2` selects an undemanded 2 KiB slot | **asset parity** — the asset form accepts it too | filed as [#201](https://github.com/blendsdk/blend65/issues/201) |
+| no bank-first search for a demand-carrying global | symmetric with the arithmetic form, which predates this | filed as [#202](https://github.com/blendsdk/blend65/issues/202) |
+| the specification's own `const B: byte = vicSpriteBlock(&buffer)` | **E10191** for an asset as much as for module storage | filed as [#203](https://github.com/blendsdk/blend65/issues/203) |
+| a third `\|`-combined field, and a reloaded accumulator | 2.0× and 1.54× by inference, not measured bytes | filed as [#204](https://github.com/blendsdk/blend65/issues/204) |
+| nothing structurally stops a field label being used as an address | unreachable, but the value population widened | filed as [#205](https://github.com/blendsdk/blend65/issues/205) |
+
+### Why two fields were withdrawn rather than repaired
+
+The issue this unit owns names `vicSpriteBlock`. The three sibling fields were an extension, taken
+because the lowering gate is shared and extending it looked free. It was not: a screen matrix owns a
+complete 1 KiB interval whose last eight bytes are what the chip fetches as the sprite pointers, a
+bitmap reads 8,000 bytes however short the declaration is, and the proof that one screen is active
+recognises an asset and nothing else. Three mechanisms, all carried only for an asset, and fixing any
+one alone hides the next.
+
+A charset stays, because it needs nothing those three provide: alignment and a reachable run, which
+the demand already expresses, and a partial charset is legal exactly as it is for an asset.
+
+So the shipped surface is decided by one predicate rather than by four call sites, and the two
+withdrawn fields are rows in the expressiveness ledger whose probes the gate keeps honest.
+
+### The lesson, now for the third consecutive unit
+
+Row 3d narrowed a demand and lost the protection the coarse one gave every unfollowed route. Row 3e
+followed call arguments and exposed the callee's unmodelled consumers. This unit accepted a new kind
+of address and exposed the placement machinery behind it. The shape is identical each time:
+**following a route removes the protection the fallback was giving every route beyond it.**
+
+Enumerating the argument's endings up front — which this unit did before writing a line, and which
+is why the acceptance table above exists — caught the input side completely. It caught nothing on the
+output side, because the endings of *placement* are a different list. The next unit in this area
+should enumerate the facts an asset carries that a global does not, before admitting a new kind of
+object anywhere.
+
+## Verification
+
+| Gate | Result |
+| --- | --- |
+| Oracle, authored implementation-blind throughout | **25 shapes / 33 cases**; 26 of 36 red before implementation |
+| Mutations | **12** applied alone, **10 discriminate**, failing 1–22 cases |
+| Host checkpoint | **283 files / 6,205 tests**, green |
+| Affected VICE journeys | **137/137** — sprite pointer, producer, VIC observers, koala, qp15 |
+| Byte identity, three examples × three goals | **9/9 unchanged** |
+| Capability versus hand-rolled arithmetic | **byte-identical**, four profiles × none/balanced/size |
+| Compiler package suite | **269 files / 4,594 tests**, green |
+
+### Mutation matrix
+
+| Mutation | Cases it fails |
+| --- | --- |
+| The zero-page guard inverted | 22 |
+| Layout admits only an asset again | 19 |
+| The capability states no demand | 17 |
+| The help line dropped from the author's view | 5 |
+| Every field accepts module storage | 3 |
+| A declared demand drops at a fixed address | 1 |
+| The offset-alignment check removed | 1 |
+| The capability's displacement reach not collected | 1 |
+| Every refusal reports the same cause | 1 |
+| The field footprint widened by one byte | 1 |
+| The shared-address guard removed | **0** |
+| The field footprint narrowed to one sprite block | **0** |
+
+## Disclosures
+
+**Two mutations fail nothing, for different reasons.**
+
+The shared-address guard — the fold declines when one `place-address` result has more than one use —
+is unobservable. No source shape reuses such a result: each `&object` occurrence mints its own value,
+and an address stored in a variable arrives as a load rather than as the place-address. The guard is
+kept rather than deleted because being wrong about it would fold an address another use still needs
+at run time, and that is a wrong artifact rather than a refusal.
+
+The field footprint cannot be narrowed observably, and the reason is arithmetic rather than a test
+gap: 64, 1,024, 2,048 and 8,192 all divide the bank's 16,384 bytes, so a start aligned to a field's
+own granularity keeps its whole footprint inside the bank and either wholly inside or wholly outside
+a 4 KiB-aligned window. Widening the footprint by one byte **does** fail a case — the 4,096-byte
+charset whose fetched 2,048 bytes end exactly at `$3FFF` — so the extent is pinned from above by a
+test and from below by the alignment.
+
+**Everything here is artifact-placement-verified.** Every acceptance case resolves a final address
+from public debug metadata and checks the fetched run against the bank and the character-ROM window.
+No test observes the chip fetching those bytes, and the three sibling fields' emitted `$D018`
+immediates are not read back by any test — only the sprite encoding is, through byte identity with
+the hand-rolled form. That is weaker than the `VICE-verified / hardware-unverified` status the rest
+of the VIC surface carries, and it is the same gap already filed as
+[#196](https://github.com/blendsdk/blend65/issues/196).
+
+**Every demand here is correct while and only while the program leaves CIA2 DDRA bits 0–1 as
+inputs.** Startup establishes bank 0 by clearing them, and `$DD02` is deliberately not an owned
+device byte, so a legal program may reconfigure the bank bits as outputs — after which every folded
+field immediate and the whole placement proof are wrong with no diagnostic. Pre-existing for
+constants and assets; this unit makes it load-bearing for the author's own mutable data. Recorded by
+the platform audit, not filed, because it is a property of the ownership model rather than of this
+change.
+
+**The character-ROM window is modelled as the absolute `$1000-$1FFF`** while the authority states it
+is bank-relative and present only in banks 0 and 2. Unreachable today — `vicBankStart` is the literal
+type `0x0000` on every selectable profile — and recorded so bank selection does not inherit an
+absolute window.
+
+**Three cost claims are inference, not measured bytes.** The two ratios in #204 come from the
+instruction forms the selection code constructs; nothing was disassembled. The issue says so, and
+says to disassemble before sizing either fix.
 
 ## Verification shape
 
