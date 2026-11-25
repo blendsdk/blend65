@@ -188,6 +188,26 @@ function publish(b: byte): void { reader(&b); }`,
     helpers: "function publish(b: byte): void { c64.vic.setSpritePointer(0, b + 1); }",
     use: "publish(lo(&buffer / 64));",
   },
+  // Subtracting one from the second block must not leave the first block
+  // displaying character shapes with nothing reported.
+  {
+    name: "should expose the first block when a callee subtracts from the second block number",
+    buffer: "let buffer: byte[128];",
+    byteWidth: 128,
+    offset: 0,
+    helpers: "function publish(b: byte): void { c64.vic.setSpritePointer(0, b - 1); }",
+    use: "publish(lo(&buffer[64] / 64));",
+  },
+  // Selecting the earlier block directly must not leave a sprite displaying
+  // character shapes with nothing reported.
+  {
+    name: "should expose the first block when direct arithmetic subtracts from the second block number",
+    buffer: "let buffer: byte[128];",
+    byteWidth: 128,
+    offset: 0,
+    helpers: "",
+    use: "c64.vic.setSpritePointer(0, lo(&buffer[64] / 64) - 1);",
+  },
   // Two complements restore the original byte; splitting them must not hide the sprite's home.
   {
     name: "should keep a sprite block visible when complements straddle the call",
@@ -207,6 +227,16 @@ function publish(b: byte): void { c64.vic.setSpritePointer(0, b); }`,
     helpers: "function forward(b: byte): byte { return b; }",
     use: `c64.vic.setSpritePointer(0, forward(lo(&buffer / 64)));
 poke($C000, forward(lo(&buffer / 64)));`,
+  },
+  // Using the same helper twice in one expression must not leave the second
+  // frame displaying character shapes with nothing reported.
+  {
+    name: "should expose the second block through two nested calls to the same helper",
+    buffer: "let buffer: byte[2][64];",
+    byteWidth: 128,
+    offset: 64,
+    helpers: "function forward(b: byte): byte { return b; }",
+    use: "c64.vic.setSpritePointer(0, forward(forward(lo(&buffer / 64)) + 1));",
   },
   // Choosing a local function pointer is normal source code, not permission to lose the sprite.
   {
@@ -255,6 +285,47 @@ poke($C000, forward(lo(&buffer / 64)));`,
 function publish(b: byte): void { let f: byte[2]; f[0] = b; inner(f); }`,
     use: "publish(lo(&buffer / 64));",
   },
+  // Returning a block number inside an array must not leave a sprite displaying
+  // character shapes with nothing reported.
+  {
+    name: "should keep a sprite block visible through a helper-returned aggregate",
+    helpers: "function pack(b: byte): byte[1] { return [b]; }",
+    use: `let frames: byte[1] = pack(lo(&buffer / 64));
+c64.vic.setSpritePointer(0, frames[0]);`,
+  },
+  // Building the frame array as a literal must not leave a sprite displaying
+  // character shapes with nothing reported.
+  {
+    name: "should keep a sprite block visible through an aggregate literal",
+    helpers: "",
+    use: `let frames: byte[1] = [lo(&buffer / 64)];
+c64.vic.setSpritePointer(0, frames[0]);`,
+  },
+  // Writing a frame number through a borrowed element's address must not leave
+  // a sprite displaying character shapes with nothing reported.
+  {
+    name: "should keep a sprite block visible after a write through a borrowed element address",
+    helpers: "function fill(xs: byte[], b: byte): void { poke(&xs[0], b); }",
+    use: `let frames: byte[1] = [0];
+fill(frames, lo(&buffer / 64));
+c64.vic.setSpritePointer(0, frames[0]);`,
+  },
+  // Writing a module slot through its own address must not leave a sprite
+  // displaying character shapes with nothing reported.
+  {
+    name: "should keep a sprite block visible after a write through a module slot address",
+    globals: "let slot: byte;",
+    helpers: "",
+    use: "poke(&slot, lo(&buffer / 64)); c64.vic.setSpritePointer(0, slot);",
+  },
+  // poke($C000, ...) sends a byte somewhere the program chose, while
+  // poke($0400 + i, ...) sends it somewhere the compiler cannot name; losing
+  // visibility here risks a sprite reading character shapes with nothing reported.
+  {
+    name: "should keep a sprite block visible when written to a runtime-computed address",
+    helpers: "",
+    use: "let i: byte = peek($0400); poke($0400 + word(i), lo(&buffer / 64));",
+  },
 ];
 
 describe("block-index visibility across calls and borrowed storage", () => {
@@ -267,6 +338,23 @@ describe("block-index visibility across calls and borrowed storage", () => {
       expectVisibleBlock(artifacts, example.byteWidth, example.offset);
     });
   }
+
+  // Selecting bytes before the object must not relocate its unrelated storage
+  // or refuse a legal program with no home in the bank.
+  forEachProfile(
+    "should leave an object's home untouched when subtraction selects the preceding block",
+    async (profile) => {
+      const published = await build(
+        pushedIntoTheWindow("c64.vic.setSpritePointer(0, lo(&buffer / 64) - 1);"),
+        profile,
+      );
+      const ordinary = await build(
+        pushedIntoTheWindow("poke($C000, lo(&buffer / 64) - 1);"),
+        profile,
+      );
+      expect(bufferAddress(published)).toBe(bufferAddress(ordinary));
+    },
+  );
 
   // Dispatch tables are a normal way to choose a producer; neither storage duration
   // may leave the sprite reading character shapes with nothing reported.
@@ -343,6 +431,39 @@ function other(): byte { return 0; }`,
       REFERENCE_PROFILE,
     );
     expectVisibleBlock(artifacts, LARGE_BUFFER_BYTES);
+  }, 120_000);
+
+  // Selecting one block through nested calls must not refuse a legal large-sheet
+  // program with no home in the bank.
+  it(`${REFERENCE_PROFILE}: should build a large object published through two nested calls to the same helper`, async () => {
+    await build(
+      pushedIntoTheWindow(
+        "c64.vic.setSpritePointer(0, forward(forward(lo(&buffer / 64)) + 1));",
+        "function forward(b: byte): byte { return b; }",
+        "",
+        `let buffer: byte[${LARGE_BUFFER_BYTES}];`,
+      ),
+      REFERENCE_PROFILE,
+    );
+  }, 120_000);
+
+  // An ordinary animation table must neither refuse a legal large-sheet program
+  // with no home in the bank nor leave either sprite displaying character shapes
+  // with nothing reported.
+  it(`${REFERENCE_PROFILE}: should build a large animation sheet with both aggregate-literal blocks visible`, async () => {
+    const artifacts = await build(
+      pushedIntoTheWindow(
+        `let frames: byte[2] = [lo(&buffer / 64), lo(&buffer[64] / 64)];
+c64.vic.setSpritePointer(0, frames[0]);
+c64.vic.setSpritePointer(1, frames[1]);`,
+        "",
+        "",
+        `let buffer: byte[${LARGE_BUFFER_BYTES}];`,
+      ),
+      REFERENCE_PROFILE,
+    );
+    expectVisibleBlock(artifacts, LARGE_BUFFER_BYTES, 0);
+    expectVisibleBlock(artifacts, LARGE_BUFFER_BYTES, 64);
   }, 120_000);
 
   // Without a chip consumer, returning a block number is just arithmetic. A helper
