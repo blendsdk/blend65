@@ -331,6 +331,37 @@ function main(): void { other[0] = 1; c64.vic.setSpritePointer(0, c64.vic.vicSpr
     expectActionable(texts);
   });
 
+  // $0100 is the other way a fixed address the chip is happy with can still be
+  // refused: inside the bank, far from the window, 64-byte aligned, but below
+  // the start of the range a loaded program may occupy. That is the rule that
+  // refuses it, so the explicit constraint is again the thing to change.
+  // Blaming the chip's requirement sends the author moving a sprite around the
+  // video bank to satisfy a rule it already satisfied, while the rule that
+  // actually stopped them is never named.
+  onReferenceProfile(
+    "should refuse an address below the resident window without blaming it",
+    async () => {
+      const texts = await refusalTexts(
+        windowProgram(
+          "place(at: $0100) let buffer: byte[64];",
+          "c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&buffer));",
+        ),
+        REFERENCE_PROFILE,
+      );
+      const told = texts.join("\n");
+      expect(told, "the explicit constraint is what the author can change").toMatch(
+        /explicit[^.;]*constraint|change or remove/iu,
+      );
+      expect(
+        told,
+        "a qualifying address must not be blamed for the chip's requirement",
+      ).not.toMatch(
+        /\$0*100\b[^.;]*(?:does not|doesn't|fails|cannot|character[-\s]?ROM|outside|align)/iu,
+      );
+      expectActionable(texts);
+    },
+  );
+
   // Nothing can enter `later`: it is never called and its address is never
   // taken, so the chip is never handed anything. Stating the field's
   // requirement from a body that cannot run refuses a legal program over a
