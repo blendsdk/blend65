@@ -1,7 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import type { SemanticBlock, SemanticOperation, SemanticPlace, ValueId } from "./operations.js";
-import { addressOperation, constantValue, staticPlaceOffset } from "./block-index-values.js";
+import { constantValue, staticPlaceOffset } from "./block-index-values.js";
 import { operationValueUses } from "./lower-control.js";
 import type { ProgramWalk, ScannedBody } from "./block-index-program.js";
 import {
@@ -234,7 +234,7 @@ export function collectSelectorReach(
       // that the chip never receives the value, and silently dropping one is
       // exactly how a sprite ends up reading character ROM.
       if (operationValueUses(operation).includes(value))
-        classifyRemainingUse(operation, value, block, index, body, walk, reach, state, walked);
+        classifyRemainingUse(operation, value, body, walk, reach, state, walked);
     }
   }
   // Computing the block number in a helper and publishing the result is ordinary
@@ -278,8 +278,6 @@ export function collectSelectorReach(
 function classifyRemainingUse(
   operation: SemanticOperation,
   value: ValueId,
-  block: SemanticBlock,
-  index: number,
   body: ScannedBody,
   walk: ProgramWalk,
   reach: SelectorReach,
@@ -311,7 +309,7 @@ function classifyRemainingUse(
     case "load-unit":
       return;
     case "memory-write":
-      writeThroughAddress(operation, value, block, index, body, walk, reach, state, walked);
+      writeThroughAddress(operation, value, body, reach);
       return;
     case "aggregate":
       composedIntoAnObject(operation, body, walk, reach, state, walked);
@@ -385,42 +383,26 @@ function composedIntoAnObject(
 /**
  * Account for a block selector written to a computed address.
  *
- * Writing to a constant address is an ordinary processor-side write: the
- * program puts a byte somewhere of its own choosing, and nothing about that
- * makes the video chip fetch this object. Writing through the address of a
- * place is a write to that object, and is treated as one — which is how a
- * number poked into a lent array reaches a caller that publishes it. An address
- * this pass cannot attribute is a route it does not follow.
+ * Writing to a constant address is ordinary processor work: the program puts a
+ * byte somewhere of its own choosing, and nothing about that makes the video
+ * chip fetch this object.
+ *
+ * Any other address is a route this pass does not follow. It deliberately does
+ * not try to resolve the address back to a named place first, because doing so
+ * could never answer differently: writing through the address of an object
+ * requires taking that address, and an object whose address exists already
+ * escapes for that reason alone. A mutation confirmed it — removing the
+ * resolution changed no case — so the simpler rule is the honest one.
  */
 function writeThroughAddress(
   operation: Extract<SemanticOperation, { readonly kind: "memory-write" }>,
   value: ValueId,
-  block: SemanticBlock,
-  index: number,
   body: ScannedBody,
-  walk: ProgramWalk,
   reach: SelectorReach,
-  state: SelectorState,
-  walked: WalkedValues,
 ): void {
   // Using the number as the destination address writes somewhere unrelated;
   // only a written value travels into storage.
   if (operation.value !== value) return;
-  const target = addressOperation(operation.address, body.definitions);
-  if (target !== undefined) {
-    collectLoadedSelectorReach(
-      target.place,
-      operation.width,
-      { block, index },
-      body,
-      walk,
-      reach,
-      state,
-      walked,
-      null,
-    );
-    return;
-  }
   if (constantValue(body.definitions.get(operation.address), body.definitions) !== null) return;
   reach.escaped = true;
 }
