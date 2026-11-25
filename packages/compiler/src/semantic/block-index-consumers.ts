@@ -6,6 +6,7 @@ import type {
   SemanticGlobal,
   SemanticOperation,
   SemanticPlace,
+  StorageValue,
   ValueId,
 } from "./operations.js";
 import { constantValue, staticPlaceOffset } from "./block-index-values.js";
@@ -58,6 +59,23 @@ export interface ScannedBody {
   readonly blocks: readonly SemanticBlock[];
   /** Values this body defines, for static address and index resolution. */
   readonly definitions: Definitions;
+  /** Parameters in source order, which is what an argument position selects. */
+  readonly parameters: readonly ScannedParameter[];
+}
+
+/**
+ * One parameter of a scanned body, described by the storage its name denotes.
+ *
+ * Array and struct parameters are zero-copy borrows of the caller's object, so
+ * writing through one writes storage this body does not own, and the reads that
+ * matter are in a caller this walk is not standing in. A scalar parameter is
+ * the callee's own copy, and every read of it is here.
+ */
+interface ScannedParameter {
+  /** Identity of the parameter binding, which a read of it is rooted at. */
+  readonly key: string;
+  /** Whether the name denotes the caller's object rather than a private copy. */
+  readonly borrowed: boolean;
 }
 
 /** One call whose result a caller receives, kept with the body that receives it. */
@@ -83,6 +101,15 @@ export interface ProgramWalk {
   readonly callSites: ReadonlyMap<string, readonly CallSite[]>;
   /** Module objects, whose storage any other body or an interrupt may read. */
   readonly moduleObjects: ReadonlySet<string>;
+  /**
+   * Objects whose address is taken somewhere in the program.
+   *
+   * This walk recognizes a read as a load of a named place. Once an address
+   * exists, a read can be made through it instead, by an operation this walk
+   * does not match and possibly in a body it never visits — which is how an
+   * array filled with block numbers and lent to a helper reaches the chip.
+   */
+  readonly addressTaken: ReadonlySet<string>;
 }
 
 /**
@@ -307,6 +334,16 @@ function collectLoadedSelectorReach(
   walked: WalkedValues,
 ): void {
   const written = bindingIdentityKey(place.root);
+  // Two writes land somewhere this walk cannot account for. Once the written
+  // object's address exists, a read can be made through it by an operation this
+  // walk does not match, in any body. And a write through a borrowed parameter
+  // lands in the caller's object, whose reads are not in this body at all.
+  // Either way the number may reach the chip unseen, so the whole object is the
+  // honest demand — while the reads that are visible here still contribute
+  // everything they prove.
+  if (walk.addressTaken.has(written)) reach.escaped = true;
+  if (body.parameters.some((parameter) => parameter.key === written && parameter.borrowed))
+    reach.escaped = true;
   const replaced = definiteReplacement(place, width, storeBlock, storeIndex, body, walk);
   const reads =
     replaced === null
@@ -332,17 +369,34 @@ interface BodyCall {
   readonly result: ValueId;
 }
 
+/** Describe one parameter by the storage its name denotes. */
+function scannedParameter(parameter: StorageValue): ScannedParameter {
+  const kind = parameter.type.kind;
+  return Object.freeze({
+    key: bindingIdentityKey(parameter.id),
+    borrowed: kind === "array" || kind === "struct",
+  });
+}
+
 /**
- * Index one body's value definitions and the calls it makes, in one traversal of
- * its operations. The calls come back separately because a call site is recorded
- * against the body that makes it, which does not exist until this returns.
+ * Index one body's value definitions, the calls it makes and the addresses it
+ * takes, in one traversal of its operations. Everything but the definitions
+ * comes back separately, because each belongs to the program rather than to
+ * this body — and a call site is recorded against the body that makes it, which
+ * does not exist until this returns.
  */
 function scannedBody(
   owner: string | null,
   blocks: readonly SemanticBlock[],
-): { readonly body: ScannedBody; readonly calls: readonly BodyCall[] } {
+  parameters: readonly StorageValue[],
+): {
+  readonly body: ScannedBody;
+  readonly calls: readonly BodyCall[];
+  readonly addressTaken: readonly string[];
+} {
   const definitions = new Map<string, SemanticOperation>();
   const calls: BodyCall[] = [];
+  const addressTaken: string[] = [];
   for (const block of blocks)
     for (const operation of block.operations) {
       const result = "result" in operation ? operation.result : null;
@@ -351,8 +405,19 @@ function scannedBody(
         calls.push(
           Object.freeze({ callee: bindingIdentityKey(operation.callee), result: operation.result }),
         );
+      if (operation.kind === "place-address")
+        addressTaken.push(bindingIdentityKey(operation.place.root));
     }
-  return { body: Object.freeze({ owner, blocks, definitions }), calls };
+  return {
+    body: Object.freeze({
+      owner,
+      blocks,
+      definitions,
+      parameters: Object.freeze(parameters.map(scannedParameter)),
+    }),
+    calls,
+    addressTaken,
+  };
 }
 
 /**
@@ -367,19 +432,23 @@ export function scanProgram(
   globals: readonly SemanticGlobal[],
 ): ProgramWalk {
   const scanned = [
-    ...functions.map((fn) => scannedBody(bindingIdentityKey(fn.id), fn.blocks)),
-    ...globals.map((global) => scannedBody(null, global.blocks)),
+    ...functions.map((fn) => scannedBody(bindingIdentityKey(fn.id), fn.blocks, fn.parameters)),
+    ...globals.map((global) => scannedBody(null, global.blocks, [])),
   ];
   const callSites = new Map<string, CallSite[]>();
-  for (const { body, calls } of scanned)
-    for (const call of calls) {
+  const addressTaken = new Set<string>();
+  for (const entry of scanned) {
+    for (const taken of entry.addressTaken) addressTaken.add(taken);
+    for (const call of entry.calls) {
       const sites = callSites.get(call.callee) ?? [];
-      sites.push(Object.freeze({ body, result: call.result }));
+      sites.push(Object.freeze({ body: entry.body, result: call.result }));
       callSites.set(call.callee, sites);
     }
+  }
   return Object.freeze({
     bodies: Object.freeze(scanned.map(({ body }) => body)),
     callSites,
     moduleObjects: new Set(globals.map((global) => bindingIdentityKey(global.id))),
+    addressTaken,
   });
 }
