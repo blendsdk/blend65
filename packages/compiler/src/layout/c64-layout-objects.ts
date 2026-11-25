@@ -356,15 +356,21 @@ export function resolvePlacementTransforms(
           );
         }
         // An offset inside the addressed object is reported before the final
-        // address is judged, because it is the one failure no placement can
-        // correct: wherever the object goes, that many bytes into it is the same
-        // distance off the boundary the field needs.
+        // address is judged, because it is the failure aligning the object
+        // cannot fix: alignment moves the object's first byte, and a distance
+        // into it that is not a multiple of the field's granule stays off the
+        // boundary wherever that first byte lands.
+        //
+        // An author could still pick an address where the sum happens to align,
+        // and this refuses that too. Deliberately: the demand pass records no
+        // run at all for a non-multiple offset, so judging the address first
+        // would admit a displaced block with nothing constraining it.
         const fieldAlignment = vicConsumerAlignment(operand.transform);
         const fieldOffset = operand.offset ?? 0;
         if (fieldOffset % fieldAlignment !== 0) {
           return fail(
             instruction,
-            `VIC field '${operand.transform}' requires ${fieldAlignment}-byte alignment; the offset ${fieldOffset} inside the object it addresses is not a multiple of ${fieldAlignment}, which no placement can correct`,
+            `VIC field '${operand.transform}' requires ${fieldAlignment}-byte alignment; the offset ${fieldOffset} inside the object it addresses is not a multiple of ${fieldAlignment}, so aligning the object cannot put it on a boundary`,
             [
               `field=${operand.transform}`,
               `label=${operand.label}`,

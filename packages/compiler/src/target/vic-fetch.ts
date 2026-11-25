@@ -89,9 +89,15 @@ export function couldBeSpritePointer(address: number): boolean {
  *
  * This is the record the hardware addresses rather than a count of bytes read:
  * a sprite image is 63 bytes inside a 64-byte block, and the block is the unit
- * the pointer selects. Bank and character-ROM boundaries are multiples of every
- * footprint here, so constraining the footprint constrains exactly what the
- * chip can reach.
+ * the pointer selects.
+ *
+ * Each footprint fits inside its field's own alignment granule, which is the
+ * property placement relies on. It is **not** true that the bank and
+ * character-ROM boundaries are multiples of every footprint: 8,000 and 1,000
+ * divide neither 4,096 nor 16,384. A bitmap makes that concrete — an address
+ * aligned to its 8,192-byte granule can have a base clear of the window while
+ * half its 8,000 fetched bytes lie inside it, so the footprint and not the
+ * alignment is what rules that address out.
  */
 export function vicConsumerBytes(transform: VicFieldTransform): number {
   switch (transform) {

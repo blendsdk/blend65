@@ -3,7 +3,7 @@
 > **Owner**: T-179 (#179) · **Type**: Task (lightweight) · **CodeOps Artifact Schema**: 1
 > **Status**: Delivered and verified; five reviews dispositioned over two rounds, two fields withdrawn on their evidence
 > **Progress**: 5/5 tasks (100%)
-> **Last Updated**: 2026-11-25
+> **Last Updated**: 2026-11-26
 
 ## Why this unit exists
 
@@ -192,6 +192,49 @@ output side, because the endings of *placement* are a different list. The next u
 should enumerate the facts an asset carries that a global does not, before admitting a new kind of
 object anywhere.
 
+## The second review round, and what it caught that the first did not
+
+The repairs went back to two of the three reviewers. The semantics re-review found **three refusals
+naming a cause that was not true**, all three introduced by the first round's own fixes, and one of
+them invalidated two cases that had been passing.
+
+| Finding | Measured | Disposition |
+| --- | --- | --- |
+| SM-013 — an occupancy conflict reported as a visibility failure | two objects at `$2000`: *"the address $2000 … does not satisfy it"*. It satisfies it completely; the conflict was the other object | **Fixed.** The cause is split where it is known, and an occupancy conflict gets the canonical sentence about an explicit constraint |
+| SM-014 — the bounded wording became unreachable, and two cases stopped discriminating | `place(at: $1000)` and `place(at: $4000)` rendered **one** sentence naming the bank and the window together, so each case's pattern matched in either program | **Fixed.** The failing run is named with its own bounds |
+| SM-017 — an asset addressed at an element fell through to the wrong sentence | `vicSpriteBlock(&SPRITES[i])` — an animated sheet — told the author to pass `&` straight at the call, which is what they had done | **Fixed.** It names `vicSpriteBlock(&asset) + index`, which works |
+| SM-016 — a composite demand claimed the capability declared all of it | an object reached by both routes dropped the inferred admission | **Fixed.** The weaker claim is kept |
+| SM-019 — the zero-page action claimed the alignment was impossible | false for a sprite block: `$0040` is a legal block | **Fixed**, and filed as [#207](https://github.com/blendsdk/blend65/issues/207) |
+| SM-023 — the alignment action named a byte count | *"the nearest below this one is 64"*, where the author types a position or a field name | **Fixed** |
+| SM-015 — the shared-address branch has no reachable shape | neither the reviewer nor a mutation could reach it | **Branch kept, its sentence removed.** No author can be told about a branch no author can reach |
+| SM-008 remainder — a link-time address through a binding or a parameter | the reviewer's ruling: an issue alone would not notice when the reason expired | **Filed as [#206](https://github.com/blendsdk/blend65/issues/206) with a ledger row** |
+| SM-021 — a charset displacement is unproved | pre-existing, at asset parity; but the sprite help now teaches `+ index` | **Recorded on [#201](https://github.com/blendsdk/blend65/issues/201)** as a raised exposure |
+| SM-020 — the withdrawal's stated reason was leaky | a constant address reserves nothing either, yet is the recommended spelling | **Reason restated** as ownership |
+
+### What the round says about the method
+
+The first round's lesson was that enumerating the argument's endings caught the input side and nothing
+of the output side. This round's is narrower and sharper: **three of the fixes for round one were
+themselves new defects, every one of them in a diagnostic.** The pattern is that each fix moved where
+a failure is detected, and the sentence stayed behind describing the old detection point.
+
+An oracle reading a message as a substring cannot catch that. Two cases passed through a wording that
+had lost the distinction they existed to pin, and only a reviewer reading the render could tell.
+Where a refusal has a cause, the case now has to reject the other causes as well as match its own.
+
+### Two findings answered rather than fixed
+
+The reviewer asked for the specification authority behind the declared/inferred split and supplied it:
+`spec/11-memory-model.md:72-75` says requirements from a platform operation are intersected with the
+source clause and the complete object must satisfy the result, otherwise E10273. A VIC field
+capability is a platform operation; address arithmetic is not. The split is specified, not merely
+defensible, and that citation is better than the argument this record first made for it.
+
+The withdrawal was also challenged and survives on stronger evidence than the first round's: accepting
+module storage for a screen field would not have been quietly wrong, it would have produced *"Active
+screen 'X' has no placed VIC asset"* — an internal-sounding refusal — the moment a sprite pointer was
+written.
+
 ## Verification
 
 | Gate | Result |
@@ -231,12 +274,21 @@ and an address stored in a variable arrives as a load rather than as the place-a
 kept rather than deleted because being wrong about it would fold an address another use still needs
 at run time, and that is a wrong artifact rather than a refusal.
 
-The field footprint cannot be narrowed observably, and the reason is arithmetic rather than a test
-gap: 64, 1,024, 2,048 and 8,192 all divide the bank's 16,384 bytes, so a start aligned to a field's
-own granularity keeps its whole footprint inside the bank and either wholly inside or wholly outside
-a 4 KiB-aligned window. Widening the footprint by one byte **does** fail a case — the 4,096-byte
-charset whose fetched 2,048 bytes end exactly at `$3FFF` — so the extent is pinned from above by a
-test and from below by the alignment.
+The field footprint cannot be narrowed observably **for the two fields this unit ships**, and the
+reason is arithmetic rather than a test gap: a sprite block's 64 bytes and a charset's 2,048 both
+equal their field's alignment granule, so a start aligned to that granule keeps the whole footprint
+inside the bank and either wholly inside or wholly outside a 4 KiB-aligned window. Widening the
+footprint by one byte **does** fail a case — the 4,096-byte charset whose fetched 2,048 bytes end
+exactly at `$3FFF` — so the extent is pinned from above by a test and from below by the alignment.
+
+The platform re-review was right to refuse the general form of that argument, and measuring settled
+it. A bitmap's footprint is **not** subsumed: `satisfiesVicFetch($0000, 8000 bytes)` is `false`,
+because 8,000 bytes from an 8,192-aligned `$0000` reach `$1F3F` — half of them inside the
+character-ROM window, with the base address clear of it. So the footprint becomes load-bearing the
+moment [#200](https://github.com/blendsdk/blend65/issues/200) admits a bitmap or a screen matrix to
+module storage, and the comment in `target/vic-fetch.ts` that claimed every footprint divides the
+bank and window boundaries — it does not; 8,000 and 1,000 divide neither — is corrected, because that
+comment is what a later reader would have leaned on to narrow one.
 
 **Everything here is artifact-placement-verified.** Every acceptance case resolves a final address
 from public debug metadata and checks the fetched run against the bank and the character-ROM window.
