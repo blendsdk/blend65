@@ -7,7 +7,16 @@ export type VicFieldTransform =
   | "vic-bitmap-select"
   | "vic-screen-select";
 
-/** Exact byte count the video chip fetches through one VIC field. */
+/**
+ * Byte footprint one VIC field occupies, which is what placement must keep
+ * reachable.
+ *
+ * This is the record the hardware addresses rather than a count of bytes read:
+ * a sprite image is 63 bytes inside a 64-byte block, and the block is the unit
+ * the pointer selects. Bank and character-ROM boundaries are multiples of every
+ * footprint here, so constraining the footprint constrains exactly what the
+ * chip can reach.
+ */
 export function vicConsumerBytes(transform: VicFieldTransform): number {
   switch (transform) {
     case "vic-sprite-block":
@@ -69,6 +78,13 @@ export interface VicFetchDemand {
   readonly ranges: readonly VicFetchRange[];
   /** The block-index expression this demand was inferred from. */
   readonly span: SourceSpan;
+  /**
+   * Set when the block is chosen at run time, so the runs cover every block the
+   * program could select rather than bytes the chip reads at one moment. The
+   * distinction matters to the author: one says "these bytes are read", the
+   * other says "any of these bytes may be read".
+   */
+  readonly runtimeSelected?: true;
 }
 
 /**

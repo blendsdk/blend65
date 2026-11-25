@@ -539,6 +539,159 @@ function main(): void { c64.vic.setSpritePointer(0, blockOf()); }`,
     ).toEqual({ align: 64, fetched: null });
   });
 
+  // Naming a later frame by adding to the base block number is how an author
+  // avoids writing the byte offset out. The chip reads that frame, so the run
+  // moves with it rather than disappearing.
+  it("follows a constant displacement to the block it names", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function main(): void { c64.vic.setSpritePointer(0, lo(&sheet / 64) + 1); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 64, bytes: 64 }] });
+  });
+
+  // Publishing the base and a displaced frame demands both runs. Satisfying one
+  // says nothing about the other, and this is the shape where a demand covering
+  // only the first leaves the second wherever the object happened to land.
+  it("demands the base and the displaced run together", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[8192];
+function main(): void {
+  c64.vic.setSpritePointer(0, lo(&sheet / 64));
+  c64.vic.setSpritePointer(1, lo(&sheet / 64) + 64);
+}`,
+        "sheet",
+      ),
+    ).toEqual({
+      align: 64,
+      fetched: [
+        { offset: 0, bytes: 64 },
+        { offset: 4096, bytes: 64 },
+      ],
+    });
+  });
+
+  // A displacement past the object's own end names bytes belonging to whatever
+  // is placed there, which this object cannot be asked to keep reachable.
+  it("ignores a displacement that leaves the object", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[128];
+function main(): void { c64.vic.setSpritePointer(0, lo(&sheet / 64) + 8); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: null });
+  });
+
+  // A displacement decided at run time names a block nothing here can identify,
+  // so every block of the object has to be reachable.
+  it("widens the demand when the displacement is read at run time", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[128];
+function main(): void {
+  let frame: byte = peek($0400);
+  c64.vic.setSpritePointer(0, lo(&sheet / 64) + frame);
+}`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 128 }] });
+  });
+
+  // Complementing a block number names a different block, so the chip reading
+  // through it never reads this object.
+  it("drops provenance through a complemented selector", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function main(): void { c64.vic.setSpritePointer(0, ~lo(&sheet / 64)); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: null });
+  });
+
+  // Complementing it twice restores the original number exactly, so the chip
+  // does read this object after all. A walk that stopped at the first operator
+  // it would not follow would never see the one that undoes it, and the sprite
+  // would be left wherever the object happened to land.
+  it("restores provenance when a complement is undone", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function main(): void { c64.vic.setSpritePointer(0, ~(~lo(&sheet / 64))); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+  });
+
+  // The same, with the two operators separated by a helper boundary and a named
+  // local, because the arithmetic has to travel with the value rather than with
+  // the expression it was written in.
+  it("restores provenance when the complement is undone across a call", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function inverted(): byte { return ~lo(&sheet / 64); }
+function main(): void {
+  let held: byte = inverted();
+  c64.vic.setSpritePointer(0, ~held);
+}`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+  });
+
+  // Complement, displace, complement again: the displacement survives the pair
+  // but its sign does not, so this names the block one *before* the base, which
+  // falls outside the object and demands nothing of it.
+  it("tracks a displacement through a complemented pair", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function main(): void { c64.vic.setSpritePointer(0, ~(~lo(&sheet / 64) + 1)); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: null });
+  });
+
+  // Taking the high byte discards the selector rather than displacing or
+  // negating it, and a second `hi` yields zero instead of the original, so
+  // nothing downstream can bring it back.
+  it("does not restore provenance through a second high-byte read", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function main(): void { c64.vic.setSpritePointer(0, hi(word(hi(&sheet / 64)))); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: null });
+  });
+
+  // Multiplying a block number names an unrelated block, exactly as taking its
+  // high byte does, so it carries no provenance either.
+  it("drops provenance through a scaled selector", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function main(): void { c64.vic.setSpritePointer(0, lo(&sheet / 64) * 3); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: null });
+  });
+
   // The chip receives the constant, so nothing about this object is fetched.
   // Only the reads between the two stores could have seen the block number.
   it("stops at a value this body provably replaces", () => {

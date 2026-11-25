@@ -20,10 +20,12 @@ interface AlignmentDemand {
   /** Static byte offset from the module object's first byte. */
   readonly offset: number;
   /**
-   * Bytes the video chip fetches because of this use, or null when nothing
-   * proves the chip receives the block number at all.
+   * Runs the video chip fetches because of this use, empty when nothing proves
+   * the chip receives the block number at all.
    */
-  readonly fetched: VicFetchRange | null;
+  readonly fetched: readonly VicFetchRange[];
+  /** Whether the block this use selects is decided at run time. */
+  readonly runtimeSelected: boolean;
   /** The block-index expression this use was recognized from. */
   readonly span: SourceSpan;
 }
@@ -68,17 +70,78 @@ const VIC_FETCH_ARGUMENTS: ReadonlyMap<string, number> = new Map([["c64.vic.setS
 const FETCHED_BYTES = vicConsumerBytes("vic-sprite-block");
 
 /**
- * Unary operators that leave a block selector naming the same block.
+ * Unary operators that leave a block selector's value untouched.
  *
  * `lo` narrows a selector to the byte the register takes, and a unary plus is
  * the value itself, so a chip receiving either still fetches from the address
- * this block number was computed from. Every other operator names a different
- * block: `hi(address / 64)` is a value in `0..3`, which selects a block in the
- * first 256 bytes of the bank rather than anywhere inside the object whose
- * address produced it. Following one of those would claim a provenance the
- * value does not have and narrow storage the chip never reads.
+ * this block number was computed from.
  */
 const SELECTOR_PRESERVING_UNARY: ReadonlySet<string> = new Set(["lo", "+"]);
+
+/** A sprite pointer is one byte, so every selector step is taken modulo this. */
+const SELECTOR_MODULUS = 256;
+
+/**
+ * What the chip would receive, written as `sign * block + offset` over the block
+ * number this pass recognized.
+ *
+ * Tracking the arithmetic rather than refusing to follow it is what lets one
+ * walk answer three questions that look different and are not. Adding a
+ * constant selects a later block of the same object, which is how an author
+ * names frame one of a sheet. Complementing the number names an unrelated
+ * block — and complementing it again restores the original exactly, so a step
+ * the walk would otherwise abandon can come back. Reaching the chip with a
+ * negated selector proves nothing about this object, while reaching it with a
+ * displacement of `k` proves the chip reads the block `k` further in.
+ */
+interface SelectorState {
+  /** `1` while the selector still rises with the block number, `-1` once negated. */
+  readonly sign: 1 | -1;
+  /** Constant added to the selector so far, in blocks. */
+  readonly offset: number;
+}
+
+/** The selector exactly as the recognized block index produced it. */
+const UNSHIFTED: SelectorState = Object.freeze({ sign: 1, offset: 0 });
+
+/** Apply one complement, which negates the selector and shifts it. */
+function complemented(state: SelectorState): SelectorState {
+  return Object.freeze({
+    sign: state.sign === 1 ? -1 : 1,
+    offset: (SELECTOR_MODULUS - 1 - state.offset + SELECTOR_MODULUS) % SELECTOR_MODULUS,
+  });
+}
+
+/** Apply one negation, which negates the selector without shifting the block. */
+function negated(state: SelectorState): SelectorState {
+  return Object.freeze({
+    sign: state.sign === 1 ? -1 : 1,
+    offset: (SELECTOR_MODULUS - state.offset) % SELECTOR_MODULUS,
+  });
+}
+
+/** Add a constant number of blocks to the selector. */
+function displaced(state: SelectorState, blocks: number): SelectorState {
+  return Object.freeze({
+    sign: state.sign,
+    offset: (((state.offset + blocks) % SELECTOR_MODULUS) + SELECTOR_MODULUS) % SELECTOR_MODULUS,
+  });
+}
+
+/**
+ * Where the video chip reads this object, collected while walking one selector.
+ *
+ * Several publications of one object contribute several displacements, and they
+ * all hold: satisfying the first says nothing about the second. A displacement
+ * decided at run time cannot be named, so it is recorded as such and widens the
+ * demand instead of adding to it.
+ */
+interface SelectorReach {
+  /** Block displacements at which the chip provably receives this selector. */
+  readonly displacements: Set<number>;
+  /** Whether some publication's displacement is only known at run time. */
+  runtimeSelected: boolean;
+}
 
 /** One value definition retained for static address and index resolution. */
 type Definitions = ReadonlyMap<string, SemanticOperation>;
@@ -137,15 +200,27 @@ interface ProgramWalk {
  * already walked and answer that it reaches nothing — and answering that way
  * wrongly is what leaves a sprite where the chip cannot see it.
  */
-type WalkedValues = Map<ScannedBody, Set<ValueId>>;
+type WalkedValues = Map<ScannedBody, Set<string>>;
 
 /** Values already followed in one body, created on first use. */
-function walkedIn(walked: WalkedValues, body: ScannedBody): Set<ValueId> {
+function walkedIn(walked: WalkedValues, body: ScannedBody): Set<string> {
   const seen = walked.get(body);
   if (seen !== undefined) return seen;
-  const created = new Set<ValueId>();
+  const created = new Set<string>();
   walked.set(body, created);
   return created;
+}
+
+/**
+ * Identity of one step of the walk: a value together with the arithmetic
+ * applied to the selector on the way here.
+ *
+ * The arithmetic belongs in the identity because the same value can be reached
+ * with different arithmetic, and those steps answer the question differently —
+ * one may designate this object's second block and another nothing at all.
+ */
+function walkStep(value: ValueId, state: SelectorState): string {
+  return `${value}:${state.sign}:${state.offset}`;
 }
 
 /**
@@ -275,60 +350,92 @@ function usedByBinary(
 }
 
 /**
- * Whether one value reaches a VIC capability as an argument, following the
- * conversions a block index normally passes through on the way.
+ * Collect every place the video chip reads one recognized block selector.
  *
- * `lo(address / 64)` narrows the block number to the byte the register takes, so
- * a narrowing step is followed here even though it discards information: the
- * value the chip receives is still derived from this address and no other.
+ * The walk follows the number forward through the forms ordinary code puts
+ * between the arithmetic and the hardware: conversions, operators that leave
+ * the value alone, a constant displacement that names a later block, a join
+ * that chooses it on one path, a variable it is stored in and read back out of,
+ * and a return into every call site that receives it. `lo(address / 64)`
+ * narrows the number to the byte the register takes, and that narrowing is
+ * followed even though it discards information, because the value the chip
+ * receives is still derived from this address and no other.
+ *
+ * What it does not follow is arithmetic that destroys the selector: taking the
+ * high byte leaves a value in `0..3` naming a block in the first 256 bytes of
+ * the bank, and multiplying or masking names something unrelated. Claiming
+ * provenance there would narrow storage the chip never reads.
+ *
+ * @param value Selector value to follow.
+ * @param body Body that defines the value.
+ * @param walk Indexed bodies and call sites.
+ * @param reach Accumulator the caller reads the answer from.
+ * @param state Arithmetic applied to the selector so far.
+ * @param walked Steps already taken, which is what terminates a cycle.
  */
-function reachesVicConsumer(
+function collectSelectorReach(
   value: ValueId,
   body: ScannedBody,
   walk: ProgramWalk,
+  reach: SelectorReach,
+  state: SelectorState = UNSHIFTED,
   walked: WalkedValues = new Map(),
-): boolean {
+): void {
   // Holding a block number in a variable before publishing it is ordinary, and
   // a place can be written and read repeatedly, so the walk remembers where it
   // has been rather than assuming the derivation chain is acyclic.
   const seen = walkedIn(walked, body);
-  if (seen.has(value)) return false;
-  seen.add(value);
+  const step = walkStep(value, state);
+  if (seen.has(step)) return;
+  seen.add(step);
+  const follow = (next: ValueId, nextState: SelectorState): void =>
+    collectSelectorReach(next, body, walk, reach, nextState, walked);
   for (const block of body.blocks) {
     for (const [index, operation] of block.operations.entries()) {
       if (operation.kind === "platform") {
         // The position matters as much as the capability: the same call takes a
         // sprite's index beside its block number, and only one of the two says
-        // anything about where the chip reads.
+        // anything about where the chip reads. A negated selector rises as the
+        // block number falls, so it names no fixed part of this object.
         const fetched = VIC_FETCH_ARGUMENTS.get(operation.capability);
-        if (fetched !== undefined && operation.arguments[fetched] === value) return true;
+        if (fetched !== undefined && operation.arguments[fetched] === value && state.sign === 1)
+          reach.displacements.add(state.offset);
       }
+      if (operation.kind === "convert" && operation.operand === value)
+        follow(operation.result, state);
+      if (operation.kind === "unary" && operation.operand === value) {
+        if (SELECTOR_PRESERVING_UNARY.has(operation.operator)) follow(operation.result, state);
+        if (operation.operator === "~") follow(operation.result, complemented(state));
+        if (operation.operator === "-") follow(operation.result, negated(state));
+      }
+      // `block + 1` names the next block of the same object, which is how an
+      // author selects frame one of a sheet without writing the offset out. A
+      // displacement decided at run time names an element nothing here can
+      // identify, so it widens the demand rather than adding to it.
       if (
-        operation.kind === "convert" &&
-        operation.operand === value &&
-        reachesVicConsumer(operation.result, body, walk, walked)
-      )
-        return true;
-      // Only an operator that leaves the selector naming the same block carries
-      // this object's provenance forward; the rest compute some other number.
-      if (
-        operation.kind === "unary" &&
-        SELECTOR_PRESERVING_UNARY.has(operation.operator) &&
-        operation.operand === value &&
-        reachesVicConsumer(operation.result, body, walk, walked)
-      )
-        return true;
+        operation.kind === "binary" &&
+        (operation.operator === "+" || operation.operator === "-")
+      ) {
+        const left = operation.left === value;
+        const right = operation.right === value;
+        if (left || right) {
+          const other = constantValue(
+            body.definitions.get(left ? operation.right : operation.left),
+            body.definitions,
+          );
+          if (other === null) reach.runtimeSelected = true;
+          else if (operation.operator === "+") follow(operation.result, displaced(state, other));
+          else if (left) follow(operation.result, displaced(state, -other));
+          else follow(operation.result, displaced(negated(state), other));
+        }
+      }
       // `cond ? lo(&sprites / 64) : 0` publishes the block number on one path.
       // A value that arrives at a join is the join's value on the path it came
       // from, so one incoming edge is enough: the chip receives this address
       // whenever that path runs, and a sprite the chip cannot see on some frames
       // is still a sprite the chip cannot see.
-      if (
-        operation.kind === "merge" &&
-        operation.incoming.some((edge) => edge.value === value) &&
-        reachesVicConsumer(operation.result, body, walk, walked)
-      )
-        return true;
+      if (operation.kind === "merge" && operation.incoming.some((edge) => edge.value === value))
+        follow(operation.result, state);
       // `let block = lo(&sprites / 64);` publishes through a variable. The read
       // is matched on the written object rather than the exact field, because a
       // demand against an object that did not need one is the cheaper way to be
@@ -336,20 +443,18 @@ function reachesVicConsumer(
       // object too large for a visible home pays for an unnecessary demand with
       // a failed build, which is why a value this store provably replaces stops
       // the search here.
-      if (
-        operation.kind === "store" &&
-        operation.value === value &&
-        loadsReachVicConsumer(
+      if (operation.kind === "store" && operation.value === value)
+        collectLoadedSelectorReach(
           operation.place,
           semanticTypeSize(operation.type),
           block,
           index,
           body,
           walk,
+          reach,
+          state,
           walked,
-        )
-      )
-        return true;
+        );
     }
   }
   // Computing the block number in a helper and publishing the result is ordinary
@@ -357,9 +462,9 @@ function reachesVicConsumer(
   // every call site. Resuming with the same walk also covers a helper that only
   // hands another helper's answer on, and an initializer has no caller to resume
   // in, which is what distinguishes a body with an owner from one without.
-  return body.owner !== null && leavesByReturn(value, body.blocks)
-    ? callResultsReachVicConsumer(body.owner, walk, walked)
-    : false;
+  if (body.owner !== null && leavesByReturn(value, body.blocks))
+    for (const site of walk.callSites.get(body.owner) ?? [])
+      collectSelectorReach(site.result, site.body, walk, reach, state, walked);
 }
 
 /**
@@ -400,7 +505,7 @@ function definiteReplacement(
 }
 
 /**
- * Whether any read of one written object hands its value to the video chip.
+ * Continue the walk through every read of one written object.
  *
  * Reads are matched on the object rather than the exact field, so an unrelated
  * field of the same struct still raises the demand. When this body provably
@@ -408,15 +513,17 @@ function definiteReplacement(
  * the two can see it: a read anywhere else gets either an older value or the
  * replacement, and neither is this block number.
  */
-function loadsReachVicConsumer(
+function collectLoadedSelectorReach(
   place: SemanticPlace,
   width: number,
   storeBlock: SemanticBlock,
   storeIndex: number,
   body: ScannedBody,
   walk: ProgramWalk,
+  reach: SelectorReach,
+  state: SelectorState,
   walked: WalkedValues,
-): boolean {
+): void {
   const written = bindingIdentityKey(place.root);
   const replaced = definiteReplacement(place, width, storeBlock, storeIndex, body, walk);
   const reads =
@@ -424,13 +531,8 @@ function loadsReachVicConsumer(
       ? body.blocks.flatMap((block) => block.operations)
       : storeBlock.operations.slice(storeIndex + 1, replaced);
   for (const operation of reads)
-    if (
-      operation.kind === "load" &&
-      bindingIdentityKey(operation.place.root) === written &&
-      reachesVicConsumer(operation.result, body, walk, walked)
-    )
-      return true;
-  return false;
+    if (operation.kind === "load" && bindingIdentityKey(operation.place.root) === written)
+      collectSelectorReach(operation.result, body, walk, reach, state, walked);
 }
 
 /** Whether one value is handed to this body's callers as its result. */
@@ -438,23 +540,6 @@ function leavesByReturn(value: ValueId, blocks: readonly SemanticBlock[]): boole
   return blocks.some(
     (block) => block.terminator.kind === "return" && block.terminator.value === value,
   );
-}
-
-/**
- * Whether any call to one function hands that call's result to the video chip.
- *
- * Every body is searched, including module initializers, because a block number
- * can be published from an initializer as readily as from a function. A call
- * whose result is discarded publishes nothing and is skipped.
- */
-function callResultsReachVicConsumer(
-  owner: string,
-  walk: ProgramWalk,
-  walked: WalkedValues,
-): boolean {
-  for (const site of walk.callSites.get(owner) ?? [])
-    if (reachesVicConsumer(site.result, site.body, walk, walked)) return true;
-  return false;
 }
 
 /** One half of a complete `hi * 4 + lo >> 6` block selector. */
@@ -682,7 +767,7 @@ export function alignBlockIndexStorage(
     const record = (
       addressValue: ValueId,
       align: number,
-      publishedToVic: boolean,
+      reach: SelectorReach,
       span: SourceSpan,
     ): void => {
       const address = addressOperation(addressValue, definitions);
@@ -692,17 +777,28 @@ export function alignBlockIndexStorage(
       if (object === undefined) return;
       const proved = placeAlignment(address.place, align, definitions);
       if (proved === null) return;
-      // A runtime index proves alignment for every element but names none of
-      // them, so the fetched run covers the object: the chip may read any
-      // element, and shrinking the demand to the element the static prefix
-      // happens to name would leave the others where it cannot see them.
-      const fetched = !publishedToVic
-        ? null
-        : proved.dynamic
-          ? { offset: 0, bytes: semanticTypeSize(object.type) }
-          : { offset: proved.offset, bytes: FETCHED_BYTES };
+      const size = semanticTypeSize(object.type);
+      // An index or a displacement decided at run time proves the arithmetic for
+      // every block of the object and names none of them, so the demand covers
+      // the object: the chip may read any of them, and shrinking it to the one
+      // the static part happens to name would leave the others where the chip
+      // cannot see them.
+      const runtimeSelected = proved.dynamic || reach.runtimeSelected;
+      const fetched: VicFetchRange[] = [];
+      if (runtimeSelected && reach.displacements.size + (reach.runtimeSelected ? 1 : 0) > 0) {
+        fetched.push({ offset: 0, bytes: size });
+      } else {
+        // A displacement names a later block of the same object. Clamped to the
+        // object, because bytes past its end belong to whatever is placed there
+        // and are not this object's to demand.
+        for (const blocks of reach.displacements) {
+          const offset = proved.offset + blocks * FETCHED_BYTES;
+          if (offset < 0 || offset >= size) continue;
+          fetched.push({ offset, bytes: Math.min(FETCHED_BYTES, size - offset) });
+        }
+      }
       const known = demands.get(key) ?? [];
-      known.push({ align, offset: proved.offset, fetched, span });
+      known.push({ align, offset: proved.offset, fetched, runtimeSelected, span });
       demands.set(key, known);
     };
     for (const block of blocks) {
@@ -718,9 +814,10 @@ export function alignBlockIndexStorage(
         // only once a block index has actually been recognized, so an ordinary
         // expression never pays for the search.
         const produced = "result" in operation ? operation.result : null;
-        const publishedToVic =
-          produced !== null && produced !== undefined && reachesVicConsumer(produced, body, walk);
-        record(demand.address, demand.align, publishedToVic, operation.span);
+        const reach: SelectorReach = { displacements: new Set(), runtimeSelected: false };
+        if (produced !== null && produced !== undefined)
+          collectSelectorReach(produced, body, walk, reach);
+        record(demand.address, demand.align, reach, operation.span);
       }
     }
   };
@@ -744,14 +841,16 @@ export function alignBlockIndexStorage(
       let align = placement?.align ?? 1;
       const fetched: VicFetchRange[] = [];
       let origin: SourceSpan | null = null;
+      let runtimeSelected = false;
       for (const demand of required) {
-        // Every published use contributes its own run. Satisfying one says
+        // Every published use contributes its own runs. Satisfying one says
         // nothing about another, so they accumulate rather than replace: a
         // second sprite published from the same sheet is a second run the chip
         // reads, at a different offset.
-        if (demand.fetched !== null) {
-          fetched.push(demand.fetched);
+        if (demand.fetched.length > 0) {
+          fetched.push(...demand.fetched);
           origin ??= demand.span;
+          runtimeSelected ||= demand.runtimeSelected;
         }
         // Root alignment can only express a demand whose static offset is a
         // multiple of it. Leave other shapes exactly as written.
@@ -764,7 +863,11 @@ export function alignBlockIndexStorage(
       const inferred =
         fetched.length === 0 || origin === null || !(stated === null || VIC_REGIONS.has(stated))
           ? null
-          : Object.freeze({ ranges: mergeVicFetchRanges(fetched), span: origin });
+          : Object.freeze({
+              ranges: mergeVicFetchRanges(fetched),
+              span: origin,
+              ...(runtimeSelected ? { runtimeSelected: true as const } : {}),
+            });
       if (align === (placement?.align ?? 1) && inferred === null) return global;
       return Object.freeze({
         ...global,

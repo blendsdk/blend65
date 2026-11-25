@@ -10,7 +10,7 @@ import type { WholeProgram } from "../semantic/whole-program.js";
 import type { StorageClosureCertificate } from "../storage/storage-types.js";
 import { C64_RESOURCE_BUDGETS } from "../target/c64-kernal.js";
 import type { TargetProfile } from "../target/profile.js";
-import type { VicFetchRange } from "../target/vic-fetch.js";
+import type { VicFetchDemand } from "../target/vic-fetch.js";
 
 /** Keep declaration-name and explicit-placement locations available to later resource diagnostics. */
 export function resourceSourceSpans(program: TypedProgram): ReadonlyMap<string, SourceSpan> {
@@ -68,20 +68,29 @@ export function sourceObjectName(
 }
 
 /**
- * Describe the bytes the video chip fetches from one object, in the terms the
- * author's own source used.
+ * Explain an inferred sprite-block requirement to the author who wrote the
+ * expression that caused it.
  *
- * An offset is worth naming because it tells the author which part of the object
- * the chip reads, and several runs are summarized rather than listed: the count
- * is what explains why the requirement is larger than one sprite image.
+ * Two shapes read differently and must not be conflated. A block chosen by
+ * constant arithmetic names bytes the chip reads; a block chosen at run time
+ * names bytes the chip *may* read, any of which the program could select, so
+ * all of them have to be reachable. Telling an author the chip reads sixteen
+ * kilobytes at once would be false, and would send them looking for a fetch
+ * that never happens.
  */
-function describeFetch(ranges: readonly VicFetchRange[]): string {
-  const total = ranges.reduce((bytes, range) => bytes + range.bytes, 0);
-  const only = ranges.length === 1 ? ranges[0] : undefined;
-  if (only === undefined) return `${ranges.length} runs totalling ${total} bytes of it`;
-  return only.offset === 0
-    ? `${only.bytes} bytes from its first byte`
-    : `${only.bytes} bytes at offset ${only.offset}`;
+function describeInferredFetch(demand: VicFetchDemand): string {
+  const total = demand.ranges.reduce((bytes, range) => bytes + range.bytes, 0);
+  if (demand.runtimeSelected === true) {
+    return `chooses its block at run time, so any of its ${total} bytes may be fetched and all of them must stay`;
+  }
+  const only = demand.ranges.length === 1 ? demand.ranges[0] : undefined;
+  const where =
+    only === undefined
+      ? `${demand.ranges.length} runs totalling ${total} bytes of it`
+      : only.offset === 0
+        ? `${only.bytes} bytes from its first byte`
+        : `${only.bytes} bytes at offset ${only.offset}`;
+  return `makes the video chip fetch ${where}, which must stay`;
 }
 
 /** Attribute a failed final constraint to the source object rather than an internal layout ID. */
@@ -104,7 +113,7 @@ export function sourcePlacementFailure(
   const message = vicVisible
     ? `Cannot place '${name}' — the handler requires a VIC-visible address in bank 0 with ${data?.alignment ?? 1}-byte alignment, clear of the character-ROM window and the active screen; the selected address cannot satisfy that requirement`
     : inferredFetch !== undefined
-      ? `Cannot place '${name}' — a sprite-block expression makes the video chip fetch ${describeFetch(inferredFetch.ranges)}, which must stay inside the VIC bank and clear of the character-ROM window; this requirement was inferred from that expression, so publish a smaller part of the object or place it at an explicit address`
+      ? `Cannot place '${name}' — a sprite-block expression ${describeInferredFetch(inferredFetch)} inside the VIC bank and clear of the character-ROM window; this requirement was inferred from that expression, and no home in the bank satisfies it beside the storage already placed there`
       : handlerFixed && data?.placement?.at !== null && data?.placement?.at !== undefined
         ? `Cannot place '${name}' — the handler requires the fixed load address $${data.placement.at.toString(16)}, which conflicts with occupied storage or the selected profile resident window; the payload cannot be moved`
         : `Cannot place '${name}' — explicit placement constraints conflict with occupied storage or the selected profile window; change or remove the explicit constraint`;
