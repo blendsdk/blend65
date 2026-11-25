@@ -110,6 +110,14 @@ export interface ProgramWalk {
    * array filled with block numbers and lent to a helper reaches the chip.
    */
   readonly addressTaken: ReadonlySet<string>;
+  /**
+   * Functions whose address is taken somewhere in the program.
+   *
+   * A call made through an address has no resolved callee at this stage, so for
+   * one of these functions the call sites this walk can name are not all of the
+   * places its result arrives.
+   */
+  readonly functionAddressTaken: ReadonlySet<string>;
 }
 
 /**
@@ -271,9 +279,15 @@ export function collectSelectorReach(
   // every call site. Resuming with the same walk also covers a helper that only
   // hands another helper's answer on, and an initializer has no caller to resume
   // in, which is what distinguishes a body with an owner from one without.
-  if (body.owner !== null && leavesByReturn(value, body.blocks))
+  if (body.owner !== null && leavesByReturn(value, body.blocks)) {
+    // Where this function's address exists, it can be called through that
+    // address — from a pointer variable or a dispatch table — and such a call
+    // names no callee here. The sites this walk can enumerate are then not all
+    // of the places the result arrives.
+    if (walk.functionAddressTaken.has(body.owner)) reach.escaped = true;
     for (const site of walk.callSites.get(body.owner) ?? [])
       collectSelectorReach(site.result, site.body, walk, reach, state, walked);
+  }
 }
 
 /**
@@ -393,10 +407,12 @@ function scannedBody(
   readonly body: ScannedBody;
   readonly calls: readonly BodyCall[];
   readonly addressTaken: readonly string[];
+  readonly functionAddressTaken: readonly string[];
 } {
   const definitions = new Map<string, SemanticOperation>();
   const calls: BodyCall[] = [];
   const addressTaken: string[] = [];
+  const functionAddressTaken: string[] = [];
   for (const block of blocks)
     for (const operation of block.operations) {
       const result = "result" in operation ? operation.result : null;
@@ -407,6 +423,8 @@ function scannedBody(
         );
       if (operation.kind === "place-address")
         addressTaken.push(bindingIdentityKey(operation.place.root));
+      if (operation.kind === "function-address")
+        functionAddressTaken.push(bindingIdentityKey(operation.function));
     }
   return {
     body: Object.freeze({
@@ -417,6 +435,7 @@ function scannedBody(
     }),
     calls,
     addressTaken,
+    functionAddressTaken,
   };
 }
 
@@ -437,8 +456,10 @@ export function scanProgram(
   ];
   const callSites = new Map<string, CallSite[]>();
   const addressTaken = new Set<string>();
+  const functionAddressTaken = new Set<string>();
   for (const entry of scanned) {
     for (const taken of entry.addressTaken) addressTaken.add(taken);
+    for (const taken of entry.functionAddressTaken) functionAddressTaken.add(taken);
     for (const call of entry.calls) {
       const sites = callSites.get(call.callee) ?? [];
       sites.push(Object.freeze({ body: entry.body, result: call.result }));
@@ -450,5 +471,6 @@ export function scanProgram(
     callSites,
     moduleObjects: new Set(globals.map((global) => bindingIdentityKey(global.id))),
     addressTaken,
+    functionAddressTaken,
   });
 }
