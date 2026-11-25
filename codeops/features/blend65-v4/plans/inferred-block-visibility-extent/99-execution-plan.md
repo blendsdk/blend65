@@ -202,6 +202,70 @@ explicit-constraint framing rather than the only legal E10273 message, and this 
 
 Whether the frozen table should also be amended is a separate decision, and the user's.
 
+## Verification
+
+| Check | Result |
+| --- | --- |
+| New oracle, authored implementation-blind | 52 cases over four profiles; **36 RED** before implementation, all green after |
+| Impl tier | **44 cases** in the pass (9 new) and **149** in layout (3 new) |
+| Compiler package | **267 files / 4,570 tests**, 2 skipped (the Windows-only emulator cases) |
+| Host tier | **281 files / 6,029 tests** |
+| Affected VICE tier, targeted and serialized | **166 tests**, four files: the relocated-screen sprite-pointer emulator case, the VIC observer suite (132), VIC collisions (16) and the optimizer saved-output frontier guard (17) |
+| Byte identity | **9/9** across three examples × three optimization goals, prefixes unchanged |
+| Install · build · typecheck | clean; `spec/` untouched throughout |
+
+### Mutation matrix
+
+Eleven mutations, applied one at a time against the delivered code with the tests untouched.
+
+| Mutation | Cases it fails |
+| --- | --- |
+| A runtime index keeps the static offset instead of widening | 1 — the widening case |
+| Follow every unary operator again | 1 — the provenance case |
+| Never prove a replacement | 1 — the overwrite case |
+| Trust a replacement in module storage too | 1 — the module-storage case |
+| Accept a replacement from any block, not just this one | 2 — the conditional case and the held-local case |
+| Do not merge touching runs | 1 — the merge case |
+| Let the last published use win instead of accumulating | 2 — the accumulation and merge cases |
+| Judge the whole object instead of the fetched runs | 1 — the layout predicate case |
+| Advance past the window without the run's own offset | 1 — the deep-offset case |
+| Ignore the inferred runs inside the search loop | 1 — the search case |
+| Fall back to the explicit-constraint message and span | 1 — the diagnostic oracle case |
+
+Every new case is failed by at least one mutation, and each structural mutation fails only the cases
+that exist to guard it. The two that fail two cases are telling rather than noisy: dropping the
+same-block requirement also breaks an ordinary held-local publication, and last-use-wins breaks the
+merge because merging is what makes two adjacent runs one.
+
+### One VICE case failed intermittently, and it is not this change
+
+`test/rd05/vic-collision-vice.spec.test.ts`'s "only sprite 7 overlaps foreground" failed three times
+and passed twice today over identical compiler output — including a failure at the parent commit
+with the compiler rebuilt from that state, which is what rules this change out. The final
+affected-tier run was 166/166. Filed as [#191](https://github.com/blendsdk/blend65/issues/191)
+rather than absorbed here, because a case that fails half the time trains the next reader to re-run
+until green.
+
+## A second hole in the same proof, measured and filed
+
+The walk follows a block number through conversions, a selector-preserving unary operator, a join,
+a store and load, and a return into every call site. It does not follow a **binary** operation, so
+
+```blend65
+c64.vic.setSpritePointer(0, lo(&sheet / 64) + 1);
+```
+
+records no demand at all, and the sheet stays at `$1400` where the chip reads character ROM —
+indistinguishable from never publishing it. The control without `+ 1` is moved to `$2000`, and
+`lo(&sheet[64] / 64)` is placed at `$1FC0` so the addressed element lands at `$2000` with the
+object's unfetched first 64 bytes left under the window, which is this unit working as intended.
+
+Selecting frame *n* by adding to a base block number is ordinary style, and this is the dangerous
+direction: over-demanding costs a build and shows a diagnostic, under-demanding costs nothing until
+the sprite displays character shapes. It predates this unit — the walk has never followed a binary
+operation — and is filed as [#190](https://github.com/blendsdk/blend65/issues/190) with its
+measurements and a fix shape, not repaired here.
+
 ## Two existing oracle cases lose their teeth, and that has to be said out loud
 
 `test/rd04/block-index-conditional-visibility.spec.test.ts:175-199` holds two negative cases — a
@@ -222,9 +286,11 @@ keeps its teeth either way.
 
 ## What this unit is not
 
-The sibling defect in `semantic/load-destination-constraints.ts` — it collects destination
-`ranges` and then collapses them into the same whole-object region — is the same class and is
-filed rather than folded in.
+The sibling defect in `semantic/load-destination-constraints.ts:186-235` — it collects destination
+`ranges` and then collapses them into the same whole-object region — is the same class and stays
+out of this unit. The two defects found while delivering it are filed:
+[#190](https://github.com/blendsdk/blend65/issues/190), the arithmetic the proof does not follow,
+and [#191](https://github.com/blendsdk/blend65/issues/191), the intermittent collision case.
 
 ## Deliberate departures worth stating
 

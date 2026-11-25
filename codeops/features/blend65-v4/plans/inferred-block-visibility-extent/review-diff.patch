@@ -1,0 +1,1644 @@
+commit 62b0b4d51b05ff84cd39f2cb19a9dc09eef9a49a
+Author: gevik <gevikb@gmail.com>
+Date:   Wed Nov 25 14:21:16 2026 +0100
+
+    fix(semantic): demand the bytes the chip fetches, not the object around them
+    
+    The inferred sprite-visibility demand was stated against the object root and
+    enforced over every byte of it, so an object larger than a visible interval had
+    no legal home even though the chip fetches 64 bytes of it. Two ordinary
+    5,000-byte sprite sources were refused together for that reason: each fits
+    alone, and only the pair cannot be visible whole.
+    
+    The demand now carries the effective offset and the fetched extent, and layout
+    checks those runs instead of the object. Measured, same profile and programs as
+    the recorded baseline:
+    
+      9,000-byte sheet, helper and inline     E10273 -> $0A80, block visible
+      two 5,000-byte sheets, own helpers      E10273 -> $0AC0 and $2000, both visible
+      published after a definite overwrite    E10273 -> $0AC0
+      hi(&buffer / 64), helper and inline     E10273 -> $0AC0
+      poke-only, runtime index, 64B control   unchanged addresses
+    
+    The second 5,000-byte object is the whole argument: it used to sit at $1E40,
+    inside the window where the chip reads character ROM, building successfully with
+    a silently invisible sprite. It is now at $2000 and the program builds. Dropping
+    the demand would restore acceptance and leave that sprite invisible; the
+    whole-object demand kept it visible by refusing the program. Only a demand that
+    names the fetched bytes does both.
+    
+    Three further defects in the same seam, each reachable on its own:
+    
+    A runtime index proves alignment for every element and names none, so the run
+    widens to the object rather than shrinking to the element the static prefix
+    happens to name. Shrinking there is the one change in this unit that could turn
+    an unnecessary refusal into a sprite the chip cannot see.
+    
+    Only an operator that leaves the selector naming the same block now carries
+    provenance. hi(address / 64) is a value in 0..3 selecting a block in the first
+    256 bytes of the bank, not one inside the object whose address produced it.
+    
+    A value this body provably replaces stops the walk: same block, later, same
+    statically known bytes, and a home no other body or interrupt can read. A
+    conditional replacement and a module variable both keep the demand, because the
+    proof follows neither branch nor other bodies.
+    
+    The refusal that remains - a 16 KiB array every runtime index can select - now
+    names the sprite-block expression it was inferred from instead of telling the
+    author to remove an explicit constraint they never wrote. spec/ is untouched;
+    the handler-visibility branch beside it already departs from that frozen tail
+    for the same reason, and the pinned canonical framing covers explicitly placed
+    objects only.
+    
+    What the chip fetches through each VIC field now has one owner in target/,
+    re-exported where lowering already reached for it.
+    
+    Package 267 files / 4,570 tests. Host tier 281 files / 6,029. Impl tier 44 cases
+    in the pass and 149 in layout. Byte identity 9/9 across three examples and three
+    optimization goals.
+
+diff --git a/packages/compiler/src/layout/c64-layout-assets.impl.test.ts b/packages/compiler/src/layout/c64-layout-assets.impl.test.ts
+index 87bc1892..87787217 100644
+--- a/packages/compiler/src/layout/c64-layout-assets.impl.test.ts
++++ b/packages/compiler/src/layout/c64-layout-assets.impl.test.ts
+@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
+ import type { TargetProfile } from "../target/profile.js";
+ import {
+   freeSourceStart,
++  nextVicFetchStart,
+   satisfiesSourcePlacement,
++  satisfiesVicFetch,
+   sourceDataStart,
+ } from "./c64-layout-placement.js";
+ import { freeIntervalsInWindow } from "./c64-layout-objects.js";
+@@ -48,6 +50,72 @@ describe("layout asset placement internals", () => {
+     expect(freeSourceStart(0x3fc0, 0x80, 64, undefined, [], profile())).toBe(0x3fc0);
+   });
+ 
++  // Only the runs the chip fetches have to be reachable. The object itself may
++  // end past the bank or sit under the window where the chip reads character
++  // ROM, because nothing fetches those bytes.
++  it("should judge an inferred fetch by its own runs, not by the object", () => {
++    const anywhere = { sourceId: "src/game.blend", start: 0, end: 1 };
++    const firstBlock = Object.freeze({
++      ranges: Object.freeze([{ offset: 0, bytes: 64 }]),
++      span: anywhere,
++    });
++    const deepBlock = Object.freeze({
++      ranges: Object.freeze([{ offset: 4096, bytes: 64 }]),
++      span: anywhere,
++    });
++
++    expect(satisfiesVicFetch(0x0a80, firstBlock, profile())).toBe(true);
++    expect(satisfiesVicFetch(0x1400, firstBlock, profile())).toBe(false);
++    expect(satisfiesVicFetch(0x3fc0, firstBlock, profile())).toBe(true);
++    expect(satisfiesVicFetch(0x3fff, firstBlock, profile())).toBe(false);
++    // The addressed run is what matters: this object starts inside the hidden
++    // window and is still correct, because the bytes the chip reads are not.
++    expect(satisfiesVicFetch(0x1000, deepBlock, profile())).toBe(true);
++    expect(satisfiesVicFetch(0x0a80, deepBlock, profile())).toBe(false);
++    expect(satisfiesVicFetch(0x0a80, undefined, profile())).toBe(true);
++  });
++
++  // A hidden run moves the object by what that run needs. An object addressed
++  // 4 KiB in has to start 4 KiB before the window ends in order to fetch past
++  // it, and a run already past the bank cannot be rescued by moving upward.
++  it("should advance a hidden fetch by its own offset", () => {
++    const anywhere = { sourceId: "src/game.blend", start: 0, end: 1 };
++    const firstBlock = Object.freeze({
++      ranges: Object.freeze([{ offset: 0, bytes: 64 }]),
++      span: anywhere,
++    });
++    const deepBlock = Object.freeze({
++      ranges: Object.freeze([{ offset: 4096, bytes: 64 }]),
++      span: anywhere,
++    });
++
++    expect(nextVicFetchStart(0x1400, firstBlock, profile())).toBe(0x2000);
++    expect(nextVicFetchStart(0x0a80, deepBlock, profile())).toBe(0x1000);
++    expect(nextVicFetchStart(0x3fff, firstBlock, profile())).toBeNull();
++    expect(nextVicFetchStart(0x0a80, firstBlock, profile())).toBeNull();
++    expect(nextVicFetchStart(0x1400, undefined, profile())).toBeNull();
++  });
++
++  // The search itself has to honour the rule, not merely report on it: a first
++  // fit that hides the fetched bytes keeps looking. An object crossing into the
++  // hidden window is not itself a reason to move — only a run inside it is,
++  // which is why the first case starts where the run lands in the window and
++  // the second, whose run ends just before it, stays exactly where it fits.
++  it("should search past a home that hides the fetched bytes", () => {
++    const anywhere = { sourceId: "src/game.blend", start: 0, end: 1 };
++    const firstBlock = Object.freeze({
++      ranges: Object.freeze([{ offset: 0, bytes: 64 }]),
++      span: anywhere,
++    });
++
++    expect(freeSourceStart(0x0fc1, 0x2000, 64, undefined, [], profile(), false, firstBlock)).toBe(
++      0x2000,
++    );
++    expect(freeSourceStart(0x0f80, 0x2000, 64, undefined, [], profile(), false, firstBlock)).toBe(
++      0x0f80,
++    );
++  });
++
+   // Free intervals are the exact complement of occupied ranges in one window.
+   it("should partition a window around occupied ranges", () => {
+     const free = freeIntervalsInWindow(0x100, 0x200, [
+diff --git a/packages/compiler/src/layout/c64-layout-placement.ts b/packages/compiler/src/layout/c64-layout-placement.ts
+index 86d111f2..ae8dd79d 100644
+--- a/packages/compiler/src/layout/c64-layout-placement.ts
++++ b/packages/compiler/src/layout/c64-layout-placement.ts
+@@ -1,5 +1,6 @@
+ import type { PlacementConstraints } from "../frontend/semantic-types.js";
+ import type { TargetProfile } from "../target/profile.js";
++import type { VicFetchDemand } from "../target/vic-fetch.js";
+ 
+ /** Stock 901227-03 NMINV starts at $FE47; every cooperative published entry shares its low byte. */
+ const NMI_PUBLICATION_LOW_BYTE = 0x47;
+@@ -36,6 +37,73 @@ export function satisfiesSourcePlacement(
+   );
+ }
+ 
++/**
++ * Check that every byte the video chip fetches from one object is reachable at a
++ * candidate first-byte address.
++ *
++ * Each fetched run has to lie inside the chip's bank and outside the window
++ * where it reads character ROM instead of the RAM underneath. The bytes between
++ * and after those runs are ordinary storage: they may sit under that window or
++ * past the end of the bank, because nothing fetches them. This is the whole
++ * difference between an inferred demand and a region the author wrote, which
++ * constrains the object from first byte to last.
++ *
++ * @param start Candidate first-byte address of the whole object.
++ * @param demand Fetched runs inferred for this object, or undefined when none.
++ * @param profile Selected profile supplying the bank and character-ROM window.
++ * @returns Whether every fetched run is reachable with the object at `start`.
++ * @example satisfiesVicFetch(0x1000, { ranges: [{ offset: 4096, bytes: 64 }], span }, profile)
++ */
++export function satisfiesVicFetch(
++  start: number,
++  demand: VicFetchDemand | undefined,
++  profile: TargetProfile,
++): boolean {
++  if (demand === undefined) return true;
++  return demand.ranges.every((range) => {
++    const first = start + range.offset;
++    const last = first + range.bytes - 1;
++    return (
++      first >= profile.machine.vicBankStart &&
++      last <= profile.machine.vicBankEnd &&
++      (last < profile.machine.characterRomStart || first > profile.machine.characterRomEnd)
++    );
++  });
++}
++
++/**
++ * Lowest first-byte address above a rejected candidate that could move a hidden
++ * fetched run clear of the character-ROM window.
++ *
++ * The step is measured from the run that failed rather than from the object, so
++ * an object addressed at a large offset moves by exactly what that offset needs
++ * — an object whose fetched bytes sit 4 KiB inside it has to start 4 KiB
++ * *before* the window ends in order to fetch past it. Alignment is reapplied by
++ * the caller, which also rechecks every other constraint: clearing the window is
++ * necessary, never sufficient.
++ *
++ * @param start Rejected candidate first-byte address.
++ * @param demand Fetched runs inferred for this object, or undefined when none.
++ * @param profile Selected profile supplying the character-ROM window.
++ * @returns The next candidate worth testing, or null when none is implied.
++ * @example nextVicFetchStart(0x0a80, { ranges: [{ offset: 0, bytes: 64 }], span }, profile)
++ */
++export function nextVicFetchStart(
++  start: number,
++  demand: VicFetchDemand | undefined,
++  profile: TargetProfile,
++): number | null {
++  if (demand === undefined) return null;
++  const candidates = demand.ranges
++    .filter((range) => {
++      const first = start + range.offset;
++      const last = first + range.bytes - 1;
++      return last >= profile.machine.characterRomStart && first <= profile.machine.characterRomEnd;
++    })
++    .map((range) => profile.machine.characterRomEnd + 1 - range.offset);
++  return candidates.length === 0 ? null : Math.max(...candidates);
++}
++
+ /** Select the next legal automatic address, or preserve an explicit first byte exactly. */
+ export function sourceDataStart(
+   cursor: number,
+@@ -65,6 +133,7 @@ export function freeSourceStart(
+   occupied: readonly { readonly start: number; readonly end: number }[],
+   profile: TargetProfile,
+   matchingNmiLow = false,
++  fetch?: VicFetchDemand,
+ ): number | null {
+   if (matchingNmiLow && (placement?.align ?? alignment) > 1) return null;
+   const nextStart = (from: number): number | null => {
+@@ -91,6 +160,16 @@ export function freeSourceStart(
+       start = nextStart(start + 0x100);
+       continue;
+     }
++    // The object may legally sit anywhere resident; only the runs the chip
++    // fetches have to be reachable, and an address that hides one of them is
++    // moved by what that run needs rather than by the object's own size.
++    if (!satisfiesVicFetch(start, fetch, profile)) {
++      if (placement?.at != null) return null;
++      const cleared = nextVicFetchStart(start, fetch, profile);
++      if (cleared === null) return null;
++      start = nextStart(cleared);
++      continue;
++    }
+     const crossing = occupied.find((interval) =>
+       overlaps(start!, start! + bytes - 1, interval.start, interval.end),
+     );
+diff --git a/packages/compiler/src/layout/c64-layout.ts b/packages/compiler/src/layout/c64-layout.ts
+index 166770e6..70be5046 100644
+--- a/packages/compiler/src/layout/c64-layout.ts
++++ b/packages/compiler/src/layout/c64-layout.ts
+@@ -9,8 +9,10 @@ import { projectDiagnostic } from "../project/diagnostics.js";
+ import type { ProjectDiagnostic } from "../project/types.js";
+ import {
+   freeSourceStart,
++  nextVicFetchStart,
+   overlaps,
+   satisfiesSourcePlacement,
++  satisfiesVicFetch,
+   sourceDataStart,
+ } from "./c64-layout-placement.js";
+ import { C64_STARTUP_STATE_ID, createC64StartupStateData, bindC64StartupState } from "./startup.js";
+@@ -682,16 +684,19 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
+       data.placement,
+       occupied,
+       input.profile,
++      false,
++      data.vicFetch,
+     );
+     if (
+       start === null ||
+       (visible &&
+         (start < input.profile.machine.vicBankStart ||
+-          start + placementBytes - 1 > input.profile.machine.vicBankEnd))
++          start + placementBytes - 1 > input.profile.machine.vicBankEnd)) ||
++      !satisfiesVicFetch(start, data.vicFetch, input.profile)
+     ) {
+       return Object.freeze({
+         kind: "error",
+-        reason: visible ? "vic-visibility" : "source-placement",
++        reason: visible || data.vicFetch !== undefined ? "vic-visibility" : "source-placement",
+         objectId: data.id,
+       });
+     }
+@@ -833,6 +838,15 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
+         );
+         continue;
+       }
++      // Zero-initialized objects take this search rather than the one above, so
++      // the inferred fetch rule is consulted here too. Only the fetched runs
++      // move the candidate; the object's own bytes may stay under the window.
++      if (!satisfiesVicFetch(start, data.vicFetch, input.profile)) {
++        const cleared = nextVicFetchStart(start, data.vicFetch, input.profile);
++        if (cleared === null) break;
++        start = sourceDataStart(cleared, bytes.length, data.alignment, data.placement);
++        continue;
++      }
+       const occupied = intervals.find((interval) =>
+         overlaps(start!, end, interval.start, interval.end),
+       );
+@@ -841,9 +855,14 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
+     }
+     if (
+       start === null ||
+-      !satisfiesSourcePlacement(start, bytes.length, data.placement, input.profile)
++      !satisfiesSourcePlacement(start, bytes.length, data.placement, input.profile) ||
++      !satisfiesVicFetch(start, data.vicFetch, input.profile)
+     ) {
+-      return Object.freeze({ kind: "error", reason: "source-placement", objectId: data.id });
++      return Object.freeze({
++        kind: "error",
++        reason: data.vicFetch === undefined ? "source-placement" : "vic-visibility",
++        objectId: data.id,
++      });
+     }
+     if (
+       !addInterval(intervals, {
+diff --git a/packages/compiler/src/machine/lower-data.ts b/packages/compiler/src/machine/lower-data.ts
+index d5b23047..7ddd8784 100644
+--- a/packages/compiler/src/machine/lower-data.ts
++++ b/packages/compiler/src/machine/lower-data.ts
+@@ -144,6 +144,7 @@ export function lowerData(
+         alignment: 1,
+         bytes: encoded ?? Object.freeze(new Array<number>(bytes).fill(0)),
+         ...(global.placement ? { placement: global.placement } : {}),
++        ...(global.vicFetch ? { vicFetch: global.vicFetch } : {}),
+         ...(global.zeropage ? { zeropage: true } : {}),
+       });
+     });
+diff --git a/packages/compiler/src/machine/machine-types.ts b/packages/compiler/src/machine/machine-types.ts
+index 0206c90f..b7e73504 100644
+--- a/packages/compiler/src/machine/machine-types.ts
++++ b/packages/compiler/src/machine/machine-types.ts
+@@ -1,6 +1,7 @@
+ import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
+ import type { MachineProgramDefect } from "./machine-defect.js";
+ import type { VicFieldTransform } from "./vic-fields.js";
++import type { VicFetchDemand } from "../target/vic-fetch.js";
+ import type {
+   InterferenceEdge,
+   StorageBinder,
+@@ -668,6 +669,13 @@ export interface MachineDataObject {
+   readonly bytes: readonly number[];
+   /** Optional source placement retained until final layout. */
+   readonly placement?: PlacementConstraints;
++  /**
++   * Bytes the video chip fetches from this object, inferred from the program.
++   * Placement must keep each of these runs reachable by the chip; the rest of
++   * the object is ordinary storage, which is what separates this from a region
++   * the author wrote against the whole object.
++   */
++  readonly vicFetch?: VicFetchDemand;
+   /** Mutable global storage is allocated from the selected zero-page window. */
+   readonly zeropage?: boolean;
+ }
+diff --git a/packages/compiler/src/machine/vic-fields.ts b/packages/compiler/src/machine/vic-fields.ts
+index 437e5a79..7cb0b8c2 100644
+--- a/packages/compiler/src/machine/vic-fields.ts
++++ b/packages/compiler/src/machine/vic-fields.ts
+@@ -1,37 +1,12 @@
+-/** Layout-resolved VIC field transforms available to source operations. */
+-export type VicFieldTransform =
+-  | "vic-sprite-block"
+-  | "vic-charset-select"
+-  | "vic-bitmap-select"
+-  | "vic-screen-select";
++import { vicConsumerAlignment, vicConsumerBytes } from "../target/vic-fetch.js";
++import type { VicFieldTransform } from "../target/vic-fetch.js";
+ 
+-/** Exact byte count consumed by one VIC-visible object. */
+-export function vicConsumerBytes(transform: VicFieldTransform): number {
+-  switch (transform) {
+-    case "vic-sprite-block":
+-      return 64;
+-    case "vic-charset-select":
+-      return 2_048;
+-    case "vic-bitmap-select":
+-      return 8_000;
+-    case "vic-screen-select":
+-      return 1_000;
+-  }
+-}
+-
+-/** Required address alignment for one VIC field operation. */
+-export function vicConsumerAlignment(transform: VicFieldTransform): number {
+-  switch (transform) {
+-    case "vic-sprite-block":
+-      return 64;
+-    case "vic-charset-select":
+-      return 2_048;
+-    case "vic-bitmap-select":
+-      return 8_192;
+-    case "vic-screen-select":
+-      return 1_024;
+-  }
+-}
++// What the chip fetches through each field, and the alignment each field can
++// express, are properties of the selected machine rather than of lowering, so
++// they are stated once there and re-exported here for the callers that reach
++// for them beside the field arithmetic below.
++export { vicConsumerAlignment, vicConsumerBytes };
++export type { VicFieldTransform };
+ 
+ /** Exact reason a VIC field cannot be derived from a final address. */
+ export type VicFieldFailureReason = "out-of-bank" | "character-rom" | "misaligned";
+diff --git a/packages/compiler/src/semantic/block-index-alignment.impl.test.ts b/packages/compiler/src/semantic/block-index-alignment.impl.test.ts
+index 52a90069..b72b4286 100644
+--- a/packages/compiler/src/semantic/block-index-alignment.impl.test.ts
++++ b/packages/compiler/src/semantic/block-index-alignment.impl.test.ts
+@@ -324,10 +324,10 @@ function main(): void { poke($D018, lo(&buffer / 64)); poke($D019, hi(&buffer) *
+ });
+ 
+ /**
+- * The region that keeps an object inside the chip's bank and clear of the window
+- * where it reads character ROM instead of the RAM underneath.
++ * The one 64-byte run a sprite image occupies, which is what the chip fetches
++ * when it receives a block number computed from an object's first byte.
+  */
+-const VISIBLE_TO_THE_CHIP = "c64.vic.bank0-ram";
++const FIRST_SPRITE_BLOCK = [{ offset: 0, bytes: 64 }] as const;
+ 
+ /** Resolve the placement a lowered program proved for one module object. */
+ function placementOf(source: string, name: string) {
+@@ -337,39 +337,68 @@ function placementOf(source: string, name: string) {
+   return globalNamed(lowered.program.globals, name).placement;
+ }
+ 
++/**
++ * Resolve both demands one lowered program proved for a module object: the
++ * alignment its address arithmetic needs, and the runs the video chip fetches.
++ *
++ * The two are read together because they are separate claims about the same
++ * object. Alignment follows from the shape of the expression and holds whoever
++ * receives the number; the fetched runs exist only where the chip provably
++ * receives it, and they say which bytes must be reachable rather than
++ * constraining the object as a whole.
++ */
++function provedFor(source: string, name: string) {
++  const lowered = lowerSource(source);
++  expect(lowered.kind).toBe("complete");
++  if (lowered.kind !== "complete") throw new Error("Expected a complete lowering");
++  const global = globalNamed(lowered.program.globals, name);
++  return {
++    align: global.placement?.align ?? 1,
++    fetched: global.vicFetch?.ranges ?? null,
++  };
++}
++
++/** Read the same two demands off a global the pass has already returned. */
++function provedDemands(global: SemanticGlobal | undefined) {
++  return {
++    align: global?.placement?.align ?? 1,
++    fetched: global?.vicFetch?.ranges ?? null,
++  };
++}
++
+ describe("block-index VIC visibility across a call", () => {
+   // The baseline the cases below are measured against: the chip provably receives
+   // the block number, so the compiler owes it a home the chip can actually fetch.
+   it("demands visible storage for a block number published directly", () => {
+     expect(
+-      placementOf(
++      provedFor(
+         `module Game;
+ let buffer: byte[64];
+ function main(): void { c64.vic.setSpritePointer(0, lo(&buffer / 64)); }`,
+         "buffer",
+       ),
+-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
++    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+   });
+ 
+   // Computing the block number in a helper and publishing the result is ordinary
+   // style. A function boundary is not a reason for the sprite to vanish.
+   it("follows a block number a helper hands back", () => {
+     expect(
+-      placementOf(
++      provedFor(
+         `module Game;
+ let buffer: byte[64];
+ function blockOf(): byte { return lo(&buffer / 64); }
+ function main(): void { c64.vic.setSpritePointer(0, blockOf()); }`,
+         "buffer",
+       ),
+-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
++    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+   });
+ 
+   // One helper passing another helper's answer on is the same question asked
+   // twice, so the proof resumes at each call site rather than at the first.
+   it("follows a block number through a second helper", () => {
+     expect(
+-      placementOf(
++      provedFor(
+         `module Game;
+ let buffer: byte[64];
+ function inner(): byte { return lo(&buffer / 64); }
+@@ -377,21 +406,21 @@ function outer(): byte { return inner(); }
+ function main(): void { c64.vic.setSpritePointer(0, outer()); }`,
+         "buffer",
+       ),
+-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
++    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+   });
+ 
+   // The caller may name the returned value before publishing it, which puts a
+   // store and a load between the return and the chip.
+   it("follows a returned block number held in a local first", () => {
+     expect(
+-      placementOf(
++      provedFor(
+         `module Game;
+ let buffer: byte[64];
+ function blockOf(): byte { return lo(&buffer / 64); }
+ function main(): void { let block: byte = blockOf(); c64.vic.setSpritePointer(0, block); }`,
+         "buffer",
+       ),
+-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
++    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+   });
+ 
+   // One hardware call site is enough, and the other caller is not a reason to
+@@ -401,14 +430,169 @@ function main(): void { let block: byte = blockOf(); c64.vic.setSpritePointer(0,
+   // home that satisfies the demand, so an unnecessary one can cost a build.
+   it("demands visible storage when any call site publishes to the chip", () => {
+     expect(
+-      placementOf(
++      provedFor(
+         `module Game;
+ let buffer: byte[64];
+ function blockOf(): byte { return lo(&buffer / 64); }
+ function main(): void { poke($C000, blockOf()); c64.vic.setSpritePointer(0, blockOf()); }`,
+         "buffer",
+       ),
+-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
++    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
++  });
++
++  // The chip fetches one sprite image. Nothing else in a 9,000-byte sheet is
++  // read by the hardware, so the demand names those bytes rather than the
++  // object: a sheet larger than the window the chip can reach still has a home.
++  it("demands only the fetched bytes of a large object", () => {
++    expect(
++      provedFor(
++        `module Game;
++let sheet: byte[9000];
++function main(): void { c64.vic.setSpritePointer(0, lo(&sheet / 64)); }`,
++        "sheet",
++      ),
++    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
++  });
++
++  // The addressed element decides which bytes are fetched, so the run sits where
++  // the author pointed rather than at the object's first byte.
++  it("demands the addressed element rather than the object's first block", () => {
++    expect(
++      provedFor(
++        `module Game;
++let sheet: byte[9000];
++function main(): void { c64.vic.setSpritePointer(0, lo(&sheet[4096] / 64)); }`,
++        "sheet",
++      ),
++    ).toEqual({ align: 64, fetched: [{ offset: 4096, bytes: 64 }] });
++  });
++
++  // Two sprites published from one sheet are two runs the chip reads. Satisfying
++  // one says nothing about the other, and the bytes between them are still
++  // ordinary storage, so the gap is kept rather than filled in.
++  it("accumulates a run for every published sprite", () => {
++    expect(
++      provedFor(
++        `module Game;
++let sheet: byte[9000];
++function main(): void {
++  c64.vic.setSpritePointer(0, lo(&sheet / 64));
++  c64.vic.setSpritePointer(1, lo(&sheet[4096] / 64));
++}`,
++        "sheet",
++      ),
++    ).toEqual({
++      align: 64,
++      fetched: [
++        { offset: 0, bytes: 64 },
++        { offset: 4096, bytes: 64 },
++      ],
++    });
++  });
++
++  // Runs that meet describe one longer run, which is worth saying once rather
++  // than twice. Nothing about the requirement changes.
++  it("merges two fetched runs that meet", () => {
++    expect(
++      provedFor(
++        `module Game;
++let sheet: byte[9000];
++function main(): void {
++  c64.vic.setSpritePointer(0, lo(&sheet / 64));
++  c64.vic.setSpritePointer(1, lo(&sheet[64] / 64));
++}`,
++        "sheet",
++      ),
++    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 128 }] });
++  });
++
++  // An index read at run time proves alignment for every element and names
++  // none of them, so the chip may fetch any one. Shrinking the run to the
++  // element the static prefix happens to name would leave the rest where the
++  // chip cannot see them, which is the one way this proof must not be wrong.
++  it("widens the fetched run to the object when a runtime index selects the block", () => {
++    expect(
++      provedFor(
++        `module Game;
++let blocks: byte[2][64];
++function main(): void {
++  let index: byte = peek($0400);
++  c64.vic.setSpritePointer(0, lo(&blocks[index] / 64));
++}`,
++        "blocks",
++      ),
++    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 128 }] });
++  });
++
++  // `hi(address / 64)` is a value in `0..3`. It selects a block in the first
++  // 256 bytes of the bank, not one inside the object whose address produced it,
++  // so following it would claim a provenance the number does not carry.
++  it("drops provenance through an operator that changes the selector", () => {
++    expect(
++      provedFor(
++        `module Game;
++let sheet: byte[9000];
++function blockOf(): byte { return hi(&sheet / 64); }
++function main(): void { c64.vic.setSpritePointer(0, blockOf()); }`,
++        "sheet",
++      ),
++    ).toEqual({ align: 64, fetched: null });
++  });
++
++  // The chip receives the constant, so nothing about this object is fetched.
++  // Only the reads between the two stores could have seen the block number.
++  it("stops at a value this body provably replaces", () => {
++    expect(
++      provedFor(
++        `module Game;
++let sheet: byte[9000];
++function main(): void {
++  let block: byte = lo(&sheet / 64);
++  poke($C000, block);
++  block = 0;
++  c64.vic.setSpritePointer(0, block);
++}`,
++        "sheet",
++      ),
++    ).toEqual({ align: 64, fetched: null });
++  });
++
++  // A replacement reached on one path only replaces nothing: the other path
++  // still hands the block number to the chip.
++  it("keeps the demand when a replacement is conditional", () => {
++    expect(
++      provedFor(
++        `module Game;
++let sheet: byte[9000];
++function main(): void {
++  let block: byte = lo(&sheet / 64);
++  if (peek($0400) == 0) { block = 0; }
++  c64.vic.setSpritePointer(0, block);
++}`,
++        "sheet",
++      ),
++    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
++  });
++
++  // A module variable is storage any other function and any interrupt can read,
++  // and this proof follows neither. Treating the second store as a replacement
++  // would drop the demand that keeps such a sprite visible, so a module home
++  // keeps it even in the shape a local would lose it in.
++  it("keeps the demand when the replaced home is module storage", () => {
++    expect(
++      provedFor(
++        `module Game;
++let sheet: byte[9000];
++let slot: byte;
++function main(): void {
++  slot = lo(&sheet / 64);
++  poke($C000, slot);
++  slot = 0;
++  c64.vic.setSpritePointer(0, slot);
++}`,
++        "sheet",
++      ),
++    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+   });
+ 
+   // A module initializer is a body too, and the arithmetic in one proves the
+@@ -416,7 +600,7 @@ function main(): void { poke($C000, blockOf()); c64.vic.setSpritePointer(0, bloc
+   // another body, which this proof does not yet follow.
+   it("proves alignment from arithmetic in a module initializer", () => {
+     expect(
+-      placementOf(
++      provedFor(
+         `module Game;
+ let buffer: byte[64];
+ let slot: byte = lo(&buffer / 64);
+@@ -431,7 +615,7 @@ function main(): void { c64.vic.setSpritePointer(0, slot); }`,
+   // the chip cannot see on some frames is still a sprite it cannot see.
+   it("follows a block number chosen on one path of a conditional", () => {
+     expect(
+-      placementOf(
++      provedFor(
+         `module Game;
+ let buffer: byte[64];
+ function main(): void {
+@@ -439,13 +623,13 @@ function main(): void {
+ }`,
+         "buffer",
+       ),
+-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
++    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+   });
+ 
+   // The same join, reached through a helper on both paths.
+   it("follows a conditional between two helper results", () => {
+     expect(
+-      placementOf(
++      provedFor(
+         `module Game;
+ let buffer: byte[64];
+ function blockOf(): byte { return lo(&buffer / 64); }
+@@ -453,7 +637,7 @@ function relay(): byte { return peek($0400) == 0 ? blockOf() : 0; }
+ function main(): void { c64.vic.setSpritePointer(0, relay()); }`,
+         "buffer",
+       ),
+-    ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
++    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+   });
+ 
+   // Writing a colour does not make the chip read the object whose address was
+@@ -463,27 +647,27 @@ function main(): void { c64.vic.setSpritePointer(0, relay()); }`,
+   // decide whether the program builds.
+   it("leaves an object alone when the chip only receives a number from it", () => {
+     expect(
+-      placementOf(
++      provedFor(
+         `module Game;
+ let buffer: byte[64];
+ function blockOf(): byte { return lo(&buffer / 64); }
+ function main(): void { c64.vic.setBorderColor(blockOf()); }`,
+         "buffer",
+       ),
+-    ).toMatchObject({ align: 64, region: null });
++    ).toEqual({ align: 64, fetched: null });
+   });
+ 
+   // The same call takes a sprite's index beside its block number, and only one
+   // of the two says anything about where the chip reads.
+   it("distinguishes the block argument from the sprite index beside it", () => {
+     expect(
+-      placementOf(
++      provedFor(
+         `module Game;
+ let buffer: byte[64];
+ function main(): void { c64.vic.setSpritePointer(lo(&buffer / 64), 128); }`,
+         "buffer",
+       ),
+-    ).toMatchObject({ align: 64, region: null });
++    ).toEqual({ align: 64, fetched: null });
+   });
+ 
+   // Ordinary address arithmetic keeps its home. Narrowing it because of how the
+@@ -491,14 +675,14 @@ function main(): void { c64.vic.setSpritePointer(lo(&buffer / 64), 128); }`,
+   // helper in the middle does not change that.
+   it("leaves a returned block number alone when no hardware consumer receives it", () => {
+     expect(
+-      placementOf(
++      provedFor(
+         `module Game;
+ let buffer: byte[64];
+ function blockOf(): byte { return lo(&buffer / 64); }
+ function main(): void { poke($C000, blockOf()); }`,
+         "buffer",
+       ),
+-    ).toMatchObject({ align: 64, region: null });
++    ).toEqual({ align: 64, fetched: null });
+   });
+ });
+ 
+@@ -659,7 +843,7 @@ describe("block-index VIC visibility on shapes only the compiler can build", ()
+       [syntheticBuffer],
+     );
+ 
+-    expect(aligned[0]?.placement).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
++    expect(provedDemands(aligned[0])).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+   });
+ 
+   it("answers a call cycle instead of following it forever", () => {
+@@ -679,7 +863,7 @@ describe("block-index VIC visibility on shapes only the compiler can build", ()
+       [syntheticBuffer],
+     );
+ 
+-    expect(aligned[0]?.placement).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
++    expect(provedDemands(aligned[0])).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+   });
+ 
+   it("stops walking a call cycle that publishes nothing", () => {
+@@ -705,6 +889,6 @@ describe("block-index VIC visibility on shapes only the compiler can build", ()
+ 
+     // The alignment the shape itself proves still applies; only visibility needs
+     // a consumer, and no consumer is reachable here.
+-    expect(aligned[0]?.placement).toMatchObject({ align: 64, region: null });
++    expect(provedDemands(aligned[0])).toEqual({ align: 64, fetched: null });
+   });
+ });
+diff --git a/packages/compiler/src/semantic/block-index-alignment.ts b/packages/compiler/src/semantic/block-index-alignment.ts
+index 7d2f6dcf..10786e24 100644
+--- a/packages/compiler/src/semantic/block-index-alignment.ts
++++ b/packages/compiler/src/semantic/block-index-alignment.ts
+@@ -1,6 +1,9 @@
+ import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
+ import { bindingIdentityKey } from "../frontend/semantic-types.js";
+ import type { SemanticType } from "../frontend/semantic-types.js";
++import type { SourceSpan } from "../project/types.js";
++import { mergeVicFetchRanges, vicConsumerBytes } from "../target/vic-fetch.js";
++import type { VicFetchRange } from "../target/vic-fetch.js";
+ import type {
+   SemanticBlock,
+   SemanticFunction,
+@@ -16,8 +19,13 @@ interface AlignmentDemand {
+   readonly align: number;
+   /** Static byte offset from the module object's first byte. */
+   readonly offset: number;
+-  /** Whether the computed block number is handed to the video chip. */
+-  readonly vicVisible: boolean;
++  /**
++   * Bytes the video chip fetches because of this use, or null when nothing
++   * proves the chip receives the block number at all.
++   */
++  readonly fetched: VicFetchRange | null;
++  /** The block-index expression this use was recognized from. */
++  readonly span: SourceSpan;
+ }
+ 
+ /**
+@@ -49,6 +57,29 @@ const VIC_REGIONS: ReadonlySet<string> = new Set(["c64.vic.bank0", VIC_VISIBLE_R
+  */
+ const VIC_FETCH_ARGUMENTS: ReadonlyMap<string, number> = new Map([["c64.vic.setSpritePointer", 1]]);
+ 
++/**
++ * Bytes the chip fetches once it receives a block number from this pass.
++ *
++ * Every argument recognized above selects a sprite image, so one extent answers
++ * for all of them. The capabilities that select a character set, a bitmap or the
++ * screen matrix fetch more, and they take an address rather than a block number,
++ * which is why they prove their own constraints when they are lowered.
++ */
++const FETCHED_BYTES = vicConsumerBytes("vic-sprite-block");
++
++/**
++ * Unary operators that leave a block selector naming the same block.
++ *
++ * `lo` narrows a selector to the byte the register takes, and a unary plus is
++ * the value itself, so a chip receiving either still fetches from the address
++ * this block number was computed from. Every other operator names a different
++ * block: `hi(address / 64)` is a value in `0..3`, which selects a block in the
++ * first 256 bytes of the bank rather than anywhere inside the object whose
++ * address produced it. Following one of those would claim a provenance the
++ * value does not have and narrow storage the chip never reads.
++ */
++const SELECTOR_PRESERVING_UNARY: ReadonlySet<string> = new Set(["lo", "+"]);
++
+ /** One value definition retained for static address and index resolution. */
+ type Definitions = ReadonlyMap<string, SemanticOperation>;
+ 
+@@ -94,6 +125,8 @@ interface ProgramWalk {
+   readonly bodies: readonly ScannedBody[];
+   /** Call sites that keep a result, by callee identity. */
+   readonly callSites: ReadonlyMap<string, readonly CallSite[]>;
++  /** Module objects, whose storage any other body or an interrupt may read. */
++  readonly moduleObjects: ReadonlySet<string>;
+ }
+ 
+ /**
+@@ -262,7 +295,7 @@ function reachesVicConsumer(
+   if (seen.has(value)) return false;
+   seen.add(value);
+   for (const block of body.blocks) {
+-    for (const operation of block.operations) {
++    for (const [index, operation] of block.operations.entries()) {
+       if (operation.kind === "platform") {
+         // The position matters as much as the capability: the same call takes a
+         // sprite's index beside its block number, and only one of the two says
+@@ -271,7 +304,16 @@ function reachesVicConsumer(
+         if (fetched !== undefined && operation.arguments[fetched] === value) return true;
+       }
+       if (
+-        (operation.kind === "convert" || operation.kind === "unary") &&
++        operation.kind === "convert" &&
++        operation.operand === value &&
++        reachesVicConsumer(operation.result, body, walk, walked)
++      )
++        return true;
++      // Only an operator that leaves the selector naming the same block carries
++      // this object's provenance forward; the rest compute some other number.
++      if (
++        operation.kind === "unary" &&
++        SELECTOR_PRESERVING_UNARY.has(operation.operator) &&
+         operation.operand === value &&
+         reachesVicConsumer(operation.result, body, walk, walked)
+       )
+@@ -288,17 +330,24 @@ function reachesVicConsumer(
+       )
+         return true;
+       // `let block = lo(&sprites / 64);` publishes through a variable. The read
+-      // is matched on the written object rather than the exact field, and an
+-      // overwrite between the two is not noticed: a demand against an object
+-      // that did not need one is the cheaper way to be wrong than a sprite the
+-      // chip cannot see. It is not free, though. An object too large for the
+-      // visible interval has no home that satisfies the demand, so an
+-      // unnecessary one can cost a build — which is why the consumer side of
+-      // this proof names an exact argument instead of a namespace.
++      // is matched on the written object rather than the exact field, because a
++      // demand against an object that did not need one is the cheaper way to be
++      // wrong than a sprite the chip cannot see. It is not free, though: an
++      // object too large for a visible home pays for an unnecessary demand with
++      // a failed build, which is why a value this store provably replaces stops
++      // the search here.
+       if (
+         operation.kind === "store" &&
+         operation.value === value &&
+-        loadsReachVicConsumer(operation.place, body, walk, walked)
++        loadsReachVicConsumer(
++          operation.place,
++          semanticTypeSize(operation.type),
++          block,
++          index,
++          body,
++          walk,
++          walked,
++        )
+       )
+         return true;
+     }
+@@ -313,22 +362,74 @@ function reachesVicConsumer(
+     : false;
+ }
+ 
+-/** Whether any read of one written object hands its value to the video chip. */
++/**
++ * Position of the operation that provably replaces one stored value, or null
++ * when nothing in this body proves the value is gone.
++ *
++ * Proof needs three things, and all of them are deliberately narrow. The
++ * replacing store has to be in the same basic block and later, so no control
++ * flow can reach the chip between the two. Both places have to resolve to the
++ * same statically known bytes of the same object, since `frames[i] = 0` says
++ * nothing about which element `frames[j]` named. And the written object has to
++ * be private to this body: a module object can be read by another function or
++ * by an interrupt that runs between the two stores, and the demand this would
++ * remove is the only thing keeping such a sprite visible.
++ */
++function definiteReplacement(
++  place: SemanticPlace,
++  width: number,
++  block: SemanticBlock,
++  storeIndex: number,
++  body: ScannedBody,
++  walk: ProgramWalk,
++): number | null {
++  const written = bindingIdentityKey(place.root);
++  if (walk.moduleObjects.has(written)) return null;
++  const offset = staticPlaceOffset(place, body.definitions);
++  if (offset === null) return null;
++  for (const [index, operation] of block.operations.entries()) {
++    if (index <= storeIndex || operation.kind !== "store") continue;
++    if (bindingIdentityKey(operation.place.root) !== written) continue;
++    if (staticPlaceOffset(operation.place, body.definitions) !== offset) continue;
++    // A narrower store leaves part of the original value in place, so only one
++    // covering the same bytes replaces what the chip would otherwise receive.
++    if (semanticTypeSize(operation.type) < width) continue;
++    return index;
++  }
++  return null;
++}
++
++/**
++ * Whether any read of one written object hands its value to the video chip.
++ *
++ * Reads are matched on the object rather than the exact field, so an unrelated
++ * field of the same struct still raises the demand. When this body provably
++ * replaces the stored value further down the same block, only the reads between
++ * the two can see it: a read anywhere else gets either an older value or the
++ * replacement, and neither is this block number.
++ */
+ function loadsReachVicConsumer(
+   place: SemanticPlace,
++  width: number,
++  storeBlock: SemanticBlock,
++  storeIndex: number,
+   body: ScannedBody,
+   walk: ProgramWalk,
+   walked: WalkedValues,
+ ): boolean {
+   const written = bindingIdentityKey(place.root);
+-  for (const block of body.blocks)
+-    for (const operation of block.operations)
+-      if (
+-        operation.kind === "load" &&
+-        bindingIdentityKey(operation.place.root) === written &&
+-        reachesVicConsumer(operation.result, body, walk, walked)
+-      )
+-        return true;
++  const replaced = definiteReplacement(place, width, storeBlock, storeIndex, body, walk);
++  const reads =
++    replaced === null
++      ? body.blocks.flatMap((block) => block.operations)
++      : storeBlock.operations.slice(storeIndex + 1, replaced);
++  for (const operation of reads)
++    if (
++      operation.kind === "load" &&
++      bindingIdentityKey(operation.place.root) === written &&
++      reachesVicConsumer(operation.result, body, walk, walked)
++    )
++      return true;
+   return false;
+ }
+ 
+@@ -435,12 +536,17 @@ function blockDemand(
+  * alignment. A runtime index is admitted only when its element stride is a
+  * multiple of the alignment and the static prefix/suffix remains aligned, so
+  * every selected element preserves the demand.
++ *
++ * The returned offset describes one address, and a runtime step means the
++ * program may address any element rather than that one, which is why the caller
++ * is told the difference: an offset proved for alignment is not a statement
++ * about which bytes are fetched.
+  */
+ function placeAlignment(
+   place: SemanticPlace,
+   align: number,
+   definitions: Definitions,
+-): number | null {
++): { readonly offset: number; readonly dynamic: boolean } | null {
+   let type: SemanticType | undefined = place.rootType;
+   let offset = 0;
+   let dynamic = false;
+@@ -468,7 +574,7 @@ function placeAlignment(
+   // A runtime contribution is `index * stride`; the remaining static offset must
+   // already be a multiple of the demand. The stride check above proves the rest.
+   if (dynamic && offset % align !== 0) return null;
+-  return offset % align === 0 ? offset : null;
++  return offset % align === 0 ? { offset, dynamic } : null;
+ }
+ 
+ /** One call this body makes, kept until the body it belongs to exists. */
+@@ -524,7 +630,11 @@ function scanProgram(
+       sites.push(Object.freeze({ body, result: call.result }));
+       callSites.set(call.callee, sites);
+     }
+-  return Object.freeze({ bodies: Object.freeze(scanned.map(({ body }) => body)), callSites });
++  return Object.freeze({
++    bodies: Object.freeze(scanned.map(({ body }) => body)),
++    callSites,
++    moduleObjects: new Set(globals.map((global) => bindingIdentityKey(global.id))),
++  });
+ }
+ 
+ /**
+@@ -569,15 +679,30 @@ export function alignBlockIndexStorage(
+   const walk = scanProgram(functions, globals);
+   const scan = (body: ScannedBody): void => {
+     const { blocks, definitions } = body;
+-    const record = (addressValue: ValueId, align: number, vicVisible: boolean): void => {
++    const record = (
++      addressValue: ValueId,
++      align: number,
++      publishedToVic: boolean,
++      span: SourceSpan,
++    ): void => {
+       const address = addressOperation(addressValue, definitions);
+       if (address === undefined || address.place.asset !== undefined) return;
+       const key = bindingIdentityKey(address.place.root);
+-      if (!byKey.has(key)) return;
+-      const offset = placeAlignment(address.place, align, definitions);
+-      if (offset === null) return;
++      const object = byKey.get(key);
++      if (object === undefined) return;
++      const proved = placeAlignment(address.place, align, definitions);
++      if (proved === null) return;
++      // A runtime index proves alignment for every element but names none of
++      // them, so the fetched run covers the object: the chip may read any
++      // element, and shrinking the demand to the element the static prefix
++      // happens to name would leave the others where it cannot see them.
++      const fetched = !publishedToVic
++        ? null
++        : proved.dynamic
++          ? { offset: 0, bytes: semanticTypeSize(object.type) }
++          : { offset: proved.offset, bytes: FETCHED_BYTES };
+       const known = demands.get(key) ?? [];
+-      known.push({ align, offset, vicVisible });
++      known.push({ align, offset: proved.offset, fetched, span });
+       demands.set(key, known);
+     };
+     for (const block of blocks) {
+@@ -593,9 +718,9 @@ export function alignBlockIndexStorage(
+         // only once a block index has actually been recognized, so an ordinary
+         // expression never pays for the search.
+         const produced = "result" in operation ? operation.result : null;
+-        const vicVisible =
++        const publishedToVic =
+           produced !== null && produced !== undefined && reachesVicConsumer(produced, body, walk);
+-        record(demand.address, demand.align, vicVisible);
++        record(demand.address, demand.align, publishedToVic, operation.span);
+       }
+     }
+   };
+@@ -617,29 +742,38 @@ export function alignBlockIndexStorage(
+       if (placement?.at !== null && placement?.at !== undefined) return global;
+       const stated = placement?.region ?? null;
+       let align = placement?.align ?? 1;
+-      let vicVisible = false;
++      const fetched: VicFetchRange[] = [];
++      let origin: SourceSpan | null = null;
+       for (const demand of required) {
+-        // Visibility is a property of the whole object rather than of one byte
+-        // inside it, so it holds even where root alignment cannot express the
+-        // offset: the chip cannot reach any part of a block outside its bank.
+-        vicVisible ||= demand.vicVisible;
++        // Every published use contributes its own run. Satisfying one says
++        // nothing about another, so they accumulate rather than replace: a
++        // second sprite published from the same sheet is a second run the chip
++        // reads, at a different offset.
++        if (demand.fetched !== null) {
++          fetched.push(demand.fetched);
++          origin ??= demand.span;
++        }
+         // Root alignment can only express a demand whose static offset is a
+         // multiple of it. Leave other shapes exactly as written.
+         if (demand.offset % demand.align !== 0) continue;
+         align = Math.max(align, demand.align);
+       }
+-      // A region naming some other home is the author's deliberate choice, which
+-      // this pass states a demand against rather than overrules.
+-      const region =
+-        vicVisible && (stated === null || VIC_REGIONS.has(stated)) ? VIC_VISIBLE_REGION : stated;
+-      if (align === (placement?.align ?? 1) && region === stated) return global;
++      // A region naming some other home is the author's deliberate choice, and
++      // a stated one already constrains the whole object, so the inferred runs
++      // are attached only where they do not argue with what was written.
++      const inferred =
++        fetched.length === 0 || origin === null || !(stated === null || VIC_REGIONS.has(stated))
++          ? null
++          : Object.freeze({ ranges: mergeVicFetchRanges(fetched), span: origin });
++      if (align === (placement?.align ?? 1) && inferred === null) return global;
+       return Object.freeze({
+         ...global,
++        ...(inferred === null ? {} : { vicFetch: inferred }),
+         placement: Object.freeze({
+           at: null,
+           align,
+           noCross: placement?.noCross ?? null,
+-          region,
++          region: stated,
+         }),
+       });
+     }),
+diff --git a/packages/compiler/src/semantic/operations.ts b/packages/compiler/src/semantic/operations.ts
+index 76996d76..f89e8d67 100644
+--- a/packages/compiler/src/semantic/operations.ts
++++ b/packages/compiler/src/semantic/operations.ts
+@@ -9,6 +9,7 @@ import type {
+   SemanticType,
+ } from "../frontend/semantic-types.js";
+ import type { SourceSpan } from "../project/types.js";
++import type { VicFetchDemand } from "../target/vic-fetch.js";
+ 
+ /** Stable identity of one semantic basic block. */
+ export type BlockId = string;
+@@ -482,6 +483,12 @@ export interface SemanticGlobal {
+   readonly source: SourceSpan;
+   /** Optional source constraint on this resident object. */
+   readonly placement?: PlacementConstraints | null;
++  /**
++   * Bytes the video chip fetches from this object, inferred from the program
++   * rather than written by the author. Separate from `placement` because an
++   * author-written region constrains the whole object and this does not.
++   */
++  readonly vicFetch?: VicFetchDemand | null;
+   /** Mutable storage must occupy the selected zero-page window. */
+   readonly zeropage?: boolean;
+ }
+diff --git a/packages/compiler/src/services/resource-diagnostics.ts b/packages/compiler/src/services/resource-diagnostics.ts
+index c7a8dd79..c91cfe77 100644
+--- a/packages/compiler/src/services/resource-diagnostics.ts
++++ b/packages/compiler/src/services/resource-diagnostics.ts
+@@ -10,6 +10,7 @@ import type { WholeProgram } from "../semantic/whole-program.js";
+ import type { StorageClosureCertificate } from "../storage/storage-types.js";
+ import { C64_RESOURCE_BUDGETS } from "../target/c64-kernal.js";
+ import type { TargetProfile } from "../target/profile.js";
++import type { VicFetchRange } from "../target/vic-fetch.js";
+ 
+ /** Keep declaration-name and explicit-placement locations available to later resource diagnostics. */
+ export function resourceSourceSpans(program: TypedProgram): ReadonlyMap<string, SourceSpan> {
+@@ -66,6 +67,23 @@ export function sourceObjectName(
+     : (object?.sourceName?.split(".").at(-1) ?? objectId ?? "object");
+ }
+ 
++/**
++ * Describe the bytes the video chip fetches from one object, in the terms the
++ * author's own source used.
++ *
++ * An offset is worth naming because it tells the author which part of the object
++ * the chip reads, and several runs are summarized rather than listed: the count
++ * is what explains why the requirement is larger than one sprite image.
++ */
++function describeFetch(ranges: readonly VicFetchRange[]): string {
++  const total = ranges.reduce((bytes, range) => bytes + range.bytes, 0);
++  const only = ranges.length === 1 ? ranges[0] : undefined;
++  if (only === undefined) return `${ranges.length} runs totalling ${total} bytes of it`;
++  return only.offset === 0
++    ? `${only.bytes} bytes from its first byte`
++    : `${only.bytes} bytes at offset ${only.offset}`;
++}
++
+ /** Attribute a failed final constraint to the source object rather than an internal layout ID. */
+ export function sourcePlacementFailure(
+   machine: MachineProgram,
+@@ -82,15 +100,21 @@ export function sourcePlacementFailure(
+     data.kind === "asset" &&
+     data.placement?.at !== undefined &&
+     data.placement.at !== null;
++  const inferredFetch = data?.vicFetch;
+   const message = vicVisible
+     ? `Cannot place '${name}' — the handler requires a VIC-visible address in bank 0 with ${data?.alignment ?? 1}-byte alignment, clear of the character-ROM window and the active screen; the selected address cannot satisfy that requirement`
+-    : handlerFixed && data?.placement?.at !== null && data?.placement?.at !== undefined
+-      ? `Cannot place '${name}' — the handler requires the fixed load address $${data.placement.at.toString(16)}, which conflicts with occupied storage or the selected profile resident window; the payload cannot be moved`
+-      : `Cannot place '${name}' — explicit placement constraints conflict with occupied storage or the selected profile window; change or remove the explicit constraint`;
++    : inferredFetch !== undefined
++      ? `Cannot place '${name}' — a sprite-block expression makes the video chip fetch ${describeFetch(inferredFetch.ranges)}, which must stay inside the VIC bank and clear of the character-ROM window; this requirement was inferred from that expression, so publish a smaller part of the object or place it at an explicit address`
++      : handlerFixed && data?.placement?.at !== null && data?.placement?.at !== undefined
++        ? `Cannot place '${name}' — the handler requires the fixed load address $${data.placement.at.toString(16)}, which conflicts with occupied storage or the selected profile resident window; the payload cannot be moved`
++        : `Cannot place '${name}' — explicit placement constraints conflict with occupied storage or the selected profile window; change or remove the explicit constraint`;
+   return projectDiagnostic(
+     "E10273",
+     message,
+-    spans.get(`placement:${key}`) ?? spans.get(key) ?? null,
++    // An inferred requirement points at the expression that caused it. The
++    // author has no placement to look at, so the declaration would leave them
++    // searching for a constraint they never wrote.
++    inferredFetch?.span ?? spans.get(`placement:${key}`) ?? spans.get(key) ?? null,
+   );
+ }
+ 
+diff --git a/packages/compiler/src/target/vic-fetch.ts b/packages/compiler/src/target/vic-fetch.ts
+new file mode 100644
+index 00000000..0d1f86d8
+--- /dev/null
++++ b/packages/compiler/src/target/vic-fetch.ts
+@@ -0,0 +1,101 @@
++import type { SourceSpan } from "../project/types.js";
++
++/** Layout-resolved VIC field transforms available to source operations. */
++export type VicFieldTransform =
++  | "vic-sprite-block"
++  | "vic-charset-select"
++  | "vic-bitmap-select"
++  | "vic-screen-select";
++
++/** Exact byte count the video chip fetches through one VIC field. */
++export function vicConsumerBytes(transform: VicFieldTransform): number {
++  switch (transform) {
++    case "vic-sprite-block":
++      return 64;
++    case "vic-charset-select":
++      return 2_048;
++    case "vic-bitmap-select":
++      return 8_000;
++    case "vic-screen-select":
++      return 1_000;
++  }
++}
++
++/** Required address alignment for one VIC field operation. */
++export function vicConsumerAlignment(transform: VicFieldTransform): number {
++  switch (transform) {
++    case "vic-sprite-block":
++      return 64;
++    case "vic-charset-select":
++      return 2_048;
++    case "vic-bitmap-select":
++      return 8_192;
++    case "vic-screen-select":
++      return 1_024;
++  }
++}
++
++/**
++ * One run of bytes the video chip fetches, measured from an object's first byte.
++ *
++ * The chip reads a bounded run, not whole objects: a sprite image is 64 bytes at
++ * the addressed offset, and the thousands of bytes a sprite sheet holds around it
++ * are never fetched. Keeping the demand this narrow is what lets a large object
++ * live in ordinary storage while the bytes the hardware reads stay reachable.
++ */
++export interface VicFetchRange {
++  /** Byte offset of the fetched run from the object's first byte. */
++  readonly offset: number;
++  /** Length of the fetched run. */
++  readonly bytes: number;
++}
++
++/**
++ * Everything placement needs in order to keep one object's fetched bytes
++ * reachable by the video chip, together with the expression that asked for it.
++ *
++ * The compiler infers this; the author wrote no constraint. That origin is part
++ * of the demand rather than a detail, because a refusal has to name the
++ * expression that caused it instead of blaming a constraint nobody wrote, and
++ * because an author-written region means the whole object and must not be
++ * confused with this.
++ */
++export interface VicFetchDemand {
++  /**
++   * Runs that must each stay inside the chip's bank and clear of the window
++   * where it reads character ROM. Every run is required; satisfying one does
++   * not excuse another.
++   */
++  readonly ranges: readonly VicFetchRange[];
++  /** The block-index expression this demand was inferred from. */
++  readonly span: SourceSpan;
++}
++
++/**
++ * Merge fetched runs that touch or overlap, leaving genuine gaps alone.
++ *
++ * Two runs that meet describe one longer run, and saying so keeps the placement
++ * check and any later evidence shorter. A gap between two runs is kept, because
++ * the bytes between them carry no requirement and closing the gap would demand
++ * storage the chip never reads.
++ *
++ * @param ranges Fetched runs in any order, possibly overlapping.
++ * @returns The same requirement expressed as disjoint runs in address order.
++ * @example mergeVicFetchRanges([{ offset: 64, bytes: 64 }, { offset: 0, bytes: 64 }])
++ */
++export function mergeVicFetchRanges(ranges: readonly VicFetchRange[]): readonly VicFetchRange[] {
++  const ordered = [...ranges]
++    .filter(({ bytes }) => bytes > 0)
++    .sort((left, right) => left.offset - right.offset);
++  const merged: VicFetchRange[] = [];
++  for (const range of ordered) {
++    const last = merged.at(-1);
++    if (last !== undefined && range.offset <= last.offset + last.bytes) {
++      const end = Math.max(last.offset + last.bytes, range.offset + range.bytes);
++      merged[merged.length - 1] = Object.freeze({ offset: last.offset, bytes: end - last.offset });
++      continue;
++    }
++    merged.push(Object.freeze({ ...range }));
++  }
++  return Object.freeze(merged);
++}
+diff --git a/test/rd04/block-index-fetched-extent.spec.test.ts b/test/rd04/block-index-fetched-extent.spec.test.ts
+new file mode 100644
+index 00000000..08543f89
+--- /dev/null
++++ b/test/rd04/block-index-fetched-extent.spec.test.ts
+@@ -0,0 +1,271 @@
++import { describe, expect, it } from "vitest";
++import { buildProject } from "@blend65/compiler";
++import { profileSpan, readProfileArtifacts, withProfileProject } from "../rd05/profile-fixture.js";
++import { sourceLibraryProfiles } from "../rd05/source-library-fixture.js";
++
++/** Artifacts retained from one successful public build. */
++type BuildArtifacts = Awaited<ReturnType<typeof readProfileArtifacts>>;
++
++/** These profiles expose one 16 KiB VIC bank, with character ROM hiding part of RAM. */
++const VIC_BANK_END = 0x3fff;
++const CHARACTER_ROM = { start: 0x1000, end: 0x1fff } as const;
++
++/** This exceeds both the largest visible interval and the complete VIC bank. */
++const LARGE_BUFFER_BYTES = 18000;
++
++/** This element cannot be inside the VIC bank at any resident buffer address. */
++const FAR_OFFSET = 17024;
++
++/** Narrow public JSON before following symbol or location metadata. */
++function record(value: unknown): Record<string, unknown> | null {
++  return value !== null && typeof value === "object" && !Array.isArray(value)
++    ? (value as Record<string, unknown>)
++    : null;
++}
++
++/** Resolve a named global, rejecting missing or ambiguous public machine locations. */
++function globalAddress(artifacts: BuildArtifacts, name: string, byteWidth: number): number {
++  const symbols = artifacts.debug.symbols;
++  const locations = artifacts.debug.locations;
++  if (!Array.isArray(symbols) || !Array.isArray(locations))
++    throw new TypeError("Expected public debug symbols and locations");
++  const labelPrefix = `b65_Game_${name}_`;
++  const matches = symbols.filter((raw) => {
++    const symbol = record(raw);
++    if (symbol?.kind !== "global" || !Array.isArray(symbol.labels)) return false;
++    return symbol.labels.some(
++      (label: unknown) => typeof label === "string" && label.startsWith(labelPrefix),
++    );
++  });
++  expect(
++    matches,
++    `Expected exactly one public global with label prefix ${labelPrefix}`,
++  ).toHaveLength(1);
++  const symbol = record(matches[0]);
++  expect(symbol?.byteWidth, `${name} must retain its complete storage`).toBe(byteWidth);
++  const indexes = symbol?.locationIndexes;
++  if (!Array.isArray(indexes) || indexes.length === 0)
++    throw new Error(`${name} has no public location`);
++  const starts = new Set<number>();
++  for (const index of indexes) {
++    if (!Number.isInteger(index) || index < 0 || index >= locations.length)
++      throw new Error(`${name} has an invalid location index`);
++    const pieces = record(record(locations[index])?.availability)?.pieces;
++    if (!Array.isArray(pieces)) throw new Error(`${name} has no available pieces`);
++    for (const piece of pieces) {
++      const machine = record(record(piece)?.machine);
++      if (typeof machine?.start === "number" && Number.isInteger(machine.start))
++        starts.add(machine.start);
++    }
++  }
++  if (starts.size !== 1) throw new Error(`${name} needs one unambiguous machine start`);
++  const start = [...starts][0];
++  if (start === undefined) throw new Error(`${name} has no machine start`);
++  return start;
++}
++
++/** Read alignment from the same public CPU interval used by the existing runtime-index oracle. */
++function alignmentAt(artifacts: BuildArtifacts, start: number): number {
++  const intervals = artifacts.memory.intervals;
++  if (!Array.isArray(intervals)) throw new TypeError("Expected public memory intervals");
++  const interval = intervals.find(
++    (item: unknown): item is Record<string, unknown> =>
++      record(item)?.addressSpaceId === "cpu16" && record(item)?.start === start,
++  );
++  if (interval === undefined) throw new Error(`Missing CPU interval at $${start.toString(16)}`);
++  const alignment = record(interval)?.alignmentBytes;
++  if (typeof alignment !== "number") throw new TypeError("Expected numeric interval alignment");
++  return alignment;
++}
++
++/** Retain public artifacts while the real build's temporary project is alive. */
++async function build(source: string, profile: string): Promise<BuildArtifacts> {
++  return withProfileProject(source, profile, async (project) => {
++    const built = await buildProject({ project, optimization: "none" });
++    expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
++      "success",
++    );
++    if (built.kind !== "success") throw new Error("Expected a successful public build");
++    return readProfileArtifacts(built);
++  });
++}
++
++/** Check the actual fetched block, rather than accepting a build with invisible sprite bytes. */
++function expectVisibleFetch(start: number): void {
++  const end = start + 63;
++  const description = `fetched bytes $${start.toString(16)}-$${end.toString(16)}`;
++  expect(start % 64, `${description} must start on a sprite block boundary`).toBe(0);
++  expect(start, description).toBeGreaterThanOrEqual(0);
++  expect(end, `${description} must stay inside the VIC bank`).toBeLessThanOrEqual(VIC_BANK_END);
++  expect(
++    start <= CHARACTER_ROM.end && end >= CHARACTER_ROM.start,
++    `${description} must not be hidden by character ROM`,
++  ).toBe(false);
++}
++
++/** Ordinary CPU storage may extend past the VIC bank but must remain resident writable RAM. */
++function expectResidentBuffer(start: number, bytes: number): void {
++  expect(start).toBeGreaterThanOrEqual(0x0801);
++  expect(start + bytes - 1).toBeLessThanOrEqual(0xcfff);
++}
++
++describe.each(sourceLibraryProfiles)("sprite fetched extents on %s", (profile) => {
++  // Only the addressed block needs visibility; a large unused tail is ordinary CPU storage.
++  for (const offset of [0, 64, 4096]) {
++    it(`should keep only the fetched block visible when a large buffer is addressed at offset ${offset}`, async () => {
++      const place = offset === 0 ? "buffer" : `buffer[${offset}]`;
++      const artifacts = await build(
++        `module Game;
++let pad: byte[2400];
++let buffer: byte[${LARGE_BUFFER_BYTES}];
++function main(): void {
++  pad[0] = 1;
++  c64.vic.setSpritePointer(0, lo(&${place} / 64));
++}`,
++        profile,
++      );
++      const start = globalAddress(artifacts, "buffer", LARGE_BUFFER_BYTES);
++      expectResidentBuffer(start, LARGE_BUFFER_BYTES);
++      expectVisibleFetch(start + offset);
++      expect(start + LARGE_BUFFER_BYTES - 1).toBeGreaterThan(VIC_BANK_END);
++    }, 120_000);
++  }
++
++  // Each helper publishes its own object's block; satisfying one demand cannot replace the other.
++  it("should keep both fetched blocks visible when two large objects are published by separate helpers", async () => {
++    const artifacts = await build(
++      `module Game;
++let first: byte[5000];
++let second: byte[5000];
++function publishFirst(): void { c64.vic.setSpritePointer(0, lo(&first / 64)); }
++function publishSecond(): void { c64.vic.setSpritePointer(1, lo(&second / 64)); }
++function main(): void { publishFirst(); publishSecond(); }`,
++      profile,
++    );
++    const first = globalAddress(artifacts, "first", 5000);
++    const second = globalAddress(artifacts, "second", 5000);
++    expectResidentBuffer(first, 5000);
++    expectResidentBuffer(second, 5000);
++    expectVisibleFetch(first);
++    expectVisibleFetch(second);
++    expect(first + 5000 <= second || second + 5000 <= first).toBe(true);
++  }, 120_000);
++
++  // A CPU-only publication does not ask the VIC to fetch the address that produced the number.
++  // The far-offset variant cannot acquire a visible home, even for just one block.
++  for (const offset of [0, FAR_OFFSET]) {
++    for (const held of [false, true]) {
++      it(`should leave CPU-only block arithmetic unconstrained when offset ${offset} is ${held ? "overwritten before the chip receives the variable" : "published only by poke"}`, async () => {
++        const place = offset === 0 ? "buffer" : `buffer[${offset}]`;
++        const use = held
++          ? `let block: byte = lo(&${place} / 64);
++  poke($C000, block);
++  block = $80;
++  c64.vic.setSpritePointer(0, block);`
++          : `poke($C000, lo(&${place} / 64));`;
++        const artifacts = await build(
++          `module Game;
++let buffer: byte[${LARGE_BUFFER_BYTES}];
++function main(): void {
++  ${use}
++}`,
++          profile,
++        );
++        const start = globalAddress(artifacts, "buffer", LARGE_BUFFER_BYTES);
++        expectResidentBuffer(start, LARGE_BUFFER_BYTES);
++        expect(start + LARGE_BUFFER_BYTES - 1).toBeGreaterThan(VIC_BANK_END);
++        expect(start + offset + 63).toBeLessThanOrEqual(0xcfff);
++        if (offset === FAR_OFFSET) expect(start + offset).toBeGreaterThan(VIC_BANK_END);
++        if (held) expectVisibleFetch(0x80 * 64);
++      }, 120_000);
++    }
++  }
++
++  // Taking the high byte changes the selected block: it points into the first 256 bytes,
++  // not back into the object whose address supplied the arithmetic.
++  for (const offset of [0, FAR_OFFSET]) {
++    it(`should drop object visibility provenance when hi changes the block number at offset ${offset}`, async () => {
++      const place = offset === 0 ? "buffer" : `buffer[${offset}]`;
++      const artifacts = await build(
++        `module Game;
++let buffer: byte[${LARGE_BUFFER_BYTES}];
++function main(): void { c64.vic.setSpritePointer(0, hi(&${place} / 64)); }`,
++        profile,
++      );
++      const start = globalAddress(artifacts, "buffer", LARGE_BUFFER_BYTES);
++      expectResidentBuffer(start, LARGE_BUFFER_BYTES);
++      const block = Math.floor(Math.floor((start + offset) / 64) / 256);
++      expect(block).toBeGreaterThanOrEqual(0);
++      expect(block).toBeLessThanOrEqual(3);
++      expectVisibleFetch(block * 64);
++      expect(start + LARGE_BUFFER_BYTES - 1).toBeGreaterThan(VIC_BANK_END);
++    }, 120_000);
++  }
++
++  // Either runtime-selected element can reach the chip, so both complete blocks need visibility.
++  it("should preserve visibility of the entire indexed span when the index is read at runtime", async () => {
++    const artifacts = await build(
++      `module Game;
++let pad: byte[2400];
++let blocks: byte[2][64];
++function main(): void {
++  pad[0] = 1;
++  let index: byte = peek($0400);
++  c64.vic.setSpritePointer(0, lo(&blocks[index] / 64));
++}`,
++      profile,
++    );
++    const start = globalAddress(artifacts, "blocks", 128);
++    expectResidentBuffer(start, 128);
++    expect(alignmentAt(artifacts, start)).toBe(64);
++    expectVisibleFetch(start);
++    expectVisibleFetch(start + 64);
++  }, 120_000);
++
++  // A byte index can select every element of this contiguous 16 KiB array. No home
++  // can expose that entire span in a bank containing an inaccessible ROM window.
++  it("should identify the inferred sprite-block expression when no visible indexed home exists", async () => {
++    const expression = "lo(&blocks[index] / 64)";
++    const source = `module Game;
++let blocks: byte[256][64];
++function main(): void {
++  let index: byte = peek($0400);
++  c64.vic.setSpritePointer(0, ${expression});
++}`;
++    await withProfileProject(source, profile, async (project) => {
++      const built = await buildProject({ project, optimization: "none" });
++      expect(built.kind).toBe("failure");
++      if (built.kind !== "failure") throw new Error("Expected an unsatisfiable inferred demand");
++      const diagnostics = built.diagnostics.filter((diagnostic) => diagnostic.code === "E10273");
++      expect(diagnostics, JSON.stringify(built.diagnostics)).toHaveLength(1);
++      const diagnostic = diagnostics[0];
++      if (diagnostic === undefined) throw new Error("Missing placement diagnostic");
++      const rendered = JSON.stringify(diagnostic);
++      expect.soft(rendered).toMatch(/infer/iu);
++      expect.soft(rendered).toMatch(/sprite[ -]block/iu);
++      expect.soft(rendered).toMatch(/expression/iu);
++      expect.soft(rendered).not.toMatch(/change or remove the explicit constraint/iu);
++      const expected = profileSpan(source, expression);
++      expect(diagnostic.primarySpan?.sourceId).toBe(expected.sourceId);
++      expect(diagnostic.primarySpan?.start).toBeGreaterThanOrEqual(expected.start);
++      expect(diagnostic.primarySpan?.end).toBeLessThanOrEqual(expected.end);
++      expect(diagnostic.primarySpan?.end).toBeGreaterThan(
++        diagnostic.primarySpan?.start ?? expected.end,
++      );
++    });
++  }, 120_000);
++
++  // An explicit address stays the author's choice, even though its block number wraps
++  // within the VIC bank and therefore fetches different bytes from the object's own RAM.
++  it("should retain an explicit unreachable object address when its block number is published", async () => {
++    const artifacts = await build(
++      `module Game;
++place(at: $C040) let buffer: byte[64];
++function main(): void { c64.vic.setSpritePointer(0, lo(&buffer / 64)); }`,
++      profile,
++    );
++    const start = globalAddress(artifacts, "buffer", 64);
++    expect(start).toBe(0xc040);
++    expectVisibleFetch((Math.floor(start / 64) % 256) * 64);
++  }, 120_000);
++});
