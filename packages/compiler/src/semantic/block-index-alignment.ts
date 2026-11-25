@@ -469,9 +469,13 @@ export function alignBlockIndexStorage(
         if (fixedAddress || demand.offset % demand.align !== 0) continue;
         align = Math.max(align, demand.align);
       }
-      const field = (fixedAddress ? declared : required).find(
-        (demand) => demand.field !== undefined,
-      )?.field;
+      // An object reached by both routes keeps the weaker claim. Naming the
+      // capability while dropping the inference would tell an author their
+      // arithmetic was a declared requirement, and the span can point at either.
+      const contributing = fixedAddress ? declared : required;
+      const field = contributing.every((demand) => demand.field !== undefined)
+        ? contributing.find((demand) => demand.field !== undefined)?.field
+        : undefined;
       // A region naming some other home is the author's deliberate choice, and
       // a stated one already constrains the whole object, so the inferred runs
       // are attached only where they do not argue with what was written.

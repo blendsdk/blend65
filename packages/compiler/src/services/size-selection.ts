@@ -608,7 +608,13 @@ export function closeCanonicalReference(
             shared.reason === "source-placement" ||
             shared.reason === "vic-visibility" ||
             shared.reason === "character-rom"
-              ? sourcePlacementFailure(lowered.program, resourceSpans, shared.objectId)
+              ? sourcePlacementFailure(
+                  lowered.program,
+                  resourceSpans,
+                  shared.objectId,
+                  shared.reason,
+                  profile,
+                )
               : projectDiagnostic(
                   "COMPILER_LAYOUT",
                   `Platform layout failed: ${shared.reason}${shared.objectId === null ? "" : ` (${shared.objectId})`}`,

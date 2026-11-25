@@ -229,19 +229,31 @@ function blockIndexFoldValues(
       if (argument === undefined) continue;
       let address = definitions.get(argument);
       while (address?.kind === "convert") address = definitions.get(address.operand);
-      if (address?.kind !== "place-address" || address.place.asset !== undefined) continue;
-      const rootKey = bindingIdentityKey(address.place.root);
-      const global = program.semantic.globals.find(
-        (candidate) => bindingIdentityKey(candidate.id) === rootKey,
-      );
-      if (global === undefined) continue;
+      if (address?.kind !== "place-address") continue;
       // Each way of declining to fold is recorded against the argument, because
       // only here is the cause still known. Lowering sees a staged pointer and
       // cannot tell a run-time index from a field this storage cannot serve, and
       // a refusal that cannot name its cause names nothing the author can change.
+      // Every decline is recorded before the loop moves on, including the ones
+      // that are not this capability's business, so no shape falls through to a
+      // sentence written for a different cause.
       const decline = (refusal: VicFieldAddressRefusal): void => {
         fieldRefusals.set(argument, refusal);
       };
+      // An asset's own address is kept symbolic elsewhere and folds; a position
+      // inside one arrives here, and the field resolves an object's base rather
+      // than an offset into it.
+      if (address.place.asset !== undefined) {
+        if (address.place.path.length > 0) decline("asset-element");
+        continue;
+      }
+      const rootKey = bindingIdentityKey(address.place.root);
+      const global = program.semantic.globals.find(
+        (candidate) => bindingIdentityKey(candidate.id) === rootKey,
+      );
+      // A local or a parameter is refused earlier, for the lifetime of the
+      // address rather than for the field, so nothing is recorded for it here.
+      if (global === undefined) continue;
       if (!vicFieldAcceptsModuleStorage(field)) {
         decline("module-storage");
         continue;
@@ -253,12 +265,6 @@ function blockIndexFoldValues(
         decline("zero-page");
         continue;
       }
-      // The same address serving another purpose must keep its runtime form;
-      // only an address this capability alone consumes can become an immediate.
-      if ((uses.get(address.result) ?? 0) !== 1) {
-        decline("shared-address");
-        continue;
-      }
       const offset = staticPlaceOffset(address.place, definitions);
       // A misaligned offset still folds. Layout then names the alignment the
       // field needs, which is what the author can act on; refusing here could
@@ -267,6 +273,14 @@ function blockIndexFoldValues(
         decline("runtime-index");
         continue;
       }
+      // The same address serving another purpose must keep its runtime form;
+      // only an address this capability alone consumes can become an immediate.
+      // No source shape reaches this: each `&object` mints its own value, and an
+      // address kept in a variable arrives as a load. It stays because folding
+      // an address another use still needs at run time is a wrong artifact
+      // rather than a refusal, and it records no cause of its own precisely
+      // because no author can be told about a branch no author can reach.
+      if ((uses.get(address.result) ?? 0) !== 1) continue;
       addresses.set(address.result, { label: bindingLabel("global", address.place.root), offset });
     }
   }

@@ -371,7 +371,7 @@ export function resolvePlacementTransforms(
               `offset=${fieldOffset}`,
               `alignment=${fieldAlignment}`,
             ],
-            `Address an element whose offset is a multiple of ${fieldAlignment} — the nearest below this one is ${fieldOffset - (fieldOffset % fieldAlignment)}.`,
+            `Address the object itself, or a position whose distance into it is a multiple of ${fieldAlignment} bytes; this one is ${fieldOffset} bytes in.`,
           );
         }
         const fieldFailure = vicFieldFailure(

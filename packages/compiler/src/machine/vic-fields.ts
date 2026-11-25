@@ -15,14 +15,14 @@ export type { VicFieldTransform };
 /** Exact reason a VIC field cannot be derived from a final address. */
 export type VicFieldFailureReason = "out-of-bank" | "character-rom" | "misaligned";
 
-/** Why one module object's address could not be kept symbolic for a VIC field. */
+/** Why one object's address could not be kept symbolic for a VIC field. */
 export type VicFieldAddressRefusal =
   /** This field's module-storage support is not complete yet. */
   | "module-storage"
   /** A zero-page allocator chose the home, and it knows nothing of video alignment. */
   | "zero-page"
-  /** The same address serves another purpose and must keep its run-time form. */
-  | "shared-address"
+  /** A position inside an asset, where the field resolves the asset's own base. */
+  | "asset-element"
   /** An index read at run time names a different block on every execution. */
   | "runtime-index";
 
@@ -54,13 +54,15 @@ export function vicFieldAddressRefusal(
   if (refusal === "zero-page") {
     return {
       requirement: `VIC field '${transform}' cannot use zero-page storage`,
-      help: `Declare the data at module level instead of inside a 'zeropage' block; a zero-page home is chosen for fast access and cannot be given the ${vicConsumerAlignment(transform)}-byte alignment this field needs.`,
+      help: `Declare the data at module level instead of inside a 'zeropage' block; the zero-page allocator chooses its homes for fast access and does not yet honour the ${vicConsumerAlignment(transform)}-byte alignment this field needs.`,
     };
   }
-  if (refusal === "shared-address") {
+  if (refusal === "asset-element") {
     return {
-      requirement: `VIC field '${transform}' requires an address used only by this field`,
-      help: `Take the address again at the call instead of sharing one value, so the compiler can resolve this one after layout.`,
+      requirement: `VIC field '${transform}' requires the address of an asset rather than a position inside one`,
+      help: sprite
+        ? `Address the asset itself and add the element's block number: 'vicSpriteBlock(&asset) + index' resolves the asset's base and selects from it.`
+        : `Address the asset itself; this field selects a region from an object's base and cannot start partway into one.`,
     };
   }
   if (refusal === "runtime-index") {

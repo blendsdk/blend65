@@ -4,6 +4,7 @@ import type { TypedProgram } from "../frontend/service.js";
 import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import type { C64LayoutResult } from "../layout/c64-layout.js";
 import type { MachineProgram } from "../machine/machine-types.js";
+import { vicFieldFailure } from "../machine/vic-fields.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
@@ -98,6 +99,39 @@ function describeInferredFetch(demand: VicFetchDemand): string {
 
 /** Attribute a failed final constraint to the source object rather than an internal layout ID. */
 /**
+ * Name the first fetched run an author-fixed address cannot deliver, with the
+ * bounds that make it actionable.
+ *
+ * Saying only that the address "does not satisfy it" leaves the author to work
+ * out which of two rules broke and where its edge is. The exact bounds are
+ * known, and for a declared field they are the same sentence the field
+ * arithmetic would have produced had placement not refused first.
+ */
+function describeFixedAddressFailure(
+  at: number,
+  demand: VicFetchDemand | undefined,
+  profile: TargetProfile | undefined,
+): string {
+  const placed = `the address $${at.toString(16)} this object was placed at`;
+  if (demand === undefined || profile === undefined) return `${placed} does not satisfy it`;
+  for (const range of demand.ranges) {
+    const failure = vicFieldFailure(
+      demand.field ?? "vic-sprite-block",
+      at + range.offset,
+      profile.machine.vicBankStart,
+      profile.machine.characterRomStart,
+      profile.machine.characterRomEnd,
+    );
+    if (failure === null || failure.reason === "misaligned") continue;
+    const where = range.offset === 0 ? placed : `offset ${range.offset} of ${placed}`;
+    return failure.reason === "out-of-bank"
+      ? `${where} is outside the bank $${profile.machine.vicBankStart.toString(16)}-$${(profile.machine.vicBankStart + 0x3fff).toString(16)}`
+      : `${where} is inside the character-ROM window $${profile.machine.characterRomStart?.toString(16) ?? "1000"}-$${profile.machine.characterRomEnd?.toString(16) ?? "1fff"}`;
+  }
+  return `${placed} does not satisfy it`;
+}
+
+/**
  * Say where the requirement came from, since the author wrote no constraint.
  *
  * An inferred requirement has to admit that it was inferred, or the author is
@@ -135,6 +169,14 @@ export function sourcePlacementFailure(
   machine: MachineProgram,
   spans: ReadonlyMap<string, SourceSpan>,
   objectId: string | null,
+  /**
+   * Which check layout actually failed. A demand on the object does not mean the
+   * demand is why it has no home: an address the author fixed can satisfy the
+   * chip completely and still collide with the storage already there.
+   */
+  cause?: string,
+  /** Selected machine facts, so a failing run can be named with its bounds. */
+  profile?: TargetProfile,
 ): ProjectDiagnostic {
   const object = [...machine.data, ...machine.functions].find(({ id }) => id === objectId);
   const key = objectId?.replace(/^(?:global|fn)\./u, "") ?? "";
@@ -146,14 +188,14 @@ export function sourcePlacementFailure(
     data.kind === "asset" &&
     data.placement?.at !== undefined &&
     data.placement.at !== null;
-  const inferredFetch = data?.vicFetch;
+  const inferredFetch = cause === "source-placement" ? undefined : data?.vicFetch;
   const message = vicVisible
     ? `Cannot place '${name}' — the handler requires a VIC-visible address in bank 0 with ${data?.alignment ?? 1}-byte alignment, clear of the character-ROM window and the active screen; the selected address cannot satisfy that requirement`
     : inferredFetch !== undefined
       ? `Cannot place '${name}' — ${describeFetchOrigin(inferredFetch)} ${describeInferredFetch(inferredFetch)} inside the VIC bank and clear of the character-ROM window; ${describeFetchAuthority(inferredFetch)}${
           data?.placement?.at === null || data?.placement?.at === undefined
             ? "no home in the bank satisfies it beside the storage already placed there"
-            : `the address $${data.placement.at.toString(16)} this object was placed at does not satisfy it`
+            : describeFixedAddressFailure(data.placement.at, inferredFetch, profile)
         }`
       : handlerFixed && data?.placement?.at !== null && data?.placement?.at !== undefined
         ? `Cannot place '${name}' — the handler requires the fixed load address $${data.placement.at.toString(16)}, which conflicts with occupied storage or the selected profile resident window; the payload cannot be moved`

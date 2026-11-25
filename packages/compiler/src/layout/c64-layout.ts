@@ -694,9 +694,24 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
           start + placementBytes - 1 > input.profile.machine.vicBankEnd)) ||
       !satisfiesVicFetch(start, data.vicFetch, input.profile)
     ) {
+      // An address the author fixed either satisfies the chip's requirement or it
+      // does not, and that is knowable here. When it does, the conflict is the
+      // storage already at that address, and reporting a visibility failure would
+      // blame a requirement the address meets.
+      const fixedAt = data.placement?.at;
+      const fixedSatisfies =
+        fixedAt !== null &&
+        fixedAt !== undefined &&
+        satisfiesVicFetch(fixedAt, data.vicFetch, input.profile) &&
+        (!visible ||
+          (fixedAt >= input.profile.machine.vicBankStart &&
+            fixedAt + placementBytes - 1 <= input.profile.machine.vicBankEnd));
       return Object.freeze({
         kind: "error",
-        reason: visible || data.vicFetch !== undefined ? "vic-visibility" : "source-placement",
+        reason:
+          (visible || data.vicFetch !== undefined) && !fixedSatisfies
+            ? "vic-visibility"
+            : "source-placement",
         objectId: data.id,
       });
     }
