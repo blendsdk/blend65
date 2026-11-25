@@ -43,8 +43,9 @@ const VIC_REGIONS: ReadonlySet<string> = new Set(["c64.vic.bank0", VIC_VISIBLE_R
  *
  * The capabilities that take an address rather than a block number — the sprite,
  * charset, bitmap and screen selectors — prove their own bank, window and
- * alignment constraints when they are lowered, and never receive the quotient
- * this pass recognizes. They are deliberately absent.
+ * alignment constraints when they are lowered. They are deliberately absent:
+ * their argument is an address, so even where such arithmetic appears inside one
+ * it denotes some other address rather than this object's block.
  */
 const VIC_FETCH_ARGUMENTS: ReadonlyMap<string, number> = new Map([["c64.vic.setSpritePointer", 1]]);
 
@@ -85,8 +86,8 @@ interface CallSite {
  *
  * Leaving a body means resuming at the callers of its function. Rediscovering
  * those callers by scanning the program each time is the same answer computed
- * repeatedly, so they are indexed once — during the traversal that already
- * indexes each body's definitions, which costs no extra pass over the program.
+ * repeatedly, so they are indexed once, in the same traversal that indexes each
+ * body's definitions.
  */
 interface ProgramWalk {
   /** Function and initializer bodies in declaration order. */
@@ -470,43 +471,60 @@ function placeAlignment(
   return offset % align === 0 ? offset : null;
 }
 
-/** Index one body's value definitions for static address and index resolution. */
-function scannedBody(owner: string | null, blocks: readonly SemanticBlock[]): ScannedBody {
+/** One call this body makes, kept until the body it belongs to exists. */
+interface BodyCall {
+  /** Callee identity. */
+  readonly callee: string;
+  /** Value this body receives. */
+  readonly result: ValueId;
+}
+
+/**
+ * Index one body's value definitions and the calls it makes, in one traversal of
+ * its operations. The calls come back separately because a call site is recorded
+ * against the body that makes it, which does not exist until this returns.
+ */
+function scannedBody(
+  owner: string | null,
+  blocks: readonly SemanticBlock[],
+): { readonly body: ScannedBody; readonly calls: readonly BodyCall[] } {
   const definitions = new Map<string, SemanticOperation>();
+  const calls: BodyCall[] = [];
   for (const block of blocks)
     for (const operation of block.operations) {
       const result = "result" in operation ? operation.result : null;
       if (result !== null && result !== undefined) definitions.set(result, operation);
+      if (operation.kind === "call" && operation.result !== null)
+        calls.push(
+          Object.freeze({ callee: bindingIdentityKey(operation.callee), result: operation.result }),
+        );
     }
-  return Object.freeze({ owner, blocks, definitions });
+  return { body: Object.freeze({ owner, blocks, definitions }), calls };
 }
 
 /**
  * Index every body of one program, and the call sites that keep a result.
  *
- * Both indexes are built in the one traversal of the operations, because the
- * walk needs each body's definitions anyway and a caller search that rescans the
- * program is the same answer computed again for every value that leaves a body.
+ * Both indexes come out of the one traversal of the operations: the walk needs
+ * each body's definitions anyway, and a caller search that rescans the program
+ * is the same answer computed again for every value that leaves a body.
  */
 function scanProgram(
   functions: readonly SemanticFunction[],
   globals: readonly SemanticGlobal[],
 ): ProgramWalk {
-  const bodies: readonly ScannedBody[] = Object.freeze([
+  const scanned = [
     ...functions.map((fn) => scannedBody(bindingIdentityKey(fn.id), fn.blocks)),
     ...globals.map((global) => scannedBody(null, global.blocks)),
-  ]);
+  ];
   const callSites = new Map<string, CallSite[]>();
-  for (const body of bodies)
-    for (const block of body.blocks)
-      for (const operation of block.operations) {
-        if (operation.kind !== "call" || operation.result === null) continue;
-        const callee = bindingIdentityKey(operation.callee);
-        const sites = callSites.get(callee) ?? [];
-        sites.push(Object.freeze({ body, result: operation.result }));
-        callSites.set(callee, sites);
-      }
-  return Object.freeze({ bodies, callSites });
+  for (const { body, calls } of scanned)
+    for (const call of calls) {
+      const sites = callSites.get(call.callee) ?? [];
+      sites.push(Object.freeze({ body, result: call.result }));
+      callSites.set(call.callee, sites);
+    }
+  return Object.freeze({ bodies: Object.freeze(scanned.map(({ body }) => body)), callSites });
 }
 
 /**

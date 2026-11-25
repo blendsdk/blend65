@@ -104,26 +104,35 @@ does not undo it. #189 owns the repair and leads the remaining order; the correc
 wording for this is the one to keep — pre-existing imprecision caused newly introduced refusals
 when the traversal widened.
 
-### How wide the regression actually is, measured
+### How wide the regression actually is, measured — and it is not narrow
 
-The semantics review argued the class is larger than the witnesses suggest, because an object
-smaller than the visible intervals can also fail once earlier allocations crowd them. That is the
-right question and the measurement does not support it. Three 4,000-byte arrays against roughly
-11.7 KiB of visible interval, with a 64-byte sprite block published four different ways:
+The semantics review argued the class is larger than my witnesses suggested, because demanded
+objects compete for the visible intervals. It was right, and my first attempt to refute it was a
+vacuous probe: three 4,000-byte arrays with one 64-byte sprite block placed that block at `$3980`
+before and after, but the never-published control landed at `$3980` too, so the demand never bound
+anything in that layout and the measurement showed nothing.
+
+The probe that does bind is two **demanded** objects. `$2000-$3FFF` holds 8,192 bytes and
+`$0200-$0FFF` holds 3,584, so two 5,000-byte sprite sources cannot both be visible as whole
+objects even though RAM is ample:
 
 | Program | `0596547a` | HEAD |
 | --- | --- | --- |
-| Small block, published inline | built at `$3980` | built at `$3980` |
-| Small block, published through a helper | built at `$3980` | built at `$3980` |
-| Small block, published through a conditional | built at `$3980` | built at `$3980` |
-| Small block, never published | built at `$3980` | built at `$3980` |
-| The overwrite shape with a 64-byte buffer, through a helper | built at `$0AC0` | built at `$0AC0` |
+| Two 5,000-byte blocks, published through their own helpers | **built**, `$0AC0` and `$1E80` | **E10273** |
+| Two 5,000-byte blocks, published inline | E10273 | E10273 |
+| Two 5,000-byte blocks, never published | built | built |
+| One 5,000-byte and one 3,000-byte block, through helpers | built, `$0AC0` and **`$1E80`** | built, `$2000` and `$33C0` |
 
-Layout's recovery places the block in the crowded region without complaint, and an unsatisfiable
-demand needs an object too large for a single visible interval. So the regression class is bounded:
-an object past 8,192 bytes, reached through a route this unit newly widened. The review's second
-objection stands though, and is not about size — its overwrite witness has no visibility
-requirement at all, since that buffer never reaches the chip.
+Neither object is larger than an interval, so the bound I claimed — "objects past 8,192 bytes" — is
+**wrong**, and the record said so before this measurement existed. Two 5,000-byte sprite sources
+are ordinary game data, roughly 78 frames each. That is the real exposure.
+
+The last row is the same measurement cutting the other way, and is worth as much: before, the
+second object was placed at `$1E80`, inside the character-ROM window, with a silently invisible
+sprite and a successful build. Now both are visible. So the widening fixes real silent defects in
+exactly the layouts where it can also refuse — which is why the repair is #189's block-scoped
+demand rather than a retreat: two 5,000-byte objects each need only their own 64 bytes visible, and
+that fits with room to spare.
 
 A fourth witness came from the platform audit and is the same class with a different cause:
 
@@ -138,15 +147,14 @@ walk follows any unary operation and claims provenance it has not got. Built at 
 the helper, refused now. The inline form was already refused, so the false provenance predates
 this unit and the refusal through a helper does not.
 
-That decision is recorded as mine rather than implied: shipping was chosen over reverting because
-the alternative gives up six ordinary proved shapes — returning a block number from a helper is
-common style — to avoid three refusals of a shape that is not. Dividing the base address of a
-9,000-byte array by 64 to publish block zero is unusual, and the honest answer for it is #189's
-block-scoped demand, not a revert. I considered bounding the regression immediately by dropping an
-unsatisfiable inferred demand instead of refusing the program, which would make the original
-premise true by construction; it needs either profile-specific region capacity, which the semantic
-pass does not have, or placement provenance so layout can treat an inferred region as advisory.
-Both are #189's work, not a cheap bound.
+My first disposition was to ship on the argument that the refused shapes were unusual. The
+measurement above retired that argument, so the decision goes to the user with the ledger rather
+than being settled here. Two bounds were considered and neither works: dropping a demand the
+object cannot satisfy misses this case entirely, because each 5,000-byte object satisfies the
+demand alone and only the **set** of them does not, and dropping an inferred constraint after a
+layout failure restores acceptance without proving the output is right. What does work is #189 —
+carry the effective address and the fetched extent instead of collapsing to a region on the object
+root — which makes every refusal above build *and* be visible.
 
 ### The walk did not follow a join
 
@@ -266,13 +274,13 @@ row is not prioritized on shape count alone.
 | Returned-value oracle, RED against the baseline pass | **8 of 12 failed** — four profiles at `$1400`, and the counter-case because neither build moved. The four explicit-placement cases pass before and after, which the author flagged as an existing contract rather than a vacuous case |
 | Conditional oracle, RED against the state the reviews audited | **24 of 24 failed**, for three distinct reasons: twelve invisible placements, eight `E10273` refusals and four counter-cases that had not moved |
 | Both oracles, after | **12/12** and **24/24**, four profiles each — 24 being twelve conditional-placement cases, eight acceptance cases and four counter-cases |
-| Affected VICE tier, targeted and sequential | **166 tests**: the relocated-screen sprite-pointer emulator case, the VIC observer suite (132), VIC collisions (16) and the optimizer saved-output frontier guard (17) |
-| Impl cases | **34**, 13 of them new: eight source shapes, two counter-cases and three the compiler alone can build |
+| Affected VICE tier, targeted and sequential | **166 tests**, four files: the relocated-screen sprite-pointer emulator case, the VIC observer suite (132), VIC collisions (16) and the optimizer saved-output frontier guard (17) |
+| Impl cases | **35**, 14 of them new: nine source shapes, two counter-cases and three the compiler alone can build |
 | New cases non-vacuous | **Complete mutation matrix**, below |
 | rd04 complete | **128 files / 1,826 tests** |
-| Compiler package | **267 files / 4,557 tests**, 2 skipped (the Windows-only emulator cases) |
+| Compiler package | **267 files / 4,558 tests**, 2 skipped (the Windows-only emulator cases) |
 | Root host tier | **280 files / 5,977 tests**, zero errors |
-| No emitted byte change | **Measured after each of the three changes**: three examples × three goals, SHA-256 of each PRG against the recorded baseline, **9/9 identical** every time — no example publishes a block number through a helper or a conditional, so there was nothing for this to move |
+| No emitted byte change | **Measured after each change**: three examples × three goals, SHA-256 of each PRG against the recorded baseline, **9/9 identical** every time — no example publishes a block number through a helper or a conditional, so there was nothing for this to move |
 
 The byte-identity result is reported as a fact, not as a success criterion. This change exists to
 move data; an example whose hash had changed would have been a finding to explain, not a
@@ -285,7 +293,7 @@ pixels.
 ### Mutation matrix
 
 Re-run against the delivered code, with the tests untouched and one mutation applied at a time.
-Thirty-four cases in the file, thirteen of them new.
+Thirty-five cases in the file, fourteen of them new.
 
 | Mutation | Cases it fails |
 | --- | --- |
@@ -296,36 +304,18 @@ Thirty-four cases in the file, thirteen of them new.
 | Restore the namespace-prefix consumer test | 2 — the two argument-position cases |
 | Treat every block index as visible | 4 — the counter-cases |
 | Treat no block index as visible | 9 — the positive cases |
-| Index call sites in functions only, skipping initializer bodies | **0** |
+| Stop scanning initializer bodies | 1 — the initializer alignment case |
+| Index call sites in functions only, leaving initializer bodies scanned | **0** |
 
-Every one of the thirteen new cases is failed by at least one mutation, and the five structural
+Every one of the fourteen new cases is failed by at least one mutation, and the six structural
 mutations each fail only the cases that exist to guard them.
 
-The last row is reported because it found nothing. Initializer bodies are indexed for call sites
-because they are bodies, and excluding them would be the special case needing an argument — but no
-case distinguishes the choice, because no source program can reach it. Publishing requires a
-statement, an initializer binds an expression, and the route that would make it observable — a
-module variable written in one body and read in another — is exactly the hole #188 owns. The
-generality is one shared loop rather than extra code, and it becomes live the moment #188 lands.
-
-## What the reviews left open, and who owns it
-
-| Finding | Status |
-| --- | --- |
-| SM-001 / TP-003 — an inferred demand refuses legal programs, and the whole object is constrained when the chip fetches one block of it | **Open, #189.** The platform audit refutes any hardware necessity for the refusals: a 9,000-byte object at `$2000-$4327` has its first block at `$2000-$203F`, visible, with the CPU-only remainder outside the bank. So the correct demand carries the effective address and the fetched extent rather than collapsing to the object root |
-| TP-004 — a value-changing unary operation is followed as if it preserved the block selector | **Open, added to #189.** Distinct from the extent question: fixing the footprint would leave the provenance wrong |
-| SM-002 — an argument crossing into the publishing function | **Open, #188**, ranked the worst of its four by both the semantics reviewer and the platform auditor |
-| PE-001 — caller discovery rescanned the program per query | **Closed** by the callee index |
-| RV-001 — a join was not followed | **Closed** |
-| RV-002 — the mutation claim outran its evidence, twice | **Closed** by producing the matrix below against the delivered code |
-| RV-003 / SM-003 — the index was described as sharing one traversal when it did not | **Closed** in the code rather than the prose: definitions and calls now come out of one pass |
-| RV-004 — the oracle was described as pinning a diagnostic's wording | **Closed**; it guards acceptance, and the wording belongs to #189 |
-| TP's capability inventory | **Corrected**: eleven `c64.vic.*` capabilities, not twelve. `c64.vic.bank0` and `c64.vic.bank0-ram` are placement regions, not callable capabilities. The four address selectors are excluded because their argument is an address rather than this quotient, which is a statement about what they are given, not a claim that such arithmetic can never appear inside it |
-
-The semantics review recommends not declaring this complete until #189's necessary part lands. The
-measurement above bounds the exposure it is reasoning about, and the two majors it holds open are
-real, so the release call is not settled by this record alone — it is the user's, with the measured
-ledger above as the evidence either way.
+The last row is reported because it found nothing, and the row above it is why the distinction is
+worth drawing. An initializer's own arithmetic does prove alignment, and a case now pins that. Its
+*call sites* are indexed only because initializers are bodies like any other, and nothing
+distinguishes that choice: publishing needs a statement, an initializer binds an expression, and
+the route that would make it observable — a module variable written in one body and read in
+another — is exactly the hole #188 owns. The generality is one shared loop rather than extra code.
 
 ## Deliberate departures worth stating
 
@@ -339,3 +329,9 @@ sequence is worth recording rather than leaving for a later reader to reconstruc
 
 **Both oracles were authored implementation-blind and verified by me.** The author never ran them;
 I own every execution figure here, as the dispatch contract requires.
+
+**One commit message described work it did not contain.** `10361d10` says the definition and
+call-site indexes were merged into one traversal. They were not: a `git checkout HEAD --` while
+measuring an unrelated counterexample silently reverted that edit before the commit, so the commit
+carried only the record updates. The restructure landed afterwards, in its own commit, and this
+note stays because the earlier message is in the history either way.

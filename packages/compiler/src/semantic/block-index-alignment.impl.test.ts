@@ -411,6 +411,21 @@ function main(): void { poke($C000, blockOf()); c64.vic.setSpritePointer(0, bloc
     ).toMatchObject({ align: 64, region: VISIBLE_TO_THE_CHIP });
   });
 
+  // A module initializer is a body too, and the arithmetic in one proves the
+  // same alignment. Visibility is a separate question here: the value is read in
+  // another body, which this proof does not yet follow.
+  it("proves alignment from arithmetic in a module initializer", () => {
+    expect(
+      placementOf(
+        `module Game;
+let buffer: byte[64];
+let slot: byte = lo(&buffer / 64);
+function main(): void { c64.vic.setSpritePointer(0, slot); }`,
+        "buffer",
+      ),
+    ).toMatchObject({ align: 64 });
+  });
+
   // Choosing the block number on one path of a conditional is ordinary modern
   // code. The chip receives this address whenever that path runs, and a sprite
   // the chip cannot see on some frames is still a sprite it cannot see.
