@@ -1,4 +1,5 @@
-import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { bindingIdentityKey, semanticTypeKey } from "../frontend/semantic-types.js";
+import type { SemanticType } from "../frontend/semantic-types.js";
 import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import type {
   SemanticBlock,
@@ -61,6 +62,13 @@ export interface ScannedBody {
   readonly definitions: Definitions;
   /** Parameters in source order, which is what an argument position selects. */
   readonly parameters: readonly ScannedParameter[];
+  /**
+   * Shape of the function this body belongs to, or null for an initializer.
+   *
+   * A call made through an address can only reach a function of the same shape,
+   * so the shape is what connects the two when no callee is named.
+   */
+  readonly shape: string | null;
 }
 
 /**
@@ -99,6 +107,8 @@ export interface ProgramWalk {
   readonly bodies: readonly ScannedBody[];
   /** Call sites that keep a result, by callee identity. */
   readonly callSites: ReadonlyMap<string, readonly CallSite[]>;
+  /** Bodies by the identity of the function they belong to, which a call names. */
+  readonly bodiesByOwner: ReadonlyMap<string, ScannedBody>;
   /** Module objects, whose storage any other body or an interrupt may read. */
   readonly moduleObjects: ReadonlySet<string>;
   /**
@@ -114,10 +124,19 @@ export interface ProgramWalk {
    * Functions whose address is taken somewhere in the program.
    *
    * A call made through an address has no resolved callee at this stage, so for
-   * one of these functions the call sites this walk can name are not all of the
-   * places its result arrives.
+   * one of these functions the named call sites are not all of the places its
+   * result arrives.
    */
   readonly functionAddressTaken: ReadonlySet<string>;
+  /**
+   * Results of calls made through an address, by the shape that call accepts.
+   *
+   * These are where the result of an address-taken function may arrive. Every
+   * call of that kind is one of these, so following the ones whose shape
+   * matches answers the question without a call-target proof — and answers it
+   * with the runs the chip reads instead of with the whole object.
+   */
+  readonly indirectResults: ReadonlyMap<string, readonly CallSite[]>;
 }
 
 /**
@@ -231,15 +250,25 @@ export function collectSelectorReach(
           else follow(operation.result, displaced(negated(state), other));
         }
       }
-      // Handing the number to a function, or to a call whose target this pass
-      // has not proved, takes it out of reach of this walk. The same is true of
-      // storing it in module storage, which any other body can read. None of
-      // those is evidence that the chip never receives it.
-      if (
-        (operation.kind === "call" || operation.kind === "indirect-call") &&
-        operation.arguments.includes(value)
-      )
+      // Handing the number to a function continues the proof inside it: an
+      // argument is the mirror of a return, and a parameter read is a read of a
+      // place like any other. A call through an address names no callee here,
+      // so there is no body to continue into — which is not evidence that the
+      // chip never receives the number. The same is true of storing it in
+      // module storage, which any other body can read.
+      if (operation.kind === "indirect-call" && operation.arguments.includes(value))
         reach.escaped = true;
+      if (operation.kind === "call")
+        for (const [position, argument] of operation.arguments.entries())
+          if (argument === value)
+            enterParameter(
+              bindingIdentityKey(operation.callee),
+              position,
+              walk,
+              reach,
+              state,
+              walked,
+            );
       if (
         operation.kind === "store" &&
         operation.value === value &&
@@ -282,12 +311,73 @@ export function collectSelectorReach(
   if (body.owner !== null && leavesByReturn(value, body.blocks)) {
     // Where this function's address exists, it can be called through that
     // address — from a pointer variable or a dispatch table — and such a call
-    // names no callee here. The sites this walk can enumerate are then not all
-    // of the places the result arrives.
-    if (walk.functionAddressTaken.has(body.owner)) reach.escaped = true;
+    // names no callee here. Every call of that kind is an indirect call, so the
+    // places the result can arrive are the indirect calls accepting this
+    // function's shape. Following them, rather than giving up on the value,
+    // keeps the demand to what the chip reads where something publishes the
+    // number and states no demand at all where nothing does.
+    if (walk.functionAddressTaken.has(body.owner) && body.shape !== null)
+      for (const site of walk.indirectResults.get(body.shape) ?? [])
+        collectSelectorReach(site.result, site.body, walk, reach, state, walked);
     for (const site of walk.callSites.get(body.owner) ?? [])
       collectSelectorReach(site.result, site.body, walk, reach, state, walked);
   }
+}
+
+/**
+ * Continue the walk inside a called function, at the parameter the argument was
+ * passed to.
+ *
+ * An argument is the mirror of a return: a returned value resumes at the
+ * caller's call site, and an argument resumes at the callee's parameter, with
+ * the arithmetic applied to the selector crossing the boundary either way. The
+ * position matters as much as the callee, because the same call takes a
+ * sprite's index beside its block number.
+ *
+ * A parameter whose address is taken can be read through that address rather
+ * than by name, and a callee or position this pass cannot resolve has no body
+ * to continue into. Neither is evidence that the chip never receives the
+ * number.
+ */
+function enterParameter(
+  callee: string,
+  position: number,
+  walk: ProgramWalk,
+  reach: SelectorReach,
+  state: SelectorState,
+  walked: WalkedValues,
+): void {
+  const body = walk.bodiesByOwner.get(callee);
+  const parameter = body?.parameters[position];
+  if (body === undefined || parameter === undefined) {
+    reach.escaped = true;
+    return;
+  }
+  if (walk.addressTaken.has(parameter.key)) reach.escaped = true;
+  followReads(
+    body.blocks.flatMap((block) => block.operations),
+    parameter.key,
+    body,
+    walk,
+    reach,
+    state,
+    walked,
+  );
+}
+
+/** Continue the walk at every load of one object among the given operations. */
+function followReads(
+  operations: readonly SemanticOperation[],
+  read: string,
+  body: ScannedBody,
+  walk: ProgramWalk,
+  reach: SelectorReach,
+  state: SelectorState,
+  walked: WalkedValues,
+): void {
+  for (const operation of operations)
+    if (operation.kind === "load" && bindingIdentityKey(operation.place.root) === read)
+      collectSelectorReach(operation.result, body, walk, reach, state, walked);
 }
 
 /**
@@ -363,9 +453,7 @@ function collectLoadedSelectorReach(
     replaced === null
       ? body.blocks.flatMap((block) => block.operations)
       : storeBlock.operations.slice(storeIndex + 1, replaced);
-  for (const operation of reads)
-    if (operation.kind === "load" && bindingIdentityKey(operation.place.root) === written)
-      collectSelectorReach(operation.result, body, walk, reach, state, walked);
+  followReads(reads, written, body, walk, reach, state, walked);
 }
 
 /** Whether one value is handed to this body's callers as its result. */
@@ -375,12 +463,46 @@ function leavesByReturn(value: ValueId, blocks: readonly SemanticBlock[]): boole
   );
 }
 
+/** One call made through an address, kept until the body it belongs to exists. */
+interface IndirectCall {
+  /** Shape the call accepts, which is what its target must have. */
+  readonly shape: string;
+  /** Value this body receives. */
+  readonly result: ValueId;
+}
+
 /** One call this body makes, kept until the body it belongs to exists. */
 interface BodyCall {
   /** Callee identity. */
   readonly callee: string;
   /** Value this body receives. */
   readonly result: ValueId;
+}
+
+/** One parameter's type as a signature states it. */
+interface ShapedParameter {
+  /** Declared parameter type. */
+  readonly type: SemanticType;
+  /** The caller also supplies a word-sized outer element count. */
+  readonly outerUnsized?: true;
+}
+
+/**
+ * Render the shape a call made through an address accepts.
+ *
+ * Qualifiers are left out deliberately. `const` restricts what a callee may do
+ * with a borrow and never changes which function an address can denote, so
+ * including it could make a declaration and a call spell the same shape
+ * differently — and a disagreement there would silently drop a route instead of
+ * widening it, which is the one direction that leaves a sprite unreadable.
+ */
+function callableShape(parameters: readonly ShapedParameter[], result: SemanticType): string {
+  const shapes = parameters.map(({ type, outerUnsized }) =>
+    outerUnsized === true && type.kind === "array"
+      ? `${semanticTypeKey(type.element)}[]`
+      : semanticTypeKey(type),
+  );
+  return `fn(${shapes.join(",")}):${semanticTypeKey(result)}`;
 }
 
 /** Describe one parameter by the storage its name denotes. */
@@ -403,16 +525,19 @@ function scannedBody(
   owner: string | null,
   blocks: readonly SemanticBlock[],
   parameters: readonly StorageValue[],
+  shape: string | null,
 ): {
   readonly body: ScannedBody;
   readonly calls: readonly BodyCall[];
   readonly addressTaken: readonly string[];
   readonly functionAddressTaken: readonly string[];
+  readonly indirectCalls: readonly IndirectCall[];
 } {
   const definitions = new Map<string, SemanticOperation>();
   const calls: BodyCall[] = [];
   const addressTaken: string[] = [];
   const functionAddressTaken: string[] = [];
+  const indirectCalls: IndirectCall[] = [];
   for (const block of blocks)
     for (const operation of block.operations) {
       const result = "result" in operation ? operation.result : null;
@@ -425,6 +550,13 @@ function scannedBody(
         addressTaken.push(bindingIdentityKey(operation.place.root));
       if (operation.kind === "function-address")
         functionAddressTaken.push(bindingIdentityKey(operation.function));
+      if (operation.kind === "indirect-call" && operation.result !== null)
+        indirectCalls.push(
+          Object.freeze({
+            shape: callableShape(operation.signature.parameters, operation.signature.returnType),
+            result: operation.result,
+          }),
+        );
     }
   return {
     body: Object.freeze({
@@ -432,10 +564,12 @@ function scannedBody(
       blocks,
       definitions,
       parameters: Object.freeze(parameters.map(scannedParameter)),
+      shape,
     }),
     calls,
     addressTaken,
     functionAddressTaken,
+    indirectCalls,
   };
 }
 
@@ -451,15 +585,30 @@ export function scanProgram(
   globals: readonly SemanticGlobal[],
 ): ProgramWalk {
   const scanned = [
-    ...functions.map((fn) => scannedBody(bindingIdentityKey(fn.id), fn.blocks, fn.parameters)),
-    ...globals.map((global) => scannedBody(null, global.blocks, [])),
+    ...functions.map((fn) =>
+      scannedBody(
+        bindingIdentityKey(fn.id),
+        fn.blocks,
+        fn.parameters,
+        callableShape(fn.parameters, fn.result),
+      ),
+    ),
+    ...globals.map((global) => scannedBody(null, global.blocks, [], null)),
   ];
   const callSites = new Map<string, CallSite[]>();
+  const bodiesByOwner = new Map<string, ScannedBody>();
   const addressTaken = new Set<string>();
   const functionAddressTaken = new Set<string>();
+  const indirectResults = new Map<string, CallSite[]>();
   for (const entry of scanned) {
+    if (entry.body.owner !== null) bodiesByOwner.set(entry.body.owner, entry.body);
     for (const taken of entry.addressTaken) addressTaken.add(taken);
     for (const taken of entry.functionAddressTaken) functionAddressTaken.add(taken);
+    for (const call of entry.indirectCalls) {
+      const sites = indirectResults.get(call.shape) ?? [];
+      sites.push(Object.freeze({ body: entry.body, result: call.result }));
+      indirectResults.set(call.shape, sites);
+    }
     for (const call of entry.calls) {
       const sites = callSites.get(call.callee) ?? [];
       sites.push(Object.freeze({ body: entry.body, result: call.result }));
@@ -469,8 +618,10 @@ export function scanProgram(
   return Object.freeze({
     bodies: Object.freeze(scanned.map(({ body }) => body)),
     callSites,
+    bodiesByOwner,
     moduleObjects: new Set(globals.map((global) => bindingIdentityKey(global.id))),
     addressTaken,
     functionAddressTaken,
+    indirectResults,
   });
 }

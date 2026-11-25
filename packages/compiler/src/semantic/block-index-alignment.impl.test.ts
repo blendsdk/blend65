@@ -820,11 +820,11 @@ function main(): void {
     ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 9000 }] });
   });
 
-  // Handing the number to a function is ordinary composition, and this walk
-  // does not cross into the callee's parameters yet. Until it does, the honest
-  // answer is the one the proof gave before it measured extents at all — the
-  // whole object — rather than a conclusion that the chip receives nothing.
-  it("demands the whole object when the block number is passed to a function", () => {
+  // Handing the number to a function is ordinary composition, and the proof
+  // continues at the callee's parameter: a value passed as one argument is read
+  // where that parameter is read, which is the mirror of following a result
+  // back to the call site that receives it.
+  it("follows a block number into the parameter it was passed to", () => {
     expect(
       provedFor(
         `module Game;
@@ -833,14 +833,14 @@ function publish(block: byte): void { c64.vic.setSpritePointer(0, block); }
 function main(): void { publish(lo(&sheet / 64)); }`,
         "sheet",
       ),
-    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 9000 }] });
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
   });
 
-  // The shape that made this matter: one publication the walk follows exactly,
-  // and a second it cannot. Measuring only the first would move the object to
-  // where the first block is visible and leave the second in character ROM, so
-  // the unfollowed route widens the demand back over the whole object.
-  it("widens a measured demand when a second publication escapes the walk", () => {
+  // The shape that made this matter: one publication straight into the chip and
+  // a second through a helper. Both are measured, so the object only owes the
+  // two blocks the chip reads — and both of them, since satisfying the first
+  // says nothing about the second.
+  it("measures each publication separately when one crosses a call", () => {
     expect(
       provedFor(
         `module Game;
@@ -852,7 +852,135 @@ function main(): void {
 }`,
         "sheet",
       ),
-    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 8192 }] });
+    ).toEqual({
+      align: 64,
+      fetched: [
+        { offset: 0, bytes: 64 },
+        { offset: 4096, bytes: 64 },
+      ],
+    });
+  });
+
+  // The sprite index sits beside the block number in the same call, so entering
+  // the callee at the wrong parameter would prove something about a number that
+  // decides nothing about placement.
+  it("enters the callee at the argument position the number was passed in", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function publish(index: byte, block: byte): void { c64.vic.setSpritePointer(index, block); }
+function main(): void { publish(0, lo(&sheet / 64)); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+  });
+
+  // Arithmetic on the far side of the boundary names a block of this object just
+  // as it does on the near side, so the selector's displacement has to cross
+  // with it rather than restart.
+  it("carries a displacement applied inside the callee", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[2][64];
+function publish(block: byte): void { c64.vic.setSpritePointer(0, block + 1); }
+function main(): void { publish(lo(&sheet / 64)); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 64, bytes: 64 }] });
+  });
+
+  // A call made through an address names no function here, so the number is
+  // beyond this walk and the honest answer is the one the proof gave before it
+  // measured extents at all.
+  it("demands the whole object when the number is an indirect call's argument", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function publish(block: byte): void { c64.vic.setSpritePointer(0, block); }
+function main(): void { let p: fn(byte): void = &publish; p(lo(&sheet / 64)); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 9000 }] });
+  });
+
+  // An array parameter is a borrow of the caller's object, so writing the number
+  // through one puts it in storage whose reads are in a caller this walk is not
+  // standing in.
+  it("demands the whole object when the number is written through a borrow", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function fill(frames: byte[]): void { frames[0] = lo(&sheet / 64); }
+function main(): void { let frames: byte[2]; fill(frames); c64.vic.setSpritePointer(0, frames[0]); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 9000 }] });
+  });
+
+  // Once the holding object's address exists, it can be read through that
+  // address by an operation this walk does not recognize as a read, in a body it
+  // never visits.
+  it("demands the whole object when the number is held in an address-taken object", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function publish(frames: byte[]): void { c64.vic.setSpritePointer(0, frames[0]); }
+function main(): void { let frames: byte[2]; frames[0] = lo(&sheet / 64); publish(frames); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: [{ offset: 0, bytes: 9000 }] });
+  });
+
+  // A function whose address is taken can be reached by any call accepting its
+  // shape, and those calls are where its result arrives. Following them keeps
+  // the demand to the block the chip reads.
+  it("follows an address-taken function's result into a matching indirect call", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function blockOf(): byte { return lo(&sheet / 64); }
+function main(): void { let producer: fn(): byte = &blockOf; c64.vic.setSpritePointer(0, producer()); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
+  });
+
+  // The same shape with nothing publishing the number owes nothing. Giving up on
+  // the value here instead would state a demand no hardware asked for, and for
+  // an object this size that demand has no home at all.
+  it("states no demand when an address-taken function's result only reaches the processor", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function blockOf(): byte { return lo(&sheet / 64); }
+function main(): void { let producer: fn(): byte = &blockOf; poke($C000, producer()); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: null });
+  });
+
+  // Reassigning a scalar parameter writes the callee's own copy, not the
+  // caller's object, so those reads are all here and the demand stays narrow.
+  it("keeps a narrow demand when a scalar parameter is reassigned", () => {
+    expect(
+      provedFor(
+        `module Game;
+let sheet: byte[9000];
+function publish(block: byte): void {
+  block = lo(&sheet / 64);
+  c64.vic.setSpritePointer(0, block);
+}
+function main(): void { publish(0); }`,
+        "sheet",
+      ),
+    ).toEqual({ align: 64, fetched: FIRST_SPRITE_BLOCK });
   });
 
   // A module initializer is a body too, and the arithmetic in one proves the
