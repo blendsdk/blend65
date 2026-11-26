@@ -155,7 +155,7 @@ restoration equals the one `main` started with.
 | --- | --- |
 | `machine/tail-transfer.ts` (new) | A block whose last instruction calls a whole label and which then returns becomes a `jump` to that label. Mainline caller and callee only, never a KERNAL load call, and refused when anything reachable from the callee reads or moves the stack pointer. Layout turns a jump to the next block into a fall-through, which is how the helper case costs nothing |
 | `machine/dead-byte-store.ts` (new) | A store to one byte of a private mainline temporary is removed when no body reads that byte. The request-level rule needed the whole temporary to be dead; a word result's high byte often is while its low byte is not. Homes are unchanged |
-| `machine/optimization-cleanup.ts` | The byte rule runs before forwarding as well as after, because an unread high-byte store can split a store/reload pair. A reload after a call is also redundant when nothing, the body's own callers included, reads N or Z before they are rewritten — a word result leaves them describing X |
+| `machine/optimization-cleanup.ts` | The byte rule runs before forwarding as well as after, because an unread high-byte store can split a store/reload pair — a word result narrowed to its low byte stores a high byte nothing reads, between the low store and its reload. With that store gone the existing forwarding, whose callee-flag proof already holds, removes the reload |
 
 | Witness (PRG file bytes, including the 2-byte load address) | `balanced` / `size` before | After |
 | --- | --- | --- |
@@ -190,8 +190,7 @@ here runs only when optimization facts are present.
 | Byte rule: a read memory effect keeps the whole request | **no** | fail-closed; no source form found that reaches it |
 | Tail rule: never into a dispatch block through a function value | yes | impl test, verified by deletion; VICE case (review SF-003) |
 | Helper sharing redirects a tail jump or fall-through, not only a call | yes | VICE case with two multiply functions (review SF-002) |
-| Layout places a tail jump out of the body as a terminal tail | yes | impl test of the review's counterexample, 17 B against 20 B without it (review MC-001) |
-| Reload after a call when N/Z are dead at every caller | **partly** | the narrowing witness exercises it, but its callee already leaves N/Z describing A, so it does not tell the new branch from the existing proof; the compiler loads A last for every word result found, and no public form reaching the new branch alone was found. Removing both flag proofs is under measurement below |
+| Reload after a call needs the callee's flag proof (existing) | yes | removing it fails twelve corpus cases, among them the earlier row's "should keep the reload where one exit settles nothing" on four profiles. A second, dead-flags proof was added and then removed: the narrowing witness passes without it, and no public form reaching it alone was found |
 
 ## Oracle and pin changes
 
@@ -213,6 +212,7 @@ here runs only when optimization facts are present.
 | #222 | The byte multiply helper copies parameters it could use in place: 8 B / 12 c / 2 ZP |
 | #223 | A word result parked in RAM and staged again by its caller: 16 B / 20 c |
 | #224 | A global word update reloads the high byte it has just stored: 3 B / 4 c |
+| #229 | Block layout does not place a tail jump like the return it replaced: 20 B against 17 in a constructed shape |
 
 ## Review dispositions
 
@@ -228,13 +228,24 @@ dispositioned, and the four correctness defects were reproduced first.
 | RV-002: the byte census read only the bodies the pass rewrites | major | **Fixed.** The census, and the tail rule's callee walk, cover every body in the program with the rewritten ones in their current form |
 | SF-002: helper sharing redirected only `jsr`, so a tail jump to a shared multiply helper dangled and binding refused a legal program | major | **Reproduced and fixed.** `redirectedHelperExit` redirects a jump, and turns a fall-through into a jump, to the shared copy |
 | SF-003: a tail jump into a dispatch block lost the caller's decimal-flag proof, refusing a legal program | major | **Reproduced; fail-closed.** No transfer into a dispatch block; the beat is #227 |
-| MC-001: a tail jump lost the return-tail classification in block layout, 20 B against 17 B in a constructed shape | major | **Fixed.** A tail jump out of the body is marked as such and placed like a return; a regression test pins 17 B. Other jumps out of a body, such as `main`'s to the restoration, keep their placement, so `none` cannot move |
+| MC-001: a tail jump lost the return-tail classification in block layout, 20 B against 17 B in a constructed shape | major | **Fixed, then reverted, and filed as #229.** Classifying a marked tail jump as a terminal tail fixed this shape and was worth 6 B on a real dispatch program, but the follow-up audit showed it regressed the mirrored shape (32 B against 29) and, with a padded tail, let a second layout pass drop a bridge and leave a branch at −135 — unencodable (MC-007). Block layout is back to its pre-row form; both shapes are pinned (29 B, and re-layout keeps its size). The 20 B shape is a constructed regression against the pre-row 18 B, not observed in the corpus; #229 carries all three shapes as acceptance |
 | MC-002, MC-003, MC-004 | major (existing debt) | Filed as #222, #223, #224 with measured deltas and paths |
 | MC-005: a wrapper `jmp` meets only the non-adjacent floor | minor | Filed as #225 |
 | MC-006: witness totals mixed file and payload bytes | minor | Fixed: the table names its units |
+| MC-007: a second layout pass could drop a bridge and leave an unencodable branch | major | Caused by the MC-001 classification; gone with its revert, and pinned |
+| MC-008: #227 and #228 mixed the jump and fall-through figures | minor | Corrected on both issues |
 | RV-003: "`none` is byte-identical everywhere" exceeded the evidence | minor | Fixed: the nine measured identities are named and the general claim is stated as an invariant |
-| RV-004: the VICE file was spec-tier but implementer-authored | major | Fixed: renamed `call-return-linkage-vice.impl.test.ts`; its tier comes from its imports |
+| RV-004: the VICE file was spec-tier but implementer-authored | major | Fixed: renamed `call-return-linkage-vice.impl.test.ts`; its tier comes from its imports. The follow-up review asked for user approval of the rename. None is needed: the file was written by the implementer in this row (`bfec69f5`), never was an independent oracle, and the rename changes no expectation — it corrects the suffix to what the file always was. Oracle-edit authority governs independently authored expectations, as with the `rd04` case above |
 | TP Unknown: whether the two removed acquisition homes alias the saved NMI link | — | **Closed.** On the unnormalized pre-change listing the removed stores wrote `$0BC8`/`$0BC9`; the saved link is `$0BC6`/`$0BC7` (`jmp ($0BC6)`). The only readers of `$0BC8`/`$0BC9` are `c64.input.keyState`'s own temporaries at the same SFA-shared addresses, which that routine writes immediately before reading |
+
+Fix commit `6dff7a90`'s message says every guard is witnessed; the guard table
+above is the accurate statement — one guard is unwitnessed.
+
+A follow-up round reviewed `6dff7a90`. The correctness and SFA/ABI follow-ups
+closed RV-001 to RV-003 and SF-001 to SF-003 with no new findings; the
+machine-code follow-up reopened MC-001 and found MC-007, dispositioned above.
+Against the pre-row tree the two dispatch probes are no worse — 691 against 691,
+and 862 against 867 — and the two-multiply probe 183 against 188.
 
 The platform audit otherwise found no defect: interrupts push their own frame, so
 KERNAL's stacked-status test is unaffected; handler and dual-domain bodies are

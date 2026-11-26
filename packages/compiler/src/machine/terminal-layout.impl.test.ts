@@ -183,7 +183,7 @@ describe("effect-free terminal layout", () => {
   });
 });
 
-describe("a call in tail position as a terminal tail", () => {
+describe("a call in tail position among shared tails", () => {
   const cpu = selectedProfile().cpu;
   const branch = (target: string, fallthrough: string) => ({
     kind: "branch" as const,
@@ -193,24 +193,39 @@ describe("a call in tail position as a terminal tail", () => {
     uses: Object.freeze({ registers: Object.freeze([]), flags: Object.freeze(["z" as const]) }),
     cost: { bytes: 2, minCycles: 2, maxCycles: 4 },
   });
+  /** Each condition reads its own selector, so every path is reachable. */
+  const selector = () => [
+    machineInstruction(cpu, "lda", "absolute", { kind: "absolute", value: 0xc000 }),
+  ];
   /**
-   * Two conditions share the tail `T`, which ends the body through a call, and a
-   * second tail `F`. Placed with `T` treated as an exit, every branch reaches its
-   * arms without a bridge.
+   * Two conditions share the tail `T`, which leaves through a jump to another
+   * body, and the tail `F`, which `E` also reaches. `stores` pads `F` so a
+   * branch can be pushed out of range.
    */
-  const shape = (tail: MachineFunction["blocks"][number]): MachineFunction => ({
+  const shape = (stores: number): MachineFunction => ({
     id: "shape",
     blocks: [
-      { label: "E", instructions: [], terminator: branch("T", "P") },
-      { label: "P", instructions: [], terminator: branch("C2", "C1") },
-      { label: "C1", instructions: [], terminator: branch("T", "F") },
-      { label: "C2", instructions: [], terminator: branch("T", "F") },
-      tail,
+      { label: "E", instructions: selector(), terminator: branch("F", "P") },
+      { label: "P", instructions: selector(), terminator: branch("C2", "C1") },
+      { label: "C1", instructions: selector(), terminator: branch("T", "F") },
+      { label: "C2", instructions: selector(), terminator: branch("T", "F") },
+      {
+        label: "T",
+        instructions: [],
+        terminator: {
+          kind: "jump",
+          opcode: "jmp",
+          target: "child",
+          cost: { bytes: 3, minCycles: 3, maxCycles: 3 },
+        },
+      },
       {
         label: "F",
         instructions: [
           machineInstruction(cpu, "lda", "immediate", { kind: "immediate", value: 1 }),
-          machineInstruction(cpu, "sta", "absolute", { kind: "absolute", value: 0xc000 }),
+          ...Array.from({ length: stores }, () =>
+            machineInstruction(cpu, "sta", "absolute", { kind: "absolute", value: 0xc000 }),
+          ),
         ],
         terminator: { kind: "return" },
       },
@@ -222,34 +237,19 @@ describe("a call in tail position as a terminal tail", () => {
     return result;
   };
 
-  it("places a tail jump to another body as an exit, needing no bridge", () => {
-    const transferred = layout(
-      shape({
-        label: "T",
-        instructions: [],
-        terminator: {
-          kind: "jump",
-          opcode: "jmp",
-          target: "child",
-          cost: { bytes: 3, minCycles: 3, maxCycles: 3 },
-          tailTransfer: true,
-        },
-      }),
-    );
-    const called = layout(
-      shape({
-        label: "T",
-        instructions: [
-          machineInstruction(cpu, "jsr", "absolute", { kind: "label", label: "child" }),
-        ],
-        terminator: { kind: "return" },
-      }),
-    );
-    // Four branches (8), the tail jump (3) and F (6); the call form pays one more byte.
-    expect(transferred.byteLength).toBe(17);
-    expect(called.byteLength).toBe(18);
-    expect(transferred.function.blocks.map(({ label }) => label)).toEqual(
-      called.function.blocks.map(({ label }) => label),
-    );
+  it("places the predecessor of a shared tail before it, needing no bridge", () => {
+    // Four selector loads (12), four branches (8), the tail jump (3) and F (6).
+    expect(layout(shape(1)).byteLength).toBe(29);
+  });
+
+  it("keeps a repaired layout's size when it is laid out again", () => {
+    // Compaction lays a repaired function out again; dropping a bridge there
+    // would leave a branch it was built to keep in range.
+    const first = layout(shape(41));
+    expect(
+      first.function.blocks.some(({ terminator }) => terminator.kind === "long-branch"),
+      "the padded tail pushes a branch out of range",
+    ).toBe(true);
+    expect(layout(first.function).byteLength).toBe(first.byteLength);
   });
 });

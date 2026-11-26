@@ -448,16 +448,11 @@ function copyForward(
         // A call writes A and no flag of its own, so it can never be an adjacent
         // producer on its own terms. What it can carry is its callee's promise:
         // if every reachable return of that body leaves N and Z describing the
-        // byte it hands back, the caller's reload would only restate them. When
-        // it does not — a word result leaves N and Z describing X — the reload
-        // still restores the very byte the store wrote, so it is redundant
-        // whenever nothing, this body's own callers included, reads N or Z
-        // before they are rewritten.
+        // byte it hands back, the caller's reload would only restate them.
         const returnedProducer =
           register === "a" &&
           producer?.opcode === "jsr" &&
-          (returnSettlesFlags(byEntry, producer, fn) ||
-            flagsDead(reachable, block, index + 2, undefined, undefined, across));
+          returnSettlesFlags(byEntry, producer, fn);
         if (
           load === null ||
           load.requestId !== store.requestId ||

@@ -521,7 +521,6 @@ function redirectedHelperExit(
     opcode: "jmp" as const,
     target: shared,
     cost: machineCost(NMOS_6510, "jmp", "absolute"),
-    tailTransfer: true as const,
   });
 }
 

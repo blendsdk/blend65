@@ -179,7 +179,6 @@ export function tailTransfer(
           opcode: "jmp" as const,
           target,
           cost: jump,
-          tailTransfer: true as const,
         }),
       });
     });

@@ -198,25 +198,9 @@ function orderBlocks(fn: MachineFunction): MachineFunction | null {
     if (remaining.has(label) && !pending.includes(label)) pending.push(label);
     return true;
   };
-  /**
-   * A block that leaves the body: a return, or the jump that replaced a call in
-   * tail position and goes to another body. Neither continues inside this body,
-   * so both are placed by the same rules. Other jumps out of the body keep their
-   * existing placement, and a tail jump to a block of this body is followed like
-   * any other jump.
-   */
-  const terminalTail = (label: string): boolean => {
-    const terminator = byLabel.get(label)?.terminator;
-    return (
-      terminator?.kind === "return" ||
-      (terminator?.kind === "jump" &&
-        terminator.tailTransfer === true &&
-        !byLabel.has(terminator.target))
-    );
-  };
   /** A still-unplaced conditional predecessor should precede its shared return tail. */
   const sharedReturn = (label: string): boolean =>
-    terminalTail(label) &&
+    byLabel.get(label)?.terminator.kind === "return" &&
     [...remaining].some((pendingLabel) => {
       const terminator = byLabel.get(pendingLabel)!.terminator;
       return (
@@ -257,7 +241,9 @@ function orderBlocks(fn: MachineFunction): MachineFunction | null {
       // A successor which also reaches the other arm must precede that shared
       // continuation. Otherwise nested conditions need a bridge back to a label
       // already placed. Inversion keeps exactly the same condition and effects.
-      const bothReturn = terminalTail(target) && terminalTail(fallthrough);
+      const bothReturn =
+        byLabel.get(target)!.terminator.kind === "return" &&
+        byLabel.get(fallthrough)!.terminator.kind === "return";
       const targetShared = bothReturn && sharedReturn(target);
       const fallthroughShared = bothReturn && sharedReturn(fallthrough);
       const targetFirst =
