@@ -5,8 +5,8 @@
 > [#122](https://github.com/blendsdk/blend65/issues/122),
 > [#125](https://github.com/blendsdk/blend65/issues/125) · **Type**: Task
 > **CodeOps Artifact Schema**: 1
-> **Status**: In progress — delivered, reviewed, host-verified; the complete gate remains
-> **Progress**: 8/9 tasks
+> **Status**: Complete and verified — the complete gate's two failures are pre-existing flakes
+> **Progress**: 9/9 tasks
 > **Last Updated**: 2026-11-26
 
 ## Tasks
@@ -21,7 +21,7 @@
 | 6 | Behaviour oracle in VICE with discriminating inputs | Done |
 | 7 | Implementation witnesses for the guards the public oracle cannot express | Done — three, one verified by mutation; three guards unwitnessed and itemised; a fourth witnessed after review |
 | 8 | Independent reviews and dispositions | Done — three reviews, eight findings, all dispositioned |
-| 9 | Complete gate and closeout | Pending |
+| 9 | Complete gate and closeout | Done |
 
 ## The witnesses, measured
 
@@ -190,7 +190,8 @@ rather than counted as specification-first.
 | Fast tier | compiler 190 / 3,108, root 48 / 1,357 |
 | Integration tier | 237 / 4,876 before the oracles were added |
 | Host checkpoint `yarn test` | compiler 270 / 4,601 + 2 skipped; root **288 / 6,255** |
-| Complete gate `yarn test:full` | pending |
+| Complete gate `yarn test:full`, first run | host tier green; VICE tier 9 failed — eight deterministic `input-byte-selection` cases (this row's, fixed in `dc537382`, see above) and the #191 flake |
+| Complete gate `yarn test:full`, on `dc537382` | install, build, typecheck clean; identities as above; host **288 / 6,256**, compiler 270 / 4,601; VICE tier **2,441 passed, 2 failed**, both pre-existing flakes: #191 (collision latch, 8580) and the #213 race on its Timer A sibling (resumed PC `$EA8E`), which passed 2/2 on re-run. Evidence added to both issues |
 
 ## Residuals, all filed
 
@@ -204,3 +205,15 @@ rather than counted as specification-first.
 | #219 | The plain construction stages updates of narrowable counters |
 | #220 | A word compared against a power of two still subtracts |
 | #221 | A cached complement and an absolute-indexed store cannot both be selected |
+
+### Deferral expiry
+
+Did this row's deliverables expire any deferral's stated rationale? One, partly.
+The bounded word view had been held to returned-local and aggregate-parameter
+roots since it was added for one input; nothing recorded a hazard behind that
+scope, and this row removes it for ordinary byte elements. Its remaining
+scope — word elements and scaled ordinals — now has an owner, #218, rather than
+an unstated limit. No expressiveness-ledger row changes: every form this row
+touches already compiled. The one source form found that does not compile, a
+read-modify-write of a global in an NMI handler, is not in the ledger and is
+filed as #214 with the recommendation that a ledger row accompany its fix.
