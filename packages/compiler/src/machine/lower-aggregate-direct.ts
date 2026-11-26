@@ -232,15 +232,21 @@ export function directAggregateAccess(
    * then indexes by zero, so a store's discarded read lands on the element
    * itself. `absolute-y` forms the low address byte first, so on a crossing its
    * discarded read lands one page below the element, and a load pays one extra
-   * cycle. That read is harmless on RAM or ROM and could matter only on a
-   * device register, which is why the final observer computes every access
-   * envelope, discarded reads included, and refuses the construction unless all
-   * of it is ordinary RAM.
+   * cycle. That read can never reach a device register, by construction. The
+   * operand is the object's own label plus a non-negative offset inside it, and
+   * the CPU keeps the operand's high byte for the discarded read, so it lands in
+   * the page holding that byte of the object. Device space is whole pages and no
+   * object may be placed in it, so that page is ordinary memory. When a
+   * transformed construction is selected, the final observer also checks every
+   * access envelope, discarded reads included; that is a second check, not the
+   * guarantee, because a build whose transformations are all refused ships the
+   * reference without it.
    *
    * Held to a unit stride and a one-byte element, which is the shape measured;
-   * a scaled ordinal and a two-byte element keep the pointer for now. Only the
-   * optimized candidate selects it: canonical direct lowering is the reference
-   * a build is measured against, so improving it would move the baseline.
+   * a scaled ordinal and a two-byte element keep the pointer for now. Only an
+   * optimizing build selects it, in its reference and its candidates alike:
+   * `none` is the baseline every build is measured against, so improving it
+   * would move that baseline.
    *
    * The ordinal must also be a plain read of a variable, and where a
    * fixed-loop construction could narrow that variable the view is taken only

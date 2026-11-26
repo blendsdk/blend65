@@ -94,7 +94,7 @@ nested witness's two counter updates stay staged. Filed as #219.
 | Guard | Witnessed | How |
 | --- | --- | --- |
 | #120: index root not narrowable, or `original` construction | yes | integration tier: removing it fails the saved-input frontier and row 6's oracle |
-| #120: the plain construction stands down where a complement could be cached | yes | `input-byte-selection.spec.test.ts` (VICE, four profiles): without it the plain construction wins with two complements |
+| #120: the plain construction stands down where a complement could be cached | yes | `input-byte-selection.spec.test.ts` (VICE, four profiles): without it the plain construction wins with two complements — **fail-open**: absent complement facts count as none, so the plain construction would take the view; no fixture reaches that. Making it fail closed is the first change under #221 |
 | #120: unit stride and one-byte element | **no** | scope; the excluded shapes are #218 |
 | #120: index origin known | **no** | fail-closed; no fixture reaches an unknown origin with a bounded maximum |
 | #121: same request and offset | yes | public oracle, different-variable control |
@@ -122,7 +122,7 @@ body is refused by the compiler on both trees — which is itself a defect, #214
 
 | Finding | Severity | Disposition |
 | --- | --- | --- |
-| RV-001 / MC-003: the page-crossing comment was wrong — the pointer form's discarded store read is the element itself, absolute-Y's is one page below | minor | Fixed. The comment now states the difference and the real safeguard: the final observer refuses any access envelope, discarded reads included, that is not ordinary RAM. A VICE case writes an array straddling `$3400` and checks both neighbours |
+| RV-001 / MC-003: the page-crossing comment was wrong — the pointer form's discarded store read is the element itself, absolute-Y's is one page below | minor | Fixed. The comment now states the difference and the guarantee, which is structural: the operand is the object's label plus a non-negative in-object offset, the discarded read keeps that operand's high byte, so it lands in a page the object occupies, and device space is whole pages holding no object. A first correction named the final observer as the safeguard; that was wrong for one path — an optimizing build's reference also takes the view (its loop facts are always present, possibly empty), and when every transformed construction is refused the reference ships without the footprint check. The observer is a second check on selected transformations only. A VICE case writes an array straddling `$3400` and checks both neighbours |
 | RV-002: moved exports undocumented, one doc comment stranded | minor | Fixed |
 | RV-003: oracle authored after implementation | major (process) | Recorded below as a deviation; not rewritten |
 | MC-001: word `< 8` guard pays a full subtraction | minor | Pre-existing; filed #220 (2 B / 2 c per test) |
@@ -181,6 +181,27 @@ author's first-draft cases failed on the new tree and were corrected for
 defects in the oracle, never by moving an expectation. Recorded as a deviation
 rather than counted as specification-first.
 
+## Disclosures
+
+- **Review coverage.** The correctness, machine-code and SFA/ABI reviews
+  covered `cdfdc2f7` with the oracles of `6b109a1d`. Not independently
+  reviewed: the complement stand-down (`dc537382`), the interrupt-gate witness
+  and page-crossing case (`d470439a`), the corrected page-crossing comment, and
+  the oracle correction for #216's cheaper form. Each is covered by the gates
+  recorded below.
+- **Behaviour oracle authorship.** `word-views-direct-indexing-vice.spec.test.ts`
+  was written by the implementer, not the implementation-blind author; it is
+  supporting evidence, not an independent oracle.
+- **Which reference the windows are measured against.** Every before/after
+  figure is the shipped build on the pre-change tree `9f1d24b1` against the
+  shipped build after this row, at the stated mode. An optimizing build's own
+  reference takes the bounded view too; only `none` is untouched.
+- **Meet, and its path to beat.** #120's 9 B / 13 c and #121's 7 B / 11 c meet
+  the expert window and do not beat it. The beat is a counter resident in Y,
+  which removes the `ldy` from every store: #53 owns register-resident
+  counters, and #219 owns the narrowing that #120's word counter needs before
+  #53 can apply to it.
+
 ## Verification
 
 | Gate | Result |
@@ -199,7 +220,7 @@ rather than counted as specification-first.
 | --- | --- |
 | #214 | An NMI handler cannot increment a byte global — E10245 on both routes |
 | #215 | Word forwarding never runs in a program that installs an NMI handler (route-projected blocks) |
-| #216 | The range-proved 6-byte counter step |
+| #216 | The range-proved counter step, `inc lo / bne header`, 5 B |
 | #217 | `INC` for a module word when nothing observes A, flags or the bus |
 | #218 | Word-element and scaled bounded indexing, 52 → 17 B |
 | #219 | The plain construction stages updates of narrowable counters |
