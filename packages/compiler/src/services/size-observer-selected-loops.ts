@@ -1,6 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { validFixedLoopFacts } from "../semantic/aggregate-place-proof.js";
 import { potentialValueInputs } from "../semantic/value-lifetimes.js";
+import { asynchronousWritersPossible } from "../machine/fixed-loop-selection.js";
 import { failure } from "./size-observer-raw-layout.js";
 import { view, side, physical, siteKey } from "./size-observer-selected-loop-layout.js";
 import { continuations } from "./size-observer-selected-loop-continuations.js";
@@ -391,11 +392,7 @@ function eligible(input: FinalObserverInput, proof: FixedCounterProof): boolean 
  */
 function synchronous(input: FinalObserverInput, indexed = false): boolean {
   const program = input.checked.program;
-  if (
-    (program.interruptRoutes?.length ?? 0) > 0 ||
-    program.roots.some(({ kind }) => kind === "callable" || kind === "interrupt")
-  )
-    return false;
+  if (asynchronousWritersPossible(program)) return false;
   const reached = new Set(program.reachableFunctions.map(bindingIdentityKey));
   for (const body of [
     ...program.semantic.functions.filter(({ id }) => reached.has(bindingIdentityKey(id))),

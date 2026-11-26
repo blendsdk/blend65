@@ -48,19 +48,27 @@ function rewritesAccumulator(instructions: readonly MachineInstruction[]): boole
 }
 
 /**
- * Every emitted block belonging to one source block of the loop.
+ * The emitted blocks of one source block, or null when none is recorded.
  *
  * A source block can lower to more than one emitted block — a bounds guard or a
  * variable operation splits it — so asking about the block that carries the
  * source id would ask about only the first of them.
+ *
+ * The association is keyed by the stable source id rather than by object
+ * identity, because context specialization may copy a role block, and a copy
+ * would not be found by identity. A missing association is a refusal: inventing
+ * one from the source id would quietly reduce this walk to the single-block
+ * assumption it exists to remove, which is the unsound direction.
  */
 function emittedBlocks(
-  runtime: FixedLoopRuntime,
+  labelsBySource: ReadonlyMap<string, readonly string[]>,
   source: SemanticBlock,
   blocks: readonly MachineBlock[],
-): readonly MachineBlock[] {
-  const labels = new Set(runtime.sourceBlocks.get(source) ?? [source.id]);
-  return blocks.filter((block) => labels.has(block.label));
+): readonly MachineBlock[] | null {
+  const labels = labelsBySource.get(source.id);
+  if (labels === undefined) return null;
+  const named = new Set(labels);
+  return blocks.filter((block) => named.has(block.label));
 }
 
 /**
@@ -108,6 +116,9 @@ export function hoistFixedCounterInvariantLoads(
   runtime: FixedLoopRuntime,
 ): MachineFunction {
   if (runtime.counters.size === 0 || runtime.interruptObservers) return fn;
+  const labelsBySource = new Map(
+    [...runtime.sourceBlocks].map(([block, labels]) => [block.id, labels] as const),
+  );
   let blocks = fn.blocks;
   for (const counter of runtime.counters.values()) {
     const { loop, register } = counter;
@@ -139,19 +150,21 @@ export function hoistFixedCounterInvariantLoads(
     )
       continue;
     const [load, store] = body.instructions;
-    // Every emitted block of the test, the body and the update, not only the one
-    // block each source id names. Three source blocks must stay three emitted
-    // ones: a split would put code in the cycle that this walk has not seen.
-    const cycle = [loop.header, loop.body, loop.update].flatMap((source) =>
-      emittedBlocks(runtime, source, blocks),
+    // Each of the three roles must have lowered to exactly the one emitted block
+    // the role lookup already found. A role that split would put code in the
+    // cycle this walk has not seen, and counting the three together would let
+    // one role's extra block hide another role's missing one.
+    const roles = [header, body, update];
+    const emitted = [loop.header, loop.body, loop.update].map((source) =>
+      emittedBlocks(labelsBySource, source, blocks),
     );
-    const carried = cycle.flatMap((block) =>
+    if (emitted.some((found, index) => found?.length !== 1 || found[0] !== roles[index])) continue;
+    const carried = roles.flatMap((block) =>
       block === body ? block.instructions.slice(1) : block.instructions,
     );
     if (
       load === undefined ||
       store === undefined ||
-      cycle.length !== 3 ||
       !invariantLoad(load) ||
       store.opcode !== "sta" ||
       store.mode !== INDEXED_STORE_MODE[register] ||

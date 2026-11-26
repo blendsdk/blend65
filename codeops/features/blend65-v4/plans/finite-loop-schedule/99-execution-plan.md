@@ -3,7 +3,7 @@
 > **Owner**: [#119](https://github.com/blendsdk/blend65/issues/119) · **Type**: Task
 > **CodeOps Artifact Schema**: 1
 > **Status**: In progress — Gap B delivered, review findings being dispositioned, Gap A re-scoped to #209
-> **Progress**: 8/9 tasks; complete gates remain
+> **Progress**: 9/10 tasks; the complete gate remains
 > **Last Updated**: 2026-11-26
 
 ## Tasks
@@ -17,8 +17,9 @@
 | 5 | Public oracle authored independently, implementation-blind, with RED evidence | Done — `test/rd08/finite-loop-invariant-load.spec.test.ts`, 13 cases, 5 verified red against the reconstructed pre-change tree |
 | 6 | Implementation tests for the guards the public oracle cannot express | Done — five lowering guards and both observer guards witnessed; each observer witness verified by deleting the guard it pins |
 | 7 | Independent reviews round one | Done — emitted-code and correctness audits, 20 findings |
-| 8 | Disposition the review findings | Done — one confirmed lowering defect fixed, three oracle cases re-derived, behaviour oracle added, seven guard witnesses, four comments corrected, #212 filed |
-| 9 | Complete gates, closeout and issue evidence | Pending — host checkpoint running; `yarn test:full` not yet run, so the endpoint is not yet verified |
+| 8 | Disposition review round one | Done — one confirmed lowering defect fixed, three oracle cases re-derived, behaviour oracle added, seven guard witnesses, four comments corrected, #212 filed |
+| 9 | Disposition review round two | Done — the guard's own fix was mis-keyed and is re-keyed; the behaviour oracle ran the wrong construction and its check was vacuous, both fixed; the volatility reason measured (E10273 refuses a named I/O global); thirteen orphaned imports dropped; the asynchronous-write predicate shared instead of duplicated; eleven unwitnessed conjuncts itemised |
+| 10 | Complete gates and closeout | Pending — `yarn test:full` is the remaining gate |
 
 ## Both gaps reproduce exactly
 
@@ -222,38 +223,69 @@ like it still hoisted. The filter used to read it stripped the block labels, so
 block below the `ldx`. Confirming it meant re-reading the same output with the
 labels left in.
 
-### The volatile guard is pinned, and a single mutation says it is not
+### The volatility condition has no witness, and the reason is not the one first given
 
-The lowering guard has three conditions a public build can reach, and all three
-are pinned at the lowering level by
-`machine/fixed-counter-invariant-load.impl.test.ts`: a four-trip fill hoists, a
-one-trip fill does not, and a `peek($D012)` right-hand side does not.
+The record first called the operand and volatility conditions "redundant
+alternatives", then "two independently motivated conditions that coincide on the
+only available witness". Both were guesses about why. The measured reason:
 
-That third case nearly got recorded as unpinned. Removing the volatility
-condition alone leaves the test green; so does widening the operand condition
-alone. Removing **both** hoists the hardware read out of the loop, and the test
-fails. They are redundant alternatives rather than one dead clause: a hardware
-read reaches its address as a literal today, so the operand test already excludes
-it, but a named hardware register would pass that test and still be unmovable, so
-the access has to be asked about as well.
+A hardware read reaches its address as an absolute literal, so the **operand**
+condition already refuses it — which the mutation evidence shows, since removing
+volatility alone leaves the case green and removing both hoists the read. The
+volatility condition is what would refuse a *named* hardware register, and no
+such thing can exist: `place(at: $D012) let raster: byte;` is **refused** with
+E10273, because explicit placement over the I/O window conflicts with the profile.
+So MMIO is reachable only through a raw access, whose operand is a literal.
 
-The method note is that a mutation which fails nothing can mean the rule is
-untested or that a sibling rule covers the same case. Only mutating the pair
-apart tells the two situations apart, and the first reading here was the wrong
-one.
+The condition therefore has no input to inspect for the class it is written to
+catch, and both the operand rule and the placement diagnostic would have to
+change before it became load-bearing. It stays, because it is the condition that
+states the actual hazard rather than a proxy for it, and the code says so beside
+it. Recorded as unwitnessed with that reason, not as covered.
 
-### Disclosure: one guard has no output witness
+### Disclosure: the multi-block cycle walk is unwitnessed
 
-The lowering guard refuses to hoist when the program installs an interrupt route
-or exposes a callable or interrupt root. That condition is **not observable in the
-output**, because `synchronous` already rejects the whole candidate for any such
-program, so the fallback is identical with or without the guard.
+The fix for the cycle defect walks every emitted block of all three roles rather
+than the one block each source id names, because a bounds guard or a variable
+operation can split one source block into several. **Nothing witnesses that
+part.** Reducing the walk back to one block per source id — measured — leaves the
+implementation tests, the observer tests and all thirteen oracle cases green.
 
-It is kept deliberately. A lowering that emits an unsound construction and relies
-on a later gate to reject it is sound only by accident, and the accident is one
-relaxation of `synchronous` away from being a miscompile. Its witness belongs in
-an implementation test, which can observe the lowering decision directly; the
-public oracle cannot express it.
+What refuses the defect that prompted the fix is the sibling condition beside it,
+that the loop's member set is exactly the body and the update. The walk is
+defensive hardening on top, and a witness for it needs a role block that both
+splits and is otherwise hoistable, which no fixture produces.
+
+Its first form was also wrong in the unsound direction: it looked the association
+up by object identity, where context specialization may copy a role block, and a
+missing entry was replaced with a synthesised single label — quietly restoring
+the assumption the walk exists to remove. It is now keyed by the stable source
+id, refuses a missing association, and requires each role to be exactly the one
+block the role lookup already found.
+
+### What is pinned, and what is not
+
+Conjunct by conjunct, where "witnessed" means a case fails when the conjunct is
+deleted:
+
+| Conjunct | Witnessed |
+| --- | --- |
+| no asynchronous writer possible | yes, at the lowering level |
+| at least two proved trips | yes, by the single-trip case and by the behaviour oracle |
+| the cycle is exactly the body and the update | yes, by the inner-loop case |
+| the load's operand is a name or an immediate | yes, by the hardware-read case |
+| the load's accesses are non-volatile | **no** — see above |
+| the hoisted load is the body's own | yes, verified by deleting the guard |
+| the hoisted load carries no observation | yes, verified by deleting the guard |
+| the multi-block cycle walk | **no** — see above |
+| the body is exactly two instructions; the store's opcode and mode; the carried accumulator walk; the appended-load terminator; the predecessor closure | **no** |
+| the observer's `storeAlone` agreement, source span, memory and iteration checks | **no** |
+| the observer's relocated position query | **cannot fail**, by construction |
+
+Eleven conjuncts have no witness, five of them added by the fix for an
+unwitnessed-guard finding. That is the largest thing this record had not
+admitted, and it is admitted here rather than counted as coverage.
+
 
 ### The Y register is proved, but never as selected output
 
@@ -393,41 +425,40 @@ and three of thirteen cases demonstrably were:
 | the reload is kept for a computed right-hand side | `value + 1` is loop-invariant too; `value` is never written in the loop. The expert form hoists `lda value / clc / adc #1`. The case pins the current scope limit as though it were a requirement. |
 | a single-trip fill is byte-identical | Pins `programBytes`, artifact length and an exact digest for the bound-1 build — **precisely the artifact #209 exists to change**, from 13 work bytes to 6. The oracle was written as if the open half of the same issue would never land. |
 
-All three are being re-derived from the requirement before the file hardens. The
+All three were re-derived from the requirement before the file hardened. The
 record's earlier framing — that reconstructing RED settled the authorship
 question — covered half the debt.
 
-### The behaviour oracle, and what it can and cannot show
+### The behaviour oracle, twice wrong before it tested anything
 
-`test/rd08/finite-loop-invariant-load-vice.spec.test.ts` runs an eight-element
-fill on a real emulator and reads the result back. The value is written into the
-global at run time, different from its declared value, so a byte captured too
-early shows up; the array is fenced on both sides, so a store one element short
-or one too far overwrites a checked byte. It passes: all eight elements hold the
-run-time value and both fences are untouched.
+Both audits found there was none. The first attempt had two defects, and only the
+second round of review caught either.
 
-**It cannot be made to fail by mutating the hoist.** Breaking the transformation
-so it drops the load instead of moving it was expected to corrupt the fill;
-instead the observer refuses the resulting construction and the program falls
-back to the generic word-counter form, which is correct, so the case passes. The
-same happens for every unsound hoist available to inject.
+**It ran the wrong construction.** Its fixture stored through `cells[i + 1]`, a
+derived ordinal, and declared a `prepare` function — both of which cost the
+program its eligibility, so the emitted routine was the generic word-counter
+form. The oracle filled an array correctly while testing a routine this work
+never touched. The fixture is now the exact admitted shape: guards placed rather
+than written, so the fill's store is the only indexed store anywhere, and the
+stored value set in `main` before the call so an early capture would show.
 
-That is a real property of the layered design worth stating — an unsound lowering
-decision costs the candidate rather than the program — and it is equally a limit
-on this oracle. It is a non-regression check on the behaviour contract, not a
-discriminator for this transformation, and the record says so rather than
-counting it as proof the hoist is right. What proves that remains the emitted
-shape, the cycle figures, and the guards' own rejection witnesses.
+**Its construction check was vacuous.** Asserting the instruction sequence
+`ldx, lda, sta, inx, cpx, bcc, rts` looked like it pinned the hoisted form. It
+does not: hoisting the load reorders nothing, it only changes which block the
+load sits in, so that sequence is identical either way. The check now reads the
+block the closing branch jumps back to — which begins with the store once the
+load is hoisted and with the load while it is not — and disabling the hoist makes
+the case fail.
 
-### There is no behaviour oracle (closed)
+So the oracle now shows two things: the hoisted construction is the one that
+executed, and after it every element holds the value the global held at run time
+with both guards untouched.
 
-Both audits found this independently, and it is the project's own two-expectation
-contract: an optimization needs a behaviour oracle derived from language, CPU and
-platform semantics **and** an assembly-and-cost expectation. Only the second
-exists. Nothing anywhere executes an invariant fill of two or more trips and
-reads the filled bytes back; the nearest existing cases store `byte(i)`, which
-varies per trip and never reaches this shape. Running the emulator tier does not
-fix it, because the tier contains nothing of this shape to run.
+One limit stands. It still **cannot be made to fail by mutating the hoist
+unsoundly**: breaking the transformation so it drops the load makes the observer
+refuse the construction, and the program falls back to the generic form, which is
+correct. That is a real property of the layered design and equally a limit here.
+
 
 ### Task 6 was marked Done and is not
 
@@ -439,28 +470,15 @@ claimed completion. Two further new guards — the hoisted load's identity check
 and the relocated accumulator obligation — have no rejection witness either, so
 deleting either would leave the suite green.
 
-### The volatility clause: right conclusion, wrong reason
-
-The record said the operand and volatility conditions are "redundant
-alternatives". They are not. They are **two independently motivated necessary
-conditions that happen to coincide on the single available witness**: the operand
-condition is load-bearing for the observer's own template, and the volatility
-condition is forward-looking defence that is currently unreachable, because a
-hardware read reaches its address as a literal rather than through a name. So the
-mutation note needs a third case beside "untested" and "covered by a sibling":
-two conditions that exclude different classes and overlap on the only witness
-available. Keeping both remains correct; the test comment claiming the volatility
-clause as the witness is wrong and is being corrected.
-
 ### Smaller corrections
 
 | Finding | Disposition |
 | --- | --- |
 | The oracle's cycle figures are placement-dependent, and its comment says they are safe because the routines are short — a non-sequitur, since taken-branch cost depends on placement, not length | Measured: the three loop labels sit at low bytes `$42`, `$48` and `$48`, so the figures hold today. The rationale is being corrected and the dependence recorded |
 | "`programBytes` is unchanged in every witness" is asserted nowhere; the witnesses pin routine bytes, a different quantity | Measured separately at 100, 106 and 106, unchanged. Recorded as measured rather than asserted |
-| The lowering guard does not require the loop's member set to be exactly body and update, so a loop with an extra in-cycle block writing the accumulator would be hoisted over | Unreachable today through any shipped path, but it contradicts this plan's own claim that the guard stands alone. Being fixed |
+| The lowering guard does not require the loop's member set to be exactly body and update, so a loop with an extra in-cycle block writing the accumulator would be hoisted over | **A real defect, not a hypothetical.** Driven through the lowering fixture it fired, and the store would have written whatever the inner loop left in the accumulator. Fixed and witnessed |
 | The debug-scaffolding residual inventoried two sites in one file | There are **five in four files**, three of them with no offset condition at all and so reachable by one environment variable. #211 widened |
-| A mutation helper silently no-ops on an out-of-range ordinal — the exact mechanism behind the six vacuous passes | Being hardened, since correcting the index left the mechanism in place |
+| A mutation helper silently no-ops on an out-of-range ordinal — the exact mechanism behind the six vacuous passes | Hardened, since correcting the index left the mechanism in place |
 
 ## Verification
 
@@ -470,12 +488,12 @@ clause as the witness is wrong and is being corrected.
 | Host checkpoint | **285 files / 6,233 tests**, green, zero failures |
 | Compiler package suite | **270 files / 4,601 tests** + 2 skipped, green |
 | Public oracle | **13 cases**; five verified red against the reconstructed pre-change tree |
-| Behaviour oracle | **1 emulator case**, green; fill and both fences read back |
+| Behaviour oracle | **1 emulator case**, green; it confirms the hoisted construction executed, then reads the fill and both guards back. Disabling the hoist fails it |
 | Affected VICE journeys | **89/89** — this fill, ordinal stores, the byte classifier, four forwarding suites, the boing-ball contract |
 | Nine canonical byte identities | **unchanged** |
 | `programBytes` for the three witnesses | **100 / 106 / 106**, unchanged (measured, not asserted) |
 | Single-trip artifact | **126 bytes / 128 / `fdc85ed2`**, unchanged |
-| Guard witnesses | 5 lowering, 2 observer; both observer witnesses verified by deleting the guard they pin |
+| Guard witnesses | 4 lowering refusals, 1 lowering acceptance, 2 observer; both observer witnesses verified by deleting the guard they pin. **Eleven conjuncts have no witness** and are itemised above |
 
 What the scorecard does **not** say: that the output is at parity. It is not —
 see the descending counter, filed as #212.

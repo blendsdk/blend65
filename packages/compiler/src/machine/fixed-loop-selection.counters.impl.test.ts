@@ -1,27 +1,10 @@
-import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { analyzeProject } from "../frontend/service.js";
-import { bindingIdentityKey } from "../frontend/semantic-types.js";
-import type { ProjectSnapshot } from "../project/types.js";
 import { validFixedLoopFacts } from "../semantic/aggregate-place-proof.js";
-import { deriveClosedObjectFacts } from "../semantic/closed-object-facts.js";
-import {
-  collectSourceLoopNesting,
-  deriveFixedLoopFacts,
-  fixedLoopValueBounds,
-} from "../semantic/fixed-loop-facts.js";
-import { deriveLocalStorageLifetimes } from "../semantic/local-storage-lifetimes.js";
-import { buildSemanticProgram } from "../semantic/lower.js";
-import { closeWholeProgram } from "../semantic/whole-program.js";
-import { allocateStorage } from "../storage/allocate.js";
-import { buildInterference } from "../storage/interference.js";
 import { inventoryStorage } from "../storage/inventory.js";
 import { closeStorage } from "../storage/closure.js";
 import { closeSharedStorage } from "../services/shared-storage.js";
-import { selectTargetProfile } from "../target/profile.js";
 import { lowerMachineProgram } from "./lower.js";
 import { bindFixedLoopContext, prepareFixedLoops } from "./fixed-loop-selection.js";
-import type { FixedLoopPolicy } from "./machine-types.js";
 import { prepareFixedLoopFixture } from "./fixed-loop-test-support.js";
 
 const declarations = `module Game;place(at:$3400)let answers:byte[8]=[;0];`;
