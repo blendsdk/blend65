@@ -1,7 +1,10 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { selectAnonymousComparisonValues } from "./sprite-publication-proof.js";
 import { selectAnonymousByteWriteValues } from "./byte-write-forwarding.js";
-import { selectForwardedWordAssignments } from "./word-assignment-forwarding.js";
+import {
+  narrowableCounters,
+  selectForwardedWordAssignments,
+} from "./word-assignment-forwarding.js";
 import { lowerWordUnitStep, wordUnitStepHome } from "./lower-word-unit-step.js";
 import { valueDefinitions } from "../semantic/aggregate-place-proof.js";
 import type { BindingId } from "../frontend/semantic-types.js";
@@ -533,6 +536,7 @@ export function lowerFunction(
       // selection runtime: the runtime only exposes them once a narrowing policy is chosen, and
       // the exclusion has to hold in every pass, including the ones that choose nothing.
       new Set((sourceFacts?.loops ?? []).map((loop) => bindingIdentityKey(loop.counter))),
+      narrowableCounters(input, sourceFunction, sourceFacts?.loops),
     ),
     forwardedWordResults: new Set<string>(),
     byteOrdinalAdditions,

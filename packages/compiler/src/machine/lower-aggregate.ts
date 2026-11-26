@@ -1,17 +1,11 @@
-import { bindingIdentityKey, type SemanticType } from "../frontend/semantic-types.js";
-import type { SemanticOperation, SemanticPlace } from "../semantic/operations.js";
-import type { SourceSpan } from "../project/types.js";
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import type { SemanticOperation } from "../semantic/operations.js";
 import type { FixedLoopFacts } from "../semantic/fixed-loop-facts.js";
 import { declaredStorage } from "../storage/selection.js";
 import { potentialValueInputs } from "../semantic/value-lifetimes.js";
 import { selectedStoragePlace } from "../storage/selection.js";
-import {
-  machineInstruction,
-  modeForValue,
-  operandForValue,
-  type LoweredValue,
-} from "./lower-control.js";
-import type { MachineInstruction, MachineOperand, MachineObserverOrigin } from "./machine-types.js";
+import { machineInstruction, type LoweredValue } from "./lower-control.js";
+import type { MachineInstruction } from "./machine-types.js";
 import { aggregateAddressPlan, lowerAggregateAddress } from "./lower-aggregate-place.js";
 import {
   loweringFailure,
@@ -19,7 +13,6 @@ import {
   appendLoadA,
   isSignedType,
   isReturnedLocalPlace,
-  loadA,
   loweredPlace,
   requestStorage,
   storeA,
@@ -27,7 +20,18 @@ import {
   typeBytes,
 } from "./lower-state.js";
 
+import {
+  directAggregateAccess,
+  directIndexInstructions,
+  directIndexMaximum,
+  directMode,
+  directOperand,
+  observeTypedAccess,
+  storesItsOwnIndex,
+} from "./lower-aggregate-direct.js";
+
 export { lowerAggregateAddress } from "./lower-aggregate-place.js";
+export { canUseFixedCounterIndex } from "./lower-aggregate-direct.js";
 export { derivedIndicesAreInBounds } from "../semantic/aggregate-place-proof.js";
 
 /**
@@ -53,285 +57,6 @@ export function bodyValuesStayLocal(loop: FixedLoopFacts, values: ReadonlySet<st
       return false;
   }
   return true;
-}
-
-/** A compile-time byte offset or an unsigned byte ordinal that needs no pointer pair. */
-type DirectAggregateAccess =
-  | {
-      readonly kind: "fixed";
-      readonly root: Extract<LoweredValue, { readonly kind: "storage" | "label" }>;
-      readonly offset: number;
-    }
-  | {
-      readonly kind: "indexed";
-      readonly root: Extract<LoweredValue, { readonly kind: "storage" | "label" }>;
-      readonly index: LoweredValue;
-      readonly offset: number;
-      readonly stride: number;
-      /** A proved held counter needs no Y setup and may index through X. */
-      readonly register?: "x" | "y";
-    };
-
-/** Retain the actual typed construction without inventing a numeric pointer or widening its bound. */
-/** Prove the scaled byte index of one direct indexed access from existing ordinal bounds. */
-function directIndexMaximum(
-  operation: Extract<SemanticOperation, { readonly kind: "load" | "store" }>,
-  direct: DirectAggregateAccess | null,
-  state: FunctionLoweringState,
-): number | undefined {
-  if (direct?.kind !== "indexed" || state.ordinalBounds === undefined || direct.stride < 1)
-    return undefined;
-  const values = operation.place.path.flatMap((path) =>
-    path.kind === "index" ? [path.value] : [],
-  );
-  if (values.length !== 1) return undefined;
-  const maximum = state.ordinalBounds.get(values[0]!);
-  if (maximum === undefined || maximum < 0n) return undefined;
-  const scaled = maximum * BigInt(direct.stride);
-  return scaled <= 0xffn ? Number(scaled) : undefined;
-}
-
-function observeTypedAccess(
-  instruction: MachineInstruction,
-  operation: Extract<SemanticOperation, { readonly kind: "load" | "store" }>,
-  state: FunctionLoweringState,
-  byte: number,
-  direct: DirectAggregateAccess | null,
-  displacement = 0,
-  indexValueMaximum?: number,
-): MachineInstruction {
-  if (!state.input.observerEvidence) return instruction;
-  const origin: MachineObserverOrigin = {
-    kind: "typed",
-    operation,
-    position: byte,
-    byte,
-    length: typeBytes(operation.type),
-    recipe:
-      direct === null
-        ? "typed-indirect"
-        : direct.kind === "indexed"
-          ? "typed-indexed"
-          : "typed-fixed",
-    place: selectedStoragePlace(operation.place, state.sourceFacts?.storage),
-    indexRegister:
-      direct?.kind === "indexed" ? (direct.register ?? "y") : direct === null ? "y" : null,
-    displacement: direct?.offset ?? displacement,
-    stride: direct?.kind === "indexed" ? direct.stride : 0,
-    ...(state.ordinalBounds === undefined ? {} : { indexBounds: state.ordinalBounds }),
-    ...(indexValueMaximum === undefined ? {} : { indexValueMaximum }),
-  };
-  return Object.freeze({ ...instruction, observerOrigins: Object.freeze([Object.freeze(origin)]) });
-}
-
-/** Retain a relocation or certified home while adding a compile-time packed offset. */
-function directOperand(access: DirectAggregateAccess, byteOffset = 0): MachineOperand {
-  const offset = access.offset + (access.kind === "fixed" ? byteOffset : 0);
-  return access.root.kind === "storage"
-    ? Object.freeze({ kind: "storage", requestId: access.root.requestId, offset })
-    : Object.freeze({ kind: "label", label: access.root.label, offset });
-}
-
-/** Keep the physical mode consistent for every byte of one direct access. */
-function directMode(
-  access: DirectAggregateAccess,
-): "storage" | "zero-page" | "absolute" | "absolute-y" | "absolute-x" {
-  return access.kind === "indexed"
-    ? access.register === "x"
-      ? "absolute-x"
-      : "absolute-y"
-    : access.root.kind === "storage"
-      ? "storage"
-      : access.root.zeroPage
-        ? "zero-page"
-        : "absolute";
-}
-
-/** Keep simple static array accesses in the 6502's native absolute indexed mode. */
-function directAggregateAccess(
-  place: SemanticPlace,
-  type: SemanticType,
-  state: FunctionLoweringState,
-  source: SourceSpan,
-): DirectAggregateAccess | null {
-  if (
-    place.rootType === undefined ||
-    (type.kind !== "scalar" && type.kind !== "enum") ||
-    typeBytes(type) > 2
-  ) {
-    return null;
-  }
-  const root = loweredPlace(place, typeBytes(place.rootType), false, state);
-  if (root.kind !== "storage" && root.kind !== "label") return null;
-  // A pointer home names the address, not the object bytes. Returned-local
-  // members that resolve to the caller's direct global use the label path.
-  if (
-    root.kind === "storage" &&
-    (root.requestId.includes(":parameter:") || root.requestId.includes(":pointer:"))
-  )
-    return null;
-  const plan = aggregateAddressPlan(place, state, source);
-  if (plan.indices.length === 0) {
-    return Object.freeze({ kind: "fixed", root, offset: plan.staticOffset });
-  }
-  if (plan.indices.length !== 1) return null;
-  const term = plan.indices[0]!;
-  if (term.stride > 1 && (!state.input.boundsCheck || term.extent * term.stride > 256)) return null;
-  const retained = state.values.get(plan.indices[0]!.value);
-  const held = state.fixedLoops?.indexViews.get(term.value);
-  if (
-    held !== undefined &&
-    held.counter.register !== null &&
-    retained !== undefined &&
-    (held.consumer.kind === "load" || held.consumer.kind === "store") &&
-    held.consumer.place === place &&
-    term.stride === 1 &&
-    typeBytes(type) === 1
-  ) {
-    state.fixedLoops?.consumedIndices.add(term.value);
-    return Object.freeze({
-      kind: "indexed",
-      root,
-      index: retained,
-      offset: plan.staticOffset,
-      stride: 1,
-      register: held.counter.register,
-    });
-  }
-  const rootKey = state.loadOrigins.get(term.value);
-  const counter = rootKey === undefined ? undefined : state.fixedLoops?.counters.get(rootKey);
-  /**
-   * A bounded word ordinal can use its low byte directly. The loop certificate
-   * already proves the high byte is zero, so `absolute-y` addresses the same
-   * byte without materializing a 16-bit pointer.
-   */
-  const ordinalMaximum = state.ordinalBounds?.get(term.value);
-  const index =
-    retained?.kind === "zero-extended" && !retained.signed
-      ? retained.low.kind === "storage" && retained.low.bytes === 1 && retained.low.signed !== true
-        ? retained.low
-        : counter?.home === retained.low
-          ? retained.low
-          : retained
-      : root.kind === "label" &&
-          (isReturnedLocalPlace(place, state) ||
-            state.input.program.semantic.functions.some(
-              (fn) =>
-                bindingIdentityKey(fn.id) === bindingIdentityKey(state.owner) &&
-                fn.parameters.some(
-                  (parameter) =>
-                    bindingIdentityKey(parameter.id) === bindingIdentityKey(place.root) &&
-                    (parameter.type.kind === "array" || parameter.type.kind === "struct"),
-                ),
-            )) &&
-          retained?.kind === "storage" &&
-          retained.bytes === 2 &&
-          retained.signed !== true &&
-          ordinalMaximum !== undefined &&
-          ordinalMaximum >= 0n &&
-          ordinalMaximum < 256n
-        ? Object.freeze({ ...retained, bytes: 1 })
-        : retained;
-  if (index?.kind !== "storage" || index.bytes !== 1 || index.signed === true) {
-    return null;
-  }
-  return Object.freeze({
-    kind: "indexed",
-    root,
-    index,
-    offset: plan.staticOffset,
-    stride: term.stride,
-  });
-}
-
-/**
- * Scale a range-checked byte ordinal in A, then leave its packed byte offset in Y.
- * Each binary digit doubles the current value and optionally adds the original ordinal.
- * The caller admits this path only when the checked maximum offset fits one byte.
- */
-function directIndexInstructions(
-  access: Extract<DirectAggregateAccess, { readonly kind: "indexed" }>,
-  state: FunctionLoweringState,
-  source: SourceSpan,
-): readonly MachineInstruction[] {
-  const cpu = state.input.profile.cpu;
-  if (access.register !== undefined) return Object.freeze([]);
-  if (access.stride === 1) {
-    return Object.freeze([
-      machineInstruction(
-        cpu,
-        "ldy",
-        modeForValue(access.index),
-        operandForValue(access.index),
-        [],
-        source,
-      ),
-    ]);
-  }
-  const instructions: MachineInstruction[] = [loadA(access.index, 0, state, source)];
-  const bits = access.stride.toString(2).slice(1);
-  for (const bit of bits) {
-    instructions.push(machineInstruction(cpu, "asl", "accumulator", null, [], source));
-    if (bit === "1") {
-      instructions.push(
-        machineInstruction(cpu, "clc", "implied", null, [], source),
-        machineInstruction(
-          cpu,
-          "adc",
-          modeForValue(access.index),
-          operandForValue(access.index),
-          [],
-          source,
-        ),
-      );
-    }
-  }
-  instructions.push(machineInstruction(cpu, "tay", "implied", null, [], source));
-  return Object.freeze(instructions);
-}
-
-/**
- * Check the exact typed byte access before lending a counter register to it.
- * Its proved range removes any guard that would need a materialized ordinal.
- * @param place Original typed source place.
- * @param type Scalar element type of the actual consumer.
- * @param value Exact ordinal source value consumed once at this place.
- * @param maximum Nonnegative source maximum under retained loop premises.
- * @param state Current fixed-object and storage representations.
- * @param source Owning source access, retained for invariant diagnostics.
- * @returns Whether direct absolute indexing uses the held register without setup.
- */
-export function canUseFixedCounterIndex(
-  place: SemanticPlace,
-  type: SemanticType,
-  value: string,
-  maximum: bigint | undefined,
-  state: FunctionLoweringState,
-  source: SourceSpan,
-): boolean {
-  if (
-    maximum === undefined ||
-    maximum < 0n ||
-    place.rootType === undefined ||
-    typeBytes(type) !== 1 ||
-    (isReturnedLocalPlace(place, state) &&
-      selectedStoragePlace(place, state.sourceFacts?.storage) === place)
-  )
-    return false;
-  const root = loweredPlace(place, typeBytes(place.rootType), false, state);
-  if (
-    (root.kind !== "storage" && root.kind !== "label") ||
-    (root.kind === "storage" && root.requestId.includes(":parameter:"))
-  )
-    return false;
-  const plan = aggregateAddressPlan(place, state, source);
-  const index = plan.indices[0];
-  return (
-    plan.indices.length === 1 &&
-    index?.value === value &&
-    index.stride === 1 &&
-    maximum < BigInt(index.extent)
-  );
 }
 
 /** Load one packed indexed place now, preserving source read order in an SFA value. */
@@ -515,14 +240,21 @@ export function lowerAggregateStore(
       }
       value = home;
     }
-    if (direct.kind === "indexed")
+    const indexInA =
+      direct.kind === "indexed" && storesItsOwnIndex(direct, value, operation.type, state);
+    if (indexInA) {
+      appendLoadA(instructions, value, 0, state, operation.span);
+      instructions.push(
+        machineInstruction(state.input.profile.cpu, "tay", "implied", null, [], operation.span),
+      );
+    } else if (direct.kind === "indexed")
       instructions.push(...directIndexInstructions(direct, state, operation.span));
     for (let offset = 0; offset < typeBytes(operation.type); offset += 1) {
       if (offset > 0 && direct.kind === "indexed")
         instructions.push(
           machineInstruction(state.input.profile.cpu, "iny", "implied", null, [], operation.span),
         );
-      appendLoadA(instructions, value, offset, state, operation.span);
+      if (offset > 0 || !indexInA) appendLoadA(instructions, value, offset, state, operation.span);
       const access = machineInstruction(
         state.input.profile.cpu,
         "sta",

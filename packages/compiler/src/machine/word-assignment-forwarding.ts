@@ -1,7 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SemanticType } from "../frontend/semantic-types.js";
 import { valueDefinitions } from "../semantic/aggregate-place-proof.js";
-import { FIXED_LOOP_MAX_BOUND } from "../semantic/fixed-loop-facts.js";
+import { FIXED_LOOP_MAX_BOUND, type FixedLoopFacts } from "../semantic/fixed-loop-facts.js";
 import type {
   BinaryOperation,
   SemanticBlock,
@@ -11,6 +11,7 @@ import type {
   StoreOperation,
 } from "../semantic/operations.js";
 import { potentialValueInputs } from "../semantic/value-lifetimes.js";
+import { hasNoAsynchronousInterleaving } from "./byte-capture-observers.js";
 import type { LoweredValue } from "./lower-control.js";
 import { loweredPlace, type FunctionLoweringState } from "./lower-state.js";
 import type { MachineLoweringInput } from "./machine-types.js";
@@ -36,6 +37,8 @@ export type ForwardedWordOperand =
 export interface ForwardedWordAssignment {
   /** Exact store that receives the result, immediately after the arithmetic. */
   readonly store: StoreOperation;
+  /** Whether the destination is a module-level variable rather than a home of this frame. */
+  readonly global: boolean;
   /** Left operand shape, evaluated first. */
   readonly left: ForwardedWordOperand;
   /** Right operand shape, evaluated second. */
@@ -215,6 +218,31 @@ function descendingExtent(
 }
 
 /**
+ * Name every loop counter any fixed-loop construction of one body could narrow, when that is known.
+ *
+ * Narrowing draws its counters from the checked fixed-loop facts and from nothing else, so those
+ * facts bound it in every pass. They are consulted only for the optimized candidate: canonical
+ * direct lowering keeps the shape backstop unchanged, because it is the reference a build is
+ * measured against. A body whose facts cannot be found is treated as unknown rather than as having
+ * no counters, since an empty set would release every root the backstop protects.
+ * @param input Closed lowering context.
+ * @param source Actual function body; absent for generated initializer bodies.
+ * @param selected Facts the current construction was handed, which narrowing reads first.
+ * @returns Counter identities, or undefined when the set is not known.
+ */
+export function narrowableCounters(
+  input: MachineLoweringInput,
+  source: SemanticFunction | undefined,
+  selected: readonly FixedLoopFacts[] | undefined,
+): ReadonlySet<string> | undefined {
+  if (input.optimizationFacts === undefined || source === undefined) return undefined;
+  const loops = selected ?? input.optimizationFacts.functions.get(source)?.loops;
+  return loops === undefined
+    ? undefined
+    : new Set(loops.map((loop) => bindingIdentityKey(loop.counter)));
+}
+
+/**
  * Select whole-word assignments whose arithmetic result needs no private scratch.
  *
  * The word emitter has to park its low result somewhere while the accumulator
@@ -234,6 +262,8 @@ function descendingExtent(
  * @param blocks Original blocks in their original identity order.
  * @param singleUseValues Existing operation-use inventory; independently rechecked here.
  * @param narrowedCounters Roots of proved loop counters, which keep a narrower representation.
+ * @param narrowableCounters Every counter any fixed-loop construction of this body could narrow,
+ * when that set is known; absent keeps the shape backstop below for every root it nominates.
  * @returns Arithmetic results that may write their destination, with the proof's inputs.
  * @example
  * // For `x = x + 2`, the addition's result maps to the store into `x`, so the
@@ -247,6 +277,7 @@ export function selectForwardedWordAssignments(
   blocks: readonly SemanticBlock[],
   singleUseValues: ReadonlySet<string>,
   narrowedCounters: ReadonlySet<string>,
+  narrowableCounters?: ReadonlySet<string>,
 ): ReadonlyMap<string, ForwardedWordAssignment> {
   const selected = new Map<string, ForwardedWordAssignment>();
   if (
@@ -395,12 +426,43 @@ export function selectForwardedWordAssignments(
       }
     }
   }
+  //
+  // The backstop guesses because it is not told. Where the caller does know every counter a
+  // fixed-loop construction could narrow — the same checked facts narrowing itself draws on — a
+  // root outside that set has no cheaper representation to lose in any pass, so the guess stands
+  // down for it. A counter seeded from a parameter is the common case: it controls its loop but no
+  // construction can narrow it, and without this it paid a scratch copy on every update.
+  // A module-level destination is admitted on a stronger footing than a private one, because code
+  // outside this frame can name it. Reading its high byte after its low byte has been written
+  // changes only when the high byte is read, never which bytes are written or in what order, so
+  // a reader elsewhere sees exactly the intermediate states it could see before. What it can
+  // change is the outcome of a write landing between the two halves, and only an asynchronous
+  // entry can put one there — so no such entry may exist anywhere in the program. Operands are
+  // held to the destination itself or a constant, which cannot be laid out across it. Raw memory
+  // never reaches this shape, and a module variable carries no volatility of its own.
+  const globalDestinations =
+    input.optimizationFacts !== undefined && hasNoAsynchronousInterleaving(input, source);
+  const sameGlobal = (value: string, root: string): ForwardedWordOperand | undefined => {
+    const definition = definitions.get(value);
+    if (definition?.kind === "constant") return Object.freeze({ kind: "constant" });
+    if (
+      definition?.kind !== "load" ||
+      definition.place.path.length !== 0 ||
+      definition.place.asset !== undefined ||
+      bindingIdentityKey(definition.place.root) !== root ||
+      !unsignedWordType(definition.place.rootType)
+    )
+      return undefined;
+    return Object.freeze({ kind: "place", place: definition.place });
+  };
+
   const inductionRoots = new Set(
     [...controlEvidence]
       .filter(([, extents]) =>
         extents.some((extent) => extent === undefined || extent <= FIXED_LOOP_MAX_BOUND),
       )
-      .map(([key]) => key),
+      .map(([key]) => key)
+      .filter((key) => narrowableCounters === undefined || narrowableCounters.has(key)),
   );
 
   for (const block of blocks) {
@@ -423,18 +485,27 @@ export function selectForwardedWordAssignments(
         store.place.path.length !== 0 ||
         store.place.asset !== undefined ||
         !unsignedWordType(store.type) ||
-        !unsignedWordType(store.place.rootType) ||
-        !declaredRoots.has(bindingIdentityKey(store.place.root)) ||
-        // A proved loop counter is already represented more cheaply than its declared word, as a
-        // register or a single byte. Writing its word home here would undo that larger saving.
-        narrowedCounters.has(bindingIdentityKey(store.place.root))
+        !unsignedWordType(store.place.rootType)
       )
         continue;
-      if (inductionRoots.has(bindingIdentityKey(store.place.root))) continue;
-      const left = operandShape(operation.left, definitions, declaredRoots, narrowedCounters);
-      const right = operandShape(operation.right, definitions, declaredRoots, narrowedCounters);
+      const root = bindingIdentityKey(store.place.root);
+      const global = globalKeys.has(root);
+      if (
+        (global ? !globalDestinations : !declaredRoots.has(root)) ||
+        // A proved loop counter is already represented more cheaply than its declared word, as a
+        // register or a single byte. Writing its word home here would undo that larger saving.
+        narrowedCounters.has(root) ||
+        inductionRoots.has(root)
+      )
+        continue;
+      const left = global
+        ? sameGlobal(operation.left, root)
+        : operandShape(operation.left, definitions, declaredRoots, narrowedCounters);
+      const right = global
+        ? sameGlobal(operation.right, root)
+        : operandShape(operation.right, definitions, declaredRoots, narrowedCounters);
       if (left === undefined || right === undefined) continue;
-      selected.set(operation.result, Object.freeze({ store, left, right }));
+      selected.set(operation.result, Object.freeze({ store, global, left, right }));
     }
   }
   return selected;
@@ -504,7 +575,8 @@ export function forwardedWordDestination(
   left: LoweredValue,
   right: LoweredValue,
   state: FunctionLoweringState,
-): Extract<LoweredValue, { readonly kind: "storage" }> | undefined {
+): Extract<LoweredValue, { readonly kind: "storage" | "label" }> | undefined {
+  if (assignment.global) return forwardedGlobalDestination(assignment, left, right, state);
   const destination = declaredHome(assignment.store.place, state);
   if (destination === undefined) return undefined;
   const operands = [
@@ -528,4 +600,44 @@ export function forwardedWordDestination(
       return undefined;
   }
   return destination.value;
+}
+
+/**
+ * Resolve a module-level destination and confirm each operand reads that same variable.
+ *
+ * The selection admitted only the destination itself or a constant as an operand, so the one
+ * thing left to settle against the resolved form is that both name the variable's own link-time
+ * label with no displacement. Only then is the early low write known to touch a byte the later
+ * high read does not. A variable the allocator gave a home of its own keeps its scratch.
+ * @param assignment Source shape already admitted for a module-level destination.
+ * @param left Resolved left operand, as the emitter will read it.
+ * @param right Resolved right operand, as the emitter will read it.
+ * @param state Current lowering context, which owns the place resolution.
+ * @returns The destination to compute into, or undefined to keep a scratch.
+ */
+function forwardedGlobalDestination(
+  assignment: ForwardedWordAssignment,
+  left: LoweredValue,
+  right: LoweredValue,
+  state: FunctionLoweringState,
+): Extract<LoweredValue, { readonly kind: "label" }> | undefined {
+  const destination = loweredPlace(assignment.store.place, WORD_BYTES, false, state);
+  if (destination.kind !== "label" || destination.offset !== undefined) return undefined;
+  for (const [shape, resolved] of [
+    [assignment.left, left],
+    [assignment.right, right],
+  ] as const) {
+    if (shape.kind === "constant") {
+      if (resolved.kind !== "constant") return undefined;
+      continue;
+    }
+    if (
+      resolved.kind !== "label" ||
+      resolved.label !== destination.label ||
+      resolved.bytes !== WORD_BYTES ||
+      resolved.offset !== undefined
+    )
+      return undefined;
+  }
+  return destination;
 }
