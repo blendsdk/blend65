@@ -2,8 +2,8 @@
 
 > **Owner**: [#119](https://github.com/blendsdk/blend65/issues/119) · **Type**: Task
 > **CodeOps Artifact Schema**: 1
-> **Status**: In progress — Gap B delivered and under verification, Gap A measured and re-scoped
-> **Progress**: 6/7 tasks (reviews and gates remain)
+> **Status**: In progress — Gap B delivered, review findings being dispositioned, Gap A re-scoped to #209
+> **Progress**: 6/9 tasks; review findings being dispositioned
 > **Last Updated**: 2026-11-26
 
 ## Tasks
@@ -15,8 +15,10 @@
 | 3 | Lowering: hoist the proved invariant load into the preheader | Done — `machine/fixed-counter-invariant-load.ts` |
 | 4 | Observer: accept the hoisted exact template and relocate the accumulator obligation | Done — `size-observer-register-counter.ts`, `size-observer-selected-loops.ts` |
 | 5 | Public oracle authored independently, implementation-blind, with RED evidence | Done — `test/rd08/finite-loop-invariant-load.spec.test.ts`, 13 cases, 5 verified red against the reconstructed pre-change tree |
-| 6 | Implementation tests for the guards the public oracle cannot express | Done — `machine/fixed-counter-invariant-load.impl.test.ts`, fixture shared through `machine/fixed-loop-test-support.ts` |
-| 7 | Independent reviews, complete gates, closeout and issue evidence | Pending |
+| 6 | Implementation tests for the guards the public oracle cannot express | **Reopened by review** — three of five guards witnessed; the interrupt guard and both new observer guards have none |
+| 7 | Independent reviews round one | Done — emitted-code and correctness audits, 20 findings |
+| 8 | Disposition the review findings: three oracle cases re-derived, behaviour oracle added, missing guard witnesses, guard hardening | In progress |
+| 9 | Complete gates, closeout and issue evidence | Pending — host checkpoint running; `yarn test:full` not yet run, so the endpoint is not yet verified |
 
 ## Both gaps reproduce exactly
 
@@ -342,6 +344,101 @@ flag beside the existing `firstTestElided`, rather than reviving `FixedLoopProof
 
 Gap A is therefore its own unit with its own proof obligation, and #119 stays open
 for it.
+
+## Review round one, and what it overturned
+
+Two independent audits, an emitted-code audit and a correctness review, neither
+sharing notes. Both converged on the same missing thing, and each found defects
+the other did not. Twenty findings; the five that change conclusions already
+written above are recorded here rather than quietly edited.
+
+### Matching the issue's cycle targets is not evidence of parity
+
+The table above reads as though landing exactly on 57, 107 and 59 settled the
+output question. It does not. **Those figures are themselves the ascending
+form** — the issue derived them from the schedule the compiler already emits. So
+hitting them proves the transformation is the one specified, which is real and
+worth having, and says nothing about whether an expert would write this.
+
+An expert would not. A descending counter lets the decrement set the flag and
+drops the bound compare entirely:
+
+| Witness | Delivered | Expert descending | Delta |
+| --- | --- | --- | --- |
+| constant 7, displacement 1, bound 4 | 13 B / 57 c | 11 B / 49 c | **−2 B / −8 c** |
+| global 255, displacement 255, bound 8 | 14 B / 107 c | 12 B / 91 c | **−2 B / −16 c** |
+| global 128, displacement 127, bound 4 | 14 B / 59 c | 12 B / 51 c | **−2 B / −8 c** |
+
+Every premise is already discharged by code this row touches, and the direction
+is hard-wired in three places. So the 1.0 parity floor is below these routines
+after this change as it was before it. Filed as
+[#212](https://github.com/blendsdk/blend65/issues/212) with the measurement; it
+composes with this work rather than competing with it, and does not reopen it.
+
+The same audit measured what [#210](https://github.com/blendsdk/blend65/issues/210)
+costs: full unrolling is −33, −65 and −33 cycles on the same three witnesses, a
+2.3× to 2.5× win blocked by a proof kind with no discharge path. That delta is
+now on the issue, so it is prioritised as parity debt rather than as tidying.
+
+### Three oracle cases were fitted to today's output, not derived from the requirement
+
+This is the sharper half of the post-hoc authorship problem, and the
+reconstructed RED does not reach it. RED shows the oracle discriminates the two
+trees. It cannot show the oracle was not shaped by the output it was run against,
+and three of thirteen cases demonstrably were:
+
+| Case | Why it is not requirement-derived |
+| --- | --- |
+| the reload is kept while a handler is installed | The stored byte is the literal `7`. **No handler can write a literal**, so an expert hoists it unconditionally. The case passes because `synchronous` rejects the whole candidate, and its comment's stated reason is false for this witness. An immutable oracle would forbid correct output. |
+| the reload is kept for a computed right-hand side | `value + 1` is loop-invariant too; `value` is never written in the loop. The expert form hoists `lda value / clc / adc #1`. The case pins the current scope limit as though it were a requirement. |
+| a single-trip fill is byte-identical | Pins `programBytes`, artifact length and an exact digest for the bound-1 build — **precisely the artifact #209 exists to change**, from 13 work bytes to 6. The oracle was written as if the open half of the same issue would never land. |
+
+All three are being re-derived from the requirement before the file hardens. The
+record's earlier framing — that reconstructing RED settled the authorship
+question — covered half the debt.
+
+### There is no behaviour oracle
+
+Both audits found this independently, and it is the project's own two-expectation
+contract: an optimization needs a behaviour oracle derived from language, CPU and
+platform semantics **and** an assembly-and-cost expectation. Only the second
+exists. Nothing anywhere executes an invariant fill of two or more trips and
+reads the filled bytes back; the nearest existing cases store `byte(i)`, which
+varies per trip and never reaches this shape. Running the emulator tier does not
+fix it, because the tier contains nothing of this shape to run.
+
+### Task 6 was marked Done and is not
+
+The interrupt guard was disclosed as having no *output* witness. The review
+established it has **no witness at any level**: the three lowering-level cases
+cover the two-trip boundary and the hardware read, and none installs an interrupt
+route. The disclosure understated the gap by one level while the task above it
+claimed completion. Two further new guards — the hoisted load's identity check
+and the relocated accumulator obligation — have no rejection witness either, so
+deleting either would leave the suite green.
+
+### The volatility clause: right conclusion, wrong reason
+
+The record said the operand and volatility conditions are "redundant
+alternatives". They are not. They are **two independently motivated necessary
+conditions that happen to coincide on the single available witness**: the operand
+condition is load-bearing for the observer's own template, and the volatility
+condition is forward-looking defence that is currently unreachable, because a
+hardware read reaches its address as a literal rather than through a name. So the
+mutation note needs a third case beside "untested" and "covered by a sibling":
+two conditions that exclude different classes and overlap on the only witness
+available. Keeping both remains correct; the test comment claiming the volatility
+clause as the witness is wrong and is being corrected.
+
+### Smaller corrections
+
+| Finding | Disposition |
+| --- | --- |
+| The oracle's cycle figures are placement-dependent, and its comment says they are safe because the routines are short — a non-sequitur, since taken-branch cost depends on placement, not length | Measured: the three loop labels sit at low bytes `$42`, `$48` and `$48`, so the figures hold today. The rationale is being corrected and the dependence recorded |
+| "`programBytes` is unchanged in every witness" is asserted nowhere; the witnesses pin routine bytes, a different quantity | Measured separately at 100, 106 and 106, unchanged. Recorded as measured rather than asserted |
+| The lowering guard does not require the loop's member set to be exactly body and update, so a loop with an extra in-cycle block writing the accumulator would be hoisted over | Unreachable today through any shipped path, but it contradicts this plan's own claim that the guard stands alone. Being fixed |
+| The debug-scaffolding residual inventoried two sites in one file | There are **five in four files**, three of them with no offset condition at all and so reachable by one environment variable. #211 widened |
+| A mutation helper silently no-ops on an out-of-range ordinal — the exact mechanism behind the six vacuous passes | Being hardened, since correcting the index left the mechanism in place |
 
 ## Residuals
 
