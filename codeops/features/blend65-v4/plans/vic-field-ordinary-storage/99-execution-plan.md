@@ -369,12 +369,20 @@ sometimes aimed at the wrong line rather than at an untested rule.
 
 **Five of the forty-five cases are not implementation-blind, and the table no longer claims they
 are.** The first thirty-six were authored against the requirements with the implementation unwritten,
-and 26 of them were red. The four added during review — the occupied address, the address below the
+and 26 of them were red. The five added during review — the occupied address, the address below the
 resident window, and the three initializer routes — were written after the code existed, from a
 stated requirement rather than from the code, and the initializer prompt described the failure
 mechanism because that is what had just been measured. They are regression pins, and each was
 verified red by reverting the fix and rebuilding rather than by having been written first. That is
 weaker evidence than a blind oracle case and is recorded as such.
+
+**The entry-absent branch is asserted above and pinned by nothing.** The gate now names nothing
+unreachable when it is handed no entry, and the table above states that. No test covers it and no
+mutation row measures it, because the only caller that can reach it is a direct one: production
+always passes the resolved main, so the branch is reachable from a unit test and from a future
+caller that forgets the argument. A test would have had to be written while the host count was
+being measured, so it is recorded as unpinned rather than written in a hurry — the honest status is
+that the repair is argued from the single call site, not demonstrated.
 
 **The ledger carries five rows for this row's work, not four.** The fifth is the function-pointer
 table (#208), which this row did not create and does not own — it was found while enumerating the
