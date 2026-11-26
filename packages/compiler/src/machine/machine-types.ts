@@ -254,6 +254,16 @@ export interface FixedLoopRuntime {
   readonly observerEvidence?: boolean;
   /** Selected CPU. */
   readonly cpu: CpuFacts;
+  /**
+   * Whether anything may write this program's storage while an ordinary loop runs.
+   *
+   * An installed interrupt route, or a callable or interrupt root reachable from
+   * outside, makes a module byte's value unstable between two ordinary
+   * instructions. Loop work that depends on the byte staying put is unavailable
+   * then, so the fact is carried here rather than re-derived from the schedule,
+   * which cannot see the program's roots.
+   */
+  readonly interruptObservers: boolean;
   /** Source-admitted counters. */
   readonly counterFacts: readonly FixedLoopFacts[];
   /** Chosen register policy after joint nest proof. */

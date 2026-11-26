@@ -11,6 +11,7 @@ import type {
 import { potentialValueInputs } from "../semantic/value-lifetimes.js";
 import { validFixedLoopFacts } from "../semantic/aggregate-place-proof.js";
 import { bodyValuesStayLocal } from "./lower-aggregate.js";
+import { hoistFixedCounterInvariantLoads } from "./fixed-counter-invariant-load.js";
 import { derivedIndicesAreInBounds } from "../semantic/aggregate-place-proof.js";
 import {
   semanticSuccessors,
@@ -227,6 +228,9 @@ export function prepareFixedLoops(
   return {
     observerEvidence: input.observerEvidence === true,
     cpu: input.profile.cpu,
+    interruptObservers:
+      (input.program.interruptRoutes?.length ?? 0) > 0 ||
+      input.program.roots.some(({ kind }) => kind === "callable" || kind === "interrupt"),
     counterFacts,
     registers: new Map(),
     indexViews: new Map(),
@@ -579,12 +583,16 @@ export function finishFixedLoops(fn: MachineFunction, runtime: FixedLoopRuntime)
         }
     }
   }
-  const selected = selectFixedCounterHeaderState(fn, runtime);
-  if (selected === null)
+  const settled = selectFixedCounterHeaderState(fn, runtime);
+  if (settled === null)
     throw loweringFailure(
       "Fixed counter lost its complete comparison state",
       runtime.counterFacts[0]?.comparison.span ?? null,
     );
+  // The comparison state has to be settled first: removing the zero-high
+  // comparison work is what leaves the accumulator untouched around the loop,
+  // and so what makes a reloaded invariant byte redundant rather than necessary.
+  const selected = hoistFixedCounterInvariantLoads(settled, runtime);
   const byLabel = new Map(selected.blocks.map((block) => [block.label, block]));
   const safeEntry = byteContinuationQuery(byLabel);
   const entries = new Map<string, string>();

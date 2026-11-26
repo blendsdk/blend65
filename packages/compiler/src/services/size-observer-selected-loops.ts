@@ -612,6 +612,7 @@ function continuations(
   after: Side,
   representation: FixedCounterProof["representation"],
   indexed = false,
+  hoisted = false,
 ): boolean {
   const state = indexed ? UPDATE_STATE & ~STATE.v : UPDATE_STATE;
   for (const current of [before, after]) {
@@ -619,10 +620,18 @@ function continuations(
       new Map(current.actual.blocks.map((block) => [block.label, block])),
       { registers: [], flags: [] },
     );
+    // Where the invariant byte is loaded ahead of the loop, the accumulator is
+    // live from that load through every trip by construction, so asking whether
+    // a difference at the body or the test is unobserved would ask the wrong
+    // question. The obligation does not go away: it moves to the load, which is
+    // where an inherited accumulator stops being readable, while the exit keeps
+    // its own unchanged obligation.
+    const carried = hoisted && current === after ? state & ~STATE.a : state;
     if (
-      !query(current.blocks[2]!.label, 0, representation === "low-byte" ? TEST_STATE : state) ||
+      (hoisted && current === after && !query(current.blocks[0]!.label, 1, state)) ||
+      !query(current.blocks[2]!.label, 0, representation === "low-byte" ? TEST_STATE : carried) ||
       !query(current.blocks[4]!.label, 0, TEST_STATE) ||
-      !query(current.blocks[1]!.label, 0, state) ||
+      !query(current.blocks[1]!.label, 0, carried) ||
       current.shared.certificate.inventory.results.some(
         ({ function: owner }) => owner === current.actual.sourceFunction,
       )
@@ -692,7 +701,16 @@ export function validateSelectedLoops(input: FinalObserverInput): SelectedLoopVa
       !physical(input, after, null, index ?? undefined)
     )
       return reject("Selected loop binding or actual physical interference is unresolved");
-    if (!continuations(input, before, after, proof.representation, index !== null))
+    if (
+      !continuations(
+        input,
+        before,
+        after,
+        proof.representation,
+        index !== null,
+        index?.hoisted === true,
+      )
+    )
       return reject("Selected loop state, caller or startup continuation is unresolved");
     proved.add(proof.loop);
   }

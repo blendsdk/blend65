@@ -16,10 +16,22 @@ import type {
 import type { Side } from "./size-observer-selected-loop-layout.js";
 import type { FinalObserverInput } from "./size-observers.js";
 
-/** Complete register controls do not invent a memory home for the semantic word counter. */
-function controls(proof: FixedCounterProof, current: Side): boolean {
+/**
+ * Complete register controls do not invent a memory home for the semantic word counter.
+ *
+ * @param hoisted The one invariant load this side carries ahead of the loop, or
+ * null when the body still loads its byte on every trip. It is matched by
+ * identity rather than by shape, so the caller remains the only authority on
+ * which load may stand there.
+ */
+function controls(
+  proof: FixedCounterProof,
+  current: Side,
+  hoisted: MachineInstruction | null = null,
+): boolean {
   const register = proof.representation;
   if (register !== "x" && register !== "y") return false;
+  if (hoisted !== null && current.symbols[0]!.instructions[1] !== hoisted) return false;
   for (const [role, opcode, value, source] of [
     [0, `ld${register}`, 0, proof.loop.initialization.span],
     [1, `cp${register}`, proof.loop.bound, proof.loop.comparison.span],
@@ -28,7 +40,7 @@ function controls(proof: FixedCounterProof, current: Side): boolean {
     const items = current.symbols[role]!.instructions;
     const item = items[0];
     if (
-      items.length !== 1 ||
+      items.length !== (role === 0 && hoisted !== null ? 2 : 1) ||
       item?.opcode !== opcode ||
       item.source !== source ||
       (value === null
@@ -40,6 +52,18 @@ function controls(proof: FixedCounterProof, current: Side): boolean {
       return false;
   }
   return true;
+}
+
+/**
+ * The one instruction a side carries ahead of its loop, or null when it carries none.
+ *
+ * Only the position is decided here. Whether the instruction standing there is
+ * the body's own invariant load is the caller's question, because only the
+ * caller knows which byte the body was storing.
+ */
+function hoistedLoad(current: Side): MachineInstruction | null {
+  const items = current.symbols[0]!.instructions;
+  return items.length === 2 ? (items[1] ?? null) : null;
 }
 
 /** Compare one complete body member, changing only its independently identified ordinal operand. */
@@ -302,10 +326,16 @@ export function registerCounterIndex(
     after.counter !== null ||
     proof.requestId !== null ||
     proof.firstTestElided !== true ||
-    !controls(proof, after) ||
     pointer?.kind !== "storage"
   )
     return null;
+  // An invariant byte may be loaded once ahead of the loop instead of on every
+  // trip, which leaves the store alone in the body. The load then has to be the
+  // last instruction before the loop is entered, because that is the only
+  // position that runs once and still reaches every trip.
+  const storeAlone = after.symbols[2]!.instructions.length === 1;
+  const hoisted = storeAlone ? hoistedLoad(after) : null;
+  if (storeAlone !== (hoisted !== null) || !controls(proof, after, hoisted)) return null;
   const id = pointer.requestId;
   const request = before.requests.get(id);
   if (
@@ -334,9 +364,25 @@ export function registerCounterIndex(
     ["lda", source.mode, source.operand],
     ["sta", `absolute-${proof.representation}`, { kind: "label", label, offset: source.offset }],
   ];
+  if (
+    hoisted !== null &&
+    (JSON.stringify([hoisted.opcode, hoisted.mode, hoisted.operand]) !==
+      JSON.stringify(selected[0]) ||
+      hoisted.source !== source.store.span ||
+      hoisted.memory.length !== 0 ||
+      hoisted.sourceIteration !== undefined ||
+      (hoisted.observerOrigins ?? []).length !== 0)
+  )
+    return null;
   for (const [current, template, recipe, register, stride] of [
     [before, reference, "typed-indirect", "y", 0],
-    [after, selected, "typed-indexed", proof.representation, 1],
+    [
+      after,
+      hoisted === null ? selected : selected.slice(1),
+      "typed-indexed",
+      proof.representation,
+      1,
+    ],
   ] as const) {
     const items = current.symbols[2]!.instructions;
     if (items.length !== template.length) return null;
@@ -393,6 +439,14 @@ export function registerCounterIndex(
   )
     return null;
   return Object.freeze({
+    /**
+     * Whether the selected side loads its invariant byte ahead of the loop.
+     *
+     * The accumulator then carries that byte into every trip, so the obligation
+     * to show an accumulator difference unobserved belongs at the load rather
+     * than at the body, which now reads A instead of replacing it.
+     */
+    hoisted: hoisted !== null,
     /** Exact reference-only pointer request, never a generated-name inference. */
     pointer: id,
     /** Original global binding independently resolved by each physical layout. */

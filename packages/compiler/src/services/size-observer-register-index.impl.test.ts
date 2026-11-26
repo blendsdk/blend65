@@ -217,11 +217,18 @@ describe("final held-counter typed stores", () => {
             });
             expect(input.candidate.shared.certificate.certificate.hardwareStackProgramPeak).toBe(3);
             expect(validateSizeObservers(input).kind).toBe("complete");
+            // The byte stored on every trip is the same byte, so it is loaded
+            // once ahead of the loop and the body is the store alone. The load
+            // has to be the last thing before the loop is entered: that is the
+            // only position which runs once and still reaches every trip.
             expect(
               after.symbols[2]!.instructions.map(({ opcode, mode }) => [opcode, mode]),
+            ).toEqual([["sta", `absolute-${proof.representation}`]]);
+            expect(
+              after.symbols[0]!.instructions.map(({ opcode, mode }) => [opcode, mode]),
             ).toEqual([
+              [`ld${proof.representation}`, "immediate"],
               ["lda", variable ? "absolute" : "immediate"],
-              ["sta", `absolute-${proof.representation}`],
             ]);
             if (index === null) throw new Error("Expected a proved typed store");
             expect(before.symbols[2]!.instructions[7]!.operand).toEqual({
@@ -317,7 +324,7 @@ describe("final held-counter typed stores", () => {
         const input = effectFixture(source(1), "size", false, "x-first");
         const { proof } = owner(input);
         invalid(
-          instruction(input, construction, "body", construction === "before" ? 9 : 1, (item) => ({
+          instruction(input, construction, "body", construction === "before" ? 9 : 0, (item) => ({
             ...item,
             observerOrigins:
               item.observerOrigins?.map((origin) =>
@@ -344,7 +351,7 @@ describe("final held-counter typed stores", () => {
           effectFixture(source(), "size", false, "x-first"),
           construction,
           "body",
-          construction === "before" ? 9 : 1,
+          construction === "before" ? 9 : 0,
           (item, physical) =>
             !physical
               ? item
