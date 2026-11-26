@@ -1,3 +1,4 @@
+import type { SemanticBlock } from "../semantic/operations.js";
 import type {
   FixedLoopRuntime,
   MachineBlock,
@@ -44,6 +45,22 @@ function invariantLoad(instruction: MachineInstruction): boolean {
 /** Whether any of these instructions replaces the accumulator the hoisted load fills. */
 function rewritesAccumulator(instructions: readonly MachineInstruction[]): boolean {
   return instructions.some((instruction) => instruction.defines.registers.includes("a"));
+}
+
+/**
+ * Every emitted block belonging to one source block of the loop.
+ *
+ * A source block can lower to more than one emitted block — a bounds guard or a
+ * variable operation splits it — so asking about the block that carries the
+ * source id would ask about only the first of them.
+ */
+function emittedBlocks(
+  runtime: FixedLoopRuntime,
+  source: SemanticBlock,
+  blocks: readonly MachineBlock[],
+): readonly MachineBlock[] {
+  const labels = new Set(runtime.sourceBlocks.get(source) ?? [source.id]);
+  return blocks.filter((block) => labels.has(block.label));
 }
 
 /**
@@ -95,6 +112,19 @@ export function hoistFixedCounterInvariantLoads(
   for (const counter of runtime.counters.values()) {
     const { loop, register } = counter;
     if (register === null || loop.tripDomain.minimum < 2) continue;
+    // The cycle has to be the body and the update and nothing else. Asking only
+    // about those two and the test would say nothing about a third block inside
+    // the cycle, and a loop whose body contains its own loop or a branch has
+    // exactly that: blocks that run between one store and the next, free to
+    // leave anything in the accumulator.
+    if (
+      loop.members.size !== 2 ||
+      !loop.members.has(loop.body.id) ||
+      !loop.members.has(loop.update.id) ||
+      loop.body.terminator.kind !== "jump" ||
+      loop.body.terminator.target !== loop.update.id
+    )
+      continue;
     const at = (id: string) => blocks.find((block) => block.label === id);
     const preheader = at(loop.preheader.id),
       header = at(loop.header.id),
@@ -109,13 +139,23 @@ export function hoistFixedCounterInvariantLoads(
     )
       continue;
     const [load, store] = body.instructions;
+    // Every emitted block of the test, the body and the update, not only the one
+    // block each source id names. Three source blocks must stay three emitted
+    // ones: a split would put code in the cycle that this walk has not seen.
+    const cycle = [loop.header, loop.body, loop.update].flatMap((source) =>
+      emittedBlocks(runtime, source, blocks),
+    );
+    const carried = cycle.flatMap((block) =>
+      block === body ? block.instructions.slice(1) : block.instructions,
+    );
     if (
       load === undefined ||
       store === undefined ||
+      cycle.length !== 3 ||
       !invariantLoad(load) ||
       store.opcode !== "sta" ||
       store.mode !== INDEXED_STORE_MODE[register] ||
-      rewritesAccumulator([store, ...header.instructions, ...update.instructions]) ||
+      rewritesAccumulator(carried) ||
       !acceptsAppendedLoad(preheader)
     )
       continue;

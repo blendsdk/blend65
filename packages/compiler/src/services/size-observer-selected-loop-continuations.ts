@@ -6,16 +6,6 @@ import type { View, Side } from "./size-observer-selected-loop-layout.js";
 import type { FixedCounterProof, MachineInstruction } from "../machine/machine-types.js";
 import type { FinalObserverInput } from "./size-observers.js";
 
-/**
- * Whether anything outside a selected loop observes the state its removal changed.
- *
- * The selection proof itself is about the loop. These three checks are about
- * everything the loop hands back to: the startup constructor that wraps the
- * program, every foreign entry that can reach the owning function, and the
- * architectural differences that survive to each of them. They are separated
- * from the loop proof because a loop can be perfectly proved and still be
- * refused here, and the reason an author would want is which of the two failed.
- */
 /** Differences after the byte test and after replacing a word update with INC. */
 const TEST_STATE = STATE.a | STATE.v;
 const UPDATE_STATE = STATE.a | STATE.n | STATE.z | STATE.c | STATE.v;
@@ -187,11 +177,30 @@ function callers(
 }
 
 /**
+ * Whether anything outside a selected loop observes the state its removal changed.
+ *
+ * The selection proof is about the loop. This one is about everything the loop
+ * hands back to: the startup constructor wrapping the program, every foreign
+ * entry that can reach the owning function, and the architectural differences
+ * surviving to each of them. A loop can be perfectly proved and still be refused
+ * here, which is why the two are asked separately.
+ *
  * The final false test agrees on N/Z/C. Memory counters leave X/Y unchanged;
  * a proved register counter also carries its assigned-register difference into
  * the actual caller check. The skipped first test needs a wider first-body mask.
  * Only the exact finite index template proves V unobserved through repetitions;
  * that difference still reaches the real caller, together with removed Y setup.
+ *
+ * @param input Original checked source with both closed constructions.
+ * @param before Independently resolved reference side.
+ * @param after Selected side, whose differences these checks must discharge.
+ * @param representation Counter representation the selected side used.
+ * @param indexed Whether the counter is the sole typed index of one store.
+ * @param hoisted Whether the selected side loads its invariant byte ahead of the
+ * loop. The accumulator is then live from that load through every trip, so the
+ * mask narrows at the test and the body, where it is live by construction.
+ * @returns True when nothing outside the loop observes the difference.
+ * @example continuations(input, before, after, "x", true, true);
  */
 export function continuations(
   input: FinalObserverInput,
@@ -210,9 +219,15 @@ export function continuations(
     // Where the invariant byte is loaded ahead of the loop, the accumulator is
     // live from that load through every trip by construction, so asking whether
     // a difference at the body or the test is unobserved would ask the wrong
-    // question. The obligation does not go away: it moves to the load, which is
-    // where an inherited accumulator stops being readable, while the exit keeps
-    // its own unchanged obligation.
+    // question, and the mask narrows there.
+    //
+    // What discharges the accumulator is not this query but identity: the body
+    // must be the store alone and the instruction ahead of the loop must be that
+    // body's own load, matched operand for operand with the same source span and
+    // no observations of its own. The query below pins the load's position and
+    // cannot fail for the shape that reaches it, since a load is the first thing
+    // it scans and a load defines A. The exit keeps its own obligation, which can
+    // fail and does the work there.
     const carried = hoisted && current === after ? state & ~STATE.a : state;
     if (
       (hoisted && current === after && !query(current.blocks[0]!.label, 1, state)) ||

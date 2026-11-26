@@ -120,9 +120,15 @@ function instruction(
               ? block
               : {
                   ...block,
-                  instructions: block.instructions.map((item, index) =>
-                    index === ordinal ? change(item, physical) : item,
-                  ),
+                  // A mutation aimed past the end of a block changes nothing, so
+                  // the case would report the unmutated construction's verdict
+                  // and read as though it had proved something.
+                  instructions: (() => {
+                    expect(block.instructions.length, "mutated ordinal").toBeGreaterThan(ordinal);
+                    return block.instructions.map((item, index) =>
+                      index === ordinal ? change(item, physical) : item,
+                    );
+                  })(),
                 },
           ),
         },
@@ -329,6 +335,54 @@ describe("final held-counter typed stores", () => {
     ["wrong register", (proof: FixedCounterProof) => ({ ...proof, representation: "y" as const })],
   ] as const)("should reject %s", (_name, change) => {
     invalid(withProof(effectFixture(source(), "size", false, "x-first"), change));
+  });
+
+  describe("the load standing ahead of the loop", () => {
+    // Only the selected construction has one: the reference keeps its load
+    // inside the body, so there is no second preheader instruction to damage.
+    it("should reject a hoisted load that is not the body's own", () => {
+      // The load standing ahead of the loop is accepted by identity against the
+      // store's own right-hand side, not by looking like a load, so changing
+      // what it loads has to be refused even though the shape is untouched.
+      invalid(
+        instruction(
+          effectFixture(source(), "size", false, "x-first"),
+          "after",
+          "preheader",
+          1,
+          (item) =>
+            item.operand?.kind === "immediate"
+              ? { ...item, operand: { ...item.operand, value: item.operand.value + 1 } }
+              : { ...item, opcode: "ldy" },
+        ),
+      );
+    });
+
+    it("should reject a hoisted load carrying a typed observation", () => {
+      // The typed origin belongs to the store. A load that claims one as well
+      // would have the element's observation attributed to two instructions.
+      const input = effectFixture(source(), "size", false, "x-first");
+      const { proof } = owner(input);
+      invalid(
+        instruction(input, "after", "preheader", 1, (item) => ({
+          ...item,
+          observerOrigins: [
+            {
+              kind: "typed" as const,
+              operation: proof.loop.updateStore,
+              place: proof.loop.updateStore.place,
+              recipe: "typed-indexed" as const,
+              position: 0,
+              byte: 0,
+              length: 1,
+              indexRegister: "x" as const,
+              displacement: 0,
+              stride: 1,
+            },
+          ],
+        })),
+      );
+    });
   });
 
   describe.each(["before", "after"] as const)("actual %s construction", (construction) => {
