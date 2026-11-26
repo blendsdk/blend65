@@ -462,14 +462,50 @@ clause as the witness is wrong and is being corrected.
 | The debug-scaffolding residual inventoried two sites in one file | There are **five in four files**, three of them with no offset condition at all and so reachable by one environment variable. #211 widened |
 | A mutation helper silently no-ops on an out-of-range ordinal — the exact mechanism behind the six vacuous passes | Being hardened, since correcting the index left the mechanism in place |
 
-## Residuals
+## Verification
 
-- **Gap A** — the one-trip elided-control recipe and its one-block after-side
-  observer template. Named here, #119 stays open.
-- **The expansion recipe has no discharge path.** `FixedLoopProof` and
-  `nativeStoreProofs` are both rejected unconditionally by the same clause. To be
-  filed as its own unit; the artifact-evidence half is unverified.
-- **Dead debug scaffolding in shipped source.** `fixed-loop-selection.ts:652-658`
-  and `:690-699` carry `console.error` blocks gated on
-  `process.env.BLEND65_DEBUG_INNER2` and compared against a magic source offset
-  (`loop.comparison.span.start === 6929`). To be filed and removed.
+| Gate | Result |
+| --- | --- |
+| Install, build, typecheck | clean; 7/7 tasks |
+| Host checkpoint | **285 files / 6,233 tests**, green, zero failures |
+| Compiler package suite | **270 files / 4,601 tests** + 2 skipped, green |
+| Public oracle | **13 cases**; five verified red against the reconstructed pre-change tree |
+| Behaviour oracle | **1 emulator case**, green; fill and both fences read back |
+| Affected VICE journeys | **89/89** — this fill, ordinal stores, the byte classifier, four forwarding suites, the boing-ball contract |
+| Nine canonical byte identities | **unchanged** |
+| `programBytes` for the three witnesses | **100 / 106 / 106**, unchanged (measured, not asserted) |
+| Single-trip artifact | **126 bytes / 128 / `fdc85ed2`**, unchanged |
+| Guard witnesses | 5 lowering, 2 observer; both observer witnesses verified by deleting the guard they pin |
+
+What the scorecard does **not** say: that the output is at parity. It is not —
+see the descending counter, filed as #212.
+
+## Residuals, all filed
+
+| Residual | Issue |
+| --- | --- |
+| **Gap A** — the one-trip elided-control recipe and its one-block after-side observer template. #119 stays open for it | [#209](https://github.com/blendsdk/blend65/issues/209) |
+| **Two proof kinds with no discharge path.** `FixedLoopProof` and `nativeStoreProofs` are rejected unconditionally, so the flat-eight expansion can never be selected. Now carries the measured 2.3×–2.5× cycle delta it blocks. The artifact-evidence half stays unverified | [#210](https://github.com/blendsdk/blend65/issues/210) |
+| **Debug scaffolding in shipped source** — five sites in four files, three with no offset condition, so reachable by setting one environment variable | [#211](https://github.com/blendsdk/blend65/issues/211) |
+| **The finite counter only counts up**, paying a `cpx` it does not need. −2 bytes and −8/−16/−8 cycles on these three witnesses, with every premise already discharged | [#212](https://github.com/blendsdk/blend65/issues/212) |
+
+Two unpinned things stay unpinned, and are stated rather than fixed:
+
+- **The volatility condition has no witness.** A hardware read reaches its
+  address as a literal, so the operand condition already refuses it. The
+  volatility condition is what would refuse a *named* hardware register, and no
+  such read exists. Both conditions stay; the reason is beside them in the code.
+- **An observer query that cannot fail.** The relocated accumulator obligation is
+  discharged by identity — the body being the store alone and the instruction
+  ahead of it being that body's own load — not by the query beside it. The query
+  pins a position and is decoration; the comment now says so.
+
+### Deferral expiry
+
+Did this row's work expire any deferral's stated rationale? **One.** The expert
+baseline's descending-counter candidate was never deferred explicitly, but the
+issue's own cycle targets encoded the ascending form as though it were the
+reference. Delivering against those targets made the gap concrete and measurable
+for the first time, which is what #212 now owns. Nothing in the ambiguity
+registers or `spec/future-considerations.md` names this row's deliverables as its
+landing place.
