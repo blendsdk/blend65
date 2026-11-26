@@ -135,7 +135,7 @@ by reading the oracle, not by a witness, since nothing emits that form yet.
 
 | Finding | Severity | Disposition |
 | --- | --- | --- |
-| RV-001 / MC-003: the page-crossing comment was wrong — the pointer form's discarded store read is the element itself, absolute-Y's is one page below | minor | Fixed. The comment now states the difference and the guarantee, which is structural: the operand is the object's label plus a non-negative in-object offset, the discarded read keeps that operand's high byte, so it lands in a page the object occupies, and device space is whole pages holding no object. A first correction named the final observer as the safeguard; that was wrong for one path — an optimizing build's reference also takes the view (its loop facts are always present, possibly empty), and when every transformed construction is refused the reference ships without the footprint check. The observer is a second check on selected transformations only. A VICE case writes an array straddling `$3400` and checks both neighbours |
+| RV-001 / MC-003: the page-crossing comment was wrong — the pointer form's discarded store read is the element itself, absolute-Y's is one page below | minor | Fixed. The comment now states the difference and the guarantee, which is structural: the operand is the object's label plus a non-negative in-object offset, the discarded read keeps that operand's high byte, so it lands in a page the object occupies, and layout confines every object to the zero page or the resident window `$0801`–`$CFFF` (witnessed: `place(at:)` at `$CFF8`, `$D000`, `$DFF8` and `$E000` is refused with E10273). A first correction named the final observer as the safeguard; that was wrong for one path — an optimizing build's reference also takes the view (its loop facts are always present, possibly empty, and its ordinal bounds need only observer evidence, not candidate source facts), and when every transformed construction is refused the reference ships without the footprint check. The observer is a second check on selected transformations only. A VICE case writes an array straddling `$3400` and checks both neighbours |
 | RV-002: moved exports undocumented, one doc comment stranded | minor | Fixed |
 | RV-003: oracle authored after implementation | major (process) | Recorded below as a deviation; not rewritten |
 | MC-001: word `< 8` guard pays a full subtraction | minor | Pre-existing; filed #220 (2 B / 2 c per test) |
@@ -200,8 +200,10 @@ rather than counted as specification-first.
   covered `cdfdc2f7` with the oracles of `6b109a1d`. Not independently
   reviewed: the complement stand-down (`dc537382`), the interrupt-gate witness
   and page-crossing case (`d470439a`), the corrected page-crossing comment, and
-  the oracle correction for #216's cheaper form. Each is covered by the gates
-  recorded below.
+  the oracle correction for #216's cheaper form. `dc537382` is covered by the
+  complete gate below; the two later commits — a comment and record change, and
+  the oracle correction — by the checkpoint rows after it. The final diff
+  identity is the commit that adds those rows.
 - **Behaviour oracle authorship.** `word-views-direct-indexing-vice.spec.test.ts`
   was written by the implementer, not the implementation-blind author; it is
   supporting evidence, not an independent oracle.
@@ -226,6 +228,7 @@ rather than counted as specification-first.
 | Host checkpoint `yarn test` | compiler 270 / 4,601 + 2 skipped; root **288 / 6,255** |
 | Complete gate `yarn test:full`, first run | host tier green; VICE tier 9 failed — eight deterministic `input-byte-selection` cases (this row's, fixed in `dc537382`, see above) and the #191 flake |
 | Complete gate `yarn test:full`, on `dc537382` | install, build, typecheck clean; identities as above; host **288 / 6,256**, compiler 270 / 4,601; VICE tier **2,441 passed, 2 failed**, both pre-existing flakes: #191 (collision latch, 8580) and the #213 race on its Timer A sibling (resumed PC `$EA8E`), which passed 2/2 on re-run. Evidence added to both issues |
+| Checkpoint after the gate, on `ee2c2518` plus the comment refinement (comment, record and oracle changes only) | build and typecheck clean; all nine identities unchanged; `yarn test:changed --host` green, host **288 / 6,256**; the three corrected oracle files 23 / 23 green, and on `9f1d24b1` the same nine cases fail |
 
 ## Residuals, all filed
 

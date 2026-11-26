@@ -235,8 +235,9 @@ export function directAggregateAccess(
    * cycle. That read can never reach a device register, by construction. The
    * operand is the object's own label plus a non-negative offset inside it, and
    * the CPU keeps the operand's high byte for the discarded read, so it lands in
-   * the page holding that byte of the object. Device space is whole pages and no
-   * object may be placed in it, so that page is ordinary memory. When a
+   * the page holding that byte of the object. Layout confines every object to
+   * the zero page or the resident program window, which ends a whole page below
+   * device space, so that page is ordinary memory. When a
    * transformed construction is selected, the final observer also checks every
    * access envelope, discarded reads included; that is a second check, not the
    * guarantee, because a build whose transformations are all refused ships the
