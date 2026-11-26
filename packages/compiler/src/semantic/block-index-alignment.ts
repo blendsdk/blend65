@@ -249,14 +249,23 @@ function addressableOffsets(proved: ProvedPlace, size: number): readonly number[
  *
  * It is used only for a declared demand. An inferred one keeps its existing
  * behaviour, so no object moves because of this.
+ *
+ * Every body that startup or the program can run has to be looked in, not only
+ * the function bodies. A module initializer runs before the entry and is a body
+ * of its own, so `let b: byte = blk();` enters `blk` and `let f: fn(): byte =
+ * &blk;` takes its address with nothing about either appearing inside any
+ * function. Missing those is the error this is written to avoid: the function
+ * would look unreachable, its declared demand would be dropped, and the sprite
+ * it publishes would be left wherever layout found room.
  */
 function definitelyUnreachable(
   functions: readonly SemanticFunction[],
+  globals: readonly SemanticGlobal[],
   entry: BindingId | undefined,
 ): ReadonlySet<string> {
   const entered = new Set<string>(entry === undefined ? [] : [bindingIdentityKey(entry)]);
-  for (const fn of functions) {
-    for (const block of fn.blocks) {
+  for (const blocks of [...functions.map((fn) => fn.blocks), ...globals.map((g) => g.blocks)]) {
+    for (const block of blocks) {
       for (const operation of block.operations) {
         if (operation.kind === "call") entered.add(bindingIdentityKey(operation.callee));
         if (operation.kind === "function-address")
@@ -362,7 +371,7 @@ export function alignBlockIndexStorage(
   entry?: BindingId,
 ): readonly SemanticGlobal[] {
   const byKey = new Map(globals.map((global) => [bindingIdentityKey(global.id), global] as const));
-  const unreachable = definitelyUnreachable(functions, entry);
+  const unreachable = definitelyUnreachable(functions, globals, entry);
   const demands = new Map<string, AlignmentDemand[]>();
   const walk = scanProgram(functions, globals);
   const scan = (body: ScannedBody): void => {
