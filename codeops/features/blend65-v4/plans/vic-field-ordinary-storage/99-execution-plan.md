@@ -1,7 +1,7 @@
 # Let the safe VIC field form take the address of ordinary module storage
 
 > **Owner**: T-179 (#179) · **Type**: Task (lightweight) · **CodeOps Artifact Schema**: 1
-> **Status**: Delivered and verified; five reviews dispositioned over two rounds, two fields withdrawn on their evidence
+> **Status**: Delivered and verified; seven reviews dispositioned over three rounds, two fields withdrawn on their evidence
 > **Progress**: 5/5 tasks (100%)
 > **Last Updated**: 2026-11-26
 
@@ -235,34 +235,75 @@ module storage for a screen field would not have been quietly wrong, it would ha
 screen 'X' has no placed VIC asset"* — an internal-sounding refusal — the moment a sprite pointer was
 written.
 
+## The third review round
+
+The second round's repairs went back once more. One finding, and it was the second half of a defect
+the round before had only half-closed.
+
+| Finding | Measured | Disposition |
+| --- | --- | --- |
+| TP-010 — a body nothing can enter declared a demand, refusing a build that previously succeeded | an uncalled function holding `vicSpriteBlock(&far)` with `far` at `$4000` was refused; the same dead function using the arithmetic form built | **Fixed.** Liveness over-approximates on purpose, and only the declared route is gated |
+| TP-009 — the run-time-index advice was wrong for a wide element | `byte[4][128]`: following `+ index` selects block `base+i` instead of `base+2i` | **Fixed.** The fold knows the stride and the advice is scaled by it |
+| TP-011 — the withdrawal's help steered authors to the spelling with no reservation either | a constant screen address leaves `$xFF8-$xFFF` unowned too | **Fixed**; the gap is on [#200](https://github.com/blendsdk/blend65/issues/200) |
+| the alignment clause claimed no placement could correct the offset | `place(at: $2820)` with `&b[32]` puts the addressed byte at `$2840`, which is aligned | **Wording corrected**, and the reason the check still refuses it written down beside it |
+| the footprint comment claimed every footprint divides the bank and window boundaries | 8,000 and 1,000 divide neither; `satisfiesVicFetch($0000, 8000)` is `false` | **Corrected**, with the measurement |
+| TP-008 — a composite demand's attribution | already closed by the second round's fix | **Verified**, no change |
+| the withdrawal's completeness | every producer of a foldable field operand enumerated | **Confirmed complete** |
+| the `help` channel's effect on artifacts | pre-existing `ProjectDiagnostic` field, already rendered and serialized | **Confirmed text-only** |
+
+### And one defect the mutation matrix found rather than a reviewer
+
+Verifying the occupied-address case, the mutation aimed at the layout reason failed nothing. Chasing
+why found that the sentence is chosen where the diagnostic is built, not where the reason is set —
+and that the repair had been applied to one of the two placement loops. Storage reserved without
+bytes still blamed the chip: `place(at: $0100)` satisfies every requirement the chip has and fails
+the resident window, and was told the address did not satisfy the chip. Both loops now ask the same
+question, and the shape is pinned as a case beside the occupied address.
+
 ## Verification
 
 | Gate | Result |
 | --- | --- |
-| Oracle, authored implementation-blind throughout | **25 shapes / 33 cases**; 26 of 36 red before implementation |
-| Mutations | **12** applied alone, **10 discriminate**, failing 1–22 cases |
-| Host checkpoint | **283 files / 6,205 tests**, green |
+| Oracle, authored implementation-blind throughout | **31 shapes / 42 cases**; 26 of 36 red before implementation |
+| Mutations | **19** applied alone, **17 discriminate**, failing 1–28 cases |
+| Host checkpoint | **283 files / 6,216 tests**, green |
 | Affected VICE journeys | **137/137** — sprite pointer, producer, VIC observers, koala, qp15 |
 | Byte identity, three examples × three goals | **9/9 unchanged** |
 | Capability versus hand-rolled arithmetic | **byte-identical**, four profiles × none/balanced/size |
 | Compiler package suite | **269 files / 4,594 tests**, green |
+| Install, build, typecheck | clean |
 
 ### Mutation matrix
 
+Nineteen mutations, each applied alone against the delivered code with the tests untouched.
+
 | Mutation | Cases it fails |
 | --- | --- |
-| The zero-page guard inverted | 22 |
-| Layout admits only an asset again | 19 |
-| The capability states no demand | 17 |
-| The help line dropped from the author's view | 5 |
+| The zero-page guard inverted | 28 |
+| The capability states no demand | 21 |
+| Layout admits only an asset again | 21 |
+| The help line dropped from the author's view | 9 |
+| Every refusal reports the same cause | 5 |
 | Every field accepts module storage | 3 |
-| A declared demand drops at a fixed address | 1 |
+| A declared demand drops at a fixed address | 3 |
+| The placement action removed | 3 |
+| The bounded fixed-address cause removed | 3 |
+| The failing check no longer selects the sentence | 2 |
+| A position inside an asset reports no cause | 2 |
 | The offset-alignment check removed | 1 |
 | The capability's displacement reach not collected | 1 |
-| Every refusal reports the same cause | 1 |
 | The field footprint widened by one byte | 1 |
+| An unreachable body declares a demand again | 1 |
+| The element stride no longer scales the advice | 1 |
+| Reserved storage blames the chip for a window failure | 1 |
 | The shared-address guard removed | **0** |
 | The field footprint narrowed to one sprite block | **0** |
+
+Two of those are the disclosed non-discriminators below. One more is worth recording for method
+rather than for coverage: the first attempt at *"the failing check no longer selects the sentence"*
+mutated the layout reason instead of the place the sentence is chosen, and failed nothing. Chasing
+that is what found the second misattributed refusal — a mutation that does not discriminate is
+sometimes aimed at the wrong line rather than at an untested rule.
 
 ## Disclosures
 
