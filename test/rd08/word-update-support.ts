@@ -38,7 +38,7 @@ export interface WordStep {
   readonly low: number;
   /** First instruction belonging to the update. */
   readonly start: number;
-  /** Instruction that commits the counter's high byte. */
+  /** Last instruction committing an updated counter byte. */
   readonly end: number;
 }
 
@@ -125,6 +125,10 @@ function isDirect(instruction: Instruction): boolean {
 /**
  * Find the source home of the private word increment without depending on local
  * symbol spelling or requiring that forwarding already works.
+ *
+ * A low-byte-only increment is also recognized when its following branch leaves
+ * the update. Whole-routine behavior checks determine whether omitting a high-byte
+ * write is justified by the values that can actually reach that update.
  */
 export function wordStep(view: RoutineView): WordStep {
   const code = view.decoded.map((entry) => entry.instruction);
@@ -160,9 +164,20 @@ export function wordStep(view: RoutineView): WordStep {
           instruction.address === low + 1,
       );
       if (end >= 0) return { low, start, end };
+
+      const following = code[start + 1];
+      if (
+        following !== undefined &&
+        (following.mode === "relative" || following.mnemonic === "jmp") &&
+        following.target !== undefined
+      ) {
+        const destination = targetPosition(view, start + 1, following.target);
+        if (destination === undefined || destination < start || destination > start + 1)
+          return { low, start, end: start };
+      }
     }
   }
-  throw new Error(`Missing a full-width word increment:\n${view.lines.join("\n")}`);
+  throw new Error(`Missing a recognized word-counter increment:\n${view.lines.join("\n")}`);
 }
 
 /**

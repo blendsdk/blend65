@@ -118,6 +118,19 @@ evaluator could not follow `main`'s exit into the startup restore, a span
 evaluation followed the update's own back edge, and one control's NMI handler
 body is refused by the compiler on both trees — which is itself a defect, #214.
 
+A later review found the accepted oracle over-constrained: it would have turned
+#216's legal, cheaper `inc lo / bne header` red. It required a high-byte write
+to locate the counter, required writes to both home bytes, and checked carry by
+seeding values (255, 256, 65535) that cannot reach the update in a loop whose
+body runs only below eight. The same author corrected it: a low-byte-only
+increment whose branch leaves the update is recognised, the high byte need be
+written only when it changes, carry is checked on reachable behaviour (a
+counter crossing 255 → 256 inside a 300-element loop, from six seeds), and the
+store windows are ceilings rather than equalities. Nothing that defined
+correctness was loosened. It stays green on this tree, and on `9f1d24b1` the
+same nine cases fail for the same reasons. That #216's form now passes is shown
+by reading the oracle, not by a witness, since nothing emits that form yet.
+
 ## Review dispositions
 
 | Finding | Severity | Disposition |

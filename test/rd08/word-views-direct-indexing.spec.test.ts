@@ -152,7 +152,7 @@ function expectPointerForm(view: RoutineView, base: number): void {
 
 describe("word views for direct byte-array indexing", () => {
   it.each(["balanced", "size"] as const)(
-    "uses a nine-byte direct store window for nested bounded words in %s mode",
+    "uses a direct nested-word store window within nine bytes and thirteen cycles in %s mode",
     async (mode) => {
       const artifacts = await buildProfileSource(nestedSource, target, mode);
       expect(artifacts.debug).toMatchObject({ profileId: target, optimization: mode });
@@ -167,16 +167,15 @@ describe("word views for direct byte-array indexing", () => {
       expectWordHome(view, i);
       expectWordHome(view, j);
       expectUnstagedStoreBlock(view, store);
-      expect(windowCost(window), "direct store bytes and cycles").toEqual({
-        bytes: 9,
-        cycles: 13,
-      });
+      const charged = windowCost(window);
+      expect(charged.bytes, "direct store byte ceiling").toBeLessThanOrEqual(9);
+      expect(charged.cycles, "direct store cycle ceiling").toBeLessThanOrEqual(13);
     },
     180_000,
   );
 
   it.each(["balanced", "size"] as const)(
-    "reads a shared index/value byte once in a seven-byte window in %s mode",
+    "reads a shared index/value byte once within seven bytes and eleven cycles in %s mode",
     async (mode) => {
       const artifacts = await buildProfileSource(scanSource(), target, mode);
       const view = namedRoutine(artifacts, "scan");
@@ -188,10 +187,9 @@ describe("word views for direct byte-array indexing", () => {
       expect(window[1]).toMatchObject({ mnemonic: "tay", mode: "implied" });
       expectWordHome(view, step.low);
       expectUnstagedStoreBlock(view, store);
-      expect(windowCost(window), "shared-byte store bytes and cycles").toEqual({
-        bytes: 7,
-        cycles: 11,
-      });
+      const charged = windowCost(window);
+      expect(charged.bytes, "shared-byte store byte ceiling").toBeLessThanOrEqual(7);
+      expect(charged.cycles, "shared-byte store cycle ceiling").toBeLessThanOrEqual(11);
     },
     180_000,
   );

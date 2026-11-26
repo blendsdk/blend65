@@ -1,7 +1,7 @@
 /**
  * Private word increments commit directly without scratch copies while retaining
- * full-width guards and carry. Global word increments preserve ordered ordinary
- * stores rather than introducing NMOS read-modify-write bus effects.
+ * full-width guards and reachable carry. Global word increments preserve ordered
+ * ordinary stores rather than introducing NMOS read-modify-write bus effects.
  */
 import { describe, expect, it } from "vitest";
 import { buildProfileSource } from "../rd05/profile-fixture.js";
@@ -40,16 +40,39 @@ function main(): void {
 `;
 }
 
-/** Require the private update to write its two home bytes and no staging RAM. */
+/**
+ * Require the private update to write only its own counter bytes.
+ *
+ * The high byte need not be written when reachable counter values prove that it
+ * cannot change. If both bytes are written, the low-byte commits come first.
+ * Whole-routine checks separately verify guards and reachable carry.
+ */
 function expectDirectPrivateStep(view: RoutineView, step: WordStep): void {
   const writes = view.decoded
     .slice(step.start, step.end + 1)
     .map((entry) => entry.instruction)
     .filter(isMemoryWrite);
+  expect(writes.length, "the update writes its counter home").toBeGreaterThan(0);
+  expect(writes[0]!.address, "the low byte is committed first").toBe(step.low);
   expect(
-    writes.map((instruction) => instruction.address),
-    "update writes only the low and high counter homes, in order",
-  ).toEqual([step.low, step.low + 1]);
+    writes.every(
+      (instruction) => instruction.address === step.low || instruction.address === step.low + 1,
+    ),
+    `no scratch writes in the update: ${writes.map((instruction) => instruction.text).join("; ")}`,
+  ).toBe(true);
+
+  const lowPositions = writes.flatMap((instruction, position) =>
+    instruction.address === step.low ? [position] : [],
+  );
+  const highPositions = writes.flatMap((instruction, position) =>
+    instruction.address === step.low + 1 ? [position] : [],
+  );
+  if (highPositions.length > 0)
+    expect(
+      Math.max(...lowPositions),
+      "low-byte commits precede high-byte commits when both are needed",
+    ).toBeLessThan(Math.min(...highPositions));
+
   expect(
     writes.map((instruction) => instruction.mnemonic),
     "private updates use stores or full-width increment instructions",
@@ -140,14 +163,34 @@ describe("direct full-width word updates", () => {
     180_000,
   );
 
-  it("preserves the private increment's carry and word wrap", async () => {
-    const artifacts = await buildProfileSource(scanSource(), target, "balanced");
-    const view = namedRoutine(artifacts, "scan");
-    const step = wordStep(view);
-    for (const seed of [0, 7, 255, 256, 65535]) {
-      const result = evaluate(view, wordMemory(step.low, seed), step);
-      const actual = result.memory.get(step.low)! + (result.memory.get(step.low + 1)! << 8);
-      expect(actual, `full-width increment of ${seed}`).toBe((seed + 1) & 0xffff);
+  it("preserves reachable counter carry across the byte boundary", async () => {
+    const source = `module Game;
+let data: byte[300] = [;0];
+function work(seed: word): void {
+  for (let i: word = seed; i < 300; i += 1) {
+    data[i] = byte(i);
+  }
+}
+function main(): void { work(250); }
+`;
+    const artifacts = await buildProfileSource(source, target, "balanced");
+    const view = namedRoutine(artifacts, "work");
+    const input = inputWordHome(view);
+    const base = globalAddress(view.labels, "data");
+
+    for (const seed of [250, 255, 256, 299, 300, 65535]) {
+      const stores = indexedWrites(view, evaluate(view, wordMemory(input, seed)));
+      const indices =
+        seed < 300 ? Array.from({ length: 300 - seed }, (_, offset) => seed + offset) : [];
+      expect(
+        stores.map(({ address, value }) => ({ address, value })),
+        `reachable word-counter stores for seed ${seed}`,
+      ).toEqual(
+        indices.map((index) => ({
+          address: base + index,
+          value: index & 0xff,
+        })),
+      );
     }
   }, 180_000);
 
