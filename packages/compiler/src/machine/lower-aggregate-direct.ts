@@ -250,20 +250,27 @@ export function directAggregateAccess(
    * they can take over; when they win they are cheaper still, and when every
    * one of them is refused the plain construction still competes with the view.
    * An ordinal whose origin is unknown keeps the pointer.
+   *
+   * The plain construction stands down the same way in a function where a
+   * stable byte's complement could be cached. That cache is checked against
+   * the same canonical reference, instruction for instruction, so it cannot
+   * take the view either; and a plain construction that did would outbid it on
+   * size while computing the complement on every trip instead of once.
    */
   const indexRoot = state.loadOrigins.get(term.value);
   const owner = owningFunction(state);
-  const narrowable = narrowableCounters(
-    state.input,
-    owner,
-    owner === undefined ? undefined : state.input.sourceFacts?.functions.get(owner)?.loops,
-  );
+  const ownerFacts =
+    owner === undefined ? undefined : state.input.sourceFacts?.functions.get(owner);
+  const narrowable = narrowableCounters(state.input, owner, ownerFacts?.loops);
+  const plainConstruction =
+    state.input.sourceFacts?.loopPolicy === "original" &&
+    (ownerFacts?.complements?.replacements.size ?? 0) === 0;
   const ordinaryByteElement =
     term.stride === 1 &&
     typeBytes(type) === 1 &&
     indexRoot !== undefined &&
     narrowable !== undefined &&
-    (!narrowable.has(indexRoot) || state.input.sourceFacts?.loopPolicy === "original");
+    (!narrowable.has(indexRoot) || plainConstruction);
   const index =
     retained?.kind === "zero-extended" && !retained.signed
       ? retained.low.kind === "storage" && retained.low.bytes === 1 && retained.low.signed !== true

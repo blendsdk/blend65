@@ -94,6 +94,7 @@ nested witness's two counter updates stay staged. Filed as #219.
 | Guard | Witnessed | How |
 | --- | --- | --- |
 | #120: index root not narrowable, or `original` construction | yes | integration tier: removing it fails the saved-input frontier and row 6's oracle |
+| #120: the plain construction stands down where a complement could be cached | yes | `input-byte-selection.spec.test.ts` (VICE, four profiles): without it the plain construction wins with two complements |
 | #120: unit stride and one-byte element | **no** | scope; the excluded shapes are #218 |
 | #120: index origin known | **no** | fail-closed; no fixture reaches an unknown origin with a bounded maximum |
 | #121: same request and offset | yes | public oracle, different-variable control |
@@ -132,6 +133,31 @@ body is refused by the compiler on both trees — which is itself a defect, #214
 Machine-code verdict: both store windows **meet** the expert; the updates
 remain below it and are filed. SFA/ABI verdict: static closure passes, no
 critical or major finding. Correctness verdict: no runtime defect.
+
+## The complete gate found a third reference conflict
+
+The first complete `yarn test:full` failed eight cases of
+`input-byte-selection.spec.test.ts` — two per profile, all deterministic — plus
+the #191 collision flake. The failing program fills two loops with `~x` for a
+stable byte `x`; its oracle requires the complement to be computed once.
+
+The exception that lets the plain construction take the bounded view for a
+narrowable counter broke the construction that caches the complement: that
+construction's observer compares every instruction outside its substitution
+with the canonical reference, which keeps the pointer form. It was refused,
+and the plain construction then won on size (1539 against 1572) by computing
+`~x` on every trip. The exception now stands down in any function where a
+complement could be cached, restoring 1572 and the single complement; the
+row's own witnesses and row 6's selections are unchanged. Having both wins
+needs the complement observer to accept the absolute-indexed store, filed as
+#221.
+
+This is the third time in two rows that a construction's reference has
+decided what another construction may do. The integration tier caught the
+held-counter case; only the VICE tier carries the complement oracle, and it was
+not among the affected VICE tests run before the gate — a lowering change that
+touches every indexed store should have run every VICE file that pins a
+loop's store shape.
 
 ## Process deviation: the oracle followed the implementation
 
@@ -176,3 +202,5 @@ rather than counted as specification-first.
 | #217 | `INC` for a module word when nothing observes A, flags or the bus |
 | #218 | Word-element and scaled bounded indexing, 52 → 17 B |
 | #219 | The plain construction stages updates of narrowable counters |
+| #220 | A word compared against a power of two still subtracts |
+| #221 | A cached complement and an absolute-indexed store cannot both be selected |
