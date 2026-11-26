@@ -263,7 +263,11 @@ function definitelyUnreachable(
   globals: readonly SemanticGlobal[],
   entry: BindingId | undefined,
 ): ReadonlySet<string> {
-  const entered = new Set<string>(entry === undefined ? [] : [bindingIdentityKey(entry)]);
+  // Without the entry, the program's one guaranteed-live function is unknown,
+  // and so is every function only it calls. Naming nothing unreachable is the
+  // only answer that cannot drop a demand; the gate simply does not apply.
+  if (entry === undefined) return new Set<string>();
+  const entered = new Set<string>([bindingIdentityKey(entry)]);
   for (const blocks of [...functions.map((fn) => fn.blocks), ...globals.map((g) => g.blocks)]) {
     for (const block of blocks) {
       for (const operation of block.operations) {

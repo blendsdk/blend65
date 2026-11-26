@@ -260,12 +260,53 @@ bytes still blamed the chip: `place(at: $0100)` satisfies every requirement the 
 the resident window, and was told the address did not satisfy the chip. Both loops now ask the same
 question, and the shape is pinned as a case beside the occupied address.
 
+### And one the fix for a finding introduced itself
+
+The liveness gate that closed TP-010 walked only function bodies. A module initializer is a body of
+its own and runs before the entry, so a publisher reached only from one looked unreachable and had
+its declared demand dropped. Measured, with `buffer: byte[64]` published by a function `blk`:
+
+| Shape | Before | After |
+| --- | --- | --- |
+| `let f: fn(): byte = &blk;` | **no demand** | align 64, 64 bytes |
+| `let b: byte = blk();` | **no demand** | align 64, 64 bytes |
+| called from `main` | align 64 | unchanged |
+| uncalled, address never taken | no demand | unchanged |
+
+This is the error direction the gate's own comment named as the one to avoid, and the fix for it
+walked into it anyway. A global initializer naming a publisher is not the dead-body case — it runs
+at startup, so the function genuinely executes.
+
+**One claim in the commit that fixed it is wrong, and this is the correction.** That message says
+the programs would have shipped a sprite pointing at character ROM with no diagnostic. Only the
+dropped demand had been measured at that point, not what the build then did. Measured since, at
+paddings of 16, 100, 900, 2,400 and 9,000 bytes before `buffer`, every one of them is **refused**:
+
+```
+E10273  Cannot place 'VIC field' - VIC field 'vic-sprite-block' at $13e8 overlaps the
+        VIC-invisible character-ROM window $1000-$1fff
+  help: Move 'place(at:)' on this object to an address that satisfies the requirement
+        above, or remove it and let the compiler choose a home that does.
+```
+
+A later stage checks the field address and catches the dropped demand every time. So this is not a
+silent miscompile — it is the same defect as the rest of the round: a legal program refused, with a
+message naming a cause that is not true. The author is told to move a `place(at:)` their program does
+not contain, at an address they did not choose, for an object the compiler placed itself.
+
+Three acceptance cases now pin it, all three verified red against the pre-fix compiler. The third is
+the one worth keeping: it puts both answers in one program, so that widening liveness to every
+function — which would satisfy the other two — still fails on the dead body beside them.
+
+The method note is that the claim was wrong in the safe direction and still wrong. Measuring that a
+demand was dropped is not measuring what the compiler does about it, and the two are a stage apart.
+
 ## Verification
 
 | Gate | Result |
 | --- | --- |
-| Oracle, authored implementation-blind throughout | **31 shapes / 42 cases**; 26 of 36 red before implementation |
-| Mutations | **19** applied alone, **17 discriminate**, failing 1–28 cases |
+| Oracle, authored independently | **34 shapes / 45 cases**; 26 of 36 red before implementation |
+| Mutations | **20** applied alone, **18 discriminate**, failing 1–28 cases |
 | Host checkpoint | **283 files / 6,216 tests**, green |
 | Affected VICE journeys | **137/137** — sprite pointer, producer, VIC observers, koala, qp15 |
 | Byte identity, three examples × three goals | **9/9 unchanged** |
@@ -275,7 +316,7 @@ question, and the shape is pinned as a case beside the occupied address.
 
 ### Mutation matrix
 
-Nineteen mutations, each applied alone against the delivered code with the tests untouched.
+Twenty mutations, each applied alone against the delivered code with the tests untouched.
 
 | Mutation | Cases it fails |
 | --- | --- |
@@ -296,6 +337,7 @@ Nineteen mutations, each applied alone against the delivered code with the tests
 | An unreachable body declares a demand again | 1 |
 | The element stride no longer scales the advice | 1 |
 | Reserved storage blames the chip for a window failure | 1 |
+| Initializer bodies not walked for a caller | 3 |
 | The shared-address guard removed | **0** |
 | The field footprint narrowed to one sprite block | **0** |
 
@@ -306,6 +348,15 @@ that is what found the second misattributed refusal — a mutation that does not
 sometimes aimed at the wrong line rather than at an untested rule.
 
 ## Disclosures
+
+**Four of the forty-five cases are not implementation-blind, and the table no longer claims they
+are.** The first thirty-six were authored against the requirements with the implementation unwritten,
+and 26 of them were red. The four added during review — the occupied address, the address below the
+resident window, and the three initializer routes — were written after the code existed, from a
+stated requirement rather than from the code, and the initializer prompt described the failure
+mechanism because that is what had just been measured. They are regression pins, and each was
+verified red by reverting the fix and rebuilding rather than by having been written first. That is
+weaker evidence than a blind oracle case and is recorded as such.
 
 **Two mutations fail nothing, for different reasons.**
 
