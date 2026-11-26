@@ -325,7 +325,7 @@ dispatch table is ordinary code and the natural spelling of a hand-written jump 
 | --- | --- |
 | Oracle, authored independently | **33 shapes / 45 tests** across two files; 26 of 36 red before implementation |
 | Mutations | **20** applied alone, **18 discriminate**, failing 1–28 cases |
-| Host checkpoint | **283 files / 6,216 tests**, green |
+| Host checkpoint | **284 files / 6,220 tests**, green |
 | Affected VICE journeys | **137/137** — sprite pointer, producer, VIC observers, koala, qp15 |
 | Byte identity, three examples × three goals | **9/9 unchanged** |
 | Capability versus hand-rolled arithmetic | **byte-identical**, four profiles × none/balanced/size |
