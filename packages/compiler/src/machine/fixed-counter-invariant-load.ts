@@ -63,8 +63,12 @@ function acceptsAppendedLoad(block: MachineBlock): boolean {
  * why the program may install no interrupt route and expose no callable or
  * interrupt root: an asynchronous write between the hoisted load and the last
  * store would be observed by the loop as it stands and not by the hoisted form.
- * The loop must also be proved to run at least once, so that the load is not
- * newly executed on a path that previously skipped it.
+ *
+ * The loop must also be proved to run at least twice. Once is the soundness
+ * floor — a load must not become newly executed on a path that previously
+ * skipped it — but twice is the floor that matters: a single trip has no repeat
+ * to remove, so moving its load would reorder a program's bytes for no gain at
+ * all, and a transformation that changes output without improving it is noise.
  *
  * Nothing else about the schedule changes. The accumulator and the flags at the
  * loop's exit are what they were, because the exit is reached through the same
@@ -83,7 +87,7 @@ export function hoistFixedCounterInvariantLoads(
   let blocks = fn.blocks;
   for (const counter of runtime.counters.values()) {
     const { loop, register } = counter;
-    if (register === null || loop.tripDomain.minimum < 1) continue;
+    if (register === null || loop.tripDomain.minimum < 2) continue;
     const at = (id: string) => blocks.find((block) => block.label === id);
     const preheader = at(loop.preheader.id),
       header = at(loop.header.id),

@@ -217,19 +217,33 @@ describe("final held-counter typed stores", () => {
             });
             expect(input.candidate.shared.certificate.certificate.hardwareStackProgramPeak).toBe(3);
             expect(validateSizeObservers(input).kind).toBe("complete");
-            // The byte stored on every trip is the same byte, so it is loaded
-            // once ahead of the loop and the body is the store alone. The load
-            // has to be the last thing before the loop is entered: that is the
-            // only position which runs once and still reaches every trip.
+            // The byte stored on every trip is the same byte, so once the loop
+            // repeats it is loaded ahead of the loop and the body is the store
+            // alone. The load has to be the last thing before the loop is
+            // entered: that is the only position which runs once and still
+            // reaches every trip. A single trip has no repeat to remove, so it
+            // keeps the load in its body rather than being reordered for nothing.
+            const repeats = bound > 1;
             expect(
               after.symbols[2]!.instructions.map(({ opcode, mode }) => [opcode, mode]),
-            ).toEqual([["sta", `absolute-${proof.representation}`]]);
+            ).toEqual(
+              repeats
+                ? [["sta", `absolute-${proof.representation}`]]
+                : [
+                    ["lda", variable ? "absolute" : "immediate"],
+                    ["sta", `absolute-${proof.representation}`],
+                  ],
+            );
             expect(
               after.symbols[0]!.instructions.map(({ opcode, mode }) => [opcode, mode]),
-            ).toEqual([
-              [`ld${proof.representation}`, "immediate"],
-              ["lda", variable ? "absolute" : "immediate"],
-            ]);
+            ).toEqual(
+              repeats
+                ? [
+                    [`ld${proof.representation}`, "immediate"],
+                    ["lda", variable ? "absolute" : "immediate"],
+                  ]
+                : [[`ld${proof.representation}`, "immediate"]],
+            );
             if (index === null) throw new Error("Expected a proved typed store");
             expect(before.symbols[2]!.instructions[7]!.operand).toEqual({
               kind: "immediate",
