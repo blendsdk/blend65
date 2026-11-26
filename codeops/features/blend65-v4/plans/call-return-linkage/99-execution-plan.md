@@ -163,7 +163,7 @@ restoration equals the one `main` started with.
 | #124/#126 `calculate` | 244, `jsr helper / rts` | **240**, falls into the helper: 4 B / 12 c, beating the issue's `jmp` by 3 B / 3 c |
 | #124 word `next` | 224, high byte stored and dead | **221**, the issue's expert sequence exactly |
 | `outer` narrowing a word callee | `jsr / sta / stx / lda / rts` | `jmp inner` |
-| acquisition frontier workload (loaded payload, excluding the load address) | 935 | **929** — two dead staging stores in `c64.input.readInputSnapshot` |
+| acquisition frontier workload (loaded payload, excluding the load address) | 935 | 935 — the two staging stores this row first removed are kept; see the complete gate below (#230) |
 
 Measured `none` identity: the nine canonical identities (boing-ball, m1 and
 rd06-spritepad at `none`, `balanced` and `size`) are unchanged — none of those
@@ -197,7 +197,7 @@ here runs only when optimization facts are present.
 | File | Change | Authority |
 | --- | --- | --- |
 | `test/rd04/wrapper-call-flag-settlement.spec.test.ts` | "should leave the wrapper itself as a plain call and return" → "should leave the wrapper through its callee", expecting `jmp b65_Game_inner_`. It was that unit's scope control and pinned exactly the limitation #126 removes; its delivery cases are unchanged and pass | User, 2026-11-26, in this session |
-| `test/rd08/optimizer-exact-output.impl.test.ts` | acquisition payload 935 → 929 and its digest, at `balanced`, `speed` and `size`; the harness reproduced the old digest on the pre-change tree first | implementation identity pin |
+| `test/rd08/optimizer-exact-output.impl.test.ts` | acquisition payload 935 → 929 and its digest, then back to 935 and the original digest when the byte rule became reference-consistent; the file ends identical to the pre-row tree | implementation identity pin |
 | `packages/compiler/src/machine/optimization-cleanup.impl.test.ts` | two cases now expect `cleanup.dead-byte-store` after `cleanup.copy-forward` — forwarding leaves the store unread | implementation test |
 
 ## Residuals
@@ -213,6 +213,7 @@ here runs only when optimization facts are present.
 | #223 | A word result parked in RAM and staged again by its caller: 16 B / 20 c |
 | #224 | A global word update reloads the high byte it has just stored: 3 B / 4 c |
 | #229 | Block layout does not place a tail jump like the return it replaced: 20 B against 17 in a constructed shape |
+| #230 | A temporary byte unread only in the selected layout keeps its store: 6 B / 8 c on the acquisition workload |
 
 ## Review dispositions
 
@@ -252,3 +253,34 @@ KERNAL's stacked-status test is unaffected; handler and dual-domain bodies are
 specialised before cleanup and excluded; the restoration sees the same stack
 pointer. Status remains `VICE-verified / hardware-unverified`, and the VICE
 oracle stops at restoration entry rather than following BASIC's return.
+
+## The complete gate found a reference conflict
+
+The first complete gate failed one VICE case on all four profiles,
+`input-loop-storage.spec.test.ts` "should preserve eight ordinals and ordered
+nested pairs in size mode". Its values were right; its evidence check that the
+word counter is narrowed in `size` was not. On the pre-row tree `size` selects
+the narrowed `low-byte` construction at 1085 B; with this row every candidate
+was refused and the canonical fallback shipped at **1190 B**.
+
+The byte rule judged each layout from its own reads. The narrowed layout no
+longer reads the high byte of the `column + 1` staging temporary, so its store
+went in that layout and stayed in the reference, and the low-byte observer —
+which proves the parent sum against the reference's seven-instruction word
+increment — refused it. The existing request-level rule avoids exactly this by
+design: every layout receives the reference's dead-home set. The byte rule now
+does the same. The reference publishes the temporary bytes its final lowering
+never reads, and any other layout removes a byte store only inside that set
+(and only where it has no reader of its own); with no feasible reference, each
+layout judges alone. `size` selects `low-byte` again, at **1082 B**.
+
+The price is the acquisition workload's 6 B: its two staging bytes are unread in
+the selected layout but read in the reference. That is #230, with the observer
+change that would recover it. Every other figure is unchanged.
+
+This is the fourth time across rows 6–8 that a layout's reference decided what
+another layout may do. The VICE file that caught it was not among the affected
+VICE tests run before the gate; any rule that changes instruction shapes per
+layout should run the VICE files that pin a selected construction
+(`input-loop-storage`, `input-byte-selection`, `input-size-runtime`,
+`optimizer-saved-output`) before the gate, not after.

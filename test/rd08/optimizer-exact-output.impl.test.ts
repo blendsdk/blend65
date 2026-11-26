@@ -45,17 +45,16 @@ describe("measured optimizer output identity", () => {
     const acquisition = await fixture("input-caller.blend");
     for (const mode of ["balanced", "speed"] as const) {
       const artifacts = await buildProfileSource(acquisition, PROFILE, mode);
-      // Two staging stores in the input snapshot read write a temporary nothing reads.
-      expect(artifacts.prg.length - 2, `acquisition ${mode} payload`).toBe(929);
+      expect(artifacts.prg.length - 2, `acquisition ${mode} payload`).toBe(935);
     }
   }, 600_000);
 
   it("pins the acquisition size artifact byte-for-byte", async () => {
     const source = await fixture("input-caller.blend");
     const size = await buildProfileSource(source, PROFILE, "size");
-    expect(size.prg.length - 2, "acquisition size payload").toBe(929);
+    expect(size.prg.length - 2, "acquisition size payload").toBe(935);
     expect(digest(size.prg), "acquisition size PRG").toBe(
-      "17033c99fdb4773c56608dc0b607dc00651b9d8e29ac4dc148d304c52fb33786",
+      "761eb2bb4e87fed84d336d3f57a5218e5dbd07797e09f81e5846dcd2bcf5eefc",
     );
   }, 180_000);
 });

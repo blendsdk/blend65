@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deadByteStore } from "./dead-byte-store.js";
+import { deadByteStore, unreadTemporaryBytes } from "./dead-byte-store.js";
 import type {
   MachineBlock,
   MachineFunction,
@@ -69,12 +69,16 @@ function body(id: string, instructions: readonly MachineInstruction[]): MachineF
  * Run the rule with `items` as the bodies it may rewrite and `others` present
  * in the program but outside its reach.
  */
-function run(items: readonly MachineFunction[], others: readonly MachineFunction[] = []) {
+function run(
+  items: readonly MachineFunction[],
+  others: readonly MachineFunction[] = [],
+  allowed?: ReadonlySet<string>,
+) {
   const program = Object.freeze({
     ...baseProgram(),
     functions: Object.freeze([...items, ...others]),
   });
-  return deadByteStore(program, items, () => SOURCE);
+  return deadByteStore(program, items, () => SOURCE, allowed);
 }
 
 /** Opcodes left in the first body after the rule. */
@@ -118,5 +122,23 @@ describe("dead temporary-byte stores", () => {
     });
     const result = run([body("fn.a", [onTemp("sta", 0), onTemp("sta", 1), pointer])]);
     expect(opcodes(result)).toEqual(["sta", "sta", "lda"]);
+  });
+
+  it("keeps a store the reference still reads, even when this layout does not", () => {
+    // Representations are proved against the reference instruction for
+    // instruction, so a store may go only where the reference has no reader.
+    const store = () => [body("fn.a", [onTemp("sta", 1)])];
+    expect(opcodes(run(store(), [], new Set([`${TEMP}:0`])))).toEqual(["sta"]);
+    expect(run(store(), [], new Set([`${TEMP}:1`])).applied).toHaveLength(1);
+  });
+
+  it("publishes exactly the temporary bytes no body reads", () => {
+    const program = Object.freeze({
+      ...baseProgram(),
+      functions: Object.freeze([
+        body("fn.a", [onTemp("sta", 0), onTemp("sta", 1), onTemp("lda", 0)]),
+      ]),
+    });
+    expect([...unreadTemporaryBytes(program)]).toEqual([`${TEMP}:1`]);
   });
 });

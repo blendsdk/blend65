@@ -1065,11 +1065,11 @@ export function applyFoundationCleanup(
   // first pass uncovers adjacent store/reload pairs it was splitting — a word
   // result narrowed to its low byte stores a high byte nothing reads — and the
   // second removes stores the forwarding itself leaves unread.
-  const unread = deadByteStore(program, entry.functions, semanticFor);
+  const unread = deadByteStore(program, entry.functions, semanticFor, facts.unreadBytes);
   const forward = copyForward(program, unread.functions, semanticFor);
   const stages = deadStageStores(program, forward.functions, semanticFor);
   const stores = deadStore(facts, program, stages.functions, semanticFor);
-  const bytes = deadByteStore(program, stores.functions, semanticFor);
+  const bytes = deadByteStore(program, stores.functions, semanticFor, facts.unreadBytes);
   const dead = deadInstruction(bytes.functions, semanticFor);
   const empty = emptyBlock(dead.functions, semanticFor);
   const latest = new Map(empty.functions.map((fn) => [fn.id, fn] as const));

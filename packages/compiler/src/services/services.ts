@@ -425,10 +425,20 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
     // canonical and selected layouts structurally identical after cleanup.
     const referenceDeadHomes =
       reference.kind === "feasible" ? reference.checked.deadHomes : undefined;
-    const sizeFacts =
-      referenceDeadHomes === undefined
-        ? baseFacts
-        : Object.freeze({ ...baseFacts, deadHomes: referenceDeadHomes });
+    // The same holds for single unread bytes: a layout removes a byte store only
+    // where the reference has no reader either, because the observers compare a
+    // layout with the reference instruction for instruction. With no feasible
+    // reference there is nothing to disagree with, and each layout judges from
+    // its own lowering.
+    const referenceUnreadBytes =
+      reference.kind === "feasible"
+        ? (reference.checked.unreadBytes ?? new Set<string>())
+        : undefined;
+    const sizeFacts = Object.freeze({
+      ...baseFacts,
+      ...(referenceDeadHomes === undefined ? {} : { deadHomes: referenceDeadHomes }),
+      ...(referenceUnreadBytes === undefined ? {} : { unreadBytes: referenceUnreadBytes }),
+    });
     let baselineRecipe: string | undefined;
     for (const plan of sizeSelectionPlans({ checked: source.value })) {
       if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };

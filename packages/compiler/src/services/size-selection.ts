@@ -4,6 +4,7 @@ import { deriveC64ActiveScreen } from "../machine/active-screen.js";
 import { bindMachineProgram } from "../machine/bind.js";
 import { deriveByteComplementFacts } from "../machine/byte-value-availability.js";
 import { lowerMachineProgram } from "../machine/lower.js";
+import { unreadTemporaryBytes } from "../machine/dead-byte-store.js";
 import { deadTemporaryHomes } from "../machine/optimization-cleanup.js";
 import type { FixedLoopPolicy, MachineSourceFacts } from "../machine/machine-types.js";
 import { deriveOptimizationFacts, type OptimizationFacts } from "../machine/optimization-facts.js";
@@ -87,6 +88,8 @@ export interface CanonicalPipeline extends Omit<CheckedSourceInput, "loopNesting
   readonly machine: Extract<ReturnType<typeof bindMachineProgram>, { readonly kind: "complete" }>;
   /** Reference-proved private temporary homes whose stores every layout omits. */
   readonly deadHomes?: ReadonlySet<string>;
+  /** Temporary bytes the reference's final lowering never reads; other layouts stay inside it. */
+  readonly unreadBytes?: ReadonlySet<string>;
 }
 
 /** Only the facts actually produced before a resource rejection; absence means unknown. */
@@ -288,6 +291,7 @@ function completedPipeline(
   machine: CanonicalPipeline["machine"],
   deadHomes?: ReadonlySet<string>,
   startupPolicy?: C64StartupPolicy,
+  unreadBytes?: ReadonlySet<string>,
 ): CanonicalPipeline {
   const irqWarnings = overlappingIrqRootWarnings(program, certificate.irqOverlap);
   const previousWarnings = program.diagnostics ?? [];
@@ -304,6 +308,7 @@ function completedPipeline(
     certificate,
     machine,
     ...(deadHomes === undefined ? {} : { deadHomes }),
+    ...(unreadBytes === undefined ? {} : { unreadBytes }),
     diagnostics: Object.freeze([
       ...input.diagnostics,
       ...previousWarnings,
@@ -533,6 +538,7 @@ export function closeCanonicalStorage(
       machine,
       deadHomes,
       startupPolicy,
+      optimizationFacts === undefined ? undefined : unreadTemporaryBytes(lowered.program),
     ),
   });
 }

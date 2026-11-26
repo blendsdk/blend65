@@ -76,9 +76,14 @@ function byteReads(bodies: readonly MachineFunction[]): ByteReads {
  * observer association and no volatile access. The read census covers every
  * body in the program — startup, interrupt bodies and bodies this pass does
  * not rewrite included — so a byte read anywhere else stays.
+ * A representation other than the reference also needs the byte to be unread
+ * in the reference (`allowed`): the observers that prove a representation
+ * compare it with the reference instruction for instruction, so a store must
+ * never exist in one and not the other.
  * @param program Draft machine program, whose declared storage identifies temporaries.
  * @param items Functions this rule may change, in their current form.
  * @param semanticFor Source function owning a machine function, if any.
+ * @param allowed Bytes unread in the reference, when this lowering is not the reference.
  * @returns The changed functions and one applied-rule record per changed function.
  * @example
  * // `sta hi / tax / lda lo / rts` loses `sta hi` when `hi` is never reloaded.
@@ -88,6 +93,7 @@ export function deadByteStore(
   program: MachineProgram,
   items: readonly MachineFunction[],
   semanticFor: (fn: MachineFunction) => SemanticFunction | undefined,
+  allowed?: ReadonlySet<string>,
 ): { readonly functions: readonly MachineFunction[]; readonly applied: readonly AppliedRule[] } {
   const current = new Map(items.map((fn) => [fn.id, fn] as const));
   const reads = byteReads([
@@ -112,6 +118,7 @@ export function deadByteStore(
           instruction.source === null ||
           reads.whole.has(store.requestId) ||
           reads.bytes.has(byteKey(store.requestId, store.offset)) ||
+          (allowed !== undefined && !allowed.has(byteKey(store.requestId, store.offset))) ||
           !privateMainTemporary(program, store.requestId)
         )
           return true;
@@ -143,4 +150,25 @@ export function deadByteStore(
     return Object.freeze({ ...fn, blocks: Object.freeze(blocks) });
   });
   return { functions, applied };
+}
+
+/**
+ * Every byte of a private mainline temporary that no body of a program reads.
+ *
+ * Computed on the canonical reference's final lowering and handed to every
+ * other representation, so they remove only stores the reference could remove.
+ * @param program A finished machine program.
+ * @returns `requestId:offset` keys of the unread temporary bytes.
+ * @example
+ * const unreadBytes = unreadTemporaryBytes(reference.lowered.program);
+ */
+export function unreadTemporaryBytes(program: MachineProgram): ReadonlySet<string> {
+  const reads = byteReads([program.startup, ...program.functions]);
+  const unread = new Set<string>();
+  for (const request of program.requiredStorage) {
+    if (reads.whole.has(request.id) || !privateMainTemporary(program, request.id)) continue;
+    for (let offset = 0; offset < request.bytes; offset += 1)
+      if (!reads.bytes.has(byteKey(request.id, offset))) unread.add(byteKey(request.id, offset));
+  }
+  return unread;
 }

@@ -25,6 +25,15 @@ export interface OptimizationFacts {
    * so a removed store can never appear in one layout and survive in another.
    */
   readonly deadHomes?: ReadonlySet<string>;
+  /**
+   * Bytes of private temporaries that nothing reads in the canonical
+   * reference's final lowering, keyed `requestId:offset`. A representation
+   * removes a store to one byte only inside this set, so the reference and every
+   * admitted layout agree about which stores exist. Absent for the reference
+   * itself, and when no reference is feasible; each lowering then judges from
+   * its own reads.
+   */
+  readonly unreadBytes?: ReadonlySet<string>;
 }
 
 /** Per-function facts assembled from existing pure queries only. */
