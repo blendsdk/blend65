@@ -164,8 +164,10 @@ describe.each(sourceLibraryProfiles)("a next call that delegates its opening on 
     expect(stagedPairs(body)).toHaveLength(1);
   }, 120_000);
 
-  it("should leave the wrapper itself as a plain call and return", async () => {
+  // The wrapper's call is in tail position, so it leaves through its callee;
+  // the delivery above still follows the chain to `inner`'s opening load.
+  it("should leave the wrapper through its callee", async () => {
     const body = await build(nextCalleeIsWrapper, profile, "balanced", { routine: "wrap" });
-    expect(body).toEqual([expect.stringMatching(/^jsr b65_Game_inner_$/u), "rts"]);
+    expect(body).toEqual([expect.stringMatching(/^jmp b65_Game_inner_$/u)]);
   }, 120_000);
 });

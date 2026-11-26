@@ -227,7 +227,12 @@ describe("foundation cleanup", () => {
     expect(result.program.requiredStorage.map(({ id }) => id)).toEqual(
       before.requiredStorage.map(({ id }) => id),
     );
-    expect(result.applied.map(({ ruleId }) => ruleId)).toEqual(["cleanup.copy-forward"]);
+    // Forwarding leaves each pair's store unread, so the byte-level dead-store
+    // rule removes it too; the temporary keeps its home either way.
+    expect(result.applied.map(({ ruleId }) => ruleId)).toEqual([
+      "cleanup.copy-forward",
+      "cleanup.dead-byte-store",
+    ]);
     expect(result.applied[0]!.changed.length).toBe(reloadPairs(before).length);
     expect(result.applied[0]!.obligations).toEqual(
       expect.arrayContaining([expect.objectContaining({ kind: "source-equivalence" })]),
@@ -543,7 +548,10 @@ describe("foundation cleanup", () => {
 
     const result = applyOptimizationRules(facts, guarded);
     if (result.kind !== "complete") throw new Error(result.reason);
-    expect(result.applied.map(({ ruleId }) => ruleId)).toEqual(["cleanup.copy-forward"]);
+    expect(result.applied.map(({ ruleId }) => ruleId)).toEqual([
+      "cleanup.copy-forward",
+      "cleanup.dead-byte-store",
+    ]);
     expect(reloadPairs(result.program)).toEqual([]);
     expect(result.program.functions[0]!.fixedLoopProofs).toBe(proofs);
   });

@@ -5,11 +5,13 @@ import { calleeRewritesFlags, directCallSites } from "./call-site-facts.js";
 import { machineInstruction } from "./lower-control.js";
 import type { MachineFunction, MachineInstruction, MachineProgram } from "./machine-types.js";
 import type { OptimizationFacts } from "./optimization-facts.js";
+import { deadByteStore } from "./dead-byte-store.js";
 import { argumentDelivery } from "./optimization-argument-delivery.js";
 import { copyParameterLocals } from "./optimization-copy-propagation.js";
 import type { AppliedRule, RuleObligation, RuleSite } from "./optimization-rules.js";
 import { matchedStatusRestore } from "./status-save-window.js";
 import { returnSettlesFlags } from "./return-flag-facts.js";
+import { tailTransfer } from "./tail-transfer.js";
 
 /** One direct byte store or load operand. */
 function storageOperand(
@@ -99,7 +101,7 @@ export const READS_STORAGE = new Set([
 ]);
 
 /** Instructions whose storage operand writes the addressed bytes. */
-const WRITES_STORAGE = new Set(["sta", "stx", "sty"]);
+export const WRITES_STORAGE = new Set(["sta", "stx", "sty"]);
 
 /** One direct home read or written by one instruction. */
 interface StorageAccess {
@@ -114,7 +116,7 @@ export interface FoundationCleanup {
 }
 
 /** Return the one direct home addressed by an instruction, rejecting any volatile effect. */
-function storageAccess(
+export function storageAccess(
   instruction: MachineInstruction,
   _direction: "read" | "write",
 ): StorageAccess | null {
@@ -133,7 +135,7 @@ function storageAccess(
 }
 
 /** A declared or persistent home is never removed from a neighboring reload. */
-function privateMainTemporary(program: MachineProgram, requestId: string): boolean {
+export function privateMainTemporary(program: MachineProgram, requestId: string): boolean {
   const request = program.requiredStorage.find(({ id }) => id === requestId);
   return (
     request !== undefined &&
@@ -446,11 +448,16 @@ function copyForward(
         // A call writes A and no flag of its own, so it can never be an adjacent
         // producer on its own terms. What it can carry is its callee's promise:
         // if every reachable return of that body leaves N and Z describing the
-        // byte it hands back, the caller's reload would only restate them.
+        // byte it hands back, the caller's reload would only restate them. When
+        // it does not — a word result leaves N and Z describing X — the reload
+        // still restores the very byte the store wrote, so it is redundant
+        // whenever nothing, this body's own callers included, reads N or Z
+        // before they are rewritten.
         const returnedProducer =
           register === "a" &&
           producer?.opcode === "jsr" &&
-          returnSettlesFlags(byEntry, producer, fn);
+          (returnSettlesFlags(byEntry, producer, fn) ||
+            flagsDead(reachable, block, index + 2, undefined, undefined, across));
         if (
           load === null ||
           load.requestId !== store.requestId ||
@@ -1059,12 +1066,25 @@ export function applyFoundationCleanup(
     program.storageSelection?.sourceFacts.loopPolicy,
   );
   const entry = entryReloadForward(copies.functions, semanticFor);
-  const forward = copyForward(program, entry.functions, semanticFor);
+  // An unread byte's store is removed both before and after forwarding. The
+  // first pass uncovers adjacent store/reload pairs it was splitting — a word
+  // result narrowed to its low byte stores a high byte nothing reads — and the
+  // second removes stores the forwarding itself leaves unread.
+  const unread = deadByteStore(program, entry.functions, semanticFor);
+  const forward = copyForward(program, unread.functions, semanticFor);
   const stages = deadStageStores(program, forward.functions, semanticFor);
   const stores = deadStore(facts, program, stages.functions, semanticFor);
-  const dead = deadInstruction(stores.functions, semanticFor);
+  const bytes = deadByteStore(program, stores.functions, semanticFor);
+  const dead = deadInstruction(bytes.functions, semanticFor);
   const empty = emptyBlock(dead.functions, semanticFor);
-  const selected = new Map(empty.functions.map((fn) => [fn.id, fn] as const));
+  const tails = tailTransfer(
+    facts.profile.cpu,
+    [program.startup, ...empty.functions],
+    empty.functions,
+    mainline,
+    semanticFor,
+  );
+  const selected = new Map(tails.functions.map((fn) => [fn.id, fn] as const));
   return Object.freeze({
     functions: Object.freeze(program.functions.map((fn) => selected.get(fn.id) ?? fn)),
     applied: mergeAppliedRules([
@@ -1072,11 +1092,14 @@ export function applyFoundationCleanup(
       ...delivery.applied,
       ...copies.applied,
       ...entry.applied,
+      ...unread.applied,
       ...forward.applied,
       ...stages.applied,
       ...stores.applied,
+      ...bytes.applied,
       ...dead.applied,
       ...empty.applied,
+      ...tails.applied,
     ]),
   });
 }

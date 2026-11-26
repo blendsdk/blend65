@@ -75,8 +75,10 @@ export const FOUNDATION_RULE_IDS: readonly string[] = Object.freeze([
   "cleanup.fold-register-reload",
   "cleanup.copy-forward",
   "cleanup.dead-store",
+  "cleanup.dead-byte-store",
   "cleanup.dead-instruction",
   "cleanup.empty-block",
+  "cleanup.tail-transfer",
 ]);
 
 /** List machine source owners when the lowered program carries no sealed source facts. */
