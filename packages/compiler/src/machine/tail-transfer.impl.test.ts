@@ -176,6 +176,20 @@ describe("tail transfer", () => {
     expect(run([caller, child]).functions[0]).toBe(caller);
   });
 
+  it("keeps a call into a dispatch block through a function value", () => {
+    // The candidates' machine state is summarised where the dispatch is called.
+    const caller = body("fn.wrap", [
+      block("fn.wrap.0", [call("fn.wrap.dispatch")]),
+      block("fn.wrap.dispatch", [instruction({ opcode: "jmp", mode: "indirect" })], {
+        indirectTargets: Object.freeze(["fn.chosen", "fn.other"]),
+      }),
+    ]);
+    // Both candidates are ordinary bodies, so only the dispatch itself refuses.
+    const chosen = body("fn.chosen", [block("fn.chosen.0", [instruction()])]);
+    const other = body("fn.other", [block("fn.other.0", [instruction()])]);
+    expect(run([caller, chosen, other]).functions[0]).toBe(caller);
+  });
+
   it("transfers to a block of the caller's own body, such as an emitted helper", () => {
     const caller = body("fn.calculate", [
       block("fn.calculate.0", [call("fn.calculate.helper")]),

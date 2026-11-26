@@ -150,4 +150,63 @@ describe.sequential("call and return linkage computes what the source says", () 
       }
     });
   }, 180_000);
+  it("keeps the three shapes a review found the first form got wrong", async () => {
+    // An anonymous aggregate passed by address must keep every byte it stores;
+    // two functions sharing one multiply helper must both still reach it; and a
+    // wrapper ending in a call through a function value must keep that call.
+    const audited = `module Game;
+place(at: $3300) let inputs: byte[3] = [7, 9, 0];
+let picked: byte = 0;
+let p: byte = 0;
+let q: byte = 0;
+let total: byte = 0;
+function second(values: byte[2]): byte { return values[1]; }
+function f(a: byte, b: byte): byte { return a * b; }
+function g(a: byte, b: byte): byte { return a * b; }
+function chosen(): byte { return 37; }
+function other(): byte { return 11; }
+function wrap(): byte {
+  let hook: fn(): byte = &chosen;
+  if (peek($3302) == 1) { hook = &other; }
+  return hook();
+}
+function main(): void {
+  picked = second([peek($3300), peek($3301)]);
+  p = f(3, 4);
+  q = g(5, 6);
+  total = wrap() + 3;
+}
+`;
+    await withProfileProject(audited, target, async (project) => {
+      const built = await buildProject({ project, optimization: "balanced" });
+      expect(built.kind, JSON.stringify(built.diagnostics)).toBe("success");
+      if (built.kind !== "success") throw new Error("Expected a complete build");
+      const artifacts = await readProfileArtifacts(built);
+      const labels = labelAddresses(artifacts.labels);
+      const returnAddress = programReturnAddress(artifacts.labels);
+      const started = await startVice(
+        join(built.generation.directory, built.generation.primaryArtifact),
+      );
+      if ("kind" in started) throw new Error(`VICE qualification is Unknown: ${started.reason}`);
+      try {
+        await started.monitor.setExecuteCheckpoint(returnAddress);
+        const finished = started.monitor.waitForStop(20_000);
+        await started.monitor.resume();
+        expect(await finished).toBe(returnAddress);
+        const byte = async (name: string) =>
+          (
+            await started.monitor.readMemory(
+              globalAddress(labels, name),
+              globalAddress(labels, name),
+            )
+          )[0];
+        expect(await byte("picked"), "the second element of the passed aggregate").toBe(9);
+        expect(await byte("p"), "f through the shared helper").toBe(12);
+        expect(await byte("q"), "g through the shared helper").toBe(30);
+        expect(await byte("total"), "the dispatched call plus three").toBe(40);
+      } finally {
+        await stopVice(started);
+      }
+    });
+  }, 180_000);
 });

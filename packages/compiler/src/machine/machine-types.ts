@@ -484,6 +484,11 @@ export interface MachineJumpTerminator {
   readonly target: string;
   /** Exact jump cost. */
   readonly cost: MachineCost;
+  /**
+   * Set when the jump replaced a call in tail position. It leaves the body the
+   * way a return would, and block placement treats it as such a tail.
+   */
+  readonly tailTransfer?: true;
 }
 
 /** In-range conditional transfer with one explicit fallthrough block. */

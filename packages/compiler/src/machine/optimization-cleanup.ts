@@ -1077,9 +1077,10 @@ export function applyFoundationCleanup(
   const bytes = deadByteStore(program, stores.functions, semanticFor);
   const dead = deadInstruction(bytes.functions, semanticFor);
   const empty = emptyBlock(dead.functions, semanticFor);
+  const latest = new Map(empty.functions.map((fn) => [fn.id, fn] as const));
   const tails = tailTransfer(
     facts.profile.cpu,
-    [program.startup, ...empty.functions],
+    [program.startup, ...program.functions.map((fn) => latest.get(fn.id) ?? fn)],
     empty.functions,
     mainline,
     semanticFor,

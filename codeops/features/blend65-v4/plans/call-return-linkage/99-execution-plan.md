@@ -144,8 +144,8 @@ Three correction rounds, none of which moved an expectation to fit output:
 RED on the pre-change tree: `call-return-linkage.spec.test.ts` 16 failed / 14
 passed, every failure a delivery case and every pass a control or reference
 case; `sole-leaf-continuation` 2 / 5. The behaviour oracle,
-`call-return-linkage-vice.spec.test.ts`, is implementer-authored and supporting
-evidence: it confirms the constructions are emitted, runs 300 tail-transferred
+`call-return-linkage-vice.impl.test.ts`, is implementer-authored and supporting
+evidence, so it carries the implementation suffix: it confirms the constructions are emitted, runs 300 tail-transferred
 calls from a loop, and checks every result and that the stack pointer at the
 restoration equals the one `main` started with.
 
@@ -157,17 +157,20 @@ restoration equals the one `main` started with.
 | `machine/dead-byte-store.ts` (new) | A store to one byte of a private mainline temporary is removed when no body reads that byte. The request-level rule needed the whole temporary to be dead; a word result's high byte often is while its low byte is not. Homes are unchanged |
 | `machine/optimization-cleanup.ts` | The byte rule runs before forwarding as well as after, because an unread high-byte store can split a store/reload pair. A reload after a call is also redundant when nothing, the body's own callers included, reads N or Z before they are rewritten — a word result leaves them describing X |
 
-| Witness | `balanced` / `size` before | After |
+| Witness (PRG file bytes, including the 2-byte load address) | `balanced` / `size` before | After |
 | --- | --- | --- |
 | #126 `touch` → `child` | 196, `jsr child / rts` | **195**, `jmp child` — the issue's expert form |
 | #124/#126 `calculate` | 244, `jsr helper / rts` | **240**, falls into the helper: 4 B / 12 c, beating the issue's `jmp` by 3 B / 3 c |
 | #124 word `next` | 224, high byte stored and dead | **221**, the issue's expert sequence exactly |
 | `outer` narrowing a word callee | `jsr / sta / stx / lda / rts` | `jmp inner` |
-| acquisition frontier workload | 935 | **929** — two dead staging stores in `c64.input.readInputSnapshot` |
+| acquisition frontier workload (loaded payload, excluding the load address) | 935 | **929** — two dead staging stores in `c64.input.readInputSnapshot` |
 
-`none` is byte-identical everywhere, and the nine canonical identities are
-unchanged: none of the three examples has a call in tail position or an unread
-temporary byte.
+Measured `none` identity: the nine canonical identities (boing-ball, m1 and
+rd06-spritepad at `none`, `balanced` and `size`) are unchanged — none of those
+examples has a call in tail position or an unread temporary byte — and every
+witness above emits its `none` form unchanged. That `none` is untouched in
+general is an implementation invariant rather than a measurement: every rule
+here runs only when optimization facts are present.
 
 ## Guards, and whether anything fails without them
 
@@ -179,8 +182,16 @@ temporary byte.
 | Data labels are not walked; unknown control targets refuse | yes | impl tests |
 | Not a KERNAL load call; whole-label operand only | yes | impl tests |
 | Byte rule: byte read anywhere keeps the store | yes | the word-return witness keeps its low store |
-| Byte rule: indirect pointer or memory-effect read keeps the whole request | **no** | fail-closed; no source form found that reaches it |
-| Reload after a call when N/Z are dead at every caller | yes | the narrowing witness; `callersIgnoreFlags` is the existing census |
+| Byte rule: an indexed read keeps the whole request | yes | impl test, verified by deletion (review RV-001) |
+| Byte rule: only a direct store is removed | yes | impl test, verified by deletion |
+| Byte rule: an address-forming load keeps the whole object | yes | covered by the indexed-mode rule (immediate is not a direct mode); VICE case `picked = second([…])` (review SF-001) |
+| Byte rule: the census covers every body, rewritten or not | yes | impl test, verified by deletion (review RV-002) |
+| Byte rule: an indirect pointer keeps the whole request | yes | impl test, verified by deletion |
+| Byte rule: a read memory effect keeps the whole request | **no** | fail-closed; no source form found that reaches it |
+| Tail rule: never into a dispatch block through a function value | yes | impl test, verified by deletion; VICE case (review SF-003) |
+| Helper sharing redirects a tail jump or fall-through, not only a call | yes | VICE case with two multiply functions (review SF-002) |
+| Layout places a tail jump out of the body as a terminal tail | yes | impl test of the review's counterexample, 17 B against 20 B without it (review MC-001) |
+| Reload after a call when N/Z are dead at every caller | **partly** | the narrowing witness exercises it, but its callee already leaves N/Z describing A, so it does not tell the new branch from the existing proof; the compiler loads A last for every word result found, and no public form reaching the new branch alone was found. Removing both flag proofs is under measurement below |
 
 ## Oracle and pin changes
 
@@ -195,5 +206,38 @@ temporary byte.
 | Issue | What |
 | --- | --- |
 | #118 | Part B: the sole-leaf continuation needs a layout contract |
-| new | Placing a tail-called body directly after its caller would turn #126's `jmp` into a fall-through (4 B / 12 c instead of 1 B / 9 c); same layout contract as part B |
-| new | Generated stack demand is computed before lowering and still charges a transferred call, so the two-byte peak saving is real on the machine but not credited in the evidence |
+| #225 | Place a tail-called body after its caller so the jump becomes a fall-through (3 B / 3 c), the same contract as part B |
+| #226 | Stack demand still charges a call that became a tail transfer |
+| #227 | A call through a function value in tail position keeps its call (refused for SF-003) |
+| #228 | A call followed only by a jump to a return is not seen as a tail call |
+| #222 | The byte multiply helper copies parameters it could use in place: 8 B / 12 c / 2 ZP |
+| #223 | A word result parked in RAM and staged again by its caller: 16 B / 20 c |
+| #224 | A global word update reloads the high byte it has just stored: 3 B / 4 c |
+
+## Review dispositions
+
+Four independent reviews of `01c63461`: correctness, SFA/ABI, machine code and
+platform. Three auditors first stopped for want of exact skill paths, were given
+them, and completed. Every finding was checked against the code before it was
+dispositioned, and the four correctness defects were reproduced first.
+
+| Finding | Severity | Disposition |
+| --- | --- | --- |
+| RV-001: an indexed storage read was counted as reading only its fixed offset | major | **Fixed.** A read counts as one byte only in a direct mode; any other mode marks the whole request read |
+| SF-001: an address-forming load (`lda #<T`) marked only byte 0, so element 1 of an anonymous aggregate passed by address could lose its store | major | **Fixed by the same rule** (immediate is not a direct mode); the auditor's probe keeps both stores and returns 9 in VICE |
+| RV-002: the byte census read only the bodies the pass rewrites | major | **Fixed.** The census, and the tail rule's callee walk, cover every body in the program with the rewritten ones in their current form |
+| SF-002: helper sharing redirected only `jsr`, so a tail jump to a shared multiply helper dangled and binding refused a legal program | major | **Reproduced and fixed.** `redirectedHelperExit` redirects a jump, and turns a fall-through into a jump, to the shared copy |
+| SF-003: a tail jump into a dispatch block lost the caller's decimal-flag proof, refusing a legal program | major | **Reproduced; fail-closed.** No transfer into a dispatch block; the beat is #227 |
+| MC-001: a tail jump lost the return-tail classification in block layout, 20 B against 17 B in a constructed shape | major | **Fixed.** A tail jump out of the body is marked as such and placed like a return; a regression test pins 17 B. Other jumps out of a body, such as `main`'s to the restoration, keep their placement, so `none` cannot move |
+| MC-002, MC-003, MC-004 | major (existing debt) | Filed as #222, #223, #224 with measured deltas and paths |
+| MC-005: a wrapper `jmp` meets only the non-adjacent floor | minor | Filed as #225 |
+| MC-006: witness totals mixed file and payload bytes | minor | Fixed: the table names its units |
+| RV-003: "`none` is byte-identical everywhere" exceeded the evidence | minor | Fixed: the nine measured identities are named and the general claim is stated as an invariant |
+| RV-004: the VICE file was spec-tier but implementer-authored | major | Fixed: renamed `call-return-linkage-vice.impl.test.ts`; its tier comes from its imports |
+| TP Unknown: whether the two removed acquisition homes alias the saved NMI link | — | **Closed.** On the unnormalized pre-change listing the removed stores wrote `$0BC8`/`$0BC9`; the saved link is `$0BC6`/`$0BC7` (`jmp ($0BC6)`). The only readers of `$0BC8`/`$0BC9` are `c64.input.keyState`'s own temporaries at the same SFA-shared addresses, which that routine writes immediately before reading |
+
+The platform audit otherwise found no defect: interrupts push their own frame, so
+KERNAL's stacked-status test is unaffected; handler and dual-domain bodies are
+specialised before cleanup and excluded; the restoration sees the same stack
+pointer. Status remains `VICE-verified / hardware-unverified`, and the VICE
+oracle stops at restoration entry rather than following BASIC's return.

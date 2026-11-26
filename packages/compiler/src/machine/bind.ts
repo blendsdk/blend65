@@ -19,6 +19,7 @@ import type {
   MachineProgram,
   MachineBlock,
   MachineBodyOrigin,
+  MachineTerminator,
   MachineValidationResult,
 } from "./machine-types.js";
 
@@ -500,6 +501,30 @@ function mergeObserverFunction(left: MachineFunction, right: MachineFunction): M
       });
 }
 
+/**
+ * Point a block's exit at the shared copy of a helper it used to reach directly.
+ *
+ * A call in tail position reaches its helper by a jump, or by falling into it
+ * when the helper was placed next. A shared helper lives in another body, so a
+ * fall-through becomes a jump to it; the helper's own return still goes to the
+ * original caller's caller, exactly as before.
+ */
+function redirectedHelperExit(
+  terminator: MachineTerminator,
+  redirects: ReadonlyMap<string, string>,
+): MachineTerminator {
+  if (terminator.kind !== "jump" && terminator.kind !== "fallthrough") return terminator;
+  const shared = redirects.get(terminator.target);
+  if (shared === undefined) return terminator;
+  return Object.freeze({
+    kind: "jump" as const,
+    opcode: "jmp" as const,
+    target: shared,
+    cost: machineCost(NMOS_6510, "jmp", "absolute"),
+    tailTransfer: true as const,
+  });
+}
+
 /** Share byte-multiply bodies only when final physical scratch and instructions match exactly. */
 function shareBoundByteMultiplyHelpers(
   functions: readonly MachineFunction[],
@@ -564,6 +589,7 @@ function shareBoundByteMultiplyHelpers(
             .map((block) =>
               Object.freeze({
                 ...block,
+                terminator: redirectedHelperExit(block.terminator, redirects),
                 instructions: Object.freeze(
                   block.instructions.map((instruction) => {
                     if (instruction.opcode !== "jsr" || instruction.operand?.kind !== "label") {

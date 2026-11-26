@@ -78,6 +78,24 @@ function stackAboveFrameUnread(
 }
 
 /**
+ * Whether the code a label enters is a dispatch block: a transfer through a
+ * function value to one of several candidate bodies.
+ *
+ * Entered by a call, such a block is summarised from the call site, which knows
+ * every candidate. Entered by a jump it would be summarised as part of the
+ * caller, which cannot see the candidates' returns, so the decimal and
+ * interrupt-disable state they leave would go unproved. Those calls keep their
+ * call rather than lose that proof.
+ */
+function entersDispatch(owners: ReadonlyMap<string, MachineFunction>, label: string): boolean {
+  const body = owners.get(label);
+  const entered =
+    body?.blocks.find((block) => block.label === label) ??
+    (body?.id === label ? body.blocks[0] : undefined);
+  return entered?.indirectTargets !== undefined;
+}
+
+/**
  * The label a block's closing call can transfer to, when the call is in tail position.
  *
  * Tail position here is exact: the call is the block's last instruction and the
@@ -106,7 +124,9 @@ function tailCallTarget(block: MachineBlock): string | undefined {
  *
  * A transfer is refused when anything reachable from the callee reads or moves
  * the stack pointer, because it would then find a different return address
- * above its frame than the call left there.
+ * above its frame than the call left there, and when the callee is a dispatch
+ * block through a function value, whose candidates' machine state is only
+ * summarised where it is called.
  * @param cpu Selected CPU, which prices the jump.
  * @param bodies Every body in the program, startup included, so callees can be walked.
  * @param items Functions this rule may change.
@@ -142,6 +162,7 @@ export function tailTransfer(
         callee === undefined ||
         !mainline(callee) ||
         (callee === fn && target === fn.id) ||
+        entersDispatch(owners, target) ||
         !stackAboveFrameUnread(owners, target)
       )
         return block;
@@ -158,6 +179,7 @@ export function tailTransfer(
           opcode: "jmp" as const,
           target,
           cost: jump,
+          tailTransfer: true as const,
         }),
       });
     });

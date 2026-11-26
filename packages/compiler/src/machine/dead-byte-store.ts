@@ -17,6 +17,15 @@ interface ByteReads {
   readonly whole: ReadonlySet<string>;
 }
 
+/**
+ * Addressing modes that touch exactly the byte their operand names.
+ *
+ * An indexed form reaches the operand's byte plus a register, so it cannot be
+ * tied to one byte of the request; `storage` is the direct form before homes
+ * are bound.
+ */
+const DIRECT_MODES = new Set(["storage", "absolute", "zero-page"]);
+
 /** Key naming one byte of one storage request. */
 function byteKey(requestId: string, offset: number): string {
   return `${requestId}:${offset}`;
@@ -25,11 +34,11 @@ function byteKey(requestId: string, offset: number): string {
 /**
  * Collect every storage byte any body reads.
  *
- * A direct operand names its byte. Anything that does not — an indirect
- * pointer, which reads two bytes; a memory effect, whose width is recorded
- * separately; or an operand used by an instruction that is neither a plain
- * read nor a plain store — counts as reading the whole request, so no byte of
- * it can be called unread.
+ * A direct operand names its byte. Anything that does not — an indexed form,
+ * whose byte depends on a register; an indirect pointer, which reads two
+ * bytes; a memory effect, whose width is recorded separately; or an operand
+ * used by an instruction that is neither a plain read nor a plain store —
+ * counts as reading the whole request, so no byte of it can be called unread.
  */
 function byteReads(bodies: readonly MachineFunction[]): ByteReads {
   const bytes = new Set<string>();
@@ -39,9 +48,11 @@ function byteReads(bodies: readonly MachineFunction[]): ByteReads {
       for (const instruction of block.instructions) {
         const operand = instruction.operand;
         if (operand?.kind === "storage") {
-          if (READS_STORAGE.has(instruction.opcode))
-            bytes.add(byteKey(operand.requestId, operand.offset ?? 0));
-          else if (!WRITES_STORAGE.has(instruction.opcode)) whole.add(operand.requestId);
+          if (READS_STORAGE.has(instruction.opcode)) {
+            if (DIRECT_MODES.has(instruction.mode))
+              bytes.add(byteKey(operand.requestId, operand.offset ?? 0));
+            else whole.add(operand.requestId);
+          } else if (!WRITES_STORAGE.has(instruction.opcode)) whole.add(operand.requestId);
         }
         if (operand?.kind === "indirect-y") whole.add(operand.requestId);
         for (const effect of instruction.memory)
@@ -61,11 +72,12 @@ function byteReads(bodies: readonly MachineFunction[]): ByteReads {
  * The temporary keeps its full home, so storage closure and layout are
  * unchanged; only the instruction goes.
  *
- * Only ordinary mainline temporaries qualify, with no observer association
- * and no volatile access, and the read census covers every body in the
- * program — startup included — so a byte read by any other function stays.
+ * Only direct stores to ordinary mainline temporaries qualify, with no
+ * observer association and no volatile access. The read census covers every
+ * body in the program — startup, interrupt bodies and bodies this pass does
+ * not rewrite included — so a byte read anywhere else stays.
  * @param program Draft machine program, whose declared storage identifies temporaries.
- * @param items Functions this rule may change.
+ * @param items Functions this rule may change, in their current form.
  * @param semanticFor Source function owning a machine function, if any.
  * @returns The changed functions and one applied-rule record per changed function.
  * @example
@@ -77,7 +89,11 @@ export function deadByteStore(
   items: readonly MachineFunction[],
   semanticFor: (fn: MachineFunction) => SemanticFunction | undefined,
 ): { readonly functions: readonly MachineFunction[]; readonly applied: readonly AppliedRule[] } {
-  const reads = byteReads([program.startup, ...items]);
+  const current = new Map(items.map((fn) => [fn.id, fn] as const));
+  const reads = byteReads([
+    program.startup,
+    ...program.functions.map((fn) => current.get(fn.id) ?? fn),
+  ]);
   const applied: AppliedRule[] = [];
   const functions = items.map((fn) => {
     const semantic = semanticFor(fn);
@@ -91,6 +107,7 @@ export function deadByteStore(
         if (
           store === null ||
           !WRITES_STORAGE.has(instruction.opcode) ||
+          !DIRECT_MODES.has(instruction.mode) ||
           instruction.observerOrigins !== undefined ||
           instruction.source === null ||
           reads.whole.has(store.requestId) ||

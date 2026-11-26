@@ -182,3 +182,74 @@ describe("effect-free terminal layout", () => {
     });
   });
 });
+
+describe("a call in tail position as a terminal tail", () => {
+  const cpu = selectedProfile().cpu;
+  const branch = (target: string, fallthrough: string) => ({
+    kind: "branch" as const,
+    opcode: "beq",
+    target,
+    fallthrough,
+    uses: Object.freeze({ registers: Object.freeze([]), flags: Object.freeze(["z" as const]) }),
+    cost: { bytes: 2, minCycles: 2, maxCycles: 4 },
+  });
+  /**
+   * Two conditions share the tail `T`, which ends the body through a call, and a
+   * second tail `F`. Placed with `T` treated as an exit, every branch reaches its
+   * arms without a bridge.
+   */
+  const shape = (tail: MachineFunction["blocks"][number]): MachineFunction => ({
+    id: "shape",
+    blocks: [
+      { label: "E", instructions: [], terminator: branch("T", "P") },
+      { label: "P", instructions: [], terminator: branch("C2", "C1") },
+      { label: "C1", instructions: [], terminator: branch("T", "F") },
+      { label: "C2", instructions: [], terminator: branch("T", "F") },
+      tail,
+      {
+        label: "F",
+        instructions: [
+          machineInstruction(cpu, "lda", "immediate", { kind: "immediate", value: 1 }),
+          machineInstruction(cpu, "sta", "absolute", { kind: "absolute", value: 0xc000 }),
+        ],
+        terminator: { kind: "return" },
+      },
+    ],
+  });
+  const layout = (fn: MachineFunction) => {
+    const result = repairMachineBranches(fn, 0x2000);
+    if (result.kind !== "complete") throw new Error("Expected layout");
+    return result;
+  };
+
+  it("places a tail jump to another body as an exit, needing no bridge", () => {
+    const transferred = layout(
+      shape({
+        label: "T",
+        instructions: [],
+        terminator: {
+          kind: "jump",
+          opcode: "jmp",
+          target: "child",
+          cost: { bytes: 3, minCycles: 3, maxCycles: 3 },
+          tailTransfer: true,
+        },
+      }),
+    );
+    const called = layout(
+      shape({
+        label: "T",
+        instructions: [
+          machineInstruction(cpu, "jsr", "absolute", { kind: "label", label: "child" }),
+        ],
+        terminator: { kind: "return" },
+      }),
+    );
+    // Four branches (8), the tail jump (3) and F (6); the call form pays one more byte.
+    expect(transferred.byteLength).toBe(17);
+    expect(called.byteLength).toBe(18);
+    expect(transferred.function.blocks.map(({ label }) => label)).toEqual(
+      called.function.blocks.map(({ label }) => label),
+    );
+  });
+});
