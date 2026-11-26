@@ -2,8 +2,8 @@
 
 > **Owner**: [#119](https://github.com/blendsdk/blend65/issues/119) · **Type**: Task
 > **CodeOps Artifact Schema**: 1
-> **Status**: In progress — Gap B delivered, review findings being dispositioned, Gap A re-scoped to #209
-> **Progress**: 9/10 tasks; the complete gate remains
+> **Status**: Gap B complete and verified; Gap A re-scoped to #209 and #119 left open for it
+> **Progress**: 10/10 tasks in scope
 > **Last Updated**: 2026-11-26
 
 ## Tasks
@@ -19,7 +19,7 @@
 | 7 | Independent reviews round one | Done — emitted-code and correctness audits, 20 findings |
 | 8 | Disposition review round one | Done — one confirmed lowering defect fixed, three oracle cases re-derived, behaviour oracle added, seven guard witnesses, four comments corrected, #212 filed |
 | 9 | Disposition review round two | Done — the guard's own fix was mis-keyed and is re-keyed; the behaviour oracle ran the wrong construction and its check was vacuous, both fixed; the volatility reason measured (E10273 refuses a named I/O global); thirteen orphaned imports dropped; the asynchronous-write predicate shared instead of duplicated; eleven unwitnessed conjuncts itemised |
-| 10 | Complete gates and closeout | Pending — `yarn test:full` is the remaining gate |
+| 10 | Complete gate and closeout | Done — install, build, typecheck, nine identities, host and VICE tiers; the two VICE failures are pre-existing flakes, one newly filed |
 
 ## Both gaps reproduce exactly
 
@@ -490,10 +490,33 @@ deleting either would leave the suite green.
 | Public oracle | **13 cases**; five verified red against the reconstructed pre-change tree |
 | Behaviour oracle | **1 emulator case**, green; it confirms the hoisted construction executed, then reads the fill and both guards back. Disabling the hoist fails it |
 | Affected VICE journeys | **89/89** — this fill, ordinal stores, the byte classifier, four forwarding suites, the boing-ball contract |
+| Complete gate `yarn test:full` | host tier **285 / 6,233** green; VICE tier **2,439 passed, 2 failed**, both pre-existing flakes unrelated to this work — see below |
 | Nine canonical byte identities | **unchanged** |
 | `programBytes` for the three witnesses | **100 / 106 / 106**, unchanged (measured, not asserted) |
 | Single-trip artifact | **126 bytes / 128 / `fdc85ed2`**, unchanged |
 | Guard witnesses | 4 lowering refusals, 1 lowering acceptance, 2 observer; both observer witnesses verified by deleting the guard they pin. **Eleven conjuncts have no witness** and are itemised above |
+
+### The two gate failures
+
+Neither is this work's, and neither was taken on trust.
+
+**The VIC collision latch** (`rd05/vic-collision-vice`) is [#191](https://github.com/blendsdk/blend65/issues/191),
+open and titled "fails about half the time with identical output". What settles
+it here is that **the failing profile varies between runs** — `6581` in the
+complete gate, `8580` in one targeted re-run, `6581` in two more — on the same
+test and the same assertion. A deterministic compiler or layout difference cannot
+produce that. Its two Blend65 loops index by `row * 40 + 14` and `row * 3`, which
+are derived ordinals and so not this transformation's shape at all. The new
+profile-varying evidence is on the issue.
+
+**The Timer B NMI case** (`rd08/nmi-residual-boolean-masks-vice`) passed on an
+immediate re-run. It asserts the PC pushed by NMI acceptance lies inside the
+entry function's range, and it got `$FF4C` — KERNAL ROM. Between the two resumes
+the program is free to leave that function, and nothing in the case controls when
+acceptance happens, so the expectation is a race. It was **undocumented**, which
+matters more than the failure: a flake in the release gate can fail it for a
+reason unrelated to the change under test. Filed as
+[#213](https://github.com/blendsdk/blend65/issues/213).
 
 What the scorecard does **not** say: that the output is at parity. It is not —
 see the descending counter, filed as #212.
