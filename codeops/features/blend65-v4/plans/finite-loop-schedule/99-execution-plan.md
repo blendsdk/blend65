@@ -3,7 +3,7 @@
 > **Owner**: [#119](https://github.com/blendsdk/blend65/issues/119) · **Type**: Task
 > **CodeOps Artifact Schema**: 1
 > **Status**: In progress — Gap B delivered and under verification, Gap A measured and re-scoped
-> **Progress**: 4/7 tasks
+> **Progress**: 6/7 tasks
 > **Last Updated**: 2026-11-26
 
 ## Tasks
@@ -14,8 +14,8 @@
 | 2 | Establish why each gap is refused, by spike and by the build's own decision record | Done |
 | 3 | Lowering: hoist the proved invariant load into the preheader | Done — `machine/fixed-counter-invariant-load.ts` |
 | 4 | Observer: accept the hoisted exact template and relocate the accumulator obligation | Done — `size-observer-register-counter.ts`, `size-observer-selected-loops.ts` |
-| 5 | Public oracle authored independently, implementation-blind, with RED evidence | In progress |
-| 6 | Implementation tests for the guards the public oracle cannot express | Pending |
+| 5 | Public oracle authored independently, implementation-blind, with RED evidence | In progress — three rounds; seven controls green, five witnesses pending one parse fix |
+| 6 | Implementation tests for the guards the public oracle cannot express | Done — `machine/fixed-counter-invariant-load.impl.test.ts`, fixture shared through `machine/fixed-loop-test-support.ts` |
 | 7 | Independent reviews, complete gates, closeout and issue evidence | Pending |
 
 ## Both gaps reproduce exactly
@@ -189,6 +189,26 @@ RHS written by the loop itself, a volatile `peek($d012)` RHS, a computed RHS, th
 counter as its own RHS, and a nested loop. Each is excluded before this work by
 `indexSource` or by the five-block eligibility, so they are preserved-behavior
 controls rather than evidence about the new guard.
+
+### The volatile guard is pinned, and a single mutation says it is not
+
+The lowering guard has three conditions a public build can reach, and all three
+are pinned at the lowering level by
+`machine/fixed-counter-invariant-load.impl.test.ts`: a four-trip fill hoists, a
+one-trip fill does not, and a `peek($D012)` right-hand side does not.
+
+That third case nearly got recorded as unpinned. Removing the volatility
+condition alone leaves the test green; so does widening the operand condition
+alone. Removing **both** hoists the hardware read out of the loop, and the test
+fails. They are redundant alternatives rather than one dead clause: a hardware
+read reaches its address as a literal today, so the operand test already excludes
+it, but a named hardware register would pass that test and still be unmovable, so
+the access has to be asked about as well.
+
+The method note is that a mutation which fails nothing can mean the rule is
+untested or that a sibling rule covers the same case. Only mutating the pair
+apart tells the two situations apart, and the first reading here was the wrong
+one.
 
 ### Disclosure: one guard has no output witness
 

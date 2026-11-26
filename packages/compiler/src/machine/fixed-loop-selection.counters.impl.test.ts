@@ -21,104 +21,8 @@ import { closeSharedStorage } from "../services/shared-storage.js";
 import { selectTargetProfile } from "../target/profile.js";
 import { lowerMachineProgram } from "./lower.js";
 import { bindFixedLoopContext, prepareFixedLoops } from "./fixed-loop-selection.js";
-import type { FixedLoopPolicy, MachineLoweringInput } from "./machine-types.js";
-
-/** Counter fixtures use the actual frontend, source proof producer, staging and binder discovery. */
-function prepared(text: string, policy: FixedLoopPolicy = "low-byte") {
-  const selected = selectTargetProfile("c64-pal-prg-kernal-6581");
-  if (selected.kind !== "complete") throw new Error("Expected fixture profile");
-  const profile = selected.profile;
-  const sha256 = createHash("sha256").update(text).digest("hex");
-  const snapshot: ProjectSnapshot = {
-    manifest: {
-      schemaVersion: 1,
-      name: "counter-selection",
-      sourceRoot: "src",
-      entry: "Game",
-      target: profile.id,
-      assetPaths: [],
-      outDir: "out",
-      optimization: "size",
-      boundsCheck: true,
-      divisionZeroCheck: true,
-    },
-    manifestSource: {
-      sourceId: "blend65.json",
-      text: "{}",
-      byteLength: 2,
-      sha256: createHash("sha256").update("{}").digest("hex"),
-      resolvedPath: "/checkout/blend65.json",
-    },
-    sources: [
-      {
-        sourceId: "src/game.blend",
-        text,
-        sha256,
-        byteLength: Buffer.byteLength(text),
-        resolvedPath: "/checkout/src/game.blend",
-      },
-    ],
-    inputSha256: sha256,
-    projectRoot: "/checkout",
-    sourceRoot: "/checkout/src",
-    assetPaths: [],
-    outDir: "/checkout/out",
-    overrides: { target: null, entry: null },
-    effectiveTarget: profile.id,
-    effectiveEntry: "Game",
-  };
-  const analysis = analyzeProject(snapshot);
-  if (analysis.kind !== "complete") throw new Error(JSON.stringify(analysis));
-  const semantic = buildSemanticProgram(analysis);
-  if (semantic.kind !== "complete") throw new Error(JSON.stringify(semantic));
-  const closed = closeWholeProgram(semantic.program, profile.interrupts, profile.storage);
-  if (closed.kind !== "complete") throw new Error(JSON.stringify(closed.diagnostics));
-  const program = closed.program;
-  const loops = deriveFixedLoopFacts(program, collectSourceLoopNesting(program, analysis.program));
-  const objects = deriveClosedObjectFacts(
-    program,
-    profile.storage,
-    fixedLoopValueBounds(program, loops),
-  );
-  const lives = deriveLocalStorageLifetimes(program);
-  const functions = new Map(
-    program.semantic.functions.map((fn) => [
-      fn,
-      {
-        function: fn,
-        objects,
-        loops: loops.filter((loop) => loop.function === fn),
-        lifetimes: new Map([...lives].filter(([, life]) => life.function === fn.id)),
-      },
-    ]),
-  );
-  const inventory = inventoryStorage(program);
-  const allocated = allocateStorage(inventory, buildInterference(inventory), profile.storage);
-  if (allocated.kind !== "complete") throw new Error("Expected fixture homes");
-  const input: MachineLoweringInput = {
-    program,
-    profile,
-    placement: allocated.placement,
-    bindingNames: new Map(
-      analysis.program.bindings.map((binding) => [
-        bindingIdentityKey(binding.id),
-        binding.qualifiedName ?? binding.name,
-      ]),
-    ),
-    sourceFacts: { program, functions, nonLoopBundle: "closed", loopPolicy: policy },
-    boundsCheck: true,
-    divisionZeroCheck: true,
-  };
-  const lowered = lowerMachineProgram(input);
-  if (lowered.kind !== "complete") throw new Error(JSON.stringify(lowered));
-  return {
-    input,
-    lowered,
-    loops,
-    functions,
-    machine: lowered.program.functions.find((fn) => fn.sourceName === "Game.work")!,
-  };
-}
+import type { FixedLoopPolicy } from "./machine-types.js";
+import { prepareFixedLoopFixture } from "./fixed-loop-test-support.js";
 
 const declarations = `module Game;place(at:$3400)let answers:byte[8]=[;0];`;
 
@@ -126,7 +30,7 @@ describe("word counters represented by one byte", () => {
   it.each(["x-first", "y-first", "flat-eight-x-first", "flat-eight-y-first"] as const)(
     "should hold the proved counter in the selected register under %s",
     (policy) => {
-      const fixture = prepared(
+      const fixture = prepareFixedLoopFixture(
         `${declarations}
 function work():void{for(let row:word=0;row<4;row+=1){answers[row]=peek($C110);}}
 function main():void{work();}`,
@@ -154,7 +58,7 @@ function main():void{work();}`,
   );
 
   it("should assign opposite registers jointly across a two-level nest", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}
 function work():void{for(let col:word=0;col<4;col+=1){for(let other:word=col+1;other<4;other+=1){answers[other]=byte(col);}}}
 function main():void{work();}`,
@@ -167,7 +71,7 @@ function main():void{work();}`,
   });
 
   it("should keep a clobbered nest ordinary while selecting an unrelated safe loop", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}
 function helper():void{asm_nop();}
 function work():void{for(let col:word=0;col<4;col+=1){for(let other:word=col+1;other<4;other+=1){helper();}}
@@ -180,7 +84,7 @@ function main():void{work();}`,
   });
 
   it("should retain ordinary Y counters when a converted index still needs generic Y setup", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}
 function work():void{for(let row:word=0;row<4;row+=1){answers[byte(row)]=peek($C110);}}
 function main():void{work();}`,
@@ -190,7 +94,7 @@ function main():void{work();}`,
   });
 
   it("should retain an ordinary Y counter across an unproved whole-array copy", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}
 let original:byte[8]=[;7];let copied:byte[8]=[;0];
 function work():void{for(let row:word=0;row<4;row+=1){copied=original;answers[row]=copied[0];}}
@@ -203,7 +107,7 @@ function main():void{work();}`,
   it.each(["x-first", "y-first"] as const)(
     "should reject overlapping third-level register assignments under %s",
     (policy) => {
-      const fixture = prepared(
+      const fixture = prepareFixedLoopFixture(
         `${declarations}
 function work():void{for(let outer:word=0;outer<4;outer+=1){for(let middle:word=0;middle<4;middle+=1){for(let inner:word=0;inner<4;inner+=1){answers[inner]=byte(outer);}}}}
 function main():void{work();}`,
@@ -221,7 +125,7 @@ function main():void{work();}`,
     ["x-first", "answers[row]=byte(peekw($C110));", false],
     ["y-first", "poke($C100+row,7);", false],
   ] as const)("should select %s only with proved body clobbers: %s", (policy, body, selected) => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}function work():void{for(let row:word=0;row<4;row+=1){${body}}}function main():void{work();}`,
       policy,
     );
@@ -231,7 +135,7 @@ function main():void{work();}`,
   it.each(["x-first", "y-first"] as const)(
     "should preserve word snapshots and high-byte reconstruction under %s",
     (policy) => {
-      const fixture = prepared(
+      const fixture = prepareFixedLoopFixture(
         `${declarations}
 function work():void{for(let row:word=0;row<4;row+=1){let saved:word=row;answers[row]=byte(saved+257);poke($C100,hi(row));}}
 function main():void{work();}`,
@@ -252,7 +156,7 @@ function main():void{work();}`,
   );
 
   it("should keep a full-width shift nest ordinary but select an unrelated Y counter", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}
 function work(count:word):void{for(let row:word=0;row<4;row+=1){answers[row]=byte(1)<<count;}
 for(let safe:word=0;safe<4;safe+=1){answers[safe]=peek($C110);}}
@@ -264,7 +168,7 @@ function main():void{work(word(peek($C111)));}`,
   });
 
   it("should still hold Y when the existing shift proof bounds the complete word count", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}
 function work(count:word):void{for(let row:word=0;row<4;row+=1){answers[row]=byte(1)<<(count&7);}}
 function main():void{work(word(peek($C111)));}`,
@@ -274,7 +178,7 @@ function main():void{work(word(peek($C111)));}`,
   });
 
   it("should preserve native X indexing when the array root is bound from an SFA home", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}
 function work():void{let items:byte[4]=[;0];for(let row:word=0;row<4;row+=1){items[row]=byte(row);}answers[0]=items[3];}
 function main():void{work();}`,
@@ -294,7 +198,7 @@ function main():void{work();}`,
   });
 
   it("should attach each selected counter snapshot to its exact original source lifetime", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}
 function work():void{for(let row:word=0;row<4;row+=1){poke($C100,lo(row));poke($C101,lo(row));}}
 function main():void{work();}`,
@@ -313,7 +217,7 @@ function main():void{work();}`,
   });
 
   it("should keep overlapping converted counter views in distinct snapshot homes", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}
 function work():void{for(let col:word=0;col<4;col+=1){for(let row:word=0;row<4;row+=1){answers[row]=byte(col)+byte(row);}}}
 function main():void{work();}`,
@@ -343,7 +247,7 @@ function main():void{work();}`,
   it.each(["x-first", "y-first"] as const)(
     "should bypass only the state-dead first test of a positive straight-line loop under %s",
     (policy) => {
-      const fixture = prepared(
+      const fixture = prepareFixedLoopFixture(
         `${declarations}
 function work():void{for(let row:word=0;row<4;row+=1){answers[row]=peek($C110);}}
 function main():void{work();}`,
@@ -379,7 +283,7 @@ function main():void{work();}`,
   it.each([false, true])(
     "should retain exact native-store window flags when observed=%s",
     (observe) => {
-      const fixture = prepared(
+      const fixture = prepareFixedLoopFixture(
         `${declarations}
 function work():void{let value:byte=120;for(let row:word=0;row<4;row+=1){asm_php();asm_plp();value+=120;answers[row]=value;${observe ? "asm_php();asm_plp();" : ""}}}
 function main():void{work();}`,
@@ -416,7 +320,7 @@ function main():void{work();}`,
   );
 
   it("should bind native-store homes and removed operands to the actual code context", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}
 function work():void{let value:byte=120;for(let row:word=0;row<4;row+=1){value+=120;answers[row]=value;}}
 function main():void{work();}`,
@@ -458,7 +362,7 @@ function main():void{work();}`,
   });
 
   it("should retain the expanded occurrence on a selected flag-restoration instruction", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}
 function work():void{let value:byte=120;for(let col:word=0;col<4;col+=1){for(let row:word=0;row<8;row+=1){value+=120;answers[col]=value;}asm_php();asm_plp();}}
 function main():void{work();}`,
@@ -472,7 +376,7 @@ function main():void{work();}`,
     expect(restore?.sourceIteration).toBe(7);
   });
   it("should retain word source meaning while declaring one byte and using direct typed indexing", () => {
-    const fixture = prepared(`${declarations}
+    const fixture = prepareFixedLoopFixture(`${declarations}
 function work():void{for(let row:word=0;row<8;row+=1){answers[row]=byte(row);poke($C100,hi(row));}}
 function main():void{work();}`);
     const proof = fixture.machine.fixedCounterProofs?.[0];
@@ -512,7 +416,7 @@ function main():void{work();}`);
   });
 
   it("should narrow both independently proved nested counters including parent-plus-one initialization", () => {
-    const fixture = prepared(`${declarations}
+    const fixture = prepareFixedLoopFixture(`${declarations}
 function work():void{for(let col:word=0;col<4;col+=1){for(let other:word=col+1;other<4;other+=1){answers[other]=byte(col);}}}
 function main():void{work();}`);
     expect(fixture.machine.fixedCounterProofs).toHaveLength(2);
@@ -527,7 +431,7 @@ function main():void{work();}`);
   });
 
   it("should keep complete word-comparison flags when PHP observes the loop entry", () => {
-    const fixture = prepared(`${declarations}
+    const fixture = prepareFixedLoopFixture(`${declarations}
 function work():void{let value:byte=120;for(let row:word=0;row<8;row+=1){asm_php();asm_plp();value+=120;answers[row]=value;}}
 function main():void{work();}`);
     const proof = fixture.machine.fixedCounterProofs![0]!;
@@ -537,7 +441,7 @@ function main():void{work();}`);
   });
 
   it("should keep source break and continue edges while replacing only the designated update", () => {
-    const fixture = prepared(`${declarations}
+    const fixture = prepareFixedLoopFixture(`${declarations}
 function work():void{for(let row:word=0;row<8;row+=1){if(row==3){continue;}if(row==6){break;}answers[row]=byte(row);}}
 function main():void{work();}`);
     const proof = fixture.machine.fixedCounterProofs?.[0];
@@ -551,11 +455,11 @@ function main():void{work();}`);
   });
 
   it("should preserve a zero-trip header and all source return exits", () => {
-    const empty = prepared(`${declarations}
+    const empty = prepareFixedLoopFixture(`${declarations}
 function work():void{for(let row:word=8;row<8;row+=1){poke($C100,byte(row));}}
 function main():void{work();}`).machine;
     expect(empty.fixedCounterProofs?.[0]?.loop.tripDomain.maximum).toBe(0);
-    const early = prepared(`${declarations}
+    const early = prepareFixedLoopFixture(`${declarations}
 function work():boolean{for(let row:word=0;row<8;row+=1){if(row==3){return true;}}return false;}
 function main():void{if(work()){poke($C100,1);}}`).machine;
     expect(early.fixedCounterProofs?.[0]?.loop.exits.some((exit) => exit.kind === "return")).toBe(
@@ -564,7 +468,7 @@ function main():void{if(work()){poke($C100,1);}}`).machine;
   });
 
   it("should preserve source word-initialization state observed before the first condition", () => {
-    const fixture = prepared(`${declarations}
+    const fixture = prepareFixedLoopFixture(`${declarations}
 function work():void{let row:word=8;asm_php();asm_plp();for(;row<8;row+=1){poke($C100,byte(row));}}
 function main():void{work();}`);
     const entry = fixture.machine.blocks[0]!;
@@ -582,7 +486,7 @@ function main():void{work();}`);
   ])(
     "should retain ordinary word storage for observable, addressed or wider counters: %s",
     (body) => {
-      const fixture = prepared(
+      const fixture = prepareFixedLoopFixture(
         `${declarations}function work():void{${body}}function main():void{work();}`,
       );
       expect(fixture.machine.fixedCounterProofs).toBeUndefined();
@@ -590,7 +494,7 @@ function main():void{work();}`);
   );
 
   it("should reject copied domains and edited member/range containers without rederiving source facts", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}function work():void{for(let row:word=0;row<8;row+=1){answers[row]=byte(row);}}function main():void{work();}`,
     );
     const loop = fixture.loops[0]!;
@@ -617,7 +521,7 @@ function main():void{work();}`);
   });
 
   it("should bind counter homes and argument stages to the actual selected code context", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}function work():void{for(let row:word=0;row<8;row+=1){answers[row]=byte(row);}}function main():void{work();}`,
     );
     const fn = fixture.machine;
@@ -634,7 +538,7 @@ function main():void{work();}`);
   });
 
   it("should retain ordinary counters when the execution context omits source loop blocks", () => {
-    const fixture = prepared(
+    const fixture = prepareFixedLoopFixture(
       `${declarations}function work():void{for(let row:word=0;row<8;row+=1){answers[row]=byte(row);}}function main():void{work();}`,
     );
     const loop = fixture.loops[0]!;

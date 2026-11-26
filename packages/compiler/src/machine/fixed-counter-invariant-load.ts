@@ -18,6 +18,13 @@ const INDEXED_STORE_MODE = Object.freeze({ x: "absolute-x", y: "absolute-y" } as
  * themselves observable, and moving one changes what the program observes even
  * when the byte it returns is identical.
  *
+ * Requiring a named operand and requiring non-volatile accesses are deliberately
+ * both here, and today either one alone would keep every volatile read out,
+ * because a hardware read reaches its address as a literal rather than through a
+ * name. That is a fact about the current lowering, not about the hazard: a named
+ * hardware register would satisfy the operand test and still be unmovable, so
+ * the access itself has to be asked about too.
+ *
  * A load that reads a register is rejected whatever its mode, because the only
  * register this shape has to offer is the loop's own counter.
  */
