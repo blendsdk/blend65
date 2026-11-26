@@ -334,6 +334,20 @@ zeropage { b: byte[64]; }
 function main(): void { pad[0] = 1; c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&b)); }`,
     ],
   },
+  // One function pointer works — `let f: fn(): byte = &one;` then `f()` builds
+  // and runs — so the restriction is the table rather than the pointer. That
+  // control cannot live here, because every source in a deferred row's probe
+  // must fail; it is recorded with the restriction instead.
+  {
+    id: "v4-function-pointer-table-indexed-call",
+    sources: [
+      `module Game;
+let out: byte;
+function one(): byte { return 7; }
+let fs: fn(): byte[2] = [&one, &one];
+function main(): void { out = fs[0](); }`,
+    ],
+  },
 ];
 
 /**

@@ -294,18 +294,36 @@ silent miscompile — it is the same defect as the rest of the round: a legal pr
 message naming a cause that is not true. The author is told to move a `place(at:)` their program does
 not contain, at an address they did not choose, for an object the compiler placed itself.
 
-Three acceptance cases now pin it, all three verified red against the pre-fix compiler. The third is
+Three acceptance cases now pin it, all three verified red against the pre-fix compiler, and the oracle crossed 700 lines again in the process. It is now split on the class boundary rather than by size: placement and acceptance in `vic-field-ordinary-storage` (263 lines, 21 tests), the refusals and the reachability cases in `vic-field-refusals-and-reachability` (452 lines, 24 tests). All fourteen `expectActionable` refusals are in the second file, and the first imports neither `refusalTexts` nor `expectActionable`, so nothing there can assert a message at all. The third is
 the one worth keeping: it puts both answers in one program, so that widening liveness to every
 function — which would satisfy the other two — still fails on the dead body beside them.
 
 The method note is that the claim was wrong in the safe direction and still wrong. Measuring that a
 demand was dropped is not measuring what the compiler does about it, and the two are a stage apart.
 
+### Why the second hole is the last one
+
+The first hole came from enumerating the routes into a function by hand, so the second pass
+enumerated them from the IR instead:
+
+| Question | Answer | Evidence |
+| --- | --- | --- |
+| Which forms name a function? | `call` and `function-address`, and nothing else | the only two carrying a `BindingId` for a function in `operations.ts`; the four terminators (`jump`, `branch`, `return`, `unreachable`) carry none |
+| Which bodies can hold them? | function bodies and global initializers | both are `readonly SemanticBlock[]`, and both are now walked |
+| Can an initializer name a function without emitting one? | no | `let f: fn(): byte = &blk;` lowers to one block of `function-address, store`; `let b: byte = blk();` to `call, store`; `initialBytes` is `null` for both, so neither folds away |
+| Can the entry be missing? | only from a test | production passes the resolved main; the gate now names nothing unreachable without it |
+
+Two fold shapes that could have hidden a function address do not exist to hide one:
+`const F: fn(): byte = &blk;` is refused as not compile-time evaluable (E10191), and an array of
+function pointers refuses the whole program before any of this runs — unrelated to VIC fields, filed
+as [#208](https://github.com/blendsdk/blend65/issues/208) with a ledger row and probe, since a
+dispatch table is ordinary code and the natural spelling of a hand-written jump table.
+
 ## Verification
 
 | Gate | Result |
 | --- | --- |
-| Oracle, authored independently | **34 shapes / 45 cases**; 26 of 36 red before implementation |
+| Oracle, authored independently | **33 shapes / 45 tests** across two files; 26 of 36 red before implementation |
 | Mutations | **20** applied alone, **18 discriminate**, failing 1–28 cases |
 | Host checkpoint | **283 files / 6,216 tests**, green |
 | Affected VICE journeys | **137/137** — sprite pointer, producer, VIC observers, koala, qp15 |
@@ -349,7 +367,7 @@ sometimes aimed at the wrong line rather than at an untested rule.
 
 ## Disclosures
 
-**Four of the forty-five cases are not implementation-blind, and the table no longer claims they
+**Five of the forty-five cases are not implementation-blind, and the table no longer claims they
 are.** The first thirty-six were authored against the requirements with the implementation unwritten,
 and 26 of them were red. The four added during review — the occupied address, the address below the
 resident window, and the three initializer routes — were written after the code existed, from a
@@ -357,6 +375,11 @@ stated requirement rather than from the code, and the initializer prompt describ
 mechanism because that is what had just been measured. They are regression pins, and each was
 verified red by reverting the fix and rebuilding rather than by having been written first. That is
 weaker evidence than a blind oracle case and is recorded as such.
+
+**The ledger carries five rows for this row's work, not four.** The fifth is the function-pointer
+table (#208), which this row did not create and does not own — it was found while enumerating the
+routes into a function, and is recorded because a restriction a user can hit belongs in the ledger
+whoever finds it.
 
 **Two mutations fail nothing, for different reasons.**
 

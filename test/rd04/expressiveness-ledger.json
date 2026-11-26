@@ -108,6 +108,15 @@
       "reason": "The zero-page allocator chooses homes for fast access and does not yet honour a video alignment requirement, so the field would resolve against an address the author never wrote and cannot predict. Reachability is not the problem: zero page is inside the chip's bank and outside the character-ROM window, so the data is readable there. It is the alignment that is unavailable, which is why the refusal names the storage rather than the address.",
       "owner": "C64 zero-page allocation and video alignment; future alignment-aware zero-page homes",
       "decision": "Deferred; declaring the data at module level works today and the refusal names that declaration site. Retiring this row needs the zero-page allocator to accept and honour an alignment requirement, not a change to the field."
+    },
+    {
+      "id": "v4-function-pointer-table-indexed-call",
+      "status": "deferred",
+      "sourceForm": "let fs: fn(): byte[2] = [&one, &one]; with fs[0]()",
+      "diagnostic": "COMPILER_INCOMPLETE",
+      "reason": "A table of function pointers dispatched by index is ordinary code in comparable systems languages and is the natural spelling of the jump table a 6502 programmer writes by hand constantly. A single function pointer works: 'let f: fn(): byte = &one;' followed by 'f()' builds and runs. Putting two of them in an array and calling through an element refuses the whole program, and refuses it with an internal code that names neither the unsupported construct nor a spelling that works. Nothing about the restriction is forced by the hardware.",
+      "owner": "Function-pointer tables and indexed indirect calls; lowering an array of code addresses",
+      "decision": "Deferred. Two things have to change and the row covers both: the construct has to be supported, and until it is the refusal has to name the array of function pointers at its declaration span instead of reporting an internal code. Retiring this row needs the indexed call to build; changing the diagnostic alone updates the recorded code and keeps the row open."
     }
   ]
 }
