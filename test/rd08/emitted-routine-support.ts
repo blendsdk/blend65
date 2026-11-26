@@ -9,12 +9,10 @@
  * unmodelled rather than guessed at.
  */
 import { expect } from "vitest";
+import type { buildProfileSource } from "../rd05/profile-fixture.js";
 
-/** The published build artifacts this reader needs: assembly text and label table. */
-export interface EmittedArtifacts {
-  readonly assembly: string;
-  readonly labels: string;
-}
+/** Public artifacts of one real build, exactly as the profile build fixture returns them. */
+export type Artifacts = Awaited<ReturnType<typeof buildProfileSource>>;
 
 /** Final addressing mode of one emitted instruction, or `other` when unmodelled. */
 export type Mode =
@@ -38,14 +36,22 @@ export interface Instruction {
   readonly target: string | undefined;
 }
 
-/** One decoded instruction together with the emitted line it came from. */
+/**
+ * One decoded instruction, the line it came from, and its own final address.
+ *
+ * The address is present only for an instruction that directly follows an
+ * emitted origin directive, which is the only case where the directive states
+ * that instruction's own address rather than the address of its block.
+ */
 export interface Decoded {
   readonly lineIndex: number;
   readonly instruction: Instruction;
+  readonly address: number | undefined;
 }
 
 const branchMnemonics = new Set(["bcc", "bcs", "beq", "bne", "bmi", "bpl", "bvc", "bvs"]);
 const jumpMnemonics = new Set(["jmp", "jsr"]);
+/** Instructions that read a value from an operand into a register or the flags. */
 export const readMnemonics = new Set([
   "lda",
   "ldx",
@@ -250,14 +256,12 @@ export interface Loop {
 }
 
 /**
- * The innermost counted loop: the smallest span closed by a backward branch.
+ * Every counted loop in the routine, as a span closed by a backward branch.
  *
- * The span starts at the target label itself, because a label may share its line
- * with the first instruction it names. Everything in these oracles hinges on
- * this parse, so a routine with no backward branch reports its complete emitted
- * text.
+ * A span starts at the target label itself, because a label may share its line
+ * with the first instruction it names.
  */
-export function innermostLoop(lines: readonly string[], decoded: readonly Decoded[]): Loop {
+function countedLoops(lines: readonly string[], decoded: readonly Decoded[]): Loop[] {
   const spans: Loop[] = [];
   decoded.forEach((entry, position) => {
     const { instruction } = entry;
@@ -269,11 +273,36 @@ export function innermostLoop(lines: readonly string[], decoded: readonly Decode
     if (start < 0 || start > position) return;
     spans.push({ start, end: position });
   });
-  expect(spans.length, `emitted counted loop in:\n${lines.join("\n")}`).toBeGreaterThan(0);
+  return spans;
+}
+
+/** The innermost counted loop, or nothing when the routine has no backward branch. */
+export function findInnermostLoop(
+  lines: readonly string[],
+  decoded: readonly Decoded[],
+): Loop | undefined {
+  const spans = countedLoops(lines, decoded);
+  if (spans.length === 0) return undefined;
   return spans.reduce((best, span) =>
     span.end - span.start < best.end - best.start ? span : best,
   );
 }
+
+/**
+ * The innermost counted loop, required to exist.
+ *
+ * Everything that reads a loop's body hinges on this parse, so a routine with no
+ * backward branch reports its complete emitted text.
+ */
+export function innermostLoop(lines: readonly string[], decoded: readonly Decoded[]): Loop {
+  const loop = findInnermostLoop(lines, decoded);
+  expect(loop, `emitted counted loop in:\n${lines.join("\n")}`).toBeDefined();
+  if (loop === undefined) throw new Error("Missing an emitted counted loop");
+  return loop;
+}
+
+/** Assembler directive that states the address the following instruction is placed at. */
+const originDirective = /^\s*\*\s*=\s*\$([0-9a-f]+)/iu;
 
 /** Emitted section markers that bound the region a routine can occupy. */
 const sectionMarker = /^\s*;\s*(?:routine|bss|data|segment|startup)\b/gmu;
@@ -297,7 +326,7 @@ function labelOnLine(line: string): string | undefined {
  * top-tested loop emits its exit, and therefore its return, ahead of the body it
  * guards, while a loop that jumps backwards to its header ends on that jump.
  */
-export function routine(artifacts: EmittedArtifacts): {
+export function routine(artifacts: Artifacts): {
   lines: string[];
   decoded: Decoded[];
   labels: Map<string, number>;
@@ -324,9 +353,17 @@ export function routine(artifacts: EmittedArtifacts): {
   }
   const lines = section.slice(0, end);
   const decoded: Decoded[] = [];
+  let placed: number | undefined;
   lines.forEach((line, lineIndex) => {
+    const origin = originDirective.exec(line);
+    if (origin !== null) {
+      placed = Number.parseInt(origin[1]!, 16);
+      return;
+    }
     const instruction = decodeLine(line, labels);
-    if (instruction !== undefined) decoded.push({ lineIndex, instruction });
+    if (instruction === undefined) return;
+    decoded.push({ lineIndex, instruction, address: placed });
+    placed = undefined;
   });
   // Reported against the unbounded region, so a routine whose blocks are not
   // named after it is visible as a parse result rather than a compiler result.
@@ -380,9 +417,9 @@ export function readsStoredValue(instruction: Instruction, value: StoredValue): 
 /**
  * Final encoded size and documented base cycle count of one instruction.
  *
- * Cycles are same-page instruction figures and exclude interrupts, video stalls
- * and firmware latency. An unmodelled addressing form throws rather than
- * contributing a wrong number, so this model is applied only to routines whose
+ * Figures exclude interrupts, video stalls and firmware latency, and the branch
+ * figure is the cost of not taking it. An unmodelled addressing form throws
+ * rather than contributing a wrong number, so this model suits routines whose
  * exact shape has already been asserted and which perform no indexed read.
  */
 export function cost(instruction: Instruction): { bytes: number; cycles: number } {
@@ -423,11 +460,26 @@ export function routineBytes(decoded: readonly Decoded[]): number {
 }
 
 /**
+ * Cycles charged once for taking a loop's closing branch.
+ *
+ * Taking a branch costs one extra cycle, and a second one when its target lies
+ * in a different page from the instruction after it. That depends on where the
+ * routine was placed, never on how long it is, so both addresses are read from
+ * the emitted origin directives. When those addresses are not stated the
+ * same-page charge is used, which is the only figure available.
+ */
+function takenBranchCycles(decoded: readonly Decoded[], loop: Loop): number {
+  const target = decoded[loop.start]?.address;
+  const next = decoded[loop.end + 1]?.address;
+  if (target === undefined || next === undefined) return 1;
+  return (target & 0xff00) === (next & 0xff00) ? 1 : 2;
+}
+
+/**
  * Exact cycles of a bottom-tested counted loop that runs a known number of trips.
  *
  * Each instruction contributes its own cost, repeated for instructions inside
- * the loop, and the closing branch is taken on every trip except the last. The
- * routines are short enough that no branch crosses a page.
+ * the loop, and the closing branch is taken on every trip except the last.
  */
 export function routineCycles(decoded: readonly Decoded[], loop: Loop, trips: number): number {
   let total = 0;
@@ -435,5 +487,5 @@ export function routineCycles(decoded: readonly Decoded[], loop: Loop, trips: nu
     const { cycles } = cost(entry.instruction);
     total += position >= loop.start && position <= loop.end ? cycles * trips : cycles;
   }
-  return total + (trips - 1);
+  return total + (trips - 1) * takenBranchCycles(decoded, loop);
 }

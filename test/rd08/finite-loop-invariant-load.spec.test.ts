@@ -1,9 +1,8 @@
-import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { buildProfileSource, profileRecord } from "../rd05/profile-fixture.js";
+import { buildProfileSource } from "../rd05/profile-fixture.js";
 import {
   clobbersAccumulator,
-  cost,
+  findInnermostLoop,
   globalAddress,
   innermostLoop,
   readMnemonics,
@@ -16,9 +15,6 @@ import type { Decoded, Loop, StoredValue } from "./emitted-routine-support.js";
 
 /** The one selected target every witness and control below is built for. */
 const target = "c64-pal-prg-kernal-6581";
-
-/** Public artifacts of one real build, exactly as the profile fixture returns them. */
-type Artifacts = Awaited<ReturnType<typeof buildProfileSource>>;
 
 /**
  * Build a module that fills successive elements of an array held inside an object.
@@ -157,6 +153,19 @@ function expectReadKeptInLoop(
   ).not.toEqual([]);
 }
 
+/** Require that the stored byte is produced inside the loop, whatever produces it. */
+function expectAccumulatorWorkInLoop(
+  lines: readonly string[],
+  decoded: readonly Decoded[],
+  loop: Loop,
+): void {
+  const body = decoded.slice(loop.start, loop.end + 1);
+  expect(
+    body.filter((entry) => clobbersAccumulator(entry.instruction)).map((e) => e.instruction.text),
+    `accumulator work inside the loop, emitted as:\n${lines.join("\n")}`,
+  ).not.toEqual([]);
+}
+
 describe("invariant byte stores in finite counted loops", () => {
   it.each(["balanced", "size"] as const)(
     "loads the stored constant once before a displaced four-element fill in %s mode",
@@ -282,10 +291,34 @@ describe("invariant byte stores in finite counted loops", () => {
       .not.toContain(false);
   }, 180_000);
 
-  it("keeps the reload for a computed right-hand side", async () => {
-    // Only a stored constant or a plain global read is kept in the accumulator
-    // across the loop; a computed byte is still produced on every trip.
-    const source = arraySource(4, "rows[i] = value + 1;", valueGlobal(128));
+  it("keeps a counter-dependent value computed on every trip", async () => {
+    // The stored byte is derived from the counter, so it differs on every trip
+    // and has to be produced inside the loop however it is produced.
+    const artifacts = await buildProfileSource(
+      arraySource(4, "rows[i] = lo(i);"),
+      target,
+      "balanced",
+    );
+
+    const { lines, decoded } = routine(artifacts);
+    expectAccumulatorWorkInLoop(lines, decoded, innermostLoop(lines, decoded));
+  }, 180_000);
+
+  it("keeps the reload while a handler that writes the stored global is installed", async () => {
+    // The handler can run between two trips and write the byte the loop stores,
+    // so the loop cannot treat it as unchanged even though the loop itself never
+    // writes it. A stored literal would be a different case: nothing can write a
+    // literal, so an expert hoists one whatever is installed.
+    const source = `module Game;
+import { setNMI, restoreNMI } from c64.system;
+let rows: byte[8] = [;0];
+let value: byte = 255;
+interrupt function handler(): void { value = 1; }
+function work(): void {
+  for (let i: word = 0; i < 4; i += 1) { rows[i] = value; }
+}
+function main(): void { setNMI(&handler); work(); restoreNMI(); }
+`;
     const artifacts = await buildProfileSource(source, target, "balanced");
 
     const { lines, decoded, labels } = routine(artifacts);
@@ -294,26 +327,6 @@ describe("invariant byte stores in finite counted loops", () => {
       kind: "global",
       address: globalAddress(labels, "value"),
     });
-  }, 180_000);
-
-  it("keeps the reload while an interrupt handler is installed", async () => {
-    // An installed handler can run between two trips and write the stored byte,
-    // so no value may be held in a register across the loop even though the
-    // loop itself never changes it.
-    const source = `module Game;
-import { setNMI, restoreNMI } from c64.system;
-let rows: byte[8] = [;0];
-interrupt function handler(): void {}
-function work(): void {
-  for (let i: word = 0; i < 4; i += 1) { rows[i] = 7; }
-}
-function main(): void { setNMI(&handler); work(); restoreNMI(); }
-`;
-    const artifacts = await buildProfileSource(source, target, "balanced");
-
-    const { lines, decoded } = routine(artifacts);
-    const loop = innermostLoop(lines, decoded);
-    expectReadKeptInLoop(lines, decoded, loop, { kind: "immediate", literal: 7 });
   }, 180_000);
 
   it.each([
@@ -358,16 +371,35 @@ function main(): void { setNMI(&handler); work(); restoreNMI(); }
     180_000,
   );
 
-  it("keeps a single-trip fill byte-identical", async () => {
-    // A loop that runs once has no repeated read to remove, so moving reads out
-    // of loops may not change this program by a single byte. The build selects
-    // the optimization the transformation lives in, because an unoptimized
-    // build cannot witness this either way.
+  it("leaves a single-trip fill with only the read it already needs", async () => {
+    // A loop that runs once has no repeated read to remove, so there is nothing
+    // for a hoist to save: exactly one read of the stored byte and one store,
+    // wherever the lowering decides to place them. Stated as that property
+    // rather than as an artifact digest, because the shape a single trip lowers
+    // to is free to change while the property holds.
     const artifacts = await buildProfileSource(arraySource(1, "rows[i] = 7;"), target, "balanced");
-    expect(profileRecord(artifacts.costs.totals).programBytes, "program bytes").toBe(126);
-    expect(artifacts.prg.length, "artifact bytes").toBe(128);
-    expect(createHash("sha256").update(artifacts.prg).digest("hex"), "artifact digest").toBe(
-      "fdc85ed277e6b9d55a83df547de3d5bded0bc1127f501066fc23652a4e83ca50",
-    );
+
+    const { lines, decoded } = routine(artifacts);
+    const emitted = `emitted as:\n${lines.join("\n")}`;
+    const value: StoredValue = { kind: "immediate", literal: 7 };
+    const reads = decoded.filter((entry) => readsStoredValue(entry.instruction, value));
+    expect(
+      reads.map((e) => e.instruction.text),
+      `reads of the stored byte, ${emitted}`,
+    ).toHaveLength(1);
+    expect(
+      decoded
+        .filter((entry) => entry.instruction.mnemonic === "sta")
+        .map((e) => e.instruction.text),
+      `element stores, ${emitted}`,
+    ).toHaveLength(1);
+    const loop = findInnermostLoop(lines, decoded);
+    if (loop !== undefined) {
+      const position = decoded.indexOf(reads[0]!);
+      expect(position, `read inside the single trip, ${emitted}`).toBeGreaterThanOrEqual(
+        loop.start,
+      );
+      expect(position, `read inside the single trip, ${emitted}`).toBeLessThanOrEqual(loop.end);
+    }
   }, 180_000);
 });

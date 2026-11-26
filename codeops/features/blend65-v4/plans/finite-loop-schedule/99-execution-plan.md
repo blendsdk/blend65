@@ -3,7 +3,7 @@
 > **Owner**: [#119](https://github.com/blendsdk/blend65/issues/119) · **Type**: Task
 > **CodeOps Artifact Schema**: 1
 > **Status**: In progress — Gap B delivered, review findings being dispositioned, Gap A re-scoped to #209
-> **Progress**: 6/9 tasks; review findings being dispositioned
+> **Progress**: 8/9 tasks; complete gates remain
 > **Last Updated**: 2026-11-26
 
 ## Tasks
@@ -15,9 +15,9 @@
 | 3 | Lowering: hoist the proved invariant load into the preheader | Done — `machine/fixed-counter-invariant-load.ts` |
 | 4 | Observer: accept the hoisted exact template and relocate the accumulator obligation | Done — `size-observer-register-counter.ts`, `size-observer-selected-loops.ts` |
 | 5 | Public oracle authored independently, implementation-blind, with RED evidence | Done — `test/rd08/finite-loop-invariant-load.spec.test.ts`, 13 cases, 5 verified red against the reconstructed pre-change tree |
-| 6 | Implementation tests for the guards the public oracle cannot express | **Reopened by review** — three of five guards witnessed; the interrupt guard and both new observer guards have none |
+| 6 | Implementation tests for the guards the public oracle cannot express | Done — five lowering guards and both observer guards witnessed; each observer witness verified by deleting the guard it pins |
 | 7 | Independent reviews round one | Done — emitted-code and correctness audits, 20 findings |
-| 8 | Disposition the review findings: three oracle cases re-derived, behaviour oracle added, missing guard witnesses, guard hardening | In progress |
+| 8 | Disposition the review findings | Done — one confirmed lowering defect fixed, three oracle cases re-derived, behaviour oracle added, seven guard witnesses, four comments corrected, #212 filed |
 | 9 | Complete gates, closeout and issue evidence | Pending — host checkpoint running; `yarn test:full` not yet run, so the endpoint is not yet verified |
 
 ## Both gaps reproduce exactly
@@ -397,7 +397,29 @@ All three are being re-derived from the requirement before the file hardens. The
 record's earlier framing — that reconstructing RED settled the authorship
 question — covered half the debt.
 
-### There is no behaviour oracle
+### The behaviour oracle, and what it can and cannot show
+
+`test/rd08/finite-loop-invariant-load-vice.spec.test.ts` runs an eight-element
+fill on a real emulator and reads the result back. The value is written into the
+global at run time, different from its declared value, so a byte captured too
+early shows up; the array is fenced on both sides, so a store one element short
+or one too far overwrites a checked byte. It passes: all eight elements hold the
+run-time value and both fences are untouched.
+
+**It cannot be made to fail by mutating the hoist.** Breaking the transformation
+so it drops the load instead of moving it was expected to corrupt the fill;
+instead the observer refuses the resulting construction and the program falls
+back to the generic word-counter form, which is correct, so the case passes. The
+same happens for every unsound hoist available to inject.
+
+That is a real property of the layered design worth stating — an unsound lowering
+decision costs the candidate rather than the program — and it is equally a limit
+on this oracle. It is a non-regression check on the behaviour contract, not a
+discriminator for this transformation, and the record says so rather than
+counting it as proof the hoist is right. What proves that remains the emitted
+shape, the cycle figures, and the guards' own rejection witnesses.
+
+### There is no behaviour oracle (closed)
 
 Both audits found this independently, and it is the project's own two-expectation
 contract: an optimization needs a behaviour oracle derived from language, CPU and
