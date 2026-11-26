@@ -3,7 +3,7 @@
 > **Owner**: [#119](https://github.com/blendsdk/blend65/issues/119) · **Type**: Task
 > **CodeOps Artifact Schema**: 1
 > **Status**: In progress — Gap B delivered and under verification, Gap A measured and re-scoped
-> **Progress**: 6/7 tasks
+> **Progress**: 6/7 tasks (reviews and gates remain)
 > **Last Updated**: 2026-11-26
 
 ## Tasks
@@ -14,7 +14,7 @@
 | 2 | Establish why each gap is refused, by spike and by the build's own decision record | Done |
 | 3 | Lowering: hoist the proved invariant load into the preheader | Done — `machine/fixed-counter-invariant-load.ts` |
 | 4 | Observer: accept the hoisted exact template and relocate the accumulator obligation | Done — `size-observer-register-counter.ts`, `size-observer-selected-loops.ts` |
-| 5 | Public oracle authored independently, implementation-blind, with RED evidence | In progress — three rounds; seven controls green, five witnesses pending one parse fix |
+| 5 | Public oracle authored independently, implementation-blind, with RED evidence | Done — `test/rd08/finite-loop-invariant-load.spec.test.ts`, 13 cases, 5 verified red against the reconstructed pre-change tree |
 | 6 | Implementation tests for the guards the public oracle cannot express | Done — `machine/fixed-counter-invariant-load.impl.test.ts`, fixture shared through `machine/fixed-loop-test-support.ts` |
 | 7 | Independent reviews, complete gates, closeout and issue evidence | Pending |
 
@@ -189,6 +189,36 @@ RHS written by the loop itself, a volatile `peek($d012)` RHS, a computed RHS, th
 counter as its own RHS, and a nested loop. Each is excluded before this work by
 `indexSource` or by the five-block eligibility, so they are preserved-behavior
 controls rather than evidence about the new guard.
+
+### RED evidence, measured against the pre-change tree
+
+The oracle was authored implementation-blind, but it was authored **after** the
+implementation existed, so running it proved nothing on its own. The pre-change
+tree was reconstructed to get the evidence that matters: the five source files
+reverted to the commit before this work, the four new ones removed, `dist`
+deleted and rebuilt from scratch, and the absence of the transformation confirmed
+in the built output before a single test ran.
+
+| Witness | Pre-change | Required | Failure |
+| --- | ---: | ---: | --- |
+| constant 7, displacement 1, bound 4, balanced | 63 | 57 | `lda #$07` inside the loop; repeated span wrong |
+| the same at size | 63 | 57 | identical |
+| global 255, displacement 255, bound 8 | 135 | 107 | `lda value` inside the loop |
+| global 128, displacement 127, bound 4 | 71 | 59 | `lda value` inside the loop |
+| constant 7, undisplaced, bound 4 | 63 | 57 | `lda #$07` inside the loop |
+
+All five fail, each on three independent assertions: the repeated span, the
+accumulator being rewritten inside it, and the cycle total. Restored and rebuilt,
+all thirteen pass. The seven controls and the byte-identity case pass on **both**
+trees, which is what makes them controls rather than evidence — they pin current
+behavior by construction, and the plan records them as such rather than counting
+them toward the proof.
+
+One trap worth recording: an intermediate check of the pre-change output looked
+like it still hoisted. The filter used to read it stripped the block labels, so
+`ldx / lda / sta` read as one straight run when in fact the `lda` was in the body
+block below the `ldx`. Confirming it meant re-reading the same output with the
+labels left in.
 
 ### The volatile guard is pinned, and a single mutation says it is not
 

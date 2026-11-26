@@ -1,0 +1,373 @@
+import { createHash } from "node:crypto";
+import { describe, expect, it } from "vitest";
+import { buildProfileSource, profileRecord } from "../rd05/profile-fixture.js";
+import {
+  clobbersAccumulator,
+  cost,
+  globalAddress,
+  innermostLoop,
+  readMnemonics,
+  readsStoredValue,
+  routine,
+  routineBytes,
+  routineCycles,
+} from "./emitted-routine-support.js";
+import type { Decoded, Loop, StoredValue } from "./emitted-routine-support.js";
+
+/** The one selected target every witness and control below is built for. */
+const target = "c64-pal-prg-kernal-6581";
+
+/** Public artifacts of one real build, exactly as the profile fixture returns them. */
+type Artifacts = Awaited<ReturnType<typeof buildProfileSource>>;
+
+/**
+ * Build a module that fills successive elements of an array held inside an object.
+ *
+ * The padding field in front of the array decides the displacement the generated
+ * store has to carry, which is the point of these witnesses: the stored byte must
+ * be loaded once whether the destination starts at the object's own home or well
+ * inside it.
+ */
+function sheetSource(padding: string, bound: number, rhs: string, globals = ""): string {
+  return `module Game;
+struct Sheet { pad: ${padding}; row: byte[8]; }
+let sheet: Sheet;
+${globals}function work(): void {
+  for (let i: word = 0; i < ${bound}; i += 1) { sheet.row[i] = ${rhs}; }
+}
+function main(): void { work(); }
+`;
+}
+
+/**
+ * Build a module whose `work` function fills a plain module array.
+ *
+ * This is the undisplaced destination, and the shared shape for the controls:
+ * they differ from an eligible witness only in the value being stored, so
+ * nothing else in the program can explain a difference in the emitted routine.
+ */
+function arraySource(bound: number, body: string, globals = ""): string {
+  return `module Game;
+let rows: byte[8] = [;0];
+${globals}function work(): void {
+  for (let i: word = 0; i < ${bound}; i += 1) { ${body} }
+}
+function main(): void { work(); }
+`;
+}
+
+/** Declaration of the module byte global that the global-valued witnesses store. */
+function valueGlobal(initial: number): string {
+  return `let value: byte = ${initial};\n`;
+}
+
+/** The register-indexed shape one fill witness must be emitted as. */
+interface FillShape {
+  readonly bound: number;
+  readonly firstElement: number;
+  readonly value: StoredValue;
+}
+
+/**
+ * Require the hoisted fill shape.
+ *
+ * The counter is initialized, the stored byte is loaded once, and only then is
+ * the loop entered. The repeated span is the element store with the counter's
+ * own step, compare and branch, none of which writes the accumulator, so the
+ * byte survives every trip and is never read a second time.
+ */
+function expectHoistedFill(
+  lines: readonly string[],
+  decoded: readonly Decoded[],
+  loop: Loop,
+  shape: FillShape,
+): void {
+  const emitted = `emitted as:\n${lines.join("\n")}`;
+  expect(decoded, emitted).toHaveLength(7);
+  const [init, load, store, step, compare, branch, exit] = decoded.map(
+    (entry) => entry.instruction,
+  );
+
+  expect(init!.mnemonic, `counter init, ${emitted}`).toBe("ldx");
+  expect(init!.mode, "counter init mode").toBe("immediate");
+  expect(init!.immediate, "first element index").toBe(0);
+
+  expect(load!.mnemonic, `stored byte load, ${emitted}`).toBe("lda");
+  if (shape.value.kind === "immediate") {
+    expect(load!.mode, "stored byte load mode").toBe("immediate");
+    expect(load!.immediate, "stored constant").toBe(shape.value.literal);
+  } else {
+    expect(load!.mode, "stored byte load mode").toBe("absolute");
+    expect(load!.address, "stored global home").toBe(shape.value.address);
+  }
+
+  expect(store!.mnemonic, "element store").toBe("sta");
+  expect(store!.mode, "element store mode").toBe("absoluteIndexed");
+  expect(store!.index, "element store index register").toBe("x");
+  expect(store!.address, "first stored element, including its displacement").toBe(
+    shape.firstElement,
+  );
+
+  expect(step!.mnemonic, "counter step").toBe("inx");
+  expect(step!.mode, "counter step mode").toBe("implied");
+  expect(compare!.mnemonic, "bound compare").toBe("cpx");
+  expect(compare!.mode, "bound compare mode").toBe("immediate");
+  expect(compare!.immediate, "loop bound").toBe(shape.bound);
+  expect(branch!.mnemonic, "loop branch").toBe("bcc");
+  expect(exit!.mnemonic, "routine return").toBe("rts");
+
+  // Soft, so a wrongly placed load still reports the cycle cost it causes.
+  expect.soft(loop, `repeated span, ${emitted}`).toEqual({ start: 2, end: 5 });
+  const body = decoded.slice(loop.start, loop.end + 1);
+  expect
+    .soft(
+      body.filter((entry) => clobbersAccumulator(entry.instruction)).map((e) => e.instruction.text),
+      "accumulator rewritten inside the loop",
+    )
+    .toEqual([]);
+  expect
+    .soft(
+      body
+        .filter((entry) => readsStoredValue(entry.instruction, shape.value))
+        .map((e) => e.instruction.text),
+      "stored byte read again inside the loop",
+    )
+    .toEqual([]);
+}
+
+/**
+ * Require that the stored byte is still read inside the repeated span.
+ *
+ * This is the shared obligation of every control: the value may change between
+ * trips, so it has to be read again on each one and may not be held in a
+ * register across the loop.
+ */
+function expectReadKeptInLoop(
+  lines: readonly string[],
+  decoded: readonly Decoded[],
+  loop: Loop,
+  value: StoredValue,
+): void {
+  const body = decoded.slice(loop.start, loop.end + 1);
+  expect(
+    body
+      .filter((entry) => readsStoredValue(entry.instruction, value))
+      .map((e) => e.instruction.text),
+    `reads of the stored byte inside the loop, emitted as:\n${lines.join("\n")}`,
+  ).not.toEqual([]);
+}
+
+describe("invariant byte stores in finite counted loops", () => {
+  it.each(["balanced", "size"] as const)(
+    "loads the stored constant once before a displaced four-element fill in %s mode",
+    async (mode) => {
+      const source = sheetSource("byte", 4, "7");
+      const artifacts = await buildProfileSource(source, target, mode);
+      expect(artifacts.debug).toMatchObject({ profileId: target, optimization: mode });
+      expect(artifacts.costs.mode).toBe(mode);
+
+      const { lines, decoded, labels } = routine(artifacts);
+      const loop = innermostLoop(lines, decoded);
+      expectHoistedFill(lines, decoded, loop, {
+        bound: 4,
+        firstElement: globalAddress(labels, "sheet") + 1,
+        value: { kind: "immediate", literal: 7 },
+      });
+      // Moving the load out of the loop changes where it runs, not how much code
+      // is emitted, so the routine stays the same size and runs four trips
+      // without reloading.
+      expect(routineBytes(decoded), "routine bytes").toBe(13);
+      expect(routineCycles(decoded, loop, 4), "routine cycles").toBe(57);
+    },
+    180_000,
+  );
+
+  it("loads a byte global once before an eight-element fill", async () => {
+    const source = sheetSource("byte[255]", 8, "value", valueGlobal(255));
+    const artifacts = await buildProfileSource(source, target, "balanced");
+
+    const { lines, decoded, labels } = routine(artifacts);
+    const loop = innermostLoop(lines, decoded);
+    expectHoistedFill(lines, decoded, loop, {
+      bound: 8,
+      firstElement: globalAddress(labels, "sheet") + 255,
+      value: { kind: "global", address: globalAddress(labels, "value") },
+    });
+    expect(routineBytes(decoded), "routine bytes").toBe(14);
+    expect(routineCycles(decoded, loop, 8), "routine cycles").toBe(107);
+  }, 180_000);
+
+  it("loads a byte global once before a four-element fill", async () => {
+    const source = sheetSource("byte[127]", 4, "value", valueGlobal(128));
+    const artifacts = await buildProfileSource(source, target, "balanced");
+
+    const { lines, decoded, labels } = routine(artifacts);
+    const loop = innermostLoop(lines, decoded);
+    expectHoistedFill(lines, decoded, loop, {
+      bound: 4,
+      firstElement: globalAddress(labels, "sheet") + 127,
+      value: { kind: "global", address: globalAddress(labels, "value") },
+    });
+    expect(routineBytes(decoded), "routine bytes").toBe(14);
+    expect(routineCycles(decoded, loop, 4), "routine cycles").toBe(59);
+  }, 180_000);
+
+  it("loads the stored constant once for an undisplaced fill", async () => {
+    // A destination that starts at its own home needs the same treatment: the
+    // displacement decides the store's operand, never how often the stored
+    // byte is read. The size and cycle figures follow from that one shape.
+    const artifacts = await buildProfileSource(arraySource(4, "rows[i] = 7;"), target, "balanced");
+
+    const { lines, decoded, labels } = routine(artifacts);
+    const loop = innermostLoop(lines, decoded);
+    expectHoistedFill(lines, decoded, loop, {
+      bound: 4,
+      firstElement: globalAddress(labels, "rows"),
+      value: { kind: "immediate", literal: 7 },
+    });
+    expect(routineBytes(decoded), "routine bytes").toBe(13);
+    expect(routineCycles(decoded, loop, 4), "routine cycles").toBe(57);
+  }, 180_000);
+
+  it("keeps the reload when the body changes the stored global", async () => {
+    // The stored byte is not the same on every trip, so nothing may be kept in
+    // the accumulator across the loop. The check stays deliberately general:
+    // a running value may legitimately be carried in a register and updated
+    // there, which is still not the same as holding one value across trips.
+    const source = arraySource(4, "rows[i] = value; value += 1;", valueGlobal(1));
+    const artifacts = await buildProfileSource(source, target, "balanced");
+
+    const { lines, decoded } = routine(artifacts);
+    const loop = innermostLoop(lines, decoded);
+    const body = decoded.slice(loop.start, loop.end + 1);
+    expect(
+      body.filter((entry) => clobbersAccumulator(entry.instruction)).map((e) => e.instruction.text),
+      `accumulator work inside the loop, emitted as:\n${lines.join("\n")}`,
+    ).not.toEqual([]);
+  }, 180_000);
+
+  it("keeps the hardware read inside the loop", async () => {
+    // A hardware read can answer differently on every trip, so it stays in the
+    // repeated part of the routine. Where exactly it lands within that part is
+    // the lowering's business; being lifted out of it is not.
+    const artifacts = await buildProfileSource(
+      arraySource(4, "rows[i] = peek($D012);"),
+      target,
+      "balanced",
+    );
+
+    const { lines, decoded } = routine(artifacts);
+    const loop = innermostLoop(lines, decoded);
+    const emitted = `emitted as:\n${lines.join("\n")}`;
+    const reads = decoded.filter((entry) => entry.instruction.address === 0xd012);
+    expect
+      .soft(
+        reads.map((entry) => entry.instruction.text),
+        `hardware reads, ${emitted}`,
+      )
+      .toHaveLength(1);
+    const repeated = reads.filter((entry) => {
+      const position = decoded.indexOf(entry);
+      return position >= loop.start && position <= loop.end;
+    });
+    expect(
+      repeated.map((entry) => entry.instruction.text),
+      `hardware reads inside the loop, ${emitted}`,
+    ).not.toEqual([]);
+    expect
+      .soft(
+        repeated.map((entry) => readMnemonics.has(entry.instruction.mnemonic)),
+        "hardware read into a register",
+      )
+      .not.toContain(false);
+  }, 180_000);
+
+  it("keeps the reload for a computed right-hand side", async () => {
+    // Only a stored constant or a plain global read is kept in the accumulator
+    // across the loop; a computed byte is still produced on every trip.
+    const source = arraySource(4, "rows[i] = value + 1;", valueGlobal(128));
+    const artifacts = await buildProfileSource(source, target, "balanced");
+
+    const { lines, decoded, labels } = routine(artifacts);
+    const loop = innermostLoop(lines, decoded);
+    expectReadKeptInLoop(lines, decoded, loop, {
+      kind: "global",
+      address: globalAddress(labels, "value"),
+    });
+  }, 180_000);
+
+  it("keeps the reload while an interrupt handler is installed", async () => {
+    // An installed handler can run between two trips and write the stored byte,
+    // so no value may be held in a register across the loop even though the
+    // loop itself never changes it.
+    const source = `module Game;
+import { setNMI, restoreNMI } from c64.system;
+let rows: byte[8] = [;0];
+interrupt function handler(): void {}
+function work(): void {
+  for (let i: word = 0; i < 4; i += 1) { rows[i] = 7; }
+}
+function main(): void { setNMI(&handler); work(); restoreNMI(); }
+`;
+    const artifacts = await buildProfileSource(source, target, "balanced");
+
+    const { lines, decoded } = routine(artifacts);
+    const loop = innermostLoop(lines, decoded);
+    expectReadKeptInLoop(lines, decoded, loop, { kind: "immediate", literal: 7 });
+  }, 180_000);
+
+  it.each([
+    { label: "a stored constant", padding: "byte", bound: 4, rhs: "7", globals: "", literal: 7 },
+    {
+      label: "a byte global",
+      padding: "byte[255]",
+      bound: 8,
+      rhs: "value",
+      globals: valueGlobal(255),
+      literal: undefined,
+    },
+    {
+      label: "a byte global",
+      padding: "byte[127]",
+      bound: 4,
+      rhs: "value",
+      globals: valueGlobal(128),
+      literal: undefined,
+    },
+  ])(
+    "keeps the per-trip read when no optimization is selected: $label, bound $bound",
+    async (witness) => {
+      // Keeping a byte in a register across a loop depends on the loop already
+      // being register-counted, which an unoptimized build does not do, so the
+      // stored byte is still read on every trip.
+      const source = sheetSource(witness.padding, witness.bound, witness.rhs, witness.globals);
+      const artifacts = await buildProfileSource(source, target, "none");
+      expect(artifacts.costs.mode).toBe("none");
+
+      const { lines, decoded, labels } = routine(artifacts);
+      const loop = innermostLoop(lines, decoded);
+      expectReadKeptInLoop(
+        lines,
+        decoded,
+        loop,
+        witness.literal === undefined
+          ? { kind: "global", address: globalAddress(labels, "value") }
+          : { kind: "immediate", literal: witness.literal },
+      );
+    },
+    180_000,
+  );
+
+  it("keeps a single-trip fill byte-identical", async () => {
+    // A loop that runs once has no repeated read to remove, so moving reads out
+    // of loops may not change this program by a single byte. The build selects
+    // the optimization the transformation lives in, because an unoptimized
+    // build cannot witness this either way.
+    const artifacts = await buildProfileSource(arraySource(1, "rows[i] = 7;"), target, "balanced");
+    expect(profileRecord(artifacts.costs.totals).programBytes, "program bytes").toBe(126);
+    expect(artifacts.prg.length, "artifact bytes").toBe(128);
+    expect(createHash("sha256").update(artifacts.prg).digest("hex"), "artifact digest").toBe(
+      "fdc85ed277e6b9d55a83df547de3d5bded0bc1127f501066fc23652a4e83ca50",
+    );
+  }, 180_000);
+});
