@@ -117,6 +117,28 @@ evaluator could not follow `main`'s exit into the startup restore, a span
 evaluation followed the update's own back edge, and one control's NMI handler
 body is refused by the compiler on both trees — which is itself a defect, #214.
 
+## Process deviation: the oracle followed the implementation
+
+The specification-first order — oracle, RED, then implementation — was not
+followed. The four seams were found by spiking and were implemented before the
+oracle was commissioned; the spikes and the implementation are the same work.
+Two things hold anyway, and neither is the same as pre-implementation authorship:
+
+- The author was **implementation-blind**: it was given the issue text, the
+  frozen specification and the public test helpers, with the machine and
+  services sources, every diff and `/tmp` explicitly forbidden, and reported
+  seeing none of them.
+- **RED was measured, not argued**, against a worktree of the pre-change tree
+  `9f1d24b1` with its own build: exactly the nine predicted assertions fail,
+  each for its predicted reason.
+
+What retrospective RED cannot show is that the expectations were not shaped by
+knowing what would pass. The safeguard here is that every expected window was
+copied from the issue text before any output existed, and that three of the
+author's first-draft cases failed on the new tree and were corrected for
+defects in the oracle, never by moving an expectation. Recorded as a deviation
+rather than counted as specification-first.
+
 ## Verification
 
 | Gate | Result |

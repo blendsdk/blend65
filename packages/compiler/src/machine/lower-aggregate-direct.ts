@@ -28,21 +28,28 @@ import { narrowableCounters } from "./word-assignment-forwarding.js";
 /** A compile-time byte offset or an unsigned byte ordinal that needs no pointer pair. */
 export type DirectAggregateAccess =
   | {
+      /** Every byte sits at a compile-time offset from the root. */
       readonly kind: "fixed";
+      /** The object's own home or link-time label, never a pointer to it. */
       readonly root: Extract<LoweredValue, { readonly kind: "storage" | "label" }>;
+      /** Byte offset of the accessed element from the root. */
       readonly offset: number;
     }
   | {
+      /** The element is selected at run time by a byte ordinal in an index register. */
       readonly kind: "indexed";
+      /** The object's own home or link-time label, never a pointer to it. */
       readonly root: Extract<LoweredValue, { readonly kind: "storage" | "label" }>;
+      /** The one-byte ordinal that selects the element. */
       readonly index: LoweredValue;
+      /** Compile-time byte offset added to the root before indexing. */
       readonly offset: number;
+      /** Bytes between consecutive elements; one needs no scaling. */
       readonly stride: number;
       /** A proved held counter needs no Y setup and may index through X. */
       readonly register?: "x" | "y";
     };
 
-/** Retain the actual typed construction without inventing a numeric pointer or widening its bound. */
 /** Prove the scaled byte index of one direct indexed access from existing ordinal bounds. */
 export function directIndexMaximum(
   operation: Extract<SemanticOperation, { readonly kind: "load" | "store" }>,
@@ -61,6 +68,21 @@ export function directIndexMaximum(
   return scaled <= 0xffn ? Number(scaled) : undefined;
 }
 
+/**
+ * Retain the actual typed construction without inventing a numeric pointer or widening its bound.
+ *
+ * The final observers read this record to tie an emitted access back to the source place it
+ * serves, the addressing recipe chosen for it and the proved range of its index. Canonical
+ * lowering records nothing, because nothing observes it.
+ * @param instruction The emitted access.
+ * @param operation The source load or store it implements.
+ * @param state Current lowering context.
+ * @param byte Which byte of the element this instruction touches.
+ * @param direct The direct access chosen, or null for the pointer form.
+ * @param displacement Compile-time byte offset applied by the pointer form.
+ * @param indexValueMaximum Proved maximum of the scaled index, when known.
+ * @returns The instruction carrying its observer origin.
+ */
 export function observeTypedAccess(
   instruction: MachineInstruction,
   operation: Extract<SemanticOperation, { readonly kind: "load" | "store" }>,
@@ -202,10 +224,18 @@ export function directAggregateAccess(
    * reads only the ordinal's low byte on the strength of that same maximum, then
    * adds it to the 16-bit base with the carry joining both bytes. `absolute-y`
    * performs exactly that addition in the address unit, so the byte addressed is
-   * the same one, and a page crossing costs what it cost before: a store makes
-   * its one discarded read at the not-yet-carried address in both modes, and a
-   * load pays its extra cycle in both. What disappears is the pointer itself,
-   * so its zero-page home is never requested and storage closes without it.
+   * the same one. What disappears is the pointer itself, so its zero-page home is
+   * never requested and storage closes without it.
+   *
+   * The bus traffic around that byte is not identical, and only matters at a
+   * page crossing. The pointer form adds the whole offset before the access and
+   * then indexes by zero, so a store's discarded read lands on the element
+   * itself. `absolute-y` forms the low address byte first, so on a crossing its
+   * discarded read lands one page below the element, and a load pays one extra
+   * cycle. That read is harmless on RAM or ROM and could matter only on a
+   * device register, which is why the final observer computes every access
+   * envelope, discarded reads included, and refuses the construction unless all
+   * of it is ordinary RAM.
    *
    * Held to a unit stride and a one-byte element, which is the shape measured;
    * a scaled ordinal and a two-byte element keep the pointer for now. Only the
