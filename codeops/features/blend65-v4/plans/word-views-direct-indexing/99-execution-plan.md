@@ -5,8 +5,8 @@
 > [#122](https://github.com/blendsdk/blend65/issues/122),
 > [#125](https://github.com/blendsdk/blend65/issues/125) · **Type**: Task
 > **CodeOps Artifact Schema**: 1
-> **Status**: In progress — delivered and host-verified; independent reviews running
-> **Progress**: 7/9 tasks
+> **Status**: In progress — delivered, reviewed, host-verified; the complete gate remains
+> **Progress**: 8/9 tasks
 > **Last Updated**: 2026-11-26
 
 ## Tasks
@@ -19,8 +19,8 @@
 | 4 | Canonical identities, integration tier and frontier guards | Done |
 | 5 | Public oracle, authored independently and implementation-blind, with RED | Done |
 | 6 | Behaviour oracle in VICE with discriminating inputs | Done |
-| 7 | Implementation witnesses for the guards the public oracle cannot express | Done — three, one verified by mutation; four guards unwitnessed and itemised |
-| 8 | Independent reviews and dispositions | In progress |
+| 7 | Implementation witnesses for the guards the public oracle cannot express | Done — three, one verified by mutation; three guards unwitnessed and itemised; a fourth witnessed after review |
+| 8 | Independent reviews and dispositions | Done — three reviews, eight findings, all dispositioned |
 | 9 | Complete gate and closeout | Pending |
 
 ## The witnesses, measured
@@ -101,7 +101,7 @@ nested witness's two counter updates stay staged. Filed as #219.
 | #122: exemption only for roots outside the narrowable set | yes | integration tier (the row 6 and saved-input constructions) |
 | #122: unknown set releases nothing | **no** | unreachable: `optimizationFacts` carries every function |
 | #125: operand is the destination or a constant | yes, twice | implementation witness; selection and resolution each refuse, so neither alone is load-bearing |
-| #125: no asynchronous entry | **no — shadowed** | forwarding never runs in a program that installs a handler (#215), so no program reaches this gate with it false. The public oracle's NMI control passes vacuously for the same reason |
+| #125: no asynchronous entry | yes | implementation witness with an IRQ handler; verified by deleting the gate (the update forwards). First recorded here as shadowed — true only for NMI programs, whose blocks are projected per route and so never reach forwarding (#215). The SFA/ABI audit caught the overstatement |
 | #125: never `INC` on a module word | yes | implementation witness on a loop-closing `total += 1` |
 
 ## Oracles
@@ -116,6 +116,22 @@ Three first-draft oracle defects were the author's to fix and were: the
 evaluator could not follow `main`'s exit into the startup restore, a span
 evaluation followed the update's own back edge, and one control's NMI handler
 body is refused by the compiler on both trees — which is itself a defect, #214.
+
+## Review dispositions
+
+| Finding | Severity | Disposition |
+| --- | --- | --- |
+| RV-001 / MC-003: the page-crossing comment was wrong — the pointer form's discarded store read is the element itself, absolute-Y's is one page below | minor | Fixed. The comment now states the difference and the real safeguard: the final observer refuses any access envelope, discarded reads included, that is not ordinary RAM. A VICE case writes an array straddling `$3400` and checks both neighbours |
+| RV-002: moved exports undocumented, one doc comment stranded | minor | Fixed |
+| RV-003: oracle authored after implementation | major (process) | Recorded below as a deviation; not rewritten |
+| MC-001: word `< 8` guard pays a full subtraction | minor | Pre-existing; filed #220 (2 B / 2 c per test) |
+| MC-002: second `lda #$00` in zero initialisation | minor | Pre-existing; the mechanism #204 owns, witness added there |
+| #216 target | — | Refined to `inc lo / bne header`, 5 B |
+| SF-001: "any installed handler" disables forwarding was too broad | minor | Correct: IRQ-only programs keep their blocks and reach the #125 gate. Witness added and verified by mutation; record and #215 narrowed to NMI |
+
+Machine-code verdict: both store windows **meet** the expert; the updates
+remain below it and are filed. SFA/ABI verdict: static closure passes, no
+critical or major finding. Correctness verdict: no runtime defect.
 
 ## Process deviation: the oracle followed the implementation
 
@@ -155,7 +171,7 @@ rather than counted as specification-first.
 | Issue | What |
 | --- | --- |
 | #214 | An NMI handler cannot increment a byte global — E10245 on both routes |
-| #215 | Word forwarding never runs in a program that installs a handler |
+| #215 | Word forwarding never runs in a program that installs an NMI handler (route-projected blocks) |
 | #216 | The range-proved 6-byte counter step |
 | #217 | `INC` for a module word when nothing observes A, flags or the bus |
 | #218 | Word-element and scaled bounded indexing, 52 → 17 B |

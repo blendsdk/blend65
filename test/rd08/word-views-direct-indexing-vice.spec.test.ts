@@ -131,4 +131,45 @@ describe.sequential("word views and word updates compute what the source says", 
       }
     });
   }, 180_000);
+
+  it("writes every element of an array that straddles a page boundary", async () => {
+    // The array runs from $33fc to $3403, so the absolute-indexed store must
+    // carry into the high address byte for the last four elements. The bytes
+    // either side are placed rather than written, so a store landing one page
+    // low, or one element out, shows up as a changed neighbour.
+    const crossing = `module Game;
+place(at: $33fb) let before: byte = 1;
+place(at: $33fc) let data: byte[8] = [;0];
+place(at: $3404) let after: byte = 2;
+function scan(seed: word): void {
+  for (let i: word = seed; i < 8; i += 1) { data[i] = byte(i); }
+}
+function main(): void { scan(0); }
+`;
+    await withProfileProject(crossing, target, async (project) => {
+      const built = await buildProject({ project, optimization: "balanced" });
+      expect(built.kind, JSON.stringify(built.diagnostics)).toBe("success");
+      if (built.kind !== "success") throw new Error("Expected a complete build");
+      const artifacts = await readProfileArtifacts(built);
+      const scan = routineText(artifacts.assembly, "scan");
+      expect(scan, "absolute-indexed store").toMatch(/^\s+sta\+2\s+b65_Game_data_\S*,y\s*$/mu);
+
+      const returnAddress = programReturnAddress(artifacts.labels);
+      const started = await startVice(
+        join(built.generation.directory, built.generation.primaryArtifact),
+      );
+      if ("kind" in started) throw new Error(`VICE qualification is Unknown: ${started.reason}`);
+      try {
+        await started.monitor.setExecuteCheckpoint(returnAddress);
+        const stopped = started.monitor.waitForStop(20_000);
+        await started.monitor.resume();
+        expect(await stopped).toBe(returnAddress);
+        expect([...(await started.monitor.readMemory(0x33fb, 0x3404))]).toEqual([
+          1, 0, 1, 2, 3, 4, 5, 6, 7, 2,
+        ]);
+      } finally {
+        await stopVice(started);
+      }
+    });
+  }, 180_000);
 });

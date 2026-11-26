@@ -53,6 +53,26 @@ function main(): void { touch(); }
     expect(stores.slice(2).every((operand) => operand.startsWith("b65_Game_total"))).toBe(true);
   }, 180_000);
 
+  it("stages a module word update when an IRQ handler is installed", async () => {
+    // A handler could write the variable between the low store and the high
+    // read, giving an outcome the staged update never produces. Until a proof
+    // can say which variables a handler writes, any asynchronous entry keeps
+    // the scratch copy.
+    const source = `module Game;
+import { setIRQ, restoreIRQ } from c64.system;
+let total: word = 0;
+let pulse: byte = 0;
+interrupt function onIRQ(): void { pulse = 1; }
+function touch(): void { total += 1; }
+function main(): void { setIRQ(&onIRQ); touch(); restoreIRQ(); }
+`;
+    const artifacts = await buildProfileSource(source, target, "balanced");
+    const touch = routineText(artifacts.assembly, "touch");
+    const stores = storedOperands(touch.slice(0, touch.search(/^\s+rts\s*$/mu)));
+    expect(stores, "two scratch stores, then the two destination stores").toHaveLength(4);
+    expect(stores.slice(0, 2).some((operand) => operand.startsWith("b65_Game_total"))).toBe(false);
+  }, 180_000);
+
   it("never steps a module word with an increment instruction", async () => {
     // An update that closes a loop body would select the in-place increment
     // for a private home. A module word keeps ordinary stores: an increment
