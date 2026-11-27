@@ -4,8 +4,8 @@
 > [#124](https://github.com/blendsdk/blend65/issues/124),
 > [#126](https://github.com/blendsdk/blend65/issues/126) · **Type**: Task
 > **CodeOps Artifact Schema**: 1
-> **Status**: Part A complete and verified (#124, #126); part B (#118) in progress
-> **Progress**: 9/9 tasks for part A; part B below
+> **Status**: Complete and verified — part A (#124, #126) and part B (#118)
+> **Progress**: 9/9 tasks for part A; 8/8 for part B
 > **Last Updated**: 2026-11-27
 
 ## Tasks
@@ -321,7 +321,7 @@ were fixed before any commit reached the gate.
 | B5 | Teach the selected-loop observer the continuation exit and entry | Done |
 | B6 | Activate the frozen oracle unchanged; impl tests; emulator behaviour case | Done — oracle 7 / 7 (2 / 7 RED before), impl 9 + 4 |
 | B7 | On/off differential over the captured test corpus at `balanced` and `size` | Done — below |
-| B8 | Affected VICE files, host checkpoint, reviews, complete gate, closeout | In progress — reviews done, VICE tier run, oracles approved |
+| B8 | Affected VICE files, host checkpoint, reviews, complete gate, closeout | Done — three review rounds; complete gate green but for the known flake |
 
 ### The rule
 
@@ -471,3 +471,24 @@ did not distinguish waiting for adapters from waiting for bodies, because its
 wrapper needed no adapter. Added a fixed wrapper that needs one; the chain now
 keeps its jump and the adapter takes the first `$xx47` slot, and the test fails
 under the earlier deferral.
+
+### Verification (part B)
+
+| Gate | Result |
+| --- | --- |
+| Frozen oracle, RED before any source change | 2 / 7 failed; 7 / 7 after |
+| Implementation tests | sole continuation 11, layout continuation 8, observer fused shapes 4 + 6, routine reader 3; every guard load-bearing by mutation |
+| Fused-witness emulator case | 3 / 3: rows written, `$00`/`$01`/`$DD02` restored, no `$DD00` access, genuine SYS return at `$E147` — VICE-verified / hardware-unverified |
+| Corpus differential (3,908 comparisons) | 424 smaller (3,268 B), 0 larger, 0 construction or build changes |
+| Complete gate `yarn test:full` on `bf96e60b` | install, build, typecheck clean; nine identities unchanged; host 292 / 6,300; VICE 2,444 passed, 2 failed: `vic-collision` (#191, passes 1 of 2 runs alone) and one `cia2-startup-vice` case whose VICE monitor peer was not owned by the spawned process (an emulator-harness failure; passes when re-run) |
+| Review coverage | four reviews of the first form; two correctness follow-ups (`2b3bb363`, `bf96e60b`); `c46b115a` adds one layout test only |
+
+### Deferral expiry (part B)
+
+Did part B expire any deferral's stated rationale? #118 was deferred to this
+part for a layout contract; that contract now exists, so #225 (place a
+tail-called body after its caller) is no longer blocked on it — the remaining
+work there is marking part A's tail jumps as continuations, which stays with
+#225 because it changes placement for every tail transfer and needs its own
+differential. No expressiveness-ledger row changes; no deferral names this row
+as its landing place.
