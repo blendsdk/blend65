@@ -484,6 +484,15 @@ export interface MachineJumpTerminator {
   readonly target: string;
   /** Exact jump cost. */
   readonly cost: MachineCost;
+  /**
+   * The jump continues the program into another body, which may be placed
+   * directly after this block so that control falls into it for nothing.
+   * Layout drops the jump only when it has placed the target there; anywhere
+   * else the jump stays.
+   */
+  readonly continuation?: true;
+  /** Source call this continuation replaced, kept for debug and proof owners. */
+  readonly source?: SourceSpan;
 }
 
 /** In-range conditional transfer with one explicit fallthrough block. */
@@ -538,6 +547,8 @@ export interface MachineFallthroughTerminator {
   readonly kind: "fallthrough";
   /** Required immediately adjacent destination. */
   readonly target: string;
+  /** Source call a continuation into another body replaced, kept for proof owners. */
+  readonly source?: SourceSpan;
 }
 
 /** Terminal block which cannot execute another instruction. */

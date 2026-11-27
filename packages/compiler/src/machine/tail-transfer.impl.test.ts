@@ -201,4 +201,17 @@ describe("tail transfer", () => {
       target: "fn.calculate.helper",
     });
   });
+
+  it("keeps the call when the callee calls code at a numeric address", () => {
+    // Firmware or other code the program does not contain may read above its frame.
+    const firmware = instruction({
+      opcode: "jsr",
+      mode: "absolute",
+      operand: Object.freeze({ kind: "absolute" as const, value: 0x4000 }),
+      cost: Object.freeze({ bytes: 3, minCycles: 6, maxCycles: 6 }),
+    });
+    const callee = body("fn.child", [block("fn.child.0", [firmware])]);
+    const caller = body("fn.touch", [block("fn.touch.0", [call("fn.child")])]);
+    expect(run([caller, callee]).functions[0]).toBe(caller);
+  });
 });

@@ -16,6 +16,7 @@ import {
   sourceDataStart,
 } from "./c64-layout-placement.js";
 import { C64_STARTUP_STATE_ID, createC64StartupStateData, bindC64StartupState } from "./startup.js";
+import { continuationTarget, fallIntoNext, restorationVisible } from "./c64-layout-continuation.js";
 
 /** One inclusive placed interval in the selected C64 memory map. */
 export interface C64LayoutInterval {
@@ -404,6 +405,73 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   ];
   const fixedReservations = [...fixedData, ...fixedCode, ...sfaIntervals];
   const repairedById = new Map<string, MachineFunction>();
+  /** Each placed ordinary body's own code piece, so a continuation can shorten it. */
+  const pieceOf = new Map<string, { start: number; end: number }>();
+  let placedRestore: readonly MachineBlock[] | null = null;
+  /** Placed bodies whose continuations wait for the NMI publication entries. */
+  const deferred: string[] = [];
+  /**
+   * Place what a body continues into directly after it, link by link.
+   *
+   * A link is taken only when the target fits at exactly that address; the body
+   * then loses its closing jump and control falls into the target. When it does
+   * not fit, the jump stays and the target is placed like any other body. Fixed
+   * bodies start no chain: what follows them could only extend the program
+   * past the gap it fills today.
+   */
+  const placeContinuations = (first: string): void => {
+    let tail = first;
+    for (;;) {
+      const body = repairedById.get(tail)!;
+      const target = continuationTarget(body);
+      const piece = pieceOf.get(tail);
+      if (target === undefined || piece === undefined) return;
+      const at = piece.end + 1 - 3;
+      const occupied = () => [...codePieces, ...fixedReservations];
+      if (target === "startup.restore") {
+        if (restoreOmitted || placedRestore !== null || !restorationVisible(at, restoreBytes))
+          return;
+        piece.end -= 3;
+        const placed =
+          freeSourceStart(at, restoreBytes, 1, undefined, occupied(), input.profile) === at
+            ? placeStartupPath(restoreBlocks, at)
+            : null;
+        if (placed === null) {
+          piece.end += 3;
+          return;
+        }
+        repairedById.set(tail, fallIntoNext(body));
+        codePieces.push({ start: at, end: at + restoreBytes - 1 });
+        placedRestore = placed;
+        return;
+      }
+      const next = orderedFunctions.find(({ id }) => id === target);
+      if (
+        next === undefined ||
+        next.id === mainTarget ||
+        next.nmiPublicationEntry === true ||
+        repairedById.has(next.id) ||
+        fixedFunctions.has(next.id)
+      )
+        return;
+      const repaired = repairMachineBranches(next, at);
+      if (repaired.kind === "error") return;
+      piece.end -= 3;
+      if (
+        freeSourceStart(at, repaired.byteLength, 1, next.placement, occupied(), input.profile) !==
+        at
+      ) {
+        piece.end += 3;
+        return;
+      }
+      repairedById.set(tail, fallIntoNext(body));
+      const nextPiece = { start: at, end: at + repaired.byteLength - 1 };
+      codePieces.push(nextPiece);
+      pieceOf.set(next.id, nextPiece);
+      repairedById.set(next.id, repaired.function);
+      tail = next.id;
+    }
+  };
   const nmiAdapters = new Set<string>();
   for (const fn of orderedFunctions) {
     const fixed = fixedFunctions.get(fn.id);
@@ -452,8 +520,19 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     const repaired = repairMachineBranches(fn, origin);
     if (repaired.kind === "error" || repaired.byteLength !== estimate.byteLength)
       return Object.freeze({ kind: "error", reason: "branch-layout", objectId: fn.id });
-    codePieces.push({ start: origin, end: origin + repaired.byteLength - 1 });
+    const piece = { start: origin, end: origin + repaired.byteLength - 1 };
+    codePieces.push(piece);
+    pieceOf.set(fn.id, piece);
     repairedById.set(fn.id, repaired.function);
+    // An NMI publication entry is placed right after the entry function so it
+    // can take the alignment gap there; a chain waits until it has.
+    deferred.push(fn.id);
+    if (
+      !orderedFunctions.some(
+        (item) => item.nmiPublicationEntry === true && !repairedById.has(item.id),
+      )
+    )
+      for (const id of deferred.splice(0)) placeContinuations(id);
   }
   for (const id of nmiAdapters) {
     const wrapper = repairedById.get(id)!;
@@ -496,8 +575,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     codePieces.push({ start: origin, end: origin + 2 });
   }
   const repairedFunctions = orderedFunctions.map((fn) => repairedById.get(fn.id)!);
-  let placedRestore: readonly MachineBlock[] = [];
-  if (!restoreOmitted) {
+  if (!restoreOmitted && placedRestore === null) {
     const restoreOrigin = freeSourceStart(
       input.profile.packager.startupAddress + entryBytes,
       restoreBytes,
@@ -519,7 +597,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   const placedStartup = Object.freeze({
     ...input.program.startup,
     origin: input.profile.packager.startupAddress,
-    blocks: Object.freeze([...placedEntry, ...placedRestore]),
+    blocks: Object.freeze([...placedEntry, ...(placedRestore ?? [])]),
   });
   const expectedStartupState = createC64StartupStateData(
     input.program.c64Startup,
@@ -549,7 +627,9 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
         : input.program.data,
   });
   const codeGroups: { start: number; end: number }[] = [];
-  for (const piece of codePieces.sort((left, right) => left.start - right.start)) {
+  // A body that only falls into the next one occupies no bytes of its own.
+  const occupiedPieces = codePieces.filter(({ start, end }) => end >= start);
+  for (const piece of occupiedPieces.sort((left, right) => left.start - right.start)) {
     const last = codeGroups.at(-1);
     if (last !== undefined && piece.start === last.end + 1) last.end = piece.end;
     else codeGroups.push({ ...piece });

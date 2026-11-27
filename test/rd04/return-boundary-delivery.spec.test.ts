@@ -127,7 +127,15 @@ async function routine(directory: string, name: string): Promise<readonly string
       inside = true;
       continue;
     }
-    if (inside && /^b65_/u.test(line) && !line.includes(`_${name}_`)) break;
+    if (inside && /^b65_/u.test(line) && !line.includes(`_${name}_`)) {
+      // A routine that falls into what is placed next reads with a last line
+      // `falls into <that label>`.
+      if (!/^(rts|rti|jmp) /u.test(`${body.at(-1) ?? ""} `))
+        body.push(
+          `falls into ${line.replace(/:.*$/u, "").replace(/_[0-9a-f]{8}[0-9a-f]*/gu, "_")}`,
+        );
+      break;
+    }
     const text = line.trim();
     if (!inside || text.length === 0 || text.startsWith(";") || text.startsWith("*")) continue;
     body.push(text.replace(/^(\w+)\+\d+/u, "$1").replace(/_[0-9a-f]{8}[0-9a-f]*/gu, "_"));
@@ -184,7 +192,11 @@ describe.each(sourceLibraryProfiles)("delivery across a callee's return on %s", 
     const body = await build(calledOnce, profile, "balanced");
     expect(delivery(body)).toBe("sta b65_Game_answer_");
     expect(stagedPairs(body)).toEqual([]);
-    expect(body.at(-1)).toBe("rts");
+    // It returns, or — called last by the entry function — continues into the
+    // startup restoration by a jump or by falling into it.
+    expect(body.at(-1)).toMatch(
+      /^(rts|jmp b65_startup_block_1_|falls into b65_startup_block_1_)$/u,
+    );
   }, 120_000);
 
   it("should deliver directly when the next instruction is another call", async () => {

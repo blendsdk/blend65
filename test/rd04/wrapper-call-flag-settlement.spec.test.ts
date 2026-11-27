@@ -62,6 +62,8 @@ function main(): void { apply(); wrap(); }`;
  * Instructions of one generated routine, without labels, origins or comments.
  * The assembler's operand-width hint is dropped and generated label identities
  * are collapsed, so nothing here depends on a chosen address or encoding.
+ * A routine with no instructions of its own, whose address is that of the
+ * routine placed next, reads as one line `falls into <that routine>`.
  */
 async function routine(directory: string, name: string): Promise<readonly string[]> {
   const lines = (await readFile(join(directory, ".asm"), "utf8")).split("\n");
@@ -72,7 +74,13 @@ async function routine(directory: string, name: string): Promise<readonly string
       inside = true;
       continue;
     }
-    if (inside && /^b65_/u.test(line) && !line.includes(`_${name}_`)) break;
+    if (inside && /^b65_/u.test(line) && !line.includes(`_${name}_`)) {
+      if (body.length === 0)
+        body.push(
+          `falls into ${line.replace(/:.*$/u, "").replace(/_[0-9a-f]{8}[0-9a-f]*/gu, "_")}`,
+        );
+      break;
+    }
     const text = line.trim();
     if (!inside || text.length === 0 || text.startsWith(";") || text.startsWith("*")) continue;
     body.push(text.replace(/^(\w+)\+\d+/u, "$1").replace(/_[0-9a-f]{8}[0-9a-f]*/gu, "_"));
@@ -168,6 +176,7 @@ describe.each(sourceLibraryProfiles)("a next call that delegates its opening on 
   // the delivery above still follows the chain to `inner`'s opening load.
   it("should leave the wrapper through its callee", async () => {
     const body = await build(nextCalleeIsWrapper, profile, "balanced", { routine: "wrap" });
-    expect(body).toEqual([expect.stringMatching(/^jmp b65_Game_inner_$/u)]);
+    // The wrapper leaves by a jump to its callee, or holds nothing and falls into it.
+    expect(body).toEqual([expect.stringMatching(/^(jmp|falls into) b65_Game_inner_$/u)]);
   }, 120_000);
 });

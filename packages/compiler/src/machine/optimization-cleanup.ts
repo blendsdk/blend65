@@ -11,6 +11,7 @@ import { copyParameterLocals } from "./optimization-copy-propagation.js";
 import type { AppliedRule, RuleObligation, RuleSite } from "./optimization-rules.js";
 import { matchedStatusRestore } from "./status-save-window.js";
 import { returnSettlesFlags } from "./return-flag-facts.js";
+import { soleContinuation } from "./sole-continuation.js";
 import { tailTransfer } from "./tail-transfer.js";
 
 /** One direct byte store or load operand. */
@@ -1072,11 +1073,22 @@ export function applyFoundationCleanup(
   const bytes = deadByteStore(program, stores.functions, semanticFor, facts.unreadBytes);
   const dead = deadInstruction(bytes.functions, semanticFor);
   const empty = emptyBlock(dead.functions, semanticFor);
-  const latest = new Map(empty.functions.map((fn) => [fn.id, fn] as const));
+  const emptied = new Map(empty.functions.map((fn) => [fn.id, fn] as const));
+  // The entry's continuation runs before tail transfer: a callee that continues
+  // into the restoration no longer returns, and its own closing call is then a
+  // continuation too rather than a transfer whose callee would return past it.
+  const continued = soleContinuation(
+    facts.profile.cpu,
+    [program.startup, ...program.functions.map((fn) => emptied.get(fn.id) ?? fn)],
+    empty.functions,
+    mainline,
+    semanticFor,
+  );
+  const latest = new Map(continued.functions.map((fn) => [fn.id, fn] as const));
   const tails = tailTransfer(
     facts.profile.cpu,
     [program.startup, ...program.functions.map((fn) => latest.get(fn.id) ?? fn)],
-    empty.functions,
+    continued.functions,
     mainline,
     semanticFor,
   );
@@ -1095,6 +1107,7 @@ export function applyFoundationCleanup(
       ...bytes.applied,
       ...dead.applied,
       ...empty.applied,
+      ...continued.applied,
       ...tails.applied,
     ]),
   });

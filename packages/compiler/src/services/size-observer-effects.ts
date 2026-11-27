@@ -309,9 +309,20 @@ function loopRepresentation(
             trap.instructions[0]!.opcode === "sei" &&
             trap.terminator.kind === "jump" &&
             trap.terminator.target === trap.label;
-          const returned =
+          // The entry function's return may instead continue into the body it
+          // called last, which continues into the restoration in its turn.
+          const exit = block.terminator;
+          const continued =
             edge.kind === "return" &&
-            shared.layout.program.startup.blocks.some((entry) => entry.label === target);
+            ((exit.kind === "jump" && exit.continuation === true) ||
+              (exit.kind === "fallthrough" && exit.source !== undefined)) &&
+            exit.target === target &&
+            loop.function.id === input.checked.program.semantic.main &&
+            shared.layout.program.functions.some((entry) => entry.id === target);
+          const returned =
+            continued ||
+            (edge.kind === "return" &&
+              shared.layout.program.startup.blocks.some((entry) => entry.label === target));
           const sharedReturn = isOriginalSharedByteReturn(
             source,
             loop.function.result,

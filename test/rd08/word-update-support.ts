@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { decodeLine, readMnemonics } from "./emitted-routine-support.js";
+import { cost, decodeLine, readMnemonics } from "./emitted-routine-support.js";
 import type { Artifacts, Decoded, Instruction } from "./emitted-routine-support.js";
 
 /** A named routine decoded from the public assembly and final label table. */
@@ -261,6 +261,35 @@ function immediate(instruction: Instruction, labels: Map<string, number>): numbe
   throw new Error(`Unresolved immediate: ${instruction.text}`);
 }
 
+/** Encoded length of one instruction; the zero-page indirect forms are two bytes. */
+function encodedBytes(instruction: Instruction): number {
+  return instruction.mode === "other" &&
+    /\(/u.test(instruction.text) &&
+    instruction.mnemonic !== "jmp"
+    ? 2
+    : cost(instruction).bytes;
+}
+
+/**
+ * Whether control leaving the routine's last instruction lands on a label the
+ * routine does not own.
+ *
+ * The routine's end is its lowest owned label plus the encoded size of every
+ * instruction it holds; only a label exported at exactly that address counts.
+ */
+function fallsOntoExternalLabel(view: RoutineView): boolean {
+  const last = view.decoded.at(-1)?.instruction.mnemonic;
+  if (last === undefined || ["rts", "rti", "jmp"].includes(last)) return false;
+  const owned = [...view.labels].filter(([label]) => label.startsWith(view.stem));
+  if (owned.length === 0) return false;
+  const end =
+    Math.min(...owned.map(([, address]) => address)) +
+    view.decoded.reduce((sum, { instruction }) => sum + encodedBytes(instruction), 0);
+  return [...view.labels].some(
+    ([label, address]) => address === end && !label.startsWith(view.stem),
+  );
+}
+
 /**
  * Evaluate the binary-mode instruction subset used by these leaf witnesses.
  *
@@ -269,7 +298,10 @@ function immediate(instruction: Instruction, labels: Map<string, number>): numbe
  * delivery or replace emulator qualification. Unknown inputs, instructions and
  * targets fail explicitly rather than being treated as zero or ignored.
  *
- * Routine evaluation ends on a return or a transfer to a known external label.
+ * Routine evaluation ends on a return or a transfer to a known external label,
+ * including falling off the routine's last instruction onto such a label: a
+ * routine the entry function calls last may continue into the startup
+ * restoration placed right after it instead of returning.
  * Span evaluation also ends whenever control leaves either boundary of the span,
  * so a counter update can finish by branching back to its loop header.
  */
@@ -376,6 +408,8 @@ export function evaluate(
   for (let steps = 0; steps < 250_000; steps += 1) {
     if (span !== undefined && (pc < start || pc > end)) return { memory, writes };
     const instruction = view.decoded[pc]?.instruction;
+    if (span === undefined && pc === view.decoded.length && fallsOntoExternalLabel(view))
+      return { memory, writes };
     if (pc < 0 || pc > end || instruction === undefined)
       throw new Error(`Evaluation escaped the routine at instruction ${pc}`);
 

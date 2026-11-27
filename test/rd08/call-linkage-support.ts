@@ -400,21 +400,21 @@ export function expectContinuation(
 /**
  * Label of the startup restoration, read from the reference build's entry function.
  *
- * Unoptimized lowering ends the entry function with an unconditional jump to
- * the restoration. That label is then looked up in an optimized build of the
- * same program, whose entry function may no longer name it.
+ * Unoptimized lowering leaves the entry function by one unconditional jump to
+ * the restoration. That jump is usually the last instruction, but block layout
+ * may place a loop body after it, so it is found as the routine's only
+ * unconditional transfer out of itself. That label is then looked up in an
+ * optimized build of the same program, whose entry function may no longer name it.
  */
 export function restorationLabel(reference: Artifacts): string {
   const main = linkedRoutine(reference, "main");
   const shown = main.lines.join("\n");
-  const final = exits(main).find((exit) => exit.position === main.decoded.length - 1);
-  expect(final?.kind, `reference main ends with a jump to the restoration:\n${shown}`).toBe(
-    "transfer",
-  );
-  expect(final?.conditional, `reference main's final transfer is unconditional:\n${shown}`).toBe(
-    false,
-  );
-  const target = main.decoded.at(-1)?.instruction.target;
+  const leaving = exits(main).filter((exit) => exit.kind === "transfer" && !exit.conditional);
+  expect(
+    leaving.map((exit) => exit.text),
+    `reference main leaves by one jump to the restoration:\n${shown}`,
+  ).toHaveLength(1);
+  const target = main.decoded[leaving[0]!.position]?.instruction.target;
   expect(target, `named restoration target:\n${shown}`).toBeDefined();
   if (target === undefined) throw new Error("Missing the restoration label");
   return target;

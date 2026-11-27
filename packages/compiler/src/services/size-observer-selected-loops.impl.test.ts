@@ -505,4 +505,101 @@ describe("final selected LowByte observers", () => {
     };
     expect(validateSelectedLoops(rejected)).toMatchObject({ kind: "rejected" });
   });
+
+  describe("an owner the entry continues into", () => {
+    const jump = (target: string, source?: MachineInstruction["source"]) =>
+      Object.freeze({
+        kind: "jump" as const,
+        opcode: "jmp" as const,
+        target,
+        cost: Object.freeze({ bytes: 3, minCycles: 3, maxCycles: 3 }),
+        continuation: true as const,
+        ...(source == null ? {} : { source }),
+      });
+    /**
+     * Rewrite the real entry and owner the way the continuation rule does: the
+     * entry's closing call becomes a continuation into the owner, and the
+     * owner's return a continuation into the restoration. `entryEdge` and
+     * `exitEdge` let a case damage either edge on the placed side only.
+     */
+    function continued(
+      input: Fixture,
+      edges: {
+        readonly entryEdge?: (
+          edge: MachineFunction["blocks"][number]["terminator"],
+        ) => MachineFunction["blocks"][number]["terminator"];
+        readonly exitEdge?: (
+          edge: MachineFunction["blocks"][number]["terminator"],
+        ) => MachineFunction["blocks"][number]["terminator"];
+        readonly keepSource?: boolean;
+      } = {},
+    ): Fixture {
+      const { owner } = selected(input);
+      let result = input;
+      for (const construction of ["before", "after"] as const)
+        result = withFunction(result, construction, (fn, placed) => ({
+          ...fn,
+          blocks: fn.blocks.map((block) => {
+            if (fn.sourceFunction === owner)
+              return block.terminator.kind !== "return"
+                ? block
+                : {
+                    ...block,
+                    terminator:
+                      placed && edges.exitEdge !== undefined
+                        ? edges.exitEdge(jump("startup.restore"))
+                        : jump("startup.restore"),
+                  };
+            const call = block.instructions.at(-1);
+            if (call?.opcode !== "jsr") return block;
+            const edge = jump(
+              call.operand?.kind === "label" ? call.operand.label : "",
+              edges.keepSource === false ? undefined : call.source,
+            );
+            return {
+              ...block,
+              instructions: block.instructions.slice(0, -1),
+              terminator: placed && edges.entryEdge !== undefined ? edges.entryEdge(edge) : edge,
+            };
+          }),
+        }));
+      return result;
+    }
+
+    it("accepts the continuation the rule produces", () => {
+      const input = continued(effectFixture(SUM_SOURCE, "size", true, "low-byte"));
+      const result = validateSelectedLoops(input);
+      expect("kind" in result ? result : result.size).toBe(1);
+    });
+
+    it("refuses a continuation that does not carry its call's source", () => {
+      const input = continued(effectFixture(SUM_SOURCE, "size", true, "low-byte"), {
+        keepSource: false,
+      });
+      invalid(input, "Selected loop state, caller or startup continuation is unresolved");
+    });
+
+    it("refuses an entry that falls into the owner from an address that is not its entry", () => {
+      // The entry block keeps its bytes where they are, so a fall-through from it
+      // would run into whatever lies between, not into the owner.
+      const input = continued(effectFixture(SUM_SOURCE, "size", true, "low-byte"), {
+        entryEdge: (edge) =>
+          edge.kind === "jump"
+            ? Object.freeze({
+                kind: "fallthrough" as const,
+                target: edge.target,
+                ...(edge.source === undefined ? {} : { source: edge.source }),
+              })
+            : edge,
+      });
+      invalid(input, "Selected loop state, caller or startup continuation is unresolved");
+    });
+
+    it("refuses an owner that falls into a restoration placed elsewhere", () => {
+      const input = continued(effectFixture(SUM_SOURCE, "size", true, "low-byte"), {
+        exitEdge: () => Object.freeze({ kind: "fallthrough" as const, target: "startup.restore" }),
+      });
+      invalid(input, "Selected loop needs exactly five unshared actual source blocks");
+    });
+  });
 });

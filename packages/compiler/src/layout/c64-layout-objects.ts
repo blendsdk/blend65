@@ -1,3 +1,4 @@
+import { fallsIntoAnotherBody } from "./c64-layout-continuation.js";
 import type { SourceSpan } from "../project/types.js";
 import type { StorageClosureCertificate } from "../storage/storage-types.js";
 import type { TargetProfile } from "../target/profile.js";
@@ -586,6 +587,8 @@ export function compactFoldedFunctions(program: MachineProgram): MachineProgram 
     if (
       fn.origin === undefined ||
       fn.nmiPublicationEntry === true ||
+      // A body that falls into the next one is bound to its length.
+      fallsIntoAnotherBody(fn) ||
       !fn.blocks.some((block) =>
         block.instructions.some(
           (instruction) =>

@@ -4,8 +4,8 @@
 > [#124](https://github.com/blendsdk/blend65/issues/124),
 > [#126](https://github.com/blendsdk/blend65/issues/126) · **Type**: Task
 > **CodeOps Artifact Schema**: 1
-> **Status**: Part A complete and verified (#124, #126); part B (#118) is its own unit and its oracle is frozen
-> **Progress**: 9/9 tasks for part A
+> **Status**: Part A complete and verified (#124, #126); part B (#118) in progress
+> **Progress**: 9/9 tasks for part A; part B below
 > **Last Updated**: 2026-11-27
 
 ## Tasks
@@ -120,7 +120,9 @@ examples has a call in tail position. What the spike exposed:
 into the restoration. Layout places functions first-fit and the restoration
 after them (`layout/c64-layout.ts`), and the only cross-body fall-through it
 models is startup into `main`. Without that, the fusion is `jmp work` plus a
-`jmp restore` in place of an `rts` — larger than today. So #118 is part B, its
+`jmp restore` in place of an `rts` — only 1 B smaller than today (7 → 6; the
+first form of this note said larger, which was wrong for a leaf with one
+return), against the expert's 7 B. So #118 is part B, its
 own unit: a layout contract that places a body directly after its sole caller
 and proves the fall-through. Its oracle is frozen beside this record as
 `sole-leaf-continuation.spec.test.ts.frozen` — kept out of `test/` because it
@@ -307,3 +309,144 @@ oracle frozen; it does not name a finished slice as its landing place. No
 expressiveness-ledger row changes: every form this row touches already
 compiled, and the two legal programs the first form refused (SF-002, SF-003)
 were fixed before any commit reached the gate.
+
+## Part B — the entry continues into its sole leaf (#118)
+
+| # | Task | State |
+| --- | --- | --- |
+| B1 | Measure the witness at `balanced` and `size`: 133 B, X-counter construction (`flat-eight-x-first:compact-unrolled`, 131) in both | Done |
+| B2 | Fusion rule `cleanup.sole-continuation` in cleanup, ahead of the tail rule | Done |
+| B3 | Layout contract: a marked continuation jump becomes a fall-through when its target is placed right after it | Done |
+| B4 | Zero-byte entry body through debug and memory evidence | Done |
+| B5 | Teach the selected-loop observer the continuation exit and entry | Done |
+| B6 | Activate the frozen oracle unchanged; impl tests; emulator behaviour case | Done — oracle 7 / 7 (2 / 7 RED before), impl 9 + 4 |
+| B7 | On/off differential over the captured test corpus at `balanced` and `size` | Done — below |
+| B8 | Affected VICE files, host checkpoint, reviews, complete gate, closeout | In progress — reviews done, VICE tier run, oracles approved |
+
+### The rule
+
+When the entry function's block ends `jsr W` and then continues into the
+restoration, and `W` is reached by that call and nothing else, the call and
+`W`'s return cancel out: the entry jumps to `W`, and `W`'s return becomes the
+jump to the restoration. Both jumps are marked as continuations. The same
+check then runs on `W`, so a chain of last calls continues the same way.
+
+`W` qualifies only when:
+
+- `directCallSites` enumerates exactly this one call (no address taken, no
+  dispatch candidate, no jump into it);
+- it runs mainline, is a source function, and is not an NMI publication entry
+  or a shared body;
+- every exit but one return stays inside it: no `rts`, `rti`, `brk` or `jmp`
+  among its instructions, no dispatch block, no branch or jump to a foreign
+  label;
+- it has exactly one return block, so the rule is never larger: 7 B / 15 c of
+  `jsr`+`jmp`+`rts` become 6 B / 6 c of two jumps before layout helps at all;
+- nothing reachable from it reads or moves the stack pointer.
+
+The rule runs before the tail rule: a callee whose return became a
+continuation must not later gain a tail transfer whose callee would return
+past the restoration.
+
+### The layout contract
+
+A jump marked `continuation` is dropped only by layout, and only from a body's
+physically last block, after branch repair (block ordering rejects a
+fall-through to a foreign label). Right after placing a body, layout tries to
+place its continuation target at exactly the end minus the jump: another
+function, or the restoration. The target must fit there by the same
+`freeSourceStart` test every placement uses; otherwise the jump stays and the
+target is placed like any other body. Fixed-placement bodies start chains
+after every fixed body is reserved. A body that falls into another is never
+laid out again by compaction, and a body with no bytes left contributes no
+code piece, memory range or debug range. Unmarked jumps never move anything,
+so `none` and every program without a continuation keep their layout.
+
+### The observer
+
+`side()` accepts a loop owner whose exit continues into the restoration as well
+as one that returns, when the symbolic and placed exits agree.
+`continuations()` requires both constructions to leave the same way, and walks
+into the restoration when they continue. `callers()` accepts the entry's
+continuation edge only when it names the owner's entry, comes from the entry
+function's only body in the ordinary context, and carries the very source span
+of the one call; the register mask a returning call's continuation would get is
+then proved unobserved through the restoration. An edge into a body with no
+bytes that falls into the owner enters through that body's own edge, which is
+checked separately.
+
+### Measured
+
+| Witness | Before | After |
+| --- | --- | --- |
+| #118 sole leaf, `balanced` and `size` | 133 B, `jsr work / jmp restore` + `rts` | **126 B**, same construction, `main` empty, `work` falls into the restoration (the issue's 7 B) |
+| Nine example identities | unchanged | unchanged |
+
+### Review dispositions (round 1)
+
+| ID | Finding | Disposition |
+| --- | --- | --- |
+| TP-001 | A restoration chained after a body near `$A000` runs under BASIC ROM once it writes the CPU port | Fixed: `restorationVisible` refuses a chained restoration touching `$A000-$BFFF`; load-bearing layout test. The same gap in ordinary first-fit placement predates this row: #237 |
+| TP-002 | The emulator case did not observe `$00`, `$DD02` or CIA2 port A | Fixed: `$00`, `$01` and `$DD02` compared at hand-over and at `$E147`; no `$DD00` access allowed |
+| SF-001 | The stack-pointer walk skipped calls and jumps to numeric addresses (shared with the part-A tail rule) | Fixed in `stackAboveFrameUnread`: a numeric transfer answers no, like a label no body owns; load-bearing tests for both rules |
+| RV-001 | The observer accepted a fall-through by its target's name without proving adjacency | Fixed: the exit, the entry edge and the pass-through body are checked by address; four fused-shape observer tests, two of them load-bearing by mutation |
+| RV-002 / MC-008 | A shortened fixed body kept its stale reservation | Moot: fixed bodies no longer start chains (MC-001) |
+| MC-001 | A chain started from a fixed body can extend the program past its last byte (+25 B constructed) | Fixed: fixed bodies start no chain |
+| MC-002 | The entry's chain took the gap the NMI publication entry is placed into (+175 B constructed) | Fixed: chains wait until every NMI publication entry is placed |
+| MC-003 | A continuation exit can push a branch out of range when no fall-through is taken (142 -> 144 B constructed) | Filed #231 |
+| MC-004 | Several returns are refused even when layout could help (5 B) | Filed #232 |
+| MC-005 | A continuation exit that is not the last block keeps its jump (3 B) | Filed #233 |
+| MC-006 | An exclusive tail chain under the entry is not continued (10 B) | Filed #234 |
+| MC-007 | A body that falls into another loses post-placement folding (3 B per site) | Filed #235 |
+| MC-009 | The witness loop itself is 2 B / 8 c above a biased-index expert loop (pre-existing) | Filed #236 |
+| — | The stack peak still charges the removed call (3 reported, 2 actual) | Commented on #226 |
+
+The first corpus differential found a second observer family the continuation
+broke: `validateOriginalCallSites` refused a loop in the entry function whose
+last call became a continuation, and once taught, `size-observer-effects`
+raised a hard error (not a refusal) on the same edge. Both now accept a
+continuation that carries the call's exact source span from the entry function;
+`sole-continuation-selection.impl.test.ts` pins both shapes (126 B and 191 B,
+with the constructions selection chooses without the rule).
+
+### The corpus differential
+
+Every project the host tier and the five construction-pinning VICE files built
+was captured (5,479 projects; 5,020 distinct). Each was built at `balanced`
+and `size` with the rule on; the 1,954 whose `main` lost its restoration jump
+or whose build failed were built again with the rule off.
+
+| Run | Compared | Smaller | Same | Larger | Selected construction differs | Build fails only with the rule |
+| --- | --- | --- | --- | --- | --- | --- |
+| First, before the review fixes (1,321 projects) | 2,572 | 158 | 2,408 | 6 (one program, +28 B: the original loop construction refused) | 6 | 0 |
+| Second, current code | 3,908 | 424 | 3,476 | 8 (one program, +2 B) | 0 | 0 |
+| Third, with the fixed-address guard | 3,908 | **424 (3,268 B)** | 3,484 | **0** | **0** | **0** |
+
+The first run's loss taught two more observers (above). The second run's +2 B
+was a callee placed at a fixed address at the top of the image: its exit can
+never fall into the restoration, so its `rts` became a jump at the end of the
+PRG while `main`'s saving only became fill. The rule now refuses a callee with a
+fixed address; load-bearing test. The 3,254 failed builds fail the same way
+with the rule off: they are projects their tests expect to fail.
+
+### Oracle changes (approved 2026-11-27)
+
+The user approved shape-only edits: a routine may end in `rts` or continue into
+the startup restoration (a jump to it, or ending exactly where it begins), and
+an empty wrapper falling into its callee leaves through it. Every value, store,
+order and byte or cycle figure stays as written.
+
+| File | Change |
+| --- | --- |
+| `test/rd08/sole-leaf-continuation.spec.test.ts` | Activated: moved unchanged from the frozen copy (same SHA-256) |
+| `test/rd04/wrapper-call-flag-settlement.spec.test.ts` | An empty routine reads `falls into <next>`; the wrapper may be `jmp inner` or fall into `inner` |
+| `test/rd04/private-home-repeated-read.spec.test.ts`, `test/rd04/return-boundary-delivery.spec.test.ts` | The reader marks a routine that falls into what follows; the exit may be `rts`, a jump to the restoration or a fall into it |
+| `test/rd08/finite-loop-invariant-load.spec.test.ts` | The loop owner's continuation exit, proved by address, is read as the `rts` it replaced; the 7-instruction shape and the 13/14-byte and 57/59/107-cycle figures are unchanged |
+| `test/rd08/word-update-support.ts` (used by `word-views-direct-indexing`) | Evaluation also ends when the routine falls exactly onto a label it does not own |
+| `test/rd08/call-linkage-support.ts` (used by `call-return-linkage`) | The reference's restoration label is `main`'s only unconditional transfer out, not necessarily its last instruction |
+| `test/rd08/input-object-facts.spec.test.ts` | `make`'s ten store bytes unchanged; its exit is `rts`, a jump to the restoration, or ends at the restoration's address |
+
+Implementer-owned tests changed: `word-views-guards.impl.test.ts` stops reading
+at the restoration label as well as at `rts`; `call-return-linkage-vice.impl.test.ts`
+gained the fused-witness case. The VICE tier on the uncommitted tree failed only
+these shapes plus the known flake #191 (passes alone, 16 / 16).

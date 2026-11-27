@@ -258,9 +258,30 @@ function main(): void { item = outer(); }`;
           expect([...(await monitor.readMemory(0x3200, 0x3201))]).toEqual([7, 9]);
           if (mode === "size") {
             // Two immediate/absolute store pairs plus RTS cost eleven bytes and eighteen cycles.
-            expect(libraryFunctionBytes(artifacts, "src/game.blend::Game.make")).toEqual([
-              0xa9, 7, 0x8d, 0, 0x32, 0xa9, 9, 0x8d, 1, 0x32, 0x60,
-            ]);
+            // Called last through `outer` by the entry function, `make` may instead
+            // continue into the startup restoration: by a jump to it, or by ending
+            // exactly where it begins. The stores are the same either way.
+            const make = libraryFunctionBytes(artifacts, "src/game.blend::Game.make");
+            expect(make.slice(0, 10)).toEqual([0xa9, 7, 0x8d, 0, 0x32, 0xa9, 9, 0x8d, 1, 0x32]);
+            const restorationName = `_${Buffer.from("startup.restore").toString("hex")}`;
+            const restoration = artifacts.labels
+              .split("\n")
+              .map((line) => /^\s*(\S+)\s*=\s*\$([0-9a-f]+)/iu.exec(line))
+              .find((match) => match?.[1]?.endsWith(restorationName));
+            const restorationAddress =
+              restoration === null || restoration === undefined
+                ? undefined
+                : Number.parseInt(restoration[2]!, 16);
+            const exit = make.slice(10);
+            const end = libraryEntry(artifacts, "src/game.blend::Game.make") + make.length;
+            expect(
+              (exit.length === 1 && exit[0] === 0x60) ||
+                (exit.length === 3 &&
+                  exit[0] === 0x4c &&
+                  exit[1]! + (exit[2]! << 8) === restorationAddress) ||
+                (exit.length === 0 && end === restorationAddress),
+              `make's exit ${JSON.stringify(exit)}, ending at ${end}, restoration ${restorationAddress}`,
+            ).toBe(true);
             const privateStorage = profileRecords(artifacts.memory.intervals).filter((interval) => {
               if (!["sfa", "zeroPage", "scratch"].includes(String(interval.kind))) return false;
               const owner = profileRecord(interval.owner);

@@ -78,6 +78,7 @@ export const FOUNDATION_RULE_IDS: readonly string[] = Object.freeze([
   "cleanup.dead-byte-store",
   "cleanup.dead-instruction",
   "cleanup.empty-block",
+  "cleanup.sole-continuation",
   "cleanup.tail-transfer",
 ]);
 

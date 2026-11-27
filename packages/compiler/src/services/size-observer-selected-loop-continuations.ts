@@ -1,9 +1,17 @@
 import { C64_STARTUP_STATE_ID } from "../layout/startup.js";
 import { BYTE_WINDOW_CHANGED as STATE, byteContinuationQuery } from "../machine/lower-control.js";
 import { operandAddress } from "../machine/nmos6510-access.js";
+import { occupiesNoBytes } from "../layout/c64-layout-continuation.js";
 import { registerMainContinuation } from "./size-observer-register-counter.js";
 import type { View, Side } from "./size-observer-selected-loop-layout.js";
-import type { FixedCounterProof, MachineInstruction } from "../machine/machine-types.js";
+import type {
+  FixedCounterProof,
+  MachineBlock,
+  MachineFunction,
+  MachineInstruction,
+} from "../machine/machine-types.js";
+import type { BindingId } from "../frontend/semantic-types.js";
+import type { SemanticOperation } from "../semantic/operations.js";
 import type { FinalObserverInput } from "./size-observers.js";
 
 /** Differences after the byte test and after replacing a word update with INC. */
@@ -77,6 +85,76 @@ function startup(current: View): boolean {
   );
 }
 
+/** One source call into the loop owner, with the operation that identifies it. */
+type OwnerCall = {
+  readonly owner: BindingId;
+  readonly operation: Extract<SemanticOperation, { readonly kind: "call" }>;
+};
+
+/**
+ * Whether a foreign edge into the loop owner is the program entry continuing into it.
+ *
+ * The entry function may continue into a body it called last instead of
+ * calling it, and that body then continues into the restoration instead of
+ * returning. Such an edge stands for exactly one source call: it must name the
+ * owner's entry, come from the entry function's only body in the ordinary
+ * context, and carry that call's own source span. What would have run after
+ * the call is the restoration, so that is where the difference the
+ * representation leaves must go unobserved, under the same mask a returning
+ * call's continuation gets.
+ */
+function continuationEntry(
+  input: FinalObserverInput,
+  current: Side,
+  caller: MachineFunction,
+  block: MachineBlock,
+  calls: readonly OwnerCall[],
+  seen: Set<object>,
+  representation: FixedCounterProof["representation"],
+  originalYChanged: boolean,
+): boolean {
+  const edge = block.terminator;
+  const main = input.checked.program.semantic.main;
+  if (
+    !current.continues ||
+    !(
+      (edge.kind === "jump" && edge.continuation === true) ||
+      (edge.kind === "fallthrough" && edge.source !== undefined)
+    ) ||
+    edge.target !== current.actual.id ||
+    edge.source === undefined ||
+    caller.sourceFunction !== main ||
+    current.program.functions.filter(({ sourceFunction }) => sourceFunction === main).length !==
+      1 ||
+    caller.observerBodies !== undefined ||
+    block.observerBodies !== undefined ||
+    caller.executionContext?.domain !== "main" ||
+    caller.executionContext.activationRoot !== undefined
+  )
+    return false;
+  // A fall-through must land on the owner's entry by address, not only by name.
+  const end =
+    block.origin === undefined
+      ? undefined
+      : block.origin + block.instructions.reduce((sum, item) => sum + item.cost.bytes, 0);
+  if (edge.kind === "fallthrough" && end !== current.labels.get(current.actual.id)) return false;
+  const call = calls.find(
+    ({ owner, operation }) => owner === caller.sourceFunction && operation.span === edge.source,
+  );
+  if (call === undefined || seen.has(call.operation)) return false;
+  const restoration = byteContinuationQuery(
+    new Map(current.program.startup.blocks.map((item) => [item.label, item])),
+    { registers: [], flags: ["n", "z", "c", "v"] },
+  );
+  const mask =
+    representation === "low-byte"
+      ? TEST_STATE
+      : STATE.a | STATE.v | STATE[representation] | (originalYChanged ? STATE.y : 0);
+  if (!restoration("startup.restore", 0, mask)) return false;
+  seen.add(call.operation);
+  return true;
+}
+
 /** Resolve every foreign entry/exposure, including numeric calls and interior addresses. */
 function callers(
   input: FinalObserverInput,
@@ -98,6 +176,23 @@ function callers(
     );
   const seen = new Set<object>();
   const all = [current.program.startup, ...current.program.functions];
+  // A body with no bytes of its own that falls into the owner shares its
+  // address. Control entering it enters the owner only through that body's own
+  // continuation edge, which is examined as an edge in its own right below.
+  const passThrough = new Set(
+    all
+      .filter((fn) => occupiesNoBytes(fn) && fn.blocks.at(-1)?.terminator.kind === "fallthrough")
+      .filter((fn) => {
+        const last = fn.blocks.at(-1)!.terminator;
+        return (
+          last.kind === "fallthrough" &&
+          last.target === current.actual.id &&
+          fn.origin !== undefined &&
+          fn.origin === current.labels.get(current.actual.id)
+        );
+      })
+      .flatMap((fn) => [fn.id, ...fn.blocks.map(({ label }) => label)]),
+  );
   const query = byteContinuationQuery(
     new Map(all.flatMap((fn) => fn.blocks.map((block) => [block.label, block] as const))),
     { registers: ["a", "x", "y"], flags: ["n", "z", "c", "v"] },
@@ -130,7 +225,11 @@ function callers(
             : edge.kind === "jump" || edge.kind === "fallthrough"
               ? [edge.target]
               : [];
-      if (targets.some((label) => inside(current.labels.get(label)))) return false;
+      if (
+        targets.some((label) => !passThrough.has(label) && inside(current.labels.get(label))) &&
+        !continuationEntry(input, current, fn, block, calls, seen, representation, originalYChanged)
+      )
+        return false;
       let pc = block.origin!;
       for (const [index, item] of block.instructions.entries()) {
         const address = operandAddress({
@@ -211,9 +310,18 @@ export function continuations(
   hoisted = false,
 ): boolean {
   const state = indexed ? UPDATE_STATE & ~STATE.v : UPDATE_STATE;
+  // Both constructions leave the loop owner the same way, or nothing is compared.
+  if (before.continues !== after.continues) return false;
   for (const current of [before, after]) {
+    // An owner that continues into the restoration hands its state straight to
+    // it, so the restoration is part of what must not observe the difference.
     const query = byteContinuationQuery(
-      new Map(current.actual.blocks.map((block) => [block.label, block])),
+      new Map(
+        [
+          ...current.actual.blocks,
+          ...(current.continues ? current.program.startup.blocks : []),
+        ].map((block) => [block.label, block]),
+      ),
       { registers: [], flags: [] },
     );
     // Where the invariant byte is loaded ahead of the loop, the accumulator is

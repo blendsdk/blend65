@@ -1,3 +1,4 @@
+import { occupiesNoBytes } from "../layout/c64-layout-continuation.js";
 import type { CompleteC64Layout } from "../artifacts/acme-validate.js";
 import {
   machineFunctionSegments,
@@ -426,8 +427,16 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
 
   const functions = Object.freeze(
     executionFunctions.map((fn, functionIndex) => {
-      const rangeIndexes = functionRangeIndexes.get(functionIndex);
-      if (rangeIndexes === undefined || rangeIndexes.length === 0) {
+      // A function that only falls into the body after it owns no output bytes.
+      const rangeIndexes =
+        functionRangeIndexes.get(functionIndex) ??
+        (fn.machineIds.every((id) => {
+          const machine = machineFunctions.get(id);
+          return machine !== undefined && occupiesNoBytes(machine);
+        })
+          ? []
+          : undefined);
+      if (rangeIndexes === undefined) {
         throw new Error("Reachable function has no debug range");
       }
       return Object.freeze({

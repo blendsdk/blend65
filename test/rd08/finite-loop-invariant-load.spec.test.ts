@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildProfileSource } from "../rd05/profile-fixture.js";
 import {
   clobbersAccumulator,
+  decodeLine,
   findInnermostLoop,
   globalAddress,
   innermostLoop,
@@ -50,6 +51,42 @@ ${globals}function work(): void {
 }
 function main(): void { work(); }
 `;
+}
+
+/**
+ * The loop owner, its exit read as the return it stands for.
+ *
+ * `work` is the last thing `main` calls, so it may continue into the startup
+ * restoration instead of returning: by a jump that lands on the restoration, or
+ * by ending exactly where the restoration begins. Either form is read here as
+ * the `rts` it replaced, so the shape, size and cycle figures below keep
+ * measuring the routine's own work. Anything else is left as emitted.
+ */
+function owner(artifacts: Parameters<typeof routine>[0]): ReturnType<typeof routine> {
+  const found = routine(artifacts);
+  const { decoded, labels } = found;
+  const restorationSuffix = `_${Buffer.from("startup.restore").toString("hex")}`;
+  const restoration = [...labels].find(([label]) => label.endsWith(restorationSuffix))?.[1];
+  const last = decoded.at(-1);
+  const owned = [...labels].filter(([label]) => label.startsWith("b65_Game_work_"));
+  const entry = owned.length === 0 ? undefined : Math.min(...owned.map(([, address]) => address));
+  const returning = decodeLine("  rts", labels);
+  if (restoration === undefined || last === undefined || returning === undefined) return found;
+  if (last.instruction.mnemonic === "jmp" && last.instruction.address === restoration)
+    return { ...found, decoded: [...decoded.slice(0, -1), { ...last, instruction: returning }] };
+  if (
+    !["rts", "rti", "jmp"].includes(last.instruction.mnemonic) &&
+    entry !== undefined &&
+    entry + routineBytes(decoded) === restoration
+  )
+    return {
+      ...found,
+      decoded: [
+        ...decoded,
+        { lineIndex: last.lineIndex + 1, instruction: returning, address: undefined },
+      ],
+    };
+  return found;
 }
 
 /** Declaration of the module byte global that the global-valued witnesses store. */
@@ -175,7 +212,7 @@ describe("invariant byte stores in finite counted loops", () => {
       expect(artifacts.debug).toMatchObject({ profileId: target, optimization: mode });
       expect(artifacts.costs.mode).toBe(mode);
 
-      const { lines, decoded, labels } = routine(artifacts);
+      const { lines, decoded, labels } = owner(artifacts);
       const loop = innermostLoop(lines, decoded);
       expectHoistedFill(lines, decoded, loop, {
         bound: 4,
@@ -195,7 +232,7 @@ describe("invariant byte stores in finite counted loops", () => {
     const source = sheetSource("byte[255]", 8, "value", valueGlobal(255));
     const artifacts = await buildProfileSource(source, target, "balanced");
 
-    const { lines, decoded, labels } = routine(artifacts);
+    const { lines, decoded, labels } = owner(artifacts);
     const loop = innermostLoop(lines, decoded);
     expectHoistedFill(lines, decoded, loop, {
       bound: 8,
@@ -210,7 +247,7 @@ describe("invariant byte stores in finite counted loops", () => {
     const source = sheetSource("byte[127]", 4, "value", valueGlobal(128));
     const artifacts = await buildProfileSource(source, target, "balanced");
 
-    const { lines, decoded, labels } = routine(artifacts);
+    const { lines, decoded, labels } = owner(artifacts);
     const loop = innermostLoop(lines, decoded);
     expectHoistedFill(lines, decoded, loop, {
       bound: 4,
@@ -227,7 +264,7 @@ describe("invariant byte stores in finite counted loops", () => {
     // byte is read. The size and cycle figures follow from that one shape.
     const artifacts = await buildProfileSource(arraySource(4, "rows[i] = 7;"), target, "balanced");
 
-    const { lines, decoded, labels } = routine(artifacts);
+    const { lines, decoded, labels } = owner(artifacts);
     const loop = innermostLoop(lines, decoded);
     expectHoistedFill(lines, decoded, loop, {
       bound: 4,
@@ -246,7 +283,7 @@ describe("invariant byte stores in finite counted loops", () => {
     const source = arraySource(4, "rows[i] = value; value += 1;", valueGlobal(1));
     const artifacts = await buildProfileSource(source, target, "balanced");
 
-    const { lines, decoded } = routine(artifacts);
+    const { lines, decoded } = owner(artifacts);
     const loop = innermostLoop(lines, decoded);
     const body = decoded.slice(loop.start, loop.end + 1);
     expect(
@@ -265,7 +302,7 @@ describe("invariant byte stores in finite counted loops", () => {
       "balanced",
     );
 
-    const { lines, decoded } = routine(artifacts);
+    const { lines, decoded } = owner(artifacts);
     const loop = innermostLoop(lines, decoded);
     const emitted = `emitted as:\n${lines.join("\n")}`;
     const reads = decoded.filter((entry) => entry.instruction.address === 0xd012);
@@ -300,7 +337,7 @@ describe("invariant byte stores in finite counted loops", () => {
       "balanced",
     );
 
-    const { lines, decoded } = routine(artifacts);
+    const { lines, decoded } = owner(artifacts);
     expectAccumulatorWorkInLoop(lines, decoded, innermostLoop(lines, decoded));
   }, 180_000);
 
@@ -321,7 +358,7 @@ function main(): void { setNMI(&handler); work(); restoreNMI(); }
 `;
     const artifacts = await buildProfileSource(source, target, "balanced");
 
-    const { lines, decoded, labels } = routine(artifacts);
+    const { lines, decoded, labels } = owner(artifacts);
     const loop = innermostLoop(lines, decoded);
     expectReadKeptInLoop(lines, decoded, loop, {
       kind: "global",
@@ -357,7 +394,7 @@ function main(): void { setNMI(&handler); work(); restoreNMI(); }
       const artifacts = await buildProfileSource(source, target, "none");
       expect(artifacts.costs.mode).toBe("none");
 
-      const { lines, decoded, labels } = routine(artifacts);
+      const { lines, decoded, labels } = owner(artifacts);
       const loop = innermostLoop(lines, decoded);
       expectReadKeptInLoop(
         lines,
@@ -379,7 +416,7 @@ function main(): void { setNMI(&handler); work(); restoreNMI(); }
     // to is free to change while the property holds.
     const artifacts = await buildProfileSource(arraySource(1, "rows[i] = 7;"), target, "balanced");
 
-    const { lines, decoded } = routine(artifacts);
+    const { lines, decoded } = owner(artifacts);
     const emitted = `emitted as:\n${lines.join("\n")}`;
     const value: StoredValue = { kind: "immediate", literal: 7 };
     const reads = decoded.filter((entry) => readsStoredValue(entry.instruction, value));

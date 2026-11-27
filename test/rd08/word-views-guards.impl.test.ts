@@ -46,9 +46,12 @@ function main(): void { touch(); }
 `;
     const artifacts = await buildProfileSource(source, target, "balanced");
     const touch = routineText(artifacts.assembly, "touch");
-    // The startup restore block can follow the body in the same section; only
-    // the stores before this routine's own return belong to the update.
-    const stores = storedOperands(touch.slice(0, touch.search(/^\s+rts\s*$/mu)));
+    // The startup restore block can follow the body in the same section, and
+    // when `main` continues into `touch`, `touch` continues into it rather than
+    // returning. Only the stores before that boundary belong to the update.
+    const restoration = Buffer.from("startup.restore").toString("hex");
+    const end = touch.search(new RegExp(`^\\s+rts\\s*$|_${restoration}:`, "mu"));
+    const stores = storedOperands(touch.slice(0, end));
     expect(stores, "two scratch stores, then the two destination stores").toHaveLength(4);
     expect(stores.slice(2).every((operand) => operand.startsWith("b65_Game_total"))).toBe(true);
   }, 180_000);

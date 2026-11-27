@@ -1,3 +1,4 @@
+import { occupiesNoBytes } from "../layout/c64-layout-continuation.js";
 import type { CompleteC64Layout } from "../artifacts/acme-validate.js";
 import type { EvidenceRecord } from "../artifacts/evidence-types.js";
 import { canonicalEvidenceHash } from "../artifacts/evidence-validation.js";
@@ -174,6 +175,9 @@ function physicalInterval(
  * Ordinary functions preserve their existing single-range projection.
  */
 function functionCodeRanges(fn: MachineFunction): readonly { start: number; end: number }[] {
+  // A body that only falls into the next one, its address shared with it, owns
+  // no bytes; the body after it owns the code that runs.
+  if (occupiesNoBytes(fn)) return [];
   if (!fn.nmiPublicationEntry) return [machineFunctionRange(fn)];
   const ranges = fn.blocks
     .flatMap((block) =>

@@ -209,4 +209,100 @@ function main(): void {
       }
     });
   }, 180_000);
+  it("continues the entry into its sole leaf and still restores the machine", async () => {
+    // `main` ends by calling `work`, which nothing else calls, so `main`
+    // continues into `work` and `work` into the restoration, with no call or
+    // return between them. The restoration must still run in full: the rows
+    // are written once each, the CPU port and the status register come back,
+    // and the final return pulls exactly the SYS return address.
+    const sole = `module Game;
+struct Saved { padding: byte[1]; rows: byte[8]; }
+let saved: Saved = { padding: [;2], rows: [;0] };
+function work(): void {
+  for (let i: word = 0; i < 4; i += 1) { saved.rows[i] = 7; }
+}
+function main(): void { work(); }
+`;
+    await withProfileProject(sole, target, async (project) => {
+      const built = await buildProject({ project, optimization: "size" });
+      expect(built.kind, JSON.stringify(built.diagnostics)).toBe("success");
+      if (built.kind !== "success") throw new Error("Expected a complete build");
+      const artifacts = await readProfileArtifacts(built);
+      const main = routineText(artifacts.assembly, "main");
+      // Only `work`'s own body: the restoration is placed right after it.
+      const workText = routineText(artifacts.assembly, "work");
+      const restorationLabel = Buffer.from("startup.restore").toString("hex");
+      const cut = workText.search(new RegExp(`_${restorationLabel}:`, "u"));
+      expect(cut, `work is followed by the restoration:\n${workText}`).toBeGreaterThan(0);
+      const work = workText.slice(0, cut);
+      // The construction under test, confirmed before anything is executed.
+      expect(main, `main makes no call:\n${main}`).not.toMatch(/^\s+(jsr|jmp)/mu);
+      expect(work, `work does not return by itself:\n${work}`).not.toMatch(/^\s+rts/mu);
+      const labels = labelAddresses(artifacts.labels);
+      const restoration = programReturnAddress(artifacts.labels);
+      const started = await startVice(
+        join(built.generation.directory, built.generation.primaryArtifact),
+      );
+      if ("kind" in started) throw new Error(`VICE qualification is Unknown: ${started.reason}`);
+      const monitor = started.monitor;
+      try {
+        // $080D is the startup entry SYS 2061 jumps to; $E147 is where the
+        // BASIC SYS command resumes once the program's final return runs.
+        const entry = await monitor.setExecuteCheckpoint(0x080d);
+        let stopped = monitor.waitForStop(20_000);
+        await monitor.resume();
+        expect(await stopped).toBe(0x080d);
+        await monitor.deleteCheckpoint(entry);
+        const original = await monitor.readCpuRegisters();
+        // The CPU port and its direction register, and CIA2's port A direction
+        // register, as BASIC handed them over.
+        const handedOver = async () => ({
+          direction: (await monitor.readMemory(0x0000, 0x0000))[0],
+          port: (await monitor.readMemory(0x0001, 0x0001))[0],
+          cia2Direction: (await monitor.readIo(0xdd02, 0xdd02))[0],
+        });
+        const before = await handedOver();
+        // The startup never touches CIA2's port A itself, only its direction register.
+        const portLoad = await monitor.setAccessTracepoint(0xdd00, "load");
+        const portStore = await monitor.setAccessTracepoint(0xdd00, "store");
+        monitor.takeCheckpointHits();
+
+        const mainEntry = functionEntry(artifacts.labels, "main");
+        await monitor.setExecuteCheckpoint(mainEntry);
+        stopped = monitor.waitForStop(20_000);
+        await monitor.resume();
+        expect(await stopped).toBe(mainEntry);
+        const inMain = await monitor.readCpuRegisters();
+
+        await monitor.setExecuteCheckpoint(restoration);
+        stopped = monitor.waitForStop(20_000);
+        await monitor.resume();
+        expect(await stopped).toBe(restoration);
+        const atRestoration = await monitor.readCpuRegisters();
+        expect(atRestoration.sp, "the restoration finds main's stack").toBe(inMain.sp);
+        const saved = globalAddress(labels, "saved");
+        expect([...(await monitor.readMemory(saved, saved + 8))], "padding and rows").toEqual([
+          2, 7, 7, 7, 7, 0, 0, 0, 0,
+        ]);
+
+        await monitor.setExecuteCheckpoint(0xe147);
+        stopped = monitor.waitForStop(20_000);
+        await monitor.resume();
+        expect(await stopped).toBe(0xe147);
+        const final = await monitor.readCpuRegisters();
+        // The final RTS pulls the two SYS return-address bytes before BASIC resumes.
+        expect({ sp: final.sp, p: final.p & 0xcf }).toEqual({
+          sp: (original.sp + 2) & 0xff,
+          p: original.p & 0xcf,
+        });
+        expect(await handedOver(), "CPU port and CIA2 direction restored").toEqual(before);
+        expect(
+          monitor.takeCheckpointHits().filter((hit) => hit === portLoad || hit === portStore),
+          "no access to CIA2 port A",
+        ).toEqual([]);
+      } finally {
+        await stopVice(started);
+      }
+    });
+  }, 180_000);
 });

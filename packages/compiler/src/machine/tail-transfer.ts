@@ -17,7 +17,9 @@ import type { AppliedRule, RuleSite } from "./optimization-rules.js";
 const STACK_POINTER_ACCESS = new Set(["tsx", "txs"]);
 
 /** Every body a call or transfer can name, indexed by the labels inside it. */
-function bodiesByLabel(bodies: readonly MachineFunction[]): ReadonlyMap<string, MachineFunction> {
+export function bodiesByLabel(
+  bodies: readonly MachineFunction[],
+): ReadonlyMap<string, MachineFunction> {
   const owners = new Map<string, MachineFunction>();
   for (const body of bodies) {
     owners.set(body.id, body);
@@ -55,7 +57,7 @@ function controlTargets(body: MachineFunction): readonly string[] {
  * belongs to no known body — firmware, or code this program does not contain —
  * answers no, because nothing can be said about what it reads.
  */
-function stackAboveFrameUnread(
+export function stackAboveFrameUnread(
   owners: ReadonlyMap<string, MachineFunction>,
   label: string,
 ): boolean {
@@ -68,7 +70,13 @@ function stackAboveFrameUnread(
     walked.add(body);
     if (
       body.blocks.some((block) =>
-        block.instructions.some(({ opcode }) => STACK_POINTER_ACCESS.has(opcode)),
+        block.instructions.some(
+          ({ opcode, operand }) =>
+            STACK_POINTER_ACCESS.has(opcode) ||
+            // A call or jump to a numeric address enters code this program does
+            // not contain, which is as unknown as a label owned by no body.
+            (CONTROL_TRANSFERS.has(opcode) && operand?.kind !== "label"),
+        ),
       )
     )
       return false;

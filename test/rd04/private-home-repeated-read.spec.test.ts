@@ -89,6 +89,8 @@ function main(): void {
  * Instructions of one generated routine, without labels, origins or comments.
  * The assembler's operand-width hint is dropped and generated label identities
  * are collapsed, so nothing here depends on a chosen address or encoding.
+ * A routine that ends without leaving by itself — it falls into whatever is
+ * placed next — reads with a last line `falls into <that label>`.
  */
 async function routine(directory: string, name: string): Promise<readonly string[]> {
   const lines = (await readFile(join(directory, ".asm"), "utf8")).split("\n");
@@ -99,7 +101,13 @@ async function routine(directory: string, name: string): Promise<readonly string
       inside = true;
       continue;
     }
-    if (inside && /^b65_/u.test(line) && !line.includes(`_${name}_`)) break;
+    if (inside && /^b65_/u.test(line) && !line.includes(`_${name}_`)) {
+      if (!/^(rts|rti|jmp) /u.test(`${body.at(-1) ?? ""} `))
+        body.push(
+          `falls into ${line.replace(/:.*$/u, "").replace(/_[0-9a-f]{8}[0-9a-f]*/gu, "_")}`,
+        );
+      break;
+    }
     const text = line.trim();
     if (!inside || text.length === 0 || text.startsWith(";") || text.startsWith("*")) continue;
     body.push(text.replace(/^(\w+)\+\d+/u, "$1").replace(/_[0-9a-f]{8}[0-9a-f]*/gu, "_"));
@@ -155,7 +163,9 @@ describe.each(sourceLibraryProfiles)("a private home read twice on %s", (profile
       expect.stringMatching(/^lda \$[0-9a-f]+$/u),
       "sta b65_Game_first_",
       "sta b65_Game_second_",
-      "rts",
+      // `use` returns, or — called last by the entry function — continues into
+      // the startup restoration by a jump or by falling into it.
+      expect.stringMatching(/^(rts|jmp b65_startup_block_1_|falls into b65_startup_block_1_)$/u),
     ]);
   }, 120_000);
 

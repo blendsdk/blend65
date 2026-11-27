@@ -1,6 +1,7 @@
 import { C64_STARTUP_STATE_ID } from "../layout/startup.js";
 import { machineInstruction, bindingLabel } from "../machine/lower-control.js";
 import { instructionAccessEnvelope } from "../machine/nmos6510-access.js";
+import type { MachineBlock } from "../machine/machine-types.js";
 import type { FixedLoopFacts } from "../semantic/fixed-loop-facts.js";
 import type { StorageRange } from "../storage/storage-types.js";
 import type { FinalObserverInput } from "./size-observers.js";
@@ -80,6 +81,29 @@ export function view(
 }
 /** Layout-local indexes retain their construction's exact inventory and producer. */
 export type View = ReturnType<typeof view>;
+
+/** Startup code that the program entry, and anything it continues into, reaches last. */
+const RESTORATION = "startup.restore";
+
+/**
+ * How the loop owner leaves through its exit block, or null for any other exit.
+ *
+ * It either returns to its caller, or — when it is the body the program entry
+ * continues into — continues into the restoration itself, by a jump or by
+ * falling into it. The symbolic and the placed exit must say the same thing.
+ */
+function exitKind(
+  original: MachineBlock["terminator"],
+  edge: MachineBlock["terminator"],
+): "return" | "continuation" | null {
+  if (original.kind === "return") return edge.kind === "return" ? "return" : null;
+  if (original.kind !== "jump" || original.continuation !== true || original.target !== RESTORATION)
+    return null;
+  return (edge.kind === "jump" && edge.continuation === true && edge.target === RESTORATION) ||
+    (edge.kind === "fallthrough" && edge.target === RESTORATION)
+    ? "continuation"
+    : null;
+}
 
 /**
  * Resolve only a five-role bijection, rejecting split, shared or aliased topology.
@@ -168,8 +192,7 @@ export function side(
     !jump(2, 3) ||
     !jump(3, 1) ||
     ordered[4]!.instructions.length !== 0 ||
-    ordered[4]!.terminator.kind !== "return" ||
-    symbols[4]!.terminator.kind !== "return" ||
+    exitKind(symbols[4]!.terminator, ordered[4]!.terminator) === null ||
     [test, originalTest].some(
       (edge) =>
         edge.kind !== "branch" ||
@@ -190,7 +213,16 @@ export function side(
     ordered[2]!.origin! - ordered[4]!.origin! > 127
   )
     return null;
-  return { ...current, source, actual, blocks: ordered, symbols, counter };
+  const continues = exitKind(symbols[4]!.terminator, ordered[4]!.terminator) === "continuation";
+  // A fall-through is only a continuation when the restoration really is the
+  // next address; the exit block holds no instruction of its own.
+  if (
+    continues &&
+    ordered[4]!.terminator.kind === "fallthrough" &&
+    current.labels.get(RESTORATION) !== ordered[4]!.origin
+  )
+    return null;
+  return { ...current, source, actual, blocks: ordered, symbols, counter, continues };
 }
 /** A supported owner's five actual roles and independently bound symbolic instructions. */
 export type Side = NonNullable<ReturnType<typeof side>>;
