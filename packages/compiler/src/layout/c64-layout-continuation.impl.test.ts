@@ -210,4 +210,25 @@ describe("layout of a continuation into the next body", () => {
     expect(main.blocks.at(-1)!.terminator.kind).toBe("jump");
     expect(restoreOrigin(result)).toBeGreaterThan(nmi.origin!);
   });
+
+  it("places a fixed NMI wrapper's adapter before a chain can take its slot", () => {
+    // The wrapper is fixed away from $xx47, so it needs a three-byte adapter at
+    // the first $xx47 address after the code. The entry's chain into the
+    // restoration would cover that address, so it waits and keeps its jump.
+    const result = layout([
+      body("main", 2, jump("startup.restore", true)),
+      body("nmi", 10, Object.freeze({ kind: "return" as const }), {
+        nmiPublicationEntry: true,
+        placement: Object.freeze({ at: 0x3000, align: 1, noCross: null, region: null }),
+      }),
+    ]);
+    const nmi = result.program.functions.find(({ id }) => id === "nmi")!;
+    const main = result.program.functions.find(({ id }) => id === "main")!;
+    const adapter = nmi.blocks.find(({ label }) => label.endsWith(".nmi-publication"))!;
+    const mainEnd = main.origin! + length(main);
+    let slot = mainEnd;
+    while ((slot & 0xff) !== 0x47) slot += 1;
+    expect(adapter.origin).toBe(slot);
+    expect(main.blocks.at(-1)!.terminator.kind).toBe("jump");
+  });
 });

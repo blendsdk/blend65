@@ -456,10 +456,18 @@ these shapes plus the known flake #191 (passes alone, 16 / 16).
 | ID | Finding | Disposition |
 | --- | --- | --- |
 | RV-003 | The two newly taught observers accepted a fall-through without checking adjacency | Fixed: both use one matcher, `size-observer-continuation.ts`; a fall-through matches only when the block ends at the callee's origin |
-| RV-004 | An extra continuation matching no source call could pass | Fixed: an edge into another body must stand for the block's one remaining source call; any other is refused (call sites) or not accepted as an exit (effects). Five negative cases, both checks load-bearing by mutation |
+| RV-004 | An extra continuation matching no source call could pass | Fixed: an edge into another body must stand for the block's one remaining source call; any other is refused (call sites) or not accepted as an exit (effects). One accepted and two refused shapes, each on both constructions, test the matcher through the call-site observer; both checks load-bearing by mutation |
 | RV-005 | Chains waited for NMI bodies but not for their `$xx47` adapters | Fixed: when the program publishes NMI, every chain waits until the adapters are placed; load-bearing layout test |
 | RV-006 | My reader edits inferred a fall-through from label order, and let an empty `main` pass | Fixed: the three rd04 oracles share `test/rd04/routine-reader.ts`, which tracks addresses through origin directives and instruction lengths; an empty routine is accepted only where the wrapper oracle asks for it. Reader tests cover the adjacent, gapped and empty cases |
 
 The complete gate started on `2b3bb363` was stopped once these findings
 arrived; the corpus differential re-run on the fixed code is unchanged (424
 smaller, 3,268 B; none larger, no construction or build change).
+
+### Review dispositions (round 3, on `bf96e60b`)
+
+RV-003 to RV-006 confirmed with no findings. RV-007 (minor): the NMI layout test
+did not distinguish waiting for adapters from waiting for bodies, because its
+wrapper needed no adapter. Added a fixed wrapper that needs one; the chain now
+keeps its jump and the adapter takes the first `$xx47` slot, and the test fails
+under the earlier deferral.
