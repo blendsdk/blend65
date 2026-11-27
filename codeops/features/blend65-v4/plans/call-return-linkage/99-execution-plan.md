@@ -4,9 +4,9 @@
 > [#124](https://github.com/blendsdk/blend65/issues/124),
 > [#126](https://github.com/blendsdk/blend65/issues/126) · **Type**: Task
 > **CodeOps Artifact Schema**: 1
-> **Status**: In progress — part A implemented and host-verified; reviews and the complete gate remain. Part B (#118) is its own unit
-> **Progress**: 7/9 tasks
-> **Last Updated**: 2026-11-26
+> **Status**: Part A complete and verified (#124, #126); part B (#118) is its own unit and its oracle is frozen
+> **Progress**: 9/9 tasks for part A
+> **Last Updated**: 2026-11-27
 
 ## Tasks
 
@@ -19,8 +19,8 @@
 | 5 | Implement in the existing call, terminator and layout owners | Done for part A; part B split out |
 | 6 | Canonical identities, integration tier, frontier guards and the affected VICE files | Done |
 | 7 | Behaviour oracle in VICE: results, stores, stack balance and restoration | Done |
-| 8 | Independent reviews (correctness, machine code, SFA/ABI, platform) and dispositions | Pending |
-| 9 | Complete gate and closeout | Pending |
+| 8 | Independent reviews (correctness, machine code, SFA/ABI, platform) and dispositions | Done — two rounds, all findings dispositioned |
+| 9 | Complete gate and closeout | Done — the first gate found a reference conflict, fixed; the second is green |
 
 ## The witnesses, measured
 
@@ -284,3 +284,26 @@ VICE tests run before the gate; any rule that changes instruction shapes per
 layout should run the VICE files that pin a selected construction
 (`input-loop-storage`, `input-byte-selection`, `input-size-runtime`,
 `optimizer-saved-output`) before the gate, not after.
+
+## Verification
+
+| Gate | Result |
+| --- | --- |
+| Public oracle RED on the pre-change tree | `call-return-linkage` 16 / 30 failed; `sole-leaf-continuation` 2 / 7 |
+| Public oracle on the final tree | 30 / 30 |
+| Implementation tests | tail transfer 13, dead byte store 7, terminal layout 8; every guard verified by deletion except the read-memory-effect guard |
+| VICE depth pins against the naive spike | 168 / 168 |
+| Complete gate `yarn test:full`, first run (`5f13bdcb`) | host green; VICE 4 failed — `input-loop-storage` on four profiles, fixed in `460f5dd5` |
+| Complete gate `yarn test:full`, on `460f5dd5` | install, build and typecheck clean; nine identities unchanged; host **289 / 6,286**, compiler 272 / 4,623; VICE tier **2,445 passed, 0 failed** (4 skipped) |
+| Review coverage | four reviews of `01c63461`; follow-up reviews of `6dff7a90` (correctness, SFA/ABI, machine code). `5f13bdcb` (a revert to the pre-row layout and removal of an unused proof) and `460f5dd5` (the reference-consistent byte rule) are covered by the gates above, not by an independent review |
+
+### Deferral expiry
+
+Did this row's deliverables expire any deferral's stated rationale? One: T-124's
+"word high-byte staging remains the measured 0-byte residual" — it was not
+zero, and is removed (3 B / 4 c). #118 was deferred into this row and is now
+deferred again, to part B, for a stated reason (a layout contract) with its
+oracle frozen; it does not name a finished slice as its landing place. No
+expressiveness-ledger row changes: every form this row touches already
+compiled, and the two legal programs the first form refused (SF-002, SF-003)
+were fixed before any commit reached the gate.
