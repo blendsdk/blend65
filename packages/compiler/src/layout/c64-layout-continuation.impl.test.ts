@@ -194,4 +194,20 @@ describe("layout of a continuation into the next body", () => {
     expect(restorationVisible(0xbff0, 4)).toBe(false);
     expect(restorationVisible(0xc000, 26)).toBe(true);
   });
+
+  it("places NMI publication before any chain takes the gap it needs", () => {
+    // The wrapper must sit at a $xx47 address without a three-byte adapter. The
+    // restoration of a program that publishes NMI is larger than the gap left
+    // before that address, so the entry keeps its jump rather than take it.
+    const result = layout([
+      body("main", 2, jump("startup.restore", true)),
+      body("nmi", 10, Object.freeze({ kind: "return" as const }), { nmiPublicationEntry: true }),
+    ]);
+    const nmi = result.program.functions.find(({ id }) => id === "nmi")!;
+    const main = result.program.functions.find(({ id }) => id === "main")!;
+    expect(nmi.origin! & 0xff).toBe(0x47);
+    expect(nmi.blocks.some(({ label }) => label.endsWith(".nmi-publication"))).toBe(false);
+    expect(main.blocks.at(-1)!.terminator.kind).toBe("jump");
+    expect(restoreOrigin(result)).toBeGreaterThan(nmi.origin!);
+  });
 });

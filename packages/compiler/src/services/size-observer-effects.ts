@@ -1,3 +1,4 @@
+import { continuationCall } from "./size-observer-continuation.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type {
   MachineBlock,
@@ -310,15 +311,19 @@ function loopRepresentation(
             trap.terminator.kind === "jump" &&
             trap.terminator.target === trap.label;
           // The entry function's return may instead continue into the body it
-          // called last, which continues into the restoration in its turn.
+          // called last, which continues into the restoration in its turn. The
+          // edge must stand for this source block's last call, exactly.
           const exit = block.terminator;
+          const calls = source.operations.filter(
+            (operation): operation is Extract<SemanticOperation, { kind: "call" }> =>
+              operation.kind === "call",
+          );
           const continued =
             edge.kind === "return" &&
-            ((exit.kind === "jump" && exit.continuation === true) ||
-              (exit.kind === "fallthrough" && exit.source !== undefined)) &&
+            (exit.kind === "jump" || exit.kind === "fallthrough") &&
             exit.target === target &&
-            loop.function.id === input.checked.program.semantic.main &&
-            shared.layout.program.functions.some((entry) => entry.id === target);
+            continuationCall(input, fn, block, calls.at(-1), shared.layout.program.functions) ===
+              "matched";
           const returned =
             continued ||
             (edge.kind === "return" &&

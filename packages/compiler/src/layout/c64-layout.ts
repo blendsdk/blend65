@@ -410,6 +410,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   let placedRestore: readonly MachineBlock[] | null = null;
   /** Placed bodies whose continuations wait for the NMI publication entries. */
   const deferred: string[] = [];
+  const publishesNmi = orderedFunctions.some((fn) => fn.nmiPublicationEntry === true);
   /**
    * Place what a body continues into directly after it, link by link.
    *
@@ -524,15 +525,11 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     codePieces.push(piece);
     pieceOf.set(fn.id, piece);
     repairedById.set(fn.id, repaired.function);
-    // An NMI publication entry is placed right after the entry function so it
-    // can take the alignment gap there; a chain waits until it has.
-    deferred.push(fn.id);
-    if (
-      !orderedFunctions.some(
-        (item) => item.nmiPublicationEntry === true && !repairedById.has(item.id),
-      )
-    )
-      for (const id of deferred.splice(0)) placeContinuations(id);
+    // An NMI publication entry, and the three-byte adapter it may need at a
+    // $xx47 address, take the gaps after the entry function first; chains wait
+    // until both are placed.
+    if (publishesNmi) deferred.push(fn.id);
+    else placeContinuations(fn.id);
   }
   for (const id of nmiAdapters) {
     const wrapper = repairedById.get(id)!;
@@ -574,6 +571,7 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     );
     codePieces.push({ start: origin, end: origin + 2 });
   }
+  for (const id of deferred.splice(0)) placeContinuations(id);
   const repairedFunctions = orderedFunctions.map((fn) => repairedById.get(fn.id)!);
   if (!restoreOmitted && placedRestore === null) {
     const restoreOrigin = freeSourceStart(

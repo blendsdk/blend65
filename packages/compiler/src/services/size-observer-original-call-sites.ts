@@ -2,6 +2,7 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { MachineFunction } from "../machine/machine-types.js";
 import type { FixedLoopFacts } from "../semantic/fixed-loop-facts.js";
 import { failure } from "./size-observer-raw-layout.js";
+import { continuationCall } from "./size-observer-continuation.js";
 import type { ResidualFailure } from "./size-observer-raw-layout.js";
 import type { FinalObserverInput } from "./size-observers.js";
 
@@ -118,34 +119,25 @@ export function validateOriginalCallSites(
         );
     }
     // The entry function's last call may continue into its callee instead of
-    // calling it: the block then ends in a continuation carrying that call's
-    // own source span and naming the callee's entry.
-    const edge = block.terminator;
-    const last = calls[callOrdinal];
-    const continued =
-      (edge.kind === "jump" && edge.continuation === true) || edge.kind === "fallthrough"
-        ? edge
-        : undefined;
-    if (
-      last !== undefined &&
+    // calling it. Such an edge must stand for exactly the one source call this
+    // block has not yet emitted; any other edge into another body is refused.
+    const continued = continuationCall(
+      input,
+      fn,
+      block,
       callOrdinal === calls.length - 1 &&
-      continued?.source !== undefined &&
-      continued.source.sourceId === last.span.sourceId &&
-      continued.source.start === last.span.start &&
-      continued.source.end === last.span.end &&
-      fn.sourceFunction === input.checked.program.semantic.main &&
-      callees.has(bindingIdentityKey(last.callee))
-    ) {
-      const callee = entries.get(continued.target);
-      if (
-        callee?.sourceFunction !== undefined &&
-        bindingIdentityKey(callee.sourceFunction) === bindingIdentityKey(last.callee) &&
-        callee.executionContext?.domain === "main" &&
-        callee.executionContext.activationRoot === undefined &&
-        (callee.observerBodies?.length ?? 1) === 1
-      )
-        callOrdinal += 1;
-    }
+        callees.has(bindingIdentityKey(calls[callOrdinal]!.callee))
+        ? calls[callOrdinal]
+        : undefined,
+      shared.layout.program.functions,
+    );
+    if (continued === "unmatched")
+      return failure(
+        "rejected",
+        "Original continuation does not stand for its block's last source call",
+        loop.comparison.span,
+      );
+    if (continued === "matched") callOrdinal += 1;
     if (callOrdinal !== calls.length)
       return failure(
         "rejected",

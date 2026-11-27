@@ -383,4 +383,93 @@ describe("Original outside-loop call correspondence", () => {
       }
     },
   );
+
+  describe("the entry continuing into its last callee", () => {
+    /** Rewrite the closing call of main's loop-exit block as the continuation rule does. */
+    function continued(
+      input: Input,
+      side: Side,
+      edge: (target: string, source: MachineInstruction["source"]) => MachineBlock["terminator"],
+    ): Input {
+      const { fn } = owner(input, side);
+      return alter(input, side, (actual) =>
+        actual !== fn
+          ? actual
+          : {
+              ...actual,
+              blocks: actual.blocks.map((block) => {
+                const call = block.instructions.at(-1);
+                if (call?.opcode !== "jsr" || call.operand?.kind !== "label") return block;
+                return {
+                  ...block,
+                  instructions: block.instructions.slice(0, -1),
+                  terminator: edge(call.operand.label, call.source),
+                };
+              }),
+            },
+      );
+    }
+    const jump = (target: string, source: MachineInstruction["source"]) =>
+      Object.freeze({
+        kind: "jump" as const,
+        opcode: "jmp" as const,
+        target,
+        cost: Object.freeze({ bytes: 3, minCycles: 3, maxCycles: 3 }),
+        continuation: true as const,
+        ...(source == null ? {} : { source }),
+      });
+
+    it.each(["reference", "candidate"] as const)(
+      "accepts a continuation that stands for the last call in the %s",
+      (side) => {
+        const input = continued(effectFixture(OUTSIDE_CALL, "size", false, "original"), side, jump);
+        expect(local(input, side)).toBeNull();
+      },
+    );
+
+    it.each(["reference", "candidate"] as const)(
+      "refuses a fall-through into a callee that is not placed next in the %s",
+      (side) => {
+        const input = continued(
+          effectFixture(OUTSIDE_CALL, "size", false, "original"),
+          side,
+          (target, source) =>
+            Object.freeze({
+              kind: "fallthrough" as const,
+              target,
+              ...(source == null ? {} : { source }),
+            }),
+        );
+        expect(local(input, side)).toMatchObject({ kind: "rejected" });
+      },
+    );
+
+    it.each(["reference", "candidate"] as const)(
+      "refuses a continuation that stands for no remaining source call in the %s",
+      (side) => {
+        // `touch` is already called before the loop; main's final jump to the
+        // restoration redirected into `touch` would run it a second time.
+        const prefix = SOURCES.find(([name]) => name === "prefix")![1];
+        const input = effectFixture(prefix, "size", false, "original");
+        const { fn } = owner(input, side);
+        const touch = input[side].shared.layout.program.functions.find(
+          (candidate) =>
+            candidate !== fn && candidate.sourceFunction !== undefined && candidate.id !== fn.id,
+        )!;
+        const changed = alter(input, side, (actual) =>
+          actual !== fn
+            ? actual
+            : {
+                ...actual,
+                blocks: actual.blocks.map((block) =>
+                  block.terminator.kind === "jump" && block.terminator.target === "startup.restore"
+                    ? { ...block, terminator: jump(touch.id, undefined) }
+                    : block,
+                ),
+              },
+        );
+        expect(local(changed, side)).toMatchObject({ kind: "rejected" });
+      },
+    );
+  });
 });

@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { routineBody } from "./routine-reader.js";
 import { cachedBuildProject } from "../build-cache.js";
 import { withProfileProject } from "../rd05/profile-fixture.js";
 import { sourceLibraryProfiles } from "../rd05/source-library-fixture.js";
@@ -59,34 +60,16 @@ function wrap(): void { inner(); }
 function main(): void { apply(); wrap(); }`;
 
 /**
- * Instructions of one generated routine, without labels, origins or comments.
- * The assembler's operand-width hint is dropped and generated label identities
- * are collapsed, so nothing here depends on a chosen address or encoding.
- * A routine with no instructions of its own, whose address is that of the
- * routine placed next, reads as one line `falls into <that routine>`.
+ * Instructions of one generated routine, read by the shared reader. Only a
+ * caller that says so accepts a routine with no instructions of its own, which
+ * then reads as `falls into <the routine placed at the same address>`.
  */
-async function routine(directory: string, name: string): Promise<readonly string[]> {
-  const lines = (await readFile(join(directory, ".asm"), "utf8")).split("\n");
-  const body: string[] = [];
-  let inside = false;
-  for (const line of lines) {
-    if (new RegExp(`^b65_Game_${name}_`, "u").test(line)) {
-      inside = true;
-      continue;
-    }
-    if (inside && /^b65_/u.test(line) && !line.includes(`_${name}_`)) {
-      if (body.length === 0)
-        body.push(
-          `falls into ${line.replace(/:.*$/u, "").replace(/_[0-9a-f]{8}[0-9a-f]*/gu, "_")}`,
-        );
-      break;
-    }
-    const text = line.trim();
-    if (!inside || text.length === 0 || text.startsWith(";") || text.startsWith("*")) continue;
-    body.push(text.replace(/^(\w+)\+\d+/u, "$1").replace(/_[0-9a-f]{8}[0-9a-f]*/gu, "_"));
-  }
-  if (body.length === 0) throw new Error(`Missing generated routine Game.${name}`);
-  return body;
+async function routine(
+  directory: string,
+  name: string,
+  allowEmpty = false,
+): Promise<readonly string[]> {
+  return routineBody(await readFile(join(directory, ".asm"), "utf8"), name, allowEmpty);
 }
 
 /** Build one source on one profile at one goal and read the named routine. */
@@ -94,7 +77,11 @@ async function build(
   source: string,
   profile: string,
   optimization: "none" | "balanced" | "speed" | "size",
-  options: { readonly routine?: string; readonly boundsCheck?: boolean } = {},
+  options: {
+    readonly routine?: string;
+    readonly boundsCheck?: boolean;
+    readonly allowEmpty?: boolean;
+  } = {},
 ): Promise<readonly string[]> {
   return withProfileProject(source, profile, async (project) => {
     const built = await cachedBuildProject({
@@ -104,7 +91,11 @@ async function build(
     });
     if (built.kind !== "success")
       throw new Error(`Build failed: ${JSON.stringify(built.diagnostics)}`);
-    return routine(built.generation.directory, options.routine ?? "apply");
+    return routine(
+      built.generation.directory,
+      options.routine ?? "apply",
+      options.allowEmpty === true,
+    );
   });
 }
 
@@ -175,7 +166,10 @@ describe.each(sourceLibraryProfiles)("a next call that delegates its opening on 
   // The wrapper's call is in tail position, so it leaves through its callee;
   // the delivery above still follows the chain to `inner`'s opening load.
   it("should leave the wrapper through its callee", async () => {
-    const body = await build(nextCalleeIsWrapper, profile, "balanced", { routine: "wrap" });
+    const body = await build(nextCalleeIsWrapper, profile, "balanced", {
+      routine: "wrap",
+      allowEmpty: true,
+    });
     // The wrapper leaves by a jump to its callee, or holds nothing and falls into it.
     expect(body).toEqual([expect.stringMatching(/^(jmp|falls into) b65_Game_inner_$/u)]);
   }, 120_000);
